@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { userFacingError } from '@/lib/errorCopy';
 
 export default function LoyaltyRewards() {
   const [tab, setTab] = useState<'rules' | 'catalog' | 'redemptions' | 'sos'>('rules');
@@ -31,7 +32,7 @@ export default function LoyaltyRewards() {
       const s: any = await api.get('/admin/sos-vehicle-settings').catch(() => null);
       if (s) setSos(s);
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Load failed');
+      toast.error(userFacingError(e, { fallback: 'Load failed' }));
     }
   };
 
@@ -41,7 +42,7 @@ export default function LoyaltyRewards() {
       toast.success('Reward added');
       setNewItem({ ...newItem, title: '', description: '' });
       load();
-    } catch (e: any) { toast.error(e.response?.data?.message || 'Failed'); }
+    } catch (e: any) { toast.error(userFacingError(e, { fallback: 'Failed' })); }
   };
 
   const toggleCatalogItem = async (id: string, isActive: boolean) => {
@@ -58,14 +59,14 @@ export default function LoyaltyRewards() {
       await api.post('/loyalty/admin/earn-rule', { action, points, isActive: true });
       toast.success('Saved');
       load();
-    } catch (e: any) { toast.error(e.response?.data?.message || 'Save failed'); }
+    } catch (e: any) { toast.error(userFacingError(e, { fallback: 'Save failed' })); }
   };
 
   const saveSos = async () => {
     try {
       await api.put('/admin/sos-vehicle-settings', sos);
       toast.success('SOS settings saved');
-    } catch (e: any) { toast.error(e.response?.data?.message || 'Save failed'); }
+    } catch (e: any) { toast.error(userFacingError(e, { fallback: 'Save failed' })); }
   };
 
   return (

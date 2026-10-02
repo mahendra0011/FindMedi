@@ -1,0 +1,7 @@
+{
+  "eventType": "AssistantBookingCreated.v1",
+  "aggregateType": "AssistantBooking",
+  "aggregateId": "652f000000000000000000ff",
+  "userId": "652f000000000000000000fe",
+  "taskType": "prescription_pickup"
+}

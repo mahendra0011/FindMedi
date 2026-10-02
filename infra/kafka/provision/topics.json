@@ -1,0 +1,112 @@
+{
+  "topics": [
+    {
+      "name": "findmedi.dispatch.booking-events.v1",
+      "partitions": 6,
+      "replication": 1,
+      "principals": ["User:findmedi_dispatch", "User:findmedi_api"],
+      "retentionHours": 168,
+      "description": "Appointment/booking lifecycle events."
+    },
+    {
+      "name": "findmedi.telemetry.driver-locations.v1",
+      "partitions": 12,
+      "replication": 1,
+      "principals": ["User:findmedi_rides", "User:findmedi_analytics"],
+      "retentionHours": 24,
+      "description": "GPS traces. DL-14 — never queryable from Mongo (Spec 10)."
+    },
+    {
+      "name": "findmedi.provider.presence.v1",
+      "partitions": 6,
+      "replication": 1,
+      "principals": ["User:findmedi_dispatch", "User:findmedi_api"],
+      "retentionHours": 72
+    },
+    {
+      "name": "findmedi.billing.payment-events.v1",
+      "partitions": 6,
+      "replication": 1,
+      "principals": ["User:findmedi_billing", "User:findmedi_api"],
+      "retentionHours": 2160,
+      "description": "Payment state changes. Long retention for reconciliation."
+    },
+    {
+      "name": "findmedi.emergency.sos-alerts.v1",
+      "partitions": 3,
+      "replication": 1,
+      "principals": ["User:findmedi_emergency", "User:findmedi_api"],
+      "retentionHours": 720,
+      "description": "SOS alerts. PHI — restricted principals only."
+    },
+    {
+      "name": "findmedi.diagnostics.lab-order-events.v1",
+      "partitions": 6,
+      "replication": 1,
+      "principals": ["User:findmedi_lab", "User:findmedi_api"],
+      "retentionHours": 2160
+    },
+    {
+      "name": "findmedi.clinical.vitals-telemetry.v1",
+      "partitions": 12,
+      "replication": 1,
+      "principals": ["User:findmedi_clinical", "User:findmedi_analytics"],
+      "retentionHours": 336
+    },
+    {
+      "name": "findmedi.hospital.admission-events.v1",
+      "partitions": 6,
+      "replication": 1,
+      "principals": ["User:findmedi_hospital", "User:findmedi_api"],
+      "retentionHours": 2160
+    },
+    {
+      "name": "findmedi.pharmacy.inventory-delta.v1",
+      "partitions": 3,
+      "replication": 1,
+      "principals": ["User:findmedi_pharmacy", "User:findmedi_api"],
+      "retentionHours": 720
+    },
+    {
+      "name": "findmedi.retry.5s",
+      "partitions": 3,
+      "replication": 1,
+      "principals": ["User:findmedi_api", "User:findmedi_dispatch", "User:findmedi_billing"]
+    },
+    {
+      "name": "findmedi.retry.30s",
+      "partitions": 3,
+      "replication": 1,
+      "principals": ["User:findmedi_api", "User:findmedi_dispatch", "User:findmedi_billing"]
+    },
+    {
+      "name": "findmedi.dlq",
+      "partitions": 3,
+      "replication": 1,
+      "principals": ["User:findmedi_api"],
+      "retentionHours": 2160,
+      "description": "Dead-letter queue. Read access is a break-glass action."
+    },
+    {
+      "name": "findmedi.identity.user-deleted.v1",
+      "partitions": 3,
+      "replication": 1,
+      "principals": ["User:findmedi_api", "User:findmedi_analytics"],
+      "retentionHours": 2160,
+      "description": "User deletion tombstones (DP-M-04). Erasure propagation to analytics copies; long retention so downstream stores that are offline for a while still receive it."
+    }
+  ],
+  "users": [
+    { "name": "findmedi_admin",     "role": "superuser",    "purpose": "Provisioning only. Never used by an application." },
+    { "name": "findmedi_api",      "role": "app",         "purpose": "Publishing/consuming its own events." },
+    { "name": "findmedi_dispatch", "role": "app",         "purpose": "Booking + provider presence." },
+    { "name": "findmedi_billing",  "role": "app",         "purpose": "Payment events." },
+    { "name": "findmedi_emergency","role": "app",         "purpose": "SOS alerts." },
+    { "name": "findmedi_lab",      "role": "app",         "purpose": "Lab order events." },
+    { "name": "findmedi_clinical", "role": "app",         "purpose": "Vitals telemetry." },
+    { "name": "findmedi_hospital", "role": "app",         "purpose": "Admission events." },
+    { "name": "findmedi_pharmacy", "role": "app",         "purpose": "Inventory deltas." },
+    { "name": "findmedi_rides",    "role": "app",         "purpose": "Driver GPS telemetry." },
+    { "name": "findmedi_analytics","role": "app",         "purpose": "Read-only analytics consumer." }
+  ]
+}

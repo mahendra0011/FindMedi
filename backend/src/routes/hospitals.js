@@ -12,12 +12,15 @@ import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 import { getCache, setCache, flushCachePattern } from '../config/redis.js';
 import { paginatedResults } from '../utils/pagination.js';
+import { randomPassword } from '../utils/secureRandom.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
-    const cacheKey = `hospitals_list_${JSON.stringify(req.query)}`;
+    // AUTH-027: role-scoped key (see doctors.js) + private cache directive.
+    const cacheKey = `hospitals_list_${req.user?.role || 'anon'}:${req.user?._id || 'none'}:${JSON.stringify(req.query)}`;
     const cached = await getCache(cacheKey);
     if (cached) {
       res.setHeader('X-Cache', 'HIT');
@@ -45,13 +48,13 @@ router.get('/', async (req, res) => {
 
     if (search) {
       filter.$or = [
-        { name: new RegExp(search, 'i') },
-        { city: new RegExp(search, 'i') },
-        { description: new RegExp(search, 'i') },
+        { name: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { city: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { description: new RegExp(escapeRegex(capSearch(search)), 'i') },
       ];
     }
-    if (city) filter.city = new RegExp(city, 'i');
-    if (specialty) filter.specialties = new RegExp(specialty, 'i');
+    if (city) filter.city = new RegExp(escapeRegex(capSearch(city)), 'i');
+    if (specialty) filter.specialties = new RegExp(escapeRegex(capSearch(specialty)), 'i');
 
     const { page, limit } = req.query;
     const result = await paginatedResults(Hospital, filter, { page, limit, sort: { createdAt: -1 } });
@@ -113,11 +116,12 @@ router.post('/register', validate(registerHospitalSchema), async (req, res) => {
       status: 'pending',
     });
 
-    const tempPassword = Math.random().toString(36).slice(-10);
+    const tempPassword = randomPassword(12);
     const admin = await User.create({
       name: adminName,
       email: adminEmail.toLowerCase(),
       password: tempPassword,
+      mustResetPassword: true,
       role: 'hospital_admin',
       phone: adminPhone || '',
       hospitalId: hospital._id,
@@ -299,7 +303,8 @@ router.post('/ambulances/:id/resend-invite', protect, hospitalAdminOnly, async (
     if (existing && String(existing._id) === String(ambulance.userId)) {
       // Re-issue token only
       const jwt = (await import('jsonwebtoken')).default;
-      const token = jwt.sign({ email: ambulance.loginEmail.toLowerCase(), type: 'ambulance_setup' }, process.env.JWT_SECRET, { expiresIn: '48h' });
+      const crypto = (await import('node:crypto')).default;
+      const token = jwt.sign({ email: ambulance.loginEmail.toLowerCase(), type: 'ambulance_setup', jti: crypto.randomBytes(12).toString('hex') }, process.env.JWT_SECRET, { expiresIn: '48h' });
       return res.json({ success: true, message: 'Invite re-issued' });
     }
     if (existing) return res.status(400).json({ message: 'Is email se user pehle se hai' });
@@ -410,7 +415,16 @@ router.put('/ambulances/:id/location', protect, async (req, res) => {
       return res.status(400).json({ message: 'Latitude and longitude are required' });
     }
 
-    const ambulance = await Ambulance.findByIdAndUpdate(
+    const ambulance = await Ambulance.findById(req.params.id);
+    if (!ambulance) return res.status(404).json({ message: 'Ambulance not found' });
+
+    const isHospitalOwner = ambulance.hospitalId?.toString() === req.user.hospitalId?.toString();
+    const isSuperAdmin = req.user.role === 'superadmin';
+    if (!isHospitalOwner && !isSuperAdmin) {
+      return res.status(403).json({ message: 'Not authorized to update this ambulance location' });
+    }
+
+    await Ambulance.findByIdAndUpdate(
       req.params.id,
       {
         'currentLocation.coordinates': [Number(lng), Number(lat)],
@@ -419,7 +433,6 @@ router.put('/ambulances/:id/location', protect, async (req, res) => {
       { new: true }
     );
 
-    if (!ambulance) return res.status(404).json({ message: 'Ambulance not found' });
     res.json({ success: true, lat, lng });
   } catch (err) {
     res.status(500).json({ message: err.message });

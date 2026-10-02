@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { randomDigits } from '../utils/secureRandom.js';
 
 const caseNoteSchema = new mongoose.Schema({
   note: { type: String, required: true },
@@ -12,7 +13,7 @@ const lawyerBookingSchema = new mongoose.Schema({
     type: String,
     unique: true,
     index: true,
-    default: () => `LWB-${Math.floor(100000 + Math.random() * 900000)}`,
+    default: () => `LWB-${randomDigits(6)}`,
   },
   caseThreadId: {
     type: mongoose.Schema.Types.ObjectId,

@@ -1,0 +1,1280 @@
+{
+  "total": 140,
+  "byVerdict": {
+    "UNVERIFIED": 136,
+    "STALE-REFS": 3,
+    "CLAIM-CONTRADICTED": 1
+  },
+  "results": [
+    {
+      "id": "APPT-M-07",
+      "phase": "1",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "End-to-end booking journey tests missing (pre-overhaul)"
+    },
+    {
+      "id": "AUTH-M-01",
+      "phase": "1",
+      "priority": "High",
+      "verdict": "STALE-REFS",
+      "present": [],
+      "missingFiles": [
+        "`backend"
+      ],
+      "title": "No refresh-token reuse detection wired into request path"
+    },
+    {
+      "id": "AUTH-M-03",
+      "phase": "1",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Account-lockout after N failed logins"
+    },
+    {
+      "id": "AUTHZ-M-01",
+      "phase": "1",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Central object-authorization layer"
+    },
+    {
+      "id": "AUTHZ-M-02",
+      "phase": "1",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Deny-by-default route tagging & manifest"
+    },
+    {
+      "id": "AUTHZ-M-07",
+      "phase": "1",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Authorization test coverage matrix"
+    },
+    {
+      "id": "CHAT-M-07",
+      "phase": "1",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Realtime ACL regression tests"
+    },
+    {
+      "id": "DLM-01",
+      "phase": "1",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "No centralized object-level authorization layer (the root cause behind DLB-04..DLB-11)"
+    },
+    {
+      "id": "FE-M-07",
+      "phase": "1",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Frontend test depth (pre-overhaul)"
+    },
+    {
+      "id": "INF-M-07",
+      "phase": "1",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Certificate management automation"
+    },
+    {
+      "id": "PAY-M-07",
+      "phase": "1",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Missing critical-path payment tests"
+    },
+    {
+      "id": "TEST-M-01",
+      "phase": "1",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Backend integration/API suite (Phase 1 gap — planned next)"
+    },
+    {
+      "id": "TEST-M-02",
+      "phase": "1",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Authorization (role × route) matrix tests"
+    },
+    {
+      "id": "TEST-M-03",
+      "phase": "1",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "IDOR suite"
+    },
+    {
+      "id": "ADM-M-07",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Deletion/retention workflows (DPDP)"
+    },
+    {
+      "id": "AUTHZ-M-03",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Step-up authentication (MFA re-prompt) for sensitive actions"
+    },
+    {
+      "id": "CHAT-M-04",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Offline push delivery guarantees"
+    },
+    {
+      "id": "DLM-02",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Consent & purpose-of-use ledger (DPDP)"
+    },
+    {
+      "id": "DLM-03",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Field-level classification & response filtering"
+    },
+    {
+      "id": "DLM-06",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Erasure/retention automation"
+    },
+    {
+      "id": "DOC-M-01",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "No API reference for consumers"
+    },
+    {
+      "id": "DOC-M-03",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Data dictionary / model reference"
+    },
+    {
+      "id": "DOC-M-07",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Incident & breach-notification playbook"
+    },
+    {
+      "id": "DP-M-01",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Schema Registry enforcement missing"
+    },
+    {
+      "id": "DP-M-02",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Dead-letter queue & replay tooling not wired end-to-end"
+    },
+    {
+      "id": "DP-M-04",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "GDPR/DPDP erasure propagation to analytics stores"
+    },
+    {
+      "id": "FE-M-01",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "No error boundaries / global crash recovery"
+    },
+    {
+      "id": "INF-M-01",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "CI/CD pipeline gaps (quality gates exist — deploy/vuln-scan do not)"
+    },
+    {
+      "id": "INF-M-02",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Observability stack incomplete"
+    },
+    {
+      "id": "INF-M-05",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Dependency & image vulnerability scanning"
+    },
+    {
+      "id": "LAB-M-01",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Reference ranges & abnormal-flag rendering"
+    },
+    {
+      "id": "MIND-M-04",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Consent & data-retention controls specific to mental health"
+    },
+    {
+      "id": "NOTIF-M-01",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "No mobile push (FCM/APNs) integration"
+    },
+    {
+      "id": "NOTIF-M-03",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Reminder scheduling engine gaps"
+    },
+    {
+      "id": "PAY-M-01",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "No real gateway integration (demo-only money movement)"
+    },
+    {
+      "id": "PAY-M-06",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Currency/rounding policy undefined"
+    },
+    {
+      "id": "PHARM-M-02",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Drug interaction / contraindication checks"
+    },
+    {
+      "id": "REC-M-02",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Record versioning & immutable audit trail for edits"
+    },
+    {
+      "id": "RUST-M-01",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "No CI build/test matrix for the native module"
+    },
+    {
+      "id": "TEST-M-04",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Frontend component tests"
+    },
+    {
+      "id": "TEST-M-05",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Socket/realtime tests"
+    },
+    {
+      "id": "TEST-M-08",
+      "phase": "2",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Security regression pack"
+    },
+    {
+      "id": "ADM-M-02",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Admin action audit trail not surfaced"
+    },
+    {
+      "id": "ADM-M-04",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Platform feature flags / kill switches"
+    },
+    {
+      "id": "ADM-M-05",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Admin dashboard freshness/health widgets"
+    },
+    {
+      "id": "ADM-M-06",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Rate-limit/quota management per tenant"
+    },
+    {
+      "id": "APPT-M-06",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Doctor-side bulk slot management gaps"
+    },
+    {
+      "id": "AUTH-M-02",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "STALE-REFS",
+      "present": [],
+      "missingFiles": [
+        "`backend",
+        "`frontend"
+      ],
+      "title": "No device/session management for patients"
+    },
+    {
+      "id": "AUTH-M-04",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "STALE-REFS",
+      "present": [],
+      "missingFiles": [
+        "`backend",
+        "`auth.js` handlers"
+      ],
+      "title": "Password policy not verified server-side on all paths"
+    },
+    {
+      "id": "AUTH-M-05",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "No CAPTCHA / bot protection on signup & OTP request"
+    },
+    {
+      "id": "CHAT-M-02",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Attachments in chat lack scanning & size/type policy surfaced to users"
+    },
+    {
+      "id": "CHAT-M-06",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Moderation & report abuse flow"
+    },
+    {
+      "id": "DLM-05",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "DLP monitoring & anomaly detection"
+    },
+    {
+      "id": "DLM-07",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Third-party data-sharing register"
+    },
+    {
+      "id": "DLM-08",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Log retention & access control"
+    },
+    {
+      "id": "DLM-09",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Penetration-test readiness pack"
+    },
+    {
+      "id": "DOC-M-04",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "QA & release documentation"
+    },
+    {
+      "id": "INS-M-02",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Cashless vs reimbursement workflow distinction"
+    },
+    {
+      "id": "LAB-M-02",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Report PDF generation & e-signature"
+    },
+    {
+      "id": "LAW-M-01",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Escrow settlement timeline & refund path incomplete"
+    },
+    {
+      "id": "LAW-M-02",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Bar-council verification evidence store"
+    },
+    {
+      "id": "LOYAL-M-02",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Refund/reverse loyalty points on cancelled bookings"
+    },
+    {
+      "id": "MIND-M-01",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "PHQ-9/GAD-7 style validated screening tools"
+    },
+    {
+      "id": "MIND-M-02",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Counselor availability & session scheduling"
+    },
+    {
+      "id": "NOTIF-M-02",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "No preferences/DND per channel"
+    },
+    {
+      "id": "NOTIF-M-04",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "CLAIM-CONTRADICTED",
+      "present": [
+        "/delivered/read"
+      ],
+      "missingFiles": [],
+      "title": "Delivery receipts & retry to dead-letter"
+    },
+    {
+      "id": "NOTIF-M-06",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Notification audit trail"
+    },
+    {
+      "id": "PAY-M-02",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "No wallet top-up KYC / limits"
+    },
+    {
+      "id": "PAY-M-03",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Payout ledger reconciliation report"
+    },
+    {
+      "id": "PHARM-M-01",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Inventory expiry / batch (FEFO) management"
+    },
+    {
+      "id": "PHARM-M-04",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Delivery tracking for pharmacy orders"
+    },
+    {
+      "id": "REC-M-04",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Health-ID sharing receipts & revocation propagation"
+    },
+    {
+      "id": "RIDE-M-03",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Toll/parking/extra-charge handling absent"
+    },
+    {
+      "id": "RIDE-M-04",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Driver earnings & payout statement gaps"
+    },
+    {
+      "id": "RIDE-M-06",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Offline/low-connectivity dispatch handling"
+    },
+    {
+      "id": "RUST-M-06",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Telemetry for native-module health"
+    },
+    {
+      "id": "TEST-M-06",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Contract tests (OpenAPI ↔ handlers ↔ frontend client)"
+    },
+    {
+      "id": "TEST-M-07",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Migration/seed idempotency tests"
+    },
+    {
+      "id": "TEST-M-10",
+      "phase": "2",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Release-level test evidence"
+    },
+    {
+      "id": "DLM-04",
+      "phase": "3",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Encryption-at-rest & key management"
+    },
+    {
+      "id": "REC-M-01",
+      "phase": "3",
+      "priority": "High",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "ABDM integration is simulated, not connected"
+    },
+    {
+      "id": "ADM-M-01",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Bulk/batch operations missing"
+    },
+    {
+      "id": "APPT-M-01",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "No waitlist / cancellation backfill"
+    },
+    {
+      "id": "APPT-M-02",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Recurring appointment series not supported"
+    },
+    {
+      "id": "APPT-M-04",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "No no-show policy automation"
+    },
+    {
+      "id": "AUTHZ-M-04",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Permission versioning & revocation propagation"
+    },
+    {
+      "id": "AUTHZ-M-05",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Service-to-service / internal API auth"
+    },
+    {
+      "id": "AUTHZ-M-06",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Break-glass emergency access workflow"
+    },
+    {
+      "id": "CHAT-M-01",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "End-to-end encryption for medical conversations"
+    },
+    {
+      "id": "CHAT-M-03",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Message retention / deletion policy"
+    },
+    {
+      "id": "DOC-M-02",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Architecture Decision Records (ADRs)"
+    },
+    {
+      "id": "DP-M-03",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Lake (Hudi) coverage limited to ride telemetry"
+    },
+    {
+      "id": "DP-M-05",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Data catalog & lineage"
+    },
+    {
+      "id": "DP-M-06",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Backfill/reindex runbook"
+    },
+    {
+      "id": "FE-M-02",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Accessibility (a11y) not audited"
+    },
+    {
+      "id": "FE-M-03",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Internationalization (i18n) missing"
+    },
+    {
+      "id": "FE-M-04",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Offline / low-network mode"
+    },
+    {
+      "id": "FE-M-05",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Consistent loading/empty/error states"
+    },
+    {
+      "id": "FE-M-06",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Design-system/token discipline"
+    },
+    {
+      "id": "FE-M-08",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Performance budgets & bundle analysis"
+    },
+    {
+      "id": "INF-M-03",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Blue/green or canary deploys"
+    },
+    {
+      "id": "INF-M-04",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Environment parity & IaC"
+    },
+    {
+      "id": "INF-M-06",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Load & chaos testing in pipeline"
+    },
+    {
+      "id": "INF-M-08",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Incident response & on-call runbooks"
+    },
+    {
+      "id": "INS-M-01",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "No TPA/payer integration or e-claim export"
+    },
+    {
+      "id": "LAB-M-03",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Sample chain-of-custody incomplete"
+    },
+    {
+      "id": "LAB-M-04",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Home collection scheduling"
+    },
+    {
+      "id": "LOYAL-M-01",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Loyalty program rules engine"
+    },
+    {
+      "id": "LOYAL-M-03",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Consent for marketing communication via rewards"
+    },
+    {
+      "id": "NOTIF-M-05",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Template management & i18n"
+    },
+    {
+      "id": "PAY-M-04",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Payment receipts do not carry GST fields consistently"
+    },
+    {
+      "id": "PAY-M-05",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "No chargeback/dispute workflow"
+    },
+    {
+      "id": "REC-M-03",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Clinical coding & structured data"
+    },
+    {
+      "id": "REC-M-05",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Prescription integrity (QR/signature verification)"
+    },
+    {
+      "id": "REC-M-06",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Longitudinal record timeline & cross-provider summary"
+    },
+    {
+      "id": "RIDE-M-01",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "No scheduled/priority ride booking"
+    },
+    {
+      "id": "RIDE-M-02",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Missing accessibility & women-safety options"
+    },
+    {
+      "id": "RIDE-M-05",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Emergency post-incident report/audit trail"
+    },
+    {
+      "id": "RIDE-M-07",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Location-sharing consent for passengers"
+    },
+    {
+      "id": "RUST-M-02",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Benchmarks not enforced"
+    },
+    {
+      "id": "RUST-M-03",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Fuzzing for parsers (CSV/PDF/image)"
+    },
+    {
+      "id": "RUST-M-04",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Cross-platform artifacts (arm64/macOS)"
+    },
+    {
+      "id": "TEST-M-09",
+      "phase": "3",
+      "priority": "Medium",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Visual regression & a11y tests"
+    },
+    {
+      "id": "ADM-M-03",
+      "phase": "3",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Impersonation (support view-as) missing"
+    },
+    {
+      "id": "APPT-M-03",
+      "phase": "3",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Calendar sync (Google/ICS) missing"
+    },
+    {
+      "id": "APPT-M-05",
+      "phase": "3",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Multi-provider (hospital) availability aggregation"
+    },
+    {
+      "id": "AUTH-M-06",
+      "phase": "3",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "JWT key rotation & kid header"
+    },
+    {
+      "id": "AUTH-M-07",
+      "phase": "3",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Security headers/CSP hardening not verified end-to-end"
+    },
+    {
+      "id": "AUTH-M-08",
+      "phase": "3",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Login anomaly alerts"
+    },
+    {
+      "id": "CHAT-M-05",
+      "phase": "3",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Search within conversation missing"
+    },
+    {
+      "id": "DOC-M-06",
+      "phase": "3",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Localization-ready content process"
+    },
+    {
+      "id": "INS-M-03",
+      "phase": "3",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Policy document vault & OCR"
+    },
+    {
+      "id": "LAW-M-03",
+      "phase": "3",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Conflict-of-interest & engagement-letter flow"
+    },
+    {
+      "id": "MIND-M-03",
+      "phase": "3",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Anonymized mode for sensitive sessions"
+    },
+    {
+      "id": "PHARM-M-03",
+      "phase": "3",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Substitution & generic-alternative workflow"
+    },
+    {
+      "id": "PHARM-M-05",
+      "phase": "3",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Prescription OCR/upload ingestion"
+    },
+    {
+      "id": "RUST-M-05",
+      "phase": "3",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "API surface documentation & versioning"
+    },
+    {
+      "id": "DOC-M-05",
+      "phase": "4",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "User/admin help content"
+    },
+    {
+      "id": "DP-M-07",
+      "phase": "4",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Feature-store / ML pipeline for triage & surge"
+    },
+    {
+      "id": "REC-M-07",
+      "phase": "4",
+      "priority": "Low",
+      "verdict": "UNVERIFIED",
+      "present": [],
+      "missingFiles": [],
+      "title": "Data-import paths (previous-hospital records)"
+    }
+  ]
+}

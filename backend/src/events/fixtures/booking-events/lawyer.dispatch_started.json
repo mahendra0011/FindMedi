@@ -1,0 +1,10 @@
+{
+  "eventType": "lawyer.dispatch_started",
+  "aggregateType": "LawyerBooking",
+  "aggregateId": "652f00000000000000000002",
+  "status": "searching",
+  "radiiKm": [
+    3,
+    6
+  ]
+}

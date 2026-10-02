@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package findmedi.matching.v1;
+
+// Spec 18: internal RPC. External stays REST/Socket.IO; Node↔Node and
+// Node↔Rust workers talk gRPC HTTP/2 binary via this contract.
+service MatchingEngineService {
+  rpc FindCandidates (CandidateRequest) returns (CandidateResponse);
+  rpc LockAndAssign (AssignRequest) returns (AssignResponse);
+}
+
+message CandidateRequest {
+  string vertical = 1;        // rider|lawyer|assistant|sos|doctor
+  double pickup_lat = 2;
+  double pickup_lng = 3;
+  int32 max_candidates = 4;
+  int32 max_k_ring = 5;
+}
+
+message Candidate {
+  string provider_id = 1;
+  double lat = 2;
+  double lng = 3;
+  double road_duration_s = 4;
+  double distance_km = 5;
+}
+
+message CandidateResponse {
+  repeated Candidate candidates = 1;
+}
+
+message AssignRequest {
+  string booking_id = 1;
+  string provider_id = 2;
+  string idempotency_key = 3; // required: duplicate key → single assignment
+}
+
+message AssignResponse {
+  bool assigned = 1;
+  string reason = 2;          // ASSIGNED | ALREADY_ENGAGED | BOOKING_GONE
+}

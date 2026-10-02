@@ -84,15 +84,23 @@ const MAGIC_BYTES = {
 
 const isZipType = (mimetype) => mimetype.includes('officedocument');
 
-// ClamAV malware scan — env-gated and fail-open by design:
+// ClamAV malware scan — env-gated:
 // - CLAMAV_HOST unset → scan skipped (dev/test default).
-// - Any scanner/connection error → treated as clean (upload never blocked).
+// - Scanner/connection error → fail-open, UNLESS CLAMAV_REQUIRED=true
+//   (AUTH-021: production medical uploads must refuse unscanned files).
 // Set CLAMAV_HOST (+ CLAMAV_PORT, default 3310) where a clamd sidecar runs.
 let _clamavScanner = null;
 let _clamavFailed = false;
 
-async function scanBufferForMalware(buffer) {
-  if (!process.env.CLAMAV_HOST || _clamavFailed) return { clean: true, skipped: true };
+const clamavRequired = () => process.env.CLAMAV_REQUIRED === 'true';
+
+// CHAT-M-02: exported so chatUploadService can run the same scanner on
+// base64 chat uploads (it previously served only the multer middleware path).
+export async function scanBufferForMalware(buffer) {
+  if (!process.env.CLAMAV_HOST || _clamavFailed) {
+    if (clamavRequired()) return { clean: false, skipped: false, blocked: true };
+    return { clean: true, skipped: true };
+  }
   try {
     if (!_clamavScanner) {
       // clamav.js@0.12 exports an *instance*: `createScanner(port, host)`.
@@ -121,6 +129,7 @@ async function scanBufferForMalware(buffer) {
       const logger = (await import('../config/logger.js')).default;
       logger.warn(`ClamAV scan skipped (fail-open): ${err.message}`);
     } catch {}
+    if (clamavRequired()) return { clean: false, skipped: false, blocked: true };
     return { clean: true, skipped: true };
   }
 }
@@ -135,7 +144,10 @@ export function validateFileContent(buffer, mimetype) {
   if (!buffer || buffer.length < 4) return false;
 
   const signatures = MAGIC_BYTES[mimetype];
-  if (!signatures) return true; // Unknown type — allow (MIME filter already checked)
+  // AUTH-021: unknown MIME → reject (fail-closed). The route-level MIME filter
+  // must already have passed, so reaching here with an unknown type is a
+  // bypass attempt, not a legit file.
+  if (!signatures) return false;
 
   for (const sig of signatures) {
     if (buffer.slice(0, sig.length).equals(sig)) {
@@ -166,7 +178,7 @@ export function requireValidatedFile(allowedTypes, maxFileSize) {
       });
     }
     // ClamAV malware scan — env-gated (CLAMAV_HOST unset = skip) and
-    // fail-open: scanner errors never block uploads.
+    // fail-open, unless CLAMAV_REQUIRED=true blocks unscanned files.
     try {
       const { clean, malware } = await scanBufferForMalware(req.file.buffer);
       if (!clean) {

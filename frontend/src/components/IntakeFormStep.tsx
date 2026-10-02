@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Upload, Loader2, FileText, CheckCircle2, ChevronDown, ChevronUp, ArrowRight, Camera, FolderOpen } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { userFacingError } from '@/lib/errorCopy';
 
 export default function IntakeFormStep({ formData, setFormData, onNext, onBack }: any) {
   const [uploadingPrescription, setUploadingPrescription] = useState(false);
@@ -63,7 +64,7 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
       }
     } catch (err) {
       console.error('Upload error:', err);
-      const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to upload file';
+      const errorMsg = err.response?.data?.error || userFacingError(err, { fallback: 'Failed to upload file' });
       toast.error(`Upload failed: ${errorMsg}. Please try again.`);
     } finally {
       setUploading(false);

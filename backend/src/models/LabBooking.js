@@ -3,6 +3,12 @@ import mongoose from 'mongoose';
 const labBookingSchema = new mongoose.Schema({
   bookingId: { type: String, required: true, unique: true },
   patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  // LAB-B-06: identity of the account that created a walk-in booking. A booking is
+  // reachable by its OWNER through an id, never through a patient-name match —
+  // two users with the same name must not see each other's tests or results.
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
+  // Set explicitly when staff book on behalf of a walk-in who has an account.
+  createdForUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
   patientName: { type: String, required: true },
   patientPhone: { type: String },
   patientEmail: { type: String },

@@ -3,7 +3,7 @@ import LawyerBooking from '../models/LawyerBooking.js';
 import LawyerProfile from '../models/LawyerProfile.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { protect } from '../middleware/auth.js';
+import { protect, authorize } from '../middleware/auth.js';
 import { bookingLimiter } from '../middleware/rateLimit.js';
 import {
   validate,
@@ -26,9 +26,66 @@ import logger from '../config/logger.js';
 
 const router = express.Router();
 
+// LAW-002/005: shared booking access assertion
+// Returns the booking if caller may act on it, else throws 403/404.
+//
+// LAW-B-03: this is the SINGLE guard every mutation route uses, and it is called
+// FIRST — before any write, notification or escrow side effect — so a
+// non-participant probing ids cannot cause side effects by rejection.
+//
+// LAW-B-03 (critical): the client check read `booking.clientId`, but
+// LawyerBooking has NO `clientId` field — the field is `userId`. The expression
+// was `undefined?.toString() === req.user._id.toString()`, which is ALWAYS false.
+// Consequences: every client-owned permission (read, holdRetainer, cancel,
+// reschedule, rate) was silently denied to the actual client, while the routes
+// that did NOT use this helper compared `booking.userId` correctly and therefore
+// behaved differently from the guarded ones. Two sources of truth, one of them
+// broken. It is now `userId`, matching the model and the other call sites.
+async function assertBookingAccess(req, bookingId, action) {
+  const booking = await LawyerBooking.findById(bookingId);
+  if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
+  const isClient = booking.userId?.toString() === req.user._id.toString();
+  const isLawyer = booking.lawyerId?.toString() === req.user._id.toString();
+  const isAdmin = ['superadmin', 'hospital_admin'].includes(req.user.role);
+  // Actions permitted per role
+  const perms = {
+    read: isClient || isLawyer || isAdmin,
+    holdRetainer: isClient || isAdmin,
+    accept: isLawyer || isAdmin,
+    proposeTime: isLawyer || isAdmin,
+    decline: isLawyer || isAdmin,
+    start: isLawyer || isAdmin,
+    complete: isLawyer || isAdmin,
+    cancel: isClient || isLawyer || isAdmin,
+    reschedule: isClient || isLawyer || isAdmin,
+    note: isLawyer || isClient || isAdmin,
+    rate: isClient,
+    receipt: isClient || isLawyer || isAdmin,
+    followUp: isClient || isLawyer || isAdmin,
+    broadcastFallback: isLawyer || isAdmin,
+    acceptProposedTime: isClient || isAdmin,
+    document: isClient || isLawyer || isAdmin,
+  };
+  const allowed = perms[action];
+  if (!allowed) {
+    // LAW-B-03: log the denial. Repeated denials on one id are how a caller
+    // enumerates which booking ids exist, and a silent 403 leaves no trace.
+    logger.warn(
+      `LAW-B-03: booking access denied user=${req.user._id} role=${req.user.role} `
+      + `booking=${bookingId} action=${action} isClient=${isClient} isLawyer=${isLawyer}`
+    );
+    // 403, not 404: the caller is already authenticated and has named an action;
+    // hiding existence here would only make legitimate support calls harder.
+    throw Object.assign(new Error('Not authorized for this booking'), { status: 403 });
+  }
+  return booking;
+}
+
+
+
 // ─── POST /api/lawyer-booking/book ─────────────────────────────────────────
 // Create a new legal consultation booking (Paths A, B, and C)
-router.post('/book', protect, validate(bookLawyerSchema), bookingLimiter, async (req, res) => {
+router.post('/book', protect, authorize('legal:book'), validate(bookLawyerSchema), bookingLimiter, async (req, res) => {
   try {
     const {
       lawyerId,
@@ -152,17 +209,13 @@ router.post('/book', protect, validate(bookLawyerSchema), bookingLimiter, async 
 
 // ─── POST /api/lawyer-booking/:id/broadcast-fallback ───────────────────────
 // Convert targeted urgent request to broadcast after timeout or advocate offline (LC03 §4.3)
-router.post('/:id/broadcast-fallback', protect, async (req, res) => {
+router.post('/:id/broadcast-fallback', protect, authorize('legal:write'), async (req, res) => {
   try {
-    const booking = await LawyerBooking.findById(req.params.id);
-    if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
-    }
-
-    const isClient = String(booking.userId) === String(req.user._id);
-    if (!isClient && req.user.role !== 'superadmin') {
-      return res.status(403).json({ message: 'Not authorized to convert this booking' });
-    }
+    // LAW-B-03: the inline isClient/superadmin check is replaced by the shared
+    // guard (action `broadcastFallback`), so the ownership rule and the
+    // role matrix stay in one place. The guard runs before any mutation, so a
+    // non-participant cannot flip `targetLawyerOnly` or re-broadcast the job.
+    const booking = await assertBookingAccess(req, req.params.id, 'broadcastFallback');
 
     if (['confirmed', 'in_progress', 'completed', 'cancelled_by_user', 'cancelled_by_lawyer'].includes(booking.status)) {
       return res.status(400).json({ message: `Cannot broadcast a consultation in ${booking.status} status` });
@@ -195,29 +248,66 @@ router.post('/:id/broadcast-fallback', protect, async (req, res) => {
 
 // ─── POST /api/lawyer-booking/:id/hold-retainer ────────────────────────────
 // Spec 06: pre-authorize consultation retainer in demo escrow (HELD, released on sign-off).
-router.post('/:id/hold-retainer', protect, async (req, res) => {
+router.post('/:id/hold-retainer', protect, authorize('legal:write'), async (req, res) => {
   try {
-    const booking = await LawyerBooking.findById(req.params.id);
-    if (!booking) return res.status(404).json({ message: 'Booking not found' });
-    if (String(booking.userId) !== String(req.user._id) && req.user.role !== 'superadmin') {
-      return res.status(403).json({ message: 'Not authorized to hold retainer for this booking' });
+    // LAW-B-03: guard FIRST, before any side effect. `assertBookingAccess` both
+    // authorises and returns the booking, so a non-participant gets a 404 without
+    // an escrow hold ever being attempted.
+    const booking = await assertBookingAccess(req, req.params.id, 'holdRetainer');
+
+    // LAW-B-02: the retainer amount is SERVER-DERIVED, not client-supplied.
+    // Previously `Number(req.body.amount) || booking.fee || 800`, so a client
+    // could post `amount: 1` and hold a Rs.1 escrow against a Rs.50,000 case —
+    // under-paying the platform's cut and the lawyer's retainer while the booking
+    // shows as "held".
+    //
+    // The agreed fee is the source of truth. A client-sent amount is only
+    // accepted as a CHECKSUM: it must not exceed the agreed fee, and any
+    // difference is logged rather than silently honoured.
+    const agreedFee = Number(booking.fee) || 0;
+    const profile = await LawyerProfile.findById(booking.lawyerId)
+      .select('consultationFee')
+      .lean();
+    // Fall back to the lawyer's published consultation fee when the booking has
+    // no recorded fee (older rows).
+    const serverAmount = agreedFee > 0 ? agreedFee : Number(profile?.consultationFee) || 0;
+
+    if (!(serverAmount > 0)) {
+      return res.status(409).json({ message: 'No agreed fee on this booking — confirm the fee first' });
     }
-    const amount = Number(req.body.amount) || Number(booking.fee) || 800;
+
+    const requested = Number(req.body.amount);
+    if (Number.isFinite(requested) && requested > 0 && requested !== serverAmount) {
+      logger.warn(
+        `LAW-B-02: retainer amount mismatch booking=${booking._id} `
+        + `requested=${requested} server=${serverAmount} — using the server amount`
+      );
+    }
+
     const { holdDemoEscrow } = await import('./demoPayment.js');
     const { payment, newBalance } = await holdDemoEscrow({
       userId: req.user._id,
-      amount,
+      amount: serverAmount,
       ref: { bookingType: 'lawyer', lawyerBookingId: booking._id, lawyerId: booking.lawyerId },
     });
-    res.status(201).json({ success: true, message: 'Retainer held in demo escrow', payment, demoWalletBalance: newBalance });
+    res.status(201).json({
+      success: true,
+      message: 'Retainer held in demo escrow',
+      payment,
+      demoWalletBalance: newBalance,
+      // Echo what was actually held so the client can see its request was
+      // corrected rather than silently ignored.
+      heldAmount: serverAmount,
+    });
   } catch (err) {
+    logger.error(`Lawyer retainer hold error: ${err.message}`);
     res.status(err.statusCode || 500).json({ message: err.message || 'Failed to hold retainer' });
   }
 });
 
 // ─── GET /api/lawyer-booking/active ────────────────────────────────────────
 // Get current active/upcoming consultation for user or lawyer
-router.get('/active', protect, async (req, res) => {
+router.get('/active', protect, authorize('legal:read:own'), async (req, res) => {
   try {
     const isLawyer = req.user.role === 'lawyer';
     const query = isLawyer
@@ -251,9 +341,22 @@ router.get('/active', protect, async (req, res) => {
 
 // ─── POST /api/lawyer-booking/:id/accept ───────────────────────────────────
 // Lawyer accepts booking
-router.post('/:id/accept', protect, async (req, res) => {
+router.post('/:id/accept', protect, authorize('legal:write'), async (req, res) => {
   try {
-    const booking = await LawyerBooking.findById(req.params.id);
+    // LAW-005: only lawyers may accept, atomic claim
+    const booking = await LawyerBooking.findOneAndUpdate(
+      { _id: req.params.id, status: 'requested', $or: [{ lawyerId: null }, { lawyerId: req.user._id }] },
+      { $set: { lawyerId: req.user._id, status: 'accepted', acceptedAt: new Date() } },
+      { new: true }
+    );
+    if (!booking) {
+      const existing = await LawyerBooking.findById(req.params.id);
+      if (!existing) return res.status(404).json({ message: 'Booking not found' });
+      if (existing.lawyerId?.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Already assigned to another lawyer' });
+      }
+      return res.json(existing); // already accepted by this lawyer
+    }
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
@@ -299,12 +402,14 @@ router.post('/:id/accept', protect, async (req, res) => {
 
 // ─── POST /api/lawyer-booking/:id/propose-time ─────────────────────────────
 // Lawyer proposes an alternate time slot
-router.post('/:id/propose-time', protect, validate(proposeTimeSchema), async (req, res) => {
+router.post('/:id/propose-time', protect, authorize('legal:write:own'), validate(proposeTimeSchema), async (req, res) => {
   try {
-    const booking = await LawyerBooking.findById(req.params.id);
-    if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
-    }
+    // LAW-B-03: previously this route did `findById` + a 404 and NOTHING else —
+    // no check that the caller is the assigned lawyer. Any lawyer with
+    // `legal:write:own` could rewrite the schedule of any booking id in the
+    // system, including bookings belonging to other firms. The guard is now the
+    // first statement, before the status write.
+    const booking = await assertBookingAccess(req, req.params.id, 'proposeTime');
 
     booking.status = 'reschedule_proposed';
     booking.proposedNewTime = {
@@ -337,12 +442,12 @@ router.post('/:id/propose-time', protect, validate(proposeTimeSchema), async (re
 
 // ─── POST /api/lawyer-booking/:id/decline ──────────────────────────────────
 // Lawyer declines booking
-router.post('/:id/decline', protect, async (req, res) => {
+router.post('/:id/decline', protect, authorize('legal:write:own'), async (req, res) => {
   try {
-    const booking = await LawyerBooking.findById(req.params.id);
-    if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
-    }
+    // LAW-B-03: same defect as propose-time — an id fetch and a 404, but no
+    // ownership check, so any lawyer could decline any booking and trigger the
+    // client-facing "select another advocate" notification.
+    const booking = await assertBookingAccess(req, req.params.id, 'decline');
 
     booking.status = 'declined_by_lawyer';
     booking.statusHistory.push({
@@ -370,9 +475,9 @@ router.post('/:id/decline', protect, async (req, res) => {
 
 // ─── POST /api/lawyer-booking/:id/start ────────────────────────────────────
 // Lawyer starts consultation -> status: 'in_progress'
-router.post('/:id/start', protect, async (req, res) => {
+router.post('/:id/start', protect, authorize('legal:write'), async (req, res) => {
   try {
-    const booking = await LawyerBooking.findById(req.params.id);
+    const booking = await assertBookingAccess(req, req.params.id, 'start');
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
@@ -404,9 +509,9 @@ router.post('/:id/start', protect, async (req, res) => {
 
 // ─── POST /api/lawyer-booking/:id/note ─────────────────────────────────────
 // Lawyer adds or edits live case note
-router.post('/:id/note', protect, validate(caseNoteSchema), async (req, res) => {
+router.post('/:id/note', protect, authorize('legal:write'), validate(caseNoteSchema), async (req, res) => {
   try {
-    const booking = await LawyerBooking.findById(req.params.id);
+    const booking = await assertBookingAccess(req, req.params.id, 'note');
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
@@ -447,9 +552,9 @@ router.post('/:id/note', protect, validate(caseNoteSchema), async (req, res) => 
 
 // ─── POST /api/lawyer-booking/:id/complete ─────────────────────────────────
 // Lawyer marks consultation as completed + final summary note
-router.post('/:id/complete', protect, async (req, res) => {
+router.post('/:id/complete', protect, authorize('legal:write'), async (req, res) => {
   try {
-    const booking = await LawyerBooking.findById(req.params.id);
+    const booking = await assertBookingAccess(req, req.params.id, 'complete');
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
@@ -497,9 +602,9 @@ router.post('/:id/complete', protect, async (req, res) => {
 
 // ─── POST /api/lawyer-booking/:id/cancel ───────────────────────────────────
 // Cancel booking by client or lawyer
-router.post('/:id/cancel', protect, async (req, res) => {
+router.post('/:id/cancel', protect, authorize('legal:write'), async (req, res) => {
   try {
-    const booking = await LawyerBooking.findById(req.params.id);
+    const booking = await assertBookingAccess(req, req.params.id, 'cancel');
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
@@ -522,6 +627,17 @@ router.post('/:id/cancel', protect, async (req, res) => {
 
     await notifyBookingUpdate(booking, 'booking_status_update');
 
+    // LAW-M-01: auto-refund held retainer on cancellation — return the escrowed
+    // amount to the user's demo wallet so the balance is not inflated.
+    const { default: DemoPayment } = await import('../models/DemoPayment.js');
+    const held = await DemoPayment.findOne({ lawyerBookingId: booking._id, status: 'held_in_escrow' });
+    if (held) {
+      await User.updateOne({ _id: held.userId }, { $inc: { 'demoWallet.balance': held.amount } });
+      held.status = 'refunded';
+      held.refundedAt = new Date();
+      await held.save();
+    }
+
     const recipientId = isClient ? booking.lawyerId : booking.userId;
     if (recipientId) {
       await Notification.create({
@@ -541,7 +657,7 @@ router.post('/:id/cancel', protect, async (req, res) => {
 
 // ─── POST /api/lawyer-booking/:id/reschedule ───────────────────────────────
 // Reschedule or accept lawyer's proposed slot
-router.post('/:id/reschedule', protect, async (req, res) => {
+router.post('/:id/reschedule', protect, authorize('legal:write:own'), async (req, res) => {
   try {
     const booking = await LawyerBooking.findById(req.params.id);
     if (!booking) {
@@ -594,7 +710,7 @@ router.post('/:id/reschedule', protect, async (req, res) => {
 
 // ─── POST /api/lawyer-booking/:id/follow-up ────────────────────────────────
 // Book follow-up consultation on the same caseThreadId
-router.post('/:id/follow-up', protect, async (req, res) => {
+router.post('/:id/follow-up', protect, authorize('legal:write:own'), async (req, res) => {
   try {
     const previousBooking = await LawyerBooking.findById(req.params.id);
     if (!previousBooking) {
@@ -640,7 +756,7 @@ router.post('/:id/follow-up', protect, async (req, res) => {
 
 // ─── GET /api/lawyer-booking/my-bookings ───────────────────────────────────
 // Flat list of client's bookings
-router.get('/my-bookings', protect, async (req, res) => {
+router.get('/my-bookings', protect, authorize('legal:read:own'), async (req, res) => {
   try {
     const bookings = await LawyerBooking.find({ userId: req.user._id })
       .populate('lawyerId', 'name email phone avatar')
@@ -655,7 +771,7 @@ router.get('/my-bookings', protect, async (req, res) => {
 
 // ─── GET /api/lawyer-booking/my-cases ──────────────────────────────────────
 // Grouped by caseThreadId for client
-router.get('/my-cases', protect, async (req, res) => {
+router.get('/my-cases', protect, authorize('legal:read:own'), async (req, res) => {
   try {
     const bookings = await LawyerBooking.find({ userId: req.user._id })
       .populate('lawyerId', 'name email phone avatar')
@@ -701,7 +817,7 @@ router.get('/my-cases', protect, async (req, res) => {
 
 // ─── PUT /api/lawyer-booking/case/:caseThreadId/close ──────────────────────
 // User marks a case thread as closed
-router.put('/case/:caseThreadId/close', protect, async (req, res) => {
+router.put('/case/:caseThreadId/close', protect, authorize('legal:write:own'), async (req, res) => {
   try {
     const { caseThreadId } = req.params;
     await LawyerBooking.updateMany(
@@ -717,7 +833,7 @@ router.put('/case/:caseThreadId/close', protect, async (req, res) => {
 
 // ─── GET /api/lawyer-booking/lawyer-history ────────────────────────────────
 // Lawyer's case/booking history
-router.get('/lawyer-history', protect, async (req, res) => {
+router.get('/lawyer-history', protect, authorize('legal:read'), async (req, res) => {
   try {
     const bookings = await LawyerBooking.find({ lawyerId: req.user._id })
       .populate('userId', 'name email phone avatar')
@@ -734,7 +850,7 @@ router.get('/lawyer-history', protect, async (req, res) => {
 // Pending consultation requests for the logged-in advocate.
 // Covers both targeted (1-to-1) and urgent broadcast (unassigned) requests so
 // that requests received while the advocate was offline are never lost.
-router.get('/lawyer-requests', protect, async (req, res) => {
+router.get('/lawyer-requests', protect, authorize('legal:read'), async (req, res) => {
   try {
     const profile = await LawyerProfile.findOne({ userId: req.user._id });
     if (!profile) {
@@ -799,7 +915,7 @@ router.get('/lawyer-requests', protect, async (req, res) => {
 
 // ─── GET /api/lawyer-booking/documents ─────────────────────────────────────
 // Consolidated legal document vault across all cases
-router.get('/documents', protect, async (req, res) => {
+router.get('/documents', protect, authorize('legal:read:own'), async (req, res) => {
   try {
     const bookings = await LawyerBooking.find({
       userId: req.user._id,
@@ -829,7 +945,7 @@ router.get('/documents', protect, async (req, res) => {
 
 // ─── GET /api/lawyer-booking/favorites ─────────────────────────────────────
 // Previously booked lawyers for client
-router.get('/favorites', protect, async (req, res) => {
+router.get('/favorites', protect, authorize('legal:read:own'), async (req, res) => {
   try {
     const bookings = await LawyerBooking.find({
       userId: req.user._id,
@@ -864,16 +980,13 @@ router.get('/favorites', protect, async (req, res) => {
 
 // ─── POST /api/lawyer-booking/:id/rate ─────────────────────────────────────
 // Rate lawyer
-router.post('/:id/rate', protect, validate(rateLawyerSchema), async (req, res) => {
+router.post('/:id/rate', protect, authorize('reviews:write:own'), validate(rateLawyerSchema), async (req, res) => {
   try {
-    const booking = await LawyerBooking.findById(req.params.id);
-    if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
-    }
-
-    if (String(booking.userId) !== String(req.user._id)) {
-      return res.status(403).json({ message: 'Only the booking client can rate this consultation' });
-    }
+    // LAW-B-03: the inline `booking.userId === req.user._id` check is replaced by
+    // the shared guard so the rule lives in exactly one place. The `rate` action
+    // is client-only in the permission matrix, which is stricter than the old
+    // inline check was meant to be.
+    const booking = await assertBookingAccess(req, req.params.id, 'rate');
 
     const { stars, comment } = req.body;
     booking.ratingByUser = {
@@ -909,7 +1022,7 @@ router.post('/:id/rate', protect, validate(rateLawyerSchema), async (req, res) =
 
 // ─── GET /api/lawyer-booking/:id/receipt ───────────────────────────────────
 // Download PDF consultation receipt
-router.get('/:id/receipt', protect, async (req, res) => {
+router.get('/:id/receipt', protect, authorize('legal:read:own'), async (req, res) => {
   try {
     const booking = await LawyerBooking.findById(req.params.id);
     if (!booking) {
@@ -946,7 +1059,7 @@ router.get('/:id/receipt', protect, async (req, res) => {
 
 // ─── GET /api/lawyer-booking/:id ───────────────────────────────────────────
 // Get single booking details (with confidentiality guard)
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', protect, authorize('legal:read'), async (req, res) => {
   try {
     const booking = await LawyerBooking.findById(req.params.id)
       .populate('userId', 'name email phone avatar')

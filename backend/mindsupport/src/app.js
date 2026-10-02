@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import { buildCorsOptions } from "../src/config/cors.js";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -65,39 +66,27 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
-function allowedCorsOrigins() {
-  return [CLIENT_ORIGIN, ...(process.env.CORS_ORIGIN || "").split(",")]
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
+// MIND-B-03: this app no longer keeps its own CORS allowlist.
+//
+// The local implementation compared `hostname + port` rather than the full
+// origin, and short-circuited to "allow everything" whenever any configured
+// entry was the literal `*`. That is a real bypass, not a stylistic difference:
+// with `CORS_ORIGIN=*` set for staging, this marketplace accepted credentialed
+// cross-origin requests from ANY site while the main API rejected them, and a
+// hostname match would also accept `https://evil-findmedi.online` for a
+// configured `findmedi.online`.
+//
+// `buildCorsOptions` is the shared, strict policy used by the main API too:
+// exact normalised origin match, wildcard refused, non-browser requests allowed.
+const mindCorsOptions = buildCorsOptions({
+  // The mindsupport client is a separate deployment and may use its own origin.
+  extraOrigins: [CLIENT_ORIGIN].filter(Boolean),
+  onBlocked: (message, decision) => {
+    console.warn(`${message} (${decision.reason})`);
+  },
+});
 
-function matchesCorsOrigin(origin, allowedOrigin) {
-  if (!allowedOrigin) return false;
-  if (allowedOrigin === "*") return true;
-  if (origin === allowedOrigin) return true;
-  try {
-    const browserOrigin = new URL(origin);
-    const configuredOrigin = new URL(/^https?:\/\//i.test(allowedOrigin) ? allowedOrigin : `https://${allowedOrigin}`);
-    return browserOrigin.hostname === configuredOrigin.hostname && browserOrigin.port === configuredOrigin.port;
-  } catch {
-    return false;
-  }
-}
-
-app.use(
-  cors({
-    origin(origin, callback) {
-      const allowedOrigins = allowedCorsOrigins();
-      if (!origin || allowedOrigins.some((allowedOrigin) => matchesCorsOrigin(origin, allowedOrigin))) {
-        callback(null, true);
-        return;
-      }
-      callback(null, false);
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  })
-);
+app.use(cors(mindCorsOptions));
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 

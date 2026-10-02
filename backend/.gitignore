@@ -4,3 +4,5 @@ node_modules/
 .DS_Store
 *.out
 *.log
+# CHAT-M-02: quarantined malware samples must never be committed or served.
+quarantine/

@@ -1,0 +1,649 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for services/couponService.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../index.html">All files</a> / <a href="index.html">services</a> couponService.js</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">1.58% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>1/63</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/93</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/4</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">1.69% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>1/59</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a>
+<a name='L149'></a><a href='#L149'>149</a>
+<a name='L150'></a><a href='#L150'>150</a>
+<a name='L151'></a><a href='#L151'>151</a>
+<a name='L152'></a><a href='#L152'>152</a>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import logger from '../config/logger.js';
+import { toPaise, fromPaise } from './ledgerService.js';
+&nbsp;
+/**
+ * LOYAL-B-02: server-side coupon resolution and eligibility re-check.
+ *
+ * The coupon CRUD routes are superadmin-only, but the DISCOUNT was resolved on the
+ * client: the cart computed its own total and sent the reduced number. That is the
+ * PAY-B-01 shape in coupon clothing — an expired coupon, a self-created code, a
+ * minimum-order that was never met, or a per-user cap that had already been hit
+ * all still produced a free or underpriced booking.
+ *
+ * This resolver is called at PAY time and re-reads the coupon from the database,
+ * so the answer cannot be stale or forged. Everything is decided in integer paise.
+ */
+export const COUPON_REJECT_REASONS = {
+  NOT_FOUND: 'coupon_not_found',
+  INACTIVE: 'coupon_inactive',
+  EXPIRED: 'coupon_expired',
+  NOT_YET_ACTIVE: 'coupon_not_yet_active',
+  MIN_ORDER: 'coupon_min_order_not_met',
+  NO_DISCOUNT: 'coupon_gives_no_discount',
+  USAGE_LIMIT: 'coupon_global_usage_exhausted',
+  PER_USER_LIMIT: 'coupon_per_user_limit_reached',
+  TENANT_MISMATCH: 'coupon_not_valid_for_this_tenant',
+  SERVICE_MISMATCH: 'coupon_not_valid_for_this_service',
+};
+&nbsp;
+/**
+ * Re-validate a coupon code at payment time.
+ *
+ * @param {object} p
+ * @param {string} p.code            the code the client claims
+ * @param {number} p.subtotalPaise   the SERVER-computed pre-discount amount, in paise
+ * @param {string} p.userId
+ * @param {string} [p.hospitalId]    tenant the booking belongs to
+ * @param {string} [p.serviceType]
+ * @returns {Promise&lt;{ ok: true, discountPaise: number, coupon: object, code: string, finalPaise: number }
+ *                  | { ok: false, reason: string, message: string }&gt;}
+ */
+export async function <span class="fstat-no" title="function not covered" >resolveCoupon(</span>{
+  code,
+  subtotalPaise,
+  userId,
+  hospitalId = <span class="branch-0 cbranch-no" title="branch not covered" >null,</span>
+  serviceType = <span class="branch-0 cbranch-no" title="branch not covered" >null,</span>
+  now = <span class="branch-0 cbranch-no" title="branch not covered" >new Date(),</span>
+} = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
+  const normalized = <span class="cstat-no" title="statement not covered" >String(code || '').trim().toUpperCase();</span>
+<span class="cstat-no" title="statement not covered" >  if (!normalized) {</span>
+<span class="cstat-no" title="statement not covered" >    return { ok: false, reason: COUPON_REJECT_REASONS.NOT_FOUND, message: 'Coupon code is required' };</span>
+  }
+&nbsp;
+  const { default: PlatformCoupon } = <span class="cstat-no" title="statement not covered" >await import('../models/PlatformCoupon.js');</span>
+  const coupon = <span class="cstat-no" title="statement not covered" >await PlatformCoupon.findOne({ code: normalized }).lean();</span>
+<span class="cstat-no" title="statement not covered" >  if (!coupon) {</span>
+<span class="cstat-no" title="statement not covered" >    return { ok: false, reason: COUPON_REJECT_REASONS.NOT_FOUND, message: 'Invalid coupon code' };</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (coupon.isActive === false) {</span>
+<span class="cstat-no" title="statement not covered" >    return { ok: false, reason: COUPON_REJECT_REASONS.INACTIVE, message: 'This coupon is no longer active' };</span>
+  }
+&nbsp;
+  // Validity window, compared as dates rather than as a string prefix.
+<span class="cstat-no" title="statement not covered" >  if (coupon.validFrom &amp;&amp; new Date(coupon.validFrom) &gt; now) {</span>
+<span class="cstat-no" title="statement not covered" >    return { ok: false, reason: COUPON_REJECT_REASONS.NOT_YET_ACTIVE, message: 'This coupon is not active yet' };</span>
+  }
+<span class="cstat-no" title="statement not covered" >  if (coupon.validUntil &amp;&amp; new Date(coupon.validUntil) &lt; now) {</span>
+<span class="cstat-no" title="statement not covered" >    return { ok: false, reason: COUPON_REJECT_REASONS.EXPIRED, message: 'This coupon has expired' };</span>
+  }
+&nbsp;
+  // Tenant binding: a hospital-scoped coupon must not discount another tenant.
+<span class="cstat-no" title="statement not covered" >  if (coupon.hospitalId) {</span>
+<span class="cstat-no" title="statement not covered" >    if (!hospitalId || String(coupon.hospitalId) !== String(hospitalId)) {</span>
+<span class="cstat-no" title="statement not covered" >      return { ok: false, reason: COUPON_REJECT_REASONS.TENANT_MISMATCH, message: 'This coupon is not valid for this service' };</span>
+    }
+  }
+<span class="cstat-no" title="statement not covered" >  if (Array.isArray(coupon.applicableServices) &amp;&amp; coupon.applicableServices.length &amp;&amp; serviceType) {</span>
+<span class="cstat-no" title="statement not covered" >    if (!coupon.applicableServices.includes(serviceType)) {</span>
+<span class="cstat-no" title="statement not covered" >      return { ok: false, reason: COUPON_REJECT_REASONS.SERVICE_MISMATCH, message: 'This coupon does not apply to this service' };</span>
+    }
+  }
+&nbsp;
+  const subtotal = <span class="cstat-no" title="statement not covered" >toPaise(subtotalPaise);</span>
+<span class="cstat-no" title="statement not covered" >  if (subtotal &lt;= 0) {</span>
+<span class="cstat-no" title="statement not covered" >    return { ok: false, reason: COUPON_REJECT_REASONS.MIN_ORDER, message: 'Nothing to discount' };</span>
+  }
+  const minOrderPaise = <span class="cstat-no" title="statement not covered" >toPaise(coupon.minOrderValue ?? coupon.minOrderAmount ?? 0);</span>
+<span class="cstat-no" title="statement not covered" >  if (minOrderPaise &gt; 0 &amp;&amp; subtotal &lt; minOrderPaise) {</span>
+<span class="cstat-no" title="statement not covered" >    return {</span>
+      ok: false,
+      reason: COUPON_REJECT_REASONS.MIN_ORDER,
+      message: `Coupon requires a minimum order of ${fromPaise(minOrderPaise)}`,
+    };
+  }
+&nbsp;
+  // The discount is computed from the SERVER subtotal, never from a client total.
+  // The coupon stores `discountType` + `discountValue`; a "percentage" above 100
+  // would otherwise produce a negative payable.
+  const rawValue = <span class="cstat-no" title="statement not covered" >toPaise(coupon.discountValue ?? coupon.percentOff ?? coupon.flatOff ?? 0);</span>
+  let discountPaise = <span class="cstat-no" title="statement not covered" >String(coupon.discountType) === 'percentage'</span>
+    ? Math.round((subtotal * Math.min(rawValue, 100)) / 100)
+    : rawValue;
+<span class="cstat-no" title="statement not covered" >  if (coupon.maxDiscount != null) {</span>
+    const capPaise = <span class="cstat-no" title="statement not covered" >toPaise(coupon.maxDiscount);</span>
+<span class="cstat-no" title="statement not covered" >    if (capPaise &gt; 0 &amp;&amp; discountPaise &gt; capPaise) <span class="cstat-no" title="statement not covered" >discountPaise = capPaise;</span></span>
+  }
+  // A discount can never exceed what is being paid, otherwise the payable goes
+  // negative and the ledger has to compensate for it later.
+<span class="cstat-no" title="statement not covered" >  if (discountPaise &gt; subtotal) <span class="cstat-no" title="statement not covered" >discountPaise = subtotal;</span></span>
+<span class="cstat-no" title="statement not covered" >  if (discountPaise &lt;= 0) {</span>
+<span class="cstat-no" title="statement not covered" >    return { ok: false, reason: COUPON_REJECT_REASONS.NO_DISCOUNT, message: 'This coupon gives no discount on this amount' };</span>
+  }
+&nbsp;
+  // Global usage cap.
+  const globalLimit = <span class="cstat-no" title="statement not covered" >Number(coupon.usageLimit ?? 0);</span>
+<span class="cstat-no" title="statement not covered" >  if (globalLimit &gt; 0 &amp;&amp; Number(coupon.usedCount ?? 0) &gt;= globalLimit) {</span>
+<span class="cstat-no" title="statement not covered" >    return { ok: false, reason: COUPON_REJECT_REASONS.USAGE_LIMIT, message: 'This coupon has been fully redeemed' };</span>
+  }
+&nbsp;
+  // Per-user cap, counted from real redemptions rather than a client counter.
+  const perUserLimit = <span class="cstat-no" title="statement not covered" >Number(coupon.perUserLimit ?? 0);</span>
+<span class="cstat-no" title="statement not covered" >  if (perUserLimit &gt; 0 &amp;&amp; userId) {</span>
+    const { default: PlatformCouponRedemption } = <span class="cstat-no" title="statement not covered" >await import('../models/PlatformCouponRedemption.js').catch(<span class="fstat-no" title="function not covered" >()</span> =&gt; (<span class="cstat-no" title="statement not covered" >{ default: null })</span>);</span>
+<span class="cstat-no" title="statement not covered" >    if (PlatformCouponRedemption) {</span>
+      const mine = <span class="cstat-no" title="statement not covered" >await PlatformCouponRedemption.countDocuments({</span>
+        couponCode: normalized, userId, status: { $in: ['applied', 'settled'] },
+      });
+<span class="cstat-no" title="statement not covered" >      if (mine &gt;= perUserLimit) {</span>
+<span class="cstat-no" title="statement not covered" >        return {</span>
+          ok: false,
+          reason: COUPON_REJECT_REASONS.PER_USER_LIMIT,
+          message: 'You have already used this coupon the maximum number of times',
+        };
+      }
+    }
+  }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    ok: true,
+    discountPaise,
+    coupon,
+    code: normalized,
+    finalPaise: subtotal - discountPaise,
+  };
+}
+&nbsp;
+/**
+ * Record a coupon redemption.
+ *
+ * The counter is incremented with an atomic `$inc`, so two concurrent checkouts
+ * cannot both pass the usage check and both consume the last remaining use.
+ * `matched` reports whether this particular increment moved past the limit, which
+ * is what lets the caller reverse a payment that raced the cap.
+ */
+export async function <span class="fstat-no" title="function not covered" >recordCouponRedemption(</span>{ code, userId, discountPaise, orderRef = <span class="branch-0 cbranch-no" title="branch not covered" >null,</span> matched = <span class="branch-0 cbranch-no" title="branch not covered" >true </span>}) {
+  const normalized = <span class="cstat-no" title="statement not covered" >String(code || '').trim().toUpperCase();</span>
+  const { default: PlatformCoupon } = <span class="cstat-no" title="statement not covered" >await import('../models/PlatformCoupon.js');</span>
+&nbsp;
+  let newUsed = <span class="cstat-no" title="statement not covered" >null;</span>
+<span class="cstat-no" title="statement not covered" >  if (matched) {</span>
+    const updated = <span class="cstat-no" title="statement not covered" >await PlatformCoupon.findOneAndUpdate(</span>
+      { code: normalized },
+      { $inc: { usedCount: 1 }, $set: { lastUsedAt: new Date() } },
+      { new: true }
+    ).select('usedCount');
+<span class="cstat-no" title="statement not covered" >    newUsed = updated?.usedCount ?? null;</span>
+&nbsp;
+    // Lost the race against the global cap: undo our own increment and tell the
+    // caller to reverse the payment.
+    const limit = <span class="cstat-no" title="statement not covered" >Number(updated?.usageLimit ?? 0);</span>
+<span class="cstat-no" title="statement not covered" >    if (limit &gt; 0 &amp;&amp; newUsed != null &amp;&amp; newUsed &gt; limit) {</span>
+<span class="cstat-no" title="statement not covered" >      await PlatformCoupon.updateOne({ code: normalized }, { $inc: { usedCount: -1 } });</span>
+<span class="cstat-no" title="statement not covered" >      return { code: normalized, usedCount: newUsed, exceededLimit: true };</span>
+    }
+  }
+&nbsp;
+  const { default: PlatformCouponRedemption } = <span class="cstat-no" title="statement not covered" >await import('../models/PlatformCouponRedemption.js').catch(<span class="fstat-no" title="function not covered" >()</span> =&gt; (<span class="cstat-no" title="statement not covered" >{ default: null })</span>);</span>
+<span class="cstat-no" title="statement not covered" >  if (PlatformCouponRedemption) {</span>
+<span class="cstat-no" title="statement not covered" >    await PlatformCouponRedemption.create({</span>
+      couponCode: normalized,
+      userId,
+      discountPaise,
+      orderRef,
+      status: 'applied',
+    });
+  }
+<span class="cstat-no" title="statement not covered" >  return { code: normalized, discountPaise: fromPaise(discountPaise), usedCount: newUsed };</span>
+}
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-09-30T19:23:47.559Z
+            </div>
+        <script src="../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../sorter.js"></script>
+        <script src="../block-navigation.js"></script>
+    </body>
+</html>
+    

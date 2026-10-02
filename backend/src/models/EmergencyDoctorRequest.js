@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { randomDigits } from '../utils/secureRandom.js';
 
 const emergencyDoctorRequestSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -8,7 +9,7 @@ const emergencyDoctorRequestSchema = new mongoose.Schema({
     unique: true,
     sparse: true,
     index: true,
-    default: () => `DOC-SOS-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`,
+    default: () => `DOC-SOS-${Date.now().toString(36).toUpperCase()}-${randomDigits(3)}`,
   },
   patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   patientName: { type: String, default: '' },

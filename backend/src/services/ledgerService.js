@@ -15,6 +15,24 @@ const DEFAULT_COMMISSION_PERCENT = {
 };
 
 /**
+ * PAY-B-04: integer-paise money helpers.
+ *
+ * Floating-point rupees are the root of the ledger drift this module had: a
+ * `0.1 + 0.2` in a commission calculation eventually produces a net amount that
+ * does not reconcile with gross - commission - tax. Every monetary value in the
+ * ledger is computed in integer paise and converted back only at the boundary.
+ */
+export const toPaise = (rupees) => {
+  const n = Number(rupees);
+  if (!Number.isFinite(n)) return 0;
+  // Math.round absorbs the binary-float representation error (333.33 * 100 is
+  // 33332.999999999996 in IEEE-754).
+  return Math.round(n * 100);
+};
+
+export const fromPaise = (paise) => Math.round(Number(paise) || 0) / 100;
+
+/**
  * Records double-entry financial settlement for completed on-demand services.
  * Calculates platform commission, statutory deductions, and net provider earnings.
  */
@@ -31,17 +49,42 @@ export async function recordServiceSettlement({
   payment = null,
 }) {
   try {
-    const gross = Number(totalAmount) || 0;
-    if (gross <= 0) return null;
+    // PAY-B-04: all money arithmetic happens in integer paise.
+    //
+    // The old code rounded commission and TDS to whole rupees but left the gross
+    // unrounded, so `net = 333.33 - 30 - 3 = 300.33`: paise entered the ledger
+    // while the GST/TDS report showed integers, and every reconciliation drifted.
+    //
+    // Order matters and is now explicit:
+    //   1. convert the gross to paise (exact integer, no float drift)
+    //   2. derive commission in paise from the integer gross
+    //   3. derive TDS in paise from the integer gross
+    //   4. net = gross - commission - tax, still in paise
+    // The three values are therefore guaranteed to reconcile exactly, which is
+    // what a double-entry ledger requires.
+    const grossPaise = toPaise(totalAmount);
+    if (grossPaise <= 0) return null;
 
     const commissionPercent =
       customCommissionPercent != null
         ? Number(customCommissionPercent)
         : DEFAULT_COMMISSION_PERCENT[source] || 10;
 
-    const commissionAmount = Math.round((gross * commissionPercent) / 100);
-    const taxAmount = Math.round((gross * 1) / 100); // 1% Section 194C/J TDS
-    const netAmount = Math.max(0, gross - commissionAmount - taxAmount);
+    const commissionPaise = Math.round((grossPaise * commissionPercent) / 100);
+    const taxPaise = Math.round((grossPaise * 1) / 100); // 1% Section 194C/J TDS
+    const netPaise = Math.max(0, grossPaise - commissionPaise - taxPaise);
+
+    const gross = fromPaise(grossPaise);
+    const commissionAmount = fromPaise(commissionPaise);
+    const taxAmount = fromPaise(taxPaise);
+    const netAmount = fromPaise(netPaise);
+
+    // Defence in depth: the invariant the ledger depends on. If a future change
+    // reintroduces mixed rounding this throws in tests instead of silently
+    // producing a ledger that does not balance.
+    if (toPaise(netAmount) + toPaise(commissionAmount) + toPaise(taxAmount) !== grossPaise) {
+      throw new Error('ledger does not balance: gross != net + commission + tax (PAY-B-04)');
+    }
 
     // 1. Create Double-Entry Ledger Record
     const ledgerRecord = new TransactionLedger({

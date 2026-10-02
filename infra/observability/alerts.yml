@@ -1,0 +1,95 @@
+# ==============================================================================
+# FindMedi — alert rules (INF-M-02)
+# ==============================================================================
+# One group per SLO in observability/README.md. Thresholds are deliberately
+# conservative: every alert here must be actionable at 03:00 by one person, so
+# anything noisier than a 10-minute window is a page nobody answers.
+#
+# `499` (client aborted, recorded by metricsMiddleware) is excluded from the
+# error-rate numerator on purpose: a user closing the app mid-request is not
+# a server fault, and counting it would keep the burn rate above threshold on
+# mobile networks alone.
+
+groups:
+  - name: availability
+    rules:
+      - alert: ApiInstanceDown
+        expr: up{job="findmedi-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          slo: availability
+        annotations:
+          summary: "findmedi-api is not being scraped for 2m"
+          description: "Prometheus cannot reach /metrics — process down, port blocked, or METRICS_TOKEN rotated on one side only."
+
+      - alert: ApiErrorRateHigh
+        expr: |
+          (
+            sum(rate(http_requests_total{job="findmedi-api",status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="findmedi-api"}[5m]))
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: critical
+          slo: availability
+        annotations:
+          summary: "API 5xx rate above 5% for 10m"
+          description: "{{$value | humanizePercentage}} of responses are 5xx. Check pino logs for the failing route label."
+
+      - alert: ApiErrorRateElevated
+        expr: |
+          (
+            sum(rate(http_requests_total{job="findmedi-api",status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="findmedi-api"}[5m]))
+          ) > 0.01
+        for: 30m
+        labels:
+          severity: warning
+          slo: availability
+        annotations:
+          summary: "API 5xx rate above 1% for 30m (error-budget burn)"
+          description: "Below critical but eroding the 99.9% monthly budget — fix before it crosses 5%."
+
+  - name: latency
+    rules:
+      - alert: ApiLatencyP95High
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, route) (rate(http_request_duration_seconds_bucket{job="findmedi-api",route!~"unmatched|/metrics"}[5m]))
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+          slo: latency
+        annotations:
+          summary: "p95 latency above 1s on {{ $labels.route }}"
+          description: "Route {{ $labels.route }} is serving p95={{ $value | humanizeDuration }}. Usually a missing index or an N+1 query behind that route."
+
+  - name: saturation
+    rules:
+      - alert: ApiProcessEventRSSHigh
+        expr: |
+          process_resident_memory_bytes{job="findmedi-api"}
+            > (nodejs_heap_size_bytes{job="findmedi-api",heap="used"} * 3 + 500*1024*1024)
+        for: 15m
+        labels:
+          severity: warning
+          slo: saturation
+        annotations:
+          summary: "RSS far above heap usage (possible native leak)"
+          description: "RSS = {{ $value | humanize1024 }} while used heap stays small — check native addons (bcrypt, canvas) or unref'd buffers."
+
+      - alert: ApiEventLoopLagging
+        expr: |
+          nodejs_eventloop_lag_seconds{job="findmedi-api"} > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          slo: latency
+        annotations:
+          summary: "Event loop lag above 500ms for 10m"
+          description: "Requests are queued, not slow — look for synchronous work (PDF generation, large JSON.parse) on the main loop."

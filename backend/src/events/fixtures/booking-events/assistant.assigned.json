@@ -1,0 +1,7 @@
+{
+  "eventType": "assistant.assigned",
+  "aggregateType": "AssistantBooking",
+  "aggregateId": "652f00000000000000000003",
+  "providerId": "652f000000000000000000ac",
+  "status": "accepted"
+}

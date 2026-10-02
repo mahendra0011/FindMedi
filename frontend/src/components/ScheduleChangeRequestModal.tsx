@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { userFacingError } from '@/lib/errorCopy';
 
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -226,7 +227,7 @@ export default function ScheduleChangeRequestModal({ request, doctor, onClose, o
       onClose();
     } catch (e) {
       console.error(e);
-      toast.error(e.response?.data?.message || 'Failed to process request');
+      toast.error(userFacingError(e, { fallback: 'Failed to process request' }));
     }
     setSubmitting(false);
   };

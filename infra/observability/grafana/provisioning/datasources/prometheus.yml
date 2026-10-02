@@ -1,0 +1,17 @@
+# ==============================================================================
+# FindMedi — Grafana <-> Prometheus provisioning (INF-M-02)
+# ==============================================================================
+# Mounted by docker-compose.observability.yml. The datasource uid is pinned to
+# `prometheus` so the committed dashboard JSON can reference it directly —
+# dashboards that rely on a manual datasource pick break on every fresh import.
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import ReferralCodeCard from '@/components/referral/ReferralCodeCard';
 import ReferralHistoryList from '@/components/referral/ReferralHistoryList';
+import { userFacingError } from '@/lib/errorCopy';
 
 export default function PatientReferral() {
   const [code, setCode] = useState('');
@@ -20,7 +21,7 @@ export default function PatientReferral() {
         const h: any = await api.get('/referral/my-history').catch(() => []);
         setHistory(Array.isArray(h) ? h : []);
       } catch (e: any) {
-        toast.error(e.response?.data?.message || 'Referral load failed');
+        toast.error(userFacingError(e, { fallback: 'Referral load failed' }));
       }
     })();
   }, []);

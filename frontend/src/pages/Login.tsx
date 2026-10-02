@@ -126,7 +126,7 @@ const demoAccounts: DemoAccountItem[] = [
 
 export default function Login() {
   const navigate = useNavigate();
-  const { user, login, completeGoogleLogin } = useAuth();
+  const { user, login, completeGoogleLogin, completeTwoFactorLogin } = useAuth();
   const [role, setRole] = useState('hospital_admin');
   const [demoCategory, setDemoCategory] = useState<'all' | 'counsellor' | 'psychiatrist' | 'assistant' | 'lawyer' | 'rider'>('all');
   const [email, setEmail] = useState('');
@@ -135,6 +135,9 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  // AUTH-B-03: pending 2FA step (set when the server answers with a ticket).
+  const [twoFactorTicket, setTwoFactorTicket] = useState<string | null>(null);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
 
   if (user) return <Navigate to="/dashboard" replace />;
 
@@ -226,7 +229,13 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await login(email, password, role);
+      const result = await login(email, password, role);
+      // AUTH-B-03: 2FA-enrolled accounts get a ticket, not a session.
+      if (result?.requiresTwoFactor) {
+        setTwoFactorTicket(result.twoFactorTicket);
+        setTwoFactorCode('');
+        return;
+      }
       navigate('/dashboard');
     } catch (err: any) {
       if (err?.requiresVerification || err?.message?.toLowerCase().includes('verify your email')) {
@@ -246,6 +255,75 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  // AUTH-B-03: second leg of the 2FA login (ticket + code -> real session).
+  const handleTwoFactorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = twoFactorCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setError('Enter the 6-digit code from your authenticator app.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      await completeTwoFactorLogin({ twoFactorTicket: twoFactorTicket!, token: code });
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err?.message || 'Invalid 2FA code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (twoFactorTicket) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md p-6 bg-card rounded-2xl border border-border shadow-sm"
+        >
+          <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-primary/10 text-primary mb-4">
+            <Shield className="w-6 h-6" />
+          </div>
+          <h2 className="font-heading text-2xl font-bold text-foreground mb-1">Two-factor verification</h2>
+          <p className="text-muted-foreground text-sm mb-6">
+            Enter the 6-digit code from your authenticator app to finish signing in.
+          </p>
+          <form onSubmit={handleTwoFactorSubmit} className="space-y-4">
+            <Input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              placeholder="123456"
+              value={twoFactorCode}
+              onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className="text-center text-2xl tracking-[0.4em]"
+              aria-label="Two-factor code"
+            />
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Verifying...' : 'Verify and continue'}
+            </Button>
+            <button
+              type="button"
+              onClick={() => {
+                setTwoFactorTicket(null);
+                setTwoFactorCode('');
+                setError('');
+                setPassword('');
+              }}
+              className="w-full text-xs text-muted-foreground hover:text-foreground"
+            >
+              Use a different account
+            </button>
+          </form>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex">

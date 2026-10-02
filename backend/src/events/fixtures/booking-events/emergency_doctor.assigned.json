@@ -1,0 +1,7 @@
+{
+  "eventType": "emergency_doctor.assigned",
+  "aggregateType": "EmergencyRequest",
+  "aggregateId": "652f00000000000000000004",
+  "providerId": "652f000000000000000000ad",
+  "status": "accepted"
+}

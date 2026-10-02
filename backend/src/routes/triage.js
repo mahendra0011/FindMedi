@@ -6,6 +6,7 @@ import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createTriageSchema } from '../utils/validate.js';
 import { generateEmergencyId, generateMLCNumber } from '../utils/idGenerator.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const triageUpdateSchema = z.object({}).passthrough();
 const triageAssignSchema = z.object({ doctorId: z.string().optional(), doctorName: z.string().optional() });
@@ -49,10 +50,10 @@ router.get('/', protect, async (req, res) => {
     if (triageLevel && triageLevel !== 'All') filter.triageLevel = triageLevel;
     if (search) {
       filter.$or = [
-        { emergencyId: new RegExp(search, 'i') },
-        { patientName: new RegExp(search, 'i') },
-        { chiefComplaint: new RegExp(search, 'i') },
-        { mlcNumber: new RegExp(search, 'i') },
+        { emergencyId: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { patientName: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { chiefComplaint: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { mlcNumber: new RegExp(escapeRegex(capSearch(search)), 'i') },
       ];
     }
     const entries = await Triage.find(filter).populate('triagedBy', 'name').sort({ createdAt: -1 });
@@ -78,7 +79,9 @@ router.put('/:id', protect, adminOnly, validate(triageUpdateSchema), async (req,
     if (req.user.hospitalId && req.user.role !== 'superadmin' && entry.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    Object.assign(entry, req.body);
+    // AUTH-030: allowlisted fields only — status/assign/mlc have dedicated endpoints.
+    const { pickBody } = await import('../utils/pick.js');
+    Object.assign(entry, pickBody(req.body, ['patientName', 'age', 'gender', 'phone', 'arrivalMode', 'broughtBy', 'chiefComplaint', 'triageLevel', 'triageNotes', 'vitals', 'referredTo', 'referredReason']));
     await entry.save();
     res.json(entry);
   } catch (err) { res.status(400).json({ message: err.message }); }

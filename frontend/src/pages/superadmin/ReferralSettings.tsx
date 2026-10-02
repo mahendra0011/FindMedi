@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { userFacingError } from '@/lib/errorCopy';
 
 export default function ReferralSettings() {
   const [settings, setSettings] = useState<any>({ isEnabled: true, qualifyingAction: 'first_appointment', referrerPoints: 200, refereePoints: 100, maxReferralsPerMonth: 20 });
@@ -23,7 +24,7 @@ export default function ReferralSettings() {
     try {
       await api.put('/referral/admin/settings', settings);
       toast.success('Referral settings saved');
-    } catch (e: any) { toast.error(e.response?.data?.message || 'Save failed'); }
+    } catch (e: any) { toast.error(userFacingError(e, { fallback: 'Save failed' })); }
   };
 
   const flag = async (id: string, flagged: boolean) => {

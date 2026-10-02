@@ -3,17 +3,25 @@ import AssistantProfile from '../models/AssistantProfile.js';
 import AssistantBooking from '../models/AssistantBooking.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, adminOnly, superadminOnly } from '../middleware/auth.js';
+// ADM-B-01 / DLB-11: on-demand providers are a PLATFORM marketplace, not a tenant.
+// Their profiles carry Aadhaar, driving-licence and bank details, and the models
+// have no hospitalId to scope by - so dminOnly (which a hospital_admin holds)
+// gave every hospital KYC PII, plate numbers, bank details and ride analytics for
+// every other hospital. These are platform-level operations: superadmin only.
+import { platformAdminOnly } from '../middleware/authorize.js';
+import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const router = express.Router();
 
 // Admin protection for all routes in this file
-router.use(protect, adminOnly);
+router.use(protect, superadminOnly);
 
 // ─── GET /api/admin/assistants/pending ──────────────────────────────────────
 // Pending verification queue
-router.get('/pending', async (req, res) => {
+router.get('/pending', platformAdminOnly, async (req, res) => {
   try {
     const assistants = await AssistantProfile.find({ assistantStatus: 'pending_approval' })
       .populate('userId', 'name email phone avatar address dateOfBirth gender createdAt')
@@ -23,13 +31,13 @@ router.get('/pending', async (req, res) => {
     res.json({ assistants });
   } catch (err) {
     logger.error(`Get pending assistants error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to fetch pending assistants', error: err.message });
+    res.status(500).json({ message: 'Failed to fetch pending assistants' });
   }
 });
 
 // ─── GET /api/admin/assistants/all ──────────────────────────────────────────
 // List all assistants with status filter
-router.get('/all', async (req, res) => {
+router.get('/all', platformAdminOnly, async (req, res) => {
   try {
     const { status, hospital, search } = req.query;
     const query = {};
@@ -38,7 +46,7 @@ router.get('/all', async (req, res) => {
       query.assistantStatus = status;
     }
     if (hospital) {
-      query.hospitalsCovered = { $in: [new RegExp(hospital, 'i')] };
+      query.hospitalsCovered = { $in: [new RegExp(escapeRegex(capSearch(hospital)), 'i')] };
     }
 
     let assistants = await AssistantProfile.find(query)
@@ -58,17 +66,21 @@ router.get('/all', async (req, res) => {
     res.json({ assistants, total: assistants.length });
   } catch (err) {
     logger.error(`Get all assistants error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to fetch assistants', error: err.message });
+    res.status(500).json({ message: 'Failed to fetch assistants' });
   }
 });
 
 // ─── PUT /api/admin/assistants/:id/approve ──────────────────────────────────
 // Approve assistant application
-router.put('/:id/approve', async (req, res) => {
+router.put('/:id/approve', platformAdminOnly, async (req, res) => {
   try {
     const assistant = await AssistantProfile.findById(req.params.id);
     if (!assistant) return res.status(404).json({ message: 'Assistant profile not found' });
 
+    // ADM-B-04: only a pending application can be approved (idempotent state machine).
+    if (!['pending_approval', 'rejected', 'suspended'].includes(assistant.assistantStatus)) {
+      return res.status(409).json({ message: `Assistant is already ${assistant.assistantStatus}` });
+    }
     assistant.assistantStatus = 'active';
     assistant.isDocumentVerified = true;
     assistant.rejectionReason = '';
@@ -76,6 +88,14 @@ router.put('/:id/approve', async (req, res) => {
 
     // Update user approvalStatus
     await User.findByIdAndUpdate(assistant.userId, { approvalStatus: 'approved' });
+
+    // ADM-M-02: the approval trail - who approved whom, when.
+    await auditLog('approve_assistant', req.user._id, {
+      targetUserId: String(assistant.userId),
+      profileId: String(assistant._id),
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
 
     // Send notification to assistant
     await Notification.create({
@@ -88,24 +108,37 @@ router.put('/:id/approve', async (req, res) => {
     res.json({ success: true, message: 'Assistant approved successfully', assistant });
   } catch (err) {
     logger.error(`Approve assistant error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to approve assistant', error: err.message });
+    res.status(500).json({ message: 'Failed to approve assistant' });
   }
 });
 
 // ─── PUT /api/admin/assistants/:id/reject ───────────────────────────────────
 // Reject assistant application
-router.put('/:id/reject', async (req, res) => {
+router.put('/:id/reject', platformAdminOnly, async (req, res) => {
   try {
     const { reason = 'Documents invalid or insufficient background details' } = req.body;
     const assistant = await AssistantProfile.findById(req.params.id);
     if (!assistant) return res.status(404).json({ message: 'Assistant profile not found' });
 
+    // ADM-B-04: reject is only valid from a pending application.
+    if (assistant.assistantStatus !== 'pending_approval') {
+      return res.status(409).json({ message: `Cannot reject an assistant in state ${assistant.assistantStatus}` });
+    }
     assistant.assistantStatus = 'rejected';
     assistant.isDocumentVerified = false;
     assistant.rejectionReason = reason;
     await assistant.save();
 
     await User.findByIdAndUpdate(assistant.userId, { approvalStatus: 'rejected' });
+
+    // ADM-M-02: the rejection trail - who rejected whom, when, and why.
+    await auditLog('reject_assistant', req.user._id, {
+      targetUserId: String(assistant.userId),
+      profileId: String(assistant._id),
+      reason,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
 
     await Notification.create({
       userId: String(assistant.userId),
@@ -117,13 +150,13 @@ router.put('/:id/reject', async (req, res) => {
     res.json({ success: true, message: 'Assistant application rejected', assistant });
   } catch (err) {
     logger.error(`Reject assistant error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to reject assistant', error: err.message });
+    res.status(500).json({ message: 'Failed to reject assistant' });
   }
 });
 
 // ─── PUT /api/admin/assistants/:id/suspend ──────────────────────────────────
 // Suspend or reinstate assistant
-router.put('/:id/suspend', async (req, res) => {
+router.put('/:id/suspend', platformAdminOnly, async (req, res) => {
   try {
     const { suspend = true, reason } = req.body;
     const assistant = await AssistantProfile.findById(req.params.id);
@@ -135,6 +168,15 @@ router.put('/:id/suspend', async (req, res) => {
       assistant.rejectionReason = reason || 'Suspended by platform administrator';
     }
     await assistant.save();
+
+    // ADM-M-02: suspension is an admin decision - record direction, not just state.
+    await auditLog(suspend ? 'suspend_assistant' : 'reactivate_assistant', req.user._id, {
+      targetUserId: String(assistant.userId),
+      profileId: String(assistant._id),
+      reason: suspend ? (reason || 'Suspended by platform administrator') : undefined,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
 
     await Notification.create({
       userId: String(assistant.userId),
@@ -152,13 +194,13 @@ router.put('/:id/suspend', async (req, res) => {
     });
   } catch (err) {
     logger.error(`Suspend assistant error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to update assistant status', error: err.message });
+    res.status(500).json({ message: 'Failed to update assistant status' });
   }
 });
 
 // ─── GET /api/admin/assistants/bookings ──────────────────────────────────────
 // Admin oversight of all assistant bookings
-router.get('/bookings', async (req, res) => {
+router.get('/bookings', platformAdminOnly, async (req, res) => {
   try {
     const { status, hospital, page = 1, limit = 20 } = req.query;
     const query = {};
@@ -167,7 +209,7 @@ router.get('/bookings', async (req, res) => {
       query.status = status;
     }
     if (hospital) {
-      query.hospital = new RegExp(hospital, 'i');
+      query.hospital = new RegExp(escapeRegex(capSearch(hospital)), 'i');
     }
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -191,13 +233,13 @@ router.get('/bookings', async (req, res) => {
     });
   } catch (err) {
     logger.error(`Get admin assistant bookings error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to fetch bookings', error: err.message });
+    res.status(500).json({ message: 'Failed to fetch bookings' });
   }
 });
 
 // ─── GET /api/admin/assistants/analytics ────────────────────────────────────
 // Assistant feature analytics & metrics
-router.get('/analytics', async (req, res) => {
+router.get('/analytics', platformAdminOnly, async (req, res) => {
   try {
     const [
       totalAssistants,
@@ -252,7 +294,7 @@ router.get('/analytics', async (req, res) => {
     });
   } catch (err) {
     logger.error(`Assistant analytics error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to generate analytics', error: err.message });
+    res.status(500).json({ message: 'Failed to generate analytics' });
   }
 });
 

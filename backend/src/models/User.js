@@ -1,21 +1,60 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { generate16DigitId } from '../utils/idGenerator.js';
+import { canonicalRole } from '../config/permissions.js';
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true, lowercase: true, index: true },
+  email: { type: String, required: true, unique: true, lowercase: true },
   password: { type: String, required: true, select: false },
-  role: { type: String, enum: ['superadmin', 'hospital_admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist', 'pharmacy_owner', 'pharmacist', 'nurse', 'radiologist', 'dietitian', 'physiotherapist', 'counselor', 'counsellor', 'psychiatrist', 'accountant', 'security', 'technician', 'helper', 'delivery_boy', 'rider', 'assistant', 'lawyer', 'ambulance'], default: 'patient', index: true },
+  mustResetPassword: { type: Boolean, default: false, index: true },
+  // AUTH-012/MISS-001: bumped on password change/reset, 2FA change, logout-all.
+  // Every access/refresh token carries tv; mismatch → 401 (session revoked).
+  tokenVersion: { type: Number, default: 0, index: true },
+  // AUTHZ-B-05: the enum carried BOTH `counselor` and `counsellor`. Two spellings
+  // meant two classes of account — one that passed authorize() and one that was
+  // silently denied everything — depending only on which spelling the signup form
+  // submitted. The legacy spelling is still accepted on write (existing rows must
+  // keep validating) but is canonicalised to `counsellor` by a pre-save hook, and
+  // `canonicalRole()` in config/permissions.js covers rows written before the fix.
+  role: {
+    type: String,
+    enum: [
+      'superadmin', 'hospital_admin', 'doctor', 'clinic_doctor', 'patient',
+      'lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist',
+      'pharmacy_owner', 'pharmacist', 'nurse', 'radiologist', 'dietitian',
+      'physiotherapist',
+      'counsellor',       // canonical spelling
+      'counselor',        // DEPRECATED legacy alias — auto-migrated to `counsellor`
+      'mid_level_counselor', 'senior_counselor', // DEPRECATED legacy aliases
+      'psychiatrist', 'accountant', 'security', 'technician', 'helper',
+      'delivery_boy', 'rider', 'assistant', 'lawyer', 'ambulance',
+    ],
+    default: 'patient',
+    index: true,
+  },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   facilityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Facility', index: true },
   facilityType: { type: String, enum: ['hospital', 'clinic', 'lab', 'pharmacy', ''], default: '' },
   avatar: { type: String, default: '' },
   phone: { type: String, required: true },
   address: { type: String, default: '' },
-  uhid: { type: String, unique: true, sparse: true, index: true },
+  uhid: { type: String, unique: true, sparse: true },
   gender: { type: String, enum: ['', 'Male', 'Female', 'Other'], default: '' },
   bloodGroup: { type: String, default: '' },
+  // Donor-directory opt-in.
+  //
+  // `bloodGroup` on its own is a DEMOGRAPHIC field every patient record carries,
+  // not a statement that the person consents to being tracked and shown to
+  // strangers. `GET /api/bloodbank/donors/nearby-h3` was matching on
+  // `bloodGroup` + `currentLocation` alone, so it published the name, blood
+  // group and live GPS coordinates of any user who happened to have both
+  // populated - with no way for that user to opt out, because no flag existed.
+  //
+  // Default FALSE: existing rows are not donors until they say so. Opting in is
+  // explicit and revocable via PUT /api/bloodbank/donor-opt-in.
+  isBloodDonor: { type: Boolean, default: false, index: true },
+  donorOptInAt: { type: Date, default: null },
   dateOfBirth: { type: Date },
 
   // Allergies for patients
@@ -40,6 +79,11 @@ const userSchema = new mongoose.Schema({
   consultationFee: { type: Number, default: 0 },
   isVerified: { type: Boolean, default: false, index: true },
   status: { type: String, enum: ['active', 'blocked'], default: 'active', index: true },
+  // DLM-06: set by the DPDP erasure job. `status` deliberately stays 'blocked'
+  // (see deletionService.js) so the sixteen `status === 'blocked'` guards keep
+  // holding; this field exists purely to answer "was this account ERASED, or
+  // just disabled?" which is a question an auditor will ask.
+  erasedAt: { type: Date, default: null, index: true },
   flagged: { type: Boolean, default: false, index: true },
   flagReason: { type: String, default: '' },
   approvalStatus: {
@@ -50,12 +94,12 @@ const userSchema = new mongoose.Schema({
   },
   // 2FA fields
   twoFactorEnabled: { type: Boolean, default: false },
-  twoFactorSecret: { type: String, default: '' },
-  twoFactorBackupCodes: [{ type: String }], // Hashed backup codes
-  twoFactorTempSecret: { type: String, default: '' }, // Temp secret during setup
+  twoFactorSecret: { type: String, default: '', select: false },
+  twoFactorBackupCodes: [{ type: String, select: false }], // Hashed backup codes
+  twoFactorTempSecret: { type: String, default: '', select: false }, // Temp secret during setup
 
   // Google Drive OAuth tokens (for secure personal file storage)
-  driveTokens: { type: Object, default: null },
+  driveTokens: { type: Object, default: null, select: false },
 
   settings: {
     type: Object,
@@ -86,19 +130,19 @@ const userSchema = new mongoose.Schema({
   vehicleNumber: { type: String, default: '' },
   drivingLicenseNumber: { type: String, default: '' },
   docs: {
-    aadharFront: { type: String, default: '' },
-    aadharBack: { type: String, default: '' },
-    panCard: { type: String, default: '' },
+    aadharFront: { type: String, default: '', select: false },
+    aadharBack: { type: String, default: '', select: false },
+    panCard: { type: String, default: '', select: false },
     photo: { type: String, default: '' },
-    drivingLicense: { type: String, default: '' },
-    rc: { type: String, default: '' },
-    addressProof: { type: String, default: '' },
+    drivingLicense: { type: String, default: '', select: false },
+    rc: { type: String, default: '', select: false },
+    addressProof: { type: String, default: '', select: false },
   },
   bankDetails: {
-    accountNumber: { type: String, default: '' },
-    ifsc: { type: String, default: '' },
+    accountNumber: { type: String, default: '', select: false },
+    ifsc: { type: String, default: '', select: false },
     accountHolderName: { type: String, default: '' },
-    upiId: { type: String, default: '' },
+    upiId: { type: String, default: '', select: false },
   },
   pharmacyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Facility', index: true },
   currentLocation: {
@@ -122,7 +166,7 @@ emergencyContact: {
   },
 
   referral: {
-    code: { type: String, unique: true, sparse: true, index: true },
+    code: { type: String, unique: true, sparse: true },
     referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     referredByCode: { type: String, default: '' },
   },
@@ -141,7 +185,13 @@ emergencyContact: {
 
   healthIdCard: {
     isEnabled: { type: Boolean, default: true },
-    qrToken: { type: String, unique: true, sparse: true, index: true },
+    qrToken: { type: String, unique: true, sparse: true },
+    // HI-B-04: a token without an expiry resolved forever. The scan path now
+    // requires one (falling back to the rotation stamp, then revoking), and every
+    // mint path uses the single QR_TOKEN_TTL_MS lifetime in routes/healthId.js.
+    qrTokenExpiry: { type: Date, default: null },
+    qrTokenRotatedAt: { type: Date, default: null },
+    qrTokenRevokedAt: { type: Date, default: null },
     lastRotatedAt: { type: Date },
     shareLevel: {
       type: String,
@@ -152,9 +202,16 @@ emergencyContact: {
     abhaAddress: { type: String, default: '' },
     abhaStatus: { type: String, enum: ['NOT_LINKED', 'PENDING_OTP', 'LINKED'], default: 'NOT_LINKED' },
     abhaLinkedAt: { type: Date },
+    // HI-B-05: the pending ABHA linking challenge. The OTP is stored hashed and
+    // bound to the ABDM txnId, so `verify-otp` can actually verify something
+    // instead of accepting any 6 characters.
+    abhaPendingTxnId: { type: String, default: '' },
+    abhaOtpHash: { type: String, default: '' },
+    abhaOtpExpiresAt: { type: Date },
+    abhaOtpAttempts: { type: Number, default: 0 },
   },
 
-  createdAt: { type: Date, default: Date.now, index: true },
+  // timestamps:true already maintains createdAt/updatedAt — no explicit field.
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {
@@ -170,9 +227,41 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
+// AUTH-015: single source of truth is top-level twoFactorEnabled; the legacy
+// settings copy is force-synced so the two flags can never diverge again.
+userSchema.pre('save', function (next) {
+  if (this.isModified('twoFactorEnabled') && this.settings && typeof this.settings === 'object') {
+    this.settings = { ...this.settings, twoFactorEnabled: this.twoFactorEnabled };
+    this.markModified('settings');
+  }
+  next();
+});
+
 userSchema.methods.comparePassword = function (plain) {
   return bcrypt.compare(plain, this.password);
 };
+
+// AUTHZ-B-05: collapse the deprecated `counselor` spellings on write so the
+// collection converges on ONE canonical value. Legacy rows are migrated by
+// scripts/migrate-role-aliases.mjs, and `canonicalRole()` in config/permissions.js
+// keeps authorization correct for anything written before this hook existed.
+userSchema.pre('save', function canonicaliseRoleAlias(next) {
+  if (this.role) {
+    const canonical = canonicalRole(this.role);
+    if (canonical !== this.role) this.role = canonical;
+  }
+  next();
+});
+
+// Same hook for `findOneAndUpdate` / `updateOne`, which never trigger `save`.
+userSchema.pre(['updateOne', 'findOneAndUpdate'], function canonicaliseRoleAliasOnUpdate(next) {
+  const update = this.getUpdate() || {};
+  if (update.$set && update.$set.role) {
+    update.$set.role = canonicalRole(update.$set.role);
+    this.setUpdate(update);
+  }
+  next();
+});
 
 export default mongoose.model('User', userSchema);
 

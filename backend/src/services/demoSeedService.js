@@ -11,6 +11,10 @@ import Ambulance from '../models/Ambulance.js';
 import logger from '../config/logger.js';
 
 export async function ensureDemoUsers() {
+  if (process.env.NODE_ENV === 'production') {
+    logger.warn('ensureDemoUsers skipped: demo seeding disabled in production (AUTH-032)');
+    return;
+  }
   try {
     // ─── 0. Seed Service Cities ──────────────────────────────────────────────
     const demoCities = [

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { getSocket, joinRoom } from '@/lib/socket';
 import api, { getServerOrigin } from '@/lib/axios';
+import { isPushSupported, syncChatPush, enableChatPush, type PushState } from '@/lib/webPush';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {
@@ -25,6 +27,7 @@ import {
 } from '@/lib/chatPrefs';
 import { useAudioCall } from '@/context/AudioCallContext';
 import { useVideoCall } from '@/context/VideoCallContext';
+import { userFacingError } from '@/lib/errorCopy';
 
 const mediaUrl = (u) => (String(u || '').startsWith('http') ? u : `${getServerOrigin()}${u}`);
 const uid = (v) => (v == null ? '' : (typeof v === 'object' ? String(v._id || v.userId || '') : String(v)));
@@ -71,6 +74,11 @@ export default function ChatDashboard() {
   const [connected, setConnected] = useState(true);
   const [queuedCount, setQueuedCount] = useState(0);
 
+  // ── CHAT-M-04: offline push (Web Push) + push deep link ──
+  const [pushState, setPushState] = useState<PushState>('off');
+  const [searchParams] = useSearchParams();
+  const pushDeepLinkHandledRef = useRef(false);
+
   // ── Selection / forward ──
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedMessages, setSelectedMessages] = useState([]);
@@ -109,7 +117,7 @@ export default function ChatDashboard() {
       setBackup(data.backup || {});
     } catch (err) {
       setPrivacy(prev);
-      toast.error(err.response?.data?.message || 'Setting save nahi hui');
+      toast.error(userFacingError(err, { fallback: 'Setting save nahi hui' }));
     }
   }, [privacy]);
 
@@ -382,9 +390,70 @@ export default function ChatDashboard() {
       setConversations((prev) => prev.map((c) => (uid(c._id) === uid(id) ? { ...c, unread: 0 } : c)));
       requestAnimationFrame(() => scrollToBottom(false));
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Messages load nahi hue');
+      toast.error(userFacingError(err, { fallback: 'Messages load nahi hue' }));
     } finally { setLoadingMessages(false); }
   }, [scrollToBottom]);
+
+  /* ── CHAT-M-04: deep link from a push notification (?conversation=) ── */
+  useEffect(() => {
+    const convId = searchParams.get('conversation');
+    if (convId && !pushDeepLinkHandledRef.current) {
+      pushDeepLinkHandledRef.current = true;
+      openConversation(convId);
+    }
+  }, [searchParams, openConversation]);
+
+  /* ── CHAT-M-04: Web Push — auto-resync when permission is already granted;
+       handles notification-click deep links + subscription rotation from the
+       service worker (public/sw.js). ── */
+  useEffect(() => {
+    let cancelled = false;
+    const syncPush = () => {
+      if (isPushSupported() && Notification.permission === 'granted') {
+        syncChatPush().then((s) => { if (!cancelled) setPushState(s); }).catch(() => {});
+      } else {
+        setPushState(isPushSupported() ? 'off' : 'unsupported');
+      }
+    };
+    syncPush();
+
+    const onSwMessage = (e: MessageEvent) => {
+      const type = e?.data?.type;
+      if (type === 'findmedi:notification-click' && typeof e?.data?.url === 'string') {
+        try {
+          const convId = new URL(e.data.url, window.location.origin).searchParams.get('conversation');
+          if (convId) { pushDeepLinkHandledRef.current = true; openConversation(convId); }
+        } catch { /* malformed deep link — ignore */ }
+      } else if (type === 'findmedi:push-subscription-changed') {
+        syncPush();
+      }
+    };
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', onSwMessage);
+    }
+    return () => {
+      cancelled = true;
+      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', onSwMessage);
+      }
+    };
+  }, [openConversation]);
+
+  /* ── CHAT-M-04: bell button — user-gesture permission ask + subscribe ── */
+  const enablePush = useCallback(async () => {
+    try {
+      const res = await enableChatPush();
+      setPushState(res.state);
+      if (res.ok) { toast.success('Chat push notifications on'); return; }
+      if (res.reason === 'permission-denied') {
+        toast.error('Browser notification permission block hai — site settings se allow karein');
+      } else if (res.reason === 'not-configured') {
+        toast.error('Push delivery abhi configured nahi hai');
+      } else if (res.reason !== 'unsupported') {
+        toast.error('Push enable nahi hua');
+      }
+    } catch { toast.error('Push enable nahi hua'); }
+  }, []);
 
   /* ── Send (optimistic + offline queue) ── */
   const sendMessage = useCallback(async ({ text = '', type = 'text', attachments = [] } = {}) => {
@@ -423,7 +492,7 @@ export default function ChatDashboard() {
         setQueuedCount(readQueue(meId).length);
         setMessages((prev) => prev.map((m) => (m._id === clientGeneratedId ? { ...m, status: 'queued' } : m)));
       } else {
-        toast.error(err.response?.data?.message || 'Message send nahi hua');
+        toast.error(userFacingError(err, { fallback: 'Message send nahi hua' }));
         setMessages((prev) => prev.map((m) => (m._id === clientGeneratedId ? { ...m, status: 'failed' } : m)));
       }
     }
@@ -432,7 +501,7 @@ export default function ChatDashboard() {
   /* ── Attachments (image/video/doc) + voice ── */
   const uploadDataUrl = useCallback(async (dataUrl, name) => {
     const { data } = await api.post('/chat/upload', { dataUrl, name });
-    return data; // { url, name, size, mimetype }
+    return data; // { url, name, size, mimeType } (CHAT-M-02: camelCase from the server)
   }, []);
 
   const handleFilesPicked = useCallback(async (fileList) => {
@@ -457,13 +526,16 @@ export default function ChatDashboard() {
       setUploading(false);
       if (!uploaded.length) return;
       const first = uploaded[0];
-      const type = first.mimetype?.startsWith('image/') ? 'image'
-        : first.mimetype?.startsWith('video/') ? 'video'
-          : first.mimetype?.startsWith('audio/') ? 'audio' : 'file';
+      // CHAT-M-02: the server returns `mimeType` (camelCase); the old lowercase
+      // read left this undefined so every attachment was classified as 'file'.
+      const mime = first.mimeType || first.mimetype;
+      const type = mime?.startsWith('image/') ? 'image'
+        : mime?.startsWith('video/') ? 'video'
+          : mime?.startsWith('audio/') ? 'audio' : 'file';
       await sendMessage({ text: draftText.trim(), type, attachments: uploaded });
     } catch (err) {
       setUploading(false);
-      toast.error(err.response?.data?.message || 'Upload fail');
+      toast.error(userFacingError(err, { fallback: 'Upload fail' }));
     }
   }, [uploadDataUrl, sendMessage, draftText]);
 
@@ -475,7 +547,7 @@ export default function ChatDashboard() {
       await sendMessage({ type: 'voice', attachments: [{ ...meta, duration }] });
     } catch (err) {
       setUploading(false);
-      toast.error(err.response?.data?.message || 'Voice message fail');
+      toast.error(userFacingError(err, { fallback: 'Voice message fail' }));
     }
   }, [uploadDataUrl, sendMessage]);
 
@@ -492,7 +564,7 @@ export default function ChatDashboard() {
       const { data } = await api.put(`/chat/messages/${messageId}`, { content });
       setMessages((prev) => prev.map((m) => (m._id === messageId ? { ...m, ...data, edited: true } : m)));
       setEditMessage(null);
-    } catch (err) { toast.error(err.response?.data?.message || 'Edit fail'); }
+    } catch (err) { toast.error(userFacingError(err, { fallback: 'Edit fail' })); }
   }, []);
 
   const handleDelete = useCallback(async (messageId, scope) => {
@@ -501,7 +573,7 @@ export default function ChatDashboard() {
       setMessages((prev) => (scope === 'everyone'
         ? prev.map((m) => (m._id === messageId ? { ...m, deletedForEveryone: true, content: '', attachments: [] } : m))
         : prev.filter((m) => m._id !== messageId)));
-    } catch (err) { toast.error(err.response?.data?.message || 'Delete fail'); }
+    } catch (err) { toast.error(userFacingError(err, { fallback: 'Delete fail' })); }
   }, []);
 
   const handleStar = useCallback(async (messageId, current) => {
@@ -517,7 +589,7 @@ export default function ChatDashboard() {
       await api.put(`/chat/${convId}/pin-message`, { messageId });
       setConversations((prev) => prev.map((c) => (uid(c._id) === uid(convId) ? { ...c, pinnedMessageId: messageId } : c)));
       toast.success(messageId ? 'Message pinned' : 'Unpinned');
-    } catch (err) { toast.error(err.response?.data?.message || 'Pin fail'); }
+    } catch (err) { toast.error(userFacingError(err, { fallback: 'Pin fail' })); }
   }, []);
 
   const handleCopy = useCallback((message) => {
@@ -532,7 +604,7 @@ export default function ChatDashboard() {
       toast.success('Message forward ho gaya');
       setForwardMessageIds(null); setSelectedMessages([]); setSelectionMode(false);
       refreshConversations();
-    } catch (err) { toast.error(err.response?.data?.message || 'Forward fail'); }
+    } catch (err) { toast.error(userFacingError(err, { fallback: 'Forward fail' })); }
   }, [forwardMessageIds, refreshConversations]);
 
   const handleRetry = useCallback((message) => {
@@ -562,7 +634,7 @@ export default function ChatDashboard() {
       });
       toast.success('Report bhej diya');
       refreshSideData();
-    } catch (err) { toast.error(err.response?.data?.message || 'Report fail'); }
+    } catch (err) { toast.error(userFacingError(err, { fallback: 'Report fail' })); }
   }, [peer, refreshSideData]);
 
   /* ── Conversation actions ── */
@@ -572,7 +644,7 @@ export default function ChatDashboard() {
     try {
       await api.put(`/chat/settings/${convId}`, { action, value });
       await refreshConversations();
-    } catch (err) { toast.error(err.response?.data?.message || 'Action fail'); }
+    } catch (err) { toast.error(userFacingError(err, { fallback: 'Action fail' })); }
   }, [refreshConversations]);
 
   const markUnread = useCallback(async (convId) => {
@@ -589,7 +661,7 @@ export default function ChatDashboard() {
       await api.delete(`/chat/${convId}/clear`);
       setMessages([]);
       toast.success('Chat clear ho gayi (sirf aapke liye)');
-    } catch (err) { toast.error(err.response?.data?.message || 'Clear fail'); }
+    } catch (err) { toast.error(userFacingError(err, { fallback: 'Clear fail' })); }
   }, []);
 
   const deleteChat = useCallback(async () => {
@@ -600,7 +672,7 @@ export default function ChatDashboard() {
       setConversations((prev) => prev.filter((c) => uid(c._id) !== uid(convId)));
       setSelectedId(null); setMessages([]);
       toast.success('Chat delete ho gayi');
-    } catch (err) { toast.error(err.response?.data?.message || 'Delete fail'); }
+    } catch (err) { toast.error(userFacingError(err, { fallback: 'Delete fail' })); }
   }, []);
 
   const exportChat = useCallback(() => {
@@ -624,7 +696,7 @@ export default function ChatDashboard() {
       await api.put(`/chat/conversations/${conv._id}/request`, { action });
       refreshSideData(); refreshConversations();
       toast.success(action === 'accept' ? 'Request accept ho gayi' : 'Request hata di');
-    } catch (err) { toast.error(err.response?.data?.message || 'Action fail'); }
+    } catch (err) { toast.error(userFacingError(err, { fallback: 'Action fail' })); }
   }, [refreshSideData, refreshConversations]);
 
   const startChat = useCallback(async (contact) => {
@@ -633,7 +705,7 @@ export default function ChatDashboard() {
       const { data } = await api.post('/chat/conversations', { targetUserId: targetId });
       await refreshConversations();
       await openConversation(data._id);
-    } catch (err) { toast.error(err.response?.data?.message || 'Chat start nahi hui'); }
+    } catch (err) { toast.error(userFacingError(err, { fallback: 'Chat start nahi hui' })); }
   }, [refreshConversations, openConversation]);
 
   const searchInChat = useCallback(async (q) => {
@@ -658,7 +730,7 @@ export default function ChatDashboard() {
       const { data } = await api.post('/chat/backup/run');
       setBackup((b) => ({ ...b, lastBackupAt: data.at }));
       toast.success('Backup complete');
-    } catch (err) { toast.error(err.response?.data?.message || 'Backup fail'); }
+    } catch (err) { toast.error(userFacingError(err, { fallback: 'Backup fail' })); }
     finally { setBackupRunning(false); }
   }, []);
 
@@ -668,7 +740,7 @@ export default function ChatDashboard() {
       setPinSet(true);
       toast.success('PIN set ho gaya');
       return true;
-    } catch (err) { toast.error(err.response?.data?.message || 'PIN set fail'); return false; }
+    } catch (err) { toast.error(userFacingError(err, { fallback: 'PIN set fail' })); return false; }
   }, []);
 
   const onThemeChange = useCallback((next) => {
@@ -694,7 +766,7 @@ export default function ChatDashboard() {
       await api.put(`/chat/settings/${conv._id}`, { action: 'block', value: false });
       refreshSideData(); refreshConversations();
       toast.success('Unblock ho gaya');
-    } catch (err) { toast.error(err.response?.data?.message || 'Unblock fail'); }
+    } catch (err) { toast.error(userFacingError(err, { fallback: 'Unblock fail' })); }
   }, [conversations, meId, refreshSideData, refreshConversations]);
 
   /* ── Wallpaper apply ── */
@@ -773,6 +845,8 @@ export default function ChatDashboard() {
           onAcceptRequest={(r) => respondRequest(r, 'accept')}
           onDeclineRequest={(r, action) => respondRequest(r, action)}
           onOpenSettings={() => setShowSettings(true)}
+          onTogglePush={enablePush}
+          pushState={pushState}
           hidePreviewsInLocked={privacy.hideLockedNotifications !== false}
         />
       </div>
@@ -990,11 +1064,12 @@ export default function ChatDashboard() {
                 <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full hover:bg-muted text-muted-foreground flex-shrink-0" title="Attach image / video / document">
                   <Paperclip className="w-5 h-5" />
                 </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx"
+                      className="hidden"
                   onChange={(e) => { handleFilesPicked(e.target.files); e.target.value = ''; }}
                 />
 

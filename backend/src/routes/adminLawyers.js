@@ -3,17 +3,25 @@ import LawyerProfile from '../models/LawyerProfile.js';
 import LawyerBooking from '../models/LawyerBooking.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, adminOnly, superadminOnly } from '../middleware/auth.js';
+// ADM-B-01 / DLB-11: on-demand providers are a PLATFORM marketplace, not a tenant.
+// Their profiles carry Aadhaar, driving-licence and bank details, and the models
+// have no hospitalId to scope by - so dminOnly (which a hospital_admin holds)
+// gave every hospital KYC PII, plate numbers, bank details and ride analytics for
+// every other hospital. These are platform-level operations: superadmin only.
+import { platformAdminOnly } from '../middleware/authorize.js';
+import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const router = express.Router();
 
 // Only SuperAdmin and HospitalAdmin can access
-router.use(protect, adminOnly);
+router.use(protect, superadminOnly);
 
 // ─── GET /api/admin/lawyers/pending ───────────────────────────────────────
 // Get all pending lawyer applications for Bar Council verification
-router.get('/pending', async (req, res) => {
+router.get('/pending', platformAdminOnly, async (req, res) => {
   try {
     const pending = await LawyerProfile.find({ lawyerStatus: 'pending_approval' })
       .populate('userId', 'name email phone avatar address createdAt')
@@ -28,7 +36,7 @@ router.get('/pending', async (req, res) => {
 
 // ─── GET /api/admin/lawyers/all ───────────────────────────────────────────
 // Get all registered lawyers with status/category filter
-router.get('/all', async (req, res) => {
+router.get('/all', platformAdminOnly, async (req, res) => {
   try {
     const { status, category, search } = req.query;
     const query = {};
@@ -41,7 +49,7 @@ router.get('/all', async (req, res) => {
       .sort({ createdAt: -1 });
 
     if (search) {
-      const re = new RegExp(search, 'i');
+      const re = new RegExp(escapeRegex(capSearch(search)), 'i');
       lawyers = lawyers.filter(
         (l) =>
           re.test(l.userId?.name || '') ||
@@ -60,13 +68,17 @@ router.get('/all', async (req, res) => {
 
 // ─── PUT /api/admin/lawyers/:id/approve ───────────────────────────────────
 // Approve lawyer application
-router.put('/:id/approve', async (req, res) => {
+router.put('/:id/approve', platformAdminOnly, async (req, res) => {
   try {
     const profile = await LawyerProfile.findById(req.params.id);
     if (!profile) {
       return res.status(404).json({ message: 'Lawyer profile not found' });
     }
 
+    // ADM-B-04: only a pending application can be approved (idempotent state machine).
+    if (!['pending_approval', 'rejected', 'suspended'].includes(profile.lawyerStatus)) {
+      return res.status(409).json({ message: `Lawyer is already ${profile.lawyerStatus}` });
+    }
     profile.lawyerStatus = 'active';
     profile.isDocumentVerified = true;
     profile.rejectionReason = '';
@@ -74,6 +86,14 @@ router.put('/:id/approve', async (req, res) => {
 
     await User.findByIdAndUpdate(profile.userId, {
       approvalStatus: 'approved',
+    });
+
+    // ADM-M-02: the approval trail - who approved whom, when.
+    await auditLog('approve_lawyer', req.user._id, {
+      targetUserId: String(profile.userId),
+      profileId: String(profile._id),
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
     });
 
     await Notification.create({
@@ -92,7 +112,7 @@ router.put('/:id/approve', async (req, res) => {
 
 // ─── PUT /api/admin/lawyers/:id/reject ────────────────────────────────────
 // Reject lawyer application with reason
-router.put('/:id/reject', async (req, res) => {
+router.put('/:id/reject', platformAdminOnly, async (req, res) => {
   try {
     const { reason = 'Bar Council verification details could not be verified' } = req.body;
     const profile = await LawyerProfile.findById(req.params.id);
@@ -100,6 +120,10 @@ router.put('/:id/reject', async (req, res) => {
       return res.status(404).json({ message: 'Lawyer profile not found' });
     }
 
+    // ADM-B-04: reject is only valid from a pending application.
+    if (profile.lawyerStatus !== 'pending_approval') {
+      return res.status(409).json({ message: `Cannot reject a lawyer in state ${profile.lawyerStatus}` });
+    }
     profile.lawyerStatus = 'rejected';
     profile.rejectionReason = reason;
     profile.isAvailable = false;
@@ -107,6 +131,15 @@ router.put('/:id/reject', async (req, res) => {
 
     await User.findByIdAndUpdate(profile.userId, {
       approvalStatus: 'rejected',
+    });
+
+    // ADM-M-02: the rejection trail - who rejected whom, when, and why.
+    await auditLog('reject_lawyer', req.user._id, {
+      targetUserId: String(profile.userId),
+      profileId: String(profile._id),
+      reason,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
     });
 
     await Notification.create({
@@ -125,7 +158,7 @@ router.put('/:id/reject', async (req, res) => {
 
 // ─── PUT /api/admin/lawyers/:id/suspend ───────────────────────────────────
 // Suspend / Reinstate lawyer
-router.put('/:id/suspend', async (req, res) => {
+router.put('/:id/suspend', platformAdminOnly, async (req, res) => {
   try {
     const profile = await LawyerProfile.findById(req.params.id);
     if (!profile) {
@@ -136,6 +169,14 @@ router.put('/:id/suspend', async (req, res) => {
     profile.lawyerStatus = nextStatus;
     if (nextStatus === 'suspended') profile.isAvailable = false;
     await profile.save();
+
+    // ADM-M-02: suspension is an admin decision - record direction, not just state.
+    await auditLog(nextStatus === 'suspended' ? 'suspend_lawyer' : 'reactivate_lawyer', req.user._id, {
+      targetUserId: String(profile.userId),
+      profileId: String(profile._id),
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
 
     res.json({
       success: true,
@@ -150,7 +191,7 @@ router.put('/:id/suspend', async (req, res) => {
 
 // ─── GET /api/admin/lawyers/bookings ──────────────────────────────────────
 // All legal bookings oversight
-router.get('/bookings', async (req, res) => {
+router.get('/bookings', platformAdminOnly, async (req, res) => {
   try {
     const { status, category, fromDate, toDate } = req.query;
     const query = {};
@@ -178,7 +219,7 @@ router.get('/bookings', async (req, res) => {
 
 // ─── GET /api/admin/lawyers/analytics ────────────────────────────────────
 // Legal Services KPI stats
-router.get('/analytics', async (req, res) => {
+router.get('/analytics', platformAdminOnly, async (req, res) => {
   try {
     const [totalLawyers, activeLawyers, pendingApprovals, allBookings] = await Promise.all([
       LawyerProfile.countDocuments(),

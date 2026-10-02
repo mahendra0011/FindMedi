@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { randomDigits } from '../utils/secureRandom.js';
 
 const taskChecklistItemSchema = new mongoose.Schema({
   label: { type: String, required: true },
@@ -13,7 +14,7 @@ const assistantBookingSchema = new mongoose.Schema({
     type: String,
     unique: true,
     index: true,
-    default: () => `ASB-${Math.floor(100000 + Math.random() * 900000)}`,
+    default: () => `ASB-${randomDigits(6)}`,
   },
   patientId: {
     type: mongoose.Schema.Types.ObjectId,

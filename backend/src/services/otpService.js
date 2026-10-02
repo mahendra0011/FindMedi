@@ -1,4 +1,5 @@
 import OTP from '../models/OTP.js';
+import { randomDigits } from '../utils/secureRandom.js';
 import { sendEmail } from './notificationService.js';
 import { renderEmailTemplate, renderPlainText } from './emailTemplates.js';
 import {
@@ -19,10 +20,47 @@ const OTP_VALIDITY_MS = OTP_VALIDITY_MINUTES * 60 * 1000;
 // Minimum gap between OTP requests: 1 minute
 const MIN_OTP_REQUEST_GAP_MS = 60 * 1000;
 
-// Generate 6-digit numeric OTP
-export const generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+// Generate 6-digit numeric OTP (CSPRNG — AUTH-009)
+/**
+ * AUTH-B-08: daily OTP quota per identifier (cost + spam control).
+ * A Redis counter with a 24 h window, falling back to a Mongo count.
+ */
+export const OTP_DAILY_QUOTA = 10;
+
+export const checkDailyOtpQuota = async (email, limit = OTP_DAILY_QUOTA) => {
+  const key = `otp:quota:day:${email}`;
+  try {
+    const { redisClient, isRedisReady } = await import('../config/redis.js');
+    if (isRedisReady() && redisClient.isOpen) {
+      const used = Number(await redisClient.incr(key));
+      if (used === 1) await redisClient.expire(key, 24 * 60 * 60);
+      if (used > limit) {
+        return {
+          allowed: false,
+          message: 'Daily OTP limit reached. Please try again tomorrow.',
+          waitSeconds: 24 * 60 * 60,
+        };
+      }
+      return { allowed: true, used };
+    }
+  } catch { /* fall through to the Mongo count */ }
+
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const count = await OTP.countDocuments({ email, createdAt: { $gte: dayStart } });
+  if (count >= limit) {
+    return {
+      allowed: false,
+      message: 'Daily OTP limit reached. Please try again tomorrow.',
+      waitSeconds: 24 * 60 * 60,
+    };
+  }
+  return { allowed: true, used: count + 1 };
 };
+
+export const generateOTP = () => randomDigits(6);
+
+/**
 
 /**
  * Check if user can request a new OTP (minimum 1 minute gap)
@@ -72,6 +110,19 @@ export const checkRateLimit = async (email) => {
 export const createAndSendOTP = async ({ userId, email, type = 'email', phone = '' }) => {
   try {
     const normalizedEmail = email.toLowerCase();
+
+    // AUTH-B-08: daily quota per identifier. The 60 s cooldown alone still allows
+    // ~1 400 mails/day to one address (SMS/email pumping cost + OTP spam).
+    const dailyQuota = await checkDailyOtpQuota(normalizedEmail);
+    if (!dailyQuota.allowed) {
+      return {
+        success: false,
+        message: dailyQuota.message,
+        rateLimited: true,
+        waitSeconds: dailyQuota.waitSeconds,
+        quotaExceeded: true,
+      };
+    }
 
     // Check rate limit
     const rateLimitCheck = await checkRateLimit(normalizedEmail);

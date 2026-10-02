@@ -11,6 +11,22 @@ const insuranceSchema = new mongoose.Schema({
   tpaName: { type: String },
   tpaContact: { type: String },
   coverageType: { type: String, enum: ['Cashless', 'Reimbursement'], default: 'Cashless' },
+  // INS-M-02: the pre-auth is a LIFECYCLE, not a status knob. `preAuthAttempts`
+  // is the append-only history (request -> decision, then any resubmissions),
+  // so a denial reason can never be silently overwritten by the next attempt.
+  preAuthAttempts: [{
+    attemptNumber: { type: Number, required: true },
+    requestedAmount: { type: Number, required: true },
+    status: { type: String, enum: ['Pending', 'Approved', 'Partially Approved', 'Rejected'], default: 'Pending' },
+    decisionAmount: { type: Number },
+    denialReason: { type: String },
+    requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    requestedAt: { type: Date, default: Date.now },
+    decidedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    decidedAt: { type: Date },
+  }],
+  // Latest denial/partials for list views; the full story stays in attempts.
+  preAuthDenialReason: { type: String },
   preAuthAmount: { type: Number },
   preAuthStatus: { type: String, enum: ['Not Required', 'Pending', 'Approved', 'Partially Approved', 'Rejected'], default: 'Not Required' },
   preAuthDate: { type: Date },

@@ -1,16 +1,18 @@
 import express from 'express';
 import { protect } from '../middleware/auth.js';
+import { platformAdminOnly } from '../middleware/authorize.js';
 import SOSVehicleSettings from '../models/SOSVehicleSettings.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
 
-const adminOnly = (req, res, next) => {
-  if (req.user?.role !== 'superadmin') return res.status(403).json({ message: 'Access denied' });
-  next();
-};
+// AUTHZ-B-04: this module was already superadmin-gated (via a hand-rolled local
+// `adminOnly`), but it is the canonical example of a PLATFORM-WIDE setting: the
+// SOS dispatch radius/retry policy changes dispatch behaviour for every tenant.
+// It now uses the shared `platformAdminOnly` middleware so the rule is one
+// auditable definition instead of a copy that can drift.
 
-router.get('/sos-vehicle-settings', protect, adminOnly, async (req, res) => {
+router.get('/sos-vehicle-settings', protect, platformAdminOnly, async (req, res) => {
   try {
     let s = await SOSVehicleSettings.findOne().lean();
     if (!s) s = await SOSVehicleSettings.create({});
@@ -21,7 +23,7 @@ router.get('/sos-vehicle-settings', protect, adminOnly, async (req, res) => {
   }
 });
 
-router.put('/sos-vehicle-settings', protect, adminOnly, async (req, res) => {
+router.put('/sos-vehicle-settings', protect, platformAdminOnly, async (req, res) => {
   try {
     const { radiusSteps, windowSeconds, maxRetriesPerRadius, retryPauseSeconds, includeAmbulanceInAutoVehicleMode } = req.body;
     let s = await SOSVehicleSettings.findOne();

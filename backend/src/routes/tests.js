@@ -2,6 +2,7 @@ import express from 'express';
 import Test from '../models/Test.js';
 import { protect } from '../middleware/auth.js';
 import { validate, createTestSchema } from '../utils/validate.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ router.get('/', async (req, res) => {
     if (facilityId) filter.hospitalId = facilityId;
     else if (hospitalId) filter.hospitalId = hospitalId;
     else if (providerId) filter.providerId = providerId;
-    if (search) filter.name = new RegExp(search, 'i');
+    if (search) filter.name = new RegExp(escapeRegex(capSearch(search)), 'i');
     const tests = await Test.find(filter).sort({ name: 1 });
     res.json({ tests });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -69,9 +70,18 @@ router.put('/:id', protect, async (req, res) => {
       ? await Test.findById(req.params.id)
       : await Test.findOne({ _id: req.params.id, hospitalId: myId });
     if (!existing) return res.status(404).json({ message: 'Test not found' });
-    const body = { ...req.body };
+    // LAB-B-11: `...req.body` also allowed `hospitalId` / `providerId` to be
+    // rewritten, so the ownership check above (which runs on the PRE-image)
+    // could be satisfied and then the catalogue row re-parented to another
+    // tenant. Only catalogue fields are updatable now.
+    const { pickBody } = await import('../utils/pick.js');
+    const body = pickBody(req.body, [
+      'name', 'description', 'category', 'price', 'mrp', 'discount', 'sampleType',
+      'reportUrl', 'isActive', 'prescriptionReq', 'isAbnormal', 'preparation',
+      'method', 'normalRanges', 'unit', 'turnaroundTime', 'testCode',
+    ]);
     if (body.price && body.mrp) body.discount = Math.round((1 - body.price / body.mrp) * 100);
-    const updated = await Test.findByIdAndUpdate(req.params.id, body, { new: true });
+    const updated = await Test.findByIdAndUpdate(req.params.id, body, { new: true, runValidators: true });
     res.json(updated);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

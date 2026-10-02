@@ -9,7 +9,21 @@ const router = express.Router();
 
 router.get('/', protect, async (req, res) => {
   try {
-    const announcements = await Announcement.find({ hospitalId: req.user.hospitalId })
+    // AUTHZ: fail open. `find({ hospitalId: undefined })` does NOT match "no
+    // hospital" — Mongoose STRIPS undefined keys from the filter, so the query
+    // degrades to `find({})` and returns every announcement on the platform,
+    // including other tenants'. Any account without a hospitalId (patients,
+    // independent doctors) got the full cross-tenant feed.
+    //
+    // POST below is adminOnly; the read side was the open one. Deny when the
+    // scope cannot be determined, rather than treating it as "everything".
+    if (!req.user.hospitalId && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'No hospital scope for this account' });
+    }
+    const filter = req.user.role === 'superadmin' && !req.user.hospitalId
+      ? {}
+      : { hospitalId: req.user.hospitalId };
+    const announcements = await Announcement.find(filter)
       .populate('createdBy', 'name email')
       .sort('-createdAt');
     res.json(announcements);

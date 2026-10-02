@@ -6,6 +6,14 @@ import { EmergencyToggleConfirm } from '@/components/emergency/EmergencyToggleCo
 import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
 import { api } from '@/lib/api';
+import { userFacingError } from '@/lib/errorCopy';
+
+interface ScanReceipt {
+  scannedAt: string;
+  ip: string | null;
+  userAgent: string | null;
+  shareLevel: string | null;
+}
 
 export default function PatientHealthId() {
   const navigate = useNavigate();
@@ -13,8 +21,20 @@ export default function PatientHealthId() {
   const [isEnabled, setIsEnabled] = useState(true);
   const [shareLevel, setShareLevel] = useState<'full' | 'minimal'>('full');
   const [loading, setLoading] = useState(true);
+  const [receipts, setReceipts] = useState<ScanReceipt[] | null>(null);
   const [confirmOpen, setConfirmOpen] = useState<{ open: boolean; value: boolean }>({ open: false, value: false });
   const qrRef = useRef<HTMLDivElement>(null);
+
+  // REC-M-04: "who scanned my card, when" — the receipts endpoint is scoped to
+  // the caller's own id server-side; this list is display only.
+  const loadReceipts = async () => {
+    try {
+      const r: any = await api.get('/health-id/scans');
+      setReceipts(Array.isArray(r?.receipts) ? r.receipts : []);
+    } catch {
+      setReceipts([]);
+    }
+  };
 
   const load = async () => {
     try {
@@ -29,13 +49,13 @@ export default function PatientHealthId() {
         setQrToken(res.qrToken || '');
       }
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Load failed');
+      toast.error(userFacingError(e, { fallback: 'Load failed' }));
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadReceipts(); }, []);
 
   const handleEnableToggle = async () => {
     const turningOn = confirmOpen.value;
@@ -45,7 +65,7 @@ export default function PatientHealthId() {
       setIsEnabled(res.user?.healthIdCard?.isEnabled ?? turningOn);
       toast.success(turningOn ? 'Health ID enabled' : 'Health ID disabled');
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Failed');
+      toast.error(userFacingError(e, { fallback: 'Failed' }));
     }
   };
 
@@ -66,7 +86,7 @@ export default function PatientHealthId() {
       setQrToken(res.qrToken || '');
       toast.success('QR regenerated');
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Regenerate failed');
+      toast.error(userFacingError(e, { fallback: 'Regenerate failed' }));
     }
   };
 
@@ -136,6 +156,49 @@ export default function PatientHealthId() {
           <Button variant="outline" size="sm" className="w-full" onClick={handleRegenerate}>
             Regenerate QR Code
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-muted-foreground">Scan Activity</span>
+              <p className="text-xs text-muted-foreground">Aapka card kisne, kab scan kiya — har scan ki receipt.</p>
+            </div>
+            <Button size="sm" variant="ghost" onClick={loadReceipts}>Refresh</Button>
+          </div>
+
+          {receipts === null ? (
+            <p className="text-xs text-muted-foreground">Loading…</p>
+          ) : receipts.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Abhi tak koi scan nahi hua.</p>
+          ) : (
+            <ul className="space-y-2">
+              {receipts.map((r, i) => (
+                <li key={`${r.scannedAt}-${i}`} className="rounded-lg border p-2 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold">
+                      {new Date(r.scannedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 font-bold ${
+                        r.shareLevel === 'full'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-purple-100 text-purple-800'
+                      }`}
+                    >
+                      {r.shareLevel === 'full' ? 'Full' : r.shareLevel === 'minimal' ? 'Minimal' : 'Unknown'}
+                    </span>
+                  </div>
+                  <p className="mt-1 break-all text-muted-foreground">
+                    IP {r.ip ?? 'unknown'}
+                    {r.userAgent ? ` · ${r.userAgent}` : ''}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
 

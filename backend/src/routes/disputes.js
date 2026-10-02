@@ -6,6 +6,7 @@ import { auditLog } from '../middleware/audit.js';
 import { validate } from '../utils/validate.js';
 import { generateTimestampedId } from '../utils/idGenerator.js';
 import logger from '../config/logger.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const disputeStatusSchema = z.object({ status: z.string().min(1), resolution: z.string().optional() });
 const disputeAssignSchema = z.object({ assignedTo: z.string().min(1) });
@@ -22,9 +23,9 @@ router.get('/', protect, superadminOnly, async (req, res) => {
     if (priority) filter.priority = priority;
     if (againstType) filter.againstType = againstType;
     if (search) filter.$or = [
-      { disputeId: new RegExp(search, 'i') },
-      { raisedByName: new RegExp(search, 'i') },
-      { againstName: new RegExp(search, 'i') },
+      { disputeId: new RegExp(escapeRegex(capSearch(search)), 'i') },
+      { raisedByName: new RegExp(escapeRegex(capSearch(search)), 'i') },
+      { againstName: new RegExp(escapeRegex(capSearch(search)), 'i') },
     ];
     const disputes = await Dispute.find(filter).populate('raisedBy', 'name email').sort({ createdAt: -1 });
     res.json({ disputes });

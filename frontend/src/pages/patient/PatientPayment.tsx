@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import StatCard from '@/components/StatCard';
+import { userFacingError } from '@/lib/errorCopy';
 
 const statusColors = { completed: 'bg-success/10 text-success', pending: 'bg-warning/10 text-warning', failed: 'bg-destructive/10 text-destructive', refunded: 'bg-info/10 text-info' };
 const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
@@ -60,7 +61,7 @@ export default function PatientPayment() {
       setTimeout(() => { setPaySuccess(false); setPayingBill(null); loadData(); }, 2000);
     } catch (e) {
       console.error(e);
-      toast.error(e.response?.data?.message || 'Payment failed');
+      toast.error(userFacingError(e, { fallback: 'Payment failed' }));
     }
   };
 

@@ -6,6 +6,7 @@ import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createSurgerySchema } from '../utils/validate.js';
 import { generateTimestampedId } from '../utils/idGenerator.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const otCompleteSchema = z.object({ findings: z.string().optional(), procedure: z.string().optional(), complications: z.string().optional(), postOpInstructions: z.string().optional(), instrumentsAfter: z.number().optional(), spongesAfter: z.number().optional() });
 const otRecoverySchema = z.object({ recoveryNotes: z.string().optional(), vitals: z.any().optional() });
@@ -42,8 +43,8 @@ router.get('/surgeries', protect, async (req, res) => {
     if (status && status !== 'All') filter.status = status;
     if (search) {
       filter.$or = [
-        { otId: new RegExp(search, 'i') }, { patientName: new RegExp(search, 'i') },
-        { surgeryName: new RegExp(search, 'i') }, { doctorName: new RegExp(search, 'i') },
+        { otId: new RegExp(escapeRegex(capSearch(search)), 'i') }, { patientName: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { surgeryName: new RegExp(escapeRegex(capSearch(search)), 'i') }, { doctorName: new RegExp(escapeRegex(capSearch(search)), 'i') },
       ];
     }
     const surgeries = await OperationTheatre.find(filter)

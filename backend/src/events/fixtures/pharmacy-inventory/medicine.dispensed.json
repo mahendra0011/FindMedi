@@ -1,0 +1,7 @@
+{
+  "eventType": "medicine.dispensed",
+  "pharmacyId": "652f000000000000000000c0",
+  "medicineId": "652f000000000000000000c1",
+  "quantity": 10,
+  "createdBy": "652f000000000000000000ff"
+}

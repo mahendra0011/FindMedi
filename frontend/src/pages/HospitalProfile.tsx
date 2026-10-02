@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import BillCheckout from '@/components/BillCheckout';
 import ReviewDialog from '@/components/ReviewDialog';
+import { userFacingError } from '@/lib/errorCopy';
 
 // ─── Animation Variants ────────────────────────────────────────────────────
 const stagger = {
@@ -261,7 +262,7 @@ export default function HospitalProfile() {
       setTestBookingStep(6);
       toast.success('Payment successful! Test booking confirmed.');
     } catch (e) {
-      const msg = e.response?.data?.message || e.message || '';
+      const msg = userFacingError(e, { fallback: '' });
       if (isBookingConflictError(msg)) {
         setTestBookingStep(6);
         toast.success('Booking already confirmed!');

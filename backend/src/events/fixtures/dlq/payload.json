@@ -1,0 +1,8 @@
+{
+  "eventType": "medicine.dispensed",
+  "aggregateId": "652f000000000000000000c1",
+  "pharmacyId": "652f000000000000000000c0",
+  "retryCount": 5,
+  "outboxId": "652f000000000000000000e3",
+  "lastError": "exhausted-retries"
+}

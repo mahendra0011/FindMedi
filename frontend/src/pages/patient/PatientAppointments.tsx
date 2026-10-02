@@ -20,6 +20,109 @@ export default function PatientAppointments() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('upcoming');
 
+  // APPT-M-01: waitlist queue for full slots. The entry state (esp. the
+  // 15-minute offer) is the source of truth; this card renders it with a live
+  // countdown, and accepting pays against the hold via the existing checkout
+  // before the server marks the entry accepted.
+  const [waitlist, setWaitlist] = useState<any[]>([]);
+  const [offerMethod, setOfferMethod] = useState('upi');
+  const [actingId, setActingId] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  const fetchWaitlist = () => {
+    api.getMyWaitlist().then((res: any) => {
+      const list = Array.isArray(res) ? res : (res?.data || res?.waitlist || []);
+      setWaitlist(Array.isArray(list) ? list : []);
+    }).catch(() => { /* non-critical - the section just stays hidden */ });
+  };
+
+  // APPT-M-02: recurring series. Occurrences are ordinary appointments (they
+  // appear in the lists below with working individual cancel/reschedule); this
+  // card shows the pattern and cancels EVERY not-yet-terminal occurrence.
+  const [seriesList, setSeriesList] = useState<any[]>([]);
+
+  const fetchSeries = () => {
+    api.getMyAppointmentSeries().then((res: any) => {
+      const list = Array.isArray(res) ? res : (res?.data || []);
+      setSeriesList(Array.isArray(list) ? list : []);
+    }).catch(() => { /* non-critical - the section just stays hidden */ });
+  };
+
+  const activeSeries = seriesList.filter((s: any) => s.status === 'active');
+
+  const frequencyLabel: Record<string, string> = {
+    weekly: 'Weekly',
+    biweekly: 'Every 2 weeks',
+    monthly: 'Monthly',
+  };
+
+  useEffect(() => {
+    fetchWaitlist();
+    fetchSeries();
+  }, []);
+
+  const hasLiveOffer = waitlist.some((e: any) => e.status === 'offered');
+  useEffect(() => {
+    if (!hasLiveOffer) return undefined;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [hasLiveOffer]);
+
+  const activeWaitlist = waitlist.filter((e: any) => ['waiting', 'offered', 'accepted'].includes(e.status));
+  const offerRemainingMs = (e: any) => new Date(e.offerExpiresAt).getTime() - now;
+
+  const handleAcceptOffer = async (entry: any) => {
+    setActingId(entry._id);
+    try {
+      // 1) money against the hold - the existing checkout auto-confirms it;
+      // 2) record the queue decision (server verifies the payment exists).
+      await api.payTransaction({
+        serviceType: 'appointment',
+        amount: Number(entry.offerFee) || 0,
+        method: offerMethod,
+        referenceId: entry.offerAppointmentId,
+        description: `Waitlist offer ${entry.date} ${entry.time}`,
+      });
+      await api.acceptWaitlistOffer(entry._id);
+      toast.success('Slot claimed and paid. It is now in your appointments.');
+      fetchWaitlist();
+      fetchAppointments();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Could not claim this slot. Please try again.');
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const handleLeaveWaitlist = async (id: string) => {
+    setActingId(id);
+    try {
+      await api.leaveWaitlist(id);
+      toast.success('Removed from the waitlist.');
+      fetchWaitlist();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Could not update the waitlist entry.');
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const handleCancelSeries = async (id: string) => {
+    if (!confirm('Cancel this recurring series? Every upcoming visit in it will be cancelled.')) return;
+    setActingId(id);
+    try {
+      const res = await api.cancelAppointmentSeries(id);
+      const n = res?.cancelledCount || 0;
+      toast.success(n > 0 ? `Series cancelled - ${n} upcoming visit${n === 1 ? '' : 's'} released.` : 'Series already had no upcoming visits.');
+      fetchSeries();
+      fetchAppointments();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Could not cancel the series.');
+    } finally {
+      setActingId(null);
+    }
+  };
+
   const fetchAppointments = () => {
     setLoading(true);
     api.getAppointments({ limit: 200 }).then((res) => {
@@ -82,6 +185,120 @@ export default function PatientAppointments() {
           <Button size="sm" onClick={() => navigate('/dashboard')}>Book New</Button>
         </div>
       </div>
+
+      {activeWaitlist.length > 0 && (
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-primary" />
+            <h2 className="font-bold text-foreground">Waitlist</h2>
+            <span className="text-xs text-muted-foreground">slots that opened up for you</span>
+          </div>
+          {activeWaitlist.map((entry) => {
+            const remaining = offerRemainingMs(entry);
+            return (
+              <div key={entry._id} className="flex flex-col md:flex-row gap-3 md:items-center justify-between rounded-xl border border-border p-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-sm truncate">{entry.doctorName || 'Doctor'}</span>
+                    <Badge variant="outline">{entry.department || 'Consultation'}</Badge>
+                    <Badge variant={entry.status === 'offered' ? 'default' : 'secondary'} className="capitalize">
+                      {entry.status === 'offered' ? 'Slot open' : entry.status}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatDisplayDate(entry.date)} at {entry.time}
+                  </p>
+                </div>
+
+                {entry.status === 'waiting' && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Waiting for a slot…</span>
+                    <Button size="sm" variant="ghost" disabled={actingId === entry._id} onClick={() => handleLeaveWaitlist(entry._id)}>Leave</Button>
+                  </div>
+                )}
+
+                {entry.status === 'offered' && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`text-xs font-medium tabular-nums ${remaining > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                      {remaining > 0
+                        ? `Claim in ${Math.floor(remaining / 60000)}:${String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0')}`
+                        : 'Expiring…'}
+                    </span>
+                    <select
+                      aria-label="Payment method"
+                      value={offerMethod}
+                      onChange={(e) => setOfferMethod(e.target.value)}
+                      className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+                    >
+                      <option value="upi">UPI</option>
+                      <option value="card">Card</option>
+                      <option value="netbanking">Net Banking</option>
+                      <option value="wallet">Wallet</option>
+                    </select>
+                    <Button size="sm" disabled={actingId === entry._id || remaining <= 0} onClick={() => handleAcceptOffer(entry)}>
+                      {actingId === entry._id ? 'Confirming…' : `Claim for ₹${Number(entry.offerFee) || 0}`}
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={actingId === entry._id} onClick={() => handleLeaveWaitlist(entry._id)}>
+                      Decline
+                    </Button>
+                  </div>
+                )}
+
+                {entry.status === 'accepted' && (
+                  <span className="text-xs text-emerald-600 font-medium">Claimed - open the appointment above to manage it</span>
+                )}
+              </div>
+            );
+          })}
+        </Card>
+      )}
+
+      {activeSeries.length > 0 && (
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-4 h-4 text-primary" />
+            <h2 className="font-bold text-foreground">Recurring series</h2>
+            <span className="text-xs text-muted-foreground">repeating appointments</span>
+          </div>
+          {activeSeries.map((s: any) => {
+            const upcoming = (s.occurrences || []).filter((o: any) => !['Cancelled', 'Completed', 'Missed'].includes(o.status));
+            return (
+              <div key={s._id} className="flex flex-col md:flex-row gap-3 md:items-center justify-between rounded-xl border border-border p-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-sm truncate">{s.doctor || 'Doctor'}</span>
+                    <Badge variant="outline">{frequencyLabel[s.frequency] || s.frequency} × {s.count}</Badge>
+                    <Badge variant="secondary">₹{s.feesPerOccurrence || 0} / visit</Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {(s.occurrences || []).map((o: any) => (
+                      <span
+                        key={o._id}
+                        title={o.status === 'Cancelled' ? (o.cancellationReason || 'Cancelled') : o.status}
+                        className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                          o.status === 'Cancelled'
+                          ? 'text-muted-foreground border-border line-through'
+                          : o.status === 'Pending'
+                          ? 'text-amber-600 border-amber-300 dark:border-amber-700'
+                          : 'text-emerald-600 border-emerald-300 dark:border-emerald-700'
+                        }`}
+                      >
+                        {formatDisplayDate(o.date)} · {o.status === 'Pending' ? 'unpaid' : o.status.toLowerCase()}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {upcoming.length} upcoming visit{upcoming.length === 1 ? '' : 's'} at {s.time} · cancel one-off from the appointment itself
+                  </p>
+                </div>
+                <Button size="sm" variant="destructive" disabled={actingId === s._id} onClick={() => handleCancelSeries(s._id)}>
+                  {actingId === s._id ? 'Cancelling…' : 'Cancel series'}
+                </Button>
+              </div>
+            );
+          })}
+        </Card>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">

@@ -5,6 +5,8 @@ import EmergencyRequest from '../models/EmergencyRequest.js';
 import { getIO } from '../services/socketService.js';
 import { syncHospitalAmbulanceFlag } from '../services/emergencyDispatchService.js';
 import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
+import logger from '../config/logger.js';
+import { sendServerError } from '../utils/safeError.js';
 
 const router = express.Router();
 router.use(protect, restrictTo('ambulance'));
@@ -22,11 +24,33 @@ router.use(async (req, res, next) => {
 router.get('/me', (req, res) => res.json({ success: true, ambulance: req.ambulance }));
 
 // PUT /api/ambulance/me/settings — §8 ops master (tier, equipment, tariff, radius).
+//
+// RIDE-B-08: TARIFF IS NOT A SELF-SERVICE FIELD. A driver could previously POST
+// their own `baseDispatchFee` / `perKmRate` / `oxygenFee` and set the price of
+// their own transport — including to zero — because the tariff fields were in the
+// same allow-list as the operational flags. Pricing is set by the platform (or a
+// superadmin); a driver may only declare their CAPABILITY and availability.
+//
+// A driver-supplied tariff is rejected with 403 rather than silently ignored, so a
+// client cannot believe its override took effect.
 router.put('/me/settings', async (req, res) => {
   try {
     const s = req.body?.settings;
     if (!s || typeof s !== 'object') return res.status(400).json({ message: 'settings object chahiye' });
     const amb = req.ambulance;
+
+    const TARIFF_FIELDS = ['baseDispatchFee', 'perKmRate', 'oxygenFee'];
+    const attempted = TARIFF_FIELDS.filter((k) => s[k] !== undefined);
+    if (attempted.length && !['superadmin', 'hospital_admin'].includes(req.user?.role)) {
+      logger.warn(
+        `RIDE-B-08: ambulance ${amb._id} (${req.user?.role}) attempted to set tariff: ${attempted.join(', ')}`
+      );
+      return res.status(403).json({
+        message: 'Tariff is set by the platform and cannot be changed from a driver account',
+        rejectedFields: attempted,
+      });
+    }
+
     const next = { ...(amb.settings?.toObject?.() || amb.settings || {}) };
     if (['BLS', 'ALS', 'PTV', 'NICU'].includes(s.lifeSupportTier)) {
       next.lifeSupportTier = s.lifeSupportTier;
@@ -35,14 +59,18 @@ router.put('/me/settings', async (req, res) => {
     for (const k of ['oxygenOk', 'aedOk', 'suctionOk', 'spineBoardOk', 'emtOnBoard', 'erAutoAlert']) {
       if (typeof s[k] === 'boolean') next[k] = s[k];
     }
-    for (const k of ['baseDispatchFee', 'perKmRate', 'oxygenFee', 'maxRadiusKm']) {
+    // `maxRadiusKm` is availability, not price, so a driver may set it.
+    for (const k of TARIFF_FIELDS) {
       if (s[k] !== undefined && Number(s[k]) >= 0) next[k] = Number(s[k]);
+    }
+    if (s.maxRadiusKm !== undefined && Number(s.maxRadiusKm) >= 0) {
+      next.maxRadiusKm = Number(s.maxRadiusKm);
     }
     amb.settings = next;
     await amb.save();
     res.json({ success: true, settings: amb.settings });
   } catch (err) {
-    res.status(500).json({ message: err.message || 'Settings save nahi hui' });
+    sendServerError(res, err, 'Settings save nahi hui', { ambulanceId: req.ambulance?._id });
   }
 });
 

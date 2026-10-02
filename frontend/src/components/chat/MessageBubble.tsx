@@ -237,11 +237,14 @@ export default function MessageBubble({
   const isDeleted = message.deletedForEveryone;
   const state = ticksFor(message);
   const attachments = message.attachments || [];
-  const imageAtt = attachments.find((a) => a.mimetype?.startsWith('image/'));
-  const videoAtt = attachments.find((a) => a.mimetype?.startsWith('video/'));
-  const audioAtt = attachments.find((a) => a.mimetype?.startsWith('audio/'));
+  // CHAT-M-02: server stores `mimeType` (camelCase); tolerate the legacy
+  // lowercase key so old rows still classify.
+  const mimeOf = (a: any) => a.mimeType || a.mimetype;
+  const imageAtt = attachments.find((a) => mimeOf(a)?.startsWith('image/'));
+  const videoAtt = attachments.find((a) => mimeOf(a)?.startsWith('video/'));
+  const audioAtt = attachments.find((a) => mimeOf(a)?.startsWith('audio/'));
   const fileAtts = attachments.filter(
-    (a) => !a.mimetype?.startsWith('image/') && !a.mimetype?.startsWith('video/') && !a.mimetype?.startsWith('audio/')
+    (a) => !mimeOf(a)?.startsWith('image/') && !mimeOf(a)?.startsWith('video/') && !mimeOf(a)?.startsWith('audio/')
   );
   const firstUrl = (message.content?.match(/(https?:\/\/[^\s<>"']+)/) || [])[0];
 

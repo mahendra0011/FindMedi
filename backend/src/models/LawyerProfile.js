@@ -85,6 +85,28 @@ const lawyerProfileSchema = new mongoose.Schema({
     practicingCourts: [{ type: String }],
     privilegeLocked: { type: Boolean, default: true },
   },
+  licenseExpiryDate: { type: Date, default: null },
+  verificationLastChecked: { type: Date, default: null },
+  nextVerificationDue: { type: Date, default: null },
+  verificationStatus: {
+    type: String,
+    enum: ['pending', 'verified', 'expired', 'under_review'],
+    default: 'pending',
+  },
+  // Evidence store for bar-council documents
+  verificationDocuments: [
+    {
+      kind: {
+        type: String,
+        enum: ['license_cert', 'state_cert', 'degree_cert', 'id_proof'],
+        required: true,
+      },
+      docUrl: { type: String, required: true },
+      uploadedAt: { type: Date, default: Date.now },
+      verifiedAt: { type: Date },
+      verifiedBy: { type: String, default: '' },
+    },
+  ],
   availableDays: [{ type: String }],
   availableTimeSlots: [
     {
@@ -108,6 +130,9 @@ const lawyerProfileSchema = new mongoose.Schema({
   },
   totalEarnings: { type: Number, default: 0 },
   walletBalance: { type: Number, default: 0 },
+  // LAW-B-01: recorded by the atomic withdrawal debit, so a payout can be
+  // reconciled without replaying the wallet history.
+  lastWithdrawalAt: { type: Date },
   casesHandled: { type: Number, default: 25 },
   favorableOutcomesRate: { type: Number, default: 88, min: 50, max: 100 },
   notableCases: [{ type: String }],

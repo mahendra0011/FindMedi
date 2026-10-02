@@ -8,6 +8,9 @@ import { protect, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { validate } from '../utils/validate.js';
 import { paymentLimiter } from '../middleware/rateLimit.js';
+import { idempotencyGuard } from '../middleware/idempotency.js';
+import { requireStepUp } from '../middleware/stepUpAuth.js';
+import { reconcilePayouts } from '../services/payoutReconcile.js';
 import logger from '../config/logger.js';
 
 const commissionConfigSchema = z.object({ commissionPercent: z.number().optional(), commissionCap: z.number().optional(), payoutSchedule: z.string().optional(), status: z.string().optional() });
@@ -175,7 +178,10 @@ router.get('/payouts', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/payouts', protect, paymentLimiter, superadminOnly, validate(payoutCreateSchema), async (req, res) => {
+// AUTHZ-M-03: creating payouts moves money out of the platform, so it needs a
+// fresh proof of possession even though the caller is already a superadmin with a
+// valid session. The session token alone is a long-lived bearer credential.
+router.post('/payouts', protect, paymentLimiter, requireStepUp('payouts:add'), idempotencyGuard({ prefix: 'payout-create', failClosed: true }), superadminOnly, validate(payoutCreateSchema), async (req, res) => {
   try {
     const { facilityId, periodStart, periodEnd } = req.body;
     if (!facilityId) return res.status(400).json({ message: 'facilityId is required' });
@@ -189,7 +195,11 @@ router.post('/payouts', protect, paymentLimiter, superadminOnly, validate(payout
 
     const transactions = await TransactionLedger.find({
       facilityId,
-      payoutId: { $exists: false },
+      // PAY-M-03: `payoutId` has `default: null`, so EVERY row is written with
+      // the field present and null — `{ $exists: false }` matched nothing and
+      // each payout was created claiming zero rows (totals stayed 0 too, so the
+      // bug hid itself). `{ payoutId: null }` matches null AND missing.
+      payoutId: null,
       status: 'completed',
       ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}),
     });
@@ -238,7 +248,7 @@ router.post('/payouts', protect, paymentLimiter, superadminOnly, validate(payout
 });
 
 // SA-M5: record a four-eyes approval (idempotent per admin).
-router.put('/payouts/:id/approve', protect, paymentLimiter, superadminOnly, async (req, res) => {
+router.put('/payouts/:id/approve', protect, paymentLimiter, idempotencyGuard({ prefix: 'payout-approve', failClosed: true }), superadminOnly, async (req, res) => {
   try {
     const payout = await Payout.findById(req.params.id);
     if (!payout) return res.status(404).json({ message: 'Payout not found' });
@@ -259,7 +269,7 @@ router.put('/payouts/:id/approve', protect, paymentLimiter, superadminOnly, asyn
 
 const FOUR_EYES_THRESHOLD = 100000;
 
-router.put('/payouts/:id/pay', protect, paymentLimiter, superadminOnly, validate(payoutPaySchema), async (req, res) => {
+router.put('/payouts/:id/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'payout-pay', failClosed: true }), superadminOnly, validate(payoutPaySchema), async (req, res) => {
   try {
     const payout = await Payout.findById(req.params.id);
     if (!payout) return res.status(404).json({ message: 'Payout not found' });
@@ -334,6 +344,20 @@ router.get('/stats', protect, superadminOnly, async (req, res) => {
       sourceBreakdown,
     });
   } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// PAY-M-03: on-demand payout-vs-settlement reconciliation report. Same engine
+// the daily job runs (jobs/payoutReconcile.job.js), which turns a failed
+// run into an audit event + superadmin notification — this endpoint is for
+// "show me the current state" without waiting for the 03:00 tick.
+router.get('/recon', protect, superadminOnly, async (req, res) => {
+  try {
+    const report = await reconcilePayouts({ now: new Date() });
+    res.json(report);
+  } catch (err) {
+    logger.error('payout recon report failed:', err);
+    res.status(500).json({ message: err.message });
+  }
 });
 
 export default router;

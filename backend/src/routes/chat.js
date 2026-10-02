@@ -1,23 +1,26 @@
 import express from 'express';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { v4 as uuidv4 } from 'uuid';
-import { protect } from '../middleware/auth.js';
+import { requireConversationMember } from '../middleware/chatMembership.js';
+import { protect, authorize } from '../middleware/auth.js';
 import ChatConversation from '../models/ChatConversation.js';
 import ChatMessage from '../models/ChatMessage.js';
 import ChatPrivacy from '../models/ChatPrivacy.js';
 import ChatReport from '../models/ChatReport.js';
+import PushSubscription from '../models/PushSubscription.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import Appointment from '../models/Appointment.js';
 import bcrypt from 'bcryptjs';
+import { verifyPin } from '../services/pinLockout.js';
+import { auditLog } from '../middleware/audit.js';
 import { emitChatEvent, emitChatNotification } from '../services/socketService.js';
+// CHAT-M-02: all upload policy (MIME allowlist, magic bytes, ClamAV scan,
+// quarantine, size cap, attachment-array validation) lives in the service.
+import { storeChatUpload, validateChatAttachments } from '../services/chatUploadService.js';
+// CHAT-M-04: offline delivery — env-gated web push for recipients with no
+// live socket presence.
+import { sendChatPush, isPushConfigured, getVapidPublicKey } from '../services/pushSender.js';
 
 const router = express.Router();
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const UPLOAD_DIR = path.join(__dirname, '..', '..', 'public', 'uploads', 'chat');
-const MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25MB
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const uid = (id) => String(id);
@@ -141,7 +144,7 @@ function sanitizeMessage(message, userId) {
   };
 }
 
-const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 /** Conversation ke saare participants ke privacy flags respect karte hue response banata hai */
 async function decorateConversation(conv, userId) {
@@ -267,8 +270,80 @@ async function hasAppointmentLink(userA, userB) {
   }));
 }
 
+// ─── Web Push subscriptions (CHAT-M-04) ─────────────────────────────────────
+// Offline fallback: sockets only reach an open tab. The VAPID key pair is
+// generated locally (`npx web-push generate-vapid-keys`) — no Firebase/APNs
+// account needed (that stays NOTIF-M-01). Unconfigured servers advertise
+// `configured: false` and the sender skips.
+
+// authz: self
+router.get('/push-config', protect, authorize('chat:read:own'), (req, res) => {
+  res.json({ configured: isPushConfigured(), publicKey: getVapidPublicKey() });
+});
+
+// authz: self
+router.post('/push-subscriptions', protect, authorize('chat:write:own'), async (req, res) => {
+  try {
+    const { endpoint, keys, userAgent } = req.body || {};
+    if (typeof endpoint !== 'string' || !endpoint || endpoint.length > 2048) {
+      return res.status(400).json({ message: 'endpoint required' });
+    }
+    let endpointUrl;
+    try {
+      endpointUrl = new URL(endpoint);
+    } catch {
+      return res.status(400).json({ message: 'endpoint must be a valid URL' });
+    }
+    if (endpointUrl.protocol !== 'https:' && endpointUrl.protocol !== 'http:') {
+      return res.status(400).json({ message: 'endpoint must be an http(s) URL' });
+    }
+    const p256dh = keys?.p256dh;
+    const auth = keys?.auth;
+    if (typeof p256dh !== 'string' || !p256dh || p256dh.length > 512) {
+      return res.status(400).json({ message: 'keys.p256dh required' });
+    }
+    if (typeof auth !== 'string' || !auth || auth.length > 512) {
+      return res.status(400).json({ message: 'keys.auth required' });
+    }
+    const userId = String(req.user.id);
+    const sub = await PushSubscription.findOneAndUpdate(
+      { userId, endpoint },
+      {
+        $set: {
+          keys: { p256dh, auth },
+          userAgent: typeof userAgent === 'string' ? userAgent.slice(0, 300) : '',
+          lastSeenAt: new Date(),
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    );
+    res.status(201).json({ id: String(sub._id), endpoint });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// authz: self
+router.delete('/push-subscriptions/:id', protect, authorize('chat:write:own'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!/^[0-9a-f]{24}$/i.test(id)) return res.status(404).json({ message: 'Subscription not found' });
+    const result = await PushSubscription.deleteOne({ _id: id, userId: String(req.user.id) });
+    if (!result.deletedCount) return res.status(404).json({ message: 'Subscription not found' });
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // ─── File upload (base64 dataURL → /uploads/chat) ───────────────────────────
-router.post('/upload', protect, async (req, res) => {
+// CHAT-M-02: this handler is now a thin wrapper — MIME allow-list, magic-byte
+// content checks for ALL types (previously images only), the ClamAV malware
+// scan, quarantine-on-detection and the 25MB cap all live in
+// chatUploadService.storeChatUpload(). CHAT-B-06 still holds: the stored
+// extension is derived from the server-side MIME map, never from the client
+// filename.
+router.post('/upload', protect, authorize('chat:write:own'), async (req, res) => {
   try {
     const { dataUrl, name = 'file' } = req.body || {};
     if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
@@ -279,23 +354,19 @@ router.post('/upload', protect, async (req, res) => {
     const mimeType = match[1] || 'application/octet-stream';
     const isBase64 = match[2] === ';base64';
     const buffer = Buffer.from(match[3], isBase64 ? 'base64' : 'utf8');
-    if (buffer.length > MAX_UPLOAD_BYTES) {
-      return res.status(413).json({ message: 'File too large (max 25MB)' });
-    }
-    if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-    const extMap = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/webm': 'webm', 'audio/webm': 'webm', 'audio/mpeg': 'mp3', 'audio/ogg': 'ogg', 'audio/mp4': 'm4a', 'application/pdf': 'pdf' };
-    const ext = extMap[mimeType] || (path.extname(name).replace('.', '') || 'bin');
-    const filename = `${uuidv4()}.${ext}`;
-    fs.writeFileSync(path.join(UPLOAD_DIR, filename), buffer);
-    res.json({ url: `/uploads/chat/${filename}`, name, mimeType, size: buffer.length });
+    const result = await storeChatUpload({ buffer, mimeType, name, userId: req.user.id });
+    res.json(result);
   } catch (err) {
+    if (err && typeof err === 'object' && Number.isInteger(err.status)) {
+      return res.status(err.status).json({ message: err.message });
+    }
     res.status(500).json({ message: err.message });
   }
 });
 
 
 // ─── Search users to start a chat ────────────────────────────────────────────
-router.get('/search-users', protect, async (req, res) => {
+router.get('/search-users', protect, authorize('chat:read:own'), async (req, res) => {
   try {
     const { q = '', limit = 20 } = req.query;
     const safe = escapeRegex(q);
@@ -335,17 +406,26 @@ router.get('/search-users', protect, async (req, res) => {
     }
 
     if (isDoctorRole(me.role)) {
-      const filter = { role: 'patient' };
+      // CHAT-B-09: this searched the ENTIRE patient directory (name / email /
+      // phone / UHID) for any doctor token, and `limit` went straight into
+      // .limit() (limit=100000 dumped the collection). Search is now restricted
+      // to patients this doctor actually has a care relationship with — the
+      // same linkage the /contacts endpoint uses — and the limit is clamped.
+      const cappedLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 20, 1), 50);
+      const linked = await getLinkedContacts(me);
+      // getLinkedContacts() returns an array of { user, ... } entries.
+      const linkedIds = (Array.isArray(linked) ? linked : [])
+        .map((c) => uid(c?.user?._id || c?.user))
+        .filter(Boolean);
+      if (!linkedIds.length) return res.json([]);
+
+      const filter = { _id: { $in: linkedIds } };
       if (safe) {
-        filter.$or = [
-          { name: { $regex: safe, $options: 'i' } },
-          { email: { $regex: safe, $options: 'i' } },
-          { phone: { $regex: safe, $options: 'i' } },
-          { uhid: { $regex: safe, $options: 'i' } },
-        ];
+        // CHAT-B-09: no phone/e-mail harvesting from search — name only.
+        filter.name = { $regex: safe, $options: 'i' };
       }
       const patients = await User.find(filter)
-        .select('name avatar role isOnline lastActive uhid gender').limit(Number(limit)).lean();
+        .select('name avatar role isOnline lastActive uhid gender').limit(cappedLimit).lean();
       return res.json(patients.filter((p) => uid(p._id) !== myId));
     }
 
@@ -356,7 +436,7 @@ router.get('/search-users', protect, async (req, res) => {
 });
 
 // ─── Contacts: mere saare doctors / patients (appointments se linked) ────────
-router.get('/contacts', protect, async (req, res) => {
+router.get('/contacts', protect, authorize('chat:read:own'), async (req, res) => {
   try {
     const { q = '' } = req.query;
     const me = req.authUser;
@@ -409,7 +489,7 @@ router.get('/contacts', protect, async (req, res) => {
 });
 
 // ─── Get all conversations (filter: all | archived | unread) ────────────────
-router.get('/conversations', protect, async (req, res) => {
+router.get('/conversations', protect, authorize('chat:read', 'chat:read:own'), async (req, res) => {
   try {
     const userId = req.user.id;
     const { filter = 'all' } = req.query;
@@ -469,7 +549,7 @@ router.get('/conversations', protect, async (req, res) => {
 });
 
 // ─── Get or create conversation with a user ─────────────────────────────────
-router.post('/conversations', protect, async (req, res) => {
+router.post('/conversations', protect, authorize('chat:write', 'chat:write:own'), async (req, res) => {
   try {
     const { targetUserId } = req.body;
     const me = req.authUser;
@@ -539,7 +619,7 @@ router.post('/conversations', protect, async (req, res) => {
 });
 
 // ─── Message requests (unknown sender → mujhe aayi requests) ────────────────
-router.get('/conversations/requests', protect, async (req, res) => {
+router.get('/conversations/requests', protect, authorize('chat:read:own'), async (req, res) => {
   try {
     const me = req.authUser;
     const convs = await ChatConversation.find({
@@ -558,7 +638,7 @@ router.get('/conversations/requests', protect, async (req, res) => {
   }
 });
 
-router.put('/conversations/:conversationId/request', protect, async (req, res) => {
+router.put('/conversations/:conversationId/request', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { action = 'accept' } = req.body; // accept | decline | block
@@ -591,7 +671,7 @@ router.put('/conversations/:conversationId/request', protect, async (req, res) =
 });
 
 // ─── Privacy / chat settings (get) ───────────────────────────────────────────
-router.get('/privacy', protect, async (req, res) => {
+router.get('/privacy', protect, authorize('chat:read:own'), async (req, res) => {
   try {
     const privacy = await getPrivacy(req.user.id);
     const out = privacy.toObject();
@@ -615,7 +695,7 @@ const PRIVACY_FIELDS = [
   'autoDeleteDownloaded', 'appearance', 'autoDownload', 'backup',
 ];
 
-router.put('/privacy', protect, async (req, res) => {
+router.put('/privacy', protect, authorize('chat:write:own'), async (req, res) => {
   try {
     const privacy = await getPrivacy(req.user.id);
     PRIVACY_FIELDS.forEach((k) => {
@@ -646,16 +726,26 @@ router.put('/privacy', protect, async (req, res) => {
 });
 
 // App lock PIN set / change
-router.post('/privacy/app-lock/pin', protect, async (req, res) => {
+router.post('/privacy/app-lock/pin', protect, authorize('chat:write', 'chat:write:own'), async (req, res) => {
   try {
     const { pin, currentPin } = req.body;
     if (!pin || !/^\d{4,8}$/.test(String(pin))) {
-      return res.status(400).json({ message: 'PIN 4–8 digits ka hona chahiye' });
+      return res.status(400).json({ message: 'PIN 4-8 digits ka hona chahiye' });
     }
     const privacy = await getPrivacy(req.user.id);
     if (privacy.appLockPinHash) {
-      const ok = currentPin ? await bcrypt.compare(String(currentPin), privacy.appLockPinHash) : false;
-      if (!ok) return res.status(403).json({ message: 'Current PIN is incorrect' });
+      // CHAT-005: the current PIN is itself a short secret, so changing the PIN
+      // is a guessable-secret endpoint and gets the same lockout treatment.
+      const result = await verifyPin(req.user.id || req.user._id, currentPin, privacy.appLockPinHash, req);
+      if (result.locked) {
+        return res.status(429).json({
+          message: 'Too many incorrect attempts. Try again later.',
+          retryAfterSeconds: result.retryAfterSeconds,
+        });
+      }
+      if (!result.ok) {
+        return res.status(403).json({ message: 'Current PIN is incorrect' });
+      }
     }
     privacy.appLockPinHash = await bcrypt.hash(String(pin), 10);
     await privacy.save();
@@ -665,20 +755,38 @@ router.post('/privacy/app-lock/pin', protect, async (req, res) => {
   }
 });
 
-router.post('/privacy/app-lock/verify', protect, async (req, res) => {
+router.post('/privacy/app-lock/verify', protect, authorize('chat:write', 'chat:write:own'), async (req, res) => {
   try {
     const { pin } = req.body;
     const privacy = await getPrivacy(req.user.id);
     if (!privacy.appLockPinHash) return res.json({ success: true, pinSet: false });
-    const ok = Boolean(pin) && await bcrypt.compare(String(pin), privacy.appLockPinHash);
-    res.json({ success: ok, pinSet: true });
+    // CHAT-005: rate-limited, lockout-backed, audited — a 4-digit code is only
+    // 10,000 candidates and bcrypt.compare is deliberately slow, so without a
+    // counter this endpoint is a free offline-speed grind.
+    const result = await verifyPin(req.user.id || req.user._id, pin, privacy.appLockPinHash, req);
+    if (result.locked) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many incorrect attempts. Try again later.',
+        retryAfterSeconds: result.retryAfterSeconds,
+      });
+    }
+    if (!result.ok) {
+      await auditLog('app_lock_verify_failed', req.user._id, {
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+        remaining: result.remaining,
+      });
+      return res.json({ success: false, pinSet: true, remaining: result.remaining });
+    }
+    res.json({ success: true, pinSet: true });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // ─── Storage usage summary (storage & data screen ke liye) ───────────────────
-router.get('/storage-usage', protect, async (req, res) => {
+router.get('/storage-usage', protect, authorize('chat:read:own'), async (req, res) => {
   try {
     const userId = req.user.id;
     const convs = await ChatConversation.find({ participants: userId }).select('_id').lean();
@@ -717,7 +825,7 @@ router.get('/storage-usage', protect, async (req, res) => {
 });
 
 // ── Backup trigger (metadata only — transcripts server pe already hain) ───
-router.post('/backup/run', protect, async (req, res) => {
+router.post('/backup/run', protect, authorize('chat:write:own'), async (req, res) => {
   try {
     const privacy = await getPrivacy(req.user.id);
     const convs = await ChatConversation.find({ participants: req.user.id }).select('_id').lean();
@@ -735,7 +843,7 @@ router.post('/backup/run', protect, async (req, res) => {
 });
 
 // ─── Report a user / message (safety center) ────────────────────────────────
-router.post('/report', protect, async (req, res) => {
+router.post('/report', protect, authorize('chat:write:own'), async (req, res) => {
   try {
     const { reportedUserId, messageId = null, conversationId = null, reason = 'other', details = '' } = req.body;
     const me = req.authUser;
@@ -744,8 +852,12 @@ router.post('/report', protect, async (req, res) => {
 
     let snapshot = '';
     if (messageId) {
-      const msg = await ChatMessage.findById(messageId).select('content type sender conversationId').lean();
-      if (msg) snapshot = `${msg.type}: ${(msg.content || '').slice(0, 500)}`;
+      // CHAT-B-08: the message was loaded by id with NO membership check and its
+      // content was copied into the report, which the reporter can then read
+      // back through GET /report/my — a content oracle for any message id.
+      const { message, error, errText } = await getMessageForUser(messageId, me._id);
+      if (error) return res.status(error === 404 ? 404 : 403).json({ message: errText || 'Message not available' });
+      snapshot = `${message.type}: ${String(message.content || '').slice(0, 500)}`;
     }
 
     const report = await ChatReport.create({
@@ -763,7 +875,7 @@ router.post('/report', protect, async (req, res) => {
   }
 });
 
-router.get('/report/my', protect, async (req, res) => {
+router.get('/report/my', protect, authorize('chat:read:own'), async (req, res) => {
   try {
     const reports = await ChatReport.find({ reporterId: req.user.id })
       .populate('reportedUserId', 'name avatar role')
@@ -775,7 +887,7 @@ router.get('/report/my', protect, async (req, res) => {
 });
 
 // ─── Blocked users list ──────────────────────────────────────────────────────
-router.get('/blocked', protect, async (req, res) => {
+router.get('/blocked', protect, authorize('chat:read:own'), async (req, res) => {
   try {
     const userId = req.user.id;
     const convs = await ChatConversation.find({
@@ -790,7 +902,7 @@ router.get('/blocked', protect, async (req, res) => {
 });
 
 // ─── Get messages for a conversation (cleared/deleted filter ke saath) ──────
-router.get('/messages/:conversationId', protect, async (req, res) => {
+router.get('/messages/:conversationId', protect, requireConversationMember(), authorize('chat:read:own'), async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { page = 1, limit = 50 } = req.query;
@@ -814,7 +926,7 @@ router.get('/messages/:conversationId', protect, async (req, res) => {
 });
 
 // ─── Search within a conversation (text / media / files / links / starred) ──
-router.get('/messages/:conversationId/search', protect, async (req, res) => {
+router.get('/messages/:conversationId/search', protect, requireConversationMember(), authorize('chat:read:own'), async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { q = '', type = 'all' } = req.query;
@@ -844,7 +956,7 @@ router.get('/messages/:conversationId/search', protect, async (req, res) => {
 });
 
 // ─── Send a message (with reply, forward, disappearing, unread counts) ──────
-router.post('/messages', protect, async (req, res) => {
+router.post('/messages', protect, authorize('chat:write:own'), async (req, res) => {
   try {
     const { conversationId, content = '', type = 'text', attachments = [], replyTo = null, forwarded = false, clientGeneratedId = '' } = req.body;
     const senderId = req.user.id;
@@ -877,6 +989,15 @@ router.post('/messages', protect, async (req, res) => {
     const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
     if (!hasText && !hasAttachments) {
       return res.status(400).json({ message: 'Message cannot be empty' });
+    }
+
+    // CHAT-M-02: the client `attachments` array is no longer trusted verbatim.
+    // Every entry must point at an existing, policy-passing file under
+    // /uploads/chat (rejects external URLs, traversal, lying mimes/extension
+    // mismatches, oversize values and dead references).
+    const attachmentError = validateChatAttachments(attachments);
+    if (attachmentError) {
+      return res.status(attachmentError.status).json({ message: attachmentError.message });
     }
 
     const message = new ChatMessage({
@@ -917,6 +1038,15 @@ router.post('/messages', protect, async (req, res) => {
     emitChatEvent(conversationId, 'chat:receive_message', payload);
     if (recipientId) {
       emitChatNotification(recipientId, 'chat:new_message_notification', payload);
+      // CHAT-M-04: sockets only reach an open tab — fall back to env-gated web
+      // push when the recipient has no live presence. Routing metadata only;
+      // pushSender resolves the role-scoped deep link (the FE chat routes are
+      // role-based). The PHI-free copy is built inside pushSender (NOTIF-B-05).
+      // Never blocks or fails the send (message is already persisted above).
+      void sendChatPush(recipientId, {
+        conversationId: String(conversationId),
+        tag: `chat:${conversationId}`,
+      }).catch(() => {});
     }
     res.status(201).json(payload);
   } catch (err) {
@@ -925,7 +1055,7 @@ router.post('/messages', protect, async (req, res) => {
 });
 
 // ─── Mark messages as read (+ reset unread counter) ─────────────────────────
-router.put('/messages/read/:conversationId', protect, async (req, res) => {
+router.put('/messages/read/:conversationId', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {
   try {
     const { conversationId } = req.params;
     const userId = req.user.id;
@@ -956,7 +1086,7 @@ router.put('/messages/read/:conversationId', protect, async (req, res) => {
 });
 
 // ─── Mark as delivered ───────────────────────────────────────────────────────
-router.put('/messages/delivered/:conversationId', protect, async (req, res) => {
+router.put('/messages/delivered/:conversationId', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {
   try {
     const { conversationId } = req.params;
     const userId = req.user.id;
@@ -972,7 +1102,7 @@ router.put('/messages/delivered/:conversationId', protect, async (req, res) => {
 });
 
 // ─── Mark as unread (chat list me unread badge wapas) ───────────────────────
-router.put('/messages/mark-unread/:conversationId', protect, async (req, res) => {
+router.put('/messages/mark-unread/:conversationId', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {
   try {
     const { conversationId } = req.params;
     const userId = req.user.id;
@@ -989,7 +1119,7 @@ router.put('/messages/mark-unread/:conversationId', protect, async (req, res) =>
 });
 
 // ─── Conversation settings: mute | block | pin | archive | disappearing ────
-router.put('/settings/:conversationId', protect, async (req, res) => {
+router.put('/settings/:conversationId', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { action, value } = req.body;
@@ -1035,7 +1165,7 @@ router.put('/settings/:conversationId', protect, async (req, res) => {
 });
 
 // ─── Clear chat (only for me) ────────────────────────────────────────────────
-router.delete('/chat/:conversationId/clear', protect, async (req, res) => {
+router.delete('/chat/:conversationId/clear', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {
   try {
     const { conversationId } = req.params;
     const userId = req.user.id;
@@ -1051,7 +1181,7 @@ router.delete('/chat/:conversationId/clear', protect, async (req, res) => {
 });
 
 // ─── Delete chat (sirf meri list se) ─────────────────────────────────────────
-router.delete('/chat/:conversationId', protect, async (req, res) => {
+router.delete('/chat/:conversationId', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {
   try {
     const { conversationId } = req.params;
     const userId = req.user.id;
@@ -1066,7 +1196,7 @@ router.delete('/chat/:conversationId', protect, async (req, res) => {
 });
 
 // ─── Draft save / clear ──────────────────────────────────────────────────────
-router.put('/chat/:conversationId/draft', protect, async (req, res) => {
+router.put('/chat/:conversationId/draft', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { text = '' } = req.body;
@@ -1083,7 +1213,7 @@ router.put('/chat/:conversationId/draft', protect, async (req, res) => {
 });
 
 // ─── Pin / unpin a message inside the chat ──────────────────────────────────
-router.put('/chat/:conversationId/pin-message', protect, async (req, res) => {
+router.put('/chat/:conversationId/pin-message', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { messageId = null } = req.body;
@@ -1113,7 +1243,7 @@ async function getMessageForUser(messageId, userId) {
 }
 
 // ─── Add / change / remove reaction ─────────────────────────────────────────
-router.post('/messages/:messageId/reactions', protect, async (req, res) => {
+router.post('/messages/:messageId/reactions', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {
   try {
     const { messageId } = req.params;
     const { emoji } = req.body;
@@ -1147,7 +1277,7 @@ router.post('/messages/:messageId/reactions', protect, async (req, res) => {
 });
 
 // ─── Who reacted with what (reaction details sheet) ─────────────────────────
-router.get('/messages/:messageId/reactions', protect, async (req, res) => {
+router.get('/messages/:messageId/reactions', protect, requireConversationMember(), authorize('chat:read:own'), async (req, res) => {
   try {
     const { messageId } = req.params;
     const userId = req.user.id;
@@ -1170,7 +1300,7 @@ router.get('/messages/:messageId/reactions', protect, async (req, res) => {
 
 // ─── Edit message (sirf apna, 15 min ke andar, text only) ───────────────────
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
-router.put('/messages/:messageId', protect, async (req, res) => {
+router.put('/messages/:messageId', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {
   try {
     const { messageId } = req.params;
     const { content } = req.body;
@@ -1210,7 +1340,7 @@ router.put('/messages/:messageId', protect, async (req, res) => {
 });
 
 // ─── Delete message (for me | for everyone) ────────────────────────────────
-router.delete('/messages/:messageId', protect, async (req, res) => {
+router.delete('/messages/:messageId', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {
   try {
     const { messageId } = req.params;
     const { scope = 'me' } = req.query; // me | everyone
@@ -1246,7 +1376,7 @@ router.delete('/messages/:messageId', protect, async (req, res) => {
 });
 
 // ─── Bulk select → delete multiple messages ────────────────────────────────
-router.post('/messages/bulk-delete', protect, async (req, res) => {
+router.post('/messages/bulk-delete', protect, authorize('chat:write:own'), async (req, res) => {
   try {
     const { messageIds = [], scope = 'me' } = req.body;
     const userId = req.user.id;
@@ -1284,7 +1414,7 @@ router.post('/messages/bulk-delete', protect, async (req, res) => {
 });
 
 // ─── Star / unstar message ──────────────────────────────────────────────────
-router.put('/messages/:messageId/star', protect, async (req, res) => {
+router.put('/messages/:messageId/star', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {
   try {
     const { messageId } = req.params;
     const { starred } = req.body;
@@ -1306,7 +1436,7 @@ router.put('/messages/:messageId/star', protect, async (req, res) => {
 });
 
 // ─── Starred / saved messages (chat list → "Starred messages") ──────────────
-router.get('/starred', protect, async (req, res) => {
+router.get('/starred', protect, authorize('chat:read:own'), async (req, res) => {
   try {
     const userId = req.user.id;
     const messages = await ChatMessage.find({ starredBy: userId, deletedForEveryone: { $ne: true } })
@@ -1320,7 +1450,7 @@ router.get('/starred', protect, async (req, res) => {
 });
 
 // ─── Forward message(s) to another conversation ────────────────────────────
-router.post('/messages/forward', protect, async (req, res) => {
+router.post('/messages/forward', protect, authorize('chat:write:own'), async (req, res) => {
   try {
     const { messageIds = [], conversationId } = req.body;
     const userId = req.user.id;
@@ -1334,10 +1464,16 @@ router.post('/messages/forward', protect, async (req, res) => {
       return res.status(403).json({ message: 'Unblock this chat to send messages' });
     }
 
+    // CHAT-B-07: the source messages were loaded with NO membership check, so a
+    // caller could forward (i.e. exfiltrate into any chat they are in) arbitrary
+    // messages from conversations they are not part of. Require membership of
+    // every source conversation before copying.
     const source = await ChatMessage.find({ _id: { $in: messageIds } }).sort({ createdAt: 1 });
     const created = [];
     for (const m of source) {
       if (m.deletedForEveryone) continue;
+      const sourceConv = await getConversationForUser(m.conversationId, userId);
+      if (!sourceConv) continue; // not a participant of the source conversation
       const copy = new ChatMessage({
         conversationId,
         sender: userId,
@@ -1374,7 +1510,7 @@ router.post('/messages/forward', protect, async (req, res) => {
 });
 
 // ─── Message info (delivery + read timestamps) ─────────────────────────────
-router.get('/messages/:messageId/info', protect, async (req, res) => {
+router.get('/messages/:messageId/info', protect, requireConversationMember(), authorize('chat:read:own'), async (req, res) => {
   try {
     const { messageId } = req.params;
     const userId = req.user.id;
@@ -1403,7 +1539,7 @@ router.get('/messages/:messageId/info', protect, async (req, res) => {
 });
 
 // ─── Media / links / files gallery for a conversation ──────────────────────
-router.get('/messages/:conversationId/media', protect, async (req, res) => {
+router.get('/messages/:conversationId/media', protect, requireConversationMember(), authorize('chat:read:own'), async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { type = 'media' } = req.query; // media | files | links | voice
@@ -1428,7 +1564,7 @@ router.get('/messages/:conversationId/media', protect, async (req, res) => {
 });
 
 // ─── Global search: people + messages across all chats ────────────────────
-router.get('/global-search', protect, async (req, res) => {
+router.get('/global-search', protect, authorize('chat:read:own'), async (req, res) => {
   try {
     const userId = req.user.id;
     const { q = '', filter = 'all' } = req.query;
@@ -1470,7 +1606,7 @@ router.get('/global-search', protect, async (req, res) => {
 });
 
 // ─── Suspicious / medical link check (link preview safety warning) ────────
-router.post('/link-check', protect, (req, res) => {
+router.post('/link-check', protect, authorize('chat:write:own'), (req, res) => {
   const { url = '' } = req.body;
   const suspicious = /(bit\.ly|tinyurl|t\.co|is\.gd|goo\.gl|\.tk\/|\.xyz\/|free-|win-|claim-)/i.test(String(url));
   const medical = /(medicine|pharma|drug|tablet|syrup|dose|prescription)/i.test(String(url));

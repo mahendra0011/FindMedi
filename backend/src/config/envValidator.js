@@ -8,6 +8,12 @@ const REQUIRED_VARS = {
     { name: 'MONGO_URI', message: 'MongoDB connection string is required' },
     { name: 'JWT_SECRET', message: 'JWT secret is required. Generate one with: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"' },
     { name: 'CLIENT_URL', message: 'Client URL is required for CORS' },
+    // HI-B-01: the public Health-ID QR card embeds a scannable URL built from
+    // FRONTEND_URL. With it unset the code fell back to http://localhost:3000, so
+    // every card printed in a production hospital pointed a paramedic's scanner at
+    // their own laptop — a broken emergency feature that also looks exactly like a
+    // phishing link on a shared card. It is now a startup-class requirement.
+    { name: 'FRONTEND_URL', message: 'FRONTEND_URL is required in production: the public Health-ID QR payload is built from it and must never fall back to localhost' },
   ],
   DEVELOPMENT: [
     { name: 'MONGO_URI', message: 'MongoDB connection string is required' },

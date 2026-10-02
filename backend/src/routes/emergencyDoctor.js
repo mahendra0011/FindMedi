@@ -1,12 +1,13 @@
 import express from 'express';
 import EmergencyDoctorRequest from '../models/EmergencyDoctorRequest.js';
 import Doctor from '../models/Doctor.js';
-import { protect } from '../middleware/auth.js';
+import { protect, authorize } from '../middleware/auth.js';
 import { bookingLimiter } from '../middleware/rateLimit.js';
 import { getIO } from '../services/socketService.js';
 import { startEmergencyDoctorDispatch, acceptEmergencyDoctorRequest, rejectEmergencyDoctorRequest } from '../services/emergencyDoctorDispatchService.js';
 import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
 import logger from '../config/logger.js';
+import { randomDigits } from '../utils/secureRandom.js';
 
 const router = express.Router();
 
@@ -29,8 +30,22 @@ function calculateDistanceKm(coord1, coord2) {
   return Math.round(R * c * 10) / 10;
 }
 
+/**
+ * Ownership check for a single emergency-doctor request (RIDE-B-14/15).
+ * Allowed: the patient who raised it, the doctor assigned to it, a superadmin.
+ * Works with both raw ObjectIds and populated documents.
+ */
+function canAccessEmergencyDoctorRequest(req, request) {
+  if (!request) return false;
+  if (req.user?.role === 'superadmin') return true;
+  const id = (v) => (v && typeof v === 'object' ? String(v._id) : v ? String(v) : null);
+  if (id(request.patientId) && id(request.patientId) === String(req.user._id)) return true;
+  if (id(request.assignedDoctorId) && id(request.assignedDoctorId) === String(req.user._id)) return true;
+  return false;
+}
+
 // ─── 1. POST /api/emergency-doctor/dispatch ──────────────────────────────
-router.post('/dispatch', protect, bookingLimiter, async (req, res) => {
+router.post('/dispatch', protect, authorize('emergency:write'), bookingLimiter, async (req, res) => {
   try {
     const {
       patientName,
@@ -50,7 +65,7 @@ router.post('/dispatch', protect, bookingLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Valid GPS coordinates required' });
     }
 
-    const bookingId = `DOC-SOS-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
+    const bookingId = `DOC-SOS-${Date.now().toString(36).toUpperCase()}-${randomDigits(3)}`;
 
     const emergencyDoc = await EmergencyDoctorRequest.create({
       bookingId,
@@ -106,7 +121,7 @@ router.post('/dispatch', protect, bookingLimiter, async (req, res) => {
 });
 
 // ─── 2. PUT /api/emergency-doctor/toggle-duty ─────────────────────────────
-router.put('/toggle-duty', protect, async (req, res) => {
+router.put('/toggle-duty', protect, authorize('emergency:write'), async (req, res) => {
   try {
     const { isEmergencyDutyActive, emergencyRadiusKm = 10, coordinates } = req.body;
     const userId = req.user._id || req.user.id;
@@ -186,7 +201,7 @@ router.get('/duty-status', protect, async (req, res) => {
 });
 
 // ─── 4. POST /api/emergency-doctor/:requestId/accept ──────────────────────
-router.post('/:requestId/accept', protect, async (req, res) => {
+router.post('/:requestId/accept', protect, authorize('emergency:write'), async (req, res) => {
   try {
     const { requestId } = req.params;
     const userId = req.user._id || req.user.id;
@@ -202,13 +217,41 @@ router.post('/:requestId/accept', protect, async (req, res) => {
       return res.status(409).json({ success: false, message: 'This emergency has already been claimed by another physician' });
     }
 
-    const doctorCoords = doctor.emergencyDoctorLocation?.coordinates || [0, 0];
+    // RIDE-B-16: eligibility before the claim.
+    //  1) the doctor profile must be approved,
+    //  2) the doctor must actually be on emergency duty (no duty => no claim),
+    //  3) the doctor must have a real location and be within the service radius —
+    //     the [0,0] fallback used to fabricate a huge ETA that the patient was
+    //     shown for a doctor who was never dispatched.
+    if (doctor.approved === false) {
+      return res.status(403).json({ success: false, message: 'Your doctor profile is not approved for emergency duty' });
+    }
+    if (doctor.emergencyDoctorOnDuty === false || doctor.isOnEmergencyDuty === false) {
+      return res.status(403).json({ success: false, message: 'You are not on emergency duty' });
+    }
+    const rawCoords = doctor.emergencyDoctorLocation?.coordinates;
+    const hasRealLocation = Array.isArray(rawCoords)
+      && rawCoords.length === 2
+      && Number.isFinite(Number(rawCoords[0]))
+      && Number.isFinite(Number(rawCoords[1]))
+      && !(Number(rawCoords[0]) === 0 && Number(rawCoords[1]) === 0);
+    if (!hasRealLocation) {
+      return res.status(403).json({ success: false, message: 'Share your live location before accepting an emergency' });
+    }
+    const doctorCoords = rawCoords;
     const patientCoords = existingReq.pickupLocation.coordinates;
     const distKm = calculateDistanceKm(doctorCoords, patientCoords);
+    const radiusKm = Number(doctor.emergencyRadiusKm || doctor.emergencyDoctorRadiusKm || existingReq.startingRadiusKm || 25);
+    if (distKm > radiusKm) {
+      return res.status(403).json({ success: false, message: `You are ${distKm} km away — outside your ${radiusKm} km emergency radius` });
+    }
     const etaMinutes = Math.max(3, Math.round(distKm * 2.5));
 
-    const updated = await EmergencyDoctorRequest.findByIdAndUpdate(
-      requestId,
+    // RIDE-B-16: the claim is applied ATOMICALLY with `{ status: 'searching' }`
+    // in the filter, so two doctors racing for the same emergency cannot both win
+    // (the loser gets null and a 409).
+    const updated = await EmergencyDoctorRequest.findOneAndUpdate(
+      { _id: requestId, status: 'searching' },
       {
         $set: {
           assignedDoctorId: doctor._id,
@@ -234,6 +277,11 @@ router.post('/:requestId/accept', protect, async (req, res) => {
       },
       { new: true }
     );
+
+    // RIDE-B-16: the loser's atomic update returns null (someone else claimed it).
+    if (!updated) {
+      return res.status(409).json({ success: false, message: 'This emergency has already been claimed by another physician' });
+    }
 
     // Notify Patient via Socket
     try {
@@ -261,7 +309,7 @@ router.post('/:requestId/accept', protect, async (req, res) => {
 });
 
 // ─── 5. PUT /api/emergency-doctor/:requestId/telemetry ────────────────────
-router.put('/:requestId/telemetry', protect, async (req, res) => {
+router.put('/:requestId/telemetry', protect, authorize('emergency:read'), async (req, res) => {
   try {
     const { requestId } = req.params;
     const { coordinates, heading = 0, speed = 0 } = req.body;
@@ -270,8 +318,15 @@ router.put('/:requestId/telemetry', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Coordinates [lng, lat] required' });
     }
 
+    // RIDE-B-14: telemetry may only be written by the doctor assigned to THIS
+    // request. `authorize('emergency:read')` is granted to patients and staff
+    // alike, so any holder could spoof another patient's live doctor location.
+    const telemetryScope = req.user.role === 'superadmin'
+      ? { _id: requestId }
+      : { _id: requestId, assignedDoctorId: req.user._id };
+
     const updated = await EmergencyDoctorRequest.findByIdAndUpdate(
-      requestId,
+      telemetryScope,
       {
         $set: {
           'doctorLiveLocation.coordinates': coordinates,
@@ -282,6 +337,10 @@ router.put('/:requestId/telemetry', protect, async (req, res) => {
       },
       { new: true }
     );
+
+    if (!updated) {
+      return res.status(403).json({ success: false, message: 'You are not assigned to this emergency request' });
+    }
 
     // Stream update to patient in real-time
     try {
@@ -303,7 +362,7 @@ router.put('/:requestId/telemetry', protect, async (req, res) => {
 });
 
 // ─── 6. PUT /api/emergency-doctor/:requestId/status ──────────────────────
-router.put('/:requestId/status', protect, async (req, res) => {
+router.put('/:requestId/status', protect, authorize('emergency:write'), async (req, res) => {
   try {
     const { requestId } = req.params;
     const { status, note = '', clinicalReport } = req.body;
@@ -318,8 +377,15 @@ router.put('/:requestId/status', protect, async (req, res) => {
       updateData.clinicalReport = clinicalReport;
     }
 
+    // RIDE-B-14: only the assigned doctor (or a superadmin) may drive the
+    // lifecycle of an emergency request — otherwise any user holding
+    // `emergency:write` could complete/escalate somebody else's SOS.
+    const statusScope = req.user.role === 'superadmin'
+      ? { _id: requestId }
+      : { _id: requestId, assignedDoctorId: req.user._id };
+
     const updated = await EmergencyDoctorRequest.findByIdAndUpdate(
-      requestId,
+      statusScope,
       {
         $set: updateData,
         $push: {
@@ -332,6 +398,10 @@ router.put('/:requestId/status', protect, async (req, res) => {
       },
       { new: true }
     );
+
+    if (!updated) {
+      return res.status(403).json({ success: false, message: 'You are not assigned to this emergency request' });
+    }
 
     // Notify patient
     try {
@@ -360,6 +430,11 @@ router.get('/:requestId', protect, async (req, res) => {
       .populate('patientId', 'name phone email');
 
     if (!request) return res.status(404).json({ success: false, message: 'Emergency request not found' });
+    // RIDE-B-15: `protect` alone leaked the whole request (patient name/phone/
+    // email, live location, clinical report) to any logged-in account.
+    if (!canAccessEmergencyDoctorRequest(req, request)) {
+      return res.status(403).json({ success: false, message: 'Not authorized to view this emergency request' });
+    }
     res.json({ success: true, request });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -367,10 +442,21 @@ router.get('/:requestId', protect, async (req, res) => {
 });
 
 // ─── 8. POST /api/emergency-doctor/:requestId/cancel ─────────────────────
-router.post('/:requestId/cancel', protect, async (req, res) => {
+router.post('/:requestId/cancel', protect, authorize('emergency:write'), async (req, res) => {
   try {
     const { requestId } = req.params;
-    const { reason = 'Cancelled by user', cancelledBy = 'patient' } = req.body;
+    const { reason = 'Cancelled by user' } = req.body;
+
+    // RIDE-B-15: `cancelledBy` came from the body, so any caller could forge the
+    // audit trail ("cancelled_by_user" vs "cancelled_by_doctor"). It is derived
+    // from the session now, and ownership is enforced.
+    const existing = await EmergencyDoctorRequest.findById(requestId);
+    if (!existing) return res.status(404).json({ success: false, message: 'Emergency request not found' });
+    if (!canAccessEmergencyDoctorRequest(req, existing)) {
+      return res.status(403).json({ success: false, message: 'Not authorized to cancel this emergency request' });
+    }
+    const isAssignedDoctor = String(existing.assignedDoctorId?._id || existing.assignedDoctorId) === String(req.user._id);
+    const cancelledBy = isAssignedDoctor ? 'doctor' : 'patient';
 
     const updated = await EmergencyDoctorRequest.findByIdAndUpdate(
       requestId,
@@ -439,7 +525,7 @@ router.post('/:requestId/room', protect, async (req, res) => {
 // ─── 9. POST /api/emergency-doctor/:requestId/escalate ─────────────────────
 // Spec 09: doctor escalates to ALS ambulance mid-consultation — spins up a
 // linked SOS EmergencyRequest and starts ambulance dispatch.
-router.post('/:requestId/escalate', protect, async (req, res) => {
+router.post('/:requestId/escalate', protect, authorize('emergency:write'), async (req, res) => {
   try {
     const { requestId } = req.params;
     const docReq = await EmergencyDoctorRequest.findById(requestId);

@@ -1,10 +1,25 @@
+import type { ComponentType, ReactNode } from 'react';
 import { useState, useEffect } from 'react';
 import { Settings, Bell, Lock, Globe, Moon, Sun, Monitor, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { userFacingError } from '@/lib/errorCopy';
 
-const SettingSection = ({ title, icon: Icon, children }) => (
+/**
+ * Typed so the props are not implicit `any`.
+ *
+ * This file is under the type-error ratchet (`maxTypeErrors: 11775`), and three
+ * TS7031s sat on this one line. Fixing them is free and takes the count DOWN,
+ * which is the only direction a ratchet is supposed to move.
+ */
+type SettingSectionProps = {
+  title: string;
+  icon: ComponentType<{ className?: string }>;
+  children: ReactNode;
+};
+
+const SettingSection = ({ title, icon: Icon, children }: SettingSectionProps) => (
   <div className="bg-card rounded-3xl border border-border/50 p-5 sm:p-6">
     <div className="flex items-center gap-3 mb-4">
       <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -18,6 +33,129 @@ const SettingSection = ({ title, icon: Icon, children }) => (
 
 const NOTIF_ITEMS = ['Appointment reminders', 'Lab test updates', 'Medicine delivery alerts', 'Payment receipts', 'Promotional offers'];
 const BLOOD_GROUPS = ['', 'A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
+
+/**
+ * The shape `GET /auth/sessions` returns.
+ *
+ * Declared because this file is TypeScript and the project runs a ratchet on the
+ * error count: an untyped `s` in a `.tsx` file is a TS7006, and an untyped
+ * `revoke(jti)` is a TS7006 too. The first version of this component added ten
+ * errors to the baseline by leaving every parameter implicit, which defeats the
+ * point of running the check at all.
+ */
+type AuthSession = {
+  jti: string;
+  current?: boolean;
+  userAgent?: string;
+  ip?: string;
+  createdAt?: string;
+  [key: string]: unknown;
+};
+
+/**
+ * AUTH-M-02: device session management.
+ *
+ * The "Active Sessions" button on this page rendered but did nothing, which is
+ * worse than not having it: it implied a control the user did not have. A user
+ * who spots an unfamiliar device had no way to end that ONE session, only "log
+ * out everywhere", which also signs them out of the phone in their hand.
+ */
+function ActiveSessions() {
+  const [open, setOpen] = useState(false);
+  const [sessions, setSessions] = useState<AuthSession[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  const load = async () => {
+    setBusy(true);
+    try {
+      const res = await api.getSessions();
+      setSessions(Array.isArray(res?.sessions) ? (res.sessions as AuthSession[]) : []);
+    } catch (e) {
+      toast.error(userFacingError(e, { fallback: 'Could not load your sessions' }));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Re-read on EVERY open, not just the first: a session revoked in another tab
+  // would otherwise linger in a list the user is about to act on.
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (next) load();
+  };
+
+  const revoke = async (jti: string) => {
+    setBusy(true);
+    try {
+      await api.revokeSession(jti);
+      // Drop it locally rather than re-fetching: a re-fetch can race the delete
+      // and briefly show a row that is already gone.
+      setSessions((s) => s.filter((x) => x.jti !== jti));
+      toast.success('Session signed out');
+    } catch (e) {
+      toast.error(userFacingError(e, { fallback: 'Could not sign that session out' }));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revokeAll = async () => {
+    setBusy(true);
+    try {
+      await api.logoutAll();
+      // The server just revoked THIS session too, so the app has to follow it
+      // out rather than leave a dead session on screen.
+      window.location.href = '/login';
+    } catch (e) {
+      toast.error(userFacingError(e, { fallback: 'Could not sign out everywhere' }));
+      setBusy(false);
+    }
+  };
+
+  const describe = (s: AuthSession) =>
+    [s.userAgent || 'Unknown device', s.ip, s.createdAt ? new Date(s.createdAt).toLocaleString() : null]
+      .filter(Boolean)
+      .join(' · ');
+
+  return (
+    <div className="space-y-3">
+      <Button variant="outline" className="w-full justify-start rounded-xl" onClick={toggle}>
+        Active Sessions{sessions.length ? ` (${sessions.length})` : ''}
+      </Button>
+
+      {open && (
+        <div className="rounded-2xl border border-border/60 p-4 space-y-3">
+          {busy && sessions.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Loading your signed-in devices…</p>
+          ) : sessions.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No active sessions found.</p>
+          ) : (
+            <ul className="space-y-2">
+              {sessions.map((s) => (
+                <li key={s.jti} className="flex items-center justify-between gap-3 text-sm">
+                  <p className="text-foreground truncate">
+                    {describe(s)}
+                    {s.current && <span className="ml-2 text-xs text-primary">(this device)</span>}
+                  </p>
+                  {!s.current && (
+                    <Button variant="ghost" size="sm" className="shrink-0" disabled={busy} onClick={() => revoke(s.jti)}>
+                      Sign out
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <Button variant="outline" size="sm" className="w-full" disabled={busy} onClick={revokeAll}>
+            Sign out of all devices
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function PatientSettings() {
   const [saving, setSaving] = useState(false);
@@ -71,7 +209,7 @@ export default function PatientSettings() {
       });
       toast.success('Settings saved successfully');
     } catch (e) {
-      toast.error(e?.response?.data?.message || e.message || 'Failed to save settings');
+      toast.error(userFacingError(e, { fallback: 'Failed to save settings' }));
     } finally {
       setSaving(false);
     }
@@ -105,7 +243,7 @@ export default function PatientSettings() {
             <div className="mt-3 space-y-3">
               <Button variant="outline" className="w-full justify-start rounded-xl">Change Password</Button>
               <Button variant="outline" className="w-full justify-start rounded-xl">Two-Factor Authentication</Button>
-              <Button variant="outline" className="w-full justify-start rounded-xl">Active Sessions</Button>
+              <ActiveSessions />
             </div>
           </SettingSection>
 

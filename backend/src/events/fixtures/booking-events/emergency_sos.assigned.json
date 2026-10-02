@@ -1,0 +1,8 @@
+{
+  "eventType": "emergency_sos.assigned",
+  "aggregateType": "emergency_sos",
+  "aggregateId": "652f00000000000000000005",
+  "providerId": "652f000000000000000000ae",
+  "providerType": "ambulance",
+  "distanceKm": 3.4
+}

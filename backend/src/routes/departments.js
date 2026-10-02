@@ -33,7 +33,9 @@ router.put('/:id', protect, scopeToHospital, validate(updateDepartmentSchema), a
     }
     const dept = await Department.findOne({ _id: req.params.id, hospitalId: req.hospitalId });
     if (!dept) return res.status(404).json({ message: 'Department not found' });
-    const updated = await Department.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { pickBody } = await import('../utils/pick.js');
+    const updated = await Department.findByIdAndUpdate(req.params.id,
+      pickBody(req.body, ['name', 'description', 'head', 'active']), { new: true });
     res.json(updated);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

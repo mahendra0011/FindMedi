@@ -23,6 +23,10 @@ const labOrderSchema = new mongoose.Schema({
     resultEnteredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     resultEnteredAt: { type: Date },
     verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    // LAB-B-07: the releasing role is stored so a later audit can prove that
+    // verification was performed by a reviewing role, not merely a different user
+    // id from the same shift.
+    verifiedByRole: { type: String },
     verifiedAt: { type: Date },
     verificationNotes: { type: String },
     rejectionReason: { type: String },

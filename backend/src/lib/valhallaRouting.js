@@ -1,7 +1,40 @@
 import { VALHALLA_API_URL, VALHALLA_TIMEOUT_MS, COSTING_PROFILES } from '../config/valhalla.js';
 import { calculateDistanceKm } from './geoUtils.js';
 import { redisClient, isRedisReady } from '../config/redis.js';
+import { isOpen, recordSuccess, recordFailure } from './circuitBreaker.js';
 import logger from '../config/logger.js';
+
+// ─── Tech 02: healthcare routing policies ────────────────────────────────────
+// Green corridor: client-side costing options (no tile rebuild needed) that
+// favor arterials and penalize turns/alleys for cardiac/organ transport.
+export function costingOptionsFor(costing) {
+  if (costing === 'emergency' || costing === COSTING_PROFILES?.GREEN_CORRIDOR) {
+    return {
+      auto: {
+        use_highways: 1.0,
+        maneuver_penalty: 30,
+        alley_penalty: 60,
+        gate_penalty: 60,
+        country_crossing_penalty: 2000,
+      },
+    };
+  }
+  return { auto: { maneuver_penalty: 5 } };
+}
+
+// Cold-chain: insulin/vaccine insulation budget (minutes). Routes exceeding
+// it must reroute or split drops — see coldChainCheck + delivery TSP wiring.
+export const COLD_CHAIN_MAX_MIN = Number(process.env.COLD_CHAIN_MAX_MIN || 45);
+
+export function coldChainCheck(durationSeconds) {
+  const minutes = durationSeconds / 60;
+  return {
+    minutes: Math.round(minutes * 10) / 10,
+    budgetMin: COLD_CHAIN_MAX_MIN,
+    withinBudget: minutes <= COLD_CHAIN_MAX_MIN,
+    action: minutes <= COLD_CHAIN_MAX_MIN ? 'OK' : 'REROUTE_OR_SPLIT',
+  };
+}
 
 /**
  * Calculates 1-to-N Road Matrix using Valhalla's /sources_to_targets endpoint.
@@ -15,15 +48,14 @@ export async function getValhallaMatrix(sourceCoords, targetCoordsList, costing 
   const payload = {
     sources: [{ lat: sourceCoords[1], lon: sourceCoords[0] }], // [lng, lat] to {lat, lon}
     targets: targetCoordsList.map((c) => ({ lat: c[1], lon: c[0] })),
-    costing: costing,
-    costing_options: {
-      auto: {
-        maneuver_penalty: 5,
-      },
-    },
+    costing,
+    costing_options: costingOptionsFor(costing),
   };
 
   try {
+    if (isOpen('valhalla')) {
+      throw new Error('breaker-open');
+    }
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), VALHALLA_TIMEOUT_MS);
 
@@ -40,6 +72,7 @@ export async function getValhallaMatrix(sourceCoords, targetCoordsList, costing 
     }
 
     const data = await res.json();
+    recordSuccess('valhalla');
     const matrix = data?.sources_to_targets?.[0] || [];
     return matrix.map((item, idx) => ({
       index: idx,
@@ -48,6 +81,8 @@ export async function getValhallaMatrix(sourceCoords, targetCoordsList, costing 
       fromValhalla: true,
     }));
   } catch (err) {
+    if (err.message !== 'breaker-open') recordFailure('valhalla');
+    else logger.warn('Valhalla matrix skipped (breaker OPEN). Falling back to Haversine.');
     logger.warn(`Valhalla matrix failed: ${err.message}. Falling back to Haversine speed estimation.`);
     // Fallback: Haversine distance with estimated 30 km/h urban speed
     return targetCoordsList.map((target, idx) => {
@@ -84,7 +119,8 @@ export async function getValhallaRoute(originCoords, destCoords, costing = 'auto
       { lat: originCoords[1], lon: originCoords[0] },
       { lat: destCoords[1], lon: destCoords[0] },
     ],
-    costing: costing,
+    costing,
+    costing_options: costingOptionsFor(costing),
     directions_options: { units: 'kilometers' },
   };
 

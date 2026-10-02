@@ -1,13 +1,13 @@
 import express from 'express';
 import { z } from 'zod';
-import { randomBytes } from 'crypto';
 import FamilyMember from '../models/FamilyMember.js';
 import PatientAddress from '../models/PatientAddress.js';
 import SavedFavorite from '../models/SavedFavorite.js';
 import PreferredPharmacy from '../models/PreferredPharmacy.js';
 import User from '../models/User.js';
-import { protect } from '../middleware/auth.js';
+import { protect, authorize } from '../middleware/auth.js';
 import { validate } from '../utils/validate.js';
+import { mintQrToken, revokeQrToken, healthIdSettingsSchema } from '../lib/healthIdCard.js';
 
 const familySchema = z.object({}).passthrough();
 const addressSchema = z.object({}).passthrough();
@@ -16,21 +16,21 @@ const favoriteSchema = z.object({ refType: z.string().optional(), refId: z.strin
 const router = express.Router();
 
 // ─── Family Members ────────────────────────────────────────────────────────
-router.get('/family', protect, async (req, res) => {
+router.get('/family', protect, authorize('profile:read:own'), async (req, res) => {
   try {
     const members = await FamilyMember.find({ patientId: req.user._id, isActive: true }).sort({ createdAt: -1 });
     res.json({ members });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/family', protect, validate(familySchema), async (req, res) => {
+router.post('/family', protect, authorize('profile:write:own'), validate(familySchema), async (req, res) => {
   try {
     const member = await FamilyMember.create({ ...req.body, patientId: req.user._id });
     res.status(201).json(member);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/family/:id', protect, validate(familySchema), async (req, res) => {
+router.put('/family/:id', protect, authorize('profile:write:own'), validate(familySchema), async (req, res) => {
   try {
     const member = await FamilyMember.findOne({ _id: req.params.id, patientId: req.user._id });
     if (!member) return res.status(404).json({ message: 'Family member not found' });
@@ -40,7 +40,7 @@ router.put('/family/:id', protect, validate(familySchema), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/family/:id', protect, async (req, res) => {
+router.delete('/family/:id', protect, authorize('profile:write:own'), async (req, res) => {
   try {
     await FamilyMember.findOneAndDelete({ _id: req.params.id, patientId: req.user._id });
     res.json({ message: 'Deleted' });
@@ -48,14 +48,14 @@ router.delete('/family/:id', protect, async (req, res) => {
 });
 
 // ─── Addresses ─────────────────────────────────────────────────────────────
-router.get('/addresses', protect, async (req, res) => {
+router.get('/addresses', protect, authorize('profile:read:own'), async (req, res) => {
   try {
     const addresses = await PatientAddress.find({ patientId: req.user._id }).sort({ isDefault: -1, createdAt: -1 });
     res.json({ addresses });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/addresses', protect, validate(addressSchema), async (req, res) => {
+router.post('/addresses', protect, authorize('profile:write:own'), validate(addressSchema), async (req, res) => {
   try {
     if (req.body.isDefault) {
       await PatientAddress.updateMany({ patientId: req.user._id }, { isDefault: false });
@@ -65,7 +65,7 @@ router.post('/addresses', protect, validate(addressSchema), async (req, res) => 
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/addresses/:id', protect, validate(addressSchema), async (req, res) => {
+router.put('/addresses/:id', protect, authorize('profile:write:own'), validate(addressSchema), async (req, res) => {
   try {
     const addr = await PatientAddress.findOne({ _id: req.params.id, patientId: req.user._id });
     if (!addr) return res.status(404).json({ message: 'Address not found' });
@@ -78,7 +78,7 @@ router.put('/addresses/:id', protect, validate(addressSchema), async (req, res) 
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/addresses/:id', protect, async (req, res) => {
+router.delete('/addresses/:id', protect, authorize('profile:write:own'), async (req, res) => {
   try {
     await PatientAddress.findOneAndDelete({ _id: req.params.id, patientId: req.user._id });
     res.json({ message: 'Deleted' });
@@ -86,7 +86,7 @@ router.delete('/addresses/:id', protect, async (req, res) => {
 });
 
 // ─── Saved Favorites ───────────────────────────────────────────────────────
-router.get('/favorites', protect, async (req, res) => {
+router.get('/favorites', protect, authorize('profile:read:own'), async (req, res) => {
   try {
     const { type } = req.query;
     const filter = { patientId: req.user._id };
@@ -119,7 +119,7 @@ router.get('/favorites', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/favorites', protect, validate(favoriteSchema), async (req, res) => {
+router.post('/favorites', protect, authorize('profile:write:own'), validate(favoriteSchema), async (req, res) => {
   try {
     // Normalize legacy payloads: detail pages send targetId/targetType/name.
     const refType = req.body.refType || req.body.targetType;
@@ -137,7 +137,7 @@ router.post('/favorites', protect, validate(favoriteSchema), async (req, res) =>
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/favorites/:id', protect, async (req, res) => {
+router.delete('/favorites/:id', protect, authorize('profile:write:own'), async (req, res) => {
   try {
     // Accept either the favorite _id (from the favorites page) or a refId
     // (detail pages only know the referenced entity's id).
@@ -152,14 +152,14 @@ router.delete('/favorites/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/preferred-pharmacies', protect, async (req, res) => {
+router.get('/preferred-pharmacies', protect, authorize('profile:read:own'), async (req, res) => {
   try {
     const list = await PreferredPharmacy.find({ patientId: req.user._id }).sort({ priority: 1 });
     res.json({ pharmacies: list });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/preferred-pharmacies', protect, async (req, res) => {
+router.post('/preferred-pharmacies', protect, authorize('profile:write:own'), async (req, res) => {
   try {
     const { pharmacyId, name } = req.body;
     if (!pharmacyId || !name) return res.status(400).json({ message: 'pharmacyId and name are required' });
@@ -169,7 +169,7 @@ router.post('/preferred-pharmacies', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/preferred-pharmacies/reorder', protect, async (req, res) => {
+router.put('/preferred-pharmacies/reorder', protect, authorize('profile:write:own'), async (req, res) => {
   try {
     const { orderedIds } = req.body;
     if (!Array.isArray(orderedIds)) return res.status(400).json({ message: 'orderedIds array is required' });
@@ -184,7 +184,7 @@ router.put('/preferred-pharmacies/reorder', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/preferred-pharmacies/:id', protect, async (req, res) => {
+router.delete('/preferred-pharmacies/:id', protect, authorize('profile:write:own'), async (req, res) => {
   try {
     const removed = await PreferredPharmacy.findOneAndDelete({ _id: req.params.id, patientId: req.user._id });
     if (!removed) return res.status(404).json({ message: 'Not found' });
@@ -197,7 +197,7 @@ router.delete('/preferred-pharmacies/:id', protect, async (req, res) => {
 });
 
 // ─── Patient profile (healthIdCard ke saath) ───
-router.get('/me', protect, async (req, res) => {
+router.get('/me', protect, authorize('profile:read:own'), async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('name email healthIdCard').lean();
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -206,18 +206,24 @@ router.get('/me', protect, async (req, res) => {
 });
 
 // ─── Health ID: generate / rotate QR token ───
-router.post('/health-id/generate', protect, async (req, res) => {
+//
+// REC-M-04: this is the path PatientHealthId.tsx actually calls, and it used to
+// mint a token with NO expiry and NO rotation stamp — the scan path treats that
+// combination as REVOKED, so a card minted through the shipped UI was dead on
+// its first scan. It now uses the shared helper (lib/healthIdCard.js) that
+// routes/healthId.js uses, so every mint writes the fields a scan needs.
+router.post('/health-id/generate', protect, authorize('profile:write:own'), async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    if (user.healthIdCard?.qrToken && req.body.regenerate) {
-      user.healthIdCard.qrToken = undefined;
+    user.healthIdCard = user.healthIdCard || {};
+    if (user.healthIdCard.qrToken && req.body.regenerate) {
+      revokeQrToken(user.healthIdCard);
       user.healthIdCard.lastRotatedAt = new Date();
       await user.save();
     }
-    if (!user.healthIdCard?.qrToken) {
-      user.healthIdCard = user.healthIdCard || {};
-      user.healthIdCard.qrToken = randomBytes(16).toString('base64url');
+    if (!user.healthIdCard.qrToken) {
+      mintQrToken(user.healthIdCard);
       await user.save();
     }
     res.json({ qrToken: user.healthIdCard.qrToken });
@@ -225,14 +231,25 @@ router.post('/health-id/generate', protect, async (req, res) => {
 });
 
 // ─── Health ID: update settings ───
-router.put('/health-id/settings', protect, async (req, res) => {
+//
+// REC-M-04: disable must REVOKELY propagate here too. This copy used to flip
+// `isEnabled` and leave the token alive, so revocation depended on which of the
+// two settings routes the client happened to call. Same shared helpers, same
+// closed-enum validation as routes/healthId.js (a shareLevel the schema cannot
+// store now fails as a 400, not a save-time 500).
+router.put('/health-id/settings', protect, authorize('profile:write:own'), validate(healthIdSettingsSchema), async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
     const { isEnabled, shareLevel } = req.body;
     user.healthIdCard = user.healthIdCard || {};
     if (isEnabled !== undefined) user.healthIdCard.isEnabled = isEnabled;
-    if (shareLevel) user.healthIdCard.shareLevel = shareLevel;
+    if (shareLevel !== undefined) user.healthIdCard.shareLevel = shareLevel;
+    if (isEnabled === false) {
+      revokeQrToken(user.healthIdCard);
+    } else if (isEnabled === true && !user.healthIdCard.qrToken) {
+      mintQrToken(user.healthIdCard);
+    }
     await user.save();
     res.json({ user: { healthIdCard: user.healthIdCard } });
   } catch (err) { res.status(500).json({ message: err.message }); }

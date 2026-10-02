@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import { userFacingError } from '@/lib/errorCopy';
 
 function RevenueOverview() {
   const [stats, setStats] = useState(null);
@@ -393,7 +394,7 @@ function PayoutsTab() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchPayouts(1); }, []);
 
-  const serverMsg = (err) => err?.response?.data?.message || err.message || 'Failed';
+  const serverMsg = (err) => userFacingError(err, { fallback: 'Failed' });
   const handleMarkPaid = async (id) => {
     if (!confirm('Mark this payout as paid?')) return;
     try {

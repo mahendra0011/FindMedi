@@ -1,14 +1,17 @@
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 import express from 'express';
 import SupportTicket from '../models/SupportTicket.js';
-import { protect, superadminOnly } from '../middleware/auth.js';
+import { protect, authorize } from '../middleware/auth.js';
 import { validate, createSupportTicketSchema } from '../utils/validate.js';
 import { generateTimestampedId } from '../utils/idGenerator.js';
 
 const router = express.Router();
 
+const VALID_STATUSES = ['Open', 'In Progress', 'Resolved', 'Closed'];
+
 const generateTicketId = async () => generateTimestampedId('TKT');
 
-router.post('/', protect, validate(createSupportTicketSchema), async (req, res) => {
+router.post('/', protect, authorize('support:write', 'support:write:own'), validate(createSupportTicketSchema), async (req, res) => {
   try {
     const { subject, message, category, priority } = req.body;
     const ticketId = await generateTicketId();
@@ -26,39 +29,48 @@ router.post('/', protect, validate(createSupportTicketSchema), async (req, res) 
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/my-tickets', protect, async (req, res) => {
+router.get('/my-tickets', protect, authorize('support:read', 'support:read:own'), async (req, res) => {
   try {
     const tickets = await SupportTicket.find({ raisedBy: req.user._id }).sort({ createdAt: -1 });
     res.json({ tickets });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/', protect, superadminOnly, async (req, res) => {
+router.get('/', protect, authorize('support:read', 'support:read:own'), async (req, res) => {
   try {
     const { status, priority, category, search } = req.query;
     const filter = {};
-    if (status) filter.status = status;
+    if (status) {
+      if (!VALID_STATUSES.includes(status)) {
+        return res.status(400).json({ message: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` });
+      }
+      filter.status = status;
+    }
     if (priority) filter.priority = priority;
     if (category) filter.category = category;
     if (search) filter.$or = [
-      { ticketId: new RegExp(search, 'i') },
-      { subject: new RegExp(search, 'i') },
-      { raisedByName: new RegExp(search, 'i') },
+      { ticketId: new RegExp(escapeRegex(capSearch(search)), 'i') },
+      { subject: new RegExp(escapeRegex(capSearch(search)), 'i') },
+      { raisedByName: new RegExp(escapeRegex(capSearch(search)), 'i') },
     ];
     const tickets = await SupportTicket.find(filter).populate('raisedBy', 'name email').sort({ createdAt: -1 });
     res.json({ tickets });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id/status', protect, superadminOnly, async (req, res) => {
+router.put('/:id/status', protect, authorize('support:manage'), async (req, res) => {
   try {
-    const ticket = await SupportTicket.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
+    const { status } = req.body;
+    if (!VALID_STATUSES.includes(status)) {
+      return res.status(400).json({ message: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` });
+    }
+    const ticket = await SupportTicket.findByIdAndUpdate(req.params.id, { status }, { new: true });
     if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
     res.json(ticket);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/assign', protect, superadminOnly, async (req, res) => {
+router.put('/:id/assign', protect, authorize('support:manage'), async (req, res) => {
   try {
     const ticket = await SupportTicket.findByIdAndUpdate(req.params.id,
       { assignedTo: req.body.assignedTo, assignedToName: req.body.assignedToName, status: 'In Progress' }, { new: true });
@@ -67,7 +79,7 @@ router.put('/:id/assign', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/:id/messages', protect, superadminOnly, async (req, res) => {
+router.post('/:id/messages', protect, authorize('support:write', 'support:write:own'), async (req, res) => {
   try {
     const ticket = await SupportTicket.findById(req.params.id);
     if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
@@ -78,7 +90,7 @@ router.post('/:id/messages', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.get('/stats', protect, superadminOnly, async (req, res) => {
+router.get('/stats', protect, authorize('support:manage'), async (req, res) => {
   try {
     const total = await SupportTicket.countDocuments();
     const open = await SupportTicket.countDocuments({ status: 'Open' });

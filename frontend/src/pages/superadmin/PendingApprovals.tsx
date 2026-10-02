@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, Building2, CheckCircle, XCircle, Mail, MapPin, FileText } from 'lucide-react';
+import { Clock, Building2, CheckCircle, XCircle, Mail, MapPin, FileText, History } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +44,7 @@ function queueItemSub(item) {
 }
 
 export default function PendingApprovals() {
+  const navigate = useNavigate();
   const [pendingHospitals, setPendingHospitals] = useState([]);
   const [aggregated, setAggregated] = useState({ facilities: [], delivery: [], riders: [], assistants: [], lawyers: [] });
   const [activeQueue, setActiveQueue] = useState('hospitals');
@@ -208,6 +210,15 @@ export default function PendingApprovals() {
                     </div>
                   ) : (
                     <div className="flex gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="gap-1.5 text-muted-foreground"
+                        title="Who decided this record, and when"
+                        onClick={() => navigate(`/audit-logs?target=${id}`)}
+                      >
+                        <History className="w-3.5 h-3.5" /> History
+                      </Button>
                       <Button size="sm" className="bg-success hover:bg-success/90 gap-1.5" disabled={actingId === id} onClick={() => handleApprove(activeQueue, id)}>
                         <CheckCircle className="w-3.5 h-3.5" /> Approve
                       </Button>
@@ -299,6 +310,15 @@ export default function PendingApprovals() {
                     </div>
                   ) : (
                     <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="gap-1.5 text-muted-foreground"
+                        title="Who decided this hospital, and when"
+                        onClick={() => navigate(`/audit-logs?target=${hospital._id}`)}
+                      >
+                        <History className="w-3.5 h-3.5" /> History
+                      </Button>
                       <Button
                         size="sm"
                         variant="default"

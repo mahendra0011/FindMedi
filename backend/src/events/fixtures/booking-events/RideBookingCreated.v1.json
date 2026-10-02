@@ -1,0 +1,9 @@
+{
+  "eventType": "RideBookingCreated.v1",
+  "aggregateType": "RideBooking",
+  "aggregateId": "652f000000000000000000ff",
+  "userId": "652f000000000000000000fe",
+  "vehicleType": "sedan",
+  "isEmergency": false,
+  "estimatedFare": 184.5
+}

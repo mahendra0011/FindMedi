@@ -1,0 +1,6 @@
+{
+  "eventType": "patient.discharged",
+  "hospitalId": "652f000000000000000000b0",
+  "bedId": "652f000000000000000000b1",
+  "room": "Ward-A-12"
+}

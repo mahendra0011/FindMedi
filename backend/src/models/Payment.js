@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { moneyRounding } from '../utils/money.js';
 
 const paymentSchema = new mongoose.Schema({
   transaction_id: { alias: 'transactionId', type: String, required: true },
@@ -20,5 +21,11 @@ const paymentSchema = new mongoose.Schema({
 paymentSchema.index({ transaction_id: 1 }, { unique: true, sparse: true });
 // Partial index me $ne supported nahi hai ($not me compile hota hai) — $gt: '' use karo.
 paymentSchema.index({ referenceId: 1, status: 1 }, { unique: true, partialFilterExpression: { status: 'completed', referenceId: { $type: 'string', $gt: '' } } });
+
+// PAY-M-06: round at write time. `createPaymentSchema` only checks the number
+// is positive, so without this a client-supplied 19.999999999 is stored as-is
+// and only shows up as a reconciliation gap later. Applied to query updates as
+// well as saves - an admin correcting an amount goes through updateOne.
+paymentSchema.plugin(moneyRounding(['amount', 'refund_amount', 'lineItems[].price']));
 
 export default mongoose.model('Payment', paymentSchema);

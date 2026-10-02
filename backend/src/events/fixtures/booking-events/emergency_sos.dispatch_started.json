@@ -1,0 +1,7 @@
+{
+  "eventType": "emergency_sos.dispatch_started",
+  "aggregateType": "emergency_sos",
+  "aggregateId": "652f00000000000000000005",
+  "category": "cardiac",
+  "severityLevel": 2
+}

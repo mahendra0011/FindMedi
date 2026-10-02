@@ -1,7 +1,8 @@
 import express from 'express';
-import { protect } from '../middleware/auth.js';
-import { getIO } from '../services/socketService.js';
+import { protect, authorize } from '../middleware/auth.js';
+import { getIO, notifyUser } from '../services/socketService.js';
 import Notification from '../models/Notification.js';
+import { createNotification } from '../services/notificationService.js';
 import User from '../models/User.js';
 import logger from '../config/logger.js';
 
@@ -20,14 +21,22 @@ async function notifyHospitalAdmins(hospitalId, title, message, type = 'emergenc
   if (!hospitalId) return 0;
   const admins = await User.find({ hospitalId, role: 'hospital_admin' }, { _id: 1 }).lean();
   for (const a of admins) {
-    await Notification.create({ title, message, type, userId: String(a._id) }).catch(() => {});
+    // NOTIF-B-05: code-blue / critical broadcasts go through the controlled
+    // writer so they are de-duplicated but never rate-capped.
+    await createNotification({
+      title,
+      message,
+      type,
+      userId: String(a._id),
+      priority: 'critical',
+    }).catch(() => {});
   }
   return admins.length;
 }
 
 // ─── POST /api/clinical-alerts/code-blue ────────────────────────────────────
 // Spec expansion-09A: ward cardiac-arrest broadcast to the hospital room.
-router.post('/code-blue', protect, requireStaff, async (req, res) => {
+router.post('/code-blue', protect, authorize('emergency:write'), requireStaff, async (req, res) => {
   try {
     const { hospitalId, ward = '', bedId = '', patientName = '', note = '' } = req.body;
     if (!hospitalId) return res.status(400).json({ message: 'hospitalId required' });
@@ -50,7 +59,7 @@ router.post('/code-blue', protect, requireStaff, async (req, res) => {
 
 // ─── POST /api/clinical-alerts/lab-panic ────────────────────────────────────
 // Spec expansion-09B: critical lab value → ordering physician interception.
-router.post('/lab-panic', protect, requireStaff, async (req, res) => {
+router.post('/lab-panic', protect, authorize('emergency:write'), requireStaff, async (req, res) => {
   try {
     const { doctorId, patientName = '', testName = '', value = '', countermeasure = '' } = req.body;
     if (!doctorId) return res.status(400).json({ message: 'doctorId required' });
@@ -60,12 +69,16 @@ router.post('/lab-panic', protect, requireStaff, async (req, res) => {
       toneType: 'lab_panic',
       at: new Date().toISOString(),
     };
-    await Notification.create({
+    const { notification } = await createNotification({
       title: '🔴 STAT LAB PANIC VALUE',
       message: `${testName}: ${value} for ${patientName}. Immediate countermeasure required.`,
       type: 'emergency',
       userId: String(doctorId),
-    }).catch(() => {});
+      // NOTIF-B-05: a panic value is a life-safety alert — never rate-capped or
+      // de-duplicated away.
+      priority: 'critical',
+    }).catch(() => ({ notification: null }));
+    if (notification) notifyUser(notification.userId, notification);
     const io = getIO();
     io?.to(`user:${doctorId}`).emit('clinical:lab_panic', payload);
     res.status(201).json({ success: true, ...payload });
@@ -77,7 +90,7 @@ router.post('/lab-panic', protect, requireStaff, async (req, res) => {
 
 // ─── POST /api/clinical-alerts/mtp ──────────────────────────────────────────
 // Spec expansion-09C: massive-transfusion protocol → blood-bank + hospital room.
-router.post('/mtp', protect, requireStaff, async (req, res) => {
+router.post('/mtp', protect, authorize('emergency:write'), requireStaff, async (req, res) => {
   try {
     const { hospitalId, bloodGroup = 'O-Neg', units = 4, requester = '' } = req.body;
     if (!hospitalId) return res.status(400).json({ message: 'hospitalId required' });

@@ -3,7 +3,8 @@ import Doctor from '../models/Doctor.js';
 import Facility from '../models/Facility.js';
 import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/auth.js';
-import { validate, updateClinicProfileSchema, createClinicStaffSchema, updateClinicStaffSchema } from '../utils/validate.js';
+import { validate, updateClinicProfileSchema, createClinicStaffSchema, updateClinicStaffSchema, CLINIC_STAFF_ROLES } from '../utils/validate.js';
+import { randomPassword } from '../utils/secureRandom.js';
 
 const router = express.Router();
 
@@ -30,9 +31,18 @@ router.put('/profile', protect, validate(updateClinicProfileSchema), async (req,
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
+// AUTHZ gap (was UNCLASSIFIED, and it FAILED OPEN): with neither facilityId nor
+// hospitalId on the account, `User.find({ facilityId: undefined, role: {...} })`
+// does not match nothing — it matches every staff account on the platform that
+// has no facility attached, handing their names, emails and phone numbers to any
+// logged-in patient. The sibling POST /staff below already guards this exact
+// case with a 403; the GET never did. `.select('-password')` does not help: the
+// leak is identity, not the hash.
+// authz: object
 router.get('/staff', protect, async (req, res) => {
   try {
     const facilityId = req.user.facilityId || req.user.hospitalId;
+    if (!facilityId) return res.status(403).json({ message: 'No facility linked to this account' });
     const staff = await User.find({ facilityId, role: { $in: ['nurse', 'technician', 'helper', 'accountant'] } }).select('-password').sort({ createdAt: -1 });
     res.json({ staff });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -41,21 +51,37 @@ router.get('/staff', protect, async (req, res) => {
 router.post('/staff', protect, adminOnly, validate(createClinicStaffSchema), async (req, res) => {
   try {
     const facilityId = req.user.facilityId || req.user.hospitalId;
+    // AUTH-B-19: staff must be attached to a real facility, and the role can
+    // only be one of CLINIC_STAFF_ROLES (schema-enum) — never superadmin /
+    // hospital_admin, which are invite-only.
+    if (!facilityId) return res.status(403).json({ message: 'No facility linked to this account' });
     const { name, email, phone, role } = req.body;
     if (!name || !email || !role) return res.status(400).json({ message: 'Name, email and role required' });
-    const tempPassword = Math.random().toString(36).slice(-10);
+    if (!CLINIC_STAFF_ROLES.includes(role)) {
+      return res.status(403).json({ message: 'This role cannot be created from a facility account' });
+    }
+    const tempPassword = randomPassword(12);
     const user = await User.create({
-      name, email: email.toLowerCase(), password: tempPassword, role, phone: phone || '',
+      name, email: email.toLowerCase(), password: tempPassword, mustResetPassword: true, role, phone: phone || '',
       facilityId, isVerified: true, status: 'active', approvalStatus: 'not_required',
     });
-    res.status(201).json(user);
+    // Never echo the password hash back; the admin gets the one-time plaintext.
+    const safe = user.toObject();
+    delete safe.password;
+    res.status(201).json({ user: safe, tempPassword, message: 'Share the temporary password securely; the user must change it on first login.' });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 router.put('/staff/:id', protect, adminOnly, validate(updateClinicStaffSchema), async (req, res) => {
   try {
     const facilityId = req.user.facilityId || req.user.hospitalId;
+    if (!facilityId) return res.status(403).json({ message: 'No facility linked to this account' });
     const { name, email, phone, role } = req.body;
+    // AUTH-B-19: role escalation guard — a facility admin may not promote
+    // anyone (including themselves) to a tenant/platform role.
+    if (role && !CLINIC_STAFF_ROLES.includes(role)) {
+      return res.status(403).json({ message: 'This role cannot be assigned from a facility account' });
+    }
     const user = await User.findOneAndUpdate(
       { _id: req.params.id, facilityId },
       { ...(name && { name }), ...(email && { email: email.toLowerCase() }), ...(phone !== undefined && { phone }), ...(role && { role }) },
@@ -74,6 +100,7 @@ router.delete('/staff/:id', protect, adminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 import ClinicProfile from '../models/ClinicProfile.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 // ─── Public Clinic Discovery (no auth) ─────────────────────────────────────
 router.get('/public', async (req, res) => {
@@ -81,11 +108,11 @@ router.get('/public', async (req, res) => {
     const { search, specialty, city } = req.query;
     const filter = { doctor_type: 'clinic', approved: true };
     if (search) filter.$or = [
-      { name: new RegExp(search, 'i') },
-      { specialization: new RegExp(search, 'i') },
+      { name: new RegExp(escapeRegex(capSearch(search)), 'i') },
+      { specialization: new RegExp(escapeRegex(capSearch(search)), 'i') },
     ];
-    if (specialty && specialty !== 'All') filter.specialization = new RegExp(specialty, 'i');
-    if (city && city !== 'All') filter.location = new RegExp(city, 'i');
+    if (specialty && specialty !== 'All') filter.specialization = new RegExp(escapeRegex(capSearch(specialty)), 'i');
+    if (city && city !== 'All') filter.location = new RegExp(escapeRegex(capSearch(city)), 'i');
     let doctors = await Doctor.find(filter).populate('facilityId').sort({ rating: -1 }).lean();
     const doctorIds = doctors.map(d => d._id);
     if (doctorIds.length) {

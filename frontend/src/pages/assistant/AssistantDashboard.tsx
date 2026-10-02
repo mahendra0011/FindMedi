@@ -81,6 +81,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getSocket, joinAssistantBookingRoom } from '@/lib/socket';
 import { useSearchParams, useLocation, useNavigate, Link } from 'react-router-dom';
 import ProviderIncomingCall from '@/components/emergency/ProviderIncomingCall';
+import { userFacingError } from '@/lib/errorCopy';
 
 const PRESET_SERVICE_AREAS = [
   'Jabalpur',
@@ -1405,7 +1406,7 @@ export default function AssistantDashboard() {
                 await api.post(`/instant/assistant/${bookingId}/accept`, {});
                 toast.success('Vote cast — waiting for dispatch confirmation…');
               } catch (err: any) {
-                toast.error(err?.response?.data?.message || 'Could not accept booking');
+                toast.error(userFacingError(err, { fallback: 'Could not accept booking' }));
               }
               setActiveIncomingCall(null);
               return;

@@ -313,7 +313,19 @@ router.put('/:id', protect, async (req, res) => {
       log.recordedAt = new Date(recordedAt);
       log.isBackdated = Math.abs(Date.now() - log.recordedAt.getTime()) > (30 * 60 * 1000);
     }
-    if (carePlanId !== undefined) log.carePlanId = carePlanId || null;
+    if (carePlanId !== undefined) {
+      // CHAT-B-11: a foreign carePlanId was stored verbatim, so a reading could
+      // be attached to another user's plan (and pollute its vitals aggregation).
+      if (carePlanId) {
+        const ownedPlan = await ChronicCarePlan.findOne({ _id: carePlanId, userId: log.userId || req.user._id }).select('_id');
+        if (!ownedPlan) {
+          return res.status(400).json({ message: 'Care plan not found for this account' });
+        }
+        log.carePlanId = carePlanId;
+      } else {
+        log.carePlanId = null;
+      }
+    }
 
     await log.save();
 
@@ -402,10 +414,21 @@ router.post('/reminders', protect, async (req, res) => {
 
 router.put('/reminders/:id', protect, async (req, res) => {
   try {
+    // CHAT-B-11: `req.body` was passed straight into findOneAndUpdate, so the
+    // body could rewrite `userId` (moving the reminder to another account).
+    // Only the caller-owned fields are applied now.
+    const allowed = {};
+    for (const field of ['vitalType', 'times', 'frequency', 'daysOfWeek', 'alarmSound', 'instructions', 'carePlanId', 'isActive']) {
+      if (req.body?.[field] !== undefined) allowed[field] = req.body[field];
+    }
+    if (allowed.carePlanId) {
+      const ownedPlan = await ChronicCarePlan.findOne({ _id: allowed.carePlanId, userId: req.user._id }).select('_id');
+      if (!ownedPlan) return res.status(400).json({ message: 'Care plan not found for this account' });
+    }
     const reminder = await VitalsReminder.findOneAndUpdate(
       { _id: req.params.id, userId: req.user._id },
-      req.body,
-      { new: true }
+      allowed,
+      { new: true, runValidators: true }
     );
     if (!reminder) return res.status(404).json({ message: 'Reminder not found' });
     return res.json({ message: 'Vitals reminder updated', reminder });

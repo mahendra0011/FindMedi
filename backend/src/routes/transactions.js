@@ -13,17 +13,51 @@ import SystemSetting from '../models/SystemSetting.js';
 import mongoose from 'mongoose';
 import Notification from '../models/Notification.js';
 import { generatePaymentInvoicePDF } from '../services/pdfService.js';
-import { protect } from '../middleware/auth.js';
+import { protect, authorize } from '../middleware/auth.js';
 import logger from '../config/logger.js';
 import { validate, createPaymentSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { paymentLimiter } from '../middleware/rateLimit.js';
+import { idempotencyGuard } from '../middleware/idempotency.js';
 import { paginatedResults } from '../utils/pagination.js';
 import { generateTransactionId, generateInvoiceId, generateBillId, generateTokenNumber } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 import { emitAppointmentUpdate } from '../services/socketService.js';
+import { checkWithdrawal, claimBudget, releaseBudget } from '../services/walletGuard.js';
+// APPT-M-01: a swept-away Pending appointment frees its seat - offer it onward.
+import { onSlotFreed } from '../services/waitlistService.js';
 
 const router = express.Router();
+
+// PAY-M-02: withdrawal guard reasons -> user-facing messages. Kept next to the
+// one route that can surface them so a new guard reason cannot ship without a
+// message a patient/provider can understand.
+const WITHDRAWAL_GUARD_MESSAGES = {
+  'wallet-frozen': 'This wallet is frozen for review. Contact support to release it.',
+  'kyc-required': 'KYC verification is required before withdrawals.',
+  'per-txn-limit': 'Amount exceeds the per-transaction withdrawal limit.',
+  'daily-cap': 'Daily withdrawal limit reached. Try again tomorrow.',
+  'velocity-freeze': 'Too many withdrawals in a short window. Wallet frozen for review.',
+};
+
+/**
+ * PAY-B-11: who may read a payment document (invoice / bill PDF).
+ * owner | same-tenant admin | superadmin — nothing else. The old check was
+ * `patient_id !== user._id && role !== 'hospital_admin'`, which was
+ * tenant-BLIND (any hospital admin could read every patient's invoice) and
+ * denied the superadmin access to their own platform's documents.
+ */
+const canViewPaymentDoc = (user, payment) => {
+  if (!payment) return false;
+  if (user.role === 'superadmin') return true;
+  if (payment.patient_id && String(payment.patient_id) === String(user._id || user.id)) return true;
+  if (user.role === 'hospital_admin') {
+    return Boolean(user.hospitalId && payment.hospitalId
+      && String(payment.hospitalId) === String(user.hospitalId));
+  }
+  return false;
+};
+
 
 // ── Periodic cleanup: remove stale unpaid Pending appointments (older than 15 min) ──
 // Runs once at startup, then every 5 minutes.
@@ -33,7 +67,11 @@ async function cleanupStalePending() {
     const staleAppts = await Appointment.find({ status: 'Pending', createdAt: { $lt: staleCutoff } }).lean();
     for (const appt of staleAppts) {
       const hasPayment = await Payment.findOne({ referenceId: appt._id.toString(), status: 'completed' }).lean();
-      if (!hasPayment) await Appointment.findByIdAndDelete(appt._id);
+      if (!hasPayment) {
+        await Appointment.findByIdAndDelete(appt._id);
+        // APPT-M-01: the deleted hold's slot is free - offer it to the queue.
+        void onSlotFreed({ doctorId: appt.doctorId, date: appt.date, time: appt.time }).catch(() => {});
+      }
     }
     if (staleAppts.length) console.log(`[Cleanup] Removed ${staleAppts.length} stale Pending appointments`);
   } catch (_) {}
@@ -43,7 +81,7 @@ setInterval(cleanupStalePending, 5 * 60 * 1000);
 
 // GET /api/transactions — user's payment history
 // Patient: sees own payments. Doctor/clinic_doctor: sees payments for their clinic.
-router.get('/', protect, async (req, res, next) => {
+router.get('/', protect, authorize('billing:read', 'billing:read:own'), async (req, res, next) => {
   try {
     const { page, limit, serviceType } = req.query;
     const isDoctor = req.user.role === 'doctor' || req.user.role === 'clinic_doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist';
@@ -149,7 +187,7 @@ router.get('/', protect, async (req, res, next) => {
 // POST /api/transactions/withdraw — instant provider wallet withdrawal (Spec 22 §4).
 // Resolves the caller profile by role, enforces ₹100 minimum reserve, writes a
 // balanced DEBIT/CREDIT pair into TransactionLedger.
-router.post('/withdraw', protect, paymentLimiter, async (req, res, next) => {
+router.post('/withdraw', protect, authorize('wallet:withdraw'), paymentLimiter, async (req, res, next) => {
   try {
     const amount = Math.round(Number(req.body.amount) || 0);
     if (!(amount > 0)) return res.status(400).json({ message: 'Valid amount required' });
@@ -163,17 +201,39 @@ router.post('/withdraw', protect, paymentLimiter, async (req, res, next) => {
     if (!entry) return res.status(403).json({ message: 'Only rider/assistant/lawyer providers can withdraw' });
     const { default: Profile } = await import(entry[0]);
     const { default: TransactionLedger } = await import('../models/TransactionLedger.js');
-    const profile = await Profile.findOne({ userId: req.user._id });
-    if (!profile) return res.status(404).json({ message: 'Provider profile not found' });
     const MIN_RESERVE = 100;
-    if ((profile.walletBalance || 0) < amount + MIN_RESERVE) {
-      return res.status(402).json({
-        message: `Insufficient balance (need ₹${amount + MIN_RESERVE} incl. ₹${MIN_RESERVE} reserve)`,
-        walletBalance: profile.walletBalance || 0,
+    // PAY-M-02: limits / KYC / velocity pass BEFORE any balance moves, and the
+    // daily quota claim is released if the debit below fails — a rejected
+    // withdrawal must never consume tomorrow's limit.
+    const guardNow = new Date();
+    const guardUserId = String(req.user._id);
+    const pre = await checkWithdrawal({ userId: guardUserId, amount, now: guardNow });
+    if (!pre.allowed) {
+      return res.status(pre.code).json({ message: WITHDRAWAL_GUARD_MESSAGES[pre.reason], reason: pre.reason });
+    }
+    const claim = await claimBudget({ userId: guardUserId, amount, now: guardNow });
+    if (!claim.allowed) {
+      return res.status(claim.frozen ? 403 : 429).json({
+        message: WITHDRAWAL_GUARD_MESSAGES[claim.reason],
+        reason: claim.reason,
       });
     }
-    profile.walletBalance -= amount;
-    await profile.save();
+    // PAY-001: atomic conditional debit — the $gte guard and the $inc happen in a
+    // single operation, so concurrent withdrawals can never overdraw the wallet.
+    const profile = await Profile.findOneAndUpdate(
+      { userId: req.user._id, walletBalance: { $gte: amount + MIN_RESERVE } },
+      { $inc: { walletBalance: -amount } },
+      { new: true }
+    );
+    if (!profile) {
+      await releaseBudget({ userId: guardUserId, amount, now: guardNow });
+      const existing = await Profile.findOne({ userId: req.user._id });
+      if (!existing) return res.status(404).json({ message: 'Provider profile not found' });
+      return res.status(402).json({
+        message: `Insufficient balance (need ₹${amount + MIN_RESERVE} incl. ₹${MIN_RESERVE} reserve)`,
+        walletBalance: existing.walletBalance || 0,
+      });
+    }
     const ref = `WDL-${Date.now().toString(36).toUpperCase()}`;
     const [debitEntry, creditEntry] = await TransactionLedger.create([
       { providerId: req.user._id, source: entry[1], sourceId: ref, amount, netAmount: -amount, entryType: 'DEBIT', status: 'completed', bookingNumber: ref },
@@ -189,7 +249,7 @@ router.post('/withdraw', protect, paymentLimiter, async (req, res, next) => {
 
 // POST /api/transactions/pay — unified payment + confirm (idempotent)
 // Can also accept appointment data to create appointment + payment atomically
-router.post('/pay', protect, paymentLimiter, async (req, res, next) => {
+router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), paymentLimiter, idempotencyGuard({ prefix: 'txn-pay', failClosed: true }), async (req, res, next) => {
   let createdAppointment = null;
   try {
     let { serviceType, referenceId, amount, method, description, provider, lineItems, appointment: apptData } = req.body;
@@ -217,6 +277,8 @@ router.post('/pay', protect, paymentLimiter, async (req, res, next) => {
             const hasPayment = await Payment.findOne({ referenceId: stale._id.toString(), status: 'completed' }).lean();
             if (!hasPayment) {
               await Appointment.findByIdAndDelete(stale._id);
+              // APPT-M-01: stale own-checkout delete also frees the slot.
+              void onSlotFreed({ doctorId: stale.doctorId, date: stale.date, time: stale.time }).catch(() => {});
             }
           }
         } catch (_) { /* best-effort cleanup */ }
@@ -582,14 +644,17 @@ router.post('/pay', protect, paymentLimiter, async (req, res, next) => {
 
 
 // GET /api/transactions/:id/invoice — download invoice PDF
-router.get('/:id/invoice', protect, async (req, res, next) => {
+router.get('/:id/invoice', protect, authorize('billing:read', 'billing:read:own'), async (req, res, next) => {
   try {
     const idParam = req.params.id;
     const payment = mongoose.Types.ObjectId.isValid(idParam)
       ? await Payment.findById(idParam)
       : await Payment.findOne({ transaction_id: idParam });
     if (!payment) return res.status(404).json({ message: 'Transaction not found' });
-    if (payment.patient_id !== req.user._id.toString() && req.user.role !== 'hospital_admin') {
+    // PAY-B-11: owner | same-tenant admin | superadmin. The old clause let ANY
+    // hospital admin (tenant-blind) download any patient's invoice while denying
+    // the superadmin their own platform's documents.
+    if (!(await canViewPaymentDoc(req.user, payment))) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
@@ -616,14 +681,17 @@ router.get('/:id/invoice', protect, async (req, res, next) => {
 });
 
 // GET /api/transactions/:id/bill — download bill PDF (type-specific Tax Invoice format)
-router.get('/:id/bill', protect, async (req, res, next) => {
+router.get('/:id/bill', protect, authorize('billing:read', 'billing:read:own'), async (req, res, next) => {
   try {
     const idParam = req.params.id;
     const payment = mongoose.Types.ObjectId.isValid(idParam)
       ? await Payment.findById(idParam)
       : await Payment.findOne({ transaction_id: idParam });
     if (!payment) return res.status(404).json({ message: 'Transaction not found' });
-    if (payment.patient_id !== req.user._id.toString() && req.user.role !== 'hospital_admin') {
+    // PAY-B-11: owner | same-tenant admin | superadmin. The old clause let ANY
+    // hospital admin (tenant-blind) download any patient's invoice while denying
+    // the superadmin their own platform's documents.
+    if (!(await canViewPaymentDoc(req.user, payment))) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
@@ -650,7 +718,7 @@ router.get('/:id/bill', protect, async (req, res, next) => {
 });
 
 // GET /api/transactions/verify/:id — universal transaction lookup by any valid ID
-router.get('/verify/:id', protect, async (req, res, next) => {
+router.get('/verify/:id', protect, authorize('billing:read', 'billing:read:own'), async (req, res, next) => {
   try {
     const idParam = req.params.id;
     let payment = null;
@@ -706,6 +774,20 @@ router.get('/verify/:id', protect, async (req, res, next) => {
 
     if (!payment) {
       return res.status(404).json({ message: 'Transaction not found' });
+    }
+
+    // DLB-27: ownership. The lookup accepted ANY id (ObjectId, transaction id,
+    // invoice id, reference id), so any authenticated user could read another
+    // patient's payment + payer PII (name, phone, email, UHID, address) and the
+    // linked appointment / lab / pharmacy order. The payer, the owning hospital
+    // and the platform superadmin are the only readers.
+    const callerIsSuperadmin = req.user.role === 'superadmin';
+    const callerIsPayer = payment.patient_id && String(payment.patient_id) === String(req.user._id || req.user.id);
+    const callerOwnsHospital = req.user.hospitalId
+      && payment.hospitalId
+      && String(payment.hospitalId) === String(req.user.hospitalId);
+    if (!callerIsSuperadmin && !callerIsPayer && !callerOwnsHospital) {
+      return res.status(403).json({ message: 'Not authorized to view this transaction' });
     }
 
     // Populate reference data based on serviceType

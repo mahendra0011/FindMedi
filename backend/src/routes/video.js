@@ -14,10 +14,14 @@ export function isLiveKitConfigured() {
 
 // ─── POST /api/video/token ────────────────────────────────────────────────
 // Mints a LiveKit room token for doctor/patient video triage.
-// Body: { room, identity?, name? }. Fail-soft: 503 when unconfigured.
+// Body: { room, name? }. Fail-soft: 503 when unconfigured.
+//
+// VID-B-01: `identity` used to come from the request body, so any authenticated
+// user could mint a token AS somebody else (call impersonation + presence
+// spoofing). The identity is now always the caller's own user id.
 router.post('/token', protect, async (req, res) => {
   try {
-    const { room, identity, name } = req.body;
+    const { room, name } = req.body;
     if (!room) return res.status(400).json({ message: 'room required' });
     if (!isLiveKitConfigured()) {
       return res.status(503).json({
@@ -28,20 +32,21 @@ router.post('/token', protect, async (req, res) => {
     const { AccessToken } = await import('livekit-server-sdk');
     const me = String(req.user._id || req.user.id);
     const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-      identity: String(identity || me),
+      identity: me,
       name: String(name || req.user.name || 'FindMedi User'),
       ttl: '15m',
     });
     at.addGrant({ roomJoin: true, room: String(room), canPublish: true, canSubscribe: true });
     const token = await at.toJwt();
-    res.json({ success: true, livekit: true, url: LIVEKIT_URL, room: String(room), token });
+    res.json({ success: true, livekit: true, url: LIVEKIT_URL, room: String(room), token, identity: me });
   } catch (err) {
     logger.error(`Video token error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to mint video token', error: err.message });
+    res.status(500).json({ message: 'Failed to mint video token' });
   }
 });
 
 // ─── GET /api/video/status ────────────────────────────────────────────────
+// authz: self
 router.get('/status', protect, async (req, res) => {
   res.json({ success: true, livekit: isLiveKitConfigured(), url: LIVEKIT_URL || null });
 });

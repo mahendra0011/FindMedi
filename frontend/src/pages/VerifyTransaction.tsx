@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
+import { userFacingError } from '@/lib/errorCopy';
 
 const methodIcons = {
   card: CreditCard, upi: Smartphone, netbanking: Landmark,
@@ -57,7 +58,7 @@ export default function VerifyTransaction() {
       setResult(res);
       toast.success('Transaction verified successfully');
     } catch (e) {
-      const msg = e.response?.data?.message || 'Transaction not found';
+      const msg = userFacingError(e, { fallback: 'Transaction not found' });
       toast.error(msg);
     } finally {
       setLoading(false);

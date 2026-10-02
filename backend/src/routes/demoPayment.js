@@ -8,7 +8,7 @@ import LawyerProfile from '../models/LawyerProfile.js';
 import EmergencyDoctorRequest from '../models/EmergencyDoctorRequest.js';
 import Doctor from '../models/Doctor.js';
 import Notification from '../models/Notification.js';
-import { protect } from '../middleware/auth.js';
+import { protect, authorize } from '../middleware/auth.js';
 import { idempotencyGuard } from '../middleware/idempotency.js';
 import { paymentLimiter } from '../middleware/rateLimit.js';
 import { validate, demoPaySchema } from '../utils/validate.js';
@@ -22,18 +22,30 @@ function walletBalanceOf(user) {
   return Number(user?.demoWallet?.balance ?? 10000);
 }
 
+// PAY-002: a user may only touch their own demo payments (superadmin excepted).
+function canAccessPayment(payment, user) {
+  return payment.userId?.toString() === user._id.toString() || user.role === 'superadmin';
+}
+
 // Spec 21: demo-wallet payments actually debit the ₹10,000 sandbox credit.
 // Cash skips the ledger. Throws 402 when the balance cannot cover the fare.
+// PAY-001: atomic conditional debit ($gte guard + $inc) — a read-then-write would
+// let two concurrent payments both pass the balance check and overdraw the wallet.
 async function debitDemoWallet(userId, amount, method) {
   if (method !== 'demo_wallet' || !(amount > 0)) return;
-  const user = await User.findById(userId).select('demoWallet');
-  const balance = walletBalanceOf(user);
-  if (balance < amount) {
+  const user = await User.findOneAndUpdate(
+    { _id: userId, 'demoWallet.balance': { $gte: amount } },
+    { $inc: { 'demoWallet.balance': -amount } },
+    { new: true }
+  );
+  if (!user) {
+    const current = await User.findById(userId).select('demoWallet');
+    const balance = walletBalanceOf(current);
     const err = new Error(`Insufficient demo wallet balance (₹${balance} < ₹${amount}). Use cash or top up sandbox credit.`);
     err.statusCode = 402;
     throw err;
   }
-  await User.updateOne({ _id: userId }, { $set: { 'demoWallet.balance': balance - amount } });
+  return user;
 }
 
 /**
@@ -41,15 +53,19 @@ async function debitDemoWallet(userId, amount, method) {
  * Debits the payer demo wallet and records a HELD_IN_ESCROW DemoPayment.
  */
 export async function holdDemoEscrow({ userId, amount, ref = {} }) {
-  const user = await User.findById(userId);
-  if (!user) throw new Error('User not found');
-  const balance = walletBalanceOf(user);
-  if (balance < amount) {
-    const err = new Error(`Insufficient demo wallet balance (₹${balance} < ₹${amount})`);
+  // PAY-001: same atomic conditional debit as debitDemoWallet.
+  const user = await User.findOneAndUpdate(
+    { _id: userId, 'demoWallet.balance': { $gte: amount } },
+    { $inc: { 'demoWallet.balance': -amount } },
+    { new: true }
+  );
+  if (!user) {
+    const existing = await User.findById(userId);
+    if (!existing) throw new Error('User not found');
+    const err = new Error(`Insufficient demo wallet balance (₹${walletBalanceOf(existing)} < ₹${amount})`);
     err.statusCode = 402;
     throw err;
   }
-  await User.updateOne({ _id: userId }, { $set: { 'demoWallet.balance': balance - amount } });
   const payment = await DemoPayment.create({
     userId,
     amount,
@@ -57,7 +73,7 @@ export async function holdDemoEscrow({ userId, amount, ref = {} }) {
     status: 'held_in_escrow',
     ...ref,
   });
-  return { payment, newBalance: balance - amount };
+  return { payment, newBalance: user.demoWallet?.balance ?? 0 };
 }
 
 async function releaseEscrowToPaid(payment) {
@@ -69,7 +85,7 @@ async function releaseEscrowToPaid(payment) {
 
 // ─── POST /api/payment/demo/pay ─────────────────────────────────────────────
 // Simulate payment (Demo for rides, assistant, lawyer, emergency doctor)
-router.post('/pay', protect, paymentLimiter, validate(demoPaySchema), idempotencyGuard(), async (req, res) => {
+router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), paymentLimiter, idempotencyGuard({ prefix: 'demo-pay', failClosed: true }), validate(demoPaySchema), idempotencyGuard(), async (req, res) => {
   try {
     const { rideId, bookingId, lawyerBookingId, doctorRequestId, bookingType = 'ride', method = 'demo_wallet' } = req.body;
     const isLawyer = bookingType === 'lawyer' || Boolean(lawyerBookingId);
@@ -356,7 +372,7 @@ router.post('/pay', protect, paymentLimiter, validate(demoPaySchema), idempotenc
 
 // ─── GET /api/payment/demo/:id ──────────────────────────────────────────────
 // Get payment status for a ride or assistant booking
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', protect, authorize('billing:read', 'billing:read:own'), async (req, res) => {
   try {
     const id = req.params.id;
     const payment = await DemoPayment.findOne({
@@ -365,6 +381,10 @@ router.get('/:id', protect, async (req, res) => {
 
     if (!payment) {
       return res.status(404).json({ message: 'No payment record found' });
+    }
+    // PAY-002: a payment is readable only by the account that owns it.
+    if (!canAccessPayment(payment, req.user)) {
+      return res.status(403).json({ message: 'Not authorized' });
     }
     res.json({ payment });
   } catch (err) {
@@ -375,7 +395,7 @@ router.get('/:id', protect, async (req, res) => {
 // ─── POST /api/payment/demo/hold ────────────────────────────────────────────
 // Spec 21: lock funds in mock escrow (DEMO_ESCROW_HELD). Body accepts any one of
 // { rideId, bookingId, lawyerBookingId, doctorRequestId } + optional amount.
-router.post('/hold', protect, paymentLimiter, async (req, res) => {
+router.post('/hold', protect, authorize('billing:write', 'billing:write:own'), paymentLimiter, async (req, res) => {
   try {
     const { rideId, bookingId, lawyerBookingId, doctorRequestId, amount } = req.body;
     const ref = {};
@@ -403,10 +423,13 @@ router.post('/hold', protect, paymentLimiter, async (req, res) => {
 
 // ─── POST /api/payment/demo/confirm/:id ────────────────────────────────────
 // Spec 21: 1-click demo success — held/pending → paid (escrow released).
-router.post('/confirm/:id', protect, paymentLimiter, async (req, res) => {
+router.post('/confirm/:id', protect, authorize('billing:write', 'billing:write:own'), paymentLimiter, async (req, res) => {
   try {
     const payment = await DemoPayment.findById(req.params.id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
+    if (!canAccessPayment(payment, req.user)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
     if (['paid', 'refunded'].includes(payment.status)) {
       return res.json({ success: true, message: `Already ${payment.status}`, payment });
     }
@@ -419,10 +442,13 @@ router.post('/confirm/:id', protect, paymentLimiter, async (req, res) => {
 
 // ─── POST /api/payment/demo/fail/:id ───────────────────────────────────────
 // Spec 21: 1-click demo failure — tests frontend decline handling.
-router.post('/fail/:id', protect, paymentLimiter, async (req, res) => {
+router.post('/fail/:id', protect, authorize('billing:write', 'billing:write:own'), paymentLimiter, async (req, res) => {
   try {
     const payment = await DemoPayment.findById(req.params.id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
+    if (!canAccessPayment(payment, req.user)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
     payment.status = 'failed';
     await payment.save();
     // Held funds return to the payer wallet on failure.
@@ -437,20 +463,32 @@ router.post('/fail/:id', protect, paymentLimiter, async (req, res) => {
 
 // ─── POST /api/payment/demo/refund/:id ─────────────────────────────────────
 // Spec 21: instant demo refund on cancellation.
-router.post('/refund/:id', protect, paymentLimiter, async (req, res) => {
+router.post('/refund/:id', protect, authorize('billing:write', 'billing:write:own'), paymentLimiter, idempotencyGuard({ prefix: 'demo-refund', failClosed: true }), async (req, res) => {
   try {
-    const payment = await DemoPayment.findById(req.params.id);
-    if (!payment) return res.status(404).json({ message: 'Payment not found' });
-    if (payment.status === 'refunded') {
-      return res.json({ success: true, message: 'Already refunded', payment });
+    // PAY-002: atomic status transition guarded on the expected prior state, so a
+    // concurrent second refund cannot double-credit the wallet.
+    const payment = await DemoPayment.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user._id, status: 'paid' },
+      { $set: { status: 'refunded', refundedAt: new Date() } },
+      { new: true }
+    );
+    if (payment) {
+      if (payment.method === 'demo_wallet') {
+        await User.updateOne(
+          { _id: payment.userId },
+          { $inc: { 'demoWallet.balance': payment.amount } }
+        );
+      }
+      const user = await User.findById(payment.userId).select('demoWallet').lean();
+      return res.json({ success: true, message: 'Demo payment refunded', payment, demoWalletBalance: walletBalanceOf(user) });
     }
-    payment.status = 'refunded';
-    await payment.save();
-    if (payment.method === 'demo_wallet') {
-      await User.updateOne({ _id: payment.userId }, { $inc: { 'demoWallet.balance': payment.amount } });
+    // Either it does not exist, is not the caller's, or was already refunded.
+    const existing = await DemoPayment.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Payment not found' });
+    if (!canAccessPayment(existing, req.user)) {
+      return res.status(403).json({ message: 'Not authorized' });
     }
-    const user = await User.findById(payment.userId).select('demoWallet').lean();
-    res.json({ success: true, message: 'Demo payment refunded', payment, demoWalletBalance: walletBalanceOf(user) });
+    return res.json({ success: true, message: `Already ${existing.status}`, payment: existing });
   } catch (err) {
     res.status(500).json({ message: 'Failed to refund payment', error: err.message });
   }

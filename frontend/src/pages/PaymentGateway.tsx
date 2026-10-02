@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import BillCheckout from '@/components/BillCheckout';
+import { userFacingError } from '@/lib/errorCopy';
 
 const UPI_APPS = ['Google Pay', 'PhonePe', 'Paytm', 'BHIM', 'CRED'];
 
@@ -97,7 +98,7 @@ export default function PaymentGateway() {
       setPayResult(res);
       setStep('success');
     } catch (e) {
-      const msg = e.response?.data?.message || e.message || '';
+      const msg = userFacingError(e, { fallback: '' });
       const status = e.response?.status;
       if (status === 200 && msg.includes('already be completed')) {
         setStep('success');

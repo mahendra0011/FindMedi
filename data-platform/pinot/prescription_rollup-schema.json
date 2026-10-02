@@ -1,0 +1,21 @@
+{
+    "schemaName":  "prescription_rollup",
+    "dimensionFieldSpecs":  [
+                                { "name":  "molecule", "dataType":  "STRING" },
+                                { "name":  "district", "dataType":  "STRING" },
+                                { "name":  "ageGroup", "dataType":  "STRING" },
+                                { "name":  "pharmacyId", "dataType":  "STRING" }
+                            ],
+    "metricFieldSpecs":  [
+                            { "name":  "dispense_count", "dataType":  "INT" },
+                            { "name":  "shortage_flag", "dataType":  "INT" }
+                        ],
+    "dateTimeFieldSpecs":  [
+                                {
+                                    "name":  "timestamp_epoch_ms",
+                                    "dataType":  "LONG",
+                                    "format":  "1:MILLISECONDS:EPOCH",
+                                    "granularity":  "1:MILLISECONDS"
+                                }
+                            ]
+}

@@ -16,6 +16,8 @@
  */
 import { createRequire } from 'module';
 import bcrypt from 'bcryptjs';
+import { randomDigits } from '../utils/secureRandom.js';
+import logger from '../config/logger.js';
 
 const require = createRequire(import.meta.url);
 
@@ -33,7 +35,65 @@ function getNapi() {
   return _napi;
 }
 
-export const NATIVE_OTP_AVAILABLE = (() => !!getNapi())();
+/**
+ * RUST-B-01: startup visibility for the native-module decision.
+ *
+ * The fallback to bcryptjs is CORRECT and must not break startup — but it was
+ * completely silent, which is why this defect survived: a Linux deploy that
+ * never loaded the native module looked identical to a healthy one from the logs,
+ * and the only symptom was OTP latency under load (bcrypt ~80-100ms vs Rust
+ * SHA-256 ~0.01ms, per the module's own notes). A performance regression that
+ * also weakens the security posture (bcrypt for a 6-digit OTP is brute-forceable
+ * far more cheaply than a salted SHA-256 with a server-side pepper) should never
+ * be invisible.
+ *
+ * Rules:
+ *   - PRODUCTION and a missing module is an ERROR, not a warning. A deploy that
+ *     was supposed to ship the native path must fail loudly.
+ *   - Everywhere else it is a warning naming the platform and the reason.
+ */
+export function reportNativeModuleStatus({ available, error, env = process.env } = {}) {
+  const platform = `${process.platform}/${process.arch}`;
+  const isProd = env.NODE_ENV === 'production';
+  const context = {
+    available,
+    platform,
+    nativeArtifact: available ? 'loaded' : 'missing',
+    fallbackAlgo: 'bcryptjs',
+    fallbackReason: error ? String(error.message || error).slice(0, 200) : 'not_built_for_platform',
+    // The fallback is materially slower; an operator reading this needs to know
+    // the number, not just that "something changed".
+    otpHashCost: available ? 'rust-sha256 (~0.01ms)' : 'bcrypt cost=10 (~80-100ms)',
+  };
+
+  if (available) {
+    logger.info('Native Rust module loaded', context);
+    return context;
+  }
+
+  if (isProd) {
+    logger.error(
+      'RUST-B-01: native Rust module did NOT load in production - falling back to '
+      + 'bcryptjs. OTP hashing is ~1000x slower and weaker. This deployment is '
+      + 'missing its linux-gnu/linux-musl artifact; build it in CI and ship it in '
+      + 'the image.',
+      context
+    );
+  } else {
+    logger.warn(
+      'RUST-B-01: native Rust module not loaded - using bcryptjs fallback (development)',
+      context
+    );
+  }
+
+  return context;
+}
+
+export const NATIVE_OTP_AVAILABLE = (() => {
+  const ok = !!getNapi();
+  reportNativeModuleStatus({ available: ok, error: _loadError });
+  return ok;
+})();
 
 /**
  * Explicit shared contract for which backend produced / verifies an OTP hash.
@@ -190,12 +250,12 @@ export async function verifyOtpHash(otp, storedHash) {
 
 /**
  * Generate a 6-digit numeric OTP.
- * Uses Node.js crypto for cryptographic randomness.
+ * Uses Node.js crypto for cryptographic randomness (AUTH-009).
  *
  * @returns {string} 6-digit OTP string
  */
 export function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return randomDigits(6);
 }
 
 

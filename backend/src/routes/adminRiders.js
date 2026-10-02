@@ -4,17 +4,24 @@ import Vehicle from '../models/Vehicle.js';
 import User from '../models/User.js';
 import RideBooking from '../models/RideBooking.js';
 import Notification from '../models/Notification.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, adminOnly, superadminOnly } from '../middleware/auth.js';
+// ADM-B-01 / DLB-11: on-demand providers are a PLATFORM marketplace, not a tenant.
+// Their profiles carry Aadhaar, driving-licence and bank details, and the models
+// have no hospitalId to scope by - so dminOnly (which a hospital_admin holds)
+// gave every hospital KYC PII, plate numbers, bank details and ride analytics for
+// every other hospital. These are platform-level operations: superadmin only.
+import { platformAdminOnly } from '../middleware/authorize.js';
+import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
 
 // All routes here require admin access
-router.use(protect, adminOnly);
+router.use(protect, superadminOnly);
 
 // ─── GET /api/admin/riders/pending ──────────────────────────────────────────
 // Pending verification queue
-router.get('/pending', async (req, res) => {
+router.get('/pending', platformAdminOnly, async (req, res) => {
   try {
     const riders = await RiderProfile.find({ riderStatus: 'pending_approval' })
       .populate('userId', 'name email phone avatar address dateOfBirth gender createdAt')
@@ -25,17 +32,21 @@ router.get('/pending', async (req, res) => {
     res.json({ riders });
   } catch (err) {
     logger.error(`Get pending riders error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to fetch pending riders', error: err.message });
+    res.status(500).json({ message: 'Failed to fetch pending riders' });
   }
 });
 
 // ─── PUT /api/admin/riders/:id/approve ──────────────────────────────────────
 // Approve rider application
-router.put('/:id/approve', async (req, res) => {
+router.put('/:id/approve', platformAdminOnly, async (req, res) => {
   try {
     const rider = await RiderProfile.findById(req.params.id);
     if (!rider) return res.status(404).json({ message: 'Rider not found' });
 
+    // ADM-B-04: only a pending application can be approved (idempotent state machine).
+    if (!['pending_approval', 'rejected', 'suspended'].includes(rider.riderStatus)) {
+      return res.status(409).json({ message: `Rider is already ${rider.riderStatus}` });
+    }
     rider.riderStatus = 'active';
     rider.rejectionReason = '';
     await rider.save();
@@ -51,6 +62,14 @@ router.put('/:id/approve', async (req, res) => {
     // Update base User approvalStatus
     await User.findByIdAndUpdate(rider.userId, { approvalStatus: 'approved' });
 
+    // ADM-M-02: the approval trail - who approved whom, when.
+    await auditLog('approve_rider', req.user._id, {
+      targetUserId: String(rider.userId),
+      profileId: String(rider._id),
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
     // Send notification to rider
     await Notification.create({
       userId: String(rider.userId),
@@ -62,23 +81,36 @@ router.put('/:id/approve', async (req, res) => {
     res.json({ success: true, message: 'Rider approved successfully', rider });
   } catch (err) {
     logger.error(`Approve rider error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to approve rider', error: err.message });
+    res.status(500).json({ message: 'Failed to approve rider' });
   }
 });
 
 // ─── PUT /api/admin/riders/:id/reject ───────────────────────────────────────
 // Reject rider application
-router.put('/:id/reject', async (req, res) => {
+router.put('/:id/reject', platformAdminOnly, async (req, res) => {
   try {
     const { reason = 'Documents invalid or insufficient' } = req.body;
     const rider = await RiderProfile.findById(req.params.id);
     if (!rider) return res.status(404).json({ message: 'Rider not found' });
 
+    // ADM-B-04: reject is only valid from a pending application.
+    if (rider.riderStatus !== 'pending_approval') {
+      return res.status(409).json({ message: `Cannot reject a rider in state ${rider.riderStatus}` });
+    }
     rider.riderStatus = 'rejected';
     rider.rejectionReason = reason;
     await rider.save();
 
     await User.findByIdAndUpdate(rider.userId, { approvalStatus: 'rejected' });
+
+    // ADM-M-02: the rejection trail - who rejected whom, when, and why.
+    await auditLog('reject_rider', req.user._id, {
+      targetUserId: String(rider.userId),
+      profileId: String(rider._id),
+      reason,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
 
     await Notification.create({
       userId: String(rider.userId),
@@ -89,13 +121,13 @@ router.put('/:id/reject', async (req, res) => {
 
     res.json({ success: true, message: 'Rider rejected', rider });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to reject rider', error: err.message });
+    res.status(500).json({ message: 'Failed to reject rider' });
   }
 });
 
 // ─── PUT /api/admin/riders/:id/suspend ──────────────────────────────────────
 // Suspend/reactivate rider
-router.put('/:id/suspend', async (req, res) => {
+router.put('/:id/suspend', platformAdminOnly, async (req, res) => {
   try {
     const { suspend = true } = req.body;
     const rider = await RiderProfile.findById(req.params.id);
@@ -105,15 +137,23 @@ router.put('/:id/suspend', async (req, res) => {
     if (suspend) rider.isOnline = false;
     await rider.save();
 
+    // ADM-M-02: suspension is an admin decision - record direction, not just state.
+    await auditLog(suspend ? 'suspend_rider' : 'reactivate_rider', req.user._id, {
+      targetUserId: String(rider.userId),
+      profileId: String(rider._id),
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
     res.json({ success: true, message: `Rider ${suspend ? 'suspended' : 'reactivated'}`, rider });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to update rider status', error: err.message });
+    res.status(500).json({ message: 'Failed to update rider status' });
   }
 });
 
 // ─── GET /api/admin/riders/all ──────────────────────────────────────────────
 // List all riders
-router.get('/all', async (req, res) => {
+router.get('/all', platformAdminOnly, async (req, res) => {
   try {
     const query = {};
     if (req.query.status) query.riderStatus = req.query.status;
@@ -126,13 +166,13 @@ router.get('/all', async (req, res) => {
 
     res.json({ riders });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch riders', error: err.message });
+    res.status(500).json({ message: 'Failed to fetch riders' });
   }
 });
 
 // ─── GET /api/admin/riders/vehicles ─────────────────────────────────────────
 // List all registered vehicles
-router.get('/vehicles', async (req, res) => {
+router.get('/vehicles', platformAdminOnly, async (req, res) => {
   try {
     const query = {};
     if (req.query.type) query.type = req.query.type;
@@ -144,13 +184,13 @@ router.get('/vehicles', async (req, res) => {
 
     res.json({ vehicles });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch vehicles', error: err.message });
+    res.status(500).json({ message: 'Failed to fetch vehicles' });
   }
 });
 
 // ─── GET /api/admin/riders/rides ────────────────────────────────────────────
 // List all rides for oversight
-router.get('/rides', async (req, res) => {
+router.get('/rides', platformAdminOnly, async (req, res) => {
   try {
     const query = {};
     if (req.query.status) query.status = req.query.status;
@@ -175,13 +215,13 @@ router.get('/rides', async (req, res) => {
 
     res.json({ rides, total, page, totalPages: Math.ceil(total / limit) });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch rides', error: err.message });
+    res.status(500).json({ message: 'Failed to fetch rides' });
   }
 });
 
 // ─── GET /api/admin/riders/analytics ────────────────────────────────────────
 // Ride analytics
-router.get('/analytics', async (req, res) => {
+router.get('/analytics', platformAdminOnly, async (req, res) => {
   try {
     const [totalRides, completedRides, cancelledRides, activeRiders, totalVehicles] =
       await Promise.all([
@@ -215,7 +255,7 @@ router.get('/analytics', async (req, res) => {
       vehiclePopularity: vehicleCounts,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch analytics', error: err.message });
+    res.status(500).json({ message: 'Failed to fetch analytics' });
   }
 });
 

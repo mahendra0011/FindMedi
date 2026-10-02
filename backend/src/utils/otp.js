@@ -1,18 +1,11 @@
+import { randomDigits } from './secureRandom.js';
+
 export function generateOTP(length = 6) {
-  const characters = '0123456789';
-  let otp = '';
-  for (let i = 0; i < length; i++) {
-    otp += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return otp;
+  return randomDigits(length);
 }
 
 export function generateSecret() {
-  // Generate a base32 secret for TOTP
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let secret = '';
-  for (let i = 0; i < 20; i++) {
-    secret += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return secret;
+  // Delegate to the CSPRNG-backed 2FA service; this legacy helper stays as a
+  // thin alias so AUTH-019's weak base32 generator is gone from all paths.
+  return randomDigits(20).split('').map((d) => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'[Number(d) % 32]).join('');
 }

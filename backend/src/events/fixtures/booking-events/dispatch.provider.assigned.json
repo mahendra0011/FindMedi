@@ -1,0 +1,7 @@
+{
+  "eventType": "dispatch.provider.assigned",
+  "aggregateType": "RIDE",
+  "aggregateId": "652f00000000000000000001",
+  "providerId": "652f000000000000000000aa",
+  "via": "grpc"
+}

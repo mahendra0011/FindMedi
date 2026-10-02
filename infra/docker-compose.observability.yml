@@ -1,0 +1,68 @@
+# ==============================================================================
+# FindMedi — OBSERVABILITY STACK (INF-M-02)
+# ==============================================================================
+# Standalone: run alongside the dev/prod stack, not instead of it.
+#
+#   export METRICS_TOKEN='some-long-random-token'   # must match backend/.env
+#   docker compose -f docker-compose.observability.yml up -d
+#
+# Prometheus: http://localhost:9090
+# Grafana:    http://localhost:3001  (admin / $GRAFANA_PASSWORD)
+#
+# The backend's METRICS_TOKEN gate is fail-closed (backend/src/middleware/
+# metricsAuth.js): if this file and backend/.env disagree, Prometheus shows
+# `findmedi-api` down instead of silently scraping nothing — which is the
+# intended signal, so keep the token in one shared .env.
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: findmedi-prometheus
+    # The API runs on the host (npm start, PORT default 5001) — the gateway
+    # alias is what makes host.docker.internal resolve on Linux too.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      METRICS_TOKEN: ${METRICS_TOKEN:?set METRICS_TOKEN to match backend/.env}
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    mem_limit: 512m
+    cpus: 0.5
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: findmedi-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-findmedi-dev}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    mem_limit: 256m
+    cpus: 0.5
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  grafana_data:

@@ -18,6 +18,10 @@ export const KAFKA_TOPICS = {
   RETRY_5S: 'findmedi.retry.5s',
   RETRY_30S: 'findmedi.retry.30s',
   DLQ: 'findmedi.dlq',
+  // DP-M-04: user-deletion tombstones. The erasure chain scrubs Mongo and the
+  // search tier synchronously; this topic is how the ANALYTICS copies (lake
+  // manifests today, Pinot/lakehouse later) learn that a subject is gone.
+  USER_TOMBSTONES: 'findmedi.identity.user-deleted.v1',
 };
 
 export function isKafkaConfigured() {

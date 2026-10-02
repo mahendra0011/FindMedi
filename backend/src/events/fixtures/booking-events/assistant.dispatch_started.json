@@ -1,0 +1,10 @@
+{
+  "eventType": "assistant.dispatch_started",
+  "aggregateType": "AssistantBooking",
+  "aggregateId": "652f00000000000000000003",
+  "status": "searching",
+  "radiiKm": [
+    2,
+    4
+  ]
+}

@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
 import { getSubSlotsForHour, parseTime } from '@/lib/timeSlots';
 import IntakeFormStep from './IntakeFormStep';
+import { userFacingError } from '@/lib/errorCopy';
 
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const genders = ['Male', 'Female', 'Other'];
@@ -210,7 +211,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }) {
       onPatientCreated?.();
     } catch (e) {
       console.error(e);
-      toast.error(e?.response?.data?.message || 'Failed to book walk-in');
+      toast.error(userFacingError(e, { fallback: 'Failed to book walk-in' }));
     } finally {
       setCreating(false);
     }

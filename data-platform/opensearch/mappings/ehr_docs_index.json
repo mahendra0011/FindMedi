@@ -1,0 +1,33 @@
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "med_autocomplete": {
+          "type": "custom",
+          "tokenizer": "edge_ngram_tokenizer",
+          "filter": ["lowercase", "asciifolding"]
+        }
+      },
+      "tokenizer": {
+        "edge_ngram_tokenizer": {
+          "type": "edge_ngram",
+          "min_gram": 2,
+          "max_gram": 15,
+          "token_chars": ["letter", "digit"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "recordId": { "type": "keyword" },
+      "patientId": { "type": "keyword" },
+      "patientPseudonym": { "type": "keyword" },
+      "docType": { "type": "keyword" },
+      "text": { "type": "text", "analyzer": "standard" },
+      "allergies": { "type": "keyword" },
+      "createdAt": { "type": "date" }
+    }
+  }
+}

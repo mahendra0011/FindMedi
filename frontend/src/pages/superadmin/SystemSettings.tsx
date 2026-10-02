@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import TenantQuotas from './TenantQuotas';
 
 function SystemSettingsTab() {
   const [settings, setSettings] = useState(null);
@@ -79,6 +80,8 @@ function SystemSettingsTab() {
           )}
         </div>
       ))}
+      {/* ADM-M-06: per-tenant quota management lives beside the global settings it complements. */}
+      <TenantQuotas />
     </div>
   );
 }

@@ -5,6 +5,8 @@
  * - Logs errors for monitoring
  */
 /* eslint-disable @typescript-eslint/no-this-alias -- false positive in class constructor and error handler */
+import crypto from 'node:crypto';
+import logger from '../config/logger.js';
 
 // Custom AppError class for operational errors
 export class AppError extends Error {
@@ -25,6 +27,10 @@ export const notFound = (req, res, next) => {
 
 // Main error handler
 export const errorHandler = (err, req, res, next) => {
+  // AUTH-016: every error carries a request id so logs, audit rows and client
+  // reports correlate. Stack traces leave the process in development only.
+  const requestId = req.id || crypto.randomUUID();
+  req.id = requestId;
   // Default values
   let statusCode = err.statusCode || 500;
   let message = err.message || 'Internal server error';
@@ -70,19 +76,15 @@ export const errorHandler = (err, req, res, next) => {
     }
   }
 
-  // Log error (always log in development, log operational in production)
-  if (process.env.NODE_ENV !== 'production' || !err.isOperational) {
-    console.error(`[ERROR] ${statusCode} ${code}: ${err.message}`);
-    if (process.env.NODE_ENV !== 'production') {
-      console.error(err.stack);
-    }
-  }
+  // Log error via Pino (never silent): operational 5xx included, with id.
+  logger.error({ requestId, statusCode, code, message: err.message, stack: err.stack }, '[request-error]');
 
-  // Response
+  // Response — stack only in development (never staging/production).
   const response = {
     message,
     code,
-    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
+    requestId,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   };
 
   res.status(statusCode).json(response);

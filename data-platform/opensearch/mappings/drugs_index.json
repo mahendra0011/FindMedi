@@ -1,0 +1,36 @@
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "med_autocomplete": {
+          "type": "custom",
+          "tokenizer": "edge_ngram_tokenizer",
+          "filter": ["lowercase", "asciifolding"]
+        }
+      },
+      "tokenizer": {
+        "edge_ngram_tokenizer": {
+          "type": "edge_ngram",
+          "min_gram": 2,
+          "max_gram": 15,
+          "token_chars": ["letter", "digit"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "medicineId": { "type": "keyword" },
+      "brand": { "type": "text", "analyzer": "med_autocomplete", "search_analyzer": "standard" },
+      "salt": { "type": "text", "analyzer": "med_autocomplete", "search_analyzer": "standard" },
+      "saltKey": { "type": "keyword" },
+      "strength": { "type": "keyword" },
+      "therapeuticClass": { "type": "keyword" },
+      "form": { "type": "keyword" },
+      "sellingPrice": { "type": "float" },
+      "inStock": { "type": "boolean" },
+      "facilityId": { "type": "keyword" }
+    }
+  }
+}

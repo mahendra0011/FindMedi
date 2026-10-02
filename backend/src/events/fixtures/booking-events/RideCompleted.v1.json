@@ -1,0 +1,8 @@
+{
+  "eventType": "RideCompleted.v1",
+  "aggregateType": "RideBooking",
+  "aggregateId": "652f00000000000000000001",
+  "rideId": "652f00000000000000000001",
+  "fare": 184.5,
+  "completedAt": "2026-10-02T09:30:00.000Z"
+}

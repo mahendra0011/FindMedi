@@ -1,5 +1,6 @@
 import express from 'express';
-import jwt from 'jsonwebtoken';
+import { signToken as signJwt, verifyToken as verifyJwt } from '../utils/jwtKeys.js';
+import crypto from 'node:crypto';
 import multer from 'multer';
 import fs from 'fs/promises';
 import path from 'path';
@@ -16,6 +17,25 @@ import RiderProfile from '../models/RiderProfile.js';
 import AssistantProfile from '../models/AssistantProfile.js';
 import LawyerProfile from '../models/LawyerProfile.js';
 import { protect } from '../middleware/auth.js';
+import { issueStepUpFor, clearStepUps } from '../middleware/stepUpAuth.js';
+import { sendServerError } from '../utils/safeError.js';
+
+/**
+ * The actions that require a fresh proof of possession.
+ *
+ * Registered rather than free-text so `/auth/step-up` cannot be used to mint a
+ * grant for an arbitrary string. Keep in step with the `requireStepUp('<scope>')`
+ * calls at the guarded routes — a scope with no route behind it is dead weight,
+ * and a route whose scope is not listed here is unreachable.
+ */
+const SENSITIVE_SCOPES = new Set([
+  'payouts:add',
+  'refunds:issue',
+  'export:full',
+  'records:amend',
+  'users:role-change',
+]);
+export { SENSITIVE_SCOPES };
 import { createAndSendOTP, verifyOTP, resendOTP } from '../services/otpService.js';
 import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
 import {
@@ -45,13 +65,25 @@ import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 import { notifyUsers } from '../services/socketService.js';
 import { validateFileContent } from '../middleware/upload.js';
-import { authLimiter } from '../middleware/rateLimit.js';
+import { authLimiter, totpLimiter } from '../middleware/rateLimit.js';
+import { botProtection } from '../middleware/botProtection.js';
 import { referralService } from '../services/referralService.js';
+import { recordLoginEvent, recordSignupEvent } from '../services/authAnomalyService.js';
+import { issueTwoFactorTicket, consumeTwoFactorTicket } from '../utils/twoFactorTicket.js';
+import { verifyToken, verifyBackupCode } from '../services/twoFactorService.js';
 
 const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
+// Google OAuth audiences accepted for id_token verification (AUTH-B-01: the
+// route previously verified against a single client id, so a token minted for
+// any other client of the project was rejected / a different client was accepted).
+const GOOGLE_AUDIENCES = [
+  process.env.GOOGLE_CLIENT_ID,
+  '752004325733-5u50qb3l1c71mceopu44eqlv9rhc5d89.apps.googleusercontent.com',
+  '752004325733-hj2litb6frb03tsbsc05pjj5k6lkijqn.apps.googleusercontent.com',
+].filter(Boolean);
 const googleClient = new OAuth2Client(googleClientId);
 const avatarUpload = multer({
   storage: multer.memoryStorage(),
@@ -115,29 +147,42 @@ const saveAvatarLocally = async (file, req) => {
   };
 };
 
-const signAccessToken = (user) => jwt.sign(
-  { id: user._id, role: user.role, name: user.name, email: user.email },
-  process.env.JWT_SECRET,
+const signAccessToken = (user) => signJwt(
+  { id: user._id, role: user.role, name: user.name, email: user.email, tv: user.tokenVersion || 0, jti: crypto.randomBytes(8).toString('hex') },
   { expiresIn: '15m' }
 );
 
-const signRefreshToken = (user) => jwt.sign(
-  { id: user._id },
-  process.env.JWT_SECRET,
-  { expiresIn: '7d' }
-);
+const signRefreshToken = (user, familyId) => {
+  const jti = crypto.randomBytes(12).toString('hex');
+  const token = signJwt(
+    { id: user._id, tv: user.tokenVersion || 0, jti, family: familyId || jti },
+    { expiresIn: '7d' }
+  );
+  return { token, jti, familyId: familyId || jti };
+};
 
-const sign = (user) => {
+const sign = (user, req) => {
   const accessToken = signAccessToken(user);
-  const refreshToken = signRefreshToken(user);
+  const { token: refreshToken, jti, familyId } = signRefreshToken(user);
   const tokenKey = RefreshToken.getTokenKey(refreshToken);
   RefreshToken.create({
     userId: user._id,
     tokenKey,
     tokenHash: refreshToken, // will be hashed by pre-save hook
+    jti,
+    familyId,
+    userAgent: req?.get?.('user-agent') || '',
+    ip: req?.ip || '',
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   }).catch(err => logger.error('Failed to save refresh token:', err.message));
   return { accessToken, refreshToken };
+};
+
+// AUTH-012: password change/reset/logout-all funnels through here — every
+// other session dies with the version bump + document purge.
+const revokeAllSessions = async (userId) => {
+  await User.updateOne({ _id: userId }, { $inc: { tokenVersion: 1 } });
+  await RefreshToken.deleteMany({ userId });
 };
 
 const setAuthCookies = (res, accessToken, refreshToken) => {
@@ -304,7 +349,9 @@ const sendVerificationOtp = (user) => createAndSendOTP({
 });
 
 // POST /api/auth/register
-router.post('/register', authLimiter, validate(registerSchema), async (req, res) => {
+// AUTH-M-05: botProtection runs BEFORE validate — validate() strips unknown
+// body keys, which would eat the cf-turnstile-response field.
+router.post('/register', authLimiter, botProtection(), validate(registerSchema), async (req, res) => {
   try {
     const {
       name,
@@ -323,7 +370,11 @@ router.post('/register', authLimiter, validate(registerSchema), async (req, res)
       referralCode,  // NEW: optional referral code from existing user
     } = req.body;
 
-    const normalizedRole = ['hospital_admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist', 'pharmacy_owner', 'pharmacist', 'nurse', 'radiologist', 'dietitian', 'physiotherapist', 'counselor', 'counsellor', 'psychiatrist', 'technician', 'rider', 'assistant', 'lawyer', 'ambulance', 'delivery_boy', 'superadmin'].includes(role) ? role : 'patient';
+    // AUTH-B-02: public signup roles only — tenant/platform roles (superadmin,
+    // hospital_admin, clinic_doctor, ...) are invite-only and are never accepted
+    // from the request body here.
+    const SELF_SIGNUP_ROLES = ['doctor', 'patient', 'technician', 'rider', 'assistant', 'lawyer', 'counselor', 'counsellor', 'psychiatrist', 'ambulance', 'delivery_boy'];
+    const normalizedRole = SELF_SIGNUP_ROLES.includes(role) ? role : 'patient';
     const lowerEmail = email.toLowerCase();
 
     if (normalizedRole === 'doctor' && (!specialization || !licenseNumber || !(qualification || qualifications))) {
@@ -425,6 +476,10 @@ router.post('/register', authLimiter, validate(registerSchema), async (req, res)
         // don't fail signup just because referral code was invalid
       }
     }
+
+    // AUTH-M-05: account-farming signal (burst counter -> audit when a window
+    // fills up). Detection only, fire-and-forget — never slows or fails signup.
+    recordSignupEvent({ ip: req.ip, userId: user._id, email: lowerEmail }).catch(() => {});
 
     if (normalizedRole === 'assistant') {
       await AssistantProfile.create({
@@ -658,14 +713,16 @@ router.post('/register', authLimiter, validate(registerSchema), async (req, res)
 });
 
 // POST /api/auth/verify-otp
-router.post('/verify-otp', authLimiter, validate(verifyOtpSchema), async (req, res) => {
+router.post('/verify-otp', authLimiter, totpLimiter, validate(verifyOtpSchema), async (req, res) => {
   try {
     const { email, otp } = req.body;
 
     const lowerEmail = email.toLowerCase();
     const user = await User.findOne({ email: lowerEmail });
+    // AUTH-B-15: a 404 here is an account-existence oracle for an unauthenticated
+    // caller. Unknown addresses get the SAME response as a wrong/expired code.
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(400).json({ message: 'Invalid or expired code' });
     }
 
     if (user.status === 'blocked') {
@@ -724,7 +781,7 @@ router.post('/verify-otp', authLimiter, validate(verifyOtpSchema), async (req, r
 });
 
 // POST /api/auth/resend-otp
-router.post('/resend-otp', authLimiter, validate(resendOtpSchema), async (req, res) => {
+router.post('/resend-otp', authLimiter, totpLimiter, botProtection(), validate(resendOtpSchema), async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -734,8 +791,10 @@ router.post('/resend-otp', authLimiter, validate(resendOtpSchema), async (req, r
 
     const lowerEmail = email.toLowerCase();
     const user = await User.findOne({ email: lowerEmail });
+    // AUTH-B-15: a 404 here is an account-existence oracle for an unauthenticated
+    // caller. Unknown addresses get the SAME response as a wrong/expired code.
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(400).json({ message: 'Invalid or expired code' });
     }
 
     if (user.status === 'blocked') {
@@ -782,11 +841,91 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
     }
 
     const lowerEmail = email.toLowerCase();
+
+    // AUTH-M-03: per-account brute-force protection with exponential backoff.
+    //
+    // The old code was a flat 10-failures -> 15-minute hard lock with no delay
+    // in between: 960 free guesses a day against one account, and - worse on a
+    // healthcare platform - anyone who knew a patient's EMAIL could lock that
+    // patient out of their own account indefinitely without ever guessing a
+    // password. Backoff now applies BEFORE the hard lock, and a per-IP budget
+    // stops one host spraying many accounts.
+    //
+    // Still fail-open without Redis, deliberately: denying every login when the
+    // cache is down would turn a dependency outage into an authentication
+    // outage. See src/config/redis.js for the full reasoning.
+    try {
+      const { checkLoginLockout } = await import('../config/redis.js');
+      const lock = await checkLoginLockout(lowerEmail, req.ip);
+      if (lock.locked) {
+        return res.status(429)
+          .set('Retry-After', String(lock.retryAfterSeconds || 60))
+          .json({
+            message: lock.scope === 'ip'
+              ? 'Too many failed sign-in attempts from this network. Try again shortly.'
+              : 'Account temporarily locked after repeated failures. Try again shortly.',
+            retryAfterSeconds: lock.retryAfterSeconds,
+          });
+      }
+    } catch {}
+
     const user = await User.findOne({ email: lowerEmail }).select('+password');
 
     if (!user || !(await user.comparePassword(password))) {
+      // Incremented for unknown emails too. Counting only real accounts would
+      // let an attacker enumerate which addresses are registered by watching the
+      // backoff grow.
+      let retryAfterSeconds = 0;
+      let justLocked = false;
+      try {
+        const { registerLoginFailure } = await import('../config/redis.js');
+        const result = await registerLoginFailure(lowerEmail, req.ip);
+        retryAfterSeconds = result.retryAfterSeconds;
+        justLocked = result.locked;
+      } catch {}
+
+      // Tell the owner their account is being attacked.
+      //
+      // Gated on `user` existing, and that gate is a security control, not
+      // politeness. Emailing on every failed attempt regardless of whether the
+      // address is registered would turn POST /login into an open mail relay:
+      // anyone could mail-bomb an arbitrary third party just by typing their
+      // address. The email only goes to an account that actually exists, and
+      // only on the transition INTO the locked state - a caller retrying inside
+      // an active lock never reaches here, and even if they did, the address
+      // would need to already be theirs.
+      if (justLocked && user) {
+        try {
+          const { sendEmail } = await import('../services/notificationService.js');
+          void sendEmail({
+            to: user.email,
+            subject: 'Your account was temporarily locked',
+            text: [
+              'Someone failed to sign in to your account several times, so we locked it briefly to protect it.',
+              '',
+              'If this was not you, change your password now. If you were locked out, waiting about 15 minutes also clears it.',
+            ].join('\n'),
+          }).catch(() => {});
+        } catch {}
+      }
+
+      if (retryAfterSeconds > 0) {
+        return res.status(429)
+          .set('Retry-After', String(retryAfterSeconds))
+          .json({
+            // Wording identical to the 401 below, on purpose: if a wrong
+            // password and a slow-down response read differently, the pair
+            // becomes an account-existence oracle.
+            message: 'Invalid credentials',
+            retryAfterSeconds,
+          });
+      }
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+    try {
+      const { resetLoginFailures } = await import('../config/redis.js');
+      await resetLoginFailures(lowerEmail);
+    } catch {}
 
     if (role && user.role !== role) {
       return res.status(403).json({ message: `This account is not a ${role}` });
@@ -798,6 +937,15 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
 
     if (user.status === 'inactive') {
       return res.status(403).json({ message: 'Your account is pending activation.', inactive: true });
+    }
+
+    // AUTH-010: temp-password accounts must set a real password first.
+    if (user.mustResetPassword) {
+      return res.status(403).json({
+        message: 'You must set a new password before continuing.',
+        mustResetPassword: true,
+        email: user.email,
+      });
     }
 
     if (!user.isVerified) {
@@ -896,6 +1044,21 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
       }
     }
 
+    // AUTH-B-03 / DL-03: 2FA must actually gate the session. When the account
+    // has 2FA enrolled we hand out NO token and NO auth cookie — only a
+    // short-lived, single-use ticket that can be exchanged for a session by
+    // POST /api/auth/2fa/complete with a valid TOTP / backup code.
+    if (user.twoFactorEnabled) {
+      const { ticket, expiresIn } = issueTwoFactorTicket(user);
+      return res.status(200).json({
+        requiresTwoFactor: true,
+        twoFactorTicket: ticket,
+        expiresIn,
+        email: user.email,
+        message: 'Enter the 6-digit code from your authenticator app (or one of your backup codes) to finish signing in.',
+      });
+    }
+
     try {
       await auditLog('user_login', user._id, { ip: req.ip, userAgent: req.get('user-agent'), email: user.email });
     } catch (err) {
@@ -903,6 +1066,9 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
     }
 
     const { accessToken, refreshToken } = sign(user);
+    // AUTH-M-08: record + check this login against the account's history. Does
+    // not block the login and cannot fail it - see recordLoginEvent.
+    await recordLoginEvent(user._id, { ip: req.ip, userAgent: req.get('user-agent'), email: user.email });
     setAuthCookies(res, accessToken, refreshToken);
     return res.json({
       token: accessToken,
@@ -910,6 +1076,116 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
       // store/send nahi hoti (localhost:5173 → localhost:5001). Client is
       // refresh token ko memory me rakh kar /auth/refresh body me bhejega,
       // taaki cookie fail hone par bhi session survive kare (koi logout nahi).
+      refreshToken,
+      user: await userResponse(user),
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/auth/2fa/complete
+// Second leg of the login flow for 2FA-enrolled accounts (AUTH-B-03).
+// Exchanges the short-lived ticket issued by /login for a real session, and
+// only after a valid TOTP code / backup code. The ticket is single-use.
+// -- Step-up authentication (AUTHZ-M-03) ------------------------------------
+// 2FA at login proves who you are ONCE. This proves the same person is still
+// there when they do something that costs money or moves records out in bulk.
+router.post('/step-up', protect, totpLimiter, async (req, res) => {
+  try {
+    const { code, scope } = req.body || {};
+    if (!scope || typeof scope !== 'string' || scope.length > 64) {
+      return res.status(400).json({ message: 'scope is required' });
+    }
+    // A client may only request a REGISTERED sensitive scope. Without this the
+    // endpoint becomes an oracle for which scopes exist, and lets a caller mint
+    // grants for arbitrary strings.
+    if (!SENSITIVE_SCOPES.has(scope)) {
+      return res.status(400).json({ message: 'Unknown step-up scope' });
+    }
+
+    const out = await issueStepUpFor(req.user._id, code, scope);
+    if (!out.ok) {
+      const status = out.reason === 'not-enabled' ? 409 : 401;
+      return res.status(status).json({
+        message: out.reason === 'not-enabled'
+          ? 'Enable two-factor authentication to use this feature'
+          : 'Incorrect verification code',
+        reason: out.reason,
+      });
+    }
+
+    res.json({ token: out.token, scope, expiresIn: 300 });
+  } catch (err) {
+    logger.error(`Step-up error: ${err.message}`);
+    sendServerError(res, err, 'Could not verify this action');
+  }
+});
+
+router.post('/2fa/complete', authLimiter, totpLimiter, async (req, res) => {
+  try {
+    const { twoFactorTicket, token, backupCode } = req.body || {};
+
+    if (!twoFactorTicket || (!token && !backupCode)) {
+      return res.status(400).json({ message: 'twoFactorTicket and (token or backupCode) are required' });
+    }
+
+    const ticketCheck = await consumeTwoFactorTicket(twoFactorTicket);
+    if (!ticketCheck.ok) {
+      const message = ticketCheck.reason === 'used'
+        ? 'This login attempt was already used. Please sign in again.'
+        : 'Your 2FA session expired. Please sign in again.';
+      return res.status(401).json({ message });
+    }
+
+    const user = await User.findById(ticketCheck.userId).select('+password');
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid 2FA session. Please sign in again.' });
+    }
+    // A password change / logout-all between the two legs invalidates the ticket.
+    if ((user.tokenVersion || 0) !== (ticketCheck.tokenVersion ?? 0)) {
+      return res.status(401).json({ message: 'Session revoked. Please sign in again.' });
+    }
+    if (user.status === 'blocked') {
+      return res.status(403).json({ message: 'Your account has been blocked. Contact administrator.', blocked: true });
+    }
+    if (!user.twoFactorEnabled) {
+      return res.status(400).json({ message: '2FA is not enabled for this account' });
+    }
+
+    let method = null;
+    if (token && verifyToken(token, user.twoFactorSecret)) {
+      method = 'totp';
+    } else if (backupCode) {
+      const { valid, codeIndex } = verifyBackupCode(backupCode, user.twoFactorBackupCodes);
+      if (valid) {
+        // Single-use backup code.
+        user.twoFactorBackupCodes.splice(codeIndex, 1);
+        method = 'backup';
+      }
+    }
+
+    if (!method) {
+      return res.status(401).json({ message: 'Invalid 2FA code', requiresTwoFactor: true });
+    }
+
+    await user.save();
+
+    try {
+      await auditLog('user_login_2fa', user._id, { ip: req.ip, userAgent: req.get('user-agent'), method });
+    } catch (err) { /* audit must not block login */ }
+
+    const { accessToken, refreshToken } = sign(user, req);
+    // AUTH-M-08: 2FA completion is the SECOND leg of a login and can land on a
+    // different device/IP than the password step (an OTP arriving on a phone).
+    // Detecting only at the password step would flag exactly the legitimate
+    // two-device flow as the attack it is designed to catch.
+    await recordLoginEvent(user._id, { ip: req.ip, userAgent: req.get('user-agent') });
+    setAuthCookies(res, accessToken, refreshToken);
+    return res.json({
+      success: true,
+      method,
+      token: accessToken,
       refreshToken,
       user: await userResponse(user),
     });
@@ -934,11 +1210,7 @@ router.post('/google', authLimiter, validate(googleAuthSchema), async (req, res)
       try {
         const ticket = await googleClient.verifyIdToken({
           idToken,
-          audience: [
-            process.env.GOOGLE_CLIENT_ID,
-            '752004325733-5u50qb3l1c71mceopu44eqlv9rhc5d89.apps.googleusercontent.com',
-            '752004325733-hj2litb6frb03tsbsc05pjj5k6lkijqn.apps.googleusercontent.com',
-          ].filter(Boolean),
+          audience: GOOGLE_AUDIENCES,
         });
         const payload = ticket.getPayload();
         googleUser = {
@@ -1028,7 +1300,8 @@ router.post('/google', authLimiter, validate(googleAuthSchema), async (req, res)
         name: googleUser.name,
         picture: googleUser.picture,
         sub: googleUser.sub,
-        role: role || 'patient',
+        // AUTH-B-02: never echo a self-selected role back to the client.
+        role: 'patient',
       },
     });
   } catch (err) {
@@ -1038,57 +1311,100 @@ router.post('/google', authLimiter, validate(googleAuthSchema), async (req, res)
 });
 
 // POST /api/auth/google-register — Step 2 of Google Signup: Complete Profile & Register
-router.post('/google-register', authLimiter, validate(googleRegisterSchema), async (req, res) => {
+//
+// AUTH-B-01: this route used to mint a FULL session (access + refresh token, auth
+// cookies) for ANY existing account from a bare email in the body — a complete
+// account takeover with zero proof of Google ownership (see DL-01 / DLB-01). A
+// session is now only ever issued after a VERIFIED Google id_token, and the
+// account identity is taken from the token payload, never from the request body.
+//
+// AUTH-B-02: self-service signup can only ever create a `patient`; privileged
+// roles (hospital_admin/clinic_doctor/...) come from an admin invite flow.
+router.post('/google-register', authLimiter, botProtection(), validate(googleRegisterSchema), async (req, res) => {
   try {
     const {
       name,
-      email,
       phone = '',
       gender = '',
       dateOfBirth,
-      role = 'patient',
       avatar = '',
+      googleIdToken,
     } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required' });
+    if (!googleIdToken) {
+      return res.status(401).json({
+        message: 'Google identity proof is required: send the id_token you received from Google Sign-In.',
+      });
     }
 
-    const lowerEmail = email.toLowerCase();
+    let googleProfile;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: googleIdToken,
+        audience: GOOGLE_AUDIENCES,
+      });
+      const payload = ticket.getPayload();
+      if (!payload?.email || payload.email_verified === false) {
+        return res.status(401).json({ message: 'Google account email could not be verified' });
+      }
+      googleProfile = {
+        email: String(payload.email).toLowerCase(),
+        name: payload.name,
+        picture: payload.picture,
+        sub: payload.sub,
+      };
+    } catch (verifyErr) {
+      logger.warn(`google-register id_token verification failed: ${verifyErr.message}`);
+      return res.status(401).json({ message: 'Google token verification failed' });
+    }
+
+    // Identity comes from the verified token; the body email is ignored entirely.
+    const lowerEmail = googleProfile.email;
+    // let, NOT const: the new-account branch reassigns it (eslint prefer-const
+    // would break that branch with an Assignment-to-constant TypeError -> 500).
     let user = await User.findOne({ email: lowerEmail });
 
     if (user) {
+      if (user.status === 'blocked') {
+        return res.status(403).json({ message: 'Your account has been blocked. Contact administrator.', blocked: true });
+      }
       if (phone && !user.phone) user.phone = phone;
       if (gender && !user.gender) user.gender = gender;
       if (dateOfBirth && !user.dateOfBirth) user.dateOfBirth = dateOfBirth;
       if (avatar && !user.avatar) user.avatar = avatar;
+      if (!user.name && name) user.name = name;
       user.isVerified = true;
       await user.save();
     } else {
-      user = await User.create({
-        name: name || lowerEmail.split('@')[0],
+      const created = await User.create({
+        name: name || googleProfile.name || lowerEmail.split('@')[0],
         email: lowerEmail,
-        role: role === 'patient' ? 'patient' : role,
+        // AUTH-B-02: patient only.
+        role: 'patient',
         phone,
         gender,
         dateOfBirth: dateOfBirth || undefined,
-        avatar: avatar || '',
+        avatar: avatar || googleProfile.picture || '',
         isVerified: true,
         status: 'active',
-        approvalStatus: role === 'patient' ? 'not_required' : 'pending',
+        approvalStatus: 'not_required',
+        googleSub: googleProfile.sub,
+      });
+      user = created;
+
+      await Patient.create({
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        gender: user.gender || 'Other',
+        age: calculateAge(dateOfBirth),
+        userId: user._id,
+        status: 'Active',
       });
 
-      if (user.role === 'patient') {
-        await Patient.create({
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          gender: user.gender || 'Other',
-          age: calculateAge(dateOfBirth),
-          userId: user._id,
-          status: 'Active',
-        });
-      }
+      // AUTH-M-05: count NEW accounts only — an existing user signing in with
+      // Google is not farming. Fire-and-forget, detection only.
+      recordSignupEvent({ ip: req.ip, userId: user._id, email: lowerEmail }).catch(() => {});
     }
 
     try {
@@ -1111,7 +1427,7 @@ router.post('/google-register', authLimiter, validate(googleRegisterSchema), asy
 });
 
 // POST /api/auth/forgot-password
-router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), async (req, res) => {
+router.post('/forgot-password', authLimiter, botProtection(), validate(forgotPasswordSchema), async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -1150,7 +1466,8 @@ router.post('/reset-password', authLimiter, validate(resetPasswordSchema), async
     const { email, otp, password } = req.body;
 
     const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    // AUTH-B-15: same generic answer for unknown accounts (no enumeration oracle).
+    if (!user) return res.status(400).json({ message: 'Invalid or expired reset code' });
 
     if (user.status === 'blocked') {
       return res.status(403).json({ message: 'Your account has been blocked. Contact administrator.' });
@@ -1174,7 +1491,10 @@ router.post('/reset-password', authLimiter, validate(resetPasswordSchema), async
     }
 
     user.password = password;
+    user.mustResetPassword = false;
     await user.save();
+    // AUTH-012: a reset compromises nothing that survives — revoke all sessions.
+    await revokeAllSessions(user._id);
     await sendPasswordChangedEmail(user);
 
     try {
@@ -1189,6 +1509,18 @@ router.post('/reset-password', authLimiter, validate(resetPasswordSchema), async
   }
 });
 
+// AUTH-025: setup tokens are single-use — consumed jtis are burned in Redis.
+const consumeSetupToken = async (decoded) => {
+  if (!decoded?.jti) return true; // legacy pre-jti token (expires within 48h anyway)
+  try {
+    const { redisClient, isRedisReady } = await import('../config/redis.js');
+    if (!isRedisReady() || !redisClient.isOpen) return true; // fail-open without Redis
+    return (await redisClient.set(`setup:used:${decoded.jti}`, '1', { NX: true, EX: 48 * 3600 })) === 'OK';
+  } catch {
+    return true;
+  }
+};
+
 // POST /api/auth/doctor-setup
 router.post('/doctor-setup', authLimiter, validate(doctorSetupSchema), async (req, res) => {
   try {
@@ -1202,9 +1534,12 @@ router.post('/doctor-setup', authLimiter, validate(doctorSetupSchema), async (re
       return res.status(400).json({ message: pwResult.error.issues[0].message });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifyJwt(token);
     if (decoded.type !== 'doctor_setup') {
       return res.status(400).json({ message: 'Invalid setup token' });
+    }
+    if (!(await consumeSetupToken(decoded))) {
+      return res.status(400).json({ message: 'Setup link already used. Ask your administrator for a new invite.' });
     }
 
     const user = await User.findOne({ email: decoded.email });
@@ -1227,98 +1562,53 @@ router.post('/doctor-setup', authLimiter, validate(doctorSetupSchema), async (re
 // POST /api/auth/ambulance-setup (Doc 02 §3.2 — copy of doctor-setup)
 router.post('/ambulance-setup', authLimiter, validate(doctorSetupSchema), async (req, res) => {
   try {
-    const { token, password } = req.body;
-    if (!token || !password) {
-      return res.status(400).json({ message: 'Token and password are required' });
+    // FE-B-06: the invite now carries an OPAQUE SINGLE-USE CODE, not a JWT.
+    //
+    // The previous flow verified a 48-hour `ambulance_setup` JWT and then tried to
+    // mark it consumed via `consumeSetupToken(decoded)` — but a JWT cannot express
+    // "already used", so the one-time property depended entirely on that side
+    // table, and the credential itself stayed replayable for the full 48 hours
+    // while sitting in a URL (browser history, proxy logs, Referer).
+    //
+    // The replacement code has 128 bits of entropy, expires in 15 minutes, and is
+    // consumed by an atomic `findOneAndUpdate({ code, usedAt: null, expiresAt > now })`
+    // — so two concurrent redemptions cannot both succeed.
+    const code = req.body.code || req.body.token; // `token` accepted for older emails in flight
+    const { password } = req.body;
+    if (!code || !password) {
+      return res.status(400).json({ message: 'Setup code and password are required' });
     }
     const pwResult = passwordSchema.safeParse(password);
     if (!pwResult.success) {
       return res.status(400).json({ message: pwResult.error.issues[0].message });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.type !== 'ambulance_setup') {
-      return res.status(400).json({ message: 'Invalid setup token' });
-    }
-    const user = await User.findOne({ email: decoded.email });
-    if (!user || user.role !== 'ambulance') {
-      return res.status(404).json({ message: 'Ambulance user not found' });
-    }
-    user.password = password;
-    user.isVerified = true;
-    await user.save();
+
+    const { consumeAmbulanceSetupCode } = await import('../services/ambulanceLoginService.js');
+    const activated = await consumeAmbulanceSetupCode(code, password, {
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
     const { default: Ambulance } = await import('../models/Ambulance.js');
-    await Ambulance.updateOne({ userId: user._id }, { loginStatus: 'active' });
+    const { default: AmbulanceSetupCode } = await import('../models/AmbulanceSetupCode.js');
+    const consumed = await AmbulanceSetupCode.findOne({ userId: activated.userId }).sort({ createdAt: -1 });
+    if (consumed?.ambulanceId) {
+      await Ambulance.updateOne(
+        { _id: consumed.ambulanceId },
+        { loginStatus: 'active', userId: activated.userId }
+      );
+    }
+
     res.json({ message: 'Password set successfully. You can now login.' });
   } catch (err) {
-    if (err.name === 'TokenExpiredError') {
-      return res.status(400).json({ message: 'Setup link has expired. Please contact your hospital admin.' });
-    }
-    res.status(400).json({ message: 'Invalid or expired setup token' });
-  }
-});
-
-// POST /api/auth/google (duplicate - last defined route is the active one)
-router.post('/google', authLimiter, validate(googleAuthSchema), async (req, res) => {
-  try {
-    const { idToken } = req.body;
-    if (!idToken) {
-      return res.status(400).json({ message: 'Google ID token is required' });
-    }
-
-    const ticket = await googleClient.verifyIdToken({
-      idToken,
-      audience: googleClientId,
+    // One uniform message for invalid / used / expired. Distinguishing them would
+    // only help someone probing, and the code has 128 bits of entropy.
+    logger.warn(`Ambulance setup rejected: ${err.message}`);
+    res.status(err.statusCode || 400).json({
+      message: err.statusCode
+        ? err.message
+        : 'This setup link is invalid, already used, or has expired.',
     });
-
-    const payload = ticket.getPayload();
-    const email = payload.email.toLowerCase();
-    const googleName = payload.name || '';
-    const googleAvatar = payload.picture || '';
-
-    let user = await User.findOne({ email });
-
-    if (!user) {
-      const tempPassword = Math.random().toString(36).slice(-10);
-      user = await User.create({
-        name: googleName,
-        email,
-        password: tempPassword,
-        role: 'patient',
-        isVerified: true,
-        status: 'active',
-        approvalStatus: 'not_required',
-        settings: { defaultDashboard: 'overview' },
-      });
-
-      await Patient.create({
-        name: googleName,
-        age: 0,
-        gender: 'Other',
-        phone: '',
-        email,
-        userId: user._id,
-        status: 'Active',
-      });
-    }
-
-    if (user.status === 'blocked') {
-      return res.status(403).json({ message: 'Your account has been blocked. Contact administrator.' });
-    }
-
-    const { accessToken, refreshToken } = sign(user);
-    setAuthCookies(res, accessToken, refreshToken);
-    res.json({
-      token: accessToken,
-      refreshToken,
-      user: await userResponse(user),
-      googleUser: {
-        name: googleName,
-        email,
-        avatar: googleAvatar,
-      },
-    });
-  } catch (err) {
-    res.status(401).json({ message: 'Invalid Google token' });
   }
 });
 
@@ -1329,6 +1619,7 @@ router.get('/me', protect, async (req, res) => {
 });
 
 // PUT /api/auth/change-password
+// authz: self
 router.put('/change-password', protect, validate(changePasswordSchema), async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -1339,7 +1630,10 @@ router.put('/change-password', protect, validate(changePasswordSchema), async (r
     }
 
     user.password = newPassword;
+    user.mustResetPassword = false;
     await user.save();
+    // AUTH-012: changing the password kills every other session.
+    await revokeAllSessions(user._id);
     await sendPasswordChangedEmail(user);
 
     try {
@@ -1355,6 +1649,7 @@ router.put('/change-password', protect, validate(changePasswordSchema), async (r
 });
 
 // POST /api/auth/avatar
+// authz: self
 router.post('/avatar', protect, handleAvatarUpload, async (req, res) => {
   try {
     if (!req.file) {
@@ -1514,6 +1809,121 @@ router.post('/logout', authLimiter, async (req, res) => {
   }
 });
 
+// POST /api/auth/logout-all — MISS-001: "sign out of all devices".
+router.post('/logout-all', protect, async (req, res) => {
+  try {
+    await revokeAllSessions(req.user._id);
+    clearAuthCookies(res);
+    try {
+      await auditLog('logout_all', req.user._id, { ip: req.ip, userAgent: req.get('user-agent') });
+    } catch (err) {
+      logger.error('Audit error:', err);
+    }
+    res.json({ message: 'Signed out of all devices' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/auth/sessions — MISS-001: list active sessions (device/IP/last use).
+//
+// `current` marks the caller's own device, by matching the jti inside the
+// refresh token they presented. Without it a user cannot tell which row is the
+// tab they are looking at, and "sign out this device" is unusable without it.
+router.get('/sessions', protect, async (req, res) => {
+  try {
+    const sessions = await RefreshToken.find({ userId: req.user._id })
+      .select('jti familyId userAgent ip createdAt expiresAt replacedBy')
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
+
+    // The jti of the session making this request, if we can identify it.
+    const presented = req.cookies?.refreshToken || req.query?.refreshToken;
+    let currentJti = null;
+    if (presented) {
+      try {
+        currentJti = verifyJwt(presented)?.jti || null;
+      } catch {
+        currentJti = null; // unparseable token: no row is "current"
+      }
+    }
+
+    res.json({
+      sessions: sessions.map((s) => ({
+        ...s,
+        current: Boolean(currentJti) && s.jti === currentJti,
+      })),
+    });
+  } catch (err) {
+    logger.error(`Sessions list error: ${err.message}`);
+    sendServerError(res, err, 'Could not load your sessions');
+  }
+});
+
+// DELETE /api/auth/sessions/:jti — revoke ONE device session.
+//
+// AUTH-M-02. `GET /sessions` listed rows and `POST /logout-all` killed all of
+// them, but there was no way to end a SINGLE session, which is the actual
+// response when someone finds an unfamiliar device: "log this one out" without
+// signing yourself out of the phone in your hand.
+//
+// Two rules this route must not get wrong:
+//
+//  1. SCOPE. The filter is `{ userId: req.user._id, jti }`, never `{ jti }`.
+//     A jti is a 12-byte random hex string, so it is unguessable — which is
+//     exactly why it must not be the only thing standing between a caller and
+//     someone else's session. Pairing it with the session's own user id makes
+//     the id irrelevant to authorization rather than merely hard to guess.
+//  2. NOT FOUND vs FORBIDDEN are the same 404. A caller must not be able to
+//     probe whether a given jti exists in someone else's account, so the
+//     response cannot distinguish "not yours" from "does not exist".
+//
+// This revokes the refresh token only. The matching ACCESS token stays valid
+// until it expires (15 min), because there is no per-session revocation list on
+// the access-token side; `logout-all` is the hammer that also bumps
+// tokenVersion. Bumping tokenVersion here instead would sign the user out of
+// every device, which is the opposite of what "revoke this one" means.
+router.delete('/sessions/:jti', protect, authLimiter, async (req, res) => {
+  try {
+    const jti = String(req.params.jti || '');
+    if (!/^[a-f0-9]{24}$/i.test(jti)) {
+      // Same answer as "not found": do not confirm the format of a real jti.
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    const result = await RefreshToken.deleteOne({ userId: req.user._id, jti });
+    if (!result?.deletedCount) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    try {
+      await auditLog('session_revoked', req.user._id, {
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+        jti,
+      });
+    } catch (err) {
+      logger.error('Audit error:', err);
+    }
+
+    // If the caller just killed the session they are using, clear its cookies.
+    const presented = req.cookies?.refreshToken;
+    if (presented) {
+      try {
+        if (verifyJwt(presented)?.jti === jti) clearAuthCookies(res);
+      } catch {
+        // Unparseable presented token: leave the cookies alone.
+      }
+    }
+
+    res.json({ message: 'Session revoked' });
+  } catch (err) {
+    logger.error(`Session revoke error: ${err.message}`);
+    sendServerError(res, err, 'Could not revoke that session');
+  }
+});
+
 // POST /api/auth/refresh
 router.post('/refresh', authLimiter, validate(refreshTokenSchema), async (req, res) => {
   let newRefreshTokenDoc = null;
@@ -1529,21 +1939,55 @@ router.post('/refresh', authLimiter, validate(refreshTokenSchema), async (req, r
       return res.status(401).json({ message: 'Invalid refresh token' });
     }
 
+    // Expiry first, then PROVE the caller holds this token, and only then act on
+    // rotation state.
+    //
+    // The order is the fix. `stored.replacedBy` used to be checked BEFORE
+    // `compareToken`, so the reuse branch acted on a row that had merely been
+    // LOOKED UP - and while `tokenKey` was a constant prefix (see the model), any
+    // string at all could select a row. Verifying first means the destructive
+    // branch is only reachable by someone who actually presents the token.
     if (stored.expiresAt < new Date()) {
       await RefreshToken.deleteOne({ _id: stored._id });
       return res.status(401).json({ message: 'Refresh token expired. Please login again.' });
     }
 
-    // Verify the token hash
     const isValid = await stored.compareToken(refreshToken);
     if (!isValid) {
       return res.status(401).json({ message: 'Invalid refresh token' });
     }
 
+    // MISS-002 reuse detection - presenting an already-rotated token means
+    // theft. Reachable only now that the token is proven.
+    //
+    // The revocation is deliberately USER-wide, and the earlier family-scoped
+    // line is gone because it did not do what its comment claimed: the
+    // `familyId || undefined` degrades to a bare `{ userId }` filter when
+    // familyId is missing (Mongoose strips undefined keys), and the following
+    // `deleteMany({ userId })` made the user-wide scope unconditional anyway. So
+    // that first line was either redundant or accidentally broader than its
+    // comment, depending on the row.
+    //
+    // User-wide is right for a PHI platform: once a rotated token is replayed,
+    // the platform cannot tell the attacker from the legitimate holder, so the
+    // cheap answer is to end every session and force re-authentication.
+    // Family-scoping would leave the attacker holding a live session on the
+    // victim's OTHER devices.
+    if (stored.replacedBy) {
+      await RefreshToken.deleteMany({ userId: stored.userId }).catch(() => {});
+      try {
+        await auditLog('refresh_token_reuse_detected', stored.userId, { ip: req.ip, userAgent: req.get('user-agent') });
+      } catch (err) {
+        logger.error('Audit error:', err);
+      }
+      logger.error(`[auth] refresh reuse detected for user ${stored.userId} (family ${stored.familyId}) - all sessions revoked`);
+      return res.status(401).json({ message: 'Session compromised. Please login again.' });
+    }
+
     // jwt.verify to validate JWT signature and get user ID
     let decoded;
     try {
-      decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+      decoded = verifyJwt(refreshToken);
     } catch {
       await RefreshToken.deleteOne({ _id: stored._id });
       return res.status(401).json({ message: 'Invalid refresh token' });
@@ -1555,20 +1999,32 @@ router.post('/refresh', authLimiter, validate(refreshTokenSchema), async (req, r
       return res.status(401).json({ message: 'User not found' });
     }
 
+    // AUTH-012: token version — logout-all / password change revokes refresh too.
+    if (decoded.tv != null && (user.tokenVersion || 0) !== decoded.tv) {
+      await RefreshToken.deleteOne({ _id: stored._id });
+      return res.status(401).json({ message: 'Session revoked. Please login again.' });
+    }
+
     if (user.status === 'blocked') {
       return res.status(403).json({ message: 'Account blocked' });
     }
 
-    await RefreshToken.deleteOne({ _id: stored._id });
-
+    // Rotation with family linkage (MISS-002): mark predecessor replaced.
+    const { token: newRefreshToken, jti: newJti, familyId } = signRefreshToken(user, stored.familyId);
     const newAccessToken = signAccessToken(user);
-    const newRefreshToken = signRefreshToken(user);
-    const newTokenKey = RefreshToken.getTokenKey(newRefreshToken);
+
+    stored.replacedBy = newJti;
+    stored.revokedAt = new Date();
+    await stored.save().catch(() => {});
 
     newRefreshTokenDoc = await RefreshToken.create({
       userId: user._id,
-      tokenKey: newTokenKey,
+      tokenKey: RefreshToken.getTokenKey(newRefreshToken),
       tokenHash: newRefreshToken, // will be hashed by pre-save hook
+      jti: newJti,
+      familyId,
+      userAgent: req.get?.('user-agent') || '',
+      ip: req.ip || '',
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 

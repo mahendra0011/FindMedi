@@ -14,11 +14,20 @@
     "seed:all": "node seed-demo.mjs",
     "seed:psychiatrists": "node seed-psychiatrists.mjs",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit",
-    "lint": "eslint ."
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit --coverage",
+    "lint": "eslint .",
+    "authz:triage": "node scripts/triage-authz-gaps.mjs",
+    "authz:coverage": "node scripts/check-authz-coverage.mjs",
+    "authz:tenant-guard": "node scripts/check-tenant-guard-regression.mjs",
+    "missing:inventory": "node scripts/missing-feature-inventory.mjs",
+    "docs:dictionary": "node scripts/gen-data-dictionary.mjs",
+    "docs:dictionary:check": "node scripts/gen-data-dictionary.mjs --check"
   },
   "dependencies": {
     "@bull-board/api": "^6.11.0",
     "@bull-board/express": "^6.11.0",
+    "@grpc/grpc-js": "^1.14.5",
+    "@grpc/proto-loader": "^0.8.1",
     "@json2csv/plainjs": "^7.0.8",
     "@prisma/client": "^5.22.0",
     "@sentry/node": "^11.0.0",
@@ -45,16 +54,20 @@
     "livekit-server-sdk": "^2.19.1",
     "mongoose": "^8.8.1",
     "multer": "^2.1.1",
+    "node-cron": "^4.6.0",
     "pdfkit": "^0.18.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
     "posthog-node": "^5.54.1",
+    "prom-client": "^15.1.3",
+    "qrcode": "^1.5.4",
     "redis": "^6.1.0",
     "sanitize-html": "^2.12.1",
     "sharp": "^0.35.3",
     "socket.io": "^4.8.3",
     "swagger-ui-express": "^5.0.1",
     "unleash-client": "^6.12.1",
+    "web-push": "^3.6.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -69,7 +82,36 @@
   },
   "jest": {
     "testMatch": [
-      "<rootDir>/test/**/*.test.js"
-    ]
+      "<rootDir>/test/**/*.spec.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/test/helpers/",
+      "\\.test\\.js$"
+    ],
+    "testTimeout": 20000,
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/test/"
+    ],
+    "collectCoverageFrom": [
+      "src/services/**/*.js",
+      "src/utils/**/*.js",
+      "src/middleware/**/*.js",
+      "src/models/**/*.js"
+    ],
+    "coverageReporters": [
+      "text-summary",
+      "lcov",
+      "json-summary"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 5,
+        "functions": 5,
+        "lines": 15,
+        "statements": 14
+      }
+    }
   }
 }

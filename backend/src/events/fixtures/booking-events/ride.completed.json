@@ -1,0 +1,5 @@
+{
+  "eventType": "ride.completed",
+  "aggregateId": "652f00000000000000000001",
+  "rideId": "652f00000000000000000001"
+}

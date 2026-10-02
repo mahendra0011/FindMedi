@@ -1,0 +1,12 @@
+{
+  "eventType": "ride.dispatch_started",
+  "aggregateType": "RideBooking",
+  "aggregateId": "652f00000000000000000001",
+  "status": "searching",
+  "radiiKm": [
+    2,
+    5,
+    8
+  ],
+  "h3Cell": "85283473fffffff"
+}

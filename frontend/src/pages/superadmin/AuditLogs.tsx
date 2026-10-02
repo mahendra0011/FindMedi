@@ -1,26 +1,59 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Download, X } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
-import { api } from '@/lib/api';
+import { api, downloadAuditExport } from '@/lib/api';
+
+// Mirrors TARGET_DETAIL_KEYS in backend/src/routes/auditLogs.js - the detail
+// keys an action may store its target under. Keep the two lists in step, or
+// the Target column and the target filter disagree about what exists.
+const TARGET_KEYS = ['targetUserId', 'targetHospitalId', 'targetDoctorId', 'facilityId', 'profileId', 'resourceId', 'tokenId'];
+type AuditLogRow = {
+  _id?: string;
+  timestamp?: string;
+  action?: string;
+  userId?: string;
+  ip?: string;
+  user?: { name?: string; email?: string } | null;
+  details?: Record<string, unknown>;
+};
+const targetOf = (log: { details?: Record<string, unknown> }): string => {
+  const d = log.details || {};
+  const hit = TARGET_KEYS.map(k => d[k]).find(Boolean);
+  return hit == null ? '' : String(hit);
+};
+type AuditStats = {
+  totalLogs?: number;
+  last24h?: number;
+  uniqueUsers?: number;
+  uniqueActions?: number;
+  topActions?: { _id: string; count: number }[];
+};
 
 function AuditLogsTab() {
-  const [logs, setLogs] = useState([]);
+  const [logs, setLogs] = useState<AuditLogRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [actionFilter, setActionFilter] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Seeded from the URL ONCE: the approval pages deep-link here with ?action= /
+  // ?target=, and a copied URL has to reproduce the same view.
+  const [actionFilter, setActionFilter] = useState(searchParams.get('action') || '');
+  const [targetFilter, setTargetFilter] = useState(searchParams.get('target') || '');
   const [search, setSearch] = useState('');
-  const [stats, setStats] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [stats, setStats] = useState<AuditStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchLogs = useCallback(async (p = page) => {
     setLoading(true);
     try {
-      const params = { page: p, limit: 30 };
+      const params: Record<string, string | number> = { page: p, limit: 30 };
       if (actionFilter) params.action = actionFilter;
+      if (targetFilter) params.target = targetFilter;
       if (search) params.search = search;
       const data = await api.getAuditLogs(params);
       const pages = Math.max(1, data.totalPages || 1);
@@ -38,7 +71,7 @@ function AuditLogsTab() {
       setTotalPages(pages);
     } catch { toast.error('Failed to load audit logs'); }
     setLoading(false);
-  }, [page, actionFilter, search]);
+  }, [page, actionFilter, targetFilter, search]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -48,13 +81,44 @@ function AuditLogsTab() {
   }, []);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchLogs(1); }, [actionFilter]);
+  useEffect(() => { fetchLogs(1); }, [actionFilter, targetFilter]);
+
+  // ADM-M-02: the filters live in the URL so the approval pages' History
+  // buttons (?target=...) are shareable, bookmarkable, and back-button sane.
+  useEffect(() => {
+    const next: Record<string, string> = {};
+    if (actionFilter) next.action = actionFilter;
+    if (targetFilter) next.target = targetFilter;
+    setSearchParams(next, { replace: true });
+  }, [actionFilter, targetFilter, setSearchParams]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchStats(); }, []);
 
   const handleSearch = () => { fetchLogs(1); };
 
-  const uniqueActions = [...new Set(logs.map(l => l.action).filter(Boolean))];
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const params: Record<string, string> = {};
+      if (actionFilter) params.action = actionFilter;
+      if (targetFilter) params.target = targetFilter;
+      if (search) params.search = search;
+      await downloadAuditExport(params);
+      toast.success('Audit export downloaded (capped at 10,000 rows)');
+    } catch {
+      toast.error('Failed to export audit logs');
+    }
+    setExporting(false);
+  };
+
+  // Options come from the stats leg (platform-wide top actions), not just
+  // whatever happens to be on the current page - a filter that can only offer
+  // already-visible values filters nothing.
+  const uniqueActions = [...new Set([
+    ...(stats?.topActions?.map(t => t._id) || []),
+    ...logs.map(l => l.action),
+    actionFilter,
+  ].filter(Boolean))].sort();
 
   return (
     <div className="space-y-5">
@@ -90,7 +154,35 @@ function AuditLogsTab() {
           <option value="">All Actions</option>
           {uniqueActions.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
+        <div className="relative">
+          <Input
+            value={targetFilter}
+            onChange={e => setTargetFilter(e.target.value.trim())}
+            placeholder="Target id…"
+            className="h-10 text-xs font-mono max-w-[210px] pr-8"
+            aria-label="Filter by target record id"
+          />
+          {targetFilter && (
+            <button
+              type="button"
+              aria-label="Clear target filter"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              onClick={() => setTargetFilter('')}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
         <Button variant="outline" size="sm" onClick={handleSearch}>Search</Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExport}
+          disabled={exporting}
+          title="Read-only trail; the export is capped at 10,000 rows"
+        >
+          <Download className="w-4 h-4 mr-1.5" /> {exporting ? 'Exporting…' : 'Export CSV'}
+        </Button>
       </div>
 
       {loading ? (
@@ -105,6 +197,7 @@ function AuditLogsTab() {
                 <th className="text-left font-medium text-muted-foreground px-4 py-3">Timestamp</th>
                 <th className="text-left font-medium text-muted-foreground px-4 py-3">User</th>
                 <th className="text-left font-medium text-muted-foreground px-4 py-3">Action</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3">Target</th>
                 <th className="text-left font-medium text-muted-foreground px-4 py-3">Details</th>
                 <th className="text-left font-medium text-muted-foreground px-4 py-3">IP</th>
               </tr>
@@ -123,8 +216,29 @@ function AuditLogsTab() {
                     <Badge variant="outline" className="text-xs font-mono">{log.action}</Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-xs text-muted-foreground max-w-xs truncate block">
-                      {log.details ? JSON.stringify(log.details).slice(0, 80) : '—'}
+                    {targetOf(log) ? (
+                      <button
+                        type="button"
+                        title="Filter to this record's history"
+                        className="text-xs font-mono text-info hover:underline max-w-[150px] truncate block"
+                        onClick={() => setTargetFilter(targetOf(log))}
+                      >
+                        {targetOf(log)}
+                      </button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className="text-xs text-muted-foreground max-w-[260px] truncate block"
+                      title={log.details ? JSON.stringify(log.details) : undefined}
+                    >
+                      {log.details && Object.keys(log.details).length
+                        ? Object.entries(log.details).slice(0, 4)
+                            .map(([k, v]) => `${k}: ${v !== null && typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
+                            .join(' · ')
+                        : '—'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{log.ip || '—'}</td>

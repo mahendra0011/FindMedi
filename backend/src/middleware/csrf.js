@@ -14,9 +14,8 @@ export const csrfProtection = (req, res, next) => {
     return next();
   }
 
-  if (req.path === '/upload') {
-    return next();
-  }
+  // AUTH-003: the old `/upload` exemption is removed — multipart uploads must
+  // carry the double-submit token like every other state-changing request.
 
   const origin = req.headers['origin'];
   const referer = req.headers['referer'];

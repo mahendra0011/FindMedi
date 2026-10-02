@@ -8,12 +8,23 @@ import { getIO } from './socketService.js';
 import logger from '../config/logger.js';
 import { writeOutboxEvent } from '../lib/transactionalOutbox.js';
 
+/**
+ * RIDE-B-05: a provider whose last GPS ping is older than this is STALE and must
+ * not be treated as still sitting at their last known position. The realtime
+ * matching engine spec (03) disqualifies stale providers; without this constant
+ * the dispatcher cannot tell a provider at the pickup from one whose phone has
+ * been in a pocket for an hour, because both report a plausible `distanceKm`.
+ */
+export const LOCATION_FRESH_SECONDS = 60;
+
 export const VEHICLE_RATES = {
   bike: {
     code: 'bike',
     label: 'Bike',
     baseFare: 20,
     perKm: 8,
+    toll: 10,
+    parking: 5,
     capacity: 1,
     emergencySurge: 0,
     desc: 'Fast solo pickup, medicine delivery',
@@ -23,6 +34,8 @@ export const VEHICLE_RATES = {
     label: 'Auto (3-wheeler)',
     baseFare: 30,
     perKm: 12,
+    toll: 15,
+    parking: 10,
     capacity: 3,
     emergencySurge: 0,
     desc: 'Short distance, budget',
@@ -32,6 +45,8 @@ export const VEHICLE_RATES = {
     label: 'E-Rickshaw',
     baseFare: 20,
     perKm: 10,
+    toll: 8,
+    parking: 5,
     capacity: 4,
     emergencySurge: 0,
     desc: 'Short distance, eco-friendly',
@@ -41,6 +56,8 @@ export const VEHICLE_RATES = {
     label: 'Car',
     baseFare: 60,
     perKm: 16,
+    toll: 20,
+    parking: 15,
     capacity: 4,
     emergencySurge: 0,
     desc: 'Standard patient transport',
@@ -50,6 +67,8 @@ export const VEHICLE_RATES = {
     label: 'Van',
     baseFare: 100,
     perKm: 22,
+    toll: 30,
+    parking: 25,
     capacity: 7,
     emergencySurge: 0,
     desc: 'Group / luggage / stretcher-friendly',
@@ -59,6 +78,8 @@ export const VEHICLE_RATES = {
     label: 'Ambulance',
     baseFare: 150,
     perKm: 30,
+    toll: 50,
+    parking: 40,
     capacity: 2,
     emergencySurge: 100,
     desc: 'Emergency / medical transport (priority dispatch)',
@@ -88,18 +109,32 @@ export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 }
 
 /**
+ * Calculate toll and parking surcharge for a vehicle type
+ */
+export function calculateTollsAndParking(vehicleType) {
+  const rate = VEHICLE_RATES[vehicleType] || VEHICLE_RATES.car;
+  return {
+    toll: rate.toll,
+    parking: rate.parking,
+  };
+}
+
+/**
  * Calculate fare breakdown for a vehicle type and distance
  */
 export function calculateFare(vehicleType, distanceKm, isEmergency = false) {
   const rate = VEHICLE_RATES[vehicleType] || VEHICLE_RATES.car;
   const base = rate.baseFare;
   const distanceCharge = Math.round(rate.perKm * distanceKm);
+  const { toll, parking } = calculateTollsAndParking(vehicleType);
   const surge = isEmergency && vehicleType === 'ambulance' ? rate.emergencySurge : 0;
-  const total = base + distanceCharge + surge;
+  const total = base + distanceCharge + toll + parking + surge;
 
   return {
     base,
     distanceCharge,
+    toll,
+    parking,
     surge,
     total,
   };
@@ -195,14 +230,26 @@ export async function findEligibleRiders(vehicleType, pickupLat, pickupLng, isEm
       query.vehicleId = { $in: vehicleIds };
     }
 
-    // If coordinates are invalid or missing, fallback to non-geo query
+    // RIDE-B-05: with no usable coordinates the candidates CANNOT be ranked by
+    // distance. The old code returned them with `distanceKm: 0`, which reads to
+    // the dispatcher as "everyone is at the pickup point" — so the provider is
+    // effectively picked at random and the ETA is fiction.
+    //
+    // The honest answer is to return them UNRANKED (`distanceKm: null`,
+    // `locationFresh: false`) so the caller cannot mistake "unknown" for "near",
+    // and to flag why dispatch is degraded.
     if (pickupLat == null || pickupLng == null || isNaN(Number(pickupLat)) || isNaN(Number(pickupLng))) {
       logger.warn(`findEligibleRiders: Invalid coordinates (${pickupLat}, ${pickupLng}), falling back to non-geo query`);
       const riders = await RiderProfile.find(query)
         .populate('userId', 'name phone email avatar')
         .populate('vehicleId')
         .lean();
-      return riders.map(r => ({ ...r, distanceKm: 0 }));
+      return riders.map(r => ({
+        ...r,
+        distanceKm: null,
+        locationFresh: false,
+        dispatchDegraded: 'pickup_coordinates_invalid',
+      }));
     }
 
     // $geoNear must be the first stage in an aggregation pipeline.
@@ -245,6 +292,16 @@ export async function findEligibleRiders(vehicleType, pickupLat, pickupLng, isEm
     return riders.map(r => ({
       ...r,
       distanceKm: Math.round(((r.distanceMeters || 0) / 1000) * 10) / 10,
+      // RIDE-B-05: a location older than the freshness window must not be treated
+      // as a live position. The realtime-matching spec disqualifies stale providers;
+      // this surfaces the age so the caller can apply that rule instead of
+      // dispatching to someone whose phone has been in a pocket for an hour.
+      locationAgeSeconds: r.lastPingAt
+        ? Math.round((Date.now() - new Date(r.lastPingAt).getTime()) / 1000)
+        : null,
+      locationFresh: r.lastPingAt
+        ? (Date.now() - new Date(r.lastPingAt).getTime()) <= LOCATION_FRESH_SECONDS
+        : false,
     }));
   } catch (err) {
     logger.error(`findEligibleRiders $geoNear error: ${err.message}`);
@@ -259,7 +316,14 @@ export async function findEligibleRiders(vehicleType, pickupLat, pickupLng, isEm
         .populate('userId', 'name phone email avatar')
         .populate('vehicleId')
         .lean();
-      return riders.map(r => ({ ...r, distanceKm: 0 }));
+      // RIDE-B-05: the geo index is unavailable, so distance is genuinely
+      // unknown — `distanceKm: 0` would claim they are all at the pickup point.
+      return riders.map(r => ({
+        ...r,
+        distanceKm: null,
+        locationFresh: false,
+        dispatchDegraded: 'geo_index_unavailable',
+      }));
     } catch {
       return [];
     }
@@ -312,9 +376,10 @@ export async function broadcastRideBooking(ride) {
 
 const DISPATCH_TIMEOUT_MS = 15000; // 15s per batch for standard rides
 const EMERGENCY_TIMEOUT_MS = 10000; // 10s per batch for urgent ambulance rides
-// File 06 §8 — env-configurable (deploy-time tuning without code change).
-// Defaults preserve legacy sequential-dispatch behaviour; the generic instant
-// engine uses its own INSTANT_RIDE_RADII (see rideDispatchService.js).
+const OFFER_EXPIRY_MS = 8000; // offer expires if not accepted within 8s (spec 11)
+ // env-configurable (deploy-time tuning without code change).
+ // Defaults preserve legacy sequential-dispatch behaviour; the generic instant
+ // engine uses its own INSTANT_RIDE_RADII (see rideDispatchService.js).
 const STANDARD_RADIUS_STEPS = (process.env.RIDE_STANDARD_RADIUS_STEPS || '5,10,20,40').split(',').map(Number);
 const EMERGENCY_RADIUS_STEPS = (process.env.RIDE_EMERGENCY_RADIUS_STEPS || '15,30,50').split(',').map(Number);
 
@@ -417,7 +482,7 @@ async function notifyBatchAndWait(ride, batch, timeoutMs) {
     });
   }
 
-  // Record dispatch attempts
+  // Record dispatch attempts with sentAt timestamps for expiry tracking
   const attempts = batch.map(r => ({
     riderId: r.userId?._id || r.userId,
     distanceKm: r.distanceKm,
@@ -435,28 +500,45 @@ async function notifyBatchAndWait(ride, batch, timeoutMs) {
     await new Promise(resolve => setTimeout(resolve, 1000));
     const current = await RideBooking.findById(ride._id).select('status');
     if (!current || current.status !== 'searching') {
+      // Ride accepted or cancelled - clear pending offers and exit
+      await RideBooking.updateOne(
+        { _id: ride._id },
+        { $set: { 'dispatchAttempts.$[elem].outcome': 'accepted' } },
+        {
+          arrayFilters: [
+            { 'elem.outcome': 'pending' },
+          ],
+        }
+      ).catch(() => {});
       return;
     }
   }
 
-  // Mark pending attempts in this batch as timed out
+  // Timeout exceeded - mark all pending offers as expired with expiry timestamp
+  const expiryTime = new Date(Date.now() + OFFER_EXPIRY_MS);
   await RideBooking.updateOne(
     { _id: ride._id },
     {
       $set: {
         'dispatchAttempts.$[elem].outcome': 'timeout',
         'dispatchAttempts.$[elem].respondedAt': new Date(),
+        'dispatchAttempts.$[elem].expiresAt': expiryTime,
       },
     },
     {
       arrayFilters: [
-        {
-          'elem.riderId': { $in: batch.map(r => r.userId?._id || r.userId) },
-          'elem.outcome': 'pending',
-        },
+        { 'elem.riderId': { $in: batch.map(r => r.userId?._id || r.userId) } },
+        { 'elem.outcome': 'pending' },
       ],
     }
-  );
+  ).catch(() => {});
+
+  // Requeue expired offers: remove expired attempts so they can be reoffered
+  // in the next radius step. Keep only non-expired attempts.
+  await RideBooking.updateOne(
+    { _id: ride._id },
+    { $pull: { dispatchAttempts: { outcome: 'timeout', expiresAt: { $exists: true } } } }
+  ).catch(() => {});
 }
 
 /**

@@ -4,6 +4,7 @@ import License from '../models/License.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { validate } from '../utils/validate.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const licenseSchema = z.object({}).passthrough();
 
@@ -16,8 +17,8 @@ router.get('/', protect, superadminOnly, async (req, res) => {
     if (status) filter.status = status;
     if (facilityType) filter.facilityType = facilityType;
     if (search) filter.$or = [
-      { facilityName: new RegExp(search, 'i') },
-      { licenseNumber: new RegExp(search, 'i') },
+      { facilityName: new RegExp(escapeRegex(capSearch(search)), 'i') },
+      { licenseNumber: new RegExp(escapeRegex(capSearch(search)), 'i') },
     ];
     const licenses = await License.find(filter).sort({ expiryDate: 1 });
     res.json({ licenses });
@@ -26,7 +27,9 @@ router.get('/', protect, superadminOnly, async (req, res) => {
 
 router.put('/:id', protect, superadminOnly, validate(licenseSchema), async (req, res) => {
   try {
-    const license = await License.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { pickBody } = await import('../utils/pick.js');
+    const license = await License.findByIdAndUpdate(req.params.id,
+      pickBody(req.body, ['facilityName', 'licenseType', 'licenseNumber', 'issuingAuthority', 'issueDate', 'expiryDate', 'status', 'documentUrl', 'notes']), { new: true });
     if (!license) return res.status(404).json({ message: 'License not found' });
     await auditLog('update_license', req.user._id, { targetLicenseId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(license);

@@ -1,0 +1,171 @@
+npm notice run findmedi-server@1.0.0 test
+npm notice run node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit
+(node:12340) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:36024) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS test/security/jwtKeyRotation.spec.js (29.076 s)
+PASS test/security/authorizeObjectMigrationBlocker.spec.js (29.415 s)
+{"level":50,"time":"2026-10-01T22:08:07.568Z","service":"findmedi-api","msg":"JWT_KEYS must have exactly one active key, found 2"}
+{"level":50,"time":"2026-10-01T22:08:08.382Z","service":"findmedi-api","msg":"JWT_KEYS is not valid JSON - refusing to fall back to JWT_SECRET: Expected property name or '}' in JSON at position 1 (line 1 column 2)"}
+{"level":40,"time":"2026-10-01T22:08:10.176Z","service":"findmedi-api","msg":"AUTHZ object deny (cross-tenant): user=a1 doc=d1 path=/x"}
+(node:33084) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS test/security/recordVersioning.spec.js (33.589 s)
+(node:7788) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:35556) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS test/security/realtimeAcl.spec.js (32.977 s)
+(node:35080) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS test/security/idor.spec.js (33.205 s)
+PASS test/unit/moneyRounding.spec.js (34.314 s)
+(node:20020) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS test/security/loginLockout.spec.js (36.976 s)
+(node:38888) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS test/security/highPriorityGaps.spec.js (37.949 s)
+(node:38196) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS test/security/paymentIdempotency.spec.js (38.597 s)
+{"level":50,"time":"2026-10-01T22:08:18.733Z","service":"findmedi-api","msg":"idempotency guard error on refund: ECONNRESET"}
+{"level":50,"time":"2026-10-01T22:08:18.750Z","service":"findmedi-api","msg":"idempotency guard error on dispatch: ECONNRESET"}
+PASS test/unit/ledger.spec.js (6.809 s)
+PASS test/security/refreshTokenKey.spec.js (6.418 s)
+PASS test/security/dlqLoopRegression.spec.js
+PASS test/security/authzToolParity.spec.js (7.612 s)
+PASS test/security/authzManifest.spec.js (12.064 s)
+{"level":30,"time":"2026-10-01T22:08:20.383Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: ride | ID: RIDE-1 | Gross: ₹1000 | Net Provider: ₹890 | Platform Fee: ₹100"}
+{"level":30,"time":"2026-10-01T22:08:20.424Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: ride | ID: RIDE-2 | Gross: ₹1000 | Net Provider: ₹810 | Platform Fee: ₹180"}
+{"level":30,"time":"2026-10-01T22:08:20.437Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: ambulance | ID: AMB-1 | Gross: ₹2000 | Net Provider: ₹1880 | Platform Fee: ₹100"}
+{"level":30,"time":"2026-10-01T22:08:20.438Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: lawyer | ID: LAW-1 | Gross: ₹2000 | Net Provider: ₹1780 | Platform Fee: ₹200"}
+{"level":30,"time":"2026-10-01T22:08:20.439Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: assistant | ID: AST-1 | Gross: ₹2000 | Net Provider: ₹1780 | Platform Fee: ₹200"}
+{"level":30,"time":"2026-10-01T22:08:20.439Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: emergency_doctor | ID: DOC-1 | Gross: ₹2000 | Net Provider: ₹1780 | Platform Fee: ₹200"}
+{"level":30,"time":"2026-10-01T22:08:20.451Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: ride | ID: RIDE-3 | Gross: ₹333.33 | Net Provider: ₹296.67 | Platform Fee: ₹33.33"}
+{"level":30,"time":"2026-10-01T22:08:20.474Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: ride | ID: R-0.1 | Gross: ₹0.1 | Net Provider: ₹0.09 | Platform Fee: ₹0.01"}
+{"level":30,"time":"2026-10-01T22:08:20.482Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: ride | ID: R-1.005 | Gross: ₹1 | Net Provider: ₹0.89 | Platform Fee: ₹0.1"}
+{"level":30,"time":"2026-10-01T22:08:20.486Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: ride | ID: R-99.99 | Gross: ₹99.99 | Net Provider: ₹88.99 | Platform Fee: ₹10"}
+{"level":30,"time":"2026-10-01T22:08:20.489Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: ride | ID: R-333.33 | Gross: ₹333.33 | Net Provider: ₹296.67 | Platform Fee: ₹33.33"}
+{"level":30,"time":"2026-10-01T22:08:20.492Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: ride | ID: R-1499.995 | Gross: ₹1500 | Net Provider: ₹1335 | Platform Fee: ₹150"}
+{"level":30,"time":"2026-10-01T22:08:20.494Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: ride | ID: R-12345.67 | Gross: ₹12345.67 | Net Provider: ₹10987.64 | Platform Fee: ₹1234.57"}
+{"level":30,"time":"2026-10-01T22:08:20.512Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: ride | ID: RIDE-4 | Gross: ₹500 | Net Provider: ₹445 | Platform Fee: ₹50"}
+{"level":30,"time":"2026-10-01T22:08:20.529Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: ride | ID: RIDE-5 | Gross: ₹1000 | Net Provider: ₹890 | Platform Fee: ₹100"}
+{"level":30,"time":"2026-10-01T22:08:20.536Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: lawyer | ID: L1 | Gross: ₹100 | Net Provider: ₹89 | Platform Fee: ₹10"}
+{"level":30,"time":"2026-10-01T22:08:20.537Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: assistant | ID: A1 | Gross: ₹100 | Net Provider: ₹89 | Platform Fee: ₹10"}
+{"level":30,"time":"2026-10-01T22:08:20.538Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: emergency_doctor | ID: D1 | Gross: ₹100 | Net Provider: ₹89 | Platform Fee: ₹10"}
+{"level":30,"time":"2026-10-01T22:08:20.553Z","service":"findmedi-api","msg":"[LEDGER_SETTLEMENT] Source: ride | ID: R6 | Gross: ₹400 | Net Provider: ₹356 | Platform Fee: ₹40"}
+{"level":50,"time":"2026-10-01T22:08:20.563Z","service":"findmedi-api","msg":"recordServiceSettlement error on [ride:R7]: mongo write failed"}
+PASS test/security/rateLimit.spec.js (5.596 s)
+{"level":40,"time":"2026-10-01T22:08:21.174Z","service":"findmedi-api","msg":"GRL rate-limiter error on [rl:err:ip:2.2.2.2]: ECONNRESET. Passing through."}
+PASS test/security/routeAuthzStructure.spec.js
+PASS test/security/mentalHealthConsent.spec.js
+PASS test/security/mentalHealthScreening.spec.js
+PASS test/security/stepUpAuth.spec.js
+PASS test/security/authzGapClosure.spec.js
+PASS test/unit/twoFactor.spec.js (5.399 s)
+PASS test/security/notificationConsent.spec.js (12.389 s)
+{"level":30,"time":"2026-10-01T22:08:24.498Z","service":"findmedi-api","msg":"Native Rust module loaded"}
+(node:12724) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":50,"time":"2026-10-01T22:08:28.314Z","service":"findmedi-api","msg":"DPDP step revoke_sessions failed: mongo unavailable"}
+{"level":50,"time":"2026-10-01T22:08:28.353Z","service":"findmedi-api","msg":"DPDP step purge_search_index failed: opensearch purge failed: 503"}
+{"level":50,"time":"2026-10-01T22:08:29.719Z","service":"findmedi-api","msg":"DPDP step revoke_sessions failed: mongo unavailable"}
+PASS test/security/deletionWorkflow.spec.js (49.767 s)
+{"level":50,"time":"2026-10-01T22:08:30.000Z","service":"findmedi-api","msg":"Certificate for req_1 does not match its recorded chain"}
+PASS test/security/notificationDelivery.spec.js (20.208 s)
+(node:38200) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS test/security/loginAnomaly.spec.js (51.785 s)
+(node:37496) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS test/unit/rideFare.spec.js (56.913 s)
+(node:34132) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS test/security/routeAuthzBehaviour.spec.js (58.256 s)
+{"level":40,"time":"2026-10-01T22:08:38.467Z","service":"findmedi-api","msg":"Emergency e1 raised by u1 with no hospitalId: admin notification fan-out skipped (fail closed)"}
+(node:26892) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":30,"time":"2026-10-01T22:08:38.264Z","service":"findmedi-api","msg":"Native Rust module loaded"}
+PASS test/integration/sessionRevocation.http.spec.js (61.955 s)
+(node:30872) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS test/integration/routeAuthz.http.spec.js (63.461 s)
+FAIL test/security/authAccountTakeover.spec.js
+  ● Test suite failed to run
+
+    ReferenceError: authorize is not defined
+
+    [0m [90m 332 |[39m [90m * remember to review when the question changes.[39m
+     [90m 333 |[39m [90m */[39m
+    [31m[1m>[22m[39m[90m 334 |[39m router[33m.[39m[36mget[39m([32m'/screening/instruments'[39m[33m,[39m protect[33m,[39m authorize([32m'records:read'[39m[33m,[39m [32m'records:read:own'[39m)[33m,[39m [36masync[39m (req[33m,[39m res) [33m=>[39m {
+     [90m     |[39m                                      [31m[1m^[22m[39m
+     [90m 335 |[39m   [36mtry[39m {
+     [90m 336 |[39m     res[33m.[39mjson({
+     [90m 337 |[39m       responseOptions[33m:[39m [33mRESPONSE_OPTIONS[39m[33m,[39m[0m
+
+      at protect (src/routes/mentalhealth.js:334:38)
+      at test/helpers/app.js:30:26
+
+FAIL test/security/notificationScope.spec.js
+  ● Test suite failed to run
+
+    ReferenceError: authorize is not defined
+
+    [0m [90m 332 |[39m [90m * remember to review when the question changes.[39m
+     [90m 333 |[39m [90m */[39m
+    [31m[1m>[22m[39m[90m 334 |[39m router[33m.[39m[36mget[39m([32m'/screening/instruments'[39m[33m,[39m protect[33m,[39m authorize([32m'records:read'[39m[33m,[39m [32m'records:read:own'[39m)[33m,[39m [36masync[39m (req[33m,[39m res) [33m=>[39m {
+     [90m     |[39m                                      [31m[1m^[22m[39m
+     [90m 335 |[39m   [36mtry[39m {
+     [90m 336 |[39m     res[33m.[39mjson({
+     [90m 337 |[39m       responseOptions[33m:[39m [33mRESPONSE_OPTIONS[39m[33m,[39m[0m
+
+      at protect (src/routes/mentalhealth.js:334:38)
+      at test/helpers/app.js:30:26
+
+(node:20020) [MONGOOSE] Warning: Duplicate schema index on {"expiresAt":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+{"level":30,"time":"2026-10-01T22:09:10.548Z","service":"findmedi-api","msg":"Native Rust module loaded"}
+{"level":30,"time":"2026-10-01T22:09:10.570Z","service":"findmedi-api","msg":"Native Rust module loaded"}
+{"level":50,"time":"2026-10-01T22:09:11.782Z","service":"findmedi-api","msg":"primeDoctorUserLinks failed: Doctor.find is not a function"}
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+Summary of all failing tests
+FAIL test/security/authAccountTakeover.spec.js
+  ● Test suite failed to run
+
+    ReferenceError: authorize is not defined
+
+    [0m [90m 332 |[39m [90m * remember to review when the question changes.[39m
+     [90m 333 |[39m [90m */[39m
+    [31m[1m>[22m[39m[90m 334 |[39m router[33m.[39m[36mget[39m([32m'/screening/instruments'[39m[33m,[39m protect[33m,[39m authorize([32m'records:read'[39m[33m,[39m [32m'records:read:own'[39m)[33m,[39m [36masync[39m (req[33m,[39m res) [33m=>[39m {
+     [90m     |[39m                                      [31m[1m^[22m[39m
+     [90m 335 |[39m   [36mtry[39m {
+     [90m 336 |[39m     res[33m.[39mjson({
+     [90m 337 |[39m       responseOptions[33m:[39m [33mRESPONSE_OPTIONS[39m[33m,[39m[0m
+
+      at protect (src/routes/mentalhealth.js:334:38)
+      at test/helpers/app.js:30:26
+
+FAIL test/security/notificationScope.spec.js
+  ● Test suite failed to run
+
+    ReferenceError: authorize is not defined
+
+    [0m [90m 332 |[39m [90m * remember to review when the question changes.[39m
+     [90m 333 |[39m [90m */[39m
+    [31m[1m>[22m[39m[90m 334 |[39m router[33m.[39m[36mget[39m([32m'/screening/instruments'[39m[33m,[39m protect[33m,[39m authorize([32m'records:read'[39m[33m,[39m [32m'records:read:own'[39m)[33m,[39m [36masync[39m (req[33m,[39m res) [33m=>[39m {
+     [90m     |[39m                                      [31m[1m^[22m[39m
+     [90m 335 |[39m   [36mtry[39m {
+     [90m 336 |[39m     res[33m.[39mjson({
+     [90m 337 |[39m       responseOptions[33m:[39m [33mRESPONSE_OPTIONS[39m[33m,[39m[0m
+
+      at protect (src/routes/mentalhealth.js:334:38)
+      at test/helpers/app.js:30:26
+
+
+Test Suites: 2 failed, 29 passed, 31 total
+Tests:       424 passed, 424 total
+Snapshots:   0 total
+Time:        100.816 s
+Ran all test suites.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

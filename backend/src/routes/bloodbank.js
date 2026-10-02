@@ -4,6 +4,9 @@ import { BloodUnit, BloodRequest } from '../models/BloodBank.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createBloodUnitSchema, createBloodRequestSchema } from '../utils/validate.js';
 import { generateTimestampedId } from '../utils/idGenerator.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
+import logger from '../config/logger.js';
+import { sendServerError } from '../utils/safeError.js';
 
 const bloodIssueSchema = z.object({ unitIds: z.array(z.string()).optional() });
 const bloodTransfuseSchema = z.object({ endTime: z.string().optional(), vitals: z.any().optional() });
@@ -52,7 +55,7 @@ router.get('/requests', protect, async (req, res) => {
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
-    if (search) filter.$or = [{ requestId: new RegExp(search,'i') }, { patientName: new RegExp(search,'i') }, { bloodGroup: new RegExp(search,'i') }];
+    if (search) filter.$or = [{ requestId: new RegExp(escapeRegex(capSearch(search)), 'i') }, { patientName: new RegExp(escapeRegex(capSearch(search)), 'i') }, { bloodGroup: new RegExp(escapeRegex(capSearch(search)), 'i') }];
     const requests = await BloodRequest.find(filter).populate('patientId','name').sort({ createdAt: -1 });
     res.json({ requests });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -72,6 +75,16 @@ router.put('/requests/:id/issue', protect, adminOnly, validate(bloodIssueSchema)
     if (unitIds) {
       await BloodUnit.updateMany({ _id: { $in: unitIds } }, { status: 'Issued', issuedTo: request.patientName, issuedAt: new Date(), issuedBy: req.user.name, requestId: request._id });
     }
+    // Tech 04: atomic Redis guard — seed from Mongo count, then DECRBY. On
+    // shortfall the Mongo issue above stands (source of truth) but ops gets
+    // the inter-bank transfer signal from the warn log.
+    try {
+      const { seedBloodStock, reserveBloodUnits } = await import('../lib/clinicalState.js');
+      const bank = String(request.hospitalId || req.user.hospitalId || 'default');
+      const available = await BloodUnit.countDocuments({ status: 'Available', bloodGroup: request.bloodGroup });
+      await seedBloodStock(bank, request.bloodGroup, available);
+      await reserveBloodUnits(bank, request.bloodGroup, request.unitsRequired || (unitIds ? unitIds.length : 1));
+    } catch {}
     res.json(request);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -197,6 +210,49 @@ router.get('/stats', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// ─── Donor-directory opt-in ───
+// Consent must be explicit, revocable, and scoped to the caller's OWN record.
+// The directory route above now requires `isBloodDonor: true`, so without this
+// endpoint there is no way to join it — the guard would simply make the feature
+// dead. Self-only, so a caller cannot opt somebody else in.
+router.put('/donor-opt-in', protect, async (req, res) => {
+  try {
+    const User = (await import('../models/User.js')).default;
+    const optIn = req.body?.optIn !== false;
+
+    // Opting in without a usable blood group would create an unmatchable
+    // directory entry, so the prerequisite is stated rather than silently
+    // producing a donor nobody can find.
+    if (optIn) {
+      const me = await User.findById(req.user.id ?? req.user._id).select('bloodGroup').lean();
+      if (!me?.bloodGroup) {
+        return res.status(400).json({
+          message: 'Set your blood group before joining the donor directory',
+        });
+      }
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id ?? req.user._id,
+      {
+        isBloodDonor: optIn,
+        donorOptInAt: optIn ? new Date() : null,
+      },
+      { new: true }
+    ).select('isBloodDonor donorOptInAt bloodGroup');
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({
+      isBloodDonor: user.isBloodDonor,
+      donorOptInAt: user.donorOptInAt,
+      bloodGroup: user.bloodGroup,
+    });
+  } catch (err) {
+    logger.error(`Donor opt-in error: ${err.message}`);
+    sendServerError(res, err, 'Could not update donor consent');
+  }
+});
+
 // ─── H3 Resolution 7: Urgent Rare Blood Donor Search ───
 // Finds certified donors radiating outward from patient/hospital H3 cell
 router.get('/donors/nearby-h3', protect, async (req, res) => {
@@ -216,12 +272,24 @@ router.get('/donors/nearby-h3', protect, async (req, res) => {
     const ringCells = new Set(k === 0 ? [centerH3] : gridDisk(centerH3, k));
 
     // Candidate donors: matching group, known live location (bounded scan).
+    //
+    // AUTHZ: `isBloodDonor: true` is REQUIRED, and it is the one predicate that
+    // made this route safe. Without it the filter was `bloodGroup` +
+    // `currentLocation` - two fields a patient record happens to carry - so the
+    // response published the name, blood group and live GPS coordinates of any
+    // signed-in user, to any caller, with no consent and no way to opt out.
+    // Blood-group data is sensitive (it is a quasi-identifier), and pairing it
+    // with a precise location is a targeting profile.
+    //
+    // This is also why `phone` is no longer selected below: it was fetched on
+    // every candidate and never returned.
     const candidates = await User.find({
+      isBloodDonor: true,
       bloodGroup: String(bloodGroup).trim(),
       'currentLocation.lat': { $ne: null },
       'currentLocation.lng': { $ne: null },
     })
-      .select('name bloodGroup currentLocation phone loyalty')
+      .select('name bloodGroup currentLocation loyalty')
       .limit(200)
       .lean();
 

@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import OpsHealthCard from '@/components/OpsHealthCard';
 
 const AnimatedCard = ({ children, delay = 0 }) => (
   <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, duration: 0.35 }}>
@@ -259,6 +260,11 @@ export default function PlatformKPIs() {
           </CardContent>
         </AnimatedCard>
       </div>
+
+      {/* ADM-M-05: ops freshness/health widgets - superadmin-only snapshot,
+          polls itself every 60s, reports (never gates) so the card renders
+          even while the platform is degraded. */}
+      <OpsHealthCard />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>

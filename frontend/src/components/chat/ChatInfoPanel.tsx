@@ -68,8 +68,10 @@ export default function ChatInfoPanel({
   }, [query, onSearch]);
 
   const groupedMedia = useMemo(() => {
-    const images = media.filter((m) => m.mimetype?.startsWith('image/'));
-    const videos = media.filter((m) => m.mimetype?.startsWith('video/'));
+    // CHAT-M-02: server stores `mimeType` (camelCase); tolerate legacy lowercase.
+    const mimeOf = (m: any) => m.mimeType || m.mimetype;
+    const images = media.filter((m) => mimeOf(m)?.startsWith('image/'));
+    const videos = media.filter((m) => mimeOf(m)?.startsWith('video/'));
     return { images, videos };
   }, [media]);
 

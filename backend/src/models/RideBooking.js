@@ -1,11 +1,12 @@
 import mongoose from 'mongoose';
+import { randomDigits } from '../utils/secureRandom.js';
 
 const rideBookingSchema = new mongoose.Schema({
   bookingNumber: {
     type: String,
     unique: true,
     index: true,
-    default: () => `RID-${Math.floor(100000 + Math.random() * 900000)}`,
+    default: () => `RID-${randomDigits(6)}`,
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -55,7 +56,7 @@ const rideBookingSchema = new mongoose.Schema({
   },
   pickupOtp: {
     type: String,
-    default: () => Math.floor(1000 + Math.random() * 9000).toString(),
+    default: () => randomDigits(4),
   },
   status: {
     type: String,
@@ -123,6 +124,7 @@ const rideBookingSchema = new mongoose.Schema({
   },
   cancellationReason: { type: String, default: '' },
   cancelledBy: { type: String, enum: ['user', 'rider', 'system', ''], default: '' },
+  lakeArchivedAt: { type: Date, default: null, index: true },
   acceptedAt: { type: Date },
   arrivedAt: { type: Date },
   startedAt: { type: Date },

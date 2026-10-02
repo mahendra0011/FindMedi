@@ -2,6 +2,7 @@ import express from 'express';
 import City from '../models/City.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const router = express.Router();
 
@@ -10,7 +11,7 @@ router.get('/', async (req, res) => {
     const filter = {};
     if (req.query.active === 'true') filter.isActive = true;
     if (req.query.onboarding === 'true') filter.isOnboarding = true;
-    if (req.query.search) filter.name = new RegExp(req.query.search, 'i');
+    if (req.query.search) filter.name = new RegExp(escapeRegex(capSearch(req.query.search)), 'i');
     const cities = await City.find(filter).sort({ displayOrder: 1, name: 1 });
     res.json({ cities });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -26,7 +27,9 @@ router.post('/', protect, superadminOnly, async (req, res) => {
 
 router.put('/:id', protect, superadminOnly, async (req, res) => {
   try {
-    const city = await City.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { pickBody } = await import('../utils/pick.js');
+    const city = await City.findByIdAndUpdate(req.params.id,
+      pickBody(req.body, ['name', 'state', 'isActive', 'isOnboarding', 'onboardingDate', 'displayOrder']), { new: true });
     if (!city) return res.status(404).json({ message: 'City not found' });
     await auditLog('update_city', req.user._id, { cityName: city.name, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(city);

@@ -15,6 +15,7 @@ import AutoRetryPanel from '@/components/AutoRetryPanel';
 import { useAutoRetry, AUTO_RETRY_STATUS } from '@/hooks/useAutoRetry';
 import { usePreferredPharmacies } from '@/context/PreferredPharmacyContext';
 import { toast } from 'sonner';
+import { userFacingError } from '@/lib/errorCopy';
 
 const CROSS_STORE_MEDS = [
   { id:'m1_s2', name:'Paracetamol 500mg', image:'', brand:'PharmaPlus', mrp:48, price:32, discount:33, inStock:true, rx:false, pack:'10 tablets', category:'OTC', storeId:'s2' },
@@ -146,7 +147,7 @@ export default function Checkout() {
         toast.error(res?.message || 'Invalid coupon code');
       }
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to validate coupon');
+      toast.error(userFacingError(e, { fallback: 'Failed to validate coupon' }));
     }
   };
 
@@ -244,7 +245,7 @@ export default function Checkout() {
               navigate(`/payment-gateway?${params}`);
             }
           } catch (e) {
-            toast.error(e.response?.data?.message || e.message || 'Failed to place order');
+            toast.error(userFacingError(e, { fallback: 'Failed to place order' }));
           }
         },
         onCancel: () => setConfirmDialog(null),
@@ -298,7 +299,7 @@ export default function Checkout() {
         navigate(`/payment-gateway?${params}`);
       }
     } catch (e) {
-      toast.error(e.response?.data?.message || e.message || 'Failed to place order');
+      toast.error(userFacingError(e, { fallback: 'Failed to place order' }));
     }
   };
 

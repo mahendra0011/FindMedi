@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { bookTestLab, isBookingConflictError } from '@/lib/testBooking';
 import { useAuth } from '@/context/AuthContext';
+import { userFacingError } from '@/lib/errorCopy';
 
 const DEPARTMENTS = [
   { id:'all', name:'All Departments', icon:FlaskConical, color:'from-primary/20 to-primary/5', textColor:'text-primary', hoverColor:'hover:border-primary/40' },
@@ -321,7 +322,7 @@ export default function HospitalTestBooking() {
       setBookingStep(6);
       toast.success('Booking confirmed!');
     } catch (e) {
-      const msg = e.response?.data?.message || e.message || '';
+      const msg = userFacingError(e, { fallback: '' });
       if (isBookingConflictError(msg)) {
         setBookingId(bookingId || 'MED' + crypto.randomUUID());
         setBookingConfirmed(true);

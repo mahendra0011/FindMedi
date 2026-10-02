@@ -2,6 +2,7 @@ import express from 'express';
 import PlatformCoupon from '../models/PlatformCoupon.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ router.get('/', protect, superadminOnly, async (req, res) => {
     const filter = {};
     if (status === 'active') filter.isActive = true;
     if (status === 'inactive') filter.isActive = false;
-    if (search) filter.code = new RegExp(search, 'i');
+    if (search) filter.code = new RegExp(escapeRegex(capSearch(search)), 'i');
     const coupons = await PlatformCoupon.find(filter).sort({ createdAt: -1 });
     res.json({ coupons });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -38,7 +39,9 @@ router.post('/', protect, superadminOnly, async (req, res) => {
 
 router.put('/:id', protect, superadminOnly, async (req, res) => {
   try {
-    const coupon = await PlatformCoupon.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { pickBody } = await import('../utils/pick.js');
+    const coupon = await PlatformCoupon.findByIdAndUpdate(req.params.id,
+      pickBody(req.body, ['description', 'discountType', 'discountValue', 'minOrderValue', 'maxDiscount', 'usageLimit', 'perUserLimit', 'applicableServices', 'validFrom', 'validUntil', 'isActive']), { new: true });
     if (!coupon) return res.status(404).json({ message: 'Coupon not found' });
     res.json(coupon);
   } catch (err) { res.status(400).json({ message: err.message }); }

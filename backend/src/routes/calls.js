@@ -10,6 +10,7 @@ import Appointment from '../models/Appointment.js';
 import Doctor from '../models/Doctor.js';
 import Patient from '../models/Patient.js';
 import { protect } from '../middleware/auth.js';
+import { assertCallParticipant, denyCallAccess } from '../middleware/callAccess.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -333,6 +334,12 @@ router.put('/:id/status', protect, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Call record not found' });
     }
 
+    // AUTHZ: no participation check existed here, so any authenticated account
+    // could rewrite status, duration, answeredAt and notes on ANY call record —
+    // falsifying another party's call history. See middleware/callAccess.js.
+    const party = assertCallParticipant(req, call);
+    if (!party.ok) return denyCallAccess(res);
+
     if (status) call.status = status;
     if (duration !== undefined) call.duration = Number(duration) || 0;
     if (answeredAt) call.answeredAt = new Date(answeredAt);
@@ -365,6 +372,13 @@ router.post('/:id/recording', protect, uploadRecording.single('audio'), async (r
     if (!call) {
       return res.status(404).json({ success: false, message: 'Call log not found' });
     }
+
+    // AUTHZ: a recording is the most sensitive artefact here — the patient's own
+    // voice and their doctor's. This route had no participation check, so any
+    // authenticated account could attach an audio file to ANY call record and
+    // read it back. Now the caller must be a party to that call.
+    const party = assertCallParticipant(req, call);
+    if (!party.ok) return denyCallAccess(res);
 
     const relativeUrl = `/uploads/call-recordings/${req.file.filename}`;
     call.recordingUrl = relativeUrl;
