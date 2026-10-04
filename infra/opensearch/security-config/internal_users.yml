@@ -1,0 +1,78 @@
+---
+# =============================================================================
+# FindMedi DEV — internal user database (DP-B-01)
+# =============================================================================
+# Base = image demo file, EXCEPT the admin bcrypt hash: image ka demo hash
+# "admin" password ka hai, par compose healthcheck aur
+# infra/opensearch/bootstrap/README.md dono OPENSEARCH_INITIAL_ADMIN_PASSWORD
+# (dev default: findmedi_dev_opensearch) se auth karte hain.
+#
+# Regenerate the hash after changing the password:
+#   docker run --rm --entrypoint bash opensearchproject/opensearch:2.12.0 \
+#     /usr/share/opensearch/plugins/opensearch-security/tools/hash.sh -p <password>
+#
+# Mounted over /usr/share/opensearch/config/opensearch-security/internal_users.yml
+# by infra/docker-compose.yml; installed into the security index at boot via
+# plugins.security.allow_default_init_securityindex=true. DEV ONLY.
+# =============================================================================
+# The hash value is a bcrypt hash and can be generated with plugin/tools/hash.sh
+
+_meta:
+  type: "internalusers"
+  config_version: 2
+
+## FindMedi users
+
+admin:
+  hash: "$2y$12$sK/lH2Gu5HQHN079jcSqYujx/pJFYfL5MXPrUvAn5eKKvjL4LwgHy"
+  reserved: true
+  backend_roles:
+  - "admin"
+  description: "FindMedi dev admin (password = OPENSEARCH_INITIAL_ADMIN_PASSWORD)"
+
+## Demo users (image defaults)
+
+anomalyadmin:
+  hash: "$2y$12$TRwAAJgnNo67w3rVUz4FIeLx9Dy/llB79zf9I15CKJ9vkM4ZzAd3."
+  reserved: false
+  opendistro_security_roles:
+  - "anomaly_full_access"
+  description: "Demo anomaly admin user, using internal role"
+
+kibanaserver:
+  hash: "$2a$12$4AcgAt3xwOWadA5s5blL6ev39OXDNhmOesEoo33eZtrq2N0YrU3H."
+  reserved: true
+  description: "Demo OpenSearch Dashboards user"
+
+kibanaro:
+  hash: "$2a$12$JJSXNfTowz7Uu5ttXfeYpeYE0arACvcwlPBStB1F.MI7f0U9Z4DGC"
+  reserved: false
+  backend_roles:
+  - "kibanauser"
+  - "readall"
+  attributes:
+    attribute1: "value1"
+    attribute2: "value2"
+    attribute3: "value3"
+  description: "Demo OpenSearch Dashboards read only user, using external role mapping"
+
+logstash:
+  hash: "$2a$12$u1ShR4l4uBS3Uv59Pa2y5.1uQuZBrZtmNfqB3iM/.jL0XoV9sghS2"
+  reserved: false
+  backend_roles:
+  - "logstash"
+  description: "Demo logstash user, using external role mapping"
+
+readall:
+  hash: "$2a$12$ae4ycwzwvLtZxwZ82RmiEunBbIPiAmGZduBAjKN0TXdwQFtCwARz2"
+  reserved: false
+  backend_roles:
+  - "readall"
+  description: "Demo readall user, using external role mapping"
+
+snapshotrestore:
+  hash: "$2y$12$DpwmetHKwgYnorbgdvORCenv4NAK8cPUg8AI6pxLCuWf/ALc0.v7W"
+  reserved: false
+  backend_roles:
+  - "snapshotrestore"
+  description: "Demo snapshotrestore user, using external role mapping"

@@ -260,6 +260,30 @@ services:
       KAFKA_SSL_KEYSTORE_PASSWORD: ${KAFKA_KEYSTORE_PASSWORD:-findmedi_dev_keystore}
       KAFKA_SSL_KEY_PASSWORD: ${KAFKA_KEY_PASSWORD:-findmedi_dev_key}
       KAFKA_SSL_CLIENT_AUTH: required
+      # cp-kafka ke `configure` script ko *_FILENAME + creds FILES chahiye
+      # (na ki upar wala *_LOCATION form — wo script inhein set karte waqt
+      # OVERWRITE karti hai). Missing file = configure exits = crash-loop.
+      # Files infra/kafka/secrets/ me hoti hain (infra:up pehli baar generate
+      # karta hai — dekh: scripts/infra.mjs ensureSecrets).
+      KAFKA_SSL_KEYSTORE_FILENAME: kafka.keystore.jks
+      KAFKA_SSL_KEY_CREDENTIALS: kafka.key.credentials
+      KAFKA_SSL_KEYSTORE_CREDENTIALS: kafka.keystore.credentials
+      KAFKA_SSL_TRUSTSTORE_FILENAME: kafka.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: kafka.truststore.credentials
+      # KAFKA_OPTS ko cub zk-ready (preflight) forward karta hai: agar yahan
+      # `-Djava.security.auth.login.config` rakha to cub SASL-mode on karke
+      # SaslAuthenticated event wait karta hai, jo plain dev ZooKeeper kabhi
+      # bhejta nahi → 40s timeout = crash-loop (empirically verified: 11s fail
+      # vs 3s pass). Isliye jaas path NICHE KAFKA_JVM_PERFORMANCE_OPTS me hai.
+      # zookeeper.sasl.client=false: dev ZK SASL-less hai; broker ka internal
+      # ZK client bhi SASL try na kare.
+      KAFKA_OPTS: "-Dzookeeper.sasl.client=false"
+      # Broker ka JAAS: SASL_SSL listener ke liye JaasContext ko 'KafkaServer'
+      # entry chahiye (warna fatal "Could not find a 'KafkaServer' entry").
+      # KAFKA_JVM_PERFORMANCE_OPTS sirf broker JVM (kafka-run-class) ko milta
+      # hai — cub ise forward nahi karta (verified) aur properties template ise
+      # exclude karta hai. configure ki jaas-property check sirf WARNING hai.
+      KAFKA_JVM_PERFORMANCE_OPTS: "-Djava.security.auth.login.config=/etc/kafka/secrets/jaas-server.conf"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -298,7 +322,24 @@ services:
       # DP-B-01: index-level RBAC is provisioned at boot — the API writes with
       # `findmedi_api` and can only touch its own indices; break-glass reads of
       # the raw EHR index are a separate `findmedi_breakglass` role.
-      - OPENSEARCH_JAVA_OPTS_APPEND=-Dplugins.security.ssl.http.enabled=true -Dplugins.security.ssl.transport.enabled=true
+      # DP-B-01: entrypoint sirf DOTTED env vars ko -E node settings me badalta
+      # hai (opensearch-docker-entrypoint.sh ka `env` loop). OPENSEARCH_JAVA_OPTS_APPEND
+      # is image par bilkul ignore hota tha — wahi OpenSearch crash thi: transport
+      # SSL "requested" tha par cert paths kahin set nahi the. PEM form (image me
+      # koi JKS nahi); paths absolute = ./opensearch/certs mount ke andar.
+      - plugins.security.ssl.http.enabled=true
+      - plugins.security.ssl.transport.enabled=true
+      # Combined form (demo config jaisa) — server/client split ke saath ye
+      # plugin "Empty file path for ...transport.pemcert_filepath" deta hai.
+      - plugins.security.ssl.transport.pemcert_filepath=/usr/share/opensearch/config/certs/node-0.pem
+      - plugins.security.ssl.transport.pemkey_filepath=/usr/share/opensearch/config/certs/node-0-key.pem
+      - plugins.security.ssl.transport.pemtrustedcas_filepath=/usr/share/opensearch/config/certs/root-ca.pem
+      - plugins.security.ssl.http.pemcert_filepath=/usr/share/opensearch/config/certs/node-0.pem
+      - plugins.security.ssl.http.pemkey_filepath=/usr/share/opensearch/config/certs/node-0-key.pem
+      - plugins.security.ssl.http.pemtrustedcas_filepath=/usr/share/opensearch/config/certs/root-ca.pem
+      # Security index first boot pe config/opensearch-security/ se auto-init (dev)
+      # — admin hash wahi hai jo volumes me file-mount hota hai.
+      - plugins.security.allow_default_init_securityindex=true
     ulimits:
       memlock:
         soft: -1
@@ -311,6 +352,12 @@ services:
       # DP-B-01: TLS material + the role/action-policy bootstrap.
       - ./opensearch/certs:/usr/share/opensearch/config/certs:ro
       - ./opensearch/bootstrap:/usr/local/share/bootstrap:ro
+      # Image demo file me admin hash "admin" ka hai, par healthcheck (nichla) +
+      # infra/opensearch/bootstrap/README.md dono OPENSEARCH_INITIAL_ADMIN_PASSWORD
+      # se auth karte hain — wahi hash yahan override hota hai (FILE mount; dir
+      # mount hota to image ke roles / roles_mapping / action_groups chhup jate,
+      # jo auto-init ko chahiye).
+      - ./opensearch/security-config/internal_users.yml:/usr/share/opensearch/config/opensearch-security/internal_users.yml:ro
     ports:
       - "127.0.0.1:9200:9200"   # DP-B-01: loopback only, never 0.0.0.0
     healthcheck:
