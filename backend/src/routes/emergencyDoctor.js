@@ -7,6 +7,7 @@ import { getIO } from '../services/socketService.js';
 import { startEmergencyDoctorDispatch, acceptEmergencyDoctorRequest, rejectEmergencyDoctorRequest } from '../services/emergencyDoctorDispatchService.js';
 import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
 import logger from '../config/logger.js';
+import { releaseProviderClaim } from '../services/instantDispatchService.js';
 import { randomDigits } from '../utils/secureRandom.js';
 
 const router = express.Router();
@@ -40,6 +41,7 @@ function canAccessEmergencyDoctorRequest(req, request) {
   if (req.user?.role === 'superadmin') return true;
   const id = (v) => (v && typeof v === 'object' ? String(v._id) : v ? String(v) : null);
   if (id(request.patientId) && id(request.patientId) === String(req.user._id)) return true;
+  if (id(request.assignedDoctorUserId) && id(request.assignedDoctorUserId) === String(req.user._id)) return true;
   if (id(request.assignedDoctorId) && id(request.assignedDoctorId) === String(req.user._id)) return true;
   return false;
 }
@@ -207,7 +209,6 @@ router.post('/:requestId/accept', protect, authorize('emergency:write'), async (
     const userId = req.user._id || req.user.id;
 
     let doctor = await Doctor.findOne({ user_id: userId });
-    if (!doctor) doctor = await Doctor.findById(userId);
     if (!doctor) return res.status(404).json({ success: false, message: 'Doctor profile not found' });
 
     // Concurrency lock check
@@ -250,9 +251,18 @@ router.post('/:requestId/accept', protect, authorize('emergency:write'), async (
     // RIDE-B-16: the claim is applied ATOMICALLY with `{ status: 'searching' }`
     // in the filter, so two doctors racing for the same emergency cannot both win
     // (the loser gets null and a 409).
-    const updated = await EmergencyDoctorRequest.findOneAndUpdate(
-      { _id: requestId, status: 'searching' },
-      {
+    const doctorClaimed = await Doctor.findOneAndUpdate(
+      { _id: doctor._id, activeDispatchRequestId: null },
+      { $set: { activeDispatchRequestId: requestId } },
+      { new: true, select: '_id' }
+    );
+    if (!doctorClaimed) return res.status(409).json({ success: false, message: 'You are already assigned to an active emergency' });
+
+    let updated;
+    try {
+      updated = await EmergencyDoctorRequest.findOneAndUpdate(
+        { _id: requestId, status: 'searching' },
+        {
         $set: {
           assignedDoctorId: doctor._id,
           assignedDoctorUserId: userId,
@@ -274,12 +284,19 @@ router.post('/:requestId/accept', protect, authorize('emergency:write'), async (
             coordinates: doctorCoords,
           },
         },
-      },
-      { new: true }
-    );
+        },
+        { new: true }
+      );
+    } catch (error) {
+      await releaseProviderClaim('emergency_doctor', userId, requestId).catch((releaseError) => {
+        logger.error(`Failed to release doctor claim after accept error: ${releaseError.message}`);
+      });
+      throw error;
+    }
 
     // RIDE-B-16: the loser's atomic update returns null (someone else claimed it).
     if (!updated) {
+      await releaseProviderClaim('emergency_doctor', userId, requestId);
       return res.status(409).json({ success: false, message: 'This emergency has already been claimed by another physician' });
     }
 
@@ -323,7 +340,7 @@ router.put('/:requestId/telemetry', protect, authorize('emergency:read'), async 
     // alike, so any holder could spoof another patient's live doctor location.
     const telemetryScope = req.user.role === 'superadmin'
       ? { _id: requestId }
-      : { _id: requestId, assignedDoctorId: req.user._id };
+      : { _id: requestId, assignedDoctorUserId: req.user._id };
 
     const updated = await EmergencyDoctorRequest.findByIdAndUpdate(
       telemetryScope,
@@ -341,7 +358,6 @@ router.put('/:requestId/telemetry', protect, authorize('emergency:read'), async 
     if (!updated) {
       return res.status(403).json({ success: false, message: 'You are not assigned to this emergency request' });
     }
-
     // Stream update to patient in real-time
     try {
       const io = getIO();
@@ -372,6 +388,36 @@ router.put('/:requestId/status', protect, authorize('emergency:write'), async (r
       return res.status(400).json({ success: false, message: `Invalid status: ${status}` });
     }
 
+    // ED-M-01 lifecycle parity: terminal states are idempotent, non-terminal
+    // transitions are CAS-guarded so a duplicate `completed` or a stale
+    // client cannot move a closed request, matching assistant/lawyer 409s.
+    const existingReq = await EmergencyDoctorRequest.findById(requestId).select('status').lean();
+    if (!existingReq) {
+      return res.status(404).json({ success: false, message: 'Emergency request not found' });
+    }
+    const TERMINAL_ED = ['completed', 'cancelled_by_user', 'cancelled_by_doctor', 'escalated_to_ambulance'];
+    if (TERMINAL_ED.includes(existingReq.status)) {
+      const idempotent = existingReq.status === status
+        || (existingReq.status === 'escalated_to_ambulance' && status === 'escalated_to_ambulance');
+      return res.status(idempotent ? 200 : 409).json({
+        success: idempotent,
+        message: idempotent ? 'Request was already closed' : `Cannot move a ${existingReq.status} request to ${status}`,
+      });
+    }
+    const ELIGIBLE_ED = {
+      en_route: ['assigned', 'in_progress'],
+      arrived: ['en_route', 'assigned', 'in_progress'],
+      in_triage: ['arrived', 'en_route', 'assigned', 'in_progress'],
+      completed: ['assigned', 'in_progress', 'en_route', 'arrived', 'in_triage'],
+      escalated_to_ambulance: ['assigned', 'in_progress', 'en_route', 'arrived', 'in_triage'],
+    };
+    if (!((ELIGIBLE_ED[status] || []).includes(existingReq.status))) {
+      return res.status(409).json({
+        success: false,
+        message: `Cannot move a ${existingReq.status} request to ${status}`,
+      });
+    }
+
     const updateData = { status };
     if (clinicalReport) {
       updateData.clinicalReport = clinicalReport;
@@ -380,11 +426,13 @@ router.put('/:requestId/status', protect, authorize('emergency:write'), async (r
     // RIDE-B-14: only the assigned doctor (or a superadmin) may drive the
     // lifecycle of an emergency request — otherwise any user holding
     // `emergency:write` could complete/escalate somebody else's SOS.
+    // ED-M-01: the status predicate is part of the filter so a concurrent
+    // close wins atomically (loser gets null → 409, never a double close).
     const statusScope = req.user.role === 'superadmin'
-      ? { _id: requestId }
-      : { _id: requestId, assignedDoctorId: req.user._id };
+      ? { _id: requestId, status: existingReq.status }
+      : { _id: requestId, assignedDoctorUserId: req.user._id, status: existingReq.status };
 
-    const updated = await EmergencyDoctorRequest.findByIdAndUpdate(
+    const updated = await EmergencyDoctorRequest.findOneAndUpdate(
       statusScope,
       {
         $set: updateData,
@@ -400,7 +448,17 @@ router.put('/:requestId/status', protect, authorize('emergency:write'), async (r
     );
 
     if (!updated) {
+      const latestStatus = await EmergencyDoctorRequest.findById(requestId).select('status').lean();
+      if (latestStatus && latestStatus.status !== existingReq.status) {
+        return res.status(latestStatus.status === status ? 200 : 409).json({
+          success: latestStatus.status === status,
+          message: latestStatus.status === status ? 'Request was already closed' : `Request is now ${latestStatus.status}`,
+        });
+      }
       return res.status(403).json({ success: false, message: 'You are not assigned to this emergency request' });
+    }
+    if (['completed', 'escalated_to_ambulance'].includes(status) && updated.assignedDoctorUserId) {
+      await releaseProviderClaim('emergency_doctor', updated.assignedDoctorUserId, updated._id);
     }
 
     // Notify patient
@@ -455,7 +513,7 @@ router.post('/:requestId/cancel', protect, authorize('emergency:write'), async (
     if (!canAccessEmergencyDoctorRequest(req, existing)) {
       return res.status(403).json({ success: false, message: 'Not authorized to cancel this emergency request' });
     }
-    const isAssignedDoctor = String(existing.assignedDoctorId?._id || existing.assignedDoctorId) === String(req.user._id);
+    const isAssignedDoctor = String(existing.assignedDoctorUserId || '') === String(req.user._id);
     const cancelledBy = isAssignedDoctor ? 'doctor' : 'patient';
 
     const updated = await EmergencyDoctorRequest.findByIdAndUpdate(
@@ -477,6 +535,7 @@ router.post('/:requestId/cancel', protect, authorize('emergency:write'), async (
       { new: true }
     );
 
+    if (existing.assignedDoctorId) await releaseProviderClaim('emergency_doctor', existing.assignedDoctorId, existing._id);
     res.json({ success: true, message: 'Emergency doctor request cancelled', request: updated });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -490,7 +549,7 @@ router.post('/:requestId/room', protect, async (req, res) => {
     const docReq = await EmergencyDoctorRequest.findById(req.params.requestId);
     if (!docReq) return res.status(404).json({ success: false, message: 'Request not found' });
     const me = String(req.user._id || req.user.id);
-    const isParty = [String(docReq.userId), String(docReq.patientId), String(docReq.assignedDoctorId)].includes(me);
+    const isParty = [String(docReq.userId), String(docReq.patientId), String(docReq.assignedDoctorUserId)].includes(me);
     if (!isParty && req.user.role !== 'superadmin') {
       return res.status(403).json({ success: false, message: 'Not a party to this consultation' });
     }
@@ -534,7 +593,7 @@ router.post('/:requestId/escalate', protect, authorize('emergency:write'), async
       return res.status(400).json({ success: false, message: 'Only active consultations can be escalated' });
     }
     const doctorId = String(req.user._id || req.user.id);
-    if (docReq.assignedDoctorId && String(docReq.assignedDoctorId) !== doctorId && req.user.role !== 'superadmin') {
+    if (docReq.assignedDoctorUserId && String(docReq.assignedDoctorUserId) !== doctorId && req.user.role !== 'superadmin') {
       return res.status(403).json({ success: false, message: 'Only the assigned doctor can escalate' });
     }
 
@@ -568,6 +627,9 @@ router.post('/:requestId/escalate', protect, authorize('emergency:write'), async
     docReq.status = 'escalated_to_ambulance';
     docReq.timeline.push({ stage: 'escalated_to_ambulance', timestamp: new Date(), note: `Escalated to SOS ${sos._id} by doctor` });
     await docReq.save();
+    if (docReq.assignedDoctorUserId) {
+      await releaseProviderClaim('emergency_doctor', docReq.assignedDoctorUserId, docReq._id);
+    }
     startEmergencyDispatch(sos._id).catch((err) => logger.error(`Escalated SOS dispatch error: ${err.message}`));
 
     const io = getIO();

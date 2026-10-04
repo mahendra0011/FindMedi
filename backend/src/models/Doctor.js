@@ -80,6 +80,7 @@ const doctorSchema = new mongoose.Schema({
   emergency_consultation: { alias: 'emergencyConsultation', type: Boolean, default: false },
   emergencySupport: { type: Boolean, default: false },
   isEmergencyDutyActive: { type: Boolean, default: false },
+  activeDispatchRequestId: { type: mongoose.Schema.Types.ObjectId, default: null, index: true },
   emergencyRadiusKm: { type: Number, default: 10 },
   emergencyDoctorLocation: {
     type: { type: String, enum: ['Point'], default: 'Point' },
@@ -88,7 +89,7 @@ const doctorSchema = new mongoose.Schema({
     lng: { type: Number, default: 79.9864 },
     h3Index8: { type: String, index: true, default: null },
     h3Index9: { type: String, index: true, default: null },
-    lastUpdatedAt: { type: Date, default: Date.now },
+    lastUpdatedAt: { type: Date, default: null },
   },
   emergencyEquipmentKit: {
     type: [String],

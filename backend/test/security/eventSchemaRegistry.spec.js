@@ -242,6 +242,7 @@ describe('DP-M-01 · CI compatibility gate', () => {
       'utf8'
     );
     expect(consumer).toContain('validateInbound(topic, enveloped)');
+    expect(consumer).toContain("case 'LawyerBookingCompleted.v1'");
   });
 
   it('ships one valid + one negative fixture per entry', () => {

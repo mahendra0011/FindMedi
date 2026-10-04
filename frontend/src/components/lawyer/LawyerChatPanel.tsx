@@ -1,162 +1,62 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Send, MessageSquare, X, Scale } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import api from '../../lib/axios';
 import { getSocket } from '../../lib/socket';
 
-interface ChatMessage {
-  bookingId: string;
-  senderId: string;
-  senderName: string;
-  text: string;
-  at: string;
-}
+interface ChatMessage { _id?: string; conversationId: string; sender?: { _id?: string; name?: string }; content: string; createdAt: string; }
+interface Props { bookingId: string; currentUser: any; targetUser?: any; onClose?: () => void; }
 
-interface Props {
-  bookingId: string;
-  currentUser: any;
-  targetUser?: any;
-  onClose?: () => void;
-}
-
-export const LawyerChatPanel: React.FC<Props> = ({
-  bookingId,
-  currentUser,
-  targetUser,
-  onClose,
-}) => {
+export const LawyerChatPanel: React.FC<Props> = ({ bookingId, currentUser, targetUser, onClose }) => {
+  const [conversationId, setConversationId] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [notice, setNotice] = useState('');
+  const [loading, setLoading] = useState(true);
+  const bottom = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket || !bookingId) return;
-
-    const handleMessage = (msg: ChatMessage) => {
-      if (msg.bookingId === bookingId) {
-        setMessages((prev) => [...prev, msg]);
-      }
-    };
-
-    socket.on('chat_message', handleMessage);
-
-    return () => {
-      socket.off('chat_message', handleMessage);
-    };
+    let active = true;
+    setLoading(true);
+    api.get(`/chat/bookings/lawyer/${bookingId}/conversation`).then(async ({ data }) => {
+      if (!active) return;
+      setConversationId(data.conversationId);
+      const history = await api.get(`/chat/messages/${data.conversationId}`);
+      if (active) setMessages(history.data);
+    }).catch(() => { if (active) setNotice('Could not load this booking chat. Check your booking access or try again.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [bookingId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-
+    if (!conversationId) return;
     const socket = getSocket();
-    const payload: ChatMessage = {
-      bookingId,
-      senderId: String(currentUser?._id || 'me'),
-      senderName: currentUser?.name || 'You',
-      text: input.trim(),
-      at: new Date().toISOString(),
+    const join = () => socket.emit('chat:join', conversationId);
+    const receive = (message: ChatMessage) => {
+      if (String(message.conversationId) !== conversationId) return;
+      setMessages((prev) => prev.some((m) => m._id && m._id === message._id) ? prev : [...prev, message]);
     };
+    socket.on('connect', join); socket.on('chat:receive_message', receive);
+    if (socket.connected) join();
+    return () => { socket.off('connect', join); socket.off('chat:receive_message', receive); socket.emit('chat:leave', conversationId); };
+  }, [conversationId]);
 
-    if (socket) {
-      socket.emit('send_chat_message', payload);
-    }
-    setMessages((prev) => [...prev, payload]);
-    setInput('');
-  };
+  useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  const handleSend = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault(); const content = input.trim();
+    if (!content || !conversationId) return;
+    setNotice('');
+    try {
+      const { data } = await api.post('/chat/messages', { conversationId, content, type: 'text', clientGeneratedId: crypto.randomUUID() });
+      setMessages((prev) => prev.some((m) => m._id && m._id === data._id) ? prev : [...prev, data]); setInput('');
+    } catch { setNotice('Message was not sent. Please retry.'); }
+  }, [conversationId, input]);
 
-  return (
-    <div className="flex flex-col h-80 sm:h-96 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
-      {/* Chat Header */}
-      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-            {targetUser?.name ? targetUser.name.charAt(0).toUpperCase() : <Scale className="w-4 h-4" />}
-          </div>
-          <div>
-            <div className="font-bold text-xs text-slate-900 dark:text-slate-100">
-              {targetUser?.name ? `Adv. ${targetUser.name}` : 'Client Legal Consultation Chat'}
-            </div>
-            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-              Live Encrypted Session
-            </div>
-          </div>
-        </div>
-
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-
-      {/* Messages Feed */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-2.5 text-xs">
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400 text-center">
-            <MessageSquare className="w-8 h-8 mb-2 opacity-30 text-slate-900 dark:text-slate-100" />
-            <p>Direct chat window open.</p>
-            <p className="text-[10px] mt-0.5">Send a message to start conversation.</p>
-          </div>
-        ) : (
-          messages.map((m, idx) => {
-            const isMe = String(m.senderId) === String(currentUser?._id);
-            return (
-              <div
-                key={idx}
-                className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-2xl px-3 py-2 text-xs shadow-sm leading-relaxed ${
-                    isMe
-                      ? 'bg-slate-900 text-white rounded-br-none'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-none'
-                  }`}
-                >
-                  <p>{m.text}</p>
-                </div>
-                <span className="text-[9px] text-slate-400 mt-0.5 px-1">
-                  {new Date(m.at).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
-              </div>
-            );
-          })
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Message Input */}
-      <form
-        onSubmit={handleSend}
-        className="p-2.5 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 flex gap-2"
-      >
-        <Input
-          type="text"
-          placeholder="Type consultation message..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="rounded-xl text-xs h-9"
-        />
-        <Button
-          type="submit"
-          disabled={!input.trim()}
-          size="sm"
-          className="bg-slate-900 hover:bg-black text-white rounded-xl h-9 px-3 shrink-0"
-        >
-          <Send className="w-3.5 h-3.5" />
-        </Button>
-      </form>
-    </div>
-  );
+  return <div className="flex flex-col h-80 sm:h-96 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+    <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border-b flex items-center justify-between"><div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center"><Scale className="w-4 h-4" /></div><div><div className="font-bold text-xs">{targetUser?.name ? `Adv. ${targetUser.name}` : 'Legal consultation chat'}</div><div className="text-[10px] text-slate-500">{loading ? 'Loading secure chat…' : 'Booking participants only'}</div></div></div>{onClose && <button onClick={onClose} aria-label="Close chat" className="p-1"><X className="w-4 h-4" /></button>}</div>
+    <div className="flex-1 p-4 overflow-y-auto space-y-2.5 text-xs">{loading ? <p role="status">Loading messages…</p> : messages.length ? messages.map((m, i) => { const mine = String(m.sender?._id) === String(currentUser?._id); return <div key={m._id || i} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}><div className={`max-w-[80%] rounded-2xl px-3 py-2 ${mine ? 'bg-slate-900 text-white' : 'bg-slate-100 dark:bg-slate-800'}`}><p>{m.content}</p></div><span className="text-[9px] text-slate-400 mt-0.5">{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>; }) : <div className="h-full flex flex-col items-center justify-center text-slate-400 text-center"><MessageSquare className="w-8 h-8 mb-2 opacity-30" /><p>Send a message to start this consultation.</p></div>}<div ref={bottom} /></div>
+    {notice && <p role="status" className="px-3 pt-2 text-xs text-amber-700 bg-amber-50">{notice}</p>}
+    <form onSubmit={handleSend} className="p-2.5 border-t flex gap-2"><Input aria-label="Message" type="text" placeholder="Type consultation message…" value={input} onChange={(e) => setInput(e.target.value)} className="rounded-xl text-xs h-9" /><Button aria-label="Send message" type="submit" disabled={!input.trim() || !conversationId || loading} size="sm" className="rounded-xl h-9 px-3"><Send className="w-3.5 h-3.5" /></Button></form>
+  </div>;
 };

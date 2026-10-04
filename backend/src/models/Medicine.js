@@ -11,6 +11,8 @@ const medicineSchema = new mongoose.Schema({
   purchasePrice: { type: Number, required: true },
   sellingPrice: { type: Number, required: true },
   currentStock: { type: Number, required: true, default: 0 },
+  // currentStock is sellable stock; checkout reservations decrement it in the
+  // same transaction as the PharmacyOrder, then cancellation/expiry restores it.
   reorderLevel: { type: Number, default: 10 },
   prescriptionReq: { type: Boolean, default: false },
   rackLocation: { type: String, default: '' },
@@ -21,12 +23,5 @@ const medicineSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
-
-// Auto update isActive based on stock level
-medicineSchema.pre('save', function (next) {
-  if (this.currentStock === 0) this.isActive = false;
-  else if (this.currentStock > 0 && !this.isActive) this.isActive = true; // Re-enable when restocked
-  next();
-});
 
 export default mongoose.model('Medicine', medicineSchema);

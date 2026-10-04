@@ -158,9 +158,10 @@ describe('buildDictionary against the real schemas', () => {
   });
 
   it('reports retention gaps instead of guessing, and org records never gap', () => {
-    expect(dict.unmappedRetention).toContain('users');
-    expect(dict.unmappedRetention).toContain('chatmessages');
-    expect(dict.unmappedRetention.length).toBeLessThan(20);
+    const approvedGapBaseline = JSON.parse(fs.readFileSync(
+      path.join(BACKEND, 'scripts', 'retention-gap-baseline.json'), 'utf8'
+    ));
+    expect(dict.unmappedRetention).toEqual(approvedGapBaseline);
     const orgCollections = dict.models.filter((d) => d.orgRecord).map((d) => d.collection);
     for (const gap of dict.unmappedRetention) {
       expect(orgCollections).not.toContain(gap);

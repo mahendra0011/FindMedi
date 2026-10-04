@@ -2,6 +2,10 @@ import mongoose from 'mongoose';
 
 const chatConversationSchema = new mongoose.Schema({
   participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true }],
+  // Booking-linked threads are created only after the booking ACL is checked.
+  contextType: { type: String, enum: ['assistant-booking', 'lawyer-booking'], default: null },
+  contextId: { type: mongoose.Schema.Types.ObjectId, default: null },
+  contextParticipants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   mutedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   blockedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   pinnedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
@@ -31,6 +35,11 @@ const chatConversationSchema = new mongoose.Schema({
   lastMessage: { type: mongoose.Schema.Types.ObjectId, ref: 'ChatMessage' },
   lastMessageAt: { type: Date, default: Date.now, index: true }
 }, { timestamps: true });
+
+chatConversationSchema.index(
+  { contextType: 1, contextId: 1 },
+  { unique: true, partialFilterExpression: { contextType: { $in: ['assistant-booking', 'lawyer-booking'] }, contextId: { $type: 'objectId' } } },
+);
 
 export default mongoose.model('ChatConversation', chatConversationSchema);
 

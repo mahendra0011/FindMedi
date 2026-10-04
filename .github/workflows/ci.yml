@@ -59,7 +59,18 @@ jobs:
     # day one and everyone would learn to ignore it. This may only go DOWN, and a
     # regression names the package.
     - name: No NEW critical/high advisories
+      env:
+        VULN_AUDIT_ARTIFACT_DIR: ${{ runner.temp }}/findmedi-vulnerability-audit
       run: cd backend && node scripts/check-vuln-regression.mjs
+
+    - name: Upload backend and frontend npm audit JSON
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: npm-audit-json-${{ github.run_id }}
+        path: ${{ runner.temp }}/findmedi-vulnerability-audit/*.json
+        if-no-files-found: warn
+        retention-days: 30
 
   # INF-M-05 (container images) + TEST-M-08 (SAST). The dependency ratchet above
   # covers npm and cargo; these are the two halves that were genuinely missing.
@@ -529,6 +540,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+
+    - name: INF-B-04 · backup and restore image must share the immutable digest contract
+      run: node backend/scripts/check-backup-image-policy.mjs
 
     - name: INF-B-01 · TLS must not be optional in the edge config
       run: |

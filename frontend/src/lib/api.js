@@ -1,4 +1,4 @@
-import apiClient, { getApiBaseUrl, getServerOrigin, getAccessToken } from './axios';
+import apiClient, { getApiBaseUrl, getServerOrigin, getAccessToken, refreshSession } from './axios';
 
 /**
  * FE-B-01: Authorization headers for raw `fetch` calls that bypass axios.
@@ -94,36 +94,30 @@ export async function getFilePreviewUrl(url) {
     return { url: resolved, type, rawUrl: resolved };
   }
 
-  // FE-B-01: the token comes from the in-memory cache owned by lib/axios.js.
-  // Reading it from localStorage here would reintroduce the script-readable copy
-  // of the token that this whole change exists to remove.
-  const token = (() => {
-    try {
-      const { getAccessToken } = require('./axios');
-      return typeof getAccessToken === 'function' ? getAccessToken() : null;
-    } catch {
-      return null;
-    }
-  })();
+  const isLocal = isLocalFileUrl(resolved);
+  // Local uploads use the app session. Never forward its bearer token or cookies
+  // to a URL supplied by a CDN/external record, where a malicious host could
+  // capture credentials.
+  const token = isLocal ? getAccessToken() : null;
   const headers = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Fetch with Authorization header + credentials to handle auth-protected endpoints and cross-origin.
+  // Use session credentials only for uploads served by this application.
   // FE-B-04: retry once on an auth failure. The access token can expire between
   // page render and this fetch, and a raw `fetch` does not run the axios refresh
   // interceptor — so the first attempt legitimately 401s even though the user has
   // a perfectly valid session. One retry through the API client forces the refresh
   // and succeeds, instead of showing a broken thumbnail.
   const fetchBlob = async () => {
-    let response = await fetch(resolved, { credentials: 'include', headers });
-    if (response.status === 401) {
+    const requestOptions = { credentials: isLocal ? 'include' : 'omit', headers };
+    let response = await fetch(resolved, requestOptions);
+    if (isLocal && response.status === 401) {
       // Force a token refresh, then retry once.
-      const { refreshSession } = require('./axios');
-      if (typeof refreshSession === 'function' && await refreshSession()) {
-        headers['Authorization'] = `Bearer ${getAccessToken() || ''}`;
-        response = await fetch(resolved, { credentials: 'include', headers });
+      if (await refreshSession()) {
+        if (isLocal) headers['Authorization'] = `Bearer ${getAccessToken() || ''}`;
+        response = await fetch(resolved, requestOptions);
       }
     }
     return response;
@@ -497,7 +491,7 @@ export const api = {
   getRefunds:     (p={})  => request('/payments?' + new URLSearchParams({ ...p, status: 'refunded' })),
 
   getTransactions:  (p={})  => request('/transactions?' + new URLSearchParams({ ...p, _t: Date.now() })),
-  payTransaction:   (body)  => request('/transactions/pay',  { method:'POST',   body: JSON.stringify(body) }),
+  payTransaction:   (body, options = {})  => request('/billing/pay',  { method:'POST', body: JSON.stringify(body), ...options }),
   verifyTransaction: (id)   => request(`/transactions/verify/${encodeURIComponent(id)}`),
 
   getHospitals:         (p={})  => request('/hospitals?' + new URLSearchParams(p)),
@@ -564,6 +558,9 @@ export const api = {
   getPharmacyOrders:      (p={})    => request('/pharmacy/orders?' + new URLSearchParams(p)),
   createPharmacyOrder:    (body)    => request('/pharmacy/orders', { method:'POST', body: JSON.stringify(body) }),
   updatePharmacyOrder:    (id,body) => request(`/pharmacy/orders/${id}`, { method:'PUT', body: JSON.stringify(body) }),
+  updatePharmacyOrderStatus: (id,status) => request(`/pharmacy/orders/${id}/status`, { method:'PUT', body: JSON.stringify({ status }) }),
+  cancelPharmacyOrder:    (id) => request(`/pharmacy/orders/${id}/cancel`, { method:'POST', body: JSON.stringify({}) }),
+  collectPharmacyCOD:    (id) => request(`/pharmacy/orders/${id}/collect-cod`, { method:'POST', body: JSON.stringify({}) }),
   deletePharmacyOrder:    (id)      => request(`/pharmacy/orders/${id}`, { method:'DELETE' }),
   forwardPharmacyOrder:   (id,body) => request(`/pharmacy/orders/${id}/forward`, { method:'POST', body: JSON.stringify(body) }),
   rejectPharmacyOrder:    (id,body) => request(`/pharmacy/orders/${id}/reject`, { method:'PUT', body: JSON.stringify(body) }),

@@ -126,7 +126,7 @@ const demoAccounts: DemoAccountItem[] = [
 
 export default function Login() {
   const navigate = useNavigate();
-  const { user, login, completeGoogleLogin, completeTwoFactorLogin } = useAuth();
+  const { user, loading: authLoading, login, completeGoogleLogin, completeTwoFactorLogin } = useAuth();
   const [role, setRole] = useState('hospital_admin');
   const [demoCategory, setDemoCategory] = useState<'all' | 'counsellor' | 'psychiatrist' | 'assistant' | 'lawyer' | 'rider'>('all');
   const [email, setEmail] = useState('');
@@ -139,6 +139,9 @@ export default function Login() {
   const [twoFactorTicket, setTwoFactorTicket] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
 
+  // Wait for /auth/me hydration before redirecting. Otherwise a stale user in
+  // memory during session validation can bounce between /login and /dashboard.
+  if (authLoading) return <div className="min-h-screen" role="status" aria-label="Checking session" />;
   if (user) return <Navigate to="/dashboard" replace />;
 
   const pickRole = (r: string) => {

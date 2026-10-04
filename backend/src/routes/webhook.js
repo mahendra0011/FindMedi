@@ -44,7 +44,57 @@ router.post('/:provider', async (req, res, next) => {
   // PAY-B-13: never log the payload — it carries payer PII and payment state.
   logger.info(`Webhook received from ${provider} (event ${payload?.eventId || 'n/a'})`);
 
-  res.json({ received: true, provider, eventId: payload?.eventId || Date.now().toString() });
+  // PAY-B-07: atomic settlement contract (minimal scaffold).
+  // ONLY a signature-verified webhook may settle a Payment to `completed`
+  // (plus the referenced booking/order state) and it must do so atomically.
+  // No provider settlement adapter is connected yet, so every settlement
+  // attempt fails closed here instead of minting a local `completed` row.
+  const settlement = await applyWebhookSettlement({ provider, payload });
+  if (!settlement.ok) {
+    return res.status(settlement.status || 503).json({
+      received: true,
+      provider,
+      eventId: payload?.eventId || Date.now().toString(),
+      settled: false,
+      code: settlement.code,
+      message: settlement.message,
+    });
+  }
+
+  res.json({ received: true, provider, eventId: payload?.eventId || Date.now().toString(), settled: true });
 });
+
+/**
+ * PAY-B-07 settlement contract.
+ *
+ * Intended final shape (TODO when a provider adapter lands):
+ *   1. resolve the Payment by provider reference inside a Mongo transaction;
+ *   2. assert the transition pending/processing -> completed is legal;
+ *   3. apply Payment + booking/order updates in the SAME transaction/session;
+ *   4. record the webhook eventId idempotently (unique index) so a replay
+ *      inside the HMAC window cannot double-settle.
+ *
+ * Today: no adapter exists, so this is a guarded stub that ALWAYS refuses to
+ * settle. Client routes (billing.js / transactions.js / payments.js POST) must
+ * NEVER set `completed` directly in production — they 503 via
+ * *_PROVIDER_UNAVAILABLE. Only this function may ever write `completed` from a
+ * verified provider event.
+ */
+export const WEBHOOK_SETTLEMENT_IMPLEMENTED = false;
+
+export async function applyWebhookSettlement({ provider, payload } = {}) {
+  void provider;
+  void payload;
+  // Fail closed until a verified provider settlement path exists.
+  if (!WEBHOOK_SETTLEMENT_IMPLEMENTED) {
+    return {
+      ok: false,
+      status: 503,
+      code: 'SETTLEMENT_NOT_IMPLEMENTED',
+      message: 'Verified webhook received; settlement is disabled until a payment provider adapter is configured.',
+    };
+  }
+  return { ok: true };
+}
 
 export default router;

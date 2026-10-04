@@ -1,0 +1,9 @@
+{
+  "eventType": "AssistantBookingCompleted.v1",
+  "aggregateType": "AssistantBooking",
+  "aggregateId": "652f000000000000000000ff",
+  "patientId": "652f000000000000000000fe",
+  "assistantId": "652f000000000000000000fd",
+  "status": "completed",
+  "settledAmount": 1250
+}

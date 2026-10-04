@@ -73,6 +73,11 @@ async function reconcileModel(target) {
 async function pruneStaleMembers() {
   // SCAN both key schemes (never KEYS on prod) and drop members whose
   // location key expired. Covers geo:h3:<res>:<cell>:<type> + legacy hex:providers.
+  // rides-emergency-missing: ALSO drops members whose payload is stale
+  // (updatedAt older than the provider TTL) — a key can exist while the
+  // provider has been offline for 2x TTL because EXPIRE was refreshed on a
+  // partial write. Stale members cause waves to alert ghosts.
+  const staleAfterMs = Number(process.env.H3_PROVIDER_TTL_SECONDS || 90) * 1000;
   let pruned = 0;
   for (const pattern of ['geo:h3:*', 'hex:providers:*']) {
     let cursor = 0;
@@ -82,8 +87,20 @@ async function pruneStaleMembers() {
       for (const key of reply.keys) {
         const members = await redisClient.sMembers(key);
         for (const m of members) {
-          const alive = await redisClient.exists(`provider:location:${m}`);
-          if (!alive) {
+          const raw = await redisClient.get(`provider:location:${m}`);
+          if (!raw) {
+            await redisClient.sRem(key, m);
+            pruned += 1;
+            continue;
+          }
+          try {
+            const parsed = JSON.parse(raw);
+            if (parsed?.updatedAt && (Date.now() - Number(parsed.updatedAt)) > staleAfterMs) {
+              await redisClient.sRem(key, m);
+              pruned += 1;
+            }
+          } catch {
+            // Unparseable payload can never be re-hydrated — drop it.
             await redisClient.sRem(key, m);
             pruned += 1;
           }

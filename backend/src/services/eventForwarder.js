@@ -63,8 +63,9 @@ async function isDuplicate(event) {
   if (!id) return false;
   try {
     if (isRedisReady() && redisClient.isOpen) {
-      const set = await redisClient.set(`event:seen:${id}`, '1', { NX: true, EX: 86400 });
-      if (set !== 'OK') return true;
+      // Only completed events are duplicates. Claiming `seen` before running
+      // handlers permanently suppressed retries after a handler failure.
+      return (await redisClient.get(`event:done:${id}`)) === '1';
     }
   } catch {}
   return false;
@@ -90,7 +91,7 @@ async function deliver(topic, entry) {
   const { event, attempt } = entry;
   if (await isDuplicate(event)) return { delivered: false, reason: 'duplicate-suppressed' };
   const fns = handlers.get(topic) || handlers.get('*') || new Set();
-  if (fns.size === 0) return { delivered: true, reason: 'no-handlers' };
+  if (fns.size === 0) return { delivered: false, reason: 'no-handlers' };
   for (const fn of fns) {
     try {
       await fn(topic, event);
@@ -146,6 +147,15 @@ export async function forwardEvent(topic, event, opts = {}) {
   ensureTimer();
   if (buffers.get(topic).length >= MAX_BATCH) await flush();
   return { delivered: true, reason: 'buffered' };
+}
+
+// The transactional outbox uses this synchronous completion contract in
+// in-memory mode. `forwardEvent` is intentionally buffered for normal traffic
+// and only confirms enqueueing, which is not enough to mark an outbox row done.
+export async function deliverEvent(topic, event, opts = {}) {
+  if (!topic || !event) return { delivered: false, reason: 'bad-event' };
+  recordPipelineEvent('event_forwarder', 'event');
+  return deliver(topic, { event, attempt: opts.attempt || 0 });
 }
 
 export async function flushForwarder() {

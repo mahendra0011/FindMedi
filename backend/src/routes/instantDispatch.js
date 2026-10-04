@@ -45,6 +45,9 @@ router.post('/:type/:id/accept', protect, idempotencyGuard(), async (req, res) =
     if (!result?.success && result?.status === 'too_late') {
       return res.status(409).json(result);
     }
+    if (!result?.success && result?.status === 'provider_busy') {
+      return res.status(409).json(result);
+    }
     res.json(result);
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

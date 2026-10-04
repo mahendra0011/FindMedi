@@ -114,9 +114,9 @@ export async function recordServiceSettlement({
     // in ONE PG transaction so a COMPLETED payment can never exist without its
     // ledger entry (the drift that silently under-counts facility payouts).
     if (payment) {
-      void mirrorPaymentWithLedger({ paymentDoc: payment, ledgerDoc: ledgerRecord });
+      if (!session) void mirrorPaymentWithLedger({ paymentDoc: payment, ledgerDoc: ledgerRecord });
     } else {
-      void mirrorLedgerEntry(ledgerRecord);
+      if (!session) void mirrorLedgerEntry(ledgerRecord);
     }
 
     // 2. Credit Net Earnings to Provider Virtual Payout Wallet
@@ -132,19 +132,27 @@ export async function recordServiceSettlement({
 
       switch (source) {
         case 'ride':
-          await RiderProfile.findOneAndUpdate({ userId: providerId }, updatePayload, opts).catch(() => {});
+          if (!await RiderProfile.findOneAndUpdate({ userId: providerId }, updatePayload, opts)) {
+            throw new Error(`Rider profile not found for settlement provider ${providerId}`);
+          }
           break;
         case 'lawyer':
-          await LawyerProfile.findOneAndUpdate({ userId: providerId }, updatePayload, opts).catch(() => {});
+          if (!await LawyerProfile.findOneAndUpdate({ userId: providerId }, updatePayload, opts)) {
+            throw new Error(`Lawyer profile not found for settlement provider ${providerId}`);
+          }
           break;
         case 'assistant':
-          await AssistantProfile.findOneAndUpdate({ userId: providerId }, updatePayload, opts).catch(() => {});
+          if (!await AssistantProfile.findOneAndUpdate({ userId: providerId }, updatePayload, opts)) {
+            throw new Error(`Assistant profile not found for settlement provider ${providerId}`);
+          }
           break;
         case 'emergency_doctor':
-          await Doctor.findOneAndUpdate({ $or: [{ userId: providerId }, { _id: providerId }] }, updatePayload, opts).catch(() => {});
+          if (!await Doctor.findOneAndUpdate({ $or: [{ user_id: String(providerId) }, { _id: providerId }] }, updatePayload, opts)) {
+            throw new Error(`Doctor profile not found for settlement provider ${providerId}`);
+          }
           break;
         default:
-          break;
+          throw new Error(`Unsupported settlement source: ${source}`);
       }
     }
 

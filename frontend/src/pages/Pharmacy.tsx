@@ -143,6 +143,24 @@ export default function Pharmacy() {
   const [storeSettings, setStoreSettings] = useState({ name: 'FindMedi Pharmacy', address: 'MG Road, Indore, MP 452001', phone: '+91 98765 43210', email: 'pharmacy@findmedi.in', licenseNo: 'MP-PH-2024-001', timing: '8:00 AM - 11:00 PM', deliveryRadius: '8 km', minOrderAmt: '99', deliveryFee: '25', gst: '12', autoRetry: true });
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
+  const updateOrderStatus = async (order, status) => {
+    try {
+      const updated = await api.updatePharmacyOrderStatus(order._id, status);
+      setOrders(current => current.map(row => row._id === order._id ? { ...row, ...updated } : row));
+      showToast(`Order ${status.toLowerCase()}`);
+    } catch {
+      showToast('Order status could not be updated. Refresh and try again.', 'error');
+    }
+  };
+  const collectCOD = async (order) => {
+    try {
+      const updated = await api.collectPharmacyCOD(order._id);
+      setOrders(current => current.map(row => row._id === order._id ? { ...row, ...updated } : row));
+      showToast('Cash payment recorded');
+    } catch {
+      showToast('Cash payment could not be recorded. Refresh and try again.', 'error');
+    }
+  };
 
   const exportBillingCsv = async () => {
     try {
@@ -463,9 +481,9 @@ showToast('Failed to export billing', 'error');
                     </div>
                     {o.note && <p className="text-xs text-muted-foreground mt-2">Note: {o.note}</p>}
                     <div className="flex gap-2 mt-3 pt-3 border-t">
-                      {o.status === 'Pending' && <Button size="sm" onClick={async () => { await api.updatePharmacyOrder(o._id, { status: 'Shipped' }); setOrders(os => os.map(ord => ord._id === o._id ? { ...ord, status: 'Shipped' } : ord)); showToast('Order marked as shipped'); }}><Truck className="w-3 h-3 mr-1" /> Mark Shipped</Button>}
-                      {o.status === 'Shipped' && <Button size="sm" onClick={async () => { await api.updatePharmacyOrder(o._id, { status: 'Delivered', paymentStatus: 'Paid' }); setOrders(os => os.map(ord => ord._id === o._id ? { ...ord, status: 'Delivered', paymentStatus: 'Paid' } : ord)); showToast('Order delivered'); }}><Check className="w-3 h-3 mr-1" /> Mark Delivered</Button>}
-                      {o.paymentStatus === 'Unpaid' && <Button size="sm" variant="outline" onClick={async () => { await api.updatePharmacyOrder(o._id, { paymentStatus: 'Paid' }); setOrders(os => os.map(ord => ord._id === o._id ? { ...ord, paymentStatus: 'Paid' } : ord)); showToast('Payment received'); }}>Mark Paid</Button>}
+                      {o.status === 'Pending' && <Button size="sm" onClick={() => updateOrderStatus(o, 'Shipped')}><Truck className="w-3 h-3 mr-1" /> Mark Shipped</Button>}
+                      {o.status === 'Shipped' && <Button size="sm" onClick={() => updateOrderStatus(o, 'Delivered')}><Check className="w-3 h-3 mr-1" /> Mark Delivered</Button>}
+                      {o.status === 'Delivered' && o.paymentMethod === 'COD' && o.paymentStatus === 'Unpaid' && <Button size="sm" variant="outline" onClick={() => collectCOD(o)}>Record Cash</Button>}
                     </div>
                   </div>
                 ))}

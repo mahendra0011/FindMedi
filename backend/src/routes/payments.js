@@ -1,6 +1,7 @@
 import express from 'express';
 import Payment from '../models/Payment.js';
 import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 import { protect, adminOnly, authorize } from '../middleware/auth.js';
 import { validate, createPaymentSchema, updatePaymentSchema, refundPaymentSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
@@ -11,6 +12,7 @@ import { paginatedResults } from '../utils/pagination.js';
 import { generateTransactionId } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 import { mirrorPayment } from '../lib/pgDualWrite.js';
+import logger from '../config/logger.js';
 
 const router = express.Router();
 
@@ -70,26 +72,43 @@ router.post('/', protect, paymentLimiter, (req, res, next) => {
     return res.status(403).json({ message: 'Only hospital staff can record a payment' });
   }
   next();
-}, validate(createPaymentSchema), async (req, res) => {
+}, validate(createPaymentSchema), idempotencyGuard({ prefix: 'payment-create', failClosed: true }), async (req, res) => {
   try {
     const transaction_id = generateTransactionId();
     // The patient must belong to the caller's tenant (or be the caller).
-    const requestedPatient = req.user.role === 'patient' ? req.user._id.toString() : req.body.patient_id;
+    const requestedPatient = req.body.patient_id;
+    if (!requestedPatient) return res.status(400).json({ message: 'patient_id is required' });
+    const patient = await User.findById(requestedPatient).select('_id hospitalId role name').lean();
+    if (!patient || patient.role !== 'patient') return res.status(404).json({ message: 'Patient not found' });
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || String(patient.hospitalId || '') !== String(req.user.hospitalId))) {
+      return res.status(403).json({ message: 'Patient is outside your hospital scope' });
+    }
     const payment = await Payment.create({
-      ...req.body,
+      patient_name: patient.name,
+      amount: req.body.amount,
+      method: req.body.method,
+      description: req.body.description,
+      provider: req.body.provider,
+      serviceType: req.body.serviceType,
       patient_id: requestedPatient,
       transaction_id,
       // Server-owned state — the client can no longer mark it completed.
       status: 'pending',
       hospitalId: req.user.hospitalId || undefined,
     });
-    await Notification.create({
-      userId: patient_id,
-      title: 'Payment Received',
-      message: `Payment of ₹${payment.amount} via ${payment.method || 'card'} was successful. Transaction: ${transaction_id}`,
-      type: 'payment',
-      date: getISTDateString(),
-    });
+    try {
+      await Notification.create({
+        userId: requestedPatient,
+        title: 'Payment Pending',
+        message: `A payment of INR ${payment.amount} via ${payment.method || 'card'} is pending. Transaction: ${transaction_id}`,
+        type: 'payment',
+        date: getISTDateString(),
+      });
+    } catch (notificationError) {
+      // Payment persistence is authoritative; do not turn a successful insert
+      // into an HTTP failure that causes a duplicate retry.
+      logger.error(`Payment notification creation failed for ${payment._id}: ${notificationError.message}`);
+    }
     await auditLog('create_payment', req.user._id, { paymentId: payment._id, amount: payment.amount, transaction_id });
     void mirrorPayment(payment);
     res.status(201).json(payment);
@@ -107,6 +126,15 @@ router.put('/:id', protect, paymentLimiter, adminOnly, validate(updatePaymentSch
         return res.status(403).json({ message: 'Access denied' });
       }
     }
+    // Refund.settleRefund only updates our local state machine; there is no
+    // provider adapter to move money. Keep production payment records unchanged
+    // until a verified provider refund result can be reconciled.
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(503).json({
+        message: 'Online refunds are temporarily unavailable until a payment provider is configured.',
+        code: 'REFUND_PROVIDER_UNAVAILABLE',
+      });
+    }
     // AUTH-030: allowlisted fields only — status via refund endpoint, ids immutable.
     const { pickBody } = await import('../utils/pick.js');
     Object.assign(payment, pickBody(req.body, ['amount', 'method', 'description', 'provider', 'lineItems']));
@@ -121,6 +149,15 @@ router.put('/:id', protect, paymentLimiter, adminOnly, validate(updatePaymentSch
 // possession, not just a valid session.
 router.put('/:id/refund', protect, paymentLimiter, requireStepUp('refunds:issue'), idempotencyGuard({ prefix: 'refund', failClosed: true }), adminOnly, validate(refundPaymentSchema), async (req, res) => {
   try {
+    // PAY-B-08: fail closed in production — same guard as PUT /:id above.
+    // No provider adapter is connected, so any mutation here would record a
+    // refund locally without moving money. Refuse before any read or write.
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(503).json({
+        message: 'Online refunds are temporarily unavailable until a payment provider is configured.',
+        code: 'REFUND_PROVIDER_UNAVAILABLE',
+      });
+    }
     const refund_amount = req.body.refund_amount || 0;
     const payment = await Payment.findById(req.params.id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });

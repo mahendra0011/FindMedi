@@ -85,19 +85,23 @@ const emergencyDoctorRequestSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ['searching', 'assigned', 'in_progress', 'completed', 'cancelled_by_user', 'no_responders_found', 'escalated_to_ambulance'],
+    enum: ['searching', 'assigned', 'in_progress', 'completed', 'cancelled_by_user', 'cancelled_by_doctor', 'no_responders_found', 'escalated_to_ambulance'],
     default: 'searching',
     index: true,
   },
 
   currentSearchRadiusKm: { type: Number, default: 10 },
-  assignedDoctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  assignedDoctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', default: null },
+  assignedDoctorUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   assignedAt: { type: Date, default: null },
 
   notified: [{ providerId: String, userId: String, _id: false }],
   everNotified: [{ providerId: String, _id: false }],
   acceptances: [{ providerId: String, distanceKm: Number, acceptedAt: { type: Date, default: Date.now }, _id: false }],
   windowEndsAt: { type: Date, default: null },
+  retryCount: { type: Number, default: 0 },
+  retryAt: { type: Date, default: null, index: true },
+  retryRadii: { type: [Number], default: [] },
   dispatchLog: [{
     radiusKm: Number,
     candidateCount: Number,
@@ -109,6 +113,8 @@ const emergencyDoctorRequestSchema = new mongoose.Schema({
   appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment', default: null },
 
   cancelledAt: { type: Date, default: null },
+  cancelledBy: { type: String, enum: ['doctor', 'patient', ''], default: '' },
+  cancellationReason: { type: String, default: '' },
   completedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now, index: true },
   updatedAt: { type: Date, default: Date.now },

@@ -152,6 +152,9 @@ const lawyerBookingSchema = new mongoose.Schema({
   acceptances: [{ providerId: String, distanceKm: Number, acceptedAt: { type: Date, default: Date.now }, _id: false }],
   rejections: [{ type: String }],
   windowEndsAt: { type: Date, default: null },
+  retryCount: { type: Number, default: 0 },
+  retryAt: { type: Date, default: null, index: true },
+  retryRadii: { type: [Number], default: [] },
   currentSearchRadiusKm: { type: Number, default: 5 },
   dispatchLog: [{
     radiusKm: Number,

@@ -1,8 +1,10 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import LawyerBooking from '../models/LawyerBooking.js';
 import LawyerProfile from '../models/LawyerProfile.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
+import OutboxEvent from '../models/OutboxEvent.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { bookingLimiter } from '../middleware/rateLimit.js';
 import {
@@ -22,7 +24,9 @@ import {
 import { generateLawyerReceiptPdf } from '../services/lawyerReceiptService.js';
 import { startLawyerDispatch, acceptLawyerRequest, rejectLawyerRequest } from '../services/lawyerDispatchService.js';
 import { getIO } from '../services/socketService.js';
+import { recordServiceSettlement } from '../services/ledgerService.js';
 import logger from '../config/logger.js';
+import { releaseProviderClaim } from '../services/instantDispatchService.js';
 
 const router = express.Router();
 
@@ -554,7 +558,7 @@ router.post('/:id/note', protect, authorize('legal:write'), validate(caseNoteSch
 // Lawyer marks consultation as completed + final summary note
 router.post('/:id/complete', protect, authorize('legal:write'), async (req, res) => {
   try {
-    const booking = await assertBookingAccess(req, req.params.id, 'complete');
+    let booking = await assertBookingAccess(req, req.params.id, 'complete');
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
@@ -563,35 +567,77 @@ router.post('/:id/complete', protect, authorize('legal:write'), async (req, res)
       return res.status(403).json({ message: 'Only the assigned advocate can complete consultation' });
     }
 
-    booking.status = 'completed';
-    booking.completedAt = new Date();
-    booking.finalCaseSummary = req.body.finalCaseSummary || 'Consultation session completed.';
-    booking.statusHistory.push({ status: 'completed', at: new Date(), note: 'Consultation concluded' });
-    // L-11: settle net payout into the advocate's wallet exactly once, so
-    // wallet can never silently diverge from completed revenue.
+    const session = await mongoose.startSession();
     let settledAmount = 0;
-    if (!booking.settledAt) {
-      const gross = Number(booking.fee) || 0;
-      settledAmount = Math.round(gross * 0.9);
-      booking.settledAt = new Date();
-      booking.settlementAmount = settledAmount;
-      if (settledAmount > 0) {
-        await LawyerProfile.findOneAndUpdate(
-          { userId: booking.lawyerId },
-          { $inc: { walletBalance: settledAmount, totalEarnings: gross } }
-        ).catch((e) => logger.error(`Lawyer wallet settlement failed: ${e.message}`));
+    let completed;
+    try {
+      session.startTransaction({ readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' } });
+      completed = await LawyerBooking.findOneAndUpdate(
+        { _id: booking._id, lawyerId: req.user._id, status: { $in: ['confirmed', 'in_progress'] }, settledAt: null },
+        {
+          $set: { status: 'completed', completedAt: new Date(), finalCaseSummary: req.body.finalCaseSummary || 'Consultation session completed.', settledAt: new Date() },
+          $push: { statusHistory: { status: 'completed', at: new Date(), note: 'Consultation concluded' } },
+        },
+        { new: true, session }
+      );
+      if (!completed) {
+        await session.abortTransaction();
+        const latest = await LawyerBooking.findById(booking._id).select('status settledAt').lean();
+        return res.status(latest?.status === 'completed' ? 200 : 409).json({
+          success: latest?.status === 'completed',
+          message: latest?.status === 'completed' ? 'Consultation was already completed' : 'Booking is not in a completable state',
+          booking: latest?.status === 'completed' ? latest : undefined,
+        });
       }
+      const gross = Number(completed.fee) || 0;
+      if (gross > 0) {
+        const settlement = await recordServiceSettlement({
+          source: 'lawyer', sourceId: String(completed._id), bookingNumber: completed.bookingNumber || '',
+          userId: completed.userId, providerId: completed.lawyerId,
+          totalAmount: gross, session,
+        });
+        settledAmount = settlement.netAmount;
+        completed.settlementAmount = settledAmount;
+        await completed.save({ session });
+      }
+      const recipientId = String(completed.userId?._id || completed.userId);
+      const bookingId = String(completed._id);
+      const completedAt = completed.completedAt || new Date();
+      await Notification.create([{
+        userId: recipientId,
+        title: 'Consultation completed',
+        message: 'Your consultation is complete. Open FindMedi to review the case summary and payment status.',
+        type: 'lawyer',
+        referenceId: bookingId,
+        dedupKey: `lawyer-booking-completed:${bookingId}`,
+      }], { session });
+      await OutboxEvent.create([{
+        aggregateType: 'LawyerBooking',
+        aggregateId: bookingId,
+        eventType: 'LawyerBookingCompleted.v1',
+        destinationTopic: 'findmedi.dispatch.booking-events.v1',
+        payload: {
+          bookingId,
+          patientId: recipientId,
+          lawyerId: String(completed.lawyerId?._id || completed.lawyerId),
+          status: 'completed',
+          completedAt: completedAt.toISOString(),
+          settledAmount,
+        },
+        status: 'PENDING',
+        retryCount: 0,
+      }], { session });
+      await session.commitTransaction();
+    } catch (settlementError) {
+      await session.abortTransaction();
+      throw settlementError;
+    } finally {
+      await session.endSession();
     }
-    await booking.save();
+    booking = completed;
+    await releaseProviderClaim('lawyer', req.user._id, booking._id);
 
     await notifyBookingUpdate(booking, 'booking_status_update');
-
-    await Notification.create({
-      title: '✅ Consultation Completed',
-      message: `Your consultation with Adv. ${req.user.name} has concluded. Please review case summary and complete payment.`,
-      type: 'lawyer',
-      userId: String(booking.userId),
-    }).catch(() => {});
 
     res.json({ success: true, message: settledAmount > 0 ? `Consultation marked completed — ₹${settledAmount} settled to wallet` : 'Consultation marked completed', booking, settledAmount });
   } catch (err) {
@@ -624,6 +670,7 @@ router.post('/:id/cancel', protect, authorize('legal:write'), async (req, res) =
       note: req.body.reason || `Cancelled by ${isClient ? 'client' : 'advocate'}`,
     });
     await booking.save();
+    if (booking.lawyerId) await releaseProviderClaim('lawyer', booking.lawyerId, booking._id);
 
     await notifyBookingUpdate(booking, 'booking_status_update');
 

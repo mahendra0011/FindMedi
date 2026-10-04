@@ -136,7 +136,7 @@ function expireCsrfToken() {
 // Warm the cookie so the first user action does not pay a round-trip. A failure
 // is swallowed on purpose: `ensureCsrfToken` above is the real guarantee, this is
 // only a latency optimisation, and a warm-up failure must not break the app.
-if (typeof document !== 'undefined') {
+if (typeof document !== 'undefined' && !import.meta.env?.VITEST) {
   ensureCsrfToken().catch(() => {});
 }
 

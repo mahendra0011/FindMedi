@@ -1,21 +1,23 @@
 import express from 'express';
 import RiderProfile from '../models/RiderProfile.js';
-import Vehicle from '../models/Vehicle.js';
 import User from '../models/User.js';
 import RideBooking from '../models/RideBooking.js';
-import { protect } from '../middleware/auth.js';
+import TransactionLedger from '../models/TransactionLedger.js';
+import { protect, requireRole } from '../middleware/auth.js';
 import { validate, riderStatusSchema, riderLocationSchema } from '../utils/validate.js';
 import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
+import { calculateDistanceKm } from '../lib/geoUtils.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
 
 // ─── GET /api/rider/profile ─────────────────────────────────────────────────
 // Get own rider profile
-router.get('/profile', protect, async (req, res) => {
+router.get('/profile', protect, requireRole(['rider']), async (req, res) => {
   try {
     const rider = await RiderProfile.findOne({ userId: req.user._id })
-      .populate('vehicleId')
+      .select('userId operatingArea operatingCity availableDays availableTimeSlot riderStatus isOnline emergencySupport currentLocation rating settings vehicleId bankDetails govtIdType govtIdNumber drivingLicenseNumber')
+      .populate('vehicleId', 'type brand model year color rcNumber insuranceNumber insuranceExpiry isDocumentVerified')
       .populate('userId', 'name email phone avatar address dateOfBirth gender')
       .lean();
 
@@ -23,7 +25,32 @@ router.get('/profile', protect, async (req, res) => {
       return res.status(404).json({ message: 'Rider profile not found' });
     }
 
-    res.json({ rider });
+    const safeRider = {
+      _id: rider._id,
+      userId: rider.userId,
+      operatingArea: rider.operatingArea,
+      operatingCity: rider.operatingCity,
+      availableDays: rider.availableDays,
+      availableTimeSlot: rider.availableTimeSlot,
+      riderStatus: rider.riderStatus,
+      isOnline: rider.isOnline,
+      emergencySupport: rider.emergencySupport,
+      currentLocation: rider.currentLocation,
+      rating: rider.rating,
+      settings: rider.settings,
+      vehicleId: rider.vehicleId,
+      govtIdType: rider.govtIdType,
+      govtIdNumber: rider.govtIdNumber ? `****${String(rider.govtIdNumber).slice(-4)}` : '',
+      drivingLicenseNumber: rider.drivingLicenseNumber ? `****${String(rider.drivingLicenseNumber).slice(-4)}` : '',
+      bankDetails: rider.bankDetails ? {
+        accountHolder: rider.bankDetails.accountHolder,
+        accountNumber: rider.bankDetails.accountNumber ? `****${String(rider.bankDetails.accountNumber).slice(-4)}` : '',
+        ifsc: rider.bankDetails.ifsc ? `${String(rider.bankDetails.ifsc).slice(0, 4)}****` : '',
+        upiId: rider.bankDetails.upiId ? `${String(rider.bankDetails.upiId).slice(0, 2)}****` : '',
+      } : undefined,
+      docs: rider.docs ? Object.fromEntries(Object.entries(rider.docs).map(([key, value]) => [key, { status: value.status, uploadedAt: value.uploadedAt }])) : undefined,
+    };
+    res.json({ rider: safeRider });
   } catch (err) {
     logger.error(`Get rider profile error: ${err.message}`);
     res.status(500).json({ message: 'Failed to fetch rider profile', error: err.message });
@@ -32,14 +59,13 @@ router.get('/profile', protect, async (req, res) => {
 
 // ─── PUT /api/rider/profile ─────────────────────────────────────────────────
 // Update operating area, availability, bank details, or vehicle details
-router.put('/profile', protect, async (req, res) => {
+router.put('/profile', protect, requireRole(['rider']), async (req, res) => {
   try {
     const {
       operatingArea,
       availableDays,
       availableTimeSlot,
       bankDetails,
-      vehicleDetails,
       settings,
       emergencySupport,
     } = req.body;
@@ -66,11 +92,11 @@ router.put('/profile', protect, async (req, res) => {
 
     await rider.save();
 
-    if (vehicleDetails && rider.vehicleId) {
-      await Vehicle.findByIdAndUpdate(rider.vehicleId, vehicleDetails);
-    }
-
-    res.json({ success: true, message: 'Profile updated successfully', rider });
+    const safeRider = await RiderProfile.findById(rider._id)
+      .select('operatingArea availableDays availableTimeSlot emergencySupport settings riderStatus isOnline currentLocation rating vehicleId userId')
+      .populate('vehicleId', 'type brand model year color rcNumber insuranceNumber insuranceExpiry isDocumentVerified')
+      .lean();
+    res.json({ success: true, message: 'Profile updated successfully', rider: safeRider });
   } catch (err) {
     res.status(500).json({ message: 'Failed to update rider profile', error: err.message });
   }
@@ -78,7 +104,7 @@ router.put('/profile', protect, async (req, res) => {
 
 // ─── PUT /api/rider/emergency-toggle ────────────────────────────────────────
 // Toggle Emergency Support (Doc 01 §9.3: active rider + non-bike only)
-router.put('/emergency-toggle', protect, async (req, res) => {
+router.put('/emergency-toggle', protect, requireRole(['rider']), async (req, res) => {
   try {
     const { emergencySupport } = req.body;
     const rider = await RiderProfile.findOne({ userId: req.user._id }).populate('vehicleId');
@@ -101,7 +127,7 @@ router.put('/emergency-toggle', protect, async (req, res) => {
 
 // ─── PUT /api/rider/status ──────────────────────────────────────────────────
 // Toggle online/offline
-router.put('/status', protect, validate(riderStatusSchema), async (req, res) => {
+router.put('/status', protect, requireRole(['rider']), validate(riderStatusSchema), async (req, res) => {
   try {
     const { isOnline } = req.body;
     const rider = await RiderProfile.findOne({ userId: req.user._id });
@@ -116,6 +142,7 @@ router.put('/status', protect, validate(riderStatusSchema), async (req, res) => 
     }
 
     rider.isOnline = isOnline;
+    if (isOnline) rider.lastLocationAt = new Date();
     await rider.save();
 
     if (isOnline && rider.currentLocation?.lat && rider.currentLocation?.lng) {
@@ -144,9 +171,20 @@ router.put('/status', protect, validate(riderStatusSchema), async (req, res) => 
 
 // ─── PUT /api/rider/location ────────────────────────────────────────────────
 // Update current location
-router.put('/location', protect, validate(riderLocationSchema), async (req, res) => {
+router.put('/location', protect, requireRole(['rider']), validate(riderLocationSchema), async (req, res) => {
   try {
     const { lat, lng, accuracy } = req.body;
+    const rider = await RiderProfile.findOne({ userId: req.user._id }).select('_id currentLocation').lean();
+    if (!rider) return res.status(404).json({ message: 'Rider profile not found' });
+    if (accuracy != null && accuracy > 250) return res.status(422).json({ message: 'Location accuracy is too low to update rider position' });
+    const previous = rider.currentLocation?.coordinates;
+    const previousAt = rider.currentLocation?.updatedAt ? new Date(rider.currentLocation.updatedAt).getTime() : 0;
+    if (Array.isArray(previous) && previous.length === 2 && previousAt > 0) {
+      const elapsedSeconds = Math.max((Date.now() - previousAt) / 1000, 1);
+      const distanceMeters = calculateDistanceKm(Number(previous[1]), Number(previous[0]), Number(lat), Number(lng)) * 1000;
+      const speedKmh = (distanceMeters / elapsedSeconds) * 3.6;
+      if (speedKmh > 180) return res.status(422).json({ message: 'Location update exceeds plausible travel speed' });
+    }
     const h3Result = await upsertProviderLocationCache({
       providerId: req.user._id,
       providerType: 'rider',
@@ -161,10 +199,11 @@ router.put('/location', protect, validate(riderLocationSchema), async (req, res)
       'currentLocation.h3Index8': h3Result?.h3Index8 || null,
       'currentLocation.h3Index9': h3Result?.h3Index9 || null,
       'currentLocation.updatedAt': new Date(),
+      lastLocationAt: new Date(),
     };
     if (accuracy != null) locUpdate['currentLocation.accuracy'] = Number(accuracy);
     await RiderProfile.findOneAndUpdate(
-      { userId: req.user._id },
+      { _id: rider._id, userId: req.user._id },
       locUpdate
     );
 
@@ -176,9 +215,9 @@ router.put('/location', protect, validate(riderLocationSchema), async (req, res)
 
 // ─── GET /api/rider/earnings ────────────────────────────────────────────────
 // Earnings overview
-router.get('/earnings', protect, async (req, res) => {
+router.get('/earnings', protect, requireRole(['rider']), async (req, res) => {
   try {
-    const rider = await RiderProfile.findOne({ userId: req.user._id });
+    const rider = await RiderProfile.findOne({ userId: req.user._id }).select('_id walletBalance rating');
     if (!rider) return res.status(404).json({ message: 'Rider profile not found' });
 
     const todayStart = new Date();
@@ -188,41 +227,26 @@ router.get('/earnings', protect, async (req, res) => {
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
 
-    const [todayRides, monthRides, completedRidesCount] = await Promise.all([
-      RideBooking.find({
-        riderId: req.user._id,
-        status: 'completed',
-        completedAt: { $gte: todayStart },
-      }).lean(),
-      RideBooking.find({
-        riderId: req.user._id,
-        status: 'completed',
-        completedAt: { $gte: monthStart },
-      }).lean(),
-      RideBooking.countDocuments({
-        riderId: req.user._id,
-        status: 'completed',
-      }),
+    const [todayEntries, monthEntries, allEntries, completedRidesCount] = await Promise.all([
+      TransactionLedger.find({ providerId: req.user._id, source: 'ride', entryType: 'CREDIT', status: 'completed', createdAt: { $gte: todayStart } }).select('netAmount').lean(),
+      TransactionLedger.find({ providerId: req.user._id, source: 'ride', entryType: 'CREDIT', status: 'completed', createdAt: { $gte: monthStart } }).select('netAmount commissionAmount').lean(),
+      TransactionLedger.find({ providerId: req.user._id, source: 'ride', entryType: 'CREDIT', status: 'completed' }).select('netAmount').lean(),
+      TransactionLedger.countDocuments({ providerId: req.user._id, source: 'ride', entryType: 'CREDIT', status: 'completed' }),
     ]);
-
-    const todayTotal = todayRides.reduce((s, r) => s + (r.fare?.total || 0), 0);
-    const monthTotal = monthRides.reduce((s, r) => s + (r.fare?.total || 0), 0);
-
-    const todayNet = Math.round(todayTotal * 0.9);
-    const monthNet = Math.round(monthTotal * 0.9);
-    const platformCommissionMonth = Math.round(monthTotal * 0.1);
+    const todayNet = todayEntries.reduce((sum, entry) => sum + (entry.netAmount || 0), 0);
+    const monthNet = monthEntries.reduce((sum, entry) => sum + (entry.netAmount || 0), 0);
+    const platformCommissionMonth = monthEntries.reduce((sum, entry) => sum + (entry.commissionAmount || 0), 0);
 
     res.json({
-      totalEarnings: rider.totalEarnings || 0,
-      walletBalance: rider.walletBalance || rider.totalEarnings || 0,
-      todayRides: todayRides.length,
+      totalEarnings: allEntries.reduce((sum, entry) => sum + (entry.netAmount || 0), 0),
+      walletBalance: rider.walletBalance || 0,
+      todayRides: todayEntries.length,
       todayNet,
-      monthRides: monthRides.length,
+      monthRides: monthEntries.length,
       monthNet,
       platformCommissionMonth,
       totalCompletedRides: completedRidesCount,
       rating: rider.rating || { avg: 5.0, count: 0 },
-      bankDetails: rider.bankDetails,
     });
   } catch (err) {
     logger.error(`Get rider earnings error: ${err.message}`);
@@ -232,26 +256,30 @@ router.get('/earnings', protect, async (req, res) => {
 
 // ─── POST /api/rider/withdraw-demo ──────────────────────────────────────────
 // Simulate payout/withdrawal
-router.post('/withdraw-demo', protect, async (req, res) => {
+router.post('/withdraw-demo', protect, requireRole(['rider']), async (req, res) => {
   try {
     const amount = Number(req.body.amount);
     const rider = await RiderProfile.findOne({ userId: req.user._id });
 
     if (!rider) return res.status(404).json({ message: 'Rider profile not found' });
     if (!amount || amount <= 0) return res.status(400).json({ message: 'Enter a valid withdrawal amount' });
+    if (!Number.isFinite(amount)) return res.status(400).json({ message: 'Enter a valid withdrawal amount' });
 
-    const balance = rider.walletBalance || rider.totalEarnings || 0;
+    const balance = rider.walletBalance || 0;
     if (amount > balance) {
       return res.status(400).json({ message: `Insufficient balance. Available: ₹${balance}` });
     }
-
-    rider.walletBalance = Math.max(0, balance - amount);
-    await rider.save();
+    const debited = await RiderProfile.findOneAndUpdate(
+      { _id: rider._id, walletBalance: { $gte: amount } },
+      { $inc: { walletBalance: -amount } },
+      { new: true },
+    );
+    if (!debited) return res.status(409).json({ message: 'Wallet balance changed; refresh and retry' });
 
     res.json({
       success: true,
-      message: `Demo withdrawal of ₹${amount} initiated to ${rider.bankDetails?.upiId || rider.bankDetails?.accountNumber || 'Bank'}. Ref: DEMO-PAYOUT-${Math.floor(100000 + Math.random() * 900000)}`,
-      newBalance: rider.walletBalance,
+      message: `Demo withdrawal of ₹${amount} initiated. Ref: DEMO-PAYOUT-${Math.floor(100000 + Math.random() * 900000)}`,
+      newBalance: debited.walletBalance,
     });
   } catch (err) {
     res.status(500).json({ message: 'Withdrawal failed', error: err.message });
@@ -259,10 +287,16 @@ router.post('/withdraw-demo', protect, async (req, res) => {
 });
 
 // ─── POST /api/rider/documents — R-9: re-upload a rejected KYC document ──
-router.post('/documents', protect, async (req, res) => {
+router.post('/documents', protect, requireRole(['rider']), async (req, res) => {
   try {
     const { docType, docUrl } = req.body;
     if (!docType || !docUrl) return res.status(400).json({ message: 'docType and docUrl are required' });
+    if (!['drivingLicense', 'govtId', 'rc', 'insurance'].includes(docType)) {
+      return res.status(400).json({ message: 'Unsupported document type' });
+    }
+    if (typeof docUrl !== 'string' || docUrl.length > 2048 || !/^https:\/\//i.test(docUrl)) {
+      return res.status(400).json({ message: 'A valid secure document URL is required' });
+    }
     const rider = await RiderProfile.findOne({ userId: req.user._id });
     if (!rider) return res.status(404).json({ message: 'Rider profile not found' });
     const docs = { ...(rider.docs?.toObject?.() || rider.docs || {}) };
@@ -271,7 +305,8 @@ router.post('/documents', protect, async (req, res) => {
     // Re-upload re-opens verification if it was rejected.
     if (rider.riderStatus === 'rejected') rider.riderStatus = 'pending_approval';
     await rider.save();
-    res.json({ success: true, message: 'Document uploaded for verification', docs });
+    const publicDocs = Object.fromEntries(Object.entries(docs).map(([key, value]) => [key, { status: value.status, uploadedAt: value.uploadedAt }]));
+    res.json({ success: true, message: 'Document uploaded for verification', docs: publicDocs });
   } catch (err) {
     res.status(500).json({ message: 'Upload failed', error: err.message });
   }

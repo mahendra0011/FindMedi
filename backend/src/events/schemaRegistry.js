@@ -142,8 +142,33 @@ const rawEntries = [
   },
   {
     topic: KAFKA_TOPICS.BOOKING_EVENTS,
+    eventType: 'AssistantBookingCompleted.v1',
+    schema: bookingPayload('AssistantBookingCompleted.v1'),
+  },
+  {
+    topic: KAFKA_TOPICS.BOOKING_EVENTS,
+    eventType: 'LawyerBookingCompleted.v1',
+    schema: bookingPayload('LawyerBookingCompleted.v1', {
+      patientId: str1(), lawyerId: str1(), status: z.literal('completed'),
+      completedAt: str1(), settledAmount: z.number().nonnegative(),
+    }),
+  },
+  {
+    topic: KAFKA_TOPICS.BOOKING_EVENTS,
     eventType: 'RideCompleted.v1',
     schema: bookingPayload('RideCompleted.v1'),
+  },
+  {
+    // NOTIF-M-01: durable notification writer (notificationOutbox.js) emits
+    // this through the transactional outbox (default destinationTopic =
+    // BOOKING_EVENTS). Wire form is the outbox payload spread to top level
+    // (see dispatchOutboxEvent): notificationId/userId/type are required;
+    // delivery itself is tracked via NotificationDelivery receipts.
+    topic: KAFKA_TOPICS.BOOKING_EVENTS,
+    eventType: 'NotificationQueued.v1',
+    schema: bookingPayload('NotificationQueued.v1', {
+      notificationId: str1(), userId: str1(), type: str1(),
+    }),
   },
   {
     // External/legacy name; core's consumer case listens for this string even
@@ -283,10 +308,20 @@ const rawEntries = [
   },
   {
     topic: KAFKA_TOPICS.BILLING_EVENTS,
+    eventType: 'pharmacy.cod_collected',
+    // Billing events are emitted through the transactional outbox. Keep the
+    // pharmacy COD settlement contract explicit so downstream consumers can
+    // distinguish it from payment-provider events without receiving PII.
+    schema: z.looseObject({
+      eventType: z.literal('pharmacy.cod_collected'),
+      orderId: str1(),
+      transactionId: str1(),
+      invoiceId: str1(),
+    }),
+  },
+  {
+    topic: KAFKA_TOPICS.BILLING_EVENTS,
     eventType: null,
-    // Core neither produces nor consumes billing events (Flink/external side);
-    // registration reserves the topic so coverage stays complete and any event
-    // crossing it must at least be typed.
     schema: z.looseObject({ eventType: str1() }),
   },
 

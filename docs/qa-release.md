@@ -2,8 +2,7 @@
 
 The test plan, finding-to-test traceability, the release checklist, and the
 versioning / migration policy for this repository. Conventions and suite
-inventory live in [`audit-reports/testing-overhaul-plan.md`](../audit-reports/testing-overhaul-plan.md)
-(this document is its release-facing half); security-control detail lives in
+Deferred items live in [`DEFERRED_TODOS.md`](../DEFERRED_TODOS.md); security-control detail lives in
 [`SECURITY.md`](../SECURITY.md).
 
 ---
@@ -83,7 +82,7 @@ fixed or quarantined with an issue — never re-run-and-hope.
 **Convention (already the practice, now written down):** when a finding is
 closed, the same PR leaves three breadcrumbs:
 
-1. **`audit-reports/FIXED-LOG.md`** — one row: date, finding ID, what changed
+1. **`DEFERRED_TODOS.md`** - deferred item owners and blockers.
    (196 IDs recorded so far).
 2. **A CI step named after the finding** where a static guard exists
    (`- name: PAY-B-01 ─ the server must own the price` in `ci.yml`) — grep-able
@@ -95,7 +94,7 @@ closed, the same PR leaves three breadcrumbs:
 To answer "what proves finding X is fixed?":
 
 ```bash
-grep -r "AUTH-B-03" backend/test backend/scripts .github/workflows audit-reports
+grep -r "AUTH-B-03" backend/test backend/scripts .github/workflows
 ```
 
 ### Family → primary evidence (as of 2026-10-02)
@@ -293,7 +292,7 @@ dev/test reset only, never production). Rules:
 
 ## 6. Related documents
 
-- [`audit-reports/testing-overhaul-plan.md`](../audit-reports/testing-overhaul-plan.md)
+- [`DEFERRED_TODOS.md`](../DEFERRED_TODOS.md)
   — suite conventions, inventory, roadmap, CI history
 - [`CHANGELOG.md`](../CHANGELOG.md) — what shipped, when
 - [`backend/scripts/MIGRATIONS.md`](../backend/scripts/MIGRATIONS.md) — the

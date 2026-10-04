@@ -2,7 +2,7 @@ import express from 'express';
 import LawyerProfile from '../models/LawyerProfile.js';
 import LawyerBooking from '../models/LawyerBooking.js';
 import User from '../models/User.js';
-import { protect } from '../middleware/auth.js';
+import { protect, requireRole } from '../middleware/auth.js';
 import { validate, searchLawyerSchema, lawyerStatusSchema } from '../utils/validate.js';
 import {
   searchMatchingLawyers,
@@ -151,16 +151,29 @@ router.get('/', async (req, res) => {
 
 // ─── GET /api/lawyer/profile ──────────────────────────────────────────────
 // Get logged-in lawyer's profile
-router.get('/profile', protect, async (req, res) => {
+router.get('/profile', protect, requireRole(['lawyer']), async (req, res) => {
   try {
-    const profile = await LawyerProfile.findOne({ userId: req.user._id }).populate(
+    const profile = await LawyerProfile.findOne({ userId: req.user._id }).select('userId barCouncilNumber stateBarCouncil yearOfEnrollment practiceCategories yearsOfPractice courtsPracticedIn jurisdictionCity operatingCity lawFirmName bio languages consultationModes consultationFee followUpFee freeFirstConsultation sessionDuration bankDetails settings licenseExpiryDate verificationLastChecked nextVerificationDue verificationStatus verificationDocuments availableDays isOnlineForUrgent isDocumentVerified rating totalEarnings walletBalance currentLocation availableTimeSlots isAvailable lawyerStatus') .populate(
       'userId',
       'name email phone avatar address'
     );
     if (!profile) {
       return res.status(404).json({ message: 'Lawyer profile not found' });
     }
-    res.json({ success: true, profile });
+    const safeProfile = profile.toObject?.() || profile;
+    safeProfile.govtIdNumber = safeProfile.govtIdNumber ? `****${String(safeProfile.govtIdNumber).slice(-4)}` : '';
+    safeProfile.govtIdDocUrl = undefined;
+    safeProfile.barCouncilCertUrl = undefined;
+    safeProfile.lawDegreeCertUrl = undefined;
+    safeProfile.bankDetails = safeProfile.bankDetails ? {
+      accountHolder: safeProfile.bankDetails.accountHolder,
+      accountNumber: safeProfile.bankDetails.accountNumber ? `****${String(safeProfile.bankDetails.accountNumber).slice(-4)}` : '',
+      ifsc: safeProfile.bankDetails.ifsc ? `${String(safeProfile.bankDetails.ifsc).slice(0, 4)}****` : '',
+      upiId: safeProfile.bankDetails.upiId ? `${String(safeProfile.bankDetails.upiId).slice(0, 2)}****` : '',
+      verified: safeProfile.bankDetails.verified,
+    } : undefined;
+    safeProfile.verificationDocuments = (safeProfile.verificationDocuments || []).map(({ kind, uploadedAt, verifiedAt }) => ({ kind, uploadedAt, verifiedAt }));
+    res.json({ success: true, profile: safeProfile });
   } catch (err) {
     logger.error(`Error fetching lawyer profile: ${err.message}`);
     res.status(500).json({ message: 'Failed to fetch lawyer profile' });
@@ -169,7 +182,7 @@ router.get('/profile', protect, async (req, res) => {
 
 // ─── PUT /api/lawyer/profile ──────────────────────────────────────────────
 // Update lawyer profile (practice, fees, bio, availability)
-router.put('/profile', protect, async (req, res) => {
+router.put('/profile', protect, requireRole(['lawyer']), async (req, res) => {
   try {
     const profile = await LawyerProfile.findOne({ userId: req.user._id });
     if (!profile) {
@@ -242,7 +255,7 @@ router.put('/profile', protect, async (req, res) => {
 
 // ─── PUT /api/lawyer/status ───────────────────────────────────────────────
 // Toggle Available/Unavailable
-router.put('/status', protect, validate(lawyerStatusSchema), async (req, res) => {
+router.put('/status', protect, requireRole(['lawyer']), validate(lawyerStatusSchema), async (req, res) => {
   try {
     const profile = await LawyerProfile.findOne({ userId: req.user._id });
     if (!profile) {
@@ -285,7 +298,7 @@ router.put('/status', protect, validate(lawyerStatusSchema), async (req, res) =>
 
 // ─── PUT /api/lawyer/location ─────────────────────────────────────────────
 // Update current location with H3 cache sync
-router.put('/location', protect, async (req, res) => {
+router.put('/location', protect, requireRole(['lawyer']), async (req, res) => {
   try {
     const { lat, lng } = req.body;
     if (lat == null || lng == null) {
@@ -310,6 +323,7 @@ router.put('/location', protect, async (req, res) => {
           'currentLocation.h3Index8': h3Result?.h3Index8 || null,
           'currentLocation.h3Index9': h3Result?.h3Index9 || null,
           'currentLocation.updatedAt': new Date(),
+          lastLocationAt: new Date(),
         },
       },
       { new: true }
@@ -324,7 +338,7 @@ router.put('/location', protect, async (req, res) => {
 
 // ─── GET /api/lawyer/earnings ─────────────────────────────────────────────
 // Get lawyer earnings & wallet summary
-router.get('/earnings', protect, async (req, res) => {
+router.get('/earnings', protect, requireRole(['lawyer']), async (req, res) => {
   try {
     const profile = await LawyerProfile.findOne({ userId: req.user._id });
     if (!profile) {
@@ -398,7 +412,7 @@ router.get('/earnings', protect, async (req, res) => {
 
 // ─── POST /api/lawyer/withdraw-demo ───────────────────────────────────────
 // Simulate withdrawal (demo payout)
-router.post('/withdraw-demo', protect, async (req, res) => {
+router.post('/withdraw-demo', protect, requireRole(['lawyer']), async (req, res) => {
   try {
     const profile = await LawyerProfile.findOne({ userId: req.user._id });
     if (!profile) {
@@ -472,7 +486,7 @@ router.post('/withdraw-demo', protect, async (req, res) => {
 
     res.json({
       success: true,
-      message: `Demo withdrawal of Rs. ${requested.toLocaleString('en-IN')} requested to bank account ending in ${(profile.bankDetails?.accountNumber || 'XXXX').slice(-4)}`,
+      message: `Demo withdrawal of Rs. ${requested.toLocaleString('en-IN')} initiated.`,
       withdrawnAmount: debit,
       newBalance: debited.walletBalance,
       reference,

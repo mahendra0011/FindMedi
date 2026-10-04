@@ -55,6 +55,6 @@ const config = {
   }),
 };
 
-export const startAssistantDispatch = (requestId) => startInstantDispatch(requestId, config);
+export const startAssistantDispatch = (requestId, radiiKm) => startInstantDispatch(requestId, radiiKm?.length ? { ...config, radiiKm } : config);
 export const acceptAssistantRequest = (requestId, providerId, user) => handleInstantAccept(requestId, providerId, user, config);
 export const rejectAssistantRequest = (requestId, providerId) => handleInstantReject(requestId, providerId, config);

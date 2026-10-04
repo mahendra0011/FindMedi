@@ -25,12 +25,19 @@ export function createGrlRateLimiter({
   failClosed = false,
 }) {
   return async (req, res, next) => {
-    // 1. SOS *path* bypass only — NEVER rate-limit life-safety alerts.
+    // 1. Only exact life-safety intake paths bypass this general limiter. Other
+    // emergency/SOS-adjacent routes (history, search, admin tools) stay limited.
     // Client body fields are attacker-controlled and must not switch off
     // auth/TOTP/payment throttles.
     if (isEmergencyExempt) {
-      const url = req.originalUrl || req.url || '';
-      if (url.includes('/emergency') || url.includes('/sos')) {
+      const path = (req.path || (req.originalUrl || req.url || '').split('?')[0]).replace(/\/+$/, '') || '/';
+      const method = String(req.method || 'GET').toUpperCase();
+      const emergencyIntake = method === 'POST' && new Set([
+        '/api/emergency',
+        '/api/emergency-sos',
+        '/api/emergency-sos/start',
+      ]).has(path);
+      if (emergencyIntake) {
         return next();
       }
     }

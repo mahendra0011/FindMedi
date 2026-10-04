@@ -1,26 +1,20 @@
-import { Unleash } from 'unleash-client';
 import { PostHog } from 'posthog-node';
 
 let unleash = null;
+const configuredFlags = () => {
+  try {
+    const value = JSON.parse(process.env.FEATURE_FLAGS || '{}');
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  } catch {
+    return {};
+  }
+};
 let posthog = null;
 
 export function initFeatureFlags() {
-  if (!process.env.UNLEASH_URL || !process.env.UNLEASH_API_TOKEN) {
-    console.warn('Unleash not configured, feature flags disabled');
-    return null;
-  }
-  
-  unleash = new Unleash({
-    url: process.env.UNLEASH_URL,
-    clientKey: process.env.UNLEASH_API_TOKEN,
-    appName: 'findmedi-backend',
-    refreshInterval: 15000,
-    disableMetrics: true,
-  });
-  
-  unleash.on('error', (err) => console.error('Unleash error:', err.message));
-  unleash.on('warn', (msg) => console.warn('Unleash warn:', msg));
-  
+  // Backend flags are currently environment-backed; do not fetch remote rules
+  // or send request context to an external feature-flag service.
+  unleash = configuredFlags();
   return unleash;
 }
 
@@ -48,13 +42,15 @@ export function getPostHog() {
 }
 
 export function isFeatureEnabled(flagName, context = {}) {
-  if (!unleash) return false;
-  return unleash.isEnabled(flagName, context);
+  void context;
+  const flags = unleash || configuredFlags();
+  return flags[flagName] === true;
 }
 
 export function getVariant(flagName, context = {}) {
-  if (!unleash) return null;
-  return unleash.getVariant(flagName, context);
+  void flagName;
+  void context;
+  return null;
 }
 
 export function capturePostHogEvent(event, properties = {}) {

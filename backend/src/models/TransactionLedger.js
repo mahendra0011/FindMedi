@@ -46,6 +46,12 @@ const transactionLedgerSchema = new mongoose.Schema(
 transactionLedgerSchema.index({ createdAt: -1 });
 transactionLedgerSchema.index({ providerId: 1, createdAt: -1 });
 transactionLedgerSchema.index({ facilityId: 1, createdAt: -1 });
+// One settlement per source object. Resolve pre-existing duplicates before
+// building this index in production; otherwise MongoDB correctly rejects it.
+transactionLedgerSchema.index({ source: 1, sourceId: 1 }, {
+  unique: true,
+  partialFilterExpression: { sourceId: { $type: 'string', $gt: '' } },
+});
 
 // PAY-M-06: ledgerService already computes these in integer paise and converts
 // back with fromPaise, so this is a no-op for values written that way - it is

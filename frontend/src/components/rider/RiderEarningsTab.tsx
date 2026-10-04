@@ -107,19 +107,19 @@ export const RiderEarningsTab: React.FC<RiderEarningsTabProps> = ({
           <div>
             <p className="text-muted-foreground">Account Holder</p>
             <p className="font-semibold text-foreground mt-0.5">
-              {profile?.bankDetails?.accountHolder || user?.name}
+              {profile?.bankDetails?.accountHolder ? 'Verified payout account' : user?.name}
             </p>
           </div>
           <div>
             <p className="text-muted-foreground">Account Number</p>
             <p className="font-mono font-semibold text-foreground mt-0.5">
-              {profile?.bankDetails?.accountNumber || '••••••••••••'}
+              {profile?.bankDetails?.accountNumber ? `••••${String(profile.bankDetails.accountNumber).slice(-4)}` : 'Not added'}
             </p>
           </div>
           <div>
             <p className="text-muted-foreground">IFSC / UPI ID</p>
             <p className="font-mono font-semibold text-foreground mt-0.5">
-              {profile?.bankDetails?.upiId || profile?.bankDetails?.ifsc || 'N/A'}
+              {profile?.bankDetails?.upiId ? `${String(profile.bankDetails.upiId).slice(0, 2)}••••` : profile?.bankDetails?.ifsc ? `${String(profile.bankDetails.ifsc).slice(0, 4)}••••` : 'N/A'}
             </p>
           </div>
         </div>

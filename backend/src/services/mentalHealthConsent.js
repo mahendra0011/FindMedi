@@ -137,6 +137,48 @@ export const sweepRetention = (referral, { dryRun = true, now = new Date() } = {
 export const isLapsed = (consent, now = new Date()) =>
   !!consent?.expiryDate && new Date(consent.expiryDate) <= now;
 
+/**
+ * MH-M-01 revocation propagation. Revoking consent must (a) mark the consent
+ * Revoked, (b) destroy downstream free-text session notes governed by that
+ * consent (deletion evidence: purgedAt + retained metadata), and (c) leave
+ * every later purpose check failing closed. Returns the propagation receipt
+ * so callers can audit "revoked at T, N sessions purged".
+ */
+export const revokeConsentAndPropagate = (referral, consentId, { now = new Date(), reason = '' } = {}) => {
+  const consents = referral?.consents || [];
+  const target = consents.find((c) => String(c._id || c.id || '') === String(consentId))
+    || consents[consents.length - 1];
+  if (!target) return { revoked: false, reason: 'no-consent-on-record' };
+  target.status = 'Revoked';
+  target.revokedAt = now;
+  if (reason) target.revocationReason = String(reason).slice(0, 300);
+
+  const sessions = referral?.sessions || [];
+  let purged = 0;
+  const evidence = [];
+  sessions.forEach((s, index) => {
+    const governed = !s?.consentId || String(s.consentId) === String(consentId)
+      || String(s.consentId) === String(target._id || target.id || '');
+    const hasNotes = typeof s?.notes === 'string' && s.notes.trim().length > 0;
+    if (governed && hasNotes && !s.purgedAt) {
+      evidence.push({ index, sessionDate: s.date, noteLength: s.notes.length, purgedAt: now });
+      s.notes = '';
+      s.purgedAt = now;
+      sessions[index] = s;
+      purged += 1;
+    }
+  });
+  if (referral) referral.sessions = sessions;
+  return {
+    revoked: true,
+    consentId: String(target._id || target.id || consentId),
+    revokedAt: now,
+    sessionsScanned: sessions.length,
+    sessionsPurged: purged,
+    evidence,
+  };
+};
+
 /** Build the renewal record, carrying the purpose set and retention forward. */
 export const buildRenewal = (previous, { signedBy, notes, expiresAt, retentionDays } = {}) => ({
   consentType: previous?.consentType || 'Treatment Consent',

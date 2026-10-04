@@ -130,7 +130,7 @@ describe('AUTHZ-M-01 · migration preconditions now hold', () => {
     const pha = read('../../src/routes/pharmacy.js');
     const lab = read('../../src/routes/lab.js');
     expect((inv.match(/authorizeObject\(/g) || []).length).toBe(2);
-    expect((pha.match(/authorizeObject\(/g) || []).length).toBe(13);
+    expect((pha.match(/authorizeObject\(/g) || []).length).toBe(16);
     expect((lab.match(/authorizeObject\(/g) || []).length).toBe(7);
     for (const src of [inv, pha, lab]) {
       expect(src).not.toMatch(/requireTenantOwnership\(/);

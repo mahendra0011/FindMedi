@@ -206,9 +206,13 @@ export const EMOJI_GROUPS = [
 
 export function searchEmoji(query = '') {
   const q = query.trim().toLowerCase();
-  if (!q) return EMOJI_GROUPS;
   return EMOJI_GROUPS
-    .map((g) => ({ ...g, emojis: g.emojis.filter((e) => g.label.toLowerCase().includes(q) || e.includes(q)) }))
+    .map((g) => ({
+      ...g,
+      // The catalog has blank separators and repeated codepoints; neither
+      // should create empty buttons or duplicate React keys in the picker.
+      emojis: [...new Set(g.emojis.filter(Boolean))].filter((e) => !q || g.label.toLowerCase().includes(q) || e.includes(q)),
+    }))
     .filter((g) => g.emojis.length);
 }
 

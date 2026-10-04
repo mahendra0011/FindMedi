@@ -30,6 +30,7 @@ import { idempotencyGuard } from '../middleware/idempotency.js';
 // LOYAL-B-02: coupon eligibility is re-checked server-side at pay time.
 import { resolveCoupon, recordCouponRedemption } from '../services/couponService.js';
 import { toPaise, fromPaise } from '../services/ledgerService.js';
+import { paymentReplayConflict } from '../services/paymentReplayService.js';
 
 const router = express.Router();
 
@@ -365,6 +366,7 @@ router.delete('/:id', protect, authorize('billing:write'), paymentLimiter, async
 // down => 503, i.e. a double-submit can never reach the money path.
 router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', failClosed: true }), async (req, res, next) => {
   let createdAppointment = null;
+  let pharmacyOrderStateChanged = null;
   // PAY-B-03: holds the atomic seat claim so the compensating release can run on
   // any failure between the reservation and the committed appointment.
   let slotReserved = null;
@@ -379,21 +381,52 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
     && typeof mongoose.connection.getClient().topology === 'object'
     && mongoose.connection.getClient().topology.description?.type !== 'Single');
   let paymentSession = null;
-  if (supportsTransactions && mongoose.connection.readyState === 1) {
+  const startPaymentTransaction = async () => {
+    if (paymentSession || !supportsTransactions || mongoose.connection.readyState !== 1) return;
     paymentSession = await mongoose.startSession();
     paymentSession.startTransaction({
       readConcern: { level: 'snapshot' },
       writeConcern: { w: 'majority' },
     });
-  }
+  };
   // Declared outside the try: the catch block releases the seat held by this
   // appointment (PAY-B-03), so its scope must span both blocks.
   let apptData = null;
+  let pharmacyOrderForPayment = null;
   try {
     let { serviceType, referenceId, amount, method, description, provider, lineItems } = req.body;
     apptData = req.body.appointment;
     if (!serviceType || !method) {
       return res.status(400).json({ message: 'serviceType and method are required' });
+    }
+    // No provider adapter is currently connected to this route. Refuse to mint
+    // a fake completed payment in production; a signed provider settlement path
+    // must be installed before real customer money/fulfilment can be enabled.
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(503).json({
+        message: 'Online payments are temporarily unavailable until a payment provider is configured.',
+        code: 'PAYMENT_PROVIDER_UNAVAILABLE',
+      });
+    }
+
+    if (String(serviceType).toLowerCase() === 'medicine') {
+      if (!referenceId || !mongoose.Types.ObjectId.isValid(referenceId)) {
+        return res.status(400).json({ message: 'A valid pharmacy order reference is required.' });
+      }
+      pharmacyOrderForPayment = await PharmacyOrder.findById(referenceId)
+        .select('patientId status paymentStatus couponCode hospitalId')
+        .lean();
+      if (!pharmacyOrderForPayment) return res.status(404).json({ message: 'Pharmacy order not found.' });
+      if (String(pharmacyOrderForPayment.patientId) !== String(req.user._id)) {
+        return res.status(404).json({ message: 'Pharmacy order not found.' });
+      }
+      if (pharmacyOrderForPayment.status === 'Cancelled' || pharmacyOrderForPayment.paymentStatus === 'Refunded') {
+        return res.status(409).json({ message: 'This pharmacy order cannot be paid.' });
+      }
+      if (pharmacyOrderForPayment.couponCode && req.body.couponCode && String(pharmacyOrderForPayment.couponCode).toUpperCase() !== String(req.body.couponCode).toUpperCase()) {
+        return res.status(409).json({ message: 'The coupon does not match this checkout.' });
+      }
+      if (pharmacyOrderForPayment.couponCode && !req.body.couponCode) req.body.couponCode = pharmacyOrderForPayment.couponCode;
     }
 
     // ── PAY-B-01: the SERVER owns the price ──
@@ -438,6 +471,26 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
     // From here on `amount` is server-owned, never client-owned.
     amount = authoritative.amount;
 
+    // A successful retry must not be re-evaluated against a coupon cap already
+    // consumed by its first request. Scope the replay to the payment owner and
+    // service before returning any payment details.
+    if (referenceId) {
+      const completedPayment = await Payment.findOne({ referenceId, status: 'completed' });
+      if (completedPayment) {
+        const conflict = paymentReplayConflict(completedPayment, req.user._id, serviceType);
+        if (conflict) return res.status(conflict.status).json({ message: conflict.message });
+        return res.status(200).json({
+          success: true,
+          transaction_id: completedPayment.transaction_id,
+          invoice_id: completedPayment.invoice_id,
+          payment: completedPayment,
+          appointment: null,
+          appointmentStatus: null,
+          alreadyPaid: true,
+        });
+      }
+    }
+
     // ── LOYAL-B-02: the coupon is re-validated HERE, at pay time ──
     // The client sends only a CODE. Whether it is active, inside its validity
     // window, above the minimum order, inside the per-user cap and bound to this
@@ -450,7 +503,7 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
         code: req.body.couponCode,
         subtotalPaise: toPaise(amount),
         userId: req.user._id,
-        hospitalId: req.user.hospitalId || null,
+        hospitalId: pharmacyOrderForPayment?.hospitalId || req.user.hospitalId || null,
         serviceType,
       });
       if (!verdict.ok) {
@@ -468,6 +521,12 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
       }
       appliedCoupon = verdict;
       amount = discounted;
+      if (!supportsTransactions || mongoose.connection.readyState !== 1) {
+        return res.status(503).json({
+          message: 'Coupon payments temporarily require transactional database support.',
+          code: 'COUPON_TRANSACTION_UNAVAILABLE',
+        });
+      }
     }
 
     // Defense-in-depth: cap free-text inputs and line items for invoice generation safety
@@ -617,6 +676,7 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
 
         // PAY-B-02: created inside the caller's session (when there is one) so the
         // appointment and its payment commit or roll back together.
+        await startPaymentTransaction();
         const [apptDoc] = await Appointment.create([{
           tokenNumber,
           uhid: patientUser?.uhid || '',
@@ -671,6 +731,13 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
     if (referenceId) {
       const existingPayment = await Payment.findOne({ referenceId, status: 'completed' });
       if (existingPayment) {
+        const conflict = paymentReplayConflict(existingPayment, req.user._id, serviceType);
+        if (conflict) return res.status(conflict.status).json({ message: conflict.message });
+        if (paymentSession) {
+          await paymentSession.abortTransaction().catch(() => {});
+          paymentSession.endSession();
+          paymentSession = null;
+        }
         return res.status(200).json({
           success: true,
           transaction_id: existingPayment.transaction_id,
@@ -706,6 +773,36 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
     let payment;
 
     try {
+
+      await startPaymentTransaction();
+
+      if (String(serviceType).toLowerCase() === 'medicine') {
+      const orderBeforePayment = await PharmacyOrder.findOneAndUpdate(
+          {
+            _id: referenceId,
+            patientId: req.user._id,
+            status: 'Pending',
+            paymentStatus: { $nin: ['Paid', 'Refunded'] },
+            inventoryReservationStatus: 'reserved',
+            inventoryReservationExpiresAt: { $gt: new Date() },
+          },
+          { $set: { status: 'Confirmed', paymentStatus: 'Paid', inventoryReservationStatus: 'consumed' }, $unset: { inventoryReservationExpiresAt: 1 } },
+          { new: false, ...(paymentSession ? { session: paymentSession } : {}) }
+        );
+        if (!orderBeforePayment) {
+          const conflict = new Error('Pharmacy order was cancelled or paid by another request.');
+          conflict.status = 409;
+          conflict.code = 'PHARMACY_ORDER_NOT_PAYABLE';
+          throw conflict;
+        }
+        pharmacyOrderStateChanged = {
+          id: orderBeforePayment._id,
+          status: orderBeforePayment.status,
+          paymentStatus: orderBeforePayment.paymentStatus,
+          inventoryReservationStatus: orderBeforePayment.inventoryReservationStatus || 'none',
+          inventoryReservationExpiresAt: orderBeforePayment.inventoryReservationExpiresAt || null,
+        };
+      }
 
       const [p] = await Payment.create([{
         transaction_id, invoice_id,
@@ -757,7 +854,7 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
             }
           } catch (_) { /* default to confirm on error */ }
           if (shouldConfirm) {
-            await Appointment.findByIdAndUpdate(referenceId, { status: 'Confirmed' });
+            await Appointment.findByIdAndUpdate(referenceId, { status: 'Confirmed' }, paymentSession ? { session: paymentSession } : {});
           }
           try {
             const appt = await Appointment.findById(referenceId);
@@ -766,9 +863,7 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
             console.error('[billing/pay] socket emit failed:', emitErr.message);
           }
         } else if (serviceType === 'test') {
-          await LabBooking.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' });
-        } else if (serviceType === 'medicine') {
-          await PharmacyOrder.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' });
+          await LabBooking.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' }, paymentSession ? { session: paymentSession } : {});
         }
       }
 
@@ -782,6 +877,21 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
       // Wrapping both writes in one session makes the pair genuinely all-or-nothing.
       if (req.body?.appointment && createdAppointment?._id) {
         try { await Appointment.findByIdAndDelete(createdAppointment._id); } catch (_) {}
+      }
+      if (!paymentSession && pharmacyOrderStateChanged) {
+        await PharmacyOrder.updateOne(
+          { _id: pharmacyOrderStateChanged.id, status: 'Confirmed', paymentStatus: 'Paid' },
+          {
+            $set: {
+              status: pharmacyOrderStateChanged.status,
+              paymentStatus: pharmacyOrderStateChanged.paymentStatus,
+              inventoryReservationStatus: pharmacyOrderStateChanged.inventoryReservationStatus,
+              ...(pharmacyOrderStateChanged.inventoryReservationExpiresAt ? { inventoryReservationExpiresAt: pharmacyOrderStateChanged.inventoryReservationExpiresAt } : {}),
+            },
+            ...(pharmacyOrderStateChanged.inventoryReservationExpiresAt ? {} : { $unset: { inventoryReservationExpiresAt: 1 } }),
+          }
+        ).catch((rollbackErr) => logger.error(`pharmacy order payment rollback failed: ${rollbackErr.message}`));
+        pharmacyOrderStateChanged = null;
       }
       // PAY-B-03: give the seat back too, or the slot stays artificially full.
       if (slotReserved) {
@@ -859,31 +969,19 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
 
     // ── PAY-B-02: commit the appointment + payment pair atomically ──
     if (paymentSession) {
+      if (appliedCoupon) {
+        await recordCouponRedemption({
+          code: appliedCoupon.code,
+          userId: req.user._id,
+          discountPaise: appliedCoupon.discountPaise,
+          orderRef: referenceId || invoice_id,
+          perUserLimit: appliedCoupon.coupon.perUserLimit,
+          session: paymentSession,
+        });
+      }
       await paymentSession.commitTransaction();
       paymentSession.endSession();
       paymentSession = null;
-    }
-
-    // LOYAL-B-02: consume the coupon only AFTER the money committed, and with an
-    // atomic increment. If the increment reveals that a concurrent checkout just
-    // used the last remaining use, the row says so and the caller can reverse —
-    // recording it before the payment would burn a use on a failed checkout.
-    if (appliedCoupon) {
-      const redemption = await recordCouponRedemption({
-        code: appliedCoupon.code,
-        userId: req.user._id,
-        discountPaise: appliedCoupon.discountPaise,
-        orderRef: referenceId || invoice_id,
-      }).catch((couponErr) => {
-        logger.error(`coupon redemption record failed: ${couponErr.message}`);
-        return { exceededLimit: false };
-      });
-      if (redemption.exceededLimit) {
-        logger.error(
-          `LOYAL-B-02: coupon ${appliedCoupon.code} usage cap was raced by a concurrent checkout `
-          + `for payment ${transaction_id} — reverse and flag for review`
-        );
-      }
     }
 
     res.status(201).json({

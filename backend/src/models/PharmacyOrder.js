@@ -13,8 +13,12 @@ const pharmacyOrderSchema = new mongoose.Schema({
   price: { type: Number, required: true },
  }],
  total: { type: Number, required: true },
+ // Server-calculated amount before a payment-time platform coupon is applied.
+ payableBeforeDiscount: { type: Number, default: 0 },
  status: { type: String, enum: ['Pending', 'Confirmed', 'Preparing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned'], default: 'Pending' },
- paymentStatus: { type: String, enum: ['Unpaid', 'Paid', 'Refunded'], default: 'Unpaid' },
+ paymentStatus: { type: String, enum: ['Pending', 'Unpaid', 'Paid', 'Refunded'], default: 'Unpaid' },
+ inventoryReservationStatus: { type: String, enum: ['none', 'reserved', 'consumed', 'released'], default: 'none', index: true },
+ inventoryReservationExpiresAt: { type: Date, default: null, index: true },
  note: { type: String, default: '' },
  orderDate: { type: Date, default: Date.now },
  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },

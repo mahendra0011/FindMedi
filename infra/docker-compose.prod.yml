@@ -172,9 +172,7 @@ services:
   # exercised by the drill below at least quarterly.
   # ========================================================================
   backup:
-    image: findmedi/backup:latest
-    build:
-      context: ./backup
+    image: ${BACKUP_IMAGE:?set BACKUP_IMAGE to an immutable repository@sha256 digest}
     container_name: findmedi-backup
     # Stays up so a missed window is visible in `docker ps` rather than silently
     # disappearing into a completed-exit container.
@@ -209,9 +207,7 @@ services:
   # Restore drill: restores the newest artifact into throwaway databases and
   # asserts collection/row counts. Quarterly, per INF-B-04.
   backup-drill:
-    image: findmedi/backup:latest
-    build:
-      context: ./backup
+    image: ${BACKUP_IMAGE:?set BACKUP_IMAGE to an immutable repository@sha256 digest}
     container_name: findmedi-backup-drill
     environment:
       DRILL_MONGO_URI: ${DRILL_MONGO_URI:-mongodb://drill-mongo:27017/findmedi}

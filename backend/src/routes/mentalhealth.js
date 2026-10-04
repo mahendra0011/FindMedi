@@ -1,6 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import MentalHealth from '../models/MentalHealth.js';
+import User from '../models/User.js';
 import Billing from '../models/Billing.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly, authorize } from '../middleware/auth.js';
@@ -12,7 +13,12 @@ import { auditLog } from '../middleware/audit.js';
 import { authorizeObject } from '../middleware/authorize.js';
 import { sendServerError } from '../utils/safeError.js';
 import logger from '../config/logger.js';
-import { denyMentalHealth, openCrisisEvent } from '../services/mentalHealthAccess.js';
+import {
+  denyMentalHealth,
+  openCrisisEvent,
+  MENTAL_HEALTH_CLINICAL_ROLES,
+  MENTAL_HEALTH_CRISIS_ACK_ROLES,
+} from '../services/mentalHealthAccess.js';
 import {
   assertPurposeConsent,
   retentionDeadlineFor,
@@ -71,8 +77,24 @@ const router = express.Router();
 
 router.post('/referrals', protect, validate(createMentalHealthReferralSchema), validate(mhPurposeSchema), async (req, res) => {
   try {
-    const { patientId, patientName, referralSource, referrerName } = req.body;
+    const { patientId, referralSource, referrerName } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
+    if (!MENTAL_HEALTH_CLINICAL_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Mental-health referral access required' });
+    }
+    const patient = await User.findById(patientId)
+      .select('_id name role hospitalId facilityId')
+      .lean();
+    if (!patient || patient.role !== 'patient') {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+    if (req.user.role !== 'superadmin') {
+      const callerTenant = String(req.user.hospitalId || req.user.facilityId || '');
+      const patientTenant = String(patient.hospitalId || patient.facilityId || '');
+      if (!callerTenant || callerTenant !== patientTenant) {
+        return res.status(404).json({ message: 'Patient not found' });
+      }
+    }
 
     // MIND-B-01: the SPECIAL-CATEGORY classification is set here, on the server,
     // and there is no way for a client to override it. Everything below records
@@ -82,10 +104,10 @@ router.post('/referrals', protect, validate(createMentalHealthReferralSchema), v
     const record = await MentalHealth.create({
       referralId,
       patientId,
-      patientName,
+      patientName: patient.name,
       referralSource: referralSource || 'Doctor',
       referrerName: referrerName || req.user.name,
-      hospitalId: req.user.hospitalId || undefined,
+      hospitalId: req.user.hospitalId || req.user.facilityId || undefined,
       createdBy: req.user._id,
 
       // Server-owned, not client-settable.
@@ -117,20 +139,47 @@ router.post('/referrals', protect, validate(createMentalHealthReferralSchema), v
       userAgent: req.get('user-agent'),
     });
 
-    res.status(201).json(record);
+    res.status(201).json({
+      referral: {
+        _id: record._id,
+        referralId: record.referralId,
+        patientId: record.patientId,
+        patientName: record.patientName,
+        status: record.status,
+        createdAt: record.createdAt,
+      },
+    });
   } catch (err) { sendServerError(res, err, 'Could not create the referral'); }
 });
 
 router.get('/referrals', protect, async (req, res) => {
   try {
     const { status, search } = req.query;
-    const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    let filter;
+    if (req.user.role === 'superadmin') {
+      filter = {};
+    } else if (req.user.role === 'patient') {
+      filter = { patientId: req.user._id };
+    } else if (MENTAL_HEALTH_CLINICAL_ROLES.includes(req.user.role)) {
+      const tenantId = req.user.hospitalId || req.user.facilityId;
+      if (!tenantId) return res.status(403).json({ message: 'Facility scope required' });
+      filter = { hospitalId: tenantId };
+    } else {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     if (status && status !== 'All') filter.status = status;
     if (search) filter.$or = [{ referralId: new RegExp(escapeRegex(capSearch(search)), 'i') }, { patientName: new RegExp(escapeRegex(capSearch(search)), 'i') }];
-    const data = await MentalHealth.find(filter).sort({ createdAt: -1 });
-    res.json({ referrals: data });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 25));
+    const [referrals, total] = await Promise.all([
+      MentalHealth.find(filter)
+        .select('referralId patientId patientName referralSource status hospitalId createdAt')
+        .sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+      MentalHealth.countDocuments(filter),
+    ]);
+    await auditLog('view_mental_health_referrals', req.user._id, { count: referrals.length, page });
+    res.json({ referrals, page, limit, total, totalPages: Math.ceil(total / limit) });
+  } catch (err) { sendServerError(res, err, 'Could not load referrals'); }
 });
 
 router.put('/referrals/:id/assessment', protect, validate(mhAssessmentSchema), async (req, res) => {
@@ -602,11 +651,24 @@ router.post('/referrals/:id/create-billing', protect, adminOnly, validate(mhBill
 });
 
 router.get('/stats', protect, async (req, res) => {
-  const hFilter = {};
-  if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
-  const active = await MentalHealth.countDocuments({ ...hFilter, status: 'Active' });
-  const total = await MentalHealth.countDocuments(hFilter);
-  res.json({ active, total });
+  try {
+    if (!MENTAL_HEALTH_CLINICAL_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const scope = req.user.role === 'superadmin'
+      ? {}
+      : { hospitalId: req.user.hospitalId || req.user.facilityId };
+    if (req.user.role !== 'superadmin' && !scope.hospitalId) {
+      return res.status(403).json({ message: 'Facility scope required' });
+    }
+    const [active, total] = await Promise.all([
+      MentalHealth.countDocuments({ ...scope, status: 'Active' }),
+      MentalHealth.countDocuments(scope),
+    ]);
+    return res.json({ active, total });
+  } catch (err) {
+    return sendServerError(res, err, 'Could not load mental-health statistics');
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -626,6 +688,9 @@ router.get('/stats', protect, async (req, res) => {
  */
 router.get('/crisis/queue', protect, async (req, res) => {
   try {
+    if (!MENTAL_HEALTH_CRISIS_ACK_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Crisis responder access required' });
+    }
     // Fail closed on tenancy: a caller with no tenant sees nothing rather than
     // everything.
     const tenant = req.user.hospitalId || req.user.facilityId;

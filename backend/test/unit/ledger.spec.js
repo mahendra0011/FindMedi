@@ -32,7 +32,7 @@ jest.unstable_mockModule('../../src/models/TransactionLedger.js', () => {
 });
 
 const profileStub = () => ({
-  default: { findOneAndUpdate: jest.fn(() => Promise.resolve()) },
+  default: { findOneAndUpdate: jest.fn(() => Promise.resolve({ matchedCount: 1 })) },
   __esModule: true,
 });
 jest.unstable_mockModule('../../src/models/RiderProfile.js', profileStub);
@@ -139,6 +139,13 @@ describe('recordServiceSettlement', () => {
     const [, payload] = RiderProfile.findOneAndUpdate.mock.calls[0];
     expect(payload.$inc.walletBalance).toBe(890);
     expect(payload.$inc.totalEarnings).toBe(1000);
+  });
+
+  it('fails the settlement when the provider wallet/profile does not exist', async () => {
+    RiderProfile.findOneAndUpdate.mockResolvedValueOnce(null);
+    await expect(recordServiceSettlement({
+      source: 'ride', sourceId: 'RIDE-MISSING-PROVIDER', totalAmount: 100, providerId: 'missing',
+    })).rejects.toThrow(/Rider profile not found/);
   });
 
   it('routes the wallet credit to the profile model matching the source', async () => {

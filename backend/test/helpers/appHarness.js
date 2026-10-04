@@ -83,6 +83,14 @@ export async function mountApp(name, models = {}, options = {}) {
     (req.user?.role === 'superadmin')
       ? next()
       : res.status(403).json({ message: 'Superadmin access required' });
+  // Role gates mirroring the real middleware (lab/pharmacy routers import these
+  // at definition time, so the mock needs the exports or the module fails to load).
+  authStub.requireRole = (roles) => (req, res, next) =>
+    ((Array.isArray(roles) ? roles : [roles]).includes(req.user?.role) || req.user?.role === 'superadmin')
+      ? next()
+      : res.status(403).json({ message: 'Role required' });
+  authStub.roleOnly = authStub.requireRole;
+  authStub.restrictTo = (...roles) => authStub.requireRole(roles.flat());
   // authorize() is the authorization MARKER: route parsers key off its presence,
   // and health-id/patient routers call it at definition time, so the mock needs
   // the export or the module fails to load. Behaviourally this proves the guard

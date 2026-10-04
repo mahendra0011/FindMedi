@@ -1,0 +1,35 @@
+# DP-B-03: Pinot surge sink freshness alert.
+#
+# The live Flink job (data-platform/flink/surge_live.sql) sinks per-minute
+# per-H3 demand into the Pinot `surge_by_cell` table. When that sink goes stale
+# (connector down, bad credentials, schema drift) dispatch keeps serving but
+# the demand signal freezes — the same silent-stale class as DP-B-05. This
+# alert fires when the newest window_end in surge_by_cell is older than the
+# SLO, and the contract test backend/test/unit/flinkSurgeContract.spec.js pins
+# the table + field names here to the SQL so the two cannot drift apart.
+#
+# Wire-up: evaluate `detection.query` against the Pinot broker on `schedule`
+# (cron) and page `severity` via the on-call channel in `notify`.
+
+alert: surge_by_cell_sink_stale
+table: surge_by_cell
+source_sql: data-platform/flink/surge_live.sql
+slo:
+  # Surge is a realtime signal: 5 minutes without a fresh window is stale.
+  max_staleness_minutes: 5
+  window_column: window_end
+  count_column: booking_count
+detection:
+  query: "SELECT max(window_end) AS latest_window, count(*) AS rows_1h FROM surge_by_cell WHERE window_end > (now() - 3600000)"
+  stale_when: "latest_window IS NULL OR latest_window < (now() - 5 * 60 * 1000)"
+schedule: "*/2 * * * *"
+severity: high
+notify:
+  channel: on-call
+  message: "Pinot surge_by_cell sink stale >5m — check Flink surge job (surge_live.sql), Kafka booking-events topic, and Pinot controller."
+runbook: infra/backup/README.md
+fields:
+  - h3_cell
+  - window_end
+  - booking_count
+  - surge_multiplier

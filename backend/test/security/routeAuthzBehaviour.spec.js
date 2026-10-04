@@ -156,7 +156,7 @@ describe('AUTHZ - triage recognises applyTenantScope as a real guard', () => {
     // Exact count, not a `> N` guess: a loose bound would keep passing even if
     // the helper were renamed and every call site silently stopped matching.
     const uses = (read('../../src/routes/pharmacy.js').match(/applyTenantScope\(/g) || []).length;
-    expect(uses).toBe(10);
+    expect(uses).toBe(11);
   });
 });
 

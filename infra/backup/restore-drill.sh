@@ -79,4 +79,25 @@ if [[ "$ELAPSED" -gt "$MAX_MINUTES" ]]; then
 fi
 
 log "RESTORE DRILL PASSED in ${ELAPSED} min (RTO budget ${MAX_MINUTES} min)"
+
+# ── 7. Evidence archive (INF-B-04) ─────────────────────────────────────────
+# A green log line scrolls away; an archived evidence file does not. Write one
+# JSON record per drill into the artifact dir (which is offsite-copied with the
+# backups) so the quarterly RTO claim is auditable: which artifact, what image,
+# how long, what verdict. Never include secrets — digests and counts only.
+EVIDENCE_FILE="${ARTIFACT_DIR}/drill-evidence-$(date -u +%Y%m%dT%H%M%SZ).json"
+{
+  printf '{\n'
+  printf '  "drill": "restore-drill",\n'
+  printf '  "artifact": "%s",\n' "$(basename "$ARTIFACT")"
+  printf '  "mongo_databases": "%s",\n' "${actual_mongo:-?}"
+  printf '  "postgres_entries": "%s",\n' "${actual_bytes:-0}"
+  printf '  "elapsed_min": %s,\n' "$ELAPSED"
+  printf '  "rto_budget_min": %s,\n' "$MAX_MINUTES"
+  printf '  "verdict": "PASSED",\n'
+  printf '  "image_digest": "%s",\n' "${BACKUP_IMAGE:-unrecorded}"
+  printf '  "drilled_at": "%s"\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  printf '}\n'
+} > "$EVIDENCE_FILE"
+log "evidence archived to $(basename "$EVIDENCE_FILE") (retain with the backup artifacts)"
 log "Reminder: destroy the drill databases afterwards — they contain real PHI."

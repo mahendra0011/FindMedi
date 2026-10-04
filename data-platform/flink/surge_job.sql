@@ -6,8 +6,8 @@ CREATE TABLE booking_requests_stream (
     bookingId STRING,
     vertical STRING,
     h3_cell STRING,
-    event_time TIMESTAMP(3),
-    WATERMARK FOR event_time AS event_time - INTERVAL '5' SECOND
+    event_time STRING,
+    pt AS PROCTIME()
 ) WITH (
     'connector' = 'kafka',
     'topic' = 'findmedi.dispatch.booking-events.v1',
@@ -31,7 +31,7 @@ CREATE TABLE pinot_surge_sink (
 INSERT INTO pinot_surge_sink
 SELECT
     h3_cell,
-    TUMBLE_END(event_time, INTERVAL '1' MINUTE) AS window_end,
+    TUMBLE_END(pt, INTERVAL '1' MINUTE) AS window_end,
     COUNT(bookingId) AS booking_count,
     CASE
         WHEN COUNT(bookingId) > 50 THEN 1.8
@@ -41,4 +41,4 @@ SELECT
 FROM booking_requests_stream
 GROUP BY
     h3_cell,
-    TUMBLE(event_time, INTERVAL '1' MINUTE);
+    TUMBLE(pt, INTERVAL '1' MINUTE);

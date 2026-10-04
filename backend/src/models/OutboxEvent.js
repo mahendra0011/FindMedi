@@ -4,7 +4,7 @@ const outboxEventSchema = new mongoose.Schema(
   {
     aggregateType: {
       type: String,
-      enum: ['ride', 'lawyer', 'assistant', 'emergency_sos', 'emergency_doctor', 'payment', 'user', 'provider', 'RideBooking', 'LawyerBooking', 'AssistantBooking', 'EmergencyRequest'],
+      enum: ['ride', 'lawyer', 'assistant', 'emergency_sos', 'emergency_doctor', 'payment', 'user', 'provider', 'Prescription', 'RideBooking', 'LawyerBooking', 'AssistantBooking', 'EmergencyRequest', 'PharmacyOrder'],
       required: true,
       index: true,
     },
@@ -29,7 +29,7 @@ const outboxEventSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['PENDING', 'PUBLISHED', 'FAILED'],
+      enum: ['PENDING', 'PROCESSING', 'PUBLISHED', 'FAILED'],
       default: 'PENDING',
       index: true,
     },
@@ -51,6 +51,8 @@ const outboxEventSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    processingAt: { type: Date, default: null, index: true },
+    processingBy: { type: String, default: null },
   },
   {
     timestamps: true,
@@ -60,6 +62,7 @@ const outboxEventSchema = new mongoose.Schema(
 // High-speed poller composite index
 outboxEventSchema.index({ status: 1, createdAt: 1 });
 outboxEventSchema.index({ status: 1, nextAttemptAt: 1 });
+outboxEventSchema.index({ status: 1, processingAt: 1 });
 
 const OutboxEvent = mongoose.model('OutboxEvent', outboxEventSchema);
 

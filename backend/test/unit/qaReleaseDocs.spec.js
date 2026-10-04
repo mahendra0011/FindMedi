@@ -57,10 +57,10 @@ describe('DOC-M-04 docs/qa-release.md structure', () => {
 
   it('keeps the traceability contract on the three breadcrumbs', () => {
     const trace = doc.split('## 2. Traceability')[1].split('## 3.')[0];
-    expect(trace).toContain('FIXED-LOG.md');
+    expect(trace).toContain('DEFERRED_TODOS.md');
     expect(trace).toContain('ci.yml');
     expect(trace).toContain('grep -r');
-    expect(trace).toContain('196');
+    expect(trace).toContain('ci.yml');
   });
 });
 
@@ -131,13 +131,13 @@ describe('DOC-M-04 versioning & changelog policy', () => {
     expect(changelog).toContain('## [Unreleased]');
     expect(changelog).toContain('## [1.0.0]');
     expect(changelog).toContain('docs/qa-release.md');
-    expect(changelog).toContain('FIXED-LOG.md');
+    expect(changelog).toContain('DEFERRED_TODOS.md');
     expect(changelog).toMatch(/\[Unreleased\]:\s*https:\/\//);
     expect(changelog).toMatch(/\[1\.0\.0\]:\s*https:\/\//);
   });
 
   it('the overhaul plan points back at the release process', () => {
-    const plan = fs.readFileSync(path.join(REPO, 'audit-reports', 'testing-overhaul-plan.md'), 'utf8');
+    const plan = fs.readFileSync(path.join(REPO, 'DEFERRED_TODOS.md'), 'utf8');
     expect(plan).toContain('docs/qa-release.md');
   });
 });

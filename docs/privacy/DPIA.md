@@ -136,3 +136,31 @@ Data Protection Board without delay for **any** personal data breach (DPDP §8
 / Rules 2025 Rule 7 — detailed Board report within 72 hours; CERT-In within 6
 hours for Annexure I incident types), then write a post-mortem with a
 regression test.
+
+## 10. Control-to-code mapping (DL-M-09 / DOC-M-01)
+
+Retention and erasure duties above are not prose-only; each names its
+enforcement point. The retention gate (`backend/scripts/check-retention-gaps.mjs`
++ `backend/scripts/retention-gap-baseline.json`, pinned by
+`backend/test/unit/retentionGate.spec.js`) fails the build when a PII
+collection has no retention class and no explicit allowlist entry.
+
+| Duty (this DPIA) | Enforcement in code | Evidence / gate |
+|---|---|---|
+| Erasure scrubs identity, keeps clinical consistency | `backend/src/services/deletionService.js` `executeDeletion()` (revoke sessions → `purgeUserFromSearch` → anonymize → revoke credentials) | `test/security/deletionWorkflow.spec.js`; `test/unit/deletionPropagation.spec.js` |
+| Search-tier erasure (`purgeUserFromSearch`) | `backend/src/services/opensearchIndexer.js` `purgeUserFromSearch()` (provider raw id + EHR pseudonym, `_delete_by_query` with `slices:auto`) | `deletionPropagation.spec.js` same-id + tombstone assertions |
+| Analytics fan-out (`user.deleted`) | Outbox tombstone via `emitUserDeletedTombstone()` → `kafkaConsumerService` `user.deleted` branch → `purgeUserFromSearch` + `purgeUserFromLakeManifests`; partial purge fails the event so outbox retry finishes it | `kafkaConsumerFailure.spec.js` tombstone test; `outboxCrashReplay.spec.js` `event:done` ordering |
+| Retention classes for every PII collection | `backend/scripts/lib/dataDictionary.mjs` `RETENTION_RULES` + `docs/privacy/RETENTION.md` classes | `docs/data-dictionary.md` (`npm run docs:dictionary`); `retentionGate.spec.js` |
+| Consent withdrawal removes access immediately | ABDM consent revoke endpoint; mental-health `assertMentalHealthAccess()` + consent-scope check | `mentalHealthConsent.spec.js`; DPIA §4 table |
+
+### 10.1 Phase 5 additions (DOC-M-01, 2026-10-04)
+
+| Duty (this DPIA) | Enforcement in code | Evidence / gate |
+|---|---|---|
+| Special-category marker is server-owned (§4) | `backend/src/models/MentalHealth.js:94-95` (`dataClassification` default `PSYCHIATRIC_SPECIAL_CATEGORY`); set on creation `backend/src/routes/mentalhealth.js:114-115`, never from client input | `mentalHealthConsent.spec.js` |
+| Purpose limitation + server-timestamped consent (§4) | `backend/src/models/MentalHealth.js:98-111` (`purposeOfProcessing`, `consentRecordedAt`); creation stamps `new Date()` server-side `backend/src/routes/mentalhealth.js:119` | Same suite |
+| Restricted reads, fail-closed, audited (§4) | `backend/src/services/mentalHealthAccess.js:93` (`assertMentalHealthAccess`); call sites e.g. `backend/src/routes/mentalhealth.js:195,252,295` | Access-denial tests |
+| Consent UI cannot bypass server (§2/§8 correction path) | `frontend/src/lib/bookingValidation.js:53` (`canSubmitWithConsent`); exercised by `frontend/src/components/consent/ConsentGate.jsx` + `ConsentGate.test.jsx` (submit disabled without checkbox) | Vitest: `ConsentGate.test.jsx` (3 tests) |
+| SOS location minimisation (§2: no movement history) | `frontend/src/components/emergency/SOSConfirmModal.tsx:86-90` (no-GPS → no dispatch); rule locked by `frontend/src/lib/bookingValidation.js:63` (`validateSOSPayload`) + `SOSFlow.test.jsx` | Vitest + e2e role flows |
+| Chat transport keeps meaning, not extra copies (§5 search-index note) | Reconnect/resume contract `docs/chat-reconnect-contract.md`; client dedupe `frontend/src/lib/chatResume.js:67` (`mergeMessages` on `_id` + `clientGeneratedId`); server join gate `backend/src/services/socketService.js:630-636` (`chat:join` → `assertRoomAccess`) | Vitest: `chatResume.test.js` (duplicate-delivery safe) |
+| Search index carries no raw clinical text (§7 risk 5) | `backend/src/services/opensearchIndexer.js:379` (`redactClinicalText`), applied at indexing `:397` | Existing indexer tests |

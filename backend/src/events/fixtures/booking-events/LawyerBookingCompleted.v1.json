@@ -1,0 +1,9 @@
+{
+  "eventType": "LawyerBookingCompleted.v1",
+  "aggregateId": "652f00000000000000000001",
+  "patientId": "652f00000000000000000002",
+  "lawyerId": "652f00000000000000000003",
+  "status": "completed",
+  "completedAt": "2026-10-04T00:00:00.000Z",
+  "settledAmount": 900
+}

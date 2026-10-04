@@ -78,6 +78,4 @@ refreshTokenSchema.pre('save', async function(next) {
   next();
 });
 
-refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-
 export default mongoose.model('RefreshToken', refreshTokenSchema);

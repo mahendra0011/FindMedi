@@ -15,6 +15,8 @@
 import Doctor from '../models/Doctor.js';
 import LabBooking from '../models/LabBooking.js';
 import PharmacyOrder from '../models/PharmacyOrder.js';
+import Medicine from '../models/Medicine.js';
+import Facility from '../models/Facility.js';
 import Appointment from '../models/Appointment.js';
 import logger from '../config/logger.js';
 
@@ -81,17 +83,42 @@ export async function resolveAuthoritativeAmount({
   // ── Pharmacy order: recompute from the order lines, never trust the stored total ──
   if (type === 'medicine' || type === 'pharmacy') {
     if (referenceId) {
-      const order = await PharmacyOrder.findById(referenceId).select('items totalAmount').lean();
+      const order = await PharmacyOrder.findById(referenceId).select('patientId status paymentStatus items facilityId deliveryMode deliveryFee platformFee gst').lean();
       if (!order) return { ok: false, reason: 'not-found', message: 'Pharmacy order not found' };
       const items = Array.isArray(order.items) ? order.items : [];
-      const sum = items.reduce((acc, item) => {
-        const price = Number(item?.price ?? item?.unitPrice ?? 0);
-        const qty = Number(item?.quantity ?? item?.qty ?? 0);
-        return acc + (price * qty);
-      }, 0);
-      if (sum > 0) return { ok: true, amount: rupees(sum), source: 'pharmacyorder.items' };
-      const total = rupees(order.totalAmount ?? 0);
-      if (total > 0) return { ok: true, amount: total, source: 'pharmacyorder.totalAmount' };
+      if (!items.length || items.some((item) => !item?.medicineId)) {
+        return { ok: false, reason: 'no-price', message: 'Every pharmacy order line must reference a priced catalogue medicine.' };
+      }
+      const medicineIds = [...new Set(items.map((item) => String(item.medicineId)))];
+      const medicines = await Medicine.find({ _id: { $in: medicineIds } }).select('_id sellingPrice').lean();
+      const priceById = new Map(medicines.map((medicine) => [String(medicine._id), Number(medicine.sellingPrice)]));
+      let sum = 0;
+      for (const item of items) {
+        const medicineId = String(item.medicineId);
+        const price = priceById.get(medicineId);
+        const qty = Number(item?.quantity ?? item?.qty);
+        if (!Number.isFinite(price) || price <= 0 || !Number.isSafeInteger(qty) || qty <= 0) {
+          return { ok: false, reason: 'no-price', message: 'Pharmacy order contains an invalid medicine price or quantity.' };
+        }
+        sum += price * qty;
+      }
+      if (sum > 0) {
+        const facility = order.facilityId
+          ? await Facility.findById(order.facilityId).select('type status details').lean()
+          : null;
+        if (!facility || facility.type !== 'pharmacy' || facility.status !== 'approved') {
+          return { ok: false, reason: 'no-price', message: 'The pharmacy is no longer available.' };
+        }
+        const deliveryMode = order.deliveryMode === 'pickup' ? 'pickup' : 'delivery';
+        const fee = Number(facility.details?.deliveryFee);
+        const threshold = Number(facility.details?.freeDeliveryAbove);
+        const deliveryFee = deliveryMode === 'pickup' || (Number.isFinite(threshold) && threshold > 0 && sum >= threshold)
+          ? 0
+          : (Number.isFinite(fee) && fee >= 0 ? fee : 0);
+        const platformFee = 5;
+        const gst = rupees(sum * 0.05);
+        return { ok: true, amount: rupees(sum + deliveryFee + platformFee + gst), source: 'medicine.sellingPrice+serverFees' };
+      }
     }
     return { ok: false, reason: 'not-found', message: 'Pharmacy order not found' };
   }

@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import AssistantBooking from '../models/AssistantBooking.js';
 import AssistantProfile from '../models/AssistantProfile.js';
 import User from '../models/User.js';
@@ -22,6 +23,8 @@ import {
 import { generateAssistantReceiptPdf } from '../services/assistantReceiptService.js';
 import { startAssistantDispatch, acceptAssistantRequest, rejectAssistantRequest } from '../services/assistantDispatchService.js';
 import logger from '../config/logger.js';
+import { releaseProviderClaim } from '../services/instantDispatchService.js';
+import { recordServiceSettlement } from '../services/ledgerService.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const router = express.Router();
@@ -531,42 +534,92 @@ router.post('/:id/complete', protect, async (req, res) => {
   try {
     const { id } = req.params;
     const { completionSummary } = req.body;
-
-    const booking = await AssistantBooking.findOne({
-      _id: id,
-      assistantId: req.user._id,
-      status: 'in_progress',
-    });
-
-    if (!booking) {
-      return res.status(404).json({ message: 'In-progress booking not found for this assistant' });
+    const session = await mongoose.startSession();
+    let booking;
+    let settledAmount = 0;
+    try {
+      session.startTransaction({ readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' } });
+      const completed = await AssistantBooking.findOneAndUpdate(
+        { _id: id, assistantId: req.user._id, status: 'in_progress', settledAt: null },
+        {
+          $set: {
+            status: 'completed', completedAt: new Date(), settledAt: new Date(),
+            completionSummary: completionSummary || 'All hospital tasks successfully completed.',
+          },
+          $push: { statusHistory: { status: 'completed', at: new Date(), note: completionSummary || 'All hospital tasks successfully completed.' } },
+        },
+        { new: true, session },
+      );
+      if (!completed) {
+        await session.abortTransaction();
+        const latest = await AssistantBooking.findById(id).select('status').lean();
+        return res.status(latest?.status === 'completed' ? 200 : 409).json({
+          success: latest?.status === 'completed',
+          message: latest?.status === 'completed' ? 'Booking was already completed' : 'In-progress booking not found for this assistant',
+          booking: latest?.status === 'completed' ? latest : undefined,
+        });
+      }
+      const gross = Number(completed.cost?.total) || 0;
+      if (gross > 0) {
+        const settlement = await recordServiceSettlement({
+          source: 'assistant', sourceId: String(completed._id), bookingNumber: completed.bookingNumber || '',
+          userId: completed.patientId, providerId: completed.assistantId, totalAmount: gross, session,
+        });
+        settledAmount = settlement?.netAmount || 0;
+        completed.settlementAmount = settledAmount;
+        await completed.save({ session });
+      }
+      const { default: OutboxEvent } = await import('../models/OutboxEvent.js');
+      await OutboxEvent.create([{
+        aggregateType: 'AssistantBooking',
+        aggregateId: String(completed._id),
+        eventType: 'AssistantBookingCompleted.v1',
+        destinationTopic: 'findmedi.dispatch.booking-events.v1',
+        payload: {
+          bookingId: String(completed._id),
+          patientId: String(completed.patientId),
+          assistantId: String(completed.assistantId),
+          status: 'completed',
+          settledAmount,
+        },
+        status: 'PENDING',
+        retryCount: 0,
+      }], { session });
+      // AST-B-01/AST-M-01: completion notification is part of the atomic commit,
+      // not a post-commit best-effort. A crash between commit and the old
+      // post-commit Notification.create used to lose the patient notice while
+      // the outbox event survived; now both rows commit or neither does, and
+      // the dedupKey lets the notification worker deliver exactly once.
+      const assistantRecipient = String(completed.patientId?._id || completed.patientId);
+      const assistantBookingId = String(completed._id);
+      await Notification.create([{
+        userId: assistantRecipient,
+        title: '🎉 Assistance Completed!',
+        message: 'Your assistance session is complete. Open FindMedi to complete demo payment and leave a review.',
+        type: 'assistant',
+        referenceId: assistantBookingId,
+        dedupKey: `assistant-booking-completed:${assistantBookingId}`,
+      }], { session });
+      await session.commitTransaction();
+      booking = completed;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      await session.endSession();
     }
+    await releaseProviderClaim('assistant', req.user._id, booking._id);
 
-    booking.status = 'completed';
-    booking.completedAt = new Date();
-    booking.completionSummary = completionSummary || 'All hospital tasks successfully completed.';
-    booking.statusHistory.push({
-      status: 'completed',
-      at: new Date(),
-      note: booking.completionSummary,
-    });
-
-    await booking.save();
-
-    // Increment assistant's total bookings in profile
+    // Profile aggregates are a post-commit convenience, not the authority for
+    // money or booking state. Guard retries by using completed booking status.
     await AssistantProfile.findOneAndUpdate(
       { userId: req.user._id },
       { $inc: { totalBookings: 1 } }
-    );
+    ).catch((error) => logger.warn(`Assistant booking counter update failed: ${error.message}`));
 
-    // Notify patient to complete demo payment and rate
-    await Notification.create({
-      userId: String(booking.patientId),
-      title: '🎉 Assistance Completed!',
-      message: `${req.user.name || 'Your assistant'} has finished the session at ${booking.hospital}. Please complete demo payment and leave a review.`,
-      type: 'assistant',
-      referenceId: String(booking._id),
-    }).catch(() => {});
+    // Durable notice already committed inside the transaction above (dedupKey
+    // `assistant-booking-completed:<id>`); the notification worker delivers it
+    // with receipts + retry, so no post-commit best-effort write here.
 
     notifyBookingUpdate(booking, 'completed', {
       completedAt: booking.completedAt,
@@ -576,8 +629,9 @@ router.post('/:id/complete', protect, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Assistance marked as completed',
+      message: settledAmount > 0 ? `Assistance completed — ₹${settledAmount} settled to wallet` : 'Assistance marked as completed',
       booking,
+      settledAmount,
     });
   } catch (err) {
     logger.error(`Complete assistant booking error: ${err.message}`);
@@ -592,26 +646,32 @@ router.post('/:id/cancel', protect, async (req, res) => {
     const { id } = req.params;
     const { reason = 'Cancelled by user' } = req.body;
 
-    const booking = await AssistantBooking.findById(id);
-    if (!booking) return res.status(404).json({ message: 'Booking not found' });
-
-    if (!['requested', 'confirmed'].includes(booking.status)) {
-      return res.status(400).json({
-        message: `Cannot cancel a booking that is ${booking.status}.`,
-      });
-    }
-
-    const isAssistant = String(booking.assistantId) === String(req.user._id);
-    const isPatient = String(booking.patientId) === String(req.user._id);
-
-    if (!isAssistant && !isPatient && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+    const existing = await AssistantBooking.findById(id).select('patientId assistantId status').lean();
+    if (!existing) return res.status(404).json({ message: 'Booking not found' });
+    const isAssistant = String(existing.assistantId || '') === String(req.user._id);
+    const isPatient = String(existing.patientId) === String(req.user._id);
+    const isPrivileged = ['admin', 'superadmin'].includes(req.user.role);
+    if (!isAssistant && !isPatient && !isPrivileged) {
       return res.status(403).json({ message: 'Not authorized to cancel this booking' });
     }
-
     const newStatus = isAssistant ? 'cancelled_by_assistant' : 'cancelled_by_patient';
-    booking.status = newStatus;
-    booking.statusHistory.push({ status: newStatus, at: new Date(), note: reason });
-    await booking.save();
+    const booking = await AssistantBooking.findOneAndUpdate(
+      {
+        _id: id,
+        status: { $in: ['requested', 'confirmed'] },
+        ...(isAssistant ? { assistantId: req.user._id } : isPatient ? { patientId: req.user._id } : {}),
+      },
+      {
+        $set: { status: newStatus },
+        $push: { statusHistory: { status: newStatus, at: new Date(), note: reason } },
+      },
+      { new: true },
+    );
+    if (!booking) {
+      const existing = await AssistantBooking.findById(id).select('status').lean();
+      return res.status(existing ? 409 : 404).json({ message: existing ? `Cannot cancel a booking that is ${existing.status}.` : 'Booking not found' });
+    }
+    if (booking.assistantId) await releaseProviderClaim('assistant', booking.assistantId, booking._id);
 
     // Notify the other party
     const targetUserId = isAssistant ? booking.patientId : booking.assistantId;

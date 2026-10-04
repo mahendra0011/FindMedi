@@ -1,5 +1,4 @@
 import express from 'express';
-import crypto from 'crypto';
 import Billing from '../models/Billing.js';
 import Payment from '../models/Payment.js';
 import User from '../models/User.js';
@@ -14,18 +13,13 @@ import mongoose from 'mongoose';
 import Notification from '../models/Notification.js';
 import { generatePaymentInvoicePDF } from '../services/pdfService.js';
 import { protect, authorize } from '../middleware/auth.js';
-import logger from '../config/logger.js';
-import { validate, createPaymentSchema } from '../utils/validate.js';
-import { auditLog } from '../middleware/audit.js';
 import { paymentLimiter } from '../middleware/rateLimit.js';
 import { idempotencyGuard } from '../middleware/idempotency.js';
 import { paginatedResults } from '../utils/pagination.js';
-import { generateTransactionId, generateInvoiceId, generateBillId, generateTokenNumber } from '../utils/idGenerator.js';
-import { getISTDateString } from '../utils/dateUtils.js';
-import { emitAppointmentUpdate } from '../services/socketService.js';
 import { checkWithdrawal, claimBudget, releaseBudget } from '../services/walletGuard.js';
 // APPT-M-01: a swept-away Pending appointment frees its seat - offer it onward.
 import { onSlotFreed } from '../services/waitlistService.js';
+import { paymentReplayConflict } from '../services/paymentReplayService.js';
 
 const router = express.Router();
 
@@ -247,402 +241,36 @@ router.post('/withdraw', protect, authorize('wallet:withdraw'), paymentLimiter, 
   } catch (err) { next(err); }
 });
 
-// POST /api/transactions/pay — unified payment + confirm (idempotent)
-// Can also accept appointment data to create appointment + payment atomically
+// POST /api/transactions/pay — legacy replay compatibility only.
+// New checkout uses /api/billing/pay; this endpoint must never create a payment.
 router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), paymentLimiter, idempotencyGuard({ prefix: 'txn-pay', failClosed: true }), async (req, res, next) => {
-  let createdAppointment = null;
+  const { serviceType, referenceId } = req.body || {};
+  if (!serviceType || !referenceId) {
+    return res.status(400).json({ message: 'serviceType and referenceId are required.' });
+  }
   try {
-    let { serviceType, referenceId, amount, method, description, provider, lineItems, appointment: apptData } = req.body;
-    if (!serviceType || !amount || !method) {
-      return res.status(400).json({ message: 'serviceType, amount, and method are required' });
-    }
-    if (Number(amount) <= 0) {
-      return res.status(400).json({ message: 'Payment amount must be greater than 0. Please check doctor consultation fee.' });
-    }
-
-    // ── If appointment data is provided, create appointment first (atomic flow) ──
-    if (apptData && serviceType === 'appointment') {
-      try {
-        const { doctorId, doctor, doctorName, department, date, time, notes, type, symptoms, priority, facilityId, preConsultationDetails, appointmentMode, packageId, packageName, packageSessions } = apptData;
-        const patientName = req.user.name;
-        const patientId = req.user._id;
-
-        // Clean up stale Pending appointments (unpaid, older than 15 min) for this patient
-        try {
-          const staleCutoff = new Date(Date.now() - 15 * 60 * 1000);
-          const staleAppts = await Appointment.find({
-            patientId, status: 'Pending', createdAt: { $lt: staleCutoff },
-          }).lean();
-          for (const stale of staleAppts) {
-            const hasPayment = await Payment.findOne({ referenceId: stale._id.toString(), status: 'completed' }).lean();
-            if (!hasPayment) {
-              await Appointment.findByIdAndDelete(stale._id);
-              // APPT-M-01: stale own-checkout delete also frees the slot.
-              void onSlotFreed({ doctorId: stale.doctorId, date: stale.date, time: stale.time }).catch(() => {});
-            }
-          }
-        } catch (_) { /* best-effort cleanup */ }
-
-        let hospitalId = null;
-        if (doctorId) {
-          const doctorDoc = await Doctor.findById(doctorId);
-          if (doctorDoc && doctorDoc.hospitalId) {
-            hospitalId = doctorDoc.hospitalId;
-          }
-        }
-
-        if (patientId && date && time) {
-          // First: check if THIS patient already has an appointment at this slot
-          const ownFilter = { patientId, doctorId: doctorId || null, date, time, status: { $nin: ['Cancelled', 'Completed', 'Missed'] } };
-          const ownExisting = await Appointment.findOne(ownFilter);
-          if (ownExisting) {
-            if (ownExisting.status === 'Pending') {
-              const hasCompletedPayment = await Payment.findOne({ referenceId: ownExisting._id.toString(), status: 'completed' });
-              if (hasCompletedPayment) {
-                return res.status(409).json({ message: 'You already have an appointment with this doctor on this date and time.' });
-              }
-              // Only delete if it belongs to this patient AND is older than 2 minutes (stale checkout)
-              const ageMs = Date.now() - new Date(ownExisting.createdAt).getTime();
-              if (ageMs > 2 * 60 * 1000) {
-                await Appointment.findByIdAndDelete(ownExisting._id);
-              } else {
-                return res.status(409).json({ message: 'You already have an appointment with this doctor on this date and time.' });
-              }
-            } else {
-              return res.status(409).json({ message: 'You already have an appointment with this doctor on this date and time.' });
-            }
-          }
-
-        }
-
-        // Capacity check: alag users tab tak book kar sakte hain jab tak doctor ki maxBookingsPerSlot limit na aa jaye
-        if (doctorId) {
-          const doctorDoc2 = await Doctor.findById(doctorId).select('maxBookingsPerSlot dateDisabledSlots bookingWindow workingHours breakTime').lean();
-          const capacity = doctorDoc2?.maxBookingsPerSlot || 1;
-
-          // ── Booking window restriction ──
-          // Patient sirf aaj se window ke andar book kar sakta hai (e.g. 2 weeks)
-          const bw = doctorDoc2?.bookingWindow;
-          if (bw && typeof bw.value === 'number' && bw.value > 0 && bw.unit) {
-            const now = new Date();
-            const maxDate = new Date(now);
-            switch (bw.unit) {
-              case 'hours': maxDate.setHours(maxDate.getHours() + bw.value); break;
-              case 'days': maxDate.setDate(maxDate.getDate() + bw.value); break;
-              case 'weeks': maxDate.setDate(maxDate.getDate() + bw.value * 7); break;
-              case 'months': maxDate.setMonth(maxDate.getMonth() + bw.value); break;
-            }
-            const apptDate = new Date(`${date}T23:59:59`);
-            if (apptDate > maxDate) {
-              return res.status(400).json({
-                message: `Appointments can only be booked within ${bw.value} ${bw.unit} from today.`
-              });
-            }
-          }
-
-          // ── Date-specific disabled slot check ──
-          const dateDisabled = (doctorDoc2?.dateDisabledSlots && doctorDoc2.dateDisabledSlots[date]) || [];
-          if (dateDisabled.includes(time)) {
-            return res.status(400).json({ message: 'This time slot is not available for the selected date.' });
-          }
-
-          const slotFilter = { doctorId, date, time, status: { $nin: ['Cancelled', 'Completed', 'Missed'] } };
-          const existingBookings = await Appointment.find(slotFilter).select('patientId').lean();
-          if (existingBookings.length >= capacity) {
-            return res.status(409).json({ message: 'This time slot is full. Please choose a different time.' });
-          }
-        }
-
-        const tokenNumber = generateTokenNumber();
-        const patientUser = await User.findById(patientId);
-        const countToday = await Appointment.countDocuments({ date, doctor: doctor || '' });
-        const estimatedWaitTime = countToday * 10; // simple estimate
-
-        try {
-          createdAppointment = await Appointment.create({
-            tokenNumber,
-            uhid: patientUser?.uhid || '',
-            patient: patientName,
-            patientId,
-            doctor: doctor || doctorName || '',
-            doctorId: doctorId || null,
-            department: department || 'General',
-            date,
-            time,
-            type: type || 'Consultation',
-            appointmentMode: appointmentMode || (type?.toLowerCase().includes('chat') ? 'chat' : type?.toLowerCase().includes('video') ? 'video' : type?.toLowerCase().includes('audio') || type?.toLowerCase().includes('voice') ? 'audio' : type?.toLowerCase().includes('home') ? 'home_visit' : 'offline'),
-            symptoms: symptoms || '',
-            notes: notes || '',
-            packageId: packageId || '',
-            packageName: packageName || '',
-            packageSessions: Number(packageSessions) || 0,
-            priority: priority || 'Normal',
-            estimatedWaitTime,
-            hospitalId: hospitalId || undefined,
-            fees: Number(amount) || 0,
-            status: 'Pending',
-            preConsultationDetails: preConsultationDetails ? { ...preConsultationDetails, filledAt: new Date() } : undefined,
-          });
-        } catch (err) {
-          if (err.code === 11000) {
-            return res.status(409).json({ message: 'This slot was just booked by someone else. Please pick another time.' });
-          }
-          throw err;
-        }
-
-        referenceId = createdAppointment._id.toString();
-
-        await createdAppointment.populate('doctorId', 'name specialization');
-
-        try {
-          await auditLog('create_appointment', req.user._id, { recordId: createdAppointment._id, ip: req.ip, userAgent: req.get('user-agent') });
-        } catch (_) {}
-
-      } catch (apptErr) {
-        if (createdAppointment) {
-          try { await Appointment.findByIdAndDelete(createdAppointment._id); } catch (_) {}
-        }
-        throw apptErr;
-      }
-    }
-
-    // ── Idempotency: if payment already completed for this referenceId, return it as success ──
-    if (referenceId) {
-      const existingPayment = await Payment.findOne({ referenceId, status: 'completed' });
-      if (existingPayment) {
-        return res.status(200).json({
-          success: true,
-          transaction_id: existingPayment.transaction_id,
-          invoice_id: existingPayment.invoice_id,
-          payment: existingPayment,
-          appointment: createdAppointment,
-          appointmentStatus: createdAppointment?.status || null,
-          alreadyPaid: true,
-        });
-      }
-    }
-
-    // Generate IDs using centralized utility
-    const transaction_id = generateTransactionId(serviceType);
-    const invoice_id = generateInvoiceId(serviceType);
-    // Billing record ke liye alag random ID generate mat karo — same invoice_id
-    // use karo, warna Billing dashboard aur patient-facing Invoice/Bill PDF me
-    // do alag numbers dikhenge same transaction ke liye.
-    const bill_id = invoice_id;
-
-    const methodMap = { upi:'UPI', card:'Card', netbanking:'Online', cash:'Cash', wallet:'Wallet' };
-    const sourceMap = { appointment:'appointment', test:'lab', medicine:'pharmacy' };
-    const serviceLabel = description || `${serviceType} service`;
-    const today = getISTDateString();
-    const billServices = (lineItems || []).map(item => ({
-      name: item.name || 'Service',
-      description: '',
-      price: Number(item.price) || 0,
-      quantity: Number(item.qty) || 1,
-      category: 'General',
-    }));
-
-    let payment;
-
-    try {
-
-      const [p] = await Payment.create([{
-        transaction_id, invoice_id,
-        patient_id: req.user._id.toString(),
-        patient_name: req.user.name || 'Patient',
-        amount, method, status: 'completed',
-        serviceType, referenceId: referenceId || '',
-        description: description || `${serviceType} payment`,
-        provider: provider || '',
-        lineItems: lineItems || [],
-      }]);
-      payment = p;
-
-      // Auto-confirm the referenced booking (check facility setting)
-      if (referenceId) {
-        if (serviceType === 'appointment') {
-          let shouldConfirm = true;
-          try {
-            const appt = await Appointment.findById(referenceId)
-              .populate('doctorId', 'facilityId hospitalId autoConfirmAppointment')
-              .lean();
-            const facilityId = appt?.doctorId?.facilityId;
-            const hospitalId = appt?.doctorId?.hospitalId;
-            let settings = null;
-            if (facilityId) {
-              const facility = await Facility.findById(facilityId).select('settings').lean();
-              settings = facility?.settings;
-            }
-            if (!settings && hospitalId) {
-              const hospital = await Hospital.findById(hospitalId).select('settings').lean();
-              settings = hospital?.settings;
-            }
-
-            const isOnlineAppt = ['chat', 'video', 'audio', 'voice', 'call'].includes((appt?.appointmentMode || '').toLowerCase()) ||
-              ['chat', 'video', 'audio', 'voice'].some(m => (appt?.type || '').toLowerCase().includes(m));
-
-            const doctorSetting = appt?.doctorId?.autoConfirmAppointment;
-            if (isOnlineAppt) {
-              // Online consultations (Chat, Voice, Video) require doctor review and remain 'Pending'
-              // unless doctor specifically set autoConfirmAppointment to true
-              shouldConfirm = doctorSetting === true;
-            } else if (doctorSetting === false) {
-              shouldConfirm = false;
-            } else if (doctorSetting === true) {
-              shouldConfirm = true;
-            } else {
-              if (settings?.autoConfirmAppointment === false) shouldConfirm = false;
-              if (shouldConfirm) {
-                try {
-                  const platformSetting = await SystemSetting.findOne({ key: 'autoConfirmAppointment' }).lean();
-                  if (platformSetting?.value === false) {
-                    shouldConfirm = false;
-                  }
-                } catch (_) {}
-              }
-            }
-          } catch (_) { /* default to confirm on error */ }
-          if (shouldConfirm) {
-            await Appointment.findByIdAndUpdate(referenceId, { status: 'Confirmed' });
-          }
-          try {
-            const appt = await Appointment.findById(referenceId);
-            if (appt) await emitAppointmentUpdate(appt);
-          } catch (emitErr) {
-            logger.error(`[transactions/pay] socket emit failed: ${emitErr.message}`);
-          }
-        } else if (serviceType === 'test') {
-          await LabBooking.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' });
-        } else if (serviceType === 'medicine') {
-          await PharmacyOrder.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' });
-        }
-      }
-
-    } catch (txErr) {
-      // If appointment was newly created but payment failed, clean up
-      if (req.body?.appointment && createdAppointment?._id) {
-        try { await Appointment.findByIdAndDelete(createdAppointment._id); } catch (_) {}
-      }
-      throw txErr;
-    }
-
-    // ── Payment successfully committed — these steps must NOT roll back the appointment ──
-    let payBill = null;
-    try {
-      const [bill] = await Billing.create([{
-        invoiceId: bill_id,
-        patient: req.user.name || 'Patient',
-        patientId: req.user._id,
-        doctor: serviceType === 'appointment' ? (provider || 'Doctor') : (serviceType === 'test' ? 'Lab Services' : 'Pharmacy'),
-        appointmentId: serviceType === 'appointment' ? referenceId : undefined,
-        service: serviceLabel, services: billServices,
-        source: sourceMap[serviceType] || 'manual',
-        amount, paid: amount, balance: 0, status: 'Paid',
-        date: today,
-        paymentMethod: methodMap[method] || 'Online',
-        transactionId: transaction_id,
-      }]);
-      payBill = bill;
-    } catch (billErr) {
-      logger.error('[transactions/pay] Billing.create failed post-payment', billErr);
-    }
-
-    // Mirror the payment and its bill in ONE PG transaction. These were two
-    // separate fire-and-forget writes, so a crash between them could leave PG
-    // showing a completed payment with no matching billing row.
-    void import('../lib/pgDualWrite.js')
-      .then((m) => m.mirrorAtomic([
-        { model: 'payment', data: m.paymentRow(payment), where: { transactionId: payment.transactionId } },
-        ...(payBill ? [{ model: 'billing', data: m.billingRow(payBill), where: { invoiceId: payBill.invoiceId } }] : []),
-      ]))
-      .catch(() => {});
-
-    // ── Payment confirmed — ab hi doctor ko notify karo ──
-    if (serviceType === 'appointment' && createdAppointment?.doctorId) {
-      try {
-        const notifModule = await import('../models/Notification.js');
-        const NotificationModel = notifModule.default;
-        const doctorDoc = await Doctor.findById(createdAppointment.doctorId).select('user_id').lean();
-        const notifUserId = doctorDoc?.user_id ? doctorDoc.user_id.toString() : createdAppointment.doctorId.toString();
-        await NotificationModel.create({
-          userId: notifUserId,
-          title: 'New Appointment',
-          message: `New ${createdAppointment.type || 'Consultation'} appointment from ${createdAppointment.patient} for ${createdAppointment.date} at ${createdAppointment.time}`,
-          type: 'appointment',
-          date: getISTDateString(),
-        });
-      } catch (_) {}
-    }
-
-    // ── Non-critical side-effects (outside transaction, can fail independently) ──
-    try {
-      await Notification.create({
-        userId: req.user._id.toString(),
-        title: 'Payment Successful',
-        message: `₹${amount} paid for ${description || serviceType}. Invoice: ${invoice_id}`,
-        type: 'payment',
-        date: today,
+    const payment = await Payment.findOne({ referenceId, status: 'completed' });
+    if (!payment) {
+      return res.status(410).json({
+        message: 'This payment endpoint is retired. Please use the current checkout flow.',
+        code: 'LEGACY_PAYMENT_ENDPOINT_RETIRED',
       });
-    } catch (notifErr) {
-      console.error('Failed to create payment notification:', notifErr.message);
     }
-
-    try {
-      await auditLog('create_payment', req.user._id, { transaction_id, amount, serviceType, referenceId });
-    } catch (auditErr) {
-      console.error('Failed to create audit log:', auditErr.message);
-    }
-
-    let finalStatus = null;
-    if (referenceId && serviceType === 'appointment') {
-      try {
-        const appt = await Appointment.findById(referenceId).select('status').lean();
-        if (appt) finalStatus = appt.status;
-      } catch (_) {}
-    }
-
-    res.status(201).json({
+    const conflict = paymentReplayConflict(payment, req.user._id, serviceType);
+    if (conflict) return res.status(conflict.status).json({ message: conflict.message });
+    return res.status(200).json({
       success: true,
-      transaction_id,
-      invoice_id,
+      transaction_id: payment.transaction_id,
+      invoice_id: payment.invoice_id,
       payment,
-      appointment: createdAppointment,
-      appointmentStatus: finalStatus,
+      appointment: null,
+      appointmentStatus: null,
+      alreadyPaid: true,
     });
   } catch (err) {
-    // Cleanup: if appointment was created (via apptData) but payment failed, delete it
-    if (createdAppointment?._id) {
-      try {
-        const stillUnpaid = !(await Payment.findOne({ referenceId: createdAppointment._id.toString(), status: 'completed' }));
-        if (stillUnpaid) {
-          await Appointment.findByIdAndDelete(createdAppointment._id);
-        }
-      } catch (_) {}
-    }
-    if (err.code === 11000) {
-      const refId = req.body.referenceId || createdAppointment?._id?.toString();
-      if (refId) {
-        try {
-          const existing = await Payment.findOne({ referenceId: refId, status: 'completed' });
-          if (existing) {
-            return res.status(200).json({
-              success: true,
-              transaction_id: existing.transaction_id,
-              invoice_id: existing.invoice_id,
-              payment: existing,
-              appointment: createdAppointment,
-              alreadyPaid: true,
-            });
-          }
-        } catch (_) { /* fall through */ }
-      }
-      return res.status(409).json({ message: 'This slot is already booked with this doctor, or your previous payment for it is still processing. Please check your appointment history.' });
-    }
-    next(err);
+    return next(err);
   }
 });
-
-
 // GET /api/transactions/:id/invoice — download invoice PDF
 router.get('/:id/invoice', protect, authorize('billing:read', 'billing:read:own'), async (req, res, next) => {
   try {

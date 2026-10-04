@@ -2,11 +2,8 @@ import express from 'express';
 import DemoPayment from '../models/DemoPayment.js';
 import RideBooking from '../models/RideBooking.js';
 import AssistantBooking from '../models/AssistantBooking.js';
-import AssistantProfile from '../models/AssistantProfile.js';
 import LawyerBooking from '../models/LawyerBooking.js';
-import LawyerProfile from '../models/LawyerProfile.js';
 import EmergencyDoctorRequest from '../models/EmergencyDoctorRequest.js';
-import Doctor from '../models/Doctor.js';
 import Notification from '../models/Notification.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { idempotencyGuard } from '../middleware/idempotency.js';
@@ -25,6 +22,22 @@ function walletBalanceOf(user) {
 // PAY-002: a user may only touch their own demo payments (superadmin excepted).
 function canAccessPayment(payment, user) {
   return payment.userId?.toString() === user._id.toString() || user.role === 'superadmin';
+}
+
+function ownsBooking(booking, ownerField, user) {
+  const ownerId = booking?.[ownerField]?._id ?? booking?.[ownerField];
+  return user?.role === 'superadmin' || (ownerId != null && String(ownerId) === String(user?._id));
+}
+
+function blockProductionDemoPayments(req, res, next) {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(503).json({
+      success: false,
+      code: 'DEMO_PAYMENTS_DISABLED',
+      message: 'Demo payment operations are disabled in production.',
+    });
+  }
+  return next();
 }
 
 // Spec 21: demo-wallet payments actually debit the ₹10,000 sandbox credit.
@@ -49,10 +62,81 @@ async function debitDemoWallet(userId, amount, method) {
 }
 
 /**
+ * PAY-B-12 + PAY-M-03: normalized per-booking claim key.
+ * Distinct idempotency keys racing on the same booking share this value, so
+ * the second insert fails on the unique index instead of double-debiting.
+ */
+export function bookingRefFor(bookingType, targetId) {
+  if (!bookingType || !targetId) return undefined;
+  return `${bookingType}:${String(targetId)}`;
+}
+
+function bookingIdFieldFor(bookingType) {
+  switch (bookingType) {
+    case 'assistant': return 'bookingId';
+    case 'lawyer': return 'lawyerBookingId';
+    case 'emergency_doctor': return 'doctorRequestId';
+    case 'ride':
+    default: return 'rideId';
+  }
+}
+
+async function findExistingClaim(bookingType, targetId, bookingRef) {
+  if (bookingRef) {
+    const byRef = await DemoPayment.findOne({ bookingRef }).lean?.()
+      ?? await DemoPayment.findOne({ bookingRef });
+    if (byRef) return byRef;
+  }
+  if (targetId) {
+    const field = bookingIdFieldFor(bookingType);
+    const found = await DemoPayment.findOne({ bookingType, [field]: targetId });
+    if (found) return found;
+  }
+  return null;
+}
+
+async function compensateDemoWallet(userId, amount, method) {
+  if (method !== 'demo_wallet' || !(amount > 0)) return;
+  await User.updateOne({ _id: userId }, { $inc: { 'demoWallet.balance': amount } }).catch(() => {});
+}
+
+/**
+ * PAY-B-12 + PAY-M-03: atomic per-booking claim.
+ * The caller has ALREADY debited the wallet (atomic $gte+$inc). This insert is
+ * the DECISIVE claim: the unique index on {bookingType, <id>} / bookingRef
+ * makes exactly one winner. On E11000 the debit is compensated and the
+ * existing row is returned so the loser reports "already paid" with a single
+ * net debit instead of two.
+ */
+export async function createClaimedDemoPayment({ payload, userId, amount, method, bookingType, targetId }) {
+  try {
+    const demoPayment = await DemoPayment.create(payload);
+    return { demoPayment, duplicate: false };
+  } catch (err) {
+    if (err?.code === 11000) {
+      await compensateDemoWallet(userId, amount, method);
+      const existing = await findExistingClaim(bookingType, targetId, payload?.bookingRef).catch(() => null);
+      const dup = new Error('Payment already recorded for this booking');
+      dup.statusCode = 200;
+      dup.code = 'DEMO_PAYMENT_DUPLICATE_CLAIM';
+      dup.duplicate = true;
+      dup.existing = existing;
+      throw dup;
+    }
+    throw err;
+  }
+}
+
+/**
  * Shared escrow-hold helper (also used by POST /lawyer-bookings/:id/hold-retainer).
  * Debits the payer demo wallet and records a HELD_IN_ESCROW DemoPayment.
  */
 export async function holdDemoEscrow({ userId, amount, ref = {} }) {
+  if (process.env.NODE_ENV === 'production') {
+    const error = new Error('Demo payment operations are disabled in production.');
+    error.statusCode = 503;
+    throw error;
+  }
   // PAY-001: same atomic conditional debit as debitDemoWallet.
   const user = await User.findOneAndUpdate(
     { _id: userId, 'demoWallet.balance': { $gte: amount } },
@@ -66,14 +150,28 @@ export async function holdDemoEscrow({ userId, amount, ref = {} }) {
     err.statusCode = 402;
     throw err;
   }
-  const payment = await DemoPayment.create({
-    userId,
-    amount,
-    method: 'demo_wallet',
-    status: 'held_in_escrow',
-    ...ref,
-  });
-  return { payment, newBalance: user.demoWallet?.balance ?? 0 };
+  const holdBookingType = ref.bookingType || 'ride';
+  const holdTargetId = ref.bookingId || ref.rideId || ref.lawyerBookingId || ref.doctorRequestId || null;
+  const holdBookingRef = bookingRefFor(holdBookingType, holdTargetId);
+  try {
+    const payment = await DemoPayment.create({
+      userId,
+      amount,
+      method: 'demo_wallet',
+      status: 'held_in_escrow',
+      ...ref,
+      ...(holdBookingRef ? { bookingRef: holdBookingRef } : {}),
+    });
+    return { payment, newBalance: user.demoWallet?.balance ?? 0 };
+  } catch (err) {
+    if (err?.code === 11000) {
+      // Lost the claim race: give the debit back and return the winner.
+      await compensateDemoWallet(userId, amount, 'demo_wallet');
+      const existing = await findExistingClaim(holdBookingType, holdTargetId, holdBookingRef).catch(() => null);
+      if (existing) return { payment: existing, newBalance: walletBalanceOf(await User.findById(userId).select('demoWallet').catch(() => null)), duplicate: true };
+    }
+    throw err;
+  }
 }
 
 async function releaseEscrowToPaid(payment) {
@@ -85,7 +183,7 @@ async function releaseEscrowToPaid(payment) {
 
 // ─── POST /api/payment/demo/pay ─────────────────────────────────────────────
 // Simulate payment (Demo for rides, assistant, lawyer, emergency doctor)
-router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), paymentLimiter, idempotencyGuard({ prefix: 'demo-pay', failClosed: true }), validate(demoPaySchema), idempotencyGuard(), async (req, res) => {
+router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), blockProductionDemoPayments, paymentLimiter, idempotencyGuard({ prefix: 'demo-pay', failClosed: true }), validate(demoPaySchema), idempotencyGuard(), async (req, res) => {
   try {
     const { rideId, bookingId, lawyerBookingId, doctorRequestId, bookingType = 'ride', method = 'demo_wallet' } = req.body;
     const isLawyer = bookingType === 'lawyer' || Boolean(lawyerBookingId);
@@ -98,22 +196,30 @@ router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), pa
       if (!docReq) {
         return res.status(404).json({ message: 'Emergency doctor request not found' });
       }
+      if (!ownsBooking(docReq, 'userId', req.user)) {
+        return res.status(404).json({ message: 'Emergency doctor request not found' });
+      }
 
       const transactionRef = `DEMO-TXN-${Math.floor(100000 + Math.random() * 900000)}`;
       const paidAt = new Date();
       const amount = docReq.pricing?.total || 1000;
 
       await debitDemoWallet(req.user._id, amount, method);
-      const demoPayment = await DemoPayment.create({
-        bookingType: 'emergency_doctor',
-        bookingId: docReq._id,
-        userId: req.user._id,
-        doctorId: docReq.assignedDoctorId,
-        amount,
-        method,
-        status: 'paid',
-        transactionRef,
-        paidAt,
+      const { demoPayment } = await createClaimedDemoPayment({
+        payload: {
+          bookingType: 'emergency_doctor',
+          doctorRequestId: docReq._id,
+          userId: req.user._id,
+          doctorId: docReq.assignedDoctorId,
+          amount,
+          method,
+          status: 'paid',
+          transactionRef,
+          paidAt,
+          bookingRef: bookingRefFor('emergency_doctor', docReq._id),
+        },
+        userId: req.user._id, amount, method,
+        bookingType: 'emergency_doctor', targetId: docReq._id,
       });
 
       docReq.payment = {
@@ -145,6 +251,9 @@ router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), pa
       if (!booking) {
         return res.status(404).json({ message: 'Legal consultation booking not found' });
       }
+      if (!ownsBooking(booking, 'userId', req.user)) {
+        return res.status(404).json({ message: 'Legal consultation booking not found' });
+      }
 
       if (booking.payment?.status === 'paid') {
         return res.json({
@@ -159,16 +268,21 @@ router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), pa
       const amount = booking.fee || 800;
 
       await debitDemoWallet(req.user._id, amount, method);
-      const demoPayment = await DemoPayment.create({
-        bookingType: 'lawyer',
-        lawyerBookingId: booking._id,
-        userId: req.user._id,
-        lawyerId: booking.lawyerId,
-        amount,
-        method,
-        status: 'paid',
-        transactionRef,
-        paidAt,
+      const { demoPayment } = await createClaimedDemoPayment({
+        payload: {
+          bookingType: 'lawyer',
+          lawyerBookingId: booking._id,
+          userId: req.user._id,
+          lawyerId: booking.lawyerId,
+          amount,
+          method,
+          status: 'paid',
+          transactionRef,
+          paidAt,
+          bookingRef: bookingRefFor('lawyer', booking._id),
+        },
+        userId: req.user._id, amount, method,
+        bookingType: 'lawyer', targetId: booking._id,
       });
 
       // Update lawyer booking payment
@@ -180,19 +294,12 @@ router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), pa
       };
       await booking.save();
 
-      // Credit net 90% earnings to lawyer's wallet (10% platform commission retained)
       if (booking.lawyerId) {
-        const netCredit = Math.round(amount * 0.90);
-        await LawyerProfile.findOneAndUpdate(
-          { userId: booking.lawyerId },
-          { $inc: { walletBalance: netCredit, totalEarnings: amount } }
-        );
-
         // In-app notification to lawyer
         await Notification.create({
           userId: String(booking.lawyerId),
           title: '💰 Payment Received (Demo)',
-          message: `Consultation fee of Rs. ${amount} received for Booking #${booking.bookingNumber || booking._id} via ${method === 'cash' ? 'Cash' : 'Demo Wallet'}. Net credit: Rs. ${netCredit}.`,
+          message: `Consultation payment of Rs. ${amount} recorded for Booking #${booking.bookingNumber || booking._id}.`,
           type: 'lawyer',
         }).catch(() => {});
       }
@@ -222,6 +329,9 @@ router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), pa
       if (!booking) {
         return res.status(404).json({ message: 'Assistant booking not found' });
       }
+      if (!ownsBooking(booking, 'patientId', req.user)) {
+        return res.status(404).json({ message: 'Assistant booking not found' });
+      }
 
       if (booking.payment?.status === 'paid') {
         return res.json({
@@ -236,16 +346,21 @@ router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), pa
       const amount = booking.cost?.total || 0;
 
       await debitDemoWallet(req.user._id, amount, method);
-      const demoPayment = await DemoPayment.create({
-        bookingType: 'assistant',
-        bookingId: booking._id,
-        userId: req.user._id,
-        assistantId: booking.assistantId,
-        amount,
-        method,
-        status: 'paid',
-        transactionRef,
-        paidAt,
+      const { demoPayment } = await createClaimedDemoPayment({
+        payload: {
+          bookingType: 'assistant',
+          bookingId: booking._id,
+          userId: req.user._id,
+          assistantId: booking.assistantId,
+          amount,
+          method,
+          status: 'paid',
+          transactionRef,
+          paidAt,
+          bookingRef: bookingRefFor('assistant', booking._id),
+        },
+        userId: req.user._id, amount, method,
+        bookingType: 'assistant', targetId: booking._id,
       });
 
       // Update assistant booking payment
@@ -257,19 +372,12 @@ router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), pa
       };
       await booking.save();
 
-      // Credit net 90% earnings to assistant's wallet
       if (booking.assistantId) {
-        const netCredit = Math.round(amount * 0.90);
-        await AssistantProfile.findOneAndUpdate(
-          { userId: booking.assistantId },
-          { $inc: { walletBalance: netCredit } }
-        );
-
         // In-app notification to assistant
         await Notification.create({
           userId: String(booking.assistantId),
           title: '💰 Payment Received (Demo)',
-          message: `Payment of Rs. ${amount} received for Booking #${booking.bookingNumber || booking._id} via ${method === 'cash' ? 'Cash' : 'Demo Wallet'}. Net credit: Rs. ${netCredit}.`,
+          message: `Payment of Rs. ${amount} recorded for Booking #${booking.bookingNumber || booking._id}.`,
           type: 'assistant',
         }).catch(() => {});
       }
@@ -300,6 +408,9 @@ router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), pa
     if (!ride) {
       return res.status(404).json({ message: 'Ride booking not found' });
     }
+    if (!ownsBooking(ride, 'userId', req.user)) {
+      return res.status(404).json({ message: 'Ride booking not found' });
+    }
 
     if (ride.payment?.status === 'paid') {
       return res.json({
@@ -314,16 +425,21 @@ router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), pa
     const amount = ride.fare?.total || 0;
 
     await debitDemoWallet(req.user._id, amount, method);
-    const demoPayment = await DemoPayment.create({
-      bookingType: 'ride',
-      rideId: ride._id,
-      userId: req.user._id,
-      riderId: ride.riderId,
-      amount,
-      method,
-      status: 'paid',
-      transactionRef,
-      paidAt,
+    const { demoPayment } = await createClaimedDemoPayment({
+      payload: {
+        bookingType: 'ride',
+        rideId: ride._id,
+        userId: req.user._id,
+        riderId: ride.riderId,
+        amount,
+        method,
+        status: 'paid',
+        transactionRef,
+        paidAt,
+        bookingRef: bookingRefFor('ride', ride._id),
+      },
+      userId: req.user._id, amount, method,
+      bookingType: 'ride', targetId: ride._id,
     });
 
     // Update ride booking payment
@@ -365,6 +481,18 @@ router.post('/pay', protect, authorize('billing:write', 'billing:write:own'), pa
       demoPayment,
     });
   } catch (err) {
+    // PAY-B-12 + PAY-M-03: lost the per-booking claim race — the debit was
+    // already compensated inside createClaimedDemoPayment. Report the winner
+    // as an idempotent replay, never as a 500 that invites a third debit.
+    if (err?.duplicate) {
+      return res.json({
+        success: true,
+        message: 'Payment already completed for this booking',
+        payment: err.existing?.status ? { status: err.existing.status } : undefined,
+        demoPayment: err.existing || undefined,
+        duplicate: true,
+      });
+    }
     logger.error(`Demo payment error: ${err.message}`);
     res.status(err.statusCode || 500).json({ message: 'Failed to process demo payment', error: err.message });
   }
@@ -376,7 +504,7 @@ router.get('/:id', protect, authorize('billing:read', 'billing:read:own'), async
   try {
     const id = req.params.id;
     const payment = await DemoPayment.findOne({
-      $or: [{ rideId: id }, { bookingId: id }, { lawyerBookingId: id }, { _id: id }],
+      $or: [{ rideId: id }, { bookingId: id }, { lawyerBookingId: id }, { doctorRequestId: id }, { _id: id }],
     }).lean();
 
     if (!payment) {
@@ -395,7 +523,7 @@ router.get('/:id', protect, authorize('billing:read', 'billing:read:own'), async
 // ─── POST /api/payment/demo/hold ────────────────────────────────────────────
 // Spec 21: lock funds in mock escrow (DEMO_ESCROW_HELD). Body accepts any one of
 // { rideId, bookingId, lawyerBookingId, doctorRequestId } + optional amount.
-router.post('/hold', protect, authorize('billing:write', 'billing:write:own'), paymentLimiter, async (req, res) => {
+router.post('/hold', protect, authorize('billing:write', 'billing:write:own'), blockProductionDemoPayments, paymentLimiter, async (req, res) => {
   try {
     const { rideId, bookingId, lawyerBookingId, doctorRequestId, amount } = req.body;
     const ref = {};
@@ -407,7 +535,7 @@ router.post('/hold', protect, authorize('billing:write', 'billing:write:own'), p
       ref.bookingId = bookingId;
     } else if (doctorRequestId) {
       ref.bookingType = 'emergency_doctor';
-      ref.bookingId = doctorRequestId;
+      ref.doctorRequestId = doctorRequestId;
     } else {
       ref.bookingType = 'ride';
       if (rideId) ref.rideId = rideId;
@@ -423,7 +551,7 @@ router.post('/hold', protect, authorize('billing:write', 'billing:write:own'), p
 
 // ─── POST /api/payment/demo/confirm/:id ────────────────────────────────────
 // Spec 21: 1-click demo success — held/pending → paid (escrow released).
-router.post('/confirm/:id', protect, authorize('billing:write', 'billing:write:own'), paymentLimiter, async (req, res) => {
+router.post('/confirm/:id', protect, authorize('billing:write', 'billing:write:own'), blockProductionDemoPayments, paymentLimiter, async (req, res) => {
   try {
     const payment = await DemoPayment.findById(req.params.id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
@@ -442,7 +570,7 @@ router.post('/confirm/:id', protect, authorize('billing:write', 'billing:write:o
 
 // ─── POST /api/payment/demo/fail/:id ───────────────────────────────────────
 // Spec 21: 1-click demo failure — tests frontend decline handling.
-router.post('/fail/:id', protect, authorize('billing:write', 'billing:write:own'), paymentLimiter, async (req, res) => {
+router.post('/fail/:id', protect, authorize('billing:write', 'billing:write:own'), blockProductionDemoPayments, paymentLimiter, async (req, res) => {
   try {
     const payment = await DemoPayment.findById(req.params.id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
@@ -463,7 +591,7 @@ router.post('/fail/:id', protect, authorize('billing:write', 'billing:write:own'
 
 // ─── POST /api/payment/demo/refund/:id ─────────────────────────────────────
 // Spec 21: instant demo refund on cancellation.
-router.post('/refund/:id', protect, authorize('billing:write', 'billing:write:own'), paymentLimiter, idempotencyGuard({ prefix: 'demo-refund', failClosed: true }), async (req, res) => {
+router.post('/refund/:id', protect, authorize('billing:write', 'billing:write:own'), blockProductionDemoPayments, paymentLimiter, idempotencyGuard({ prefix: 'demo-refund', failClosed: true }), async (req, res) => {
   try {
     // PAY-002: atomic status transition guarded on the expected prior state, so a
     // concurrent second refund cannot double-credit the wallet.

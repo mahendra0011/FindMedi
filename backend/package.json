@@ -13,7 +13,8 @@
     "seed": "node seed-demo.mjs",
     "seed:all": "node seed-demo.mjs",
     "seed:psychiatrists": "node seed-psychiatrists.mjs",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit",
+      "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit",
+      "test:pharmacy:replica": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit --runInBand test/integration/pharmacyDispenseReplicaSet.spec.js",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit --coverage",
     "lint": "eslint .",
     "authz:triage": "node scripts/triage-authz-gaps.mjs",
@@ -21,7 +22,8 @@
     "authz:tenant-guard": "node scripts/check-tenant-guard-regression.mjs",
     "missing:inventory": "node scripts/missing-feature-inventory.mjs",
     "docs:dictionary": "node scripts/gen-data-dictionary.mjs",
-    "docs:dictionary:check": "node scripts/gen-data-dictionary.mjs --check"
+    "docs:dictionary:check": "node scripts/gen-data-dictionary.mjs --check",
+    "retention:gaps": "node scripts/check-retention-gaps.mjs"
   },
   "dependencies": {
     "@bull-board/api": "^6.11.0",
@@ -32,7 +34,6 @@
     "@prisma/client": "^5.22.0",
     "@sentry/node": "^11.0.0",
     "@socket.io/redis-adapter": "^8.3.0",
-    "@unleash/proxy": "^1.4.19",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.4.0",
     "clamav.js": "^0.12.0",
@@ -66,7 +67,6 @@
     "sharp": "^0.35.3",
     "socket.io": "^4.8.3",
     "swagger-ui-express": "^5.0.1",
-    "unleash-client": "^6.12.1",
     "web-push": "^3.6.7",
     "zod": "^4.4.3"
   },
@@ -74,7 +74,7 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.11.0",
     "globals": "^17.12.0",
-    "jest": "^29.7.0",
+    "jest": "^30.5.2",
     "prisma": "^5.22.0",
     "supertest": "^7.0.0",
     "typescript": "^6.0.3",
@@ -113,5 +113,9 @@
         "statements": 14
       }
     }
+  },
+  "overrides": {
+    "uuid": "11.1.1",
+    "braces": "3.0.3"
   }
 }

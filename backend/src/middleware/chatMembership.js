@@ -3,6 +3,7 @@ import ChatConversation from '../models/ChatConversation.js';
 import RideBooking from '../models/RideBooking.js';
 import RideTracking from '../models/RideTracking.js';
 import EmergencyRequest from '../models/EmergencyRequest.js';
+import EmergencyDoctorRequest from '../models/EmergencyDoctorRequest.js';
 import AssistantBooking from '../models/AssistantBooking.js';
 import LawyerBooking from '../models/LawyerBooking.js';
 import PharmacyDelivery from '../models/PharmacyDelivery.js';
@@ -254,12 +255,17 @@ export async function assertRoomAccess(userId, role, room, id) {
 
     // ── emergency:<sosId> ── (mirrors the REST canAccessSos rules)
     case 'emergency': {
-      const sos = await EmergencyRequest.findById(key)
-        .select('userId assignedProviderId assignedProviderType').lean();
-      if (!sos) return { ok: false, reason: 'not-found' };
-      if (sameId(sos.userId, userId)) return { ok: true };
-      if (sameId(sos.assignedProviderId, userId)) return { ok: true };
-      if (sos.assignedProviderType === 'ambulance') {
+      const sos = await EmergencyRequest.findById(key).select('userId assignedProviderId assignedProviderType').lean();
+      const doctorRequest = await EmergencyDoctorRequest.findById(key).select('userId patientId assignedDoctorId assignedDoctorUserId').lean();
+      if (!sos && !doctorRequest) return { ok: false, reason: 'not-found' };
+      if (sos && sameId(sos.userId, userId)) return { ok: true };
+      if (doctorRequest && anySame(doctorRequest, ['userId', 'patientId', 'assignedDoctorUserId'], userId)) return { ok: true };
+      if (doctorRequest?.assignedDoctorId) {
+        const doctor = await Doctor.findById(doctorRequest.assignedDoctorId).select('user_id').lean();
+        if (doctor && sameId(doctor.user_id, userId)) return { ok: true };
+      }
+      if (sos && sameId(sos.assignedProviderId, userId)) return { ok: true };
+      if (sos?.assignedProviderType === 'ambulance') {
         const amb = await Ambulance.findById(sos.assignedProviderId).select('userId').lean();
         if (amb && sameId(amb.userId, userId)) return { ok: true };
       }
@@ -290,6 +296,10 @@ export async function assertRoomAccess(userId, role, room, id) {
         .select('userId patientId deliveryPartnerId orderId hospitalId').lean();
       if (delivery) {
         if (anySame(delivery, ['userId', 'patientId', 'deliveryPartnerId'], userId)) return { ok: true };
+        if (role === 'delivery_boy' && delivery.deliveryPartnerId) {
+          const partner = await DeliveryPartner.findOne({ userId }).select('_id').lean();
+          if (partner && sameId(delivery.deliveryPartnerId, partner._id)) return { ok: true };
+        }
         // Tenant-scoped operator, not a blanket role check. See isOperatorForRow.
         if (await isOperatorForRow(userId, role, delivery, {
           tenantFields: ['hospitalId'],

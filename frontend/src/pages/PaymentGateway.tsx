@@ -23,7 +23,7 @@ export default function PaymentGateway() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const total = parseInt(searchParams.get('total') || '0');
+  const requestedTotal = parseInt(searchParams.get('total') || '0');
   const method = searchParams.get('method') || 'upi';
   const orderIds = searchParams.get('orderIds')?.split(',') || [];
   const storeIds = searchParams.get('stores')?.split(',') || [];
@@ -42,6 +42,7 @@ export default function PaymentGateway() {
   const [order, setOrder] = useState(null);
   const [orderLoading, setOrderLoading] = useState(true);
   const [payResult, setPayResult] = useState(null);
+  const total = Number(order?.total ?? requestedTotal);
   useEffect(() => {
     if (storeIds.length === 0) return;
     const load = async () => {
@@ -83,18 +84,25 @@ export default function PaymentGateway() {
   const upiQrUpiId = 'findmedi@upi';
 
   const handlePay = async () => {
+    if (!order || !orderIds[0]) {
+      setStep('failed');
+      return;
+    }
     setPaying(true);
     setStep('processing');
     try {
       const res = await api.payTransaction({
         serviceType: 'medicine',
         referenceId: orderIds[0],
-        amount: total,
+        // Billing validates the pre-coupon server price, then reapplies the
+        // persisted coupon from its own canonical record.
+        amount: Number(order?.payableBeforeDiscount || order?.total || total),
+        couponCode: order?.couponCode || undefined,
         method: method === 'wallet' ? 'card' : method,
         description: `Medicine Order - ${storeIds.map(sid => getStoreName(sid)).join(', ')}`,
         provider: storeNames[storeIds[0]] || storeIds[0],
         lineItems: (order?.items || []).map(i => ({ name: i.medicineName, price: i.price, qty: i.qty })),
-      });
+      }, { headers: { 'Idempotency-Key': globalThis.crypto?.randomUUID?.() || `${orderIds[0]}-${Date.now()}` } });
       setPayResult(res);
       setStep('success');
     } catch (e) {
@@ -267,7 +275,7 @@ export default function PaymentGateway() {
                     <span className="text-xs text-muted-foreground">I agree to the <button className="text-primary underline">Terms & Conditions</button> and authorize FindMedi to charge ₹{total}</span>
                   </label>
                   <Button className="w-full h-14 text-base font-bold gap-3 rounded-2xl shadow-xl shadow-primary/30"
-                    onClick={handlePay} disabled={!agreed}>
+                    onClick={handlePay} disabled={!agreed || orderLoading || !order || !Number.isFinite(total) || total <= 0}>
                     <Lock className="w-5 h-5" /> Pay ₹{total}
                   </Button>
                 </>

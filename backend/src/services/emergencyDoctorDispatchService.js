@@ -46,6 +46,6 @@ const config = {
   }),
 };
 
-export const startEmergencyDoctorDispatch = (requestId) => startInstantDispatch(requestId, config);
+export const startEmergencyDoctorDispatch = (requestId, radiiKm) => startInstantDispatch(requestId, radiiKm?.length ? { ...config, radiiKm } : config);
 export const acceptEmergencyDoctorRequest = (requestId, providerId, user) => handleInstantAccept(requestId, providerId, user, config);
 export const rejectEmergencyDoctorRequest = (requestId, providerId) => handleInstantReject(requestId, providerId, config);

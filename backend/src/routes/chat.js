@@ -1,8 +1,11 @@
 import express from 'express';
-import { requireConversationMember } from '../middleware/chatMembership.js';
+import mongoose from 'mongoose';
+import { requireConversationMember, assertRoomAccess } from '../middleware/chatMembership.js';
 import { protect, authorize } from '../middleware/auth.js';
 import ChatConversation from '../models/ChatConversation.js';
 import ChatMessage from '../models/ChatMessage.js';
+import AssistantBooking from '../models/AssistantBooking.js';
+import LawyerBooking from '../models/LawyerBooking.js';
 import ChatPrivacy from '../models/ChatPrivacy.js';
 import ChatReport from '../models/ChatReport.js';
 import PushSubscription from '../models/PushSubscription.js';
@@ -21,6 +24,51 @@ import { storeChatUpload, validateChatAttachments } from '../services/chatUpload
 import { sendChatPush, isPushConfigured, getVapidPublicKey } from '../services/pushSender.js';
 
 const router = express.Router();
+
+// Booking chat threads are bound to a booking only after the same server-side
+// party check used for booking socket rooms. Client-provided participants are
+// never accepted. The unique context index makes concurrent provisioning safe.
+router.get('/bookings/:kind/:bookingId/conversation', protect, authorize('chat:read:own'), async (req, res) => {
+  try {
+    const { kind, bookingId } = req.params;
+    if (!['assistant', 'lawyer'].includes(kind) || !mongoose.Types.ObjectId.isValid(bookingId)) {
+      return res.status(404).json({ message: 'Booking chat not found' });
+    }
+    const contextType = `${kind}-booking`;
+    const verdict = await assertRoomAccess(req.user.id, req.user.role, contextType, bookingId);
+    if (!verdict.ok) return res.status(404).json({ message: 'Booking chat not found' });
+    const Model = kind === 'assistant' ? AssistantBooking : LawyerBooking;
+    const booking = await Model.findById(bookingId).select('patientId userId assistantId lawyerId').lean();
+    const parties = [...new Set([booking?.patientId, booking?.userId, booking?.assistantId, booking?.lawyerId].filter(Boolean).map(String))];
+    if (parties.length !== 2 || !parties.includes(req.user.id)) {
+      return res.status(404).json({ message: 'Booking chat not found' });
+    }
+    const filter = { contextType, contextId: booking._id };
+    let conversation = await ChatConversation.findOne(filter);
+    if (!conversation) {
+      try {
+        conversation = await ChatConversation.create({ ...filter, participants: parties });
+      } catch (err) {
+        if (err?.code !== 11000) throw err;
+        conversation = await ChatConversation.findOne(filter);
+      }
+    }
+    if (!conversation || parties.some((id) => !conversation.participants.some((p) => String(p) === id))) {
+      return res.status(409).json({ message: 'Booking chat participants changed; contact support' });
+    }
+    const storedContextParties = (conversation.contextParticipants || []).map(String);
+    if (storedContextParties.length && (storedContextParties.length !== parties.length || parties.some((id) => !storedContextParties.includes(id)))) {
+      return res.status(409).json({ message: 'Booking chat assignment changed; contact support' });
+    }
+    if (!storedContextParties.length) {
+      conversation.contextParticipants = parties;
+      await conversation.save();
+    }
+    res.json({ conversationId: String(conversation._id) });
+  } catch (err) {
+    res.status(500).json({ message: 'Unable to open booking chat' });
+  }
+});
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const uid = (id) => String(id);
@@ -963,6 +1011,12 @@ router.post('/messages', protect, authorize('chat:write:own'), async (req, res) 
 
     const conversation = await getConversationForUser(conversationId, senderId);
     if (!conversation) return res.status(404).json({ message: 'Conversation not found' });
+    if (conversation.contextType) {
+      const verdict = await assertRoomAccess(senderId, req.user.role, conversation.contextType, conversation.contextId);
+      if (!verdict.ok || !(conversation.contextParticipants || []).some((partyId) => String(partyId) === String(senderId))) {
+        return res.status(404).json({ message: 'Conversation not found' });
+      }
+    }
 
     // Offline queue retry: same clientGeneratedId dobara aaya to duplicate
     // message banane ke bajaye pehla wala hi wapas bheja jata hai.

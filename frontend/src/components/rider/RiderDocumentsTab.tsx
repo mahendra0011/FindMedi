@@ -77,7 +77,7 @@ export const RiderDocumentsTab: React.FC<RiderDocumentsTabProps> = ({
           <div className="py-3 flex items-center justify-between">
             <div>
               <p className="font-semibold text-foreground">Driving License (DL)</p>
-              <p className="text-muted-foreground">No: {profile?.drivingLicenseNumber || 'N/A'}</p>
+              <p className="text-muted-foreground">No: {profile?.drivingLicenseNumber ? `••••${String(profile.drivingLicenseNumber).slice(-4)}` : 'N/A'}</p>
             </div>
             <Badge variant={isVerified ? 'default' : 'secondary'}>
               {isVerified ? 'Verified' : 'Under Review'}
@@ -87,7 +87,7 @@ export const RiderDocumentsTab: React.FC<RiderDocumentsTabProps> = ({
           <div className="py-3 flex items-center justify-between">
             <div>
               <p className="font-semibold text-foreground">Government ID ({profile?.govtIdType || 'Aadhaar'})</p>
-              <p className="text-muted-foreground">No: {profile?.govtIdNumber || 'N/A'}</p>
+              <p className="text-muted-foreground">No: {profile?.govtIdNumber ? `••••${String(profile.govtIdNumber).slice(-4)}` : 'N/A'}</p>
             </div>
             <Badge variant={isVerified ? 'default' : 'secondary'}>
               {isVerified ? 'Verified' : 'Under Review'}

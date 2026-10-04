@@ -5,14 +5,21 @@
  * regressions here show up as broken prescriptions/records previews (or, worse,
  * bare filenames becoming bogus relative URLs).
  */
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { setAuthTokens, clearRefreshTokenCache } from './axios';
 import {
   resolveFileUrl,
   isValidFileUrl,
   getFileType,
   txToEarningsBill,
   getServerOrigin,
+  getFilePreviewUrl,
 } from './api';
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  clearRefreshTokenCache();
+});
 
 describe('resolveFileUrl', () => {
   it('returns empty string for falsy input', () => {
@@ -62,6 +69,43 @@ describe('getFileType', () => {
     expect(getFileType('report.PDF')).toBe('pdf');
     expect(getFileType('lab-result.txt')).toBe('other');
     expect(getFileType()).toBe('other');
+  });
+});
+
+describe('getFilePreviewUrl credential boundary', () => {
+  it('sends the app session only to local protected uploads', async () => {
+    setAuthTokens('session-secret');
+    const createUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:preview-local');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/pdf' },
+      blob: async () => new Blob(['private report']),
+    });
+
+    await expect(getFilePreviewUrl('/uploads/patient-report.pdf')).resolves.toMatchObject({ type: 'pdf', url: 'blob:preview-local' });
+    expect(fetchSpy).toHaveBeenCalledWith(`${getServerOrigin()}/uploads/patient-report.pdf`, {
+      credentials: 'include',
+      headers: { Authorization: 'Bearer session-secret' },
+    });
+    expect(createUrl).toHaveBeenCalledOnce();
+  });
+
+  it('never sends bearer tokens or cookies to an external file host', async () => {
+    setAuthTokens('session-secret');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'image/png' },
+      blob: async () => new Blob(['image']),
+    });
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:preview-external');
+
+    await expect(getFilePreviewUrl('https://files.example.test/patient-report.png')).resolves.toMatchObject({ type: 'image' });
+    expect(fetchSpy).toHaveBeenCalledWith('https://files.example.test/patient-report.png', {
+      credentials: 'omit',
+      headers: {},
+    });
   });
 });
 

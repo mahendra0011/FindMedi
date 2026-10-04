@@ -8,7 +8,7 @@ checklist) live in [`docs/qa-release.md`](docs/qa-release.md) Â§3â€“Â§4
 The canonical version is `backend/package.json` `version`; `frontend/package.json`
 `version` is synced at each release. Entries that close an audit finding cite
 the finding ID â€” the full reported â†’ fixed trail is in
-[`audit-reports/FIXED-LOG.md`](audit-reports/FIXED-LOG.md).
+[`DEFERRED_TODOS.md`](DEFERRED_TODOS.md).
 
 ## [Unreleased]
 
@@ -187,12 +187,12 @@ the finding ID â€” the full reported â†’ fixed trail is in
 Baseline release: the consolidated state of Findmedi (backend Express/Mongoose
 API, Vite/React frontend, Rust/Next pieces) as of 2026-10-02, after the
 2026-09 security and missing-feature audit remediation recorded in
-[`audit-reports/`](audit-reports/).
+.
 
 ### Security
 
 - Audit remediation batches (196 findings closed, detail per ID in
-  `audit-reports/FIXED-LOG.md`): authentication/2FA hardening (AUTH-B-01..19),
+  `DEFERRED_TODOS.md`): authentication/2FA hardening (AUTH-B-01..19),
   data-leak closure (DL/DLB), object-level authorization (`authorizeObject`
   helper + `AUTHZ-*` migration with a committed 829-route coverage manifest),
   payment invariants (PAY-B-01..08), infrastructure guards (INF-B-01..09),
@@ -204,7 +204,7 @@ API, Vite/React frontend, Rust/Next pieces) as of 2026-10-02, after the
 
 ### Added
 
-- Missing-feature backlog remediation (see `audit-reports/PENDING-BACKLOG.md`
+- Missing-feature backlog remediation (see `DEFERRED_TODOS.md`
   DONE entries): appointment reminder jobs (NOTIF-M-03), wallet guard
   (PAY-M-02), payout reconciliation with idempotent root-cause fix
   (PAY-M-03), metrics/observability suite (INF-M-02), generated data

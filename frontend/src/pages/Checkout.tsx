@@ -18,9 +18,6 @@ import { toast } from 'sonner';
 import { userFacingError } from '@/lib/errorCopy';
 
 const CROSS_STORE_MEDS = [
-  { id:'m1_s2', name:'Paracetamol 500mg', image:'', brand:'PharmaPlus', mrp:48, price:32, discount:33, inStock:true, rx:false, pack:'10 tablets', category:'OTC', storeId:'s2' },
-  { id:'m9_s1', name:'Ibuprofen 400mg', image:'', brand:'PharmaPlus', mrp:68, price:48, discount:29, inStock:true, rx:false, pack:'10 tablets', category:'OTC', storeId:'s1' },
-  { id:'m3_s3', name:'Cough Syrup 100ml', image:'', brand:'MediCare', mrp:130, price:95, discount:27, inStock:true, rx:false, pack:'100ml bottle', category:'OTC', storeId:'s3' },
 ];
 
 const SAVED_PRESCRIPTIONS_KEY = 'findmedi_saved_rx';
@@ -234,13 +231,15 @@ export default function Checkout() {
             };
             const res = await api.createPharmacyOrder(orderPayload);
             const orderIds = Array.isArray(res?.orders) ? res.orders.map(o => o._id) : [res?.order?._id || res?._id];
+            const serverTotal = Number(res?.authoritativeTotal ?? res?.total);
+            if (!Number.isFinite(serverTotal) || serverTotal <= 0 || !orderIds[0]) throw new Error('The pharmacy did not return a valid checkout total. Please retry.');
             const orderIdStr = orderIds.join(',');
             const params = new URLSearchParams({ stores: stores.map(s => s.storeId).join(','), orderIds: orderIdStr, rx: hasRxItems ? 'true' : 'false' });
             clearCart();
             if (payOnDelivery) {
               navigate(`/order-confirmation?${params}`);
             } else {
-              params.set('total', remaining.reduce((s, e) => s + e.item.price * e.qty, 0).toString());
+              params.set('total', serverTotal.toString());
               params.set('method', paymentMethod);
               navigate(`/payment-gateway?${params}`);
             }
@@ -276,6 +275,8 @@ export default function Checkout() {
       };
       const res = await api.createPharmacyOrder(orderPayload);
       const orderIds = Array.isArray(res?.orders) ? res.orders.map(o => o._id) : [res?.order?._id || res?._id];
+      const serverTotal = Number(res?.authoritativeTotal ?? res?.total);
+      if (!Number.isFinite(serverTotal) || serverTotal <= 0 || !orderIds[0]) throw new Error('The pharmacy did not return a valid checkout total. Please retry.');
       const orderIdStr = orderIds.join(',');
       const params = new URLSearchParams({ stores: stores.map(s => s.storeId).join(','), orderIds: orderIdStr, rx: hasRxItems ? 'true' : 'false' });
 
@@ -294,7 +295,7 @@ export default function Checkout() {
       if (payOnDelivery) {
         navigate(`/order-confirmation?${params}`);
       } else {
-        params.set('total', grandTotal.toString());
+        params.set('total', serverTotal.toString());
         params.set('method', paymentMethod);
         navigate(`/payment-gateway?${params}`);
       }

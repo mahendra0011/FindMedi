@@ -28,6 +28,7 @@ const notificationSchema = new mongoose.Schema({
   },
   read: { type: Boolean, default: false },
   userId: { type: String, required: true },
+  referenceId: { type: String, default: null, index: true },
   date: { type: String, default: () => getISTDateString() },
   createdAt: { type: Date, default: Date.now },
   // NOTIF-B-05: rich in-app content that must never reach a lock screen. The

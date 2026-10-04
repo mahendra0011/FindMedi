@@ -16,7 +16,7 @@ const config = {
     const riders = await findEligibleRiders(vehicleType, lat, lng, isEmergency, radiusKm);
     const excludeSet = new Set((excludeIds || []).map(String));
     return riders
-      .filter((r) => !excludeSet.has(String(r.userId?._id || r.userId)))
+      .filter((r) => r.distanceKm != null && r.locationFresh === true && !excludeSet.has(String(r.userId?._id || r.userId)))
       .map((r) => ({
         userId: r.userId?._id || r.userId,
         _id: r.userId?._id || r.userId,
@@ -37,6 +37,6 @@ const config = {
   }),
 };
 
-export const startRideDispatch = (requestId) => startInstantDispatch(requestId, config);
+export const startRideDispatch = (requestId, radiiKm) => startInstantDispatch(requestId, radiiKm?.length ? { ...config, radiiKm } : config);
 export const acceptRideRequest = (requestId, providerId, user) => handleInstantAccept(requestId, providerId, user, config);
 export const rejectRideRequest = (requestId, providerId) => handleInstantReject(requestId, providerId, config);

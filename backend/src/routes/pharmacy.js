@@ -1,11 +1,15 @@
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 import { applyTenantScope } from '../utils/tenantScope.js';
 import express from 'express';
+import mongoose from 'mongoose';
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import logger from '../config/logger.js';
 import Medicine from '../models/Medicine.js';
 import Billing from '../models/Billing.js';
 import Prescription from '../models/Prescription.js';
 import PharmacyOrder from '../models/PharmacyOrder.js';
+import Payment from '../models/Payment.js';
 import PharmacyDelivery from '../models/PharmacyDelivery.js';
 import PharmacyOffer from '../models/PharmacyOffer.js';
 import PharmacyReturn from '../models/PharmacyReturn.js';
@@ -17,6 +21,7 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect, adminOnly, authorize } from '../middleware/auth.js';
 import { authorizeObject, rolesWithPermission } from '../middleware/authorize.js';
+import { callerMayActOnDoc } from '../middleware/tenantOwnership.js';
 // AUTHZ-M-01 migration: lazy model resolvers keep the existing dynamic-import
 // shape (no new static model edges); every site below keeps its chain role
 // gate, with actorRoles computed from the same permission matrix.
@@ -24,16 +29,45 @@ const lazyModel = (path) => () => import(path).then((m) => m.default);
 import { publicSearchLimiter } from '../middleware/rateLimit.js';
 import { validate, createMedicineSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
-import { generatePrescriptionId, generateTimestampedId } from '../utils/idGenerator.js';
+import { generatePrescriptionId, generateTimestampedId, generateTransactionId, generateInvoiceId } from '../utils/idGenerator.js';
+import { getISTDateString } from '../utils/dateUtils.js';
 import { paginatedResults } from '../utils/pagination.js';
 // PAY-B-05: the order-refund route is a money mutation and opts into the replay
 // guard, so a double-clicked "Refund" cannot issue two refunds.
 import { idempotencyGuard } from '../middleware/idempotency.js';
+import { dispensePrescriptionMedicine } from '../services/pharmacyDispenseService.js';
+import { PHARMACY_RESERVATION_TTL_MS, reservePharmacyOrderItems, releasePharmacyOrderItems } from '../services/pharmacyInventoryService.js';
+import { executeWithOutbox } from '../lib/transactionalOutbox.js';
+import { KAFKA_TOPICS } from '../config/kafka.js';
+import { canCollectPharmacyCod, canTransitionPharmacyOrder } from '../services/pharmacyOrderLifecycle.js';
+import { sealPrescription, issueToken, verifyToken } from '../services/prescriptionIntegrity.js';
 
 const medicineUpdateSchema = z.object({}).passthrough();
-const pharmacyStockSchema = z.object({ quantity: z.number(), type: z.enum(['add', 'deduct']) });
+const pharmacyStockSchema = z.object({ quantity: z.number().int().positive().max(100000), type: z.enum(['add', 'deduct']) });
 const prescriptionSchema = z.object({}).passthrough();
-const pharmacyOrderSchema = z.object({}).passthrough();
+const pharmacyOrderSchema = z.object({
+  items: z.array(z.object({
+    medicineId: z.string().min(1),
+    quantity: z.coerce.number().int().positive().max(100),
+  }).passthrough()).min(1).max(50),
+  address: z.string().trim().min(5).max(500).optional(),
+  deliveryAddress: z.string().trim().min(5).max(500).optional(),
+  deliveryMode: z.enum(['delivery', 'pickup']).optional(),
+  deliverySlot: z.string().trim().max(80).optional(),
+  couponCode: z.string().trim().max(40).optional(),
+  prescriptionUrl: z.string().trim().max(2048).optional(),
+}).passthrough();
+const pharmacyOrderUpdateSchema = z.object({
+  phone: z.string().trim().max(40).optional(),
+  deliveryAddress: z.string().trim().min(5).max(500).optional(),
+  note: z.string().trim().max(1000).optional(),
+  prescriptionUrl: z.string().trim().max(2048).optional(),
+  rejectionReason: z.string().trim().max(500).optional(),
+  deliverySlot: z.string().trim().max(80).optional(),
+}).passthrough();
+const pharmacyOrderStatusSchema = z.object({
+  status: z.enum(['Confirmed', 'Preparing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled']),
+});
 const pharmacyDeliverySchema = z.object({}).passthrough();
 const pharmacyOfferSchema = z.object({}).passthrough();
 const pharmacyReturnSchema = z.object({}).passthrough();
@@ -219,14 +253,14 @@ router.get('/medicines/export-alerts', protect, async (req, res) => {
 
 router.post('/medicines', protect, authorize('pharmacy:manage'), validate(createMedicineSchema), async (req, res) => {
   try {
-    const medicine = await Medicine.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    const medicine = await Medicine.create({ ...req.body, currentStock: Number(req.body.currentStock || 0), isActive: req.body.isActive !== false && Number(req.body.currentStock || 0) > 0, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     await auditLog('create_medicine', req.user._id, { recordId: medicine._id, ip: req.ip, userAgent: req.get('user-agent') });
     try {
       const { indexDrugDoc } = await import('../services/opensearchIndexer.js');
       await indexDrugDoc(medicine);
     } catch {}
     res.status(201).json(medicine);
-  } catch (err) { res.status(400).json({ message: err.message }); }
+  } catch (err) { res.status(err.status || 400).json({ message: err.message, code: err.code }); }
 });
 
 router.put('/medicines/:id', protect, authorizeObject({ model: lazyModel('../models/Medicine.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), validate(medicineUpdateSchema), async (req, res) => {
@@ -238,7 +272,7 @@ router.put('/medicines/:id', protect, authorizeObject({ model: lazyModel('../mod
     }
     // AUTH-030: allowlisted fields only — stock has dedicated endpoint, tenant linkage immutable.
     const { pickBody } = await import('../utils/pick.js');
-    Object.assign(medicine, pickBody(req.body, ['name', 'genericName', 'category', 'form', 'manufacturer', 'batchNumber', 'expiryDate', 'purchasePrice', 'sellingPrice', 'currentStock', 'reorderLevel', 'prescriptionReq', 'rackLocation', 'interactions', 'contraindications', 'isActive']));
+    Object.assign(medicine, pickBody(req.body, ['name', 'genericName', 'category', 'form', 'manufacturer', 'batchNumber', 'expiryDate', 'purchasePrice', 'sellingPrice', 'reorderLevel', 'prescriptionReq', 'rackLocation', 'interactions', 'contraindications', 'isActive']));
     await medicine.save();
     await auditLog('update_medicine', req.user._id, { recordId: medicine._id, ip: req.ip, userAgent: req.get('user-agent') });
     try {
@@ -246,7 +280,7 @@ router.put('/medicines/:id', protect, authorizeObject({ model: lazyModel('../mod
       await indexDrugDoc(medicine);
     } catch {}
     res.json(medicine);
-  } catch (err) { res.status(400).json({ message: err.message }); }
+  } catch (err) { res.status(err.status || 400).json({ message: err.message, code: err.code }); }
 });
 
 router.delete('/medicines/:id', protect, authorizeObject({ model: lazyModel('../models/Medicine.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), async (req, res) => {
@@ -256,7 +290,10 @@ router.delete('/medicines/:id', protect, authorizeObject({ model: lazyModel('../
     if (req.user.hospitalId && req.user.role !== 'superadmin' && medicine.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    await Medicine.findByIdAndDelete(req.params.id);
+    // Keep the catalogue record so in-flight order reservations can still be
+    // released and historical order lines retain a valid reference.
+    medicine.isActive = false;
+    await medicine.save();
     await auditLog('delete_medicine', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Medicine removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -266,16 +303,20 @@ router.delete('/medicines/:id', protect, authorizeObject({ model: lazyModel('../
 router.put('/medicines/:id/stock', protect, authorizeObject({ model: lazyModel('../models/Medicine.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), validate(pharmacyStockSchema), async (req, res) => {
   try {
     const { quantity, type } = req.body; // type: 'add' | 'deduct'
-    const medicine = await Medicine.findById(req.params.id);
+    const medicine = await Medicine.findById(req.params.id).select('_id hospitalId facilityId currentStock');
     if (!medicine) return res.status(404).json({ message: 'Medicine not found' });
     if (req.user.hospitalId && req.user.role !== 'superadmin' && medicine.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    if (type === 'add') medicine.currentStock += quantity;
-    else if (type === 'deduct') medicine.currentStock = Math.max(0, medicine.currentStock - quantity);
-    await medicine.save();
+    const stockUpdate = type === 'add'
+      ? { $inc: { currentStock: quantity }, $set: { isActive: true } }
+      : { $inc: { currentStock: -quantity } };
+    const stockFilter = type === 'deduct' ? { _id: medicine._id, currentStock: { $gte: quantity } } : { _id: medicine._id };
+    const updated = await Medicine.findOneAndUpdate(stockFilter, stockUpdate, { new: true, runValidators: true });
+    if (!updated) return res.status(409).json({ message: 'Not enough sellable stock to deduct that amount.', code: 'INSUFFICIENT_SELLABLE_STOCK' });
+    medicine.currentStock = updated.currentStock;
     await auditLog('update_medicine_stock', req.user._id, { recordId: medicine._id, ip: req.ip, userAgent: req.get('user-agent') });
-    res.json(medicine);
+    res.json(updated);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
@@ -320,7 +361,7 @@ const prescriptionId = generatePrescriptionId();
       if (sealed) {
         const issued = issueToken(prescription);
         verifyToken = issued.token;
-        prescription.integrity.nonceHash = crypto.createHash('sha256').update(issued.nonce).digest('hex');
+        prescription.integrity.nonceHash = createHash('sha256').update(issued.nonce).digest('hex');
         await prescription.save();
       }
     } catch (e) {
@@ -497,7 +538,7 @@ router.put('/prescriptions/:id/dispense', protect, authorize('pharmacy:dispense'
 
     const prescription = await Prescription.findById(req.params.id).populate('patientId', 'allergies');
     if (!prescription) return res.status(404).json({ message: 'Prescription not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && prescription.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (!callerMayActOnDoc(prescription, req.user)) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -566,42 +607,31 @@ router.put('/prescriptions/:id/dispense', protect, authorize('pharmacy:dispense'
       return res.status(409).json({ message: `Medicine has expired (expiry: ${medicineDoc.expiryDate.toISOString().split('T')[0]}) and cannot be dispensed` });
     }
 
-    // Deduct stock
-    let dispensedMedicineId = med.medicineId ? String(med.medicineId) : '';
-    let dispensedFacility = '';
     if (med.medicineId) {
-      const medicine = await Medicine.findById(med.medicineId);
-      if (medicine) {
-        if (medicine.currentStock < med.quantity) {
-          return res.status(400).json({ message: `Insufficient stock for ${med.medicineName}. Available: ${medicine.currentStock}` });
-        }
-        medicine.currentStock -= med.quantity;
-        await medicine.save();
-        dispensedMedicineId = String(medicine._id);
-        dispensedFacility = String(medicine.facilityId || medicine.hospitalId || '');
-      }
+      const result = await dispensePrescriptionMedicine({
+        prescriptionId: prescription._id,
+        medicineLineId: med._id,
+        medicineId: med.medicineId,
+        quantity: med.quantity,
+        dispensedBy: req.user.name,
+        createdBy: req.user._id,
+        pharmacyId: medicineDoc?.facilityId || medicineDoc?.hospitalId || prescription.hospitalId,
+      });
+      med.isDispensed = true;
+      med.dispensedAt = new Date();
+      med.dispensedBy = req.user.name;
+      prescription.status = result.status;
+    } else {
+      // Legacy/manual line with no inventory link: preserve prescription state,
+      // but do not fabricate a stock event for an unknown medicine record.
+      med.isDispensed = true;
+      med.dispensedAt = new Date();
+      med.dispensedBy = req.user.name;
+      await prescription.save();
     }
-    med.isDispensed = true;
-    med.dispensedAt = new Date();
-    med.dispensedBy = req.user.name;
-    await prescription.save();
     await auditLog('dispense_prescription', req.user._id, { recordId: prescription._id, ip: req.ip, userAgent: req.get('user-agent') });
-    // Tech 03-D: inventory-delta spine (decrement already applied above; consumer
-    // owns reorder-point → auto-PO so concurrent dispenses can't miss it).
-    try {
-      const { emitPharmacyInventoryEvent } = await import('../lib/kafkaProducer.js');
-      await emitPharmacyInventoryEvent(
-        String(dispensedFacility || prescription.hospitalId || 'default'),
-        'medicine.dispensed',
-        {
-          medicineId: dispensedMedicineId,
-          quantity: med.quantity,
-          createdBy: String(req.user._id),
-        }
-      );
-    } catch {}
     res.json(prescription);
-  } catch (err) { res.status(400).json({ message: err.message }); }
+  } catch (err) { res.status(err.status || 500).json({ message: err.status ? err.message : 'Dispensing could not be completed', ...(err.code ? { code: err.code } : {}) }); }
 });
 
 // ─── Admin: Verify Prescription ─────────────────────────────────────────────
@@ -711,30 +741,28 @@ router.get('/billing/export', protect, authorize('billing:read', 'reports:read')
 });
 
 // ─── Orders ────────────────────────────────────────────────────────────────
-router.get('/orders', protect, async (req, res) => {
+router.get('/orders', protect, authorize('pharmacy:manage', 'pharmacy:read', 'pharmacy:read:own'), async (req, res) => {
   try {
     const { status, search, orderId } = req.query;
     const filter = {};
-    let ownershipOr = null;
     if (req.user.role === 'patient') {
-      ownershipOr = [
-        { patientId: req.user._id },
-        { patientId: { $exists: false }, patientName: req.user.name },
-      ];
-      filter.$or = ownershipOr;
+      // A display name is not an ownership key; legacy rows without patientId
+      // must not be exposed merely because patientName happens to match.
+      filter.patientId = req.user._id;
+    } else {
+      // Tenant staff need a linked tenant; all other authenticated roles are
+      // denied by `authorize` above instead of receiving a platform-wide list.
+      const scope = applyTenantScope(req, filter, {
+        fields: ['hospitalId', 'facilityId'],
+        allowSharedRowsForNonStaff: false,
+      });
+      if (!scope.ok) return res.status(403).json({ message: scope.message });
     }
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
-    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
     if (orderId) filter.orderId = orderId;
     if (search) {
       const searchOr = [{ orderId: new RegExp(escapeRegex(capSearch(search)), 'i') }, { patientName: new RegExp(escapeRegex(capSearch(search)), 'i') }];
-      if (ownershipOr) {
-        filter.$and = [{ $or: ownershipOr }, { $or: searchOr }];
-        delete filter.$or;
-      } else {
-        filter.$or = searchOr;
-      }
+      filter.$or = searchOr;
     }
     let populate;
     if (orderId) populate = { path: 'items.medicineId', select: 'name form' };
@@ -746,93 +774,303 @@ router.get('/orders', protect, async (req, res) => {
 
 router.post('/orders', protect, authorize('pharmacy:read', 'pharmacy:read:own'), validate(pharmacyOrderSchema), async (req, res) => {
   try {
+    const isPatient = req.user.role === 'patient';
+    if (!isPatient) return res.status(403).json({ message: 'Only patients can create pharmacy checkouts' });
+    const normalizedItems = req.body.items.map((item) => ({
+      medicineId: String(item.medicineId),
+      quantity: item.quantity,
+      storeId: item.storeId ? String(item.storeId) : undefined,
+    }));
+    if (normalizedItems.some((item) => !mongoose.Types.ObjectId.isValid(item.medicineId))) {
+      return res.status(422).json({ message: 'Cart contains an invalid or unavailable medicine reference', code: 'INVALID_MEDICINE_REFERENCE' });
+    }
+    const storeIds = [...new Set(normalizedItems.map((item) => item.storeId).filter(Boolean))];
+    if (storeIds.length > 1) {
+      return res.status(422).json({ message: 'Please checkout one pharmacy at a time. Split the cart by pharmacy and place separate orders.', code: 'MULTI_STORE_CHECKOUT_UNSUPPORTED' });
+    }
+    const medicines = await Medicine.find({
+      _id: { $in: normalizedItems.map((item) => item.medicineId) },
+      isActive: true,
+      currentStock: { $gt: 0 },
+      expiryDate: { $gt: new Date() },
+    }).select('_id name sellingPrice currentStock facilityId hospitalId prescriptionReq').lean();
+    const medicineById = new Map(medicines.map((medicine) => [String(medicine._id), medicine]));
+    if (medicineById.size !== new Set(normalizedItems.map((item) => item.medicineId)).size) {
+      return res.status(409).json({ message: 'One or more medicines are unavailable, inactive, expired, or out of stock. Refresh the cart.', code: 'MEDICINE_UNAVAILABLE' });
+    }
+    const resolved = normalizedItems.map((item) => {
+      const medicine = medicineById.get(item.medicineId);
+      if (!medicine || !Number.isSafeInteger(item.quantity) || item.quantity > medicine.currentStock) return null;
+      if (item.storeId && (!mongoose.Types.ObjectId.isValid(item.storeId) || String(medicine.facilityId || '') !== item.storeId)) return null;
+      return { medicine, quantity: item.quantity };
+    });
+    if (resolved.some((item) => !item)) {
+      return res.status(409).json({ message: 'Cart quantities or pharmacy assignments changed. Refresh the cart.', code: 'CART_STALE' });
+    }
+    const facilityIds = [...new Set(resolved.map(({ medicine }) => String(medicine.facilityId || '')))];
+    const hospitalIds = [...new Set(resolved.map(({ medicine }) => String(medicine.hospitalId || '')))];
+    if (facilityIds.length > 1 || hospitalIds.length > 1) {
+      return res.status(422).json({ message: 'This checkout must contain items from one pharmacy only.', code: 'MULTI_STORE_CHECKOUT_UNSUPPORTED' });
+    }
+    const subtotal = Math.round(resolved.reduce((sum, { medicine, quantity }) => sum + Number(medicine.sellingPrice) * quantity, 0) * 100) / 100;
+    if (!Number.isFinite(subtotal) || subtotal <= 0) return res.status(422).json({ message: 'The pharmacy cart has no valid catalogue price.', code: 'INVALID_CART_PRICE' });
+    const deliveryMode = req.body.deliveryMode === 'pickup' ? 'pickup' : 'delivery';
+    const facilityId = facilityIds[0] || undefined;
+    const facility = facilityId && mongoose.Types.ObjectId.isValid(facilityId)
+      ? await Facility.findById(facilityId).select('type status details amenities').lean()
+      : null;
+    if (!facility || facility.type !== 'pharmacy' || facility.status !== 'approved') {
+      return res.status(422).json({ message: 'This pharmacy is not available for checkout.', code: 'PHARMACY_UNAVAILABLE' });
+    }
+    const fee = Number(facility.details?.deliveryFee);
+    const threshold = Number(facility.details?.freeDeliveryAbove);
+    const deliveryFee = deliveryMode === 'pickup' || (Number.isFinite(threshold) && threshold > 0 && subtotal >= threshold)
+      ? 0
+      : (Number.isFinite(fee) && fee >= 0 ? fee : 0);
+    const platformFee = 5;
+    const gst = Math.round(subtotal * 0.05 * 100) / 100;
+    const payableBeforeDiscount = Math.round((subtotal + deliveryFee + platformFee + gst) * 100) / 100;
+    let discount = 0;
+    let couponCode = '';
+    if (req.body.couponCode) {
+      const { default: PlatformCoupon } = await import('../models/PlatformCoupon.js');
+      const code = req.body.couponCode.trim().toUpperCase();
+      const coupon = await PlatformCoupon.findOne({ code, isActive: true }).lean();
+      const now = new Date();
+      if (!coupon || (coupon.validFrom && coupon.validFrom > now) || (coupon.validUntil && coupon.validUntil < now)
+        || (coupon.applicableServices?.length && !coupon.applicableServices.some((s) => ['pharmacy', 'all'].includes(s)))
+        || subtotal < Number(coupon.minOrderValue || 0)
+        || (Number(coupon.usageLimit || 0) > 0 && Number(coupon.usedCount || 0) >= Number(coupon.usageLimit))) {
+        return res.status(422).json({ message: 'This pharmacy coupon is invalid or no longer eligible.', code: 'INVALID_COUPON' });
+      }
+      const rawDiscount = coupon.discountType === 'percentage'
+        ? payableBeforeDiscount * Number(coupon.discountValue) / 100
+        : Number(coupon.discountValue);
+      discount = Math.round(Math.min(payableBeforeDiscount, rawDiscount, Number(coupon.maxDiscount || Infinity)) * 100) / 100;
+      couponCode = code;
+    }
+    const total = Math.round(Math.max(0, payableBeforeDiscount - discount) * 100) / 100;
+    const needsPrescription = resolved.some(({ medicine }) => medicine.prescriptionReq);
+    if (needsPrescription && !req.body.prescriptionUrl) {
+      return res.status(422).json({ message: 'A prescription is required for one or more medicines.', code: 'PRESCRIPTION_REQUIRED' });
+    }
     const orderId = generateTimestampedId('ORD');
     // PHARM-B-11: ...req.body mass-assigned the whole request (the schema is a
     // passthrough), so a client could create an order already marked
     // Paid/Confirmed, attributed to another patient, or parented to a foreign
     // facility. Only the catalogue fields are taken from the body; order state and
     // patient linkage are server-derived.
-    const { pickBody } = await import('../utils/pick.js');
-    const allowed = pickBody(req.body, [
-      'items', 'total', 'subTotal', 'discount', 'couponCode', 'note',
-      'deliveryAddress', 'deliveryMode', 'deliverySlot', 'deliveryFee',
-      'paymentMethod', 'prescriptionId', 'prescriptionUrl',
-    ]);
-    const isPatient = req.user.role === 'patient';
-    const facilityId = req.user.facilityId || req.user.hospitalId || undefined;
-    const order = await PharmacyOrder.create({
-      ...allowed,
+    const deliveryAddress = String(req.body.deliveryAddress || req.body.address || '').trim();
+    if (deliveryMode === 'delivery' && deliveryAddress.length < 5) {
+      return res.status(400).json({ message: 'A valid delivery address is required.' });
+    }
+    const reservationExpiresAt = new Date(Date.now() + PHARMACY_RESERVATION_TTL_MS);
+    const orderData = {
+      items: resolved.map(({ medicine, quantity }) => ({
+        medicineId: medicine._id,
+        medicineName: medicine.name,
+        qty: quantity,
+        price: medicine.sellingPrice,
+      })),
+      total,
+      payableBeforeDiscount,
+      deliveryAddress,
+      deliveryMode,
+      deliverySlot: req.body.deliverySlot || '',
+      deliveryFee,
+      discount,
+      couponCode,
+      platformFee,
+      gst,
+      paymentMethod: ({ cod: 'COD', upi: 'UPI', card: 'Card', netbanking: 'NetBanking' })[String(req.body.paymentMethod || 'cod').toLowerCase()] || 'COD',
+      prescriptionUrl: req.body.prescriptionUrl || '',
+      prescriptionStatus: needsPrescription ? 'pending' : 'not_required',
       orderId,
-      hospitalId: req.user.hospitalId,
+      hospitalId: hospitalIds[0] || undefined,
       facilityId,
       // Server-owned state + linkage.
       status: 'Pending',
-      paymentStatus: 'Pending',
-      patientId: isPatient ? req.user._id : (allowed.patientId || req.user._id),
-      patientName: isPatient ? req.user.name : (allowed.patientName || req.user.name),
+      paymentStatus: String(req.body.paymentMethod || 'cod').toLowerCase() === 'cod' ? 'Unpaid' : 'Pending',
+      inventoryReservationStatus: 'reserved',
+      inventoryReservationExpiresAt: reservationExpiresAt,
+      patientId: req.user._id,
+      patientName: req.user.name,
       createdBy: req.user._id,
+    };
+    const order = await executeWithOutbox(async (session) => {
+      await reservePharmacyOrderItems(orderData.items.map((item) => ({
+        medicineId: item.medicineId,
+        quantity: item.qty,
+        expectedPrice: item.price,
+      })), { session });
+      const [created] = await PharmacyOrder.create([orderData], { session });
+      return created;
     });
     await auditLog('create_pharmacy_order', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
-    res.status(201).json(order);
-  } catch (err) { res.status(400).json({ message: err.message }); }
+    res.status(201).json({ ...order.toObject(), authoritativeTotal: total, subtotal, breakdown: { subtotal, deliveryFee, discount, platformFee, gst, total } });
+  } catch (err) { res.status(err.status || 400).json({ message: err.message, code: err.code }); }
 });
 
 // AUTHZ-B-08: the tenant-ownership check used to run BEFORE authorize(), so a
 // patient (facilityId null) was rejected by ownership before the
 // `pharmacy:order:own` grant could ever fire. The order is now
 // protect -> authorize -> ownership.
-router.put('/orders/:id', protect, authorize('pharmacy:manage', 'pharmacy:order:own'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage', 'pharmacy:order:own'), write: true }), validate(pharmacyOrderSchema), async (req, res) => {
+router.put('/orders/:id', protect, authorize('pharmacy:manage', 'pharmacy:order:own'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage', 'pharmacy:order:own'), write: true }), validate(pharmacyOrderUpdateSchema), async (req, res) => {
   try {
     const order = await PharmacyOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
     // AUTH-030: allowlisted fields only — status/refund/reject have dedicated endpoints.
     const { pickBody } = await import('../utils/pick.js');
-    Object.assign(order, pickBody(req.body, ['patientName', 'phone', 'deliveryAddress', 'items', 'total', 'note', 'prescriptionUrl', 'rejectionReason', 'deliveryFee', 'deliveryMode', 'deliverySlot', 'paymentMethod', 'discount', 'couponCode', 'platformFee', 'gst']));
+    // Catalogue lines and every monetary field are frozen after checkout. This
+    // endpoint may update contact/fulfilment metadata only; price changes require
+    // a new checkout and fresh authoritative resolution.
+    Object.assign(order, pickBody(req.body, ['phone', 'deliveryAddress', 'note', 'prescriptionUrl', 'rejectionReason', 'deliverySlot']));
     await order.save();
     await auditLog('update_pharmacy_order', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/orders/:id', protect, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
+router.put('/orders/:id/status', protect, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), validate(pharmacyOrderStatusSchema), async (req, res) => {
   try {
-    await PharmacyOrder.findByIdAndDelete(req.params.id);
-    await auditLog('delete_pharmacy_order', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
-    res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+    const order = await PharmacyOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    const nextStatus = req.body.status;
+    const verdict = canTransitionPharmacyOrder(order, nextStatus);
+    if (!verdict.ok) return res.status(verdict.status).json({ message: verdict.message, code: verdict.code });
+    if (verdict.idempotent) return res.json(order);
+    const updated = await executeWithOutbox(async (session) => {
+      const reservationStatus = order.inventoryReservationStatus || 'none';
+      const reservationMatch = reservationStatus === 'none' ? { $in: ['none', null] } : reservationStatus;
+      const set = { status: nextStatus };
+      if (nextStatus === 'Cancelled' && reservationStatus === 'reserved') set.inventoryReservationStatus = 'released';
+      if (nextStatus === 'Shipped' && reservationStatus === 'reserved') set.inventoryReservationStatus = 'consumed';
+      const changed = await PharmacyOrder.findOneAndUpdate(
+        { _id: order._id, status: order.status, paymentStatus: order.paymentStatus, inventoryReservationStatus: reservationMatch },
+        { $set: set },
+        { new: true, runValidators: true, session }
+      );
+      if (changed && nextStatus === 'Cancelled' && reservationStatus === 'reserved') {
+        await releasePharmacyOrderItems(order.items, { session });
+      }
+      return changed;
+    });
+    if (!updated) return res.status(409).json({ message: 'Order changed concurrently; refresh and retry.', code: 'ORDER_STATE_CHANGED' });
+    await auditLog('update_pharmacy_order_status', req.user._id, { recordId: order._id, status: nextStatus, ip: req.ip, userAgent: req.get('user-agent') });
+    return res.json(updated);
+  } catch (err) { return res.status(400).json({ message: err.message }); }
+});
+
+router.post('/orders/:id/cancel', protect, authorize('pharmacy:manage', 'pharmacy:order:own'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage', 'pharmacy:order:own'), write: true }), async (req, res) => {
+  try {
+    const existing = await PharmacyOrder.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Order not found' });
+    if (existing.status !== 'Pending' || !['Pending', 'Unpaid'].includes(existing.paymentStatus)) {
+      return res.status(409).json({ message: 'Only unpaid pending orders can be cancelled.', code: 'ORDER_NOT_CANCELLABLE' });
+    }
+    const order = await executeWithOutbox(async (session) => {
+      const reservationStatus = existing.inventoryReservationStatus || 'none';
+      const reservationMatch = reservationStatus === 'none' ? { $in: ['none', null] } : reservationStatus;
+      const updated = await PharmacyOrder.findOneAndUpdate(
+        { _id: existing._id, status: 'Pending', paymentStatus: existing.paymentStatus, inventoryReservationStatus: reservationMatch },
+        { $set: { status: 'Cancelled', ...(reservationStatus === 'reserved' ? { inventoryReservationStatus: 'released' } : {}) } },
+        { new: true, runValidators: true, session }
+      );
+      if (updated && reservationStatus === 'reserved') await releasePharmacyOrderItems(existing.items, { session });
+      return updated;
+    });
+    if (!order) return res.status(409).json({ message: 'Order changed concurrently; refresh and retry.', code: 'ORDER_STATE_CHANGED' });
+    await auditLog('cancel_pharmacy_order', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
+    return res.json(order);
+  } catch (err) { return res.status(400).json({ message: err.message }); }
+});
+
+router.post('/orders/:id/collect-cod', protect, authorize('pharmacy:manage'), idempotencyGuard({ prefix: 'pharmacy-cod', failClosed: true }), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
+  try {
+    const eligibleOrder = await PharmacyOrder.findById(req.params.id).lean();
+    if (!eligibleOrder) return res.status(404).json({ message: 'Order not found' });
+    if (!canCollectPharmacyCod(eligibleOrder)) return res.status(409).json({ message: 'Only delivered, unpaid COD orders can be marked collected.', code: 'COD_COLLECTION_NOT_ALLOWED' });
+    const transaction_id = generateTransactionId('medicine');
+    const invoice_id = generateInvoiceId('medicine');
+    const today = getISTDateString();
+    const order = await executeWithOutbox(async (session) => {
+      const updated = await PharmacyOrder.findOneAndUpdate(
+        { _id: req.params.id, paymentMethod: 'COD', status: 'Delivered', paymentStatus: 'Unpaid' },
+        { $set: { paymentStatus: 'Paid', inventoryReservationStatus: 'consumed' }, $unset: { inventoryReservationExpiresAt: 1 } },
+        { new: true, runValidators: true, session }
+      );
+      if (!updated) {
+        const conflict = new Error('Only delivered, unpaid COD orders can be marked collected.');
+        conflict.status = 409;
+        conflict.code = 'COD_COLLECTION_NOT_ALLOWED';
+        throw conflict;
+      }
+      const lineItems = updated.items.map((item) => ({ name: item.medicineName, price: item.price, qty: item.qty }));
+      if (updated.deliveryFee) lineItems.push({ name: 'Delivery fee', price: updated.deliveryFee, qty: 1 });
+      if (updated.platformFee) lineItems.push({ name: 'Platform fee', price: updated.platformFee, qty: 1 });
+      if (updated.gst) lineItems.push({ name: 'GST', price: updated.gst, qty: 1 });
+      if (updated.discount) lineItems.push({ name: 'Discount', price: -updated.discount, qty: 1 });
+      await Payment.create([{
+        transaction_id,
+        invoice_id,
+        patient_id: String(updated.patientId),
+        patient_name: updated.patientName,
+        amount: updated.total,
+        method: 'cash',
+        status: 'completed',
+        serviceType: 'medicine',
+        referenceId: String(updated._id),
+        description: `Cash collected for pharmacy order ${updated.orderId}`,
+        provider: 'COD',
+        lineItems,
+        hospitalId: updated.hospitalId,
+      }], { session });
+      await Billing.create([{
+        invoiceId: invoice_id,
+        patient: updated.patientName,
+        patientId: updated.patientId,
+        doctor: 'Pharmacy',
+        service: `Pharmacy order ${updated.orderId}`,
+        services: lineItems.map((item) => ({ name: item.name, price: item.price, quantity: item.qty, category: 'Pharmacy' })),
+        source: 'pharmacy',
+        amount: updated.total,
+        subTotal: updated.items.reduce((sum, item) => sum + item.price * item.qty, 0),
+        discount: updated.discount || 0,
+        tax: updated.gst || 0,
+        taxRate: 5,
+        taxableAmount: updated.items.reduce((sum, item) => sum + item.price * item.qty, 0),
+        paid: updated.total,
+        balance: 0,
+        status: 'Paid',
+        date: today,
+        paymentMethod: 'Cash',
+        transactionId: transaction_id,
+        hospitalId: updated.hospitalId,
+        facilityId: updated.facilityId,
+      }], { session });
+      return updated;
+    }, [{
+      aggregateType: 'PharmacyOrder',
+      aggregateId: String(req.params.id),
+      eventType: 'pharmacy.cod_collected',
+      destinationTopic: KAFKA_TOPICS.BILLING_EVENTS,
+      payload: { orderId: String(req.params.id), transactionId: transaction_id, invoiceId: invoice_id },
+    }]);
+    await auditLog('collect_pharmacy_cod', req.user._id, { recordId: order._id, amount: order.total, transactionId: transaction_id, ip: req.ip, userAgent: req.get('user-agent') });
+    return res.json(order);
+  } catch (err) { return res.status(err.status || 500).json({ message: err.message, code: err.code }); }
+});
+
+router.delete('/orders/:id', protect, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
+  return res.status(409).json({ message: 'Pharmacy orders are retained for billing and audit. Cancel an eligible unpaid order instead.', code: 'ORDER_DELETE_DISABLED' });
 });
 
 router.post('/orders/:id/forward', protect, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
   try {
     const original = await PharmacyOrder.findById(req.params.id);
     if (!original) return res.status(404).json({ message: 'Order not found' });
-    const { facilityId } = req.body;
-    if (!facilityId) return res.status(400).json({ message: 'facilityId (new pharmacy) is required' });
-    const newOrderId = generateTimestampedId('ORD');
-    const newOrder = await PharmacyOrder.create({
-      patientId: original.patientId,
-      patientName: original.patientName,
-      phone: original.phone,
-      deliveryAddress: original.deliveryAddress,
-      items: original.items,
-      total: original.total,
-      note: original.note,
-      orderId: newOrderId,
-      hospitalId: original.hospitalId,
-      facilityId,
-      createdBy: req.user._id,
-      prescriptionUrl: original.prescriptionUrl,
-      deliveryFee: original.deliveryFee,
-      deliveryMode: original.deliveryMode,
-      deliverySlot: original.deliverySlot,
-      paymentMethod: original.paymentMethod,
-      discount: original.discount,
-    });
-    await auditLog('forward_pharmacy_order', req.user._id, { recordId: newOrder._id, ip: req.ip, userAgent: req.get('user-agent') });
-    original.status = 'Cancelled';
-    await original.save();
-    res.status(201).json({ newOrder, cancelledOrder: original });
-  } catch (err) { res.status(400).json({ message: err.message }); }
+    return res.status(409).json({ message: 'Order forwarding is disabled until the new pharmacy can revalidate stock, price and patient consent.', code: 'SAFE_FORWARD_UNAVAILABLE' });
+  } catch (err) { return res.status(400).json({ message: err.message }); }
 });
 
 router.put('/orders/:id/reject', protect, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
@@ -1034,9 +1272,14 @@ router.post('/coupons/validate', protect, async (req, res) => {
   try {
     const { code } = req.body;
     if (!code) return res.status(400).json({ message: 'Coupon code required' });
-    const offer = await PharmacyOffer.findOne({ code: code.toUpperCase(), isActive: true });
-    if (!offer) return res.status(404).json({ valid: false, message: 'Coupon not found or expired' });
-    res.json({ valid: true, code: offer.code, discount: offer.discount, title: offer.title });
+    const { default: PlatformCoupon } = await import('../models/PlatformCoupon.js');
+    const coupon = await PlatformCoupon.findOne({ code: code.trim().toUpperCase(), isActive: true }).lean();
+    const now = new Date();
+    if (!coupon || (coupon.validFrom && coupon.validFrom > now) || (coupon.validUntil && coupon.validUntil < now)
+      || (coupon.applicableServices?.length && !coupon.applicableServices.some((s) => ['pharmacy', 'all'].includes(s)))) {
+      return res.status(404).json({ valid: false, message: 'Coupon not found, expired, or not valid for pharmacy orders' });
+    }
+    res.json({ valid: true, code: coupon.code, discount: coupon.discountValue, discountType: coupon.discountType, title: coupon.description || coupon.code });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -1137,7 +1380,8 @@ router.post('/orders/verify-prescriptions', protect, authorize('pharmacy:manage'
 // AUTHZ-B-08: this had NO permission gate (tenant ownership only) and accepted an
 // arbitrary `amount` from the body, so any same-facility account could mark an
 // order refunded for an arbitrary value. Permission is now required and the refund
-// amount is validated and capped by the order total.
+// amount used to be recorded as if it were paid back. Until a provider refund
+// adapter is connected, this endpoint now refuses captured-order refunds.
 router.post('/orders/:id/refund', protect, authorize('pharmacy:manage'), idempotencyGuard({ prefix: 'pharm-refund', failClosed: true }), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
   try {
     const order = await PharmacyOrder.findById(req.params.id);
@@ -1145,27 +1389,17 @@ router.post('/orders/:id/refund', protect, authorize('pharmacy:manage'), idempot
     if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    const { reason, items } = req.body;
-    const rawAmount = Number(req.body?.amount);
-    if (!Number.isFinite(rawAmount) || rawAmount < 0) {
-      return res.status(400).json({ message: 'A non-negative refund amount is required' });
+    // This legacy route has no provider refund adapter. Do not mutate order flags
+    // or report a refund as processed unless a captured payment can be refunded
+    // and reconciled through the payment state machine.
+    if (order.paymentStatus !== 'Paid') {
+      return res.status(409).json({ message: 'This order has no captured payment to refund.', code: 'NO_CAPTURED_PAYMENT' });
     }
-    const orderTotal = Number(order.totalAmount ?? order.total ?? order.amount ?? 0);
-    if (orderTotal > 0 && rawAmount > orderTotal) {
-      return res.status(400).json({ message: `Refund cannot exceed the order total (${orderTotal})` });
-    }
-    if (order.refunded) {
-      return res.status(409).json({ message: 'Order is already refunded' });
-    }
-    order.refunded = true;
-    order.refundAmount = rawAmount;
-    order.refundReason = reason || '';
-    order.refundDate = new Date();
-    await order.save();
-    await auditLog('process_pharmacy_refund', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
-    res.json({ message: 'Refund processed', order });
+    return res.status(503).json({
+      message: 'Pharmacy refunds are unavailable until provider refund settlement is configured.',
+      code: 'REFUND_PROVIDER_UNAVAILABLE',
+    });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 export default router;
-

@@ -1,0 +1,8 @@
+{
+  "eventType": "NotificationQueued.v1",
+  "aggregateType": "provider",
+  "aggregateId": "652f000000000000000000ff",
+  "notificationId": "652f000000000000000000aa",
+  "userId": "652f000000000000000000fe",
+  "type": "system"
+}

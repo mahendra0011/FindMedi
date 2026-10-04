@@ -78,16 +78,31 @@ export const exportToExcel = async (data) => {
   return buffer;
 };
 
+const neutralizeSpreadsheetFormula = (value) => {
+  if (typeof value !== 'string') return value;
+  // Quoting a CSV field does not stop spreadsheet formula evaluation. Prefix
+  // dangerous text (including whitespace-prefixed formulas) with an apostrophe.
+  return /^[\u0000-\u0020]*[=+\-@]/.test(value) ? `'${value}` : value;
+};
+
+const prepareCSVRows = (data, fields) => data.map((row) => {
+  const safe = {};
+  for (const field of fields) safe[field] = neutralizeSpreadsheetFormula(row?.[field]);
+  return safe;
+});
+
 export const exportToCSV = (data, fields) => {
+  const selectedFields = Array.isArray(fields) ? fields : Object.keys(data[0] || {});
+  const safeRows = prepareCSVRows(data, selectedFields);
   if (NATIVE_CSV_AVAILABLE) {
     try {
-      return toCsvNative(data, Array.isArray(fields) ? fields : Object.keys(data[0] || {}));
+      return toCsvNative(safeRows, selectedFields);
     } catch (e) {
       // Fall through to fallback
     }
   }
-  const parser = new Parser({ fields });
-  return parser.parse(data);
+  const parser = new Parser({ fields: selectedFields });
+  return parser.parse(safeRows);
 };
 
 export const validatePatientData = (patients) => {

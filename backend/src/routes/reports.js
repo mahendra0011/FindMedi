@@ -33,6 +33,13 @@ const reportGenerateSchema = z.object({
 
 const router = express.Router();
 
+export const REPORT_EXPORT_ROW_CAP = 5000;
+export function getReportExportScope(user) {
+  if (user?.role === 'superadmin') return {};
+  if (user?.role !== 'hospital_admin' || !user?.hospitalId) return null;
+  return { hospitalId: user.hospitalId };
+}
+
 const genId = () => generateReportId();
 
 // Generate actual report data based on type
@@ -408,24 +415,25 @@ router.get('/export/:type', protect, adminOnly, async (req, res) => {
   try {
     const { type } = req.params;
     const format = req.query.format || 'excel';
-    const hospFilter = req.user.hospitalId ? { hospitalId: req.user.hospitalId } : {};
+    const hospFilter = getReportExportScope(req.user);
+    if (!hospFilter) return res.status(403).json({ message: 'No hospital scope for this account' });
 
     let records;
     switch (type) {
       case 'patients':
-        records = await Patient.find(hospFilter).lean();
+        records = await Patient.find(hospFilter).limit(REPORT_EXPORT_ROW_CAP).lean();
         records = formatPatientsForExport(records);
         break;
       case 'doctors':
-        records = await Doctor.find(hospFilter).lean();
+        records = await Doctor.find(hospFilter).limit(REPORT_EXPORT_ROW_CAP).lean();
         records = formatDoctorsForExport(records);
         break;
       case 'billing':
-        records = await Billing.find(hospFilter).lean();
+        records = await Billing.find(hospFilter).limit(REPORT_EXPORT_ROW_CAP).lean();
         records = formatBillingForExport(records);
         break;
       case 'appointments':
-        records = await Appointment.find(hospFilter).lean();
+        records = await Appointment.find(hospFilter).limit(REPORT_EXPORT_ROW_CAP).lean();
         records = formatAppointmentsForExport(records);
         break;
       default:
@@ -449,12 +457,13 @@ router.get('/export/:type', protect, adminOnly, async (req, res) => {
 router.post('/import/:type', protect, adminOnly, upload.single('file'), async (req, res) => {
   try {
     const { type } = req.params;
+    const hospFilter = getReportExportScope(req.user);
+    if (!hospFilter) return res.status(403).json({ message: 'No hospital scope for this account' });
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
     const rows = await parseFile(req.file.buffer, req.file.mimetype);
     if (!rows || rows.length === 0) return res.status(400).json({ message: 'Excel file is empty or has no valid data' });
 
-    const hospFilter = req.user.hospitalId ? { hospitalId: req.user.hospitalId } : {};
     let result;
 
     switch (type) {

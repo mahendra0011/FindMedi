@@ -10,7 +10,7 @@ export const validate = (schema) => (req, res, next) => {
   }
 };
 
-// ─── Reusable Types ────────────────────────────────────────────────────────
+// â”€â”€â”€ Reusable Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const passwordSchema = z
   .string()
   .min(8, 'Password must be at least 8 characters')
@@ -26,7 +26,7 @@ export const phoneSchema = z.string().min(10, 'Phone must be at least 10 digits'
 export const positiveNumber = z.number().positive('Must be a positive number');
 export const nonNegativeNumber = z.number().nonnegative('Must be non-negative');
 
-// ─── Auth Schemas ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Auth Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const registerSchema = z.object({
   name: z.string().trim().min(2, 'Name is required'),
   email: emailSchema,
@@ -133,7 +133,7 @@ export const verifyOtpSchema = z.object({
   otp: z.string().min(1, 'OTP is required'),
 });
 
-// ─── Doctor Schemas ────────────────────────────────────────────────────────
+// â”€â”€â”€ Doctor Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createDoctorSchema = z.object({
   name: z.string().trim().min(2, 'Doctor name is required'),
   email: emailSchema,
@@ -151,10 +151,10 @@ export const createDoctorSchema = z.object({
 // DOC-B-01: `updateDoctorSchema` was `.passthrough()`, and the handler wrote
 // `req.body` straight onto the Doctor document. `authorize()` is a role check, so
 // any doctor who passed the `isSelf` test could send:
-//   { approved: true }            → self-approve out of the admin review queue
-//   { hospitalId: <other> }       → re-parent the profile into another tenant
-//   { rating: { avg: 5, count: 1 } } → fabricate their own public reputation
-//   { user_id: <someone else> }    → hijack the profile->account link
+//   { approved: true }            â†’ self-approve out of the admin review queue
+//   { hospitalId: <other> }       â†’ re-parent the profile into another tenant
+//   { rating: { avg: 5, count: 1 } } â†’ fabricate their own public reputation
+//   { user_id: <someone else> }    â†’ hijack the profile->account link
 //   { reviewsCount, doctor_type, autoConfirmAppointment, fees, signatureUrl }
 // The server-owned fields are declared here so a schema violation is a 400 with a
 // clear message, rather than a silent privilege grant. Admin-only changes belong
@@ -164,7 +164,7 @@ export const DOCTOR_SERVER_OWNED_FIELDS = Object.freeze([
   'approved', 'approvedAt', 'approvedBy', 'status', 'verificationStatus',
   // tenancy + identity linkage
   'hospitalId', 'facilityId', 'user_id', 'userId', 'email',
-  // reputation — derived from real ratings only
+  // reputation â€” derived from real ratings only
   'rating', 'reviewsCount', 'totalReviews', 'averageRating',
   // commercial terms an admin negotiates, not a doctor self-declares
   'fees', 'consultation_fees', 'consultationFee', 'settlementPayout',
@@ -217,7 +217,7 @@ export const updateDoctorSchema = z.object({
     }
   });
 
-// ─── Patient Schemas ───────────────────────────────────────────────────────
+// â”€â”€â”€ Patient Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createPatientSchema = z.object({
   name: z.string().trim().min(2, 'Patient name is required'),
   age: positiveNumber,
@@ -240,14 +240,14 @@ export const updatePatientSchema = z.object({
   status: z.enum(['Active', 'Discharged', 'Critical']).optional(),
 });
 
-// ─── Appointment Schemas ───────────────────────────────────────────────────
+// â”€â”€â”€ Appointment Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 /**
  * APPT-B-06: a slot is a real calendar value, not a free string.
  *
  * `date` and `time` were `z.string().min(1)`, so `"next tuesday"`, `"2026-13-45"`
  * or `"99:99"` were accepted and stored verbatim. Downstream that meant slot
  * comparisons, the unique slot index, the doctor's `dateDisabledSlots` lookup and
- * the capacity reservation all silently failed to match — a booking that the UI
+ * the capacity reservation all silently failed to match â€” a booking that the UI
  * showed as "confirmed" while no slot logic could see it.
  */
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -279,7 +279,7 @@ export const createAppointmentSchema = z.object({
   priority: z.string().optional(),
 });
 
-// ─── Walk-in Booking Schema (doctor/clinic se: patient + appointment ek saath) ──
+// â”€â”€â”€ Walk-in Booking Schema (doctor/clinic se: patient + appointment ek saath) â”€â”€
 export const walkInSchema = z.object({
   patient: z.object({
     name: z.string().trim().min(2, 'Patient name is required'),
@@ -293,7 +293,7 @@ export const walkInSchema = z.object({
   doctorId: z.string().optional(),
   doctor: z.string().optional(),
   department: z.string().optional(),
-  // APPT-B-06: the same calendar rules as the self-booking path — a walk-in slot
+  // APPT-B-06: the same calendar rules as the self-booking path â€” a walk-in slot
   // that no slot logic can match is worse than a rejected one.
   date: slotDate,
   time: slotTime,
@@ -308,13 +308,13 @@ export const updateAppointmentSchema = z.object({
   status: z.enum(['Pending', 'Confirmed', 'Completed', 'Cancelled', 'Rescheduled', 'In Queue', 'Serving', 'Missed']).optional(),
   // APPT-B-06 (partial): reschedule via PUT /:id used bare strings, so 2026-13-45
   // / 99:99 bypassed the calendar check that both booking paths enforce. Same
-  // slotDate/slotTime rules here — a rescheduled slot must be matchable too.
+  // slotDate/slotTime rules here â€” a rescheduled slot must be matchable too.
   date: slotDate.optional(),
   time: slotTime.optional(),
   notes: z.string().optional(),
 });
 
-// ─── Billing Schemas ───────────────────────────────────────────────────────
+// â”€â”€â”€ Billing Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createBillSchema = z.object({
   patient: z.string().min(1, 'Patient is required'),
   patientId: z.string().optional(),
@@ -335,7 +335,7 @@ export const createBillSchema = z.object({
   })).optional(),
 });
 
-// ─── Hospital Schemas ──────────────────────────────────────────────────────
+// â”€â”€â”€ Hospital Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const registerHospitalSchema = z.object({
   name: z.string().trim().min(2, 'Hospital name is required'),
   email: emailSchema,
@@ -366,7 +366,7 @@ export const registerHospitalSchema = z.object({
   paymentModes: z.array(z.string()).optional(),
 });
 
-// ─── Test Schemas ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Test Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createTestSchema = z.object({
   name: z.string().trim().min(2, 'Test name is required'),
   category: z.string().min(1, 'Category is required'),
@@ -383,7 +383,7 @@ export const createTestSchema = z.object({
   nablAccredited: z.boolean().optional(),
 });
 
-// ─── Medicine Schemas ──────────────────────────────────────────────────────
+// â”€â”€â”€ Medicine Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createMedicineSchema = z.object({
   name: z.string().trim().min(2, 'Medicine name is required'),
   category: z.string().min(1, 'Category is required'),
@@ -395,14 +395,14 @@ export const createMedicineSchema = z.object({
   description: z.string().optional(),
 });
 
-// ─── Review Schemas ────────────────────────────────────────────────────────
+// â”€â”€â”€ Review Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createReviewSchema = z.object({
   doctorId: z.string().min(1, 'Doctor ID is required'),
   rating: z.number().int().min(1, 'Rating must be at least 1').max(5, 'Rating must be at most 5'),
   comment: z.string().min(2, 'Comment is required'),
 });
 
-// ─── Department Schemas ────────────────────────────────────────────────────
+// â”€â”€â”€ Department Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createDepartmentSchema = z.object({
   name: z.string().trim().min(2, 'Department name is required'),
   description: z.string().optional(),
@@ -419,7 +419,7 @@ export const updateDepartmentSchema = z.object({
   active: z.boolean().optional(),
 });
 
-// ─── Emergency Schemas ─────────────────────────────────────────────────────
+// â”€â”€â”€ Emergency Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createEmergencySchema = z.object({
   patientName: z.string().trim().min(2, 'Patient name is required'),
   condition: z.string().min(2, 'Condition is required'),
@@ -428,7 +428,7 @@ export const createEmergencySchema = z.object({
   address: z.string().optional(),
 });
 
-// ─── Bed Schemas ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Bed Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createBedSchema = z.object({
   bedNumber: z.string().min(1, 'Bed number is required'),
   ward: z.string().min(1, 'Ward is required'),
@@ -449,7 +449,7 @@ export const updateBedSchema = z.object({
   status: z.string().optional(),
 });
 
-// ─── Record Schemas ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Record Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createRecordSchema = z.object({
   patient: z.string().min(1, 'Patient is required'),
   patientId: z.string().optional(),
@@ -488,8 +488,8 @@ export const createRecordSchema = z.object({
   attachments: z.array(z.string()).optional(),
 });
 
-// ─── Support Ticket Schemas ──────────────────────────────────────────────────
-// ─── Lab Order Schema ──────────────────────────────────────────────────────
+// â”€â”€â”€ Support Ticket Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ Lab Order Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createLabOrderSchema = z.object({
   patientId: z.string().min(1, 'Patient is required'),
   patientName: z.string().optional(),
@@ -502,7 +502,7 @@ export const createLabOrderSchema = z.object({
   priority: z.string().optional(),
 });
 
-// ─── Medicine Schema ──────────────────────────────────────────────────────
+// â”€â”€â”€ Medicine Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const updateMedicineSchema = z.object({
   name: z.string().optional(),
   genericName: z.string().optional(),
@@ -517,7 +517,7 @@ export const updateMedicineSchema = z.object({
   interactions: z.array(z.string()).optional(),
 });
 
-// ─── Housekeeping Schemas ────────────────────────────────────────────────────
+// â”€â”€â”€ Housekeeping Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createHousekeepingSchema = z.object({
   room: z.string().min(1, 'Room is required'),
   bedNumber: z.string().optional(),
@@ -534,7 +534,7 @@ export const createSupportTicketSchema = z.object({
   priority: z.enum(['Low', 'Medium', 'High', 'Urgent']).optional().default('Medium'),
 });
 
-// ─── Leave Request Schemas ───────────────────────────────────────────────────
+// â”€â”€â”€ Leave Request Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createLeaveRequestSchema = z.object({
   leaveType: z.enum(['Sick Leave', 'Casual Leave', 'Earned Leave', 'Personal Leave', 'Maternity/Paternity Leave', 'Other']),
   startDate: z.string().min(1, 'Start date is required'),
@@ -547,7 +547,7 @@ export const updateLeaveStatusSchema = z.object({
   adminNotes: z.string().optional().default(''),
 });
 
-// ─── Schedule Change Request Schemas ─────────────────────────────────────────
+// â”€â”€â”€ Schedule Change Request Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createScheduleChangeRequestSchema = z.object({
   requestedChanges: z.object({
     slotDuration: z.number().optional(),
@@ -568,17 +568,16 @@ export const updateScheduleChangeStatusSchema = z.object({
   decision: z.enum(['approve', 'reject']),
 });
 
-// ─── Payment Schemas ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Payment Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createPaymentSchema = z.object({
   patient_id: z.string().min(1, 'Patient ID is required'),
   patient_name: z.string().trim().max(120, 'Patient name cannot exceed 120 characters').optional(),
   amount: positiveNumber,
-  method: z.string().trim().max(50, 'Method cannot exceed 50 characters').optional(),
+  method: z.enum(['card', 'upi', 'netbanking', 'cash', 'wallet']).optional(),
   invoice_id: z.string().trim().max(100, 'Invoice ID cannot exceed 100 characters').optional(),
   description: z.string().trim().max(250, 'Description cannot exceed 250 characters').optional(),
   appointment_id: z.string().optional(),
   bill_id: z.string().optional(),
-  status: z.string().optional(),
   provider: z.string().trim().max(120, 'Provider cannot exceed 120 characters').optional(),
   serviceType: z.string().trim().max(50, 'Service type cannot exceed 50 characters').optional(),
 });
@@ -591,10 +590,10 @@ export const updatePaymentSchema = z.object({
 });
 
 export const refundPaymentSchema = z.object({
-  refund_amount: z.number().nonnegative('Refund amount must be non-negative'),
+  refund_amount: z.number().positive('Refund amount must be greater than 0'),
 });
 
-// ─── Blood Bank Schemas ─────────────────────────────────────────────────────
+// â”€â”€â”€ Blood Bank Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createBloodUnitSchema = z.object({
   bloodGroup: z.string().min(1, 'Blood group is required'),
   bloodType: z.string().optional(),
@@ -615,7 +614,7 @@ export const createBloodRequestSchema = z.object({
   priority: z.string().optional(),
 });
 
-// ─── Diet Order Schema ──────────────────────────────────────────────────────
+// â”€â”€â”€ Diet Order Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createDietOrderSchema = z.object({
   patientId: z.string().min(1, 'Patient is required'),
   patientName: z.string().optional(),
@@ -628,7 +627,7 @@ export const createDietOrderSchema = z.object({
   allergies: z.string().optional(),
 });
 
-// ─── Insurance Schemas ──────────────────────────────────────────────────────
+// â”€â”€â”€ Insurance Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createInsuranceSchema = z.object({
   // INS-M-02: patientId is optional here because the handler decides it (a
   // patient is always forced to their OWN id - LAW-006; staff must supply one
@@ -651,7 +650,7 @@ export const createInsuranceSchema = z.object({
   admissionId: z.string().optional(),
 });
 
-// ─── Inventory Schemas ──────────────────────────────────────────────────────
+// â”€â”€â”€ Inventory Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createInventoryItemSchema = z.object({
   itemName: z.string().min(1, 'Item name is required'),
   itemCode: z.string().optional(),
@@ -698,7 +697,7 @@ export const createPurchaseOrderSchema = z.object({
   taxRate: z.number().optional(),
 });
 
-// ─── IPD / Admission Schemas ────────────────────────────────────────────────
+// â”€â”€â”€ IPD / Admission Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createAdmissionSchema = z.object({
   patientId: z.string().min(1, 'Patient is required'),
   patientName: z.string().optional(),
@@ -712,7 +711,7 @@ export const createAdmissionSchema = z.object({
   priority: z.string().optional(),
 });
 
-// ─── OT Surgery Schema ──────────────────────────────────────────────────────
+// â”€â”€â”€ OT Surgery Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createSurgerySchema = z.object({
   patientId: z.string().min(1, 'Patient is required'),
   patientName: z.string().optional(),
@@ -724,7 +723,7 @@ export const createSurgerySchema = z.object({
   scheduledDate: z.string().optional(),
 });
 
-// ─── Token Schema ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Token Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createTokenSchema = z.object({
   patientId: z.string().min(1, 'Patient is required'),
   patientName: z.string().min(1, 'Patient name is required'),
@@ -737,7 +736,7 @@ export const createTokenSchema = z.object({
   priority: z.string().optional(),
 });
 
-// ─── Triage Schema ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Triage Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createTriageSchema = z.object({
   patientName: z.string().min(1, 'Patient name is required'),
   age: z.number().optional(),
@@ -753,7 +752,7 @@ export const createTriageSchema = z.object({
   isMLCO: z.boolean().optional(),
 });
 
-// ─── Radiology Order Schema ─────────────────────────────────────────────────
+// â”€â”€â”€ Radiology Order Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createRadiologyOrderSchema = z.object({
   patientId: z.string().min(1, 'Patient is required'),
   patientName: z.string().optional(),
@@ -763,7 +762,7 @@ export const createRadiologyOrderSchema = z.object({
   priority: z.string().optional(),
 });
 
-// ─── Physiotherapy Referral Schema ──────────────────────────────────────────
+// â”€â”€â”€ Physiotherapy Referral Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createPhysioReferralSchema = z.object({
   patientId: z.string().min(1, 'Patient is required'),
   patientName: z.string().optional(),
@@ -771,7 +770,7 @@ export const createPhysioReferralSchema = z.object({
   treatmentPlan: z.string().optional(),
 });
 
-// ─── Mental Health Referral Schema ──────────────────────────────────────────
+// â”€â”€â”€ Mental Health Referral Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createMentalHealthReferralSchema = z.object({
   patientId: z.string().min(1, 'Patient is required'),
   patientName: z.string().optional(),
@@ -779,7 +778,7 @@ export const createMentalHealthReferralSchema = z.object({
   referrerName: z.string().optional(),
 });
 
-// ─── Facility Schemas ──────────────────────────────────────────────────────
+// â”€â”€â”€ Facility Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const registerFacilitySchema = z.object({
   name: z.string().trim().min(2, 'Facility name is required'),
   type: z.enum(['hospital', 'clinic', 'diagnostic', 'pharmacy', 'pathology', 'imaging']),
@@ -849,7 +848,7 @@ export const updateFacilitySchema = z.object({
   details: z.any().optional(),
 });
 
-// ─── Announcement Schema ──────────────────────────────────────────────────
+// â”€â”€â”€ Announcement Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createAnnouncementSchema = z.object({
   title: z.string().min(2, 'Title is required'),
   message: z.string().min(2, 'Message is required'),
@@ -857,7 +856,7 @@ export const createAnnouncementSchema = z.object({
   targetRoles: z.array(z.string()).optional(),
 });
 
-// ─── Category Schemas ────────────────────────────────────────────────────
+// â”€â”€â”€ Category Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createCategorySchema = z.object({
   name: z.string().trim().min(2, 'Name is required'),
   type: z.string().optional(),
@@ -881,7 +880,7 @@ export const mergeCategorySchema = z.object({
   targetId: z.string().min(1, 'Target ID is required'),
 });
 
-// ─── Staff Schemas ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Staff Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createStaffSchema = z.object({
   name: z.string().trim().min(2, 'Name is required'),
   role: z.string().min(1, 'Role is required'),
@@ -889,7 +888,7 @@ export const createStaffSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   salary: z.number().optional(),
-  // ADM-B-07: `hospitalId` is no longer accepted from the body — the tenant is
+  // ADM-B-07: `hospitalId` is no longer accepted from the body â€” the tenant is
   // always derived from the session (superadmin may target one explicitly via
   // ?hospitalId=). Otherwise any hospital admin could file a staff row inside a
   // competitor's tenant.
@@ -905,7 +904,7 @@ export const updateStaffSchema = z.object({
   status: z.string().optional(),
 });
 
-// ─── Clinic Schemas ──────────────────────────────────────────────────────
+// â”€â”€â”€ Clinic Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const updateClinicProfileSchema = z.object({
   name: z.string().optional(),
   address: z.string().optional(),
@@ -921,8 +920,8 @@ export const updateClinicProfileSchema = z.object({
 
 // AUTH-B-19: facility staff endpoints may only mint facility-scoped roles.
 // Tenant/platform roles (superadmin, hospital_admin, clinic_doctor, ...) are
-// invite-only. A free-form `role: z.string()` here let ANY hospital_admin —
-// including a self-registered one with no hospital — create a fully verified
+// invite-only. A free-form `role: z.string()` here let ANY hospital_admin â€”
+// including a self-registered one with no hospital â€” create a fully verified
 // `superadmin` account, which bypasses every authorize() check.
 export const CLINIC_STAFF_ROLES = ['nurse', 'technician', 'helper', 'accountant', 'lab_receptionist', 'pharmacist'];
 const clinicStaffRole = (optional = false) => (optional
@@ -945,7 +944,7 @@ export const updateClinicStaffSchema = z.object({
   role: clinicStaffRole(true),
 });
 
-// ─── Notification Schema ────────────────────────────────────────────────
+// â”€â”€â”€ Notification Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createNotificationSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
   title: z.string().min(1, 'Title is required'),
@@ -955,11 +954,11 @@ export const createNotificationSchema = z.object({
   date: z.string().optional(),
 });
 
-// ─── Billing Schemas ───────────────────────────────────────────────────────
+// â”€â”€â”€ Billing Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // DLB-26: `POST /api/billing` used to spread the raw request body into
 // `Billing.create({ ...req.body })` with NO validation, so a caller could set
 // `hospitalId` / `facilityId` (move the revenue to another tenant), `paid`,
-// `status`, `balance`, `_id`, `createdAt` — i.e. forge a settled invoice.
+// `status`, `balance`, `_id`, `createdAt` â€” i.e. forge a settled invoice.
 export const createBillingSchema = z.object({
   patient: z.string().trim().min(1, 'Patient is required'),
   patientId: z.string().optional(),
@@ -998,7 +997,7 @@ export const createBillingSchema = z.object({
   invoiceId: z.string().optional(),
 }).strip(); // drop unknown keys (_id, hospitalId, balance, createdAt, ...)
 
-// ─── Additional Auth Schemas ───────────────────────────────────────────────
+// â”€â”€â”€ Additional Auth Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const resendOtpSchema = z.object({
   email: emailSchema,
 });
@@ -1058,7 +1057,7 @@ export const changeEmailSchema = z.object({
   email: emailSchema,
 });
 
-// ─── Patient Search Schema ───────────────────────────────────────────────────
+// â”€â”€â”€ Patient Search Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const patientSearchSchema = z.object({
   q: z.string().optional(),
   hospitalId: objectIdSchema.optional(),
@@ -1069,7 +1068,7 @@ export const patientSearchSchema = z.object({
   limit: z.string().regex(/^\d+$/).optional(),
 });
 
-// ─── Vehicle Booking Schemas ────────────────────────────────────────────────
+// â”€â”€â”€ Vehicle Booking Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const estimateRideSchema = z.object({
   pickup: z.object({
     address: z.string().min(1, 'Pickup address is required'),
@@ -1120,7 +1119,9 @@ export const rateRideSchema = z.object({
 export const demoPaySchema = z.object({
   rideId: z.string().optional(),
   bookingId: z.string().optional(),
-  bookingType: z.enum(['ride', 'assistant', 'lawyer']).optional().default('ride'),
+  doctorRequestId: z.string().optional(),
+  lawyerBookingId: z.string().optional(),
+  bookingType: z.enum(['ride', 'assistant', 'lawyer', 'emergency_doctor']).optional().default('ride'),
   method: z.enum(['demo_wallet', 'cash']).default('demo_wallet'),
 });
 
@@ -1129,12 +1130,12 @@ export const riderStatusSchema = z.object({
 });
 
 export const riderLocationSchema = z.object({
-  lat: z.number(),
-  lng: z.number(),
-  accuracy: z.number().optional(),
+  lat: z.number().finite().min(-90).max(90),
+  lng: z.number().finite().min(-180).max(180),
+  accuracy: z.number().finite().positive().max(1000).optional(),
 });
 
-// ─── Assistant Booking Schemas ──────────────────────────────────────────────
+// â”€â”€â”€ Assistant Booking Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const searchAssistantSchema = z.object({
   hospital: z.string().optional(),
   categories: z.array(z.string()).optional(),
@@ -1187,7 +1188,7 @@ export const rateAssistantSchema = z.object({
   comment: z.string().max(500).optional().default(''),
 });
 
-// ─── Lawyer Booking Schemas ─────────────────────────────────────────────────
+// â”€â”€â”€ Lawyer Booking Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const searchLawyerSchema = z.object({
   category: z.string().optional(),
   mode: z.enum(['video', 'phone', 'in_person', 'chat']).optional(),
@@ -1256,7 +1257,7 @@ export const lawyerStatusSchema = z.object({
   isAvailable: z.boolean(),
 });
 
-// ─── Emergency SOS Schemas ─────────────────────────────────────────────────
+// â”€â”€â”€ Emergency SOS Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const emergencySOSSchema = z.object({
   reporterMode: z.enum(['self', 'other']),
   patientDetails: z
@@ -1323,4 +1324,4 @@ export const updateAmbulanceSchema = z.object({
   emergencySupport: z.boolean().optional(),
 });
 
-
+

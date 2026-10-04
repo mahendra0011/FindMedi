@@ -218,8 +218,9 @@ printEnvStatus();
 // Deliberately not wrapped in a catch-and-ignore: swallowing it would restore the
 // exact defect being fixed.
 try {
-  const { assertOpenSearchAuth } = await import('./services/opensearchIndexer.js');
+  const { assertOpenSearchAuth, assertEhrPseudonymSalt } = await import('./services/opensearchIndexer.js');
   const verdict = assertOpenSearchAuth();
+  assertEhrPseudonymSalt();
   if (verdict.skipped === 'unconfigured') {
     logger.info('OpenSearch not configured - search falls back to MongoDB queries.');
   } else if (verdict.warning) {
@@ -905,6 +906,7 @@ logger.info('   URI: ' + redactMongoUri(MONGO_URI));
 
 if (process.env.NODE_ENV !== 'test') {
   const server = http.createServer(app);
+  let instantDispatchRetryTimer;
   // INF-M-02: nodejs_*/process_* gauges start only on a real boot, so tests
   // that import this file never spawn the collection interval.
   startProcessMetrics();
@@ -914,6 +916,17 @@ if (process.env.NODE_ENV !== 'test') {
   }).catch((err) => logger.error(`Socket.IO init failed: ${err.message}`));
   mongoose.connect(MONGO_URI, mongooseOptions)
     .then(async () => {
+      // Coupon caps depend on these unique keys. Create their indexes explicitly
+      // before the HTTP listener opens rather than relying on autoIndex.
+      try {
+        const { default: CouponRedemption } = await import('./models/PlatformCouponRedemption.js');
+        const { default: CouponUserUsage } = await import('./models/PlatformCouponUserUsage.js');
+        await Promise.all([CouponRedemption.createIndexes(), CouponUserUsage.createIndexes()]);
+        logger.info('Coupon redemption indexes ready');
+      } catch (indexError) {
+        logger.error(`Coupon redemption indexes failed; refusing to start payment API: ${indexError.message}`);
+        throw indexError;
+      }
       logger.info('✅ MongoDB connected successfully');
       
       // Initialize feature flags and PostHog
@@ -951,6 +964,15 @@ if (process.env.NODE_ENV !== 'test') {
       setInterval(async () => {
         try {
           const { default: Ambulance } = await import('./models/Ambulance.js');
+          const { default: RiderProfile } = await import('./models/RiderProfile.js');
+          const riderFreshCutoff = new Date(Date.now() - Number(process.env.RIDER_LOCATION_FRESH_SECONDS || 60) * 1000);
+          const staleRiders = await RiderProfile.find({ isOnline: true, riderStatus: 'active', 'currentLocation.updatedAt': { $lt: riderFreshCutoff } }).select('userId').limit(500).lean();
+          if (staleRiders.length) {
+            const riderIds = staleRiders.map((rider) => rider.userId);
+            await RiderProfile.updateMany({ userId: { $in: riderIds }, isOnline: true, activeDispatchRequestId: null }, { $set: { isOnline: false } });
+            const { removeProviderFromCache } = await import('./lib/h3Cache.js');
+            await Promise.allSettled(riderIds.map((providerId) => removeProviderFromCache({ providerId, providerType: 'rider' })));
+          }
           await Ambulance.updateMany(
             { isOnline: true, isOnDuty: { $ne: true }, lastPingAt: { $lt: new Date(Date.now() - 3 * 60 * 1000) } },
             { isOnline: false }
@@ -1006,6 +1028,8 @@ if (process.env.NODE_ENV !== 'test') {
       // Start Transactional Outbox Background Poller
       const { startOutboxPoller } = await import('./services/outboxPollerService.js');
       startOutboxPoller();
+      const { startInstantDispatchRetryRecovery } = await import('./services/instantDispatchService.js');
+      instantDispatchRetryTimer = startInstantDispatchRetryRecovery();
 
       // Start Event Consumer Subscriber Daemon (processes outbox / kafka pipeline)
       const { startKafkaConsumer } = await import('./services/kafkaConsumerService.js');
@@ -1025,6 +1049,15 @@ if (process.env.NODE_ENV !== 'test') {
         await startWorkers();
       } catch (e) {
         logger.warn('job workers failed to start (non-fatal): ' + e.message);
+      }
+
+      // Release unconfirmed pharmacy stock holds after their finite checkout
+      // window; the database CAS makes this safe across multiple API replicas.
+      try {
+        const { startPharmacyReservationExpiry } = await import('./services/pharmacyInventoryService.js');
+        startPharmacyReservationExpiry({ intervalMs: Number(process.env.PHARMACY_RESERVATION_SWEEP_MS) || 60_000 });
+      } catch (e) {
+        logger.error('pharmacy reservation expiry worker failed to start: ' + e.message);
       }
 
       // MISS-PAY-003: wallet ledger reconciliation (daily, cron)
@@ -1067,6 +1100,10 @@ if (process.env.NODE_ENV !== 'test') {
 
   // Graceful shutdown
   process.on('SIGINT', async () => {
+    try {
+      const { stopInstantDispatchRetryRecovery } = await import('./services/instantDispatchService.js');
+      stopInstantDispatchRetryRecovery(instantDispatchRetryTimer);
+    } catch {}
     try {
       const { stopOutboxPoller } = await import('./services/outboxPollerService.js');
       stopOutboxPoller();

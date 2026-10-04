@@ -471,4 +471,4 @@ Template (copy into the incident repo, one file per incident):
   evidence)
 - [`infra/observability/README.md`](../infra/observability/README.md) — alert
   sources that start incidents, SLO signals
-- `audit-reports/MASTER_SUMMARY.md` — current control state
+- `DEFERRED_TODOS.md` - deferred items requiring provider/prod access

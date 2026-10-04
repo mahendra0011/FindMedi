@@ -138,3 +138,87 @@ describe('AUTHZ · the gate itself must stay at zero', () => {
   });
 });
 
+describe('AUTHZ · AUTH-M-01 sensitive route-resource matrix (foreign-ID negatives)', () => {
+  // Representative negative per resource: a caller presenting a FOREIGN id must
+  // be denied by an ownership/tenant guard BEFORE data is returned. Static in
+  // the style of the suites above (the guard lives on the definition line or
+  // in the first handler lines); behavioural reach is owned by
+  // routeAuthzBehaviour.spec.js + the check-authz-coverage gate.
+
+  it('appointment GET /:id is allowlisted through canReadAppointment', () => {
+    const block = routeBlock('../../src/routes/appointments.js', "router.get('/:id'");
+    expect(block).toMatch(/canReadAppointment/);
+    expect(block.indexOf('canReadAppointment')).toBeLessThan(block.indexOf('res.json'));
+  });
+
+  it('pharmacy GET /prescriptions/:id is ownership-gated', () => {
+    const block = routeBlock('../../src/routes/pharmacy.js', "router.get('/prescriptions/:id'");
+    expect(block).toMatch(/authorizeObject/);
+  });
+
+  it('pharmacy staff-only order mutations are tenant-only (no ownership bypass)', () => {
+    const block = routeBlock('../../src/routes/pharmacy.js', "router.post('/orders/:id/forward'");
+    expect(block).toMatch(/requireTenant: true/);
+  });
+
+  it('lab GET /orders/:id is ownership + tenant gated', () => {
+    const block = routeBlock('../../src/routes/lab.js', "router.get('/orders/:id'");
+    expect(block).toMatch(/authorizeObject/);
+    expect(block).toMatch(/ownerField: 'patientId'/);
+  });
+
+  it('lab result entry requires the verifying role, not just any staff id', () => {
+    const block = routeBlock('../../src/routes/lab.js', "router.put('/orders/:id/enter-result'");
+    expect(block).toMatch(/authorizeObject/);
+    expect(block).toMatch(/lab:enter_result/);
+  });
+
+  it('legal bookings go through the single assertBookingAccess guard', () => {
+    const code = read('../../src/routes/lawyerBookings.js');
+    expect(code).toMatch(/async function assertBookingAccess/);
+    expect(code).toMatch(/booking\.userId\?\.toString\(\) === req\.user\._id\.toString\(\)/);
+    // A non-participant foreign id must be denied, not served.
+    expect(code).toMatch(/status: 403/);
+  });
+
+  it('assistant GET /:id denies non-participants without confirming existence', () => {
+    const block = routeBlock('../../src/routes/assistantBookings.js', "router.get('/:id'");
+    expect(block).toMatch(/protect/);
+    const code = read('../../src/routes/assistantBookings.js');
+    expect(code).toMatch(/You are not a participant in this booking/);
+  });
+
+  it('assistant vitals/tasks are assigned-assistant-only', () => {
+    const code = read('../../src/routes/assistantBookings.js');
+    expect(code).toMatch(/Only the assigned assistant can log vitals/);
+    expect(code).toMatch(/Only the assigned assistant can update tasks/);
+  });
+
+  it('mental-health referrals are fail-closed through assertMentalHealthAccess', () => {
+    const code = read('../../src/routes/mentalhealth.js');
+    expect(code).toMatch(/assertMentalHealthAccess/);
+    // Cross-tenant denial must not confirm existence.
+    expect(code).toMatch(/status\(404\)/);
+  });
+
+  it('insurance GET /:id is owner + tenant gated', () => {
+    const block = routeBlock('../../src/routes/insurance.js', "router.get('/:id'");
+    expect(block).toMatch(/authorizeObject/);
+    expect(block).toMatch(/insurance:read/);
+  });
+
+  it('insurance settlement amount is bounded by the claim (no foreign-amount write)', () => {
+    const code = read('../../src/routes/insurance.js');
+    expect(code).toMatch(/AMOUNT_EXCEEDS_CLAIM/);
+    expect(code).toMatch(/toPaise/);
+  });
+
+  it('bulk export stays superadmin-only, row-capped and audited', () => {
+    const block = routeBlock('../../src/routes/export.js', "router.get('/users'");
+    expect(block).toMatch(/superadminOnly/);
+    const code = read('../../src/routes/export.js');
+    expect(code).toMatch(/EXPORT_ROW_CAP/);
+    expect(code).toMatch(/bulk_export/);
+  });
+});
+

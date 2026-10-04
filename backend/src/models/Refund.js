@@ -141,9 +141,11 @@ refundSchema.statics.requestRefund = async function requestRefund({
   }
 };
 
-refundSchema.statics.settleRefund = async function settleRefund({ paymentId, amount }) {
+refundSchema.statics.settleRefund = async function settleRefund({ paymentId, amount, session = null }) {
   const Payment = mongoose.model('Payment');
-  const payment = await Payment.findById(paymentId);
+  const paymentQuery = Payment.findById(paymentId);
+  if (session) paymentQuery.session(session);
+  const payment = await paymentQuery;
   if (!payment) { const e = new Error('Payment not found'); e.status = 404; throw e; }
   if (payment.status === 'refunded') {
     const e = new Error('Payment is already fully refunded');
@@ -157,11 +159,26 @@ refundSchema.statics.settleRefund = async function settleRefund({ paymentId, amo
   }
   const totalRefunded = (already + requested) / 100;
   const next = deriveRefundStatus({ totalRefunded, originalAmount: original / 100 });
-  payment.refund_amount = totalRefunded;
+  // Optimistic CAS prevents two different idempotency keys from both reading
+  // the same prior total and refunding beyond the captured amount.
+  const updatedPayment = await Payment.findOneAndUpdate(
+    { _id: paymentId, refund_amount: Number(payment.refund_amount || 0), amount: { $gte: totalRefunded }, status: { $ne: 'refunded' } },
+    {
+      $set: {
+        refund_amount: totalRefunded,
+        status: next === REFUND_STATUS.REFUNDED ? 'refunded' : 'partially_refunded',
+      },
+    },
+    { new: true, runValidators: true, ...(session ? { session } : {}) }
+  );
+  if (!updatedPayment) {
+    const e = new Error('Refund would exceed the captured amount or payment changed concurrently');
+    e.status = 409;
+    e.code = 'REFUND_CONCURRENCY_CONFLICT';
+    throw e;
+  }
   // PAY-B-07: a PARTIAL refund no longer claims the terminal `refunded` status.
-  payment.status = next === REFUND_STATUS.REFUNDED ? 'refunded' : 'partially_refunded';
-  await payment.save();
-  return { payment, status: next, totalRefunded };
+  return { payment: updatedPayment, status: next, totalRefunded };
 };
 
 // PAY-M-06: a refund is money leaving the platform; a sub-paisa amount here

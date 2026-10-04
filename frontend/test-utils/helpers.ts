@@ -44,8 +44,18 @@ const json = (body: unknown, status = 200) => ({
   body: JSON.stringify(body),
 });
 
-export async function mockApiBaseline(page: Page) {
-  await page.route('**/api/**', (route: Route) => route.fulfill(json({ success: true, data: [] })));
+const apiOrigin = new URL(process.env.VITE_API_URL || 'http://localhost:5001/api').origin;
+
+export async function mockApiBaseline(page: Page, session: 'authenticated' | 'anonymous' = 'anonymous') {
+  await page.route('**/api/**', (route: Route) => {
+    const url = route.request().url();
+    if (url.includes('/auth/me') || url.includes('/auth/me?')) {
+      return session === 'authenticated'
+        ? route.fulfill(json(patientUser))
+        : route.fulfill(json({ message: 'Unauthorized' }, 401));
+    }
+    return route.fulfill(json({ success: true, data: [] }));
+  });
 }
 
 export async function mockLogin(page: Page, outcome: 'success' | 'failure' = 'success') {
@@ -56,13 +66,7 @@ export async function mockLogin(page: Page, outcome: 'success' | 'failure' = 'su
     if (outcome === 'failure') {
       return route.fulfill(json({ message: 'Invalid credentials' }, 401));
     }
-    return route.fulfill(
-      json({
-        token: 'e2e-access-token',
-        refreshToken: 'e2e-refresh-token',
-        user: patientUser,
-      }),
-    );
+    return route.fulfill(json({ token: 'e2e-access-token', user: patientUser }));
   });
 }
 
@@ -71,20 +75,19 @@ export async function mockMe(page: Page, loggedIn = true, user = patientUser) {
     if (!loggedIn) {
       return route.fulfill(json({ message: 'Unauthorized' }, 401));
     }
-    return route.fulfill(json(user));
+    return route.fulfill(json({ user }));
   });
 }
 
-export async function loginViaUi(page: Page, email: string, password: string) {
-  await page.getByPlaceholder('Enter your email').fill(email);
-  await page.getByPlaceholder('Enter your password').fill(password);
-  await page.getByRole('button', { name: /sign in/i }).click();
+export async function loginViaUi(page: Page, email: string, password: string, options: { timeout?: number } = {}) {
+  const timeout = options.timeout ?? 10_000;
+  await page.getByPlaceholder(/enter your email/i).fill(email, { timeout });
+  await page.locator('input[type="password"]').first().fill(password, { timeout });
+  await page.getByRole('button', { name: /log in|sign in/i }).click({ timeout });
 }
 
 export async function setupAuth(page: Page, user = patientUser) {
   await page.addInitScript((u) => {
-    localStorage.setItem('token', 'e2e-access-token');
-    localStorage.setItem('refreshToken', 'e2e-refresh-token');
     localStorage.setItem('user', JSON.stringify(u));
   }, user);
 }
@@ -132,6 +135,26 @@ export async function mockAppointments(
   await page.route('**/api/appointments/my', (route: Route) => route.fulfill(json({ data: appointments })));
 }
 
+export async function mockDoctorBooking(page: Page) {
+  await page.route('**/api/doctors/doctor-e2e', (route: Route) => route.fulfill(json({
+    _id: 'doctor-e2e',
+    name: 'Dr. E2E Doctor',
+    specialization: 'General Medicine',
+    role: 'doctor',
+    consultation_fees: 500,
+    time_slots: ['09:00 AM'],
+    appointmentModes: ['offline'],
+    autoConfirmAppointment: true,
+    approved: true,
+  })));
+  await page.route('**/api/appointments/booked-slots**', (route: Route) => route.fulfill(json({
+    counts: {}, capacity: 1, fullSlots: [], lockedSlots: [], dateDisabled: [],
+    bookingWindow: { unit: 'weeks', value: 2 }, pendingDisabledSlots: [],
+  })));
+  await page.route('**/api/patient/family', (route: Route) => route.fulfill(json({ members: [] })));
+}
+
+
 export async function mockLabBookings(
   page: Page,
   bookings = [{ _id: 'lab-1', facility: 'E2E Lab', date: '2025-01-15', status: 'Pending' }],
@@ -142,4 +165,45 @@ export async function mockLabBookings(
 export async function mockCancelBooking(page: Page) {
   await page.route('**/api/appointments/*/cancel', (route: Route) => route.fulfill(json({ success: true })));
   await page.route('**/api/lab/bookings/*/cancel', (route: Route) => route.fulfill(json({ success: true })));
+}
+
+// ── Phase 5 role flows (TEST-B-02 + FE-M-01) ──────────────────────────────
+// mockApiBaseline 'authenticated' hamesha patientUser deta hai; role flows ke
+// liye session user parameterize karna padta hai (doctor/admin).
+
+export async function mockApiBaselineFor(page: Page, user: typeof patientUser) {
+  await page.route('**/api/**', (route: Route) => {
+    const url = route.request().url();
+    if (url.includes('/auth/me') || url.includes('/auth/me?')) {
+      return route.fulfill(json(user));
+    }
+    return route.fulfill(json({ success: true, data: [] }));
+  });
+}
+
+export function istToday() {
+  const ist = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+  return ist.toISOString().slice(0, 10);
+}
+
+export async function mockDoctorApproveList(page: Page, date: string) {
+  const pending = {
+    _id: 'appt-approve-e2e',
+    patient: 'E2E Pending Patient',
+    date,
+    time: '09:00 AM',
+    status: 'Pending',
+    appointmentMode: 'offline',
+    type: 'clinic',
+  };
+  await page.route('**/api/appointments?**', (route: Route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    return route.fulfill(json({ appointments: [pending] }));
+  });
+}
+
+export async function mockAdminReports(page: Page) {
+  await page.route('**/api/reports/**', (route: Route) =>
+    route.fulfill(json({ data: [], summary: {} })),
+  );
 }

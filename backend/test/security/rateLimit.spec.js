@@ -7,7 +7,7 @@
  * was admitted). These tests pin the contract the middleware must satisfy
  * regardless of how the Lua branch is written:
  *   - request #max+1 must be rejected with 429
- *   - emergency paths bypass
+ *   - only exact POST life-safety intake endpoints bypass the general limiter
  *   - auth/OTP limiters fail CLOSED when Redis is down in production
  */
 import { jest } from '@jest/globals';
@@ -96,16 +96,34 @@ describe('createGrlRateLimiter', () => {
     expect(res.statusCode).toBe(429);
   });
 
-  it('never rate-limits life-safety paths', async () => {
+  it('exempts only exact POST emergency intake routes from the general limiter', async () => {
     const limiter = createGrlRateLimiter({ max: 1, keyPrefix: 'rl:test' });
-    for (const url of ['/api/emergency-sos', '/api/emergency/123', '/api/sos/start', '/api/emergency-doctor/1']) {
+    for (const url of ['/api/emergency', '/api/emergency-sos', '/api/emergency-sos/start']) {
       redisMock.eval.mockResolvedValue(999);
-      const req = { ip: '9.9.9.9', originalUrl: url };
+      const req = { method: 'POST', path: url, ip: '9.9.9.9', originalUrl: url };
       const res = mockRes();
       const next = nextSpy();
       await limiter(req, res, next);
       expect(next).toHaveBeenCalled();
     }
+  });
+
+  it.each([
+    ['GET', '/api/emergency'],
+    ['POST', '/api/emergency/123'],
+    ['POST', '/api/emergency-doctor/1'],
+    ['POST', '/api/emergency-sos/123/cancel'],
+    ['POST', '/api/search?sos=true'],
+  ])('rate-limits emergency-adjacent route %s %s', async (method, originalUrl) => {
+    redisMock.eval.mockResolvedValue(1);
+    const limiter = createGrlRateLimiter({ max: 1, keyPrefix: 'rl:test' });
+    const req = { method, path: originalUrl.split('?')[0], originalUrl, ip: '9.9.9.9' };
+    const res = mockRes();
+    const next = nextSpy();
+    await limiter(req, res, next);
+    expect(redisMock.eval).toHaveBeenCalledTimes(1);
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(429);
   });
 
   it('keys the bucket per user when authenticated, per IP otherwise', async () => {

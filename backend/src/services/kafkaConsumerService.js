@@ -28,8 +28,8 @@ async function bumpDemandCounter(h3Cell, vertical) {
 
 /**
  * Handles incoming backbone events with real projections.
- * Every branch is fail-soft: handler errors never break the poller loop
- * (the poller wraps this call in try/catch as a second guard).
+ * Projection failures propagate to EventForwarder/OutboxPoller so durable
+ * events remain retryable. Best-effort side effects must catch locally.
  */
 export async function handleIncomingEvent(topic, eventPayload) {
   const { eventType, aggregateId, payload = {}, outboxId } = eventPayload || {};
@@ -110,6 +110,25 @@ export async function handleIncomingEvent(topic, eventPayload) {
         break;
       }
 
+      case 'LawyerBookingCompleted.v1': {
+        // The in-app notice is committed with the booking/ledger transaction;
+        // this outbox event only refreshes connected participants after commit.
+        const io = (await import('./socketService.js')).getIO();
+        if (io && aggregateId) {
+          const update = {
+            bookingId: String(aggregateId),
+            status: 'completed',
+            completedAt: payload.completedAt,
+            settledAmount: payload.settledAmount,
+          };
+          io.to(`lawyer-booking:${aggregateId}`).emit('booking_status_update', update);
+          io.of('/lawyer').to(`lawyer-booking:${aggregateId}`).emit('booking_status_update', update);
+          if (payload.patientId) io.to(`user:${payload.patientId}`).emit('booking_status_update', update);
+          if (payload.lawyerId) io.to(`user:${payload.lawyerId}`).emit('booking_status_update', update);
+        }
+        break;
+      }
+
       // ─── Tech 03-C: hospital admission events → bed/OT/housekeeping sync ──
       case 'bed.allocated': {
         try {
@@ -175,12 +194,13 @@ export async function handleIncomingEvent(topic, eventPayload) {
       // ─── DP-M-04: erasure propagation to analytics copies ──────────────────
       case 'user.deleted': {
         // Mongo-side scrubbing already happened in the deletion chain; this
-        // branch owns the ANALYTICS copies. Both purges are idempotent and
-        // fail-soft per store: a tombstone must never poison the retry cascade
-        // (an unconfigured OpenSearch is a skip, a lake dir that does not
-        // exist is a no-op), and one store failing must not skip the other.
+        // branch owns the ANALYTICS copies. Both purges are idempotent; an
+        // unconfigured OpenSearch is a skip and a missing lake dir is a no-op.
+        // Attempt both stores, then fail the event if either configured purge
+        // fails so outbox retry can finish erasure propagation.
         const subjectId = payload.userId || aggregateId;
         if (!subjectId) break;
+        const purgeErrors = [];
         try {
           const { purgeUserFromSearch } = await import('./opensearchIndexer.js');
           // Re-purge even though the chain purged synchronously: this also
@@ -189,6 +209,7 @@ export async function handleIncomingEvent(topic, eventPayload) {
           await purgeUserFromSearch(String(subjectId));
         } catch (err) {
           logger.warn(`user.deleted search purge skipped: ${err.message}`);
+          purgeErrors.push(err);
         }
         try {
           const { purgeUserFromLakeManifests } = await import('../jobs/lakeOffload.job.js');
@@ -196,6 +217,10 @@ export async function handleIncomingEvent(topic, eventPayload) {
           if (r?.purged) logger.info(`user.deleted lake purge removed ${r.purged} manifest row(s)`);
         } catch (err) {
           logger.warn(`user.deleted lake purge skipped: ${err.message}`);
+          purgeErrors.push(err);
+        }
+        if (purgeErrors.length) {
+          throw new AggregateError(purgeErrors, `user.deleted purge incomplete for ${subjectId}`);
         }
         break;
       }
@@ -209,10 +234,9 @@ export async function handleIncomingEvent(topic, eventPayload) {
           const { default: Supplier } = await import('../models/Supplier.js');
           const med = await Medicine.findById(payload.medicineId || aggregateId);
           if (med) {
-            if (eventType === 'medicine.dispensed' && payload.quantity) {
-              med.currentStock = Math.max(0, med.currentStock - Number(payload.quantity));
-              await med.save();
-            }
+            // Pharmacy dispense route already performs the inventory debit
+            // before it emits this event. This consumer only handles the
+            // reorder side effect; applying `quantity` again double-debits.
             if (med.currentStock <= (med.reorderLevel ?? 10)) {
               const existing = await PurchaseOrder.findOne({
                 status: { $in: ['Draft', 'Submitted', 'Approved', 'Ordered'] },
@@ -261,6 +285,7 @@ export async function handleIncomingEvent(topic, eventPayload) {
     }
   } catch (err) {
     logger.warn(`handleIncomingEvent(${eventType}) failed: ${err.message}`);
+    throw err;
   }
 
   if (outboxId) {

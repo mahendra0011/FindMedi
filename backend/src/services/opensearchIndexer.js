@@ -48,6 +48,14 @@ export function assertOpenSearchAuth() {
   return { ok: false, warning: 'opensearch credentials missing (non-production)' };
 }
 
+export function assertEhrPseudonymSalt() {
+  const salt = process.env.OPENSEARCH_PSEUDONYM_SALT || '';
+  if (isOpenSearchConfigured() && (!salt || salt.length < 32)) {
+    throw new Error('OPENSEARCH_PSEUDONYM_SALT must be configured with at least 32 characters when OpenSearch is enabled');
+  }
+  return { ok: true, skipped: isOpenSearchConfigured() ? undefined : 'unconfigured' };
+}
+
 async function osReq(method, path, body) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3000);
@@ -343,15 +351,22 @@ export async function indexDrugDoc(med) {
  *   - the key comes from the environment and must never be committed, so the same
  *     input cannot be reversed by an attacker who reads the index.
  */
-const PSEUDONYM_SALT = process.env.OPENSEARCH_PSEUDONYM_SALT || '';
+// DP-B-01/DL-B-01: read the salt per call, not once at import. A module-load
+// snapshot makes the "salt absent -> throw" contract untestable (the test
+// cannot re-import with different env) and hides rotation: a rotated salt
+// would keep producing old keys until restart with no signal.
+export function getPseudonymSalt() {
+  return process.env.OPENSEARCH_PSEUDONYM_SALT || '';
+}
 
 export function pseudonymizePatientId(patientId) {
   const raw = String(patientId || '');
   if (!raw) return '';
-  // Without a configured salt the value is still removed, but it becomes
-  // irreversible per-boot noise rather than a stable pseudonym.
-  if (!PSEUDONYM_SALT) return 'unpseudonymised';
-  return createHmac('sha256', PSEUDONYM_SALT).update(raw).digest('hex').slice(0, 32);
+  const salt = getPseudonymSalt();
+  if (!salt || salt.length < 32) {
+    throw new Error('OPENSEARCH_PSEUDONYM_SALT must be configured with at least 32 characters');
+  }
+  return createHmac('sha256', salt).update(raw).digest('hex').slice(0, 32);
 }
 
 const MASK_PATTERNS = [
@@ -489,7 +504,7 @@ export async function searchEhr({ patientId, q, consentId, size = 10 } = {}) {
   if (!patientId || !q) return { source: 'none', results: [] };
   const { default: ConsentRecord } = await import('../models/ConsentRecord.js');
   const grant = consentId
-    ? await ConsentRecord.findOne({ consentId }).lean()
+    ? await ConsentRecord.findOne({ consentId, patientId }).lean()
     : await ConsentRecord.findOne({
       patientId, status: 'GRANTED', expiresAt: { $gt: new Date() },
     }).sort({ grantedAt: -1 }).lean();

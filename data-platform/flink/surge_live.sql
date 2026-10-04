@@ -21,15 +21,17 @@ CREATE TABLE booking_requests_stream (
     'format' = 'json',
     'json.ignore-parse-errors' = 'true'
 );
-CREATE TABLE print_surge_sink (
+CREATE TABLE pinot_surge_sink (
     h3_cell STRING,
     window_end TIMESTAMP(3),
     booking_count BIGINT,
     surge_multiplier DOUBLE
 ) WITH (
-    'connector' = 'print'
+    'connector' = 'jdbc',
+    'url' = 'jdbc:pinot://pinot-controller:9000',
+    'table-name' = 'surge_by_cell'
 );
-INSERT INTO print_surge_sink
+INSERT INTO pinot_surge_sink
 SELECT
     h3_cell,
     TUMBLE_END(pt, INTERVAL '1' MINUTE) AS window_end,

@@ -43,6 +43,18 @@ prevent.
 
 ## Known gaps
 
+- **Unmapped PII collections are explicitly tracked.** The generated
+  [`data-dictionary.md`](../data-dictionary.md) currently lists 17 collections
+  whose retention class still needs a policy decision. They are pinned in
+  `backend/scripts/retention-gap-baseline.json`; `npm run retention:gaps` fails
+  if a code change introduces a new unclassified PII collection or if a tracked
+  collection changes without deliberate review. This is a regression guard,
+  not a retention period or evidence that existing records have been purged.
+- **Do not add a TTL based on the baseline alone.** Chat, support, safety and
+  clinical-adjacent records may be subject to care, consent, dispute or legal
+  hold requirements. A policy owner must assign their class and resolve legal
+  hold behavior before automated deletion is enabled.
+
 - **Enforcement is partial.** TTL indexes handle the token, notification and
   trace rows. Clinical records depend on a scheduled job; there is no single
   component that owns "delete everything that is due".
@@ -53,3 +65,37 @@ prevent.
 - **Third-party retention is out of scope.** Cloudinary and the email provider
   hold their own copies; their retention is governed by their contracts, not by
   this file.
+
+## Control-to-code mapping (DOC-M-01, 2026-10-04)
+
+| Data class (table above) | Enforcement in code | Evidence / gate |
+|---|---|---|
+| Setup codes 15 min; OTP 15–60 min | `backend/src/models/AmbulanceSetupCode.js:31` (TTL `expireAfterSeconds: 0` on `expiresAt`); `backend/src/models/OTP.js:32` (TTL 3600s); `backend/src/models/RefreshToken.js:44` (TTL on `expiresAt`) | Mongo TTL; login-event TTL `backend/src/models/LoginEvent.js:40` (180d) |
+| Clinical soft-delete → audited hard-delete | `backend/src/routes/records.js:456-461` (soft delete first, then `auditLog('delete_record', …, { soft: true })`) | `delete_record` audit row; DPIA §10 |
+| Consent records: revoke is immediate + audited | `backend/src/routes/records.js:576,592-602` (`consent_revoked` audit on both revoke paths); mental-health consent expiry enforced `backend/src/routes/mentalhealth.js:257-264` | `mentalHealthConsent.spec.js` |
+| Audit logs outlive their subject | `backend/src/models/AuditLog.js:47` (TTL 365d — check against the 7-year policy target; shortening needs a DPIA change per Rule 4) | Retention-gap gate `backend/test/unit/retentionGate.spec.js` |
+| Chat offline queue is NOT retention storage | `frontend/src/lib/chatPrefs.js:93-119` (device-local queue, flushed on reconnect) + resume cursors `frontend/src/lib/chatResume.js:43-56`; queue items are pending sends, not an archive — server retention class applies after durable write | `docs/chat-reconnect-contract.md`; Vitest `chatResume.test.js` |
+
+## Control-to-code mapping (DL-M-09 / DOC-M-01)
+
+Each retention class below names the code that enforces it, so a policy
+change has an obvious code counterpart and a code change has an obvious
+policy counterpart. The CI gate is `npm run retention:gaps`
+(`backend/scripts/check-retention-gaps.mjs` vs
+`backend/scripts/retention-gap-baseline.json`); the classifier is
+`backend/scripts/lib/dataDictionary.mjs` and the generated evidence is
+`docs/data-dictionary.md` (freshness pinned by
+`backend/test/unit/dataDictionary.spec.js` + `retentionGate.spec.js`).
+
+| Retention class (this file) | Enforcement in code | Evidence / gate |
+|---|---|---|
+| Clinical records (statutory, min 3y) | Scheduled hard-delete job after soft delete; `records.js` soft-delete first so the audit row has a stable moment | `docs/data-dictionary.md` retention column; `retentionGate.spec.js` requires every PII collection mapped or allowlisted |
+| Mental-health records (+ consent validity) | `revoke_consent` removes downstream read access immediately; record follows clinical schedule | `mentalHealthConsent.spec.js`; DPIA §4 consent-scope guard |
+| ABDM consent records (validity + 1y) | TTL/consent expiry; revocation immediate + audited (`consent_revoke`) | `ConsentRecord` expiry index; audit row |
+| Audit logs (7y) | Scheduled archive, never inline with the records they evidence | Archive checksum; retention class `Audit logs` in `dataDictionary.mjs` |
+| Payment and ledger entries (8y) | Hard delete after archive | `delete_ledger_entry` audit row |
+| Notifications (90d) | Mongo TTL index | `ttlSeconds` surfaced in data dictionary |
+| OTP / setup codes / tokens (15–60m) | Mongo TTL index; refresh rotation + server-side revocation | `OTP`/`RefreshToken` TTL assertions in `dataDictionary.spec.js` |
+| Ride and SOS location traces (trip + 30d) | TTL index | `RideBooking` retention class assertion |
+| Provider KYC (relationship + 1y) | Provider deletion flow | `Doctor`/`Staff` retention class assertion |
+| Unmapped PII (no class yet) | Explicitly tracked, never guessed: `retention-gap-baseline.json` | `npm run retention:gaps` fails on additions/removals; `retentionGate.spec.js` |

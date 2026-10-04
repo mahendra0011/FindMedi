@@ -798,17 +798,38 @@ router.put('/:id/checkin', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.get('/queue/:department', protect, async (req, res) => {
+const APPOINTMENT_QUEUE_ROLES = [
+  'doctor', 'clinic_doctor', 'clinic_admin', 'hospital_admin', 'superadmin',
+];
+
+router.get('/queue/:department', protect, requireRole(APPOINTMENT_QUEUE_ROLES), async (req, res) => {
   try {
-    const { department } = req.params;
-    const filter = { department, status: { $in: ['In Queue', 'Called'] } };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') {
-      filter.hospitalId = req.user.hospitalId;
+    const filter = {
+      department: req.params.department,
+      status: { $in: ['In Queue', 'Called'] },
+    };
+    if (req.user.role !== 'superadmin') {
+      const tenantId = req.user.hospitalId || req.user.facilityId;
+      if (!tenantId) return res.status(403).json({ message: 'Facility scope required' });
+      filter.hospitalId = tenantId;
     } else if (req.query.hospitalId) {
+      // Only a platform superadmin may narrow the global queue by tenant.
       filter.hospitalId = req.query.hospitalId;
     }
-    const { page = 1, limit = 50 } = req.query;
-    const { data: queue, total, totalPages, page: p, limit: l } = await paginatedResults(Appointment, filter, { page, limit, sort: { queuePosition: 1 } });
+    const { data, total, totalPages, page: p, limit: l } = await paginatedResults(
+      Appointment,
+      filter,
+      { page: req.query.page, limit: req.query.limit, sort: { queuePosition: 1 } },
+    );
+    const queue = data.map((a) => ({
+      _id: a._id,
+      tokenNumber: a.tokenNumber,
+      department: a.department,
+      queuePosition: a.queuePosition,
+      status: a.status,
+      date: a.date,
+      time: a.time,
+    }));
     res.json({ queue, page: p, limit: l, total, totalPages });
   } catch (err) { sendServerError(res, err, 'Request failed'); }
 });

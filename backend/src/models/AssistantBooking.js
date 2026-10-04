@@ -138,6 +138,9 @@ const assistantBookingSchema = new mongoose.Schema({
   acceptances: [{ providerId: String, distanceKm: Number, acceptedAt: { type: Date, default: Date.now }, _id: false }],
   rejections: [{ type: String }],
   windowEndsAt: { type: Date, default: null },
+  retryCount: { type: Number, default: 0 },
+  retryAt: { type: Date, default: null, index: true },
+  retryRadii: { type: [Number], default: [] },
   currentSearchRadiusKm: { type: Number, default: 5 },
   dispatchLog: [{
     radiusKm: Number,
@@ -155,6 +158,8 @@ const assistantBookingSchema = new mongoose.Schema({
   taskChecklist: [taskChecklistItemSchema],
   checkInAt: { type: Date },
   completedAt: { type: Date },
+  settledAt: { type: Date, default: null },
+  settlementAmount: { type: Number, default: 0, min: 0 },
   completionSummary: { type: String, default: '' },
   payment: {
     method: { type: String, enum: ['demo_wallet', 'cash', 'pending', ''], default: 'pending' },

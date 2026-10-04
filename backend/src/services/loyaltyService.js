@@ -34,9 +34,18 @@ export const loyaltyService = {
   },
 
   /**
-   * Earn points for a qualifying action
+   * Earn points for a qualifying action.
+   * LOY-M-01: idempotent per (user, action, refId). Dispatch/booking retries
+   * and double webhook deliveries used to credit the same completion twice
+   * with no unique guard on `earn` rows. A pre-check plus the
+   * `loyalty_earn_once` partial unique index (see LoyaltyLedger) makes a
+   * duplicate earn a no-op returning 0.
    */
   async earnPoints(userId, actionType, refId = null) {
+    if (refId) {
+      const dupe = await LoyaltyLedger.findOne({ userId, type: 'earn', reason: actionType, refId }).lean();
+      if (dupe) return 0;
+    }
     const rule = await LoyaltyEarnRule.findOne({ action: actionType, isActive: true }).lean();
     if (!rule) return 0;
 
@@ -56,17 +65,48 @@ export const loyaltyService = {
 
     await user.save();
 
-    // Log in ledger
-    await LoyaltyLedger.create({
-      userId,
-      type: 'earn',
-      points,
-      reason: actionType,
-      refId,
-      balanceAfter: user.loyalty.pointsBalance,
-    });
+    // Log in ledger (LOY-M-01: concurrent double-earns lose the race here).
+    try {
+      await LoyaltyLedger.create({
+        userId,
+        type: 'earn',
+        points,
+        reason: actionType,
+        refId,
+        balanceAfter: user.loyalty.pointsBalance,
+      });
+    } catch (err) {
+      if (err?.code === 11000) return 0;
+      throw err;
+    }
 
     return points;
+  },
+
+  /**
+   * LOY-M-01 reconciliation: ledger truth vs cached user balances.
+   * Returns the earn/reverse/redeem totals, the ledger-derived balance, the
+   * stored balance, and whether they agree. Callers (jobs/support) use the
+   * mismatch to decide on a repair; this function never writes.
+   */
+  async reconcileBalance(userId) {
+    const rows = await LoyaltyLedger.find({ userId }).select('type points').lean();
+    let earned = 0;
+    let reversed = 0;
+    let redeemed = 0;
+    for (const r of rows) {
+      if (r.type === 'earn') earned += Number(r.points) || 0;
+      else if (r.type === 'reverse') reversed += Number(r.points) || 0; // negative
+      else if (r.type === 'redeem') redeemed += Number(r.points) || 0; // negative
+    }
+    const ledgerBalance = earned + reversed + redeemed;
+    const user = await User.findById(userId).select('loyalty').lean();
+    const storedBalance = user?.loyalty?.pointsBalance ?? null;
+    return {
+      earned, reversed, redeemed, ledgerBalance, storedBalance,
+      matches: storedBalance === null ? null : storedBalance === ledgerBalance,
+      entries: rows.length,
+    };
   },
 
   /**

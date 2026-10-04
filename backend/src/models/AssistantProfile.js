@@ -98,6 +98,8 @@ const assistantProfileSchema = new mongoose.Schema({
   },
   rejectionReason: { type: String, default: '' },
   isAvailable: { type: Boolean, default: false, index: true },
+  lastLocationAt: { type: Date, default: null, index: true },
+  activeDispatchRequestId: { type: mongoose.Schema.Types.ObjectId, default: null, index: true },
   isOnlineForUrgent: { type: Boolean, default: false, index: true },
   isDocumentVerified: { type: Boolean, default: false },
   rating: {

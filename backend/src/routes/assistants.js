@@ -2,7 +2,8 @@ import express from 'express';
 import AssistantProfile from '../models/AssistantProfile.js';
 import User from '../models/User.js';
 import AssistantBooking from '../models/AssistantBooking.js';
-import { protect } from '../middleware/auth.js';
+import TransactionLedger from '../models/TransactionLedger.js';
+import { protect, requireRole } from '../middleware/auth.js';
 import { validate, assistantStatusSchema, searchAssistantSchema } from '../utils/validate.js';
 import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
 import logger from '../config/logger.js';
@@ -11,17 +12,58 @@ const router = express.Router();
 
 // ─── GET /api/assistant/profile ─────────────────────────────────────────────
 // Get own assistant profile
-router.get('/profile', protect, async (req, res) => {
+router.get('/profile', protect, requireRole(['assistant']), async (req, res) => {
   try {
     const profile = await AssistantProfile.findOne({ userId: req.user._id })
+      .select('userId experienceYears experienceTypes certifications languages bio serviceCategories hospitalsCovered operatingCity shiftTypes pricePerHour pricePerFullDay extraSkills policeVerificationStatus healthCertification onTimeRate completionRate repeatClientsCount trainedEmergencyAdmissions badgeIdentifier dayInWorkDescription settings availableDays availableTimeSlots assistantStatus isAvailable currentLocation rating walletBalance totalEarnings totalBookings bankDetails emergencyContact')
       .populate('userId', 'name email phone avatar address dateOfBirth gender approvalStatus')
       .lean();
 
     if (!profile) {
       return res.status(404).json({ message: 'Assistant profile not found' });
     }
-
-    res.json({ profile });
+    const safeProfile = {
+      _id: profile._id,
+      userId: profile.userId,
+      experienceYears: profile.experienceYears,
+      experienceTypes: profile.experienceTypes,
+      languages: profile.languages,
+      bio: profile.bio,
+      serviceCategories: profile.serviceCategories,
+      hospitalsCovered: profile.hospitalsCovered,
+      operatingCity: profile.operatingCity,
+      shiftTypes: profile.shiftTypes,
+      pricePerHour: profile.pricePerHour,
+      pricePerFullDay: profile.pricePerFullDay,
+      extraSkills: profile.extraSkills,
+      policeVerificationStatus: profile.policeVerificationStatus,
+      onTimeRate: profile.onTimeRate,
+      completionRate: profile.completionRate,
+      trainedEmergencyAdmissions: profile.trainedEmergencyAdmissions,
+      settings: profile.settings,
+      availableDays: profile.availableDays,
+      availableTimeSlots: profile.availableTimeSlots,
+      assistantStatus: profile.assistantStatus,
+      isAvailable: profile.isAvailable,
+      currentLocation: profile.currentLocation,
+      rating: profile.rating,
+      walletBalance: profile.walletBalance,
+      totalEarnings: profile.totalEarnings,
+      totalBookings: profile.totalBookings,
+      userId: profile.userId,
+      bankDetails: profile.bankDetails ? {
+        accountHolder: profile.bankDetails.accountHolder,
+        accountNumber: profile.bankDetails.accountNumber ? `****${String(profile.bankDetails.accountNumber).slice(-4)}` : '',
+        ifsc: profile.bankDetails.ifsc ? `${String(profile.bankDetails.ifsc).slice(0, 4)}****` : '',
+        upiId: profile.bankDetails.upiId ? `${String(profile.bankDetails.upiId).slice(0, 2)}****` : '',
+        verified: profile.bankDetails.verified,
+      } : undefined,
+      emergencyContact: profile.emergencyContact ? {
+        name: profile.emergencyContact.name,
+        phone: profile.emergencyContact.phone ? `****${String(profile.emergencyContact.phone).slice(-4)}` : '',
+      } : undefined,
+    };
+    res.json({ profile: safeProfile });
   } catch (err) {
     logger.error(`Get assistant profile error: ${err.message}`);
     res.status(500).json({ message: 'Failed to fetch assistant profile', error: err.message });
@@ -30,7 +72,7 @@ router.get('/profile', protect, async (req, res) => {
 
 // ─── PUT /api/assistant/profile ─────────────────────────────────────────────
 // Update profile, service categories, hospitals, pricing, bank details
-router.put('/profile', protect, async (req, res) => {
+router.put('/profile', protect, requireRole(['assistant']), async (req, res) => {
   try {
     const {
       bio,
@@ -91,7 +133,10 @@ router.put('/profile', protect, async (req, res) => {
 
     await profile.save();
 
-    res.json({ success: true, message: 'Profile updated successfully', profile });
+    const safeProfile = await AssistantProfile.findOne({ userId: req.user._id })
+      .select('bio experienceYears experienceTypes languages serviceCategories hospitalsCovered shiftTypes pricePerHour pricePerFullDay extraSkills availableDays availableTimeSlots isAvailable settings rating')
+      .lean();
+    res.json({ success: true, message: 'Profile updated successfully', profile: safeProfile });
   } catch (err) {
     logger.error(`Update assistant profile error: ${err.message}`);
     res.status(500).json({ message: 'Failed to update assistant profile', error: err.message });
@@ -100,7 +145,7 @@ router.put('/profile', protect, async (req, res) => {
 
 // ─── PUT /api/assistant/status ──────────────────────────────────────────────
 // Toggle online/available status
-router.put('/status', protect, validate(assistantStatusSchema), async (req, res) => {
+router.put('/status', protect, requireRole(['assistant']), validate(assistantStatusSchema), async (req, res) => {
   try {
     const { isAvailable } = req.body;
     const profile = await AssistantProfile.findOne({ userId: req.user._id });
@@ -145,7 +190,7 @@ router.put('/status', protect, validate(assistantStatusSchema), async (req, res)
 
 // ─── PUT /api/assistant/location ───────────────────────────────────────────
 // Update current location with H3 cache sync
-router.put('/location', protect, async (req, res) => {
+router.put('/location', protect, requireRole(['assistant']), async (req, res) => {
   try {
     const { lat, lng } = req.body;
     if (lat == null || lng == null) {
@@ -170,6 +215,7 @@ router.put('/location', protect, async (req, res) => {
           'currentLocation.h3Index8': h3Result?.h3Index8 || null,
           'currentLocation.h3Index9': h3Result?.h3Index9 || null,
           'currentLocation.updatedAt': new Date(),
+          lastLocationAt: new Date(),
         },
       },
       { new: true }
@@ -184,47 +230,48 @@ router.put('/location', protect, async (req, res) => {
 
 // ─── GET /api/assistant/earnings ────────────────────────────────────────────
 // Get assistant earnings breakdown & transaction summary
-router.get('/earnings', protect, async (req, res) => {
+router.get('/earnings', protect, requireRole(['assistant']), async (req, res) => {
   try {
-    const profile = await AssistantProfile.findOne({ userId: req.user._id }).lean();
+    const profile = await AssistantProfile.findOne({ userId: req.user._id }).select('walletBalance rating').lean();
     if (!profile) return res.status(404).json({ message: 'Assistant profile not found' });
-
-    // Completed bookings count and net calculation
-    const bookings = await AssistantBooking.find({
-      assistantId: req.user._id,
-      status: 'completed',
-    }).select('cost payment createdAt scheduledDate hospital').sort({ completedAt: -1 }).lean();
-
-    const grossEarnings = bookings.reduce((sum, b) => sum + (b.cost?.total || 0), 0);
-    const platformCommission = Math.round(grossEarnings * 0.10);
-    const netEarnings = grossEarnings - platformCommission;
 
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
-
-    const thisMonthBookings = bookings.filter(b => new Date(b.createdAt) >= startOfMonth);
-    const thisMonthGross = thisMonthBookings.reduce((sum, b) => sum + (b.cost?.total || 0), 0);
-    const thisMonthCommission = Math.round(thisMonthGross * 0.10);
-    const thisMonthNet = thisMonthGross - thisMonthCommission;
-
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
-    const todayBookings = bookings.filter(b => new Date(b.createdAt) >= startOfToday);
-    const todayGross = todayBookings.reduce((sum, b) => sum + (b.cost?.total || 0), 0);
-    const todayCommission = Math.round(todayGross * 0.10);
-    const todayNet = todayGross - todayCommission;
+    const baseFilter = { providerId: req.user._id, source: 'assistant', entryType: 'CREDIT', status: 'completed' };
+    const sumPipeline = (filter) => [
+      { $match: filter },
+      { $group: {
+        _id: null,
+        gross: { $sum: '$amount' },
+        commission: { $sum: '$commissionAmount' },
+        tax: { $sum: '$taxAmount' },
+        net: { $sum: '$netAmount' },
+        count: { $sum: 1 },
+      } },
+    ];
+    const [allRows, monthRows, todayRows, recentEntries] = await Promise.all([
+      TransactionLedger.aggregate(sumPipeline(baseFilter)),
+      TransactionLedger.aggregate(sumPipeline({ ...baseFilter, createdAt: { $gte: startOfMonth } })),
+      TransactionLedger.aggregate(sumPipeline({ ...baseFilter, createdAt: { $gte: startOfToday } })),
+      TransactionLedger.find(baseFilter).select('amount commissionAmount taxAmount netAmount createdAt').sort({ createdAt: -1 }).limit(10).lean(),
+    ]);
+    const all = allRows[0] || { gross: 0, commission: 0, tax: 0, net: 0, count: 0 };
+    const month = monthRows[0] || { gross: 0, commission: 0, tax: 0, net: 0, count: 0 };
+    const todayNet = todayRows[0]?.net || 0;
 
     res.json({
       walletBalance: profile.walletBalance || 0,
-      totalGross: grossEarnings,
-      platformCommission,
-      netEarnings,
+      totalGross: all.gross,
+      platformCommission: all.commission,
+      netEarnings: all.net,
       todayNet,
-      thisMonthNet,
-      totalCompleted: bookings.length,
+      thisMonthNet: month.net,
+      totalCompleted: all.count,
       rating: profile.rating || { avg: 5.0, count: 0 },
-      recentBookings: bookings.slice(0, 10),
+      recentSettlements: recentEntries.map((entry) => ({ gross: entry.amount, commission: entry.commissionAmount, tax: entry.taxAmount, net: entry.netAmount, createdAt: entry.createdAt })),
     });
   } catch (err) {
     logger.error(`Get assistant earnings error: ${err.message}`);
@@ -234,12 +281,12 @@ router.get('/earnings', protect, async (req, res) => {
 
 // ─── POST /api/assistant/withdraw-demo ──────────────────────────────────────
 // Simulated demo withdrawal
-router.post('/withdraw-demo', protect, async (req, res) => {
+router.post('/withdraw-demo', protect, requireRole(['assistant']), async (req, res) => {
   try {
     const { amount } = req.body;
     const withdrawAmount = Number(amount);
 
-    if (!withdrawAmount || withdrawAmount <= 0) {
+    if (!Number.isFinite(withdrawAmount) || withdrawAmount <= 0) {
       return res.status(400).json({ message: 'Valid withdrawal amount is required' });
     }
 
@@ -248,17 +295,21 @@ router.post('/withdraw-demo', protect, async (req, res) => {
 
     if ((profile.walletBalance || 0) < withdrawAmount) {
       return res.status(400).json({
-        message: `Insufficient balance. Available balance: Rs. ${profile.walletBalance || 0}`,
+        message: 'Insufficient balance',
       });
     }
 
-    profile.walletBalance -= withdrawAmount;
-    await profile.save();
+    const debited = await AssistantProfile.findOneAndUpdate(
+      { _id: profile._id, walletBalance: { $gte: withdrawAmount } },
+      { $inc: { walletBalance: -withdrawAmount } },
+      { new: true, select: 'walletBalance' },
+    );
+    if (!debited) return res.status(409).json({ message: 'Balance changed; refresh and retry' });
 
     res.json({
       success: true,
-      message: `Demo withdrawal of Rs. ${withdrawAmount} successfully credited to bank account ${profile.bankDetails?.accountNumber || 'Primary Bank'}. (SIMULATED)`,
-      remainingBalance: profile.walletBalance,
+      message: `Demo withdrawal of Rs. ${withdrawAmount} initiated. (SIMULATED)`,
+      remainingBalance: debited.walletBalance,
       reference: `DEMO-WDR-${Date.now().toString().slice(-6)}`,
     });
   } catch (err) {

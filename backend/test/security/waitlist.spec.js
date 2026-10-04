@@ -232,10 +232,11 @@ describe('wiring + inventory pins', () => {
     expect(src.match(/onSlotFreed\(\{/g) || []).toHaveLength(2);
   });
 
-  it('fires onSlotFreed from both transactions stale-Pending sweeps', () => {
+  it('keeps the periodic stale-Pending sweep as the only legacy-transaction cleanup path', () => {
     const src = read(path.join('routes', 'transactions.js'));
     expect(src).toContain("from '../services/waitlistService.js'");
-    expect(src.match(/onSlotFreed\(\{/g) || []).toHaveLength(2);
+    expect(src.match(/onSlotFreed\(\{/g) || []).toHaveLength(1);
+    expect(src).toContain('legacy replay compatibility only');
   });
 
   it('the offer IS a checkout-shaped hold (15 min, checkoutExpiresAt) so existing sweeps are the backstop', () => {

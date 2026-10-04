@@ -70,6 +70,6 @@ const config = {
   }),
 };
 
-export const startLawyerDispatch = (requestId) => startInstantDispatch(requestId, config);
+export const startLawyerDispatch = (requestId, radiiKm) => startInstantDispatch(requestId, radiiKm?.length ? { ...config, radiiKm } : config);
 export const acceptLawyerRequest = (requestId, providerId, user) => handleInstantAccept(requestId, providerId, user, config);
 export const rejectLawyerRequest = (requestId, providerId) => handleInstantReject(requestId, providerId, config);

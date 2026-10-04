@@ -286,14 +286,14 @@ export default function AutoRetryPanel({ orderContext, onPriceConfirm, onStoreSe
               onClick={async () => {
                 if (!orderContext?.orderId) { toast.error('No order to cancel'); return; }
                 try {
-                  await api.updatePharmacyOrder(orderContext.orderId, { status: 'Cancelled' });
+                  await api.cancelPharmacyOrder(orderContext.orderId);
                   toast.success('Order cancelled successfully');
                   autoRetry.resetRetry();
                 } catch {
                   toast.error('Failed to cancel order');
                 }
               }}>
-              <XCircle className="w-3.5 h-3.5" /> Cancel Order (Full Refund)
+              <XCircle className="w-3.5 h-3.5" /> Cancel Unpaid Order
             </Button>
           </div>
         </div>

@@ -15,7 +15,7 @@ import { writeOutboxEvent } from '../lib/transactionalOutbox.js';
  * the dispatcher cannot tell a provider at the pickup from one whose phone has
  * been in a pocket for an hour, because both report a plausible `distanceKm`.
  */
-export const LOCATION_FRESH_SECONDS = 60;
+export const LOCATION_FRESH_SECONDS = Number(process.env.RIDER_LOCATION_FRESH_SECONDS || 60);
 
 export const VEHICLE_RATES = {
   bike: {
@@ -221,6 +221,8 @@ export async function findEligibleRiders(vehicleType, pickupLat, pickupLng, isEm
     const query = {
       isOnline: true,
       riderStatus: 'active',
+      activeDispatchRequestId: null,
+      'currentLocation.updatedAt': { $gte: new Date(Date.now() - LOCATION_FRESH_SECONDS * 1000) },
     };
 
     const matchingVehicles = await Vehicle.find({ type: vehicleType }).select('_id');
@@ -289,25 +291,33 @@ export async function findEligibleRiders(vehicleType, pickupLat, pickupLng, isEm
       { $unwind: { path: '$vehicleId', preserveNullAndEmptyArrays: true } },
     ]);
 
-    return riders.map(r => ({
+    return riders.filter(r => {
+      const updatedAt = r.currentLocation?.updatedAt ? new Date(r.currentLocation.updatedAt).getTime() : 0;
+      return updatedAt > 0 && Date.now() - updatedAt <= LOCATION_FRESH_SECONDS * 1000;
+    }).map(r => ({
       ...r,
       distanceKm: Math.round(((r.distanceMeters || 0) / 1000) * 10) / 10,
       // RIDE-B-05: a location older than the freshness window must not be treated
       // as a live position. The realtime-matching spec disqualifies stale providers;
       // this surfaces the age so the caller can apply that rule instead of
       // dispatching to someone whose phone has been in a pocket for an hour.
-      locationAgeSeconds: r.lastPingAt
-        ? Math.round((Date.now() - new Date(r.lastPingAt).getTime()) / 1000)
+      locationAgeSeconds: r.currentLocation?.updatedAt
+        ? Math.round((Date.now() - new Date(r.currentLocation.updatedAt).getTime()) / 1000)
         : null,
-      locationFresh: r.lastPingAt
-        ? (Date.now() - new Date(r.lastPingAt).getTime()) <= LOCATION_FRESH_SECONDS
+      locationFresh: r.currentLocation?.updatedAt
+        ? (Date.now() - new Date(r.currentLocation.updatedAt).getTime()) <= LOCATION_FRESH_SECONDS * 1000
         : false,
     }));
   } catch (err) {
     logger.error(`findEligibleRiders $geoNear error: ${err.message}`);
     // Resilient fallback if geo index is building or query error occurs
     try {
-      const fallbackQuery = { isOnline: true, riderStatus: 'active' };
+      const fallbackQuery = {
+        isOnline: true,
+        riderStatus: 'active',
+        activeDispatchRequestId: null,
+        'currentLocation.updatedAt': { $gte: new Date(Date.now() - LOCATION_FRESH_SECONDS * 1000) },
+      };
       const matchingVehicles = await Vehicle.find({ type: vehicleType }).select('_id');
       if (matchingVehicles.length > 0) {
         fallbackQuery.vehicleId = { $in: matchingVehicles.map(v => v._id) };
@@ -318,8 +328,13 @@ export async function findEligibleRiders(vehicleType, pickupLat, pickupLng, isEm
         .lean();
       // RIDE-B-05: the geo index is unavailable, so distance is genuinely
       // unknown — `distanceKm: 0` would claim they are all at the pickup point.
-      return riders.map(r => ({
+      return riders.filter(r => {
+        const updatedAt = r.currentLocation?.updatedAt ? new Date(r.currentLocation.updatedAt).getTime() : 0;
+        return updatedAt > 0 && Date.now() - updatedAt <= LOCATION_FRESH_SECONDS * 1000;
+      }).map(r => ({
         ...r,
+        // Keep the candidate out of dispatch if no geospatial distance can be
+        // established; the caller must never turn unknown distance into 0 km.
         distanceKm: null,
         locationFresh: false,
         dispatchDegraded: 'geo_index_unavailable',
@@ -377,6 +392,7 @@ export async function broadcastRideBooking(ride) {
 const DISPATCH_TIMEOUT_MS = 15000; // 15s per batch for standard rides
 const EMERGENCY_TIMEOUT_MS = 10000; // 10s per batch for urgent ambulance rides
 const OFFER_EXPIRY_MS = 8000; // offer expires if not accepted within 8s (spec 11)
+const RIDE_RETRY_MS = 45_000;
  // env-configurable (deploy-time tuning without code change).
  // Defaults preserve legacy sequential-dispatch behaviour; the generic instant
  // engine uses its own INSTANT_RIDE_RADII (see rideDispatchService.js).
@@ -386,7 +402,7 @@ const EMERGENCY_RADIUS_STEPS = (process.env.RIDE_EMERGENCY_RADIUS_STEPS || '15,3
 /**
  * Sequential / tiered dispatch with expanding radius escalation
  */
-export async function dispatchSequentially(rideId) {
+export async function dispatchSequentially(rideId, { radii = null, markRetryAttempt = false } = {}) {
   try {
     const ride = await RideBooking.findById(rideId);
     if (!ride || ride.status !== 'searching') return;
@@ -399,7 +415,9 @@ export async function dispatchSequentially(rideId) {
       payload: { vehicleType: ride.vehicleType, isEmergency: ride.isEmergency },
     }).catch(() => {});
 
-    const radiusSteps = ride.isEmergency ? EMERGENCY_RADIUS_STEPS : STANDARD_RADIUS_STEPS;
+    const radiusSteps = Array.isArray(radii) && radii.length
+      ? radii
+      : (ride.isEmergency ? EMERGENCY_RADIUS_STEPS : STANDARD_RADIUS_STEPS);
     const batchSize = ride.isEmergency ? 3 : 1;
     const timeoutMs = ride.isEmergency ? EMERGENCY_TIMEOUT_MS : DISPATCH_TIMEOUT_MS;
 
@@ -417,6 +435,7 @@ export async function dispatchSequentially(rideId) {
 
       const alreadyTried = new Set((currentRide.dispatchAttempts || []).map(a => String(a.riderId)));
       const freshRiders = riders.filter(r => {
+        if (r.locationFresh !== true || r.distanceKm == null || r.activeDispatchRequestId) return false;
         const id = String(r.userId?._id || r.userId);
         return !alreadyTried.has(id);
       });
@@ -437,15 +456,25 @@ export async function dispatchSequentially(rideId) {
     // All radius tiers exhausted without acceptance
     const finalCheck = await RideBooking.findById(rideId);
     if (finalCheck && finalCheck.status === 'searching') {
-      finalCheck.status = 'no_riders_found';
-      finalCheck.statusHistory.push({
-        status: 'no_riders_found',
-        at: new Date(),
-        note: 'No drivers accepted within maximum dispatch radius',
-      });
-      await finalCheck.save();
-      notifyRideUpdate(finalCheck, 'ride_status_update');
-      logger.info(`Ride ${finalCheck.bookingNumber} transitioned to no_riders_found`);
+      if (markRetryAttempt) {
+        const ended = await RideBooking.findOneAndUpdate(
+          { _id: rideId, status: 'searching', retryCount: { $gte: 1 } },
+          { $set: { status: 'no_riders_found', retryAt: null, retryRadii: [] }, $push: { statusHistory: { status: 'no_riders_found', at: new Date(), note: 'Expanded retry exhausted without an available rider' } } },
+          { new: true }
+        );
+        if (ended) notifyRideUpdate(ended, 'ride_status_update');
+        return;
+      }
+      const retryAt = new Date(Date.now() + RIDE_RETRY_MS);
+      const retried = await RideBooking.findOneAndUpdate(
+        { _id: rideId, status: 'searching', retryCount: { $lt: 1 } },
+        { $set: { status: 'no_riders_found', retryAt, retryCount: 1, retryRadii: radiusSteps.map((radius) => Math.ceil(radius * 1.5)) }, $push: { statusHistory: { status: 'no_riders_found', at: new Date(), note: 'No drivers accepted; one durable expanded-radius retry scheduled' } } },
+        { new: true }
+      );
+      if (retried) {
+        notifyRideUpdate(retried, 'ride_status_update');
+        logger.info(`Ride ${retried.bookingNumber} transitioned to no_riders_found; durable retry scheduled`);
+      }
     }
   } catch (err) {
     logger.error(`dispatchSequentially error: ${err.message}`);

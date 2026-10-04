@@ -24,11 +24,15 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { writeAuditArtifact } from './lib/auditArtifact.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = path.join(ROOT, '..');
 const BASELINE_FILE = path.join(ROOT, 'scripts', 'vuln-baseline.json');
 const write = process.argv.includes('--write');
+const auditArtifactDir = process.env.VULN_AUDIT_ARTIFACT_DIR
+  ? path.resolve(process.env.VULN_AUDIT_ARTIFACT_DIR)
+  : null;
 
 /** @type {{ totals: Record<string, Record<string, number>>, packages: Record<string, Record<string, string[]>> }} */
 let baseline;
@@ -38,17 +42,22 @@ try {
   baseline = { totals: {}, packages: {} };
 }
 
-const runAudit = (cwd) => {
-  let raw = '';
+const runAudit = (name, cwd) => {
+  let raw;
   try {
-    raw = execFileSync('npm.cmd', ['audit', '--json'], { cwd, encoding: 'utf8', shell: true });
+    const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    raw = execFileSync(npmCommand, ['audit', '--json'], { cwd, encoding: 'utf8', shell: process.platform === 'win32' });
   } catch (err) {
     // npm audit exits non-zero WHEN IT FINDS VULNERABILITIES. That is the normal
     // path, not a failure of the tool, so the payload on stderr is used.
     raw = err.stdout || '';
   }
   if (!raw.trim()) throw new Error(`npm audit produced no output in ${cwd}`);
-  return JSON.parse(raw);
+  const audit = JSON.parse(raw);
+  if (auditArtifactDir) {
+    writeAuditArtifact(auditArtifactDir, name, audit);
+  }
+  return audit;
 };
 
 const bar = '='.repeat(78);
@@ -56,7 +65,7 @@ const totals = {};
 const packages = {};
 
 for (const name of ['backend', 'frontend']) {
-  const audit = runAudit(path.join(REPO, name));
+  const audit = runAudit(name, path.join(REPO, name));
   const v = audit.metadata?.vulnerabilities || {};
   totals[name] = {
     critical: v.critical || 0,

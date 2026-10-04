@@ -13,8 +13,8 @@
 
 ## Summary
 
-- **114 models** across 113 files (0 skipped)
-- **3171 schema fields**, of which **462 classified as PII** in **82 collections**
+- **116 models** across 115 files (0 skipped)
+- **3222 schema fields**, of which **465 classified as PII** in **84 collections**
 - **6 collections** carry a TTL index
 - **17 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -31,7 +31,7 @@
 | Location | 16 |
 | Image/Biometric | 3 |
 | Device/Network | 5 |
-| Identifier | 72 |
+| Identifier | 74 |
 | Identity | 41 |
 
 ## Collections
@@ -45,8 +45,8 @@
 | `announcements` | Announcement | 9 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `appointments` | Appointment | 78 | 10 | 12 | — | Clinical records |
 | `appointmentseries` | AppointmentSeries | 24 | 4 | 3 | — | **UNMAPPED — see gaps** |
-| `assistantbookings` | AssistantBooking | 77 | 15 | 10 | — | Clinical records |
-| `assistantprofiles` | AssistantProfile | 70 | 13 | 10 | — | Provider KYC documents |
+| `assistantbookings` | AssistantBooking | 82 | 15 | 11 | — | Clinical records |
+| `assistantprofiles` | AssistantProfile | 72 | 13 | 12 | — | Provider KYC documents |
 | `auditlogs` | AuditLog | 9 | 3 | 3 | 31536000s | Audit logs |
 | `beds` | Bed | 15 | 0 | 2 | — | No PII fields detected |
 | `billings` | Billing | 38 | 3 | 3 | — | Payment and ledger entries |
@@ -54,7 +54,7 @@
 | `bloodunits` | BloodUnit | 24 | 1 | 2 | — | Clinical records |
 | `calllogs` | CallLog | 16 | 0 | 5 | — | No PII fields detected |
 | `categories` | Category | 10 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
-| `chatconversations` | ChatConversation | 34 | 4 | 3 | — | **UNMAPPED — see gaps** |
+| `chatconversations` | ChatConversation | 37 | 4 | 4 | — | **UNMAPPED — see gaps** |
 | `chatmessages` | ChatMessage | 33 | 3 | 4 | 0s | **UNMAPPED — see gaps** |
 | `chatprivacies` | ChatPrivacy | 61 | 1 | 1 | — | **UNMAPPED — see gaps** |
 | `chatreports` | ChatReport | 13 | 1 | 6 | — | **UNMAPPED — see gaps** |
@@ -65,13 +65,13 @@
 | `consentrecords` | ConsentRecord | 14 | 2 | 4 | — | ABDM consent records |
 | `deletionrequests` | DeletionRequest | 27 | 1 | 2 | — | Audit logs |
 | `deliverypartners` | DeliveryPartner | 44 | 16 | 3 | — | Provider KYC documents |
-| `demopayments` | DemoPayment | 16 | 4 | 10 | — | Payment and ledger entries |
+| `demopayments` | DemoPayment | 19 | 5 | 17 | — | Payment and ledger entries |
 | `departments` | Department | 9 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `dietorders` | DietOrder | 30 | 6 | 2 | — | Clinical records |
 | `disputes` | Dispute | 17 | 1 | 3 | — | Payment and ledger entries |
-| `doctors` | Doctor | 112 | 11 | 13 | — | Provider KYC documents |
+| `doctors` | Doctor | 113 | 11 | 14 | — | Provider KYC documents |
 | `emergencies` | Emergency | 19 | 7 | 1 | — | Ride and SOS location traces |
-| `emergencydoctorrequests` | EmergencyDoctorRequest | 69 | 21 | 5 | — | Ride and SOS location traces |
+| `emergencydoctorrequests` | EmergencyDoctorRequest | 75 | 21 | 6 | — | Ride and SOS location traces |
 | `emergencyrequests` | EmergencyRequest | 62 | 17 | 4 | — | Ride and SOS location traces |
 | `equipment` | Equipment | 16 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `facilities` | Facility | 75 | 0 | 8 | — | Operational config (organization/catalog record — not personal data) |
@@ -85,8 +85,8 @@
 | `inventories` | Inventory | 23 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `labbookings` | LabBooking | 33 | 3 | 3 | — | Clinical records |
 | `laborders` | LabOrder | 39 | 7 | 3 | — | Clinical records |
-| `lawyerbookings` | LawyerBooking | 85 | 19 | 13 | — | **UNMAPPED — see gaps** |
-| `lawyerprofiles` | LawyerProfile | 84 | 12 | 11 | — | Provider KYC documents |
+| `lawyerbookings` | LawyerBooking | 88 | 19 | 14 | — | **UNMAPPED — see gaps** |
+| `lawyerprofiles` | LawyerProfile | 86 | 12 | 13 | — | Provider KYC documents |
 | `leaverequests` | LeaveRequest | 15 | 2 | 1 | — | **UNMAPPED — see gaps** |
 | `licenses` | License | 17 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `loginevents` | LoginEvent | 10 | 3 | 4 | 15552000s | Audit logs |
@@ -99,23 +99,25 @@
 | `notificationaudits` | NotificationAudit | 11 | 1 | 6 | — | Audit logs |
 | `notificationdeliveries` | NotificationDelivery | 19 | 1 | 6 | — | Notifications |
 | `notificationpreferences` | NotificationPreference | 14 | 2 | 1 | — | **UNMAPPED — see gaps** |
-| `notifications` | Notification | 14 | 1 | 2 | — | Notifications |
+| `notifications` | Notification | 15 | 1 | 3 | — | Notifications |
 | `nursingcharts` | NursingChart | 34 | 12 | 1 | — | Clinical records |
 | `operationtheatres` | OperationTheatre | 52 | 7 | 2 | — | Clinical records |
 | `otps` | OTP | 12 | 3 | 6 | 3600s | OTP / setup codes / tokens |
-| `outboxevents` | OutboxEvent | 13 | 0 | 7 | — | No PII fields detected |
+| `outboxevents` | OutboxEvent | 15 | 0 | 9 | — | No PII fields detected |
 | `patientaddresses` | PatientAddress | 11 | 4 | 1 | — | Clinical records |
 | `patients` | Patient | 36 | 10 | 7 | — | Clinical records |
 | `payments` | Payment | 20 | 2 | 3 | — | Payment and ledger entries |
 | `payouts` | Payout | 20 | 1 | 1 | — | Payment and ledger entries |
 | `pharmacydeliveries` | PharmacyDelivery | 34 | 9 | 5 | — | Clinical records |
 | `pharmacyoffers` | PharmacyOffer | 14 | 0 | 2 | — | No PII fields detected |
-| `pharmacyorders` | PharmacyOrder | 36 | 4 | 3 | — | Clinical records |
+| `pharmacyorders` | PharmacyOrder | 39 | 4 | 5 | — | Clinical records |
 | `pharmacyreturns` | PharmacyReturn | 17 | 2 | 2 | — | Clinical records |
 | `pharmacystaffs` | PharmacyStaff | 13 | 3 | 1 | — | Provider KYC documents |
 | `physiotherapies` | Physiotherapy | 34 | 6 | 2 | — | Clinical records |
 | `platformcontents` | PlatformContent | 10 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
+| `platformcouponredemptions` | PlatformCouponRedemption | 8 | 1 | 4 | — | Payment and ledger entries |
 | `platformcoupons` | PlatformCoupon | 17 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
+| `platformcouponuserusages` | PlatformCouponUserUsage | 6 | 1 | 1 | — | Payment and ledger entries |
 | `preferredpharmacies` | PreferredPharmacy | 7 | 1 | 2 | — | **UNMAPPED — see gaps** |
 | `prescriptions` | Prescription | 40 | 7 | 2 | — | Clinical records |
 | `purchaseorders` | PurchaseOrder | 25 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
@@ -131,8 +133,8 @@
 | `reviews` | Review | 18 | 4 | 5 | — | **UNMAPPED — see gaps** |
 | `rewardcatalogitems` | RewardCatalogItem | 15 | 0 | 2 | — | No PII fields detected |
 | `rewardredemptions` | RewardRedemption | 11 | 1 | 4 | — | Payment and ledger entries |
-| `ridebookings` | RideBooking | 68 | 13 | 8 | — | Ride and SOS location traces |
-| `riderprofiles` | RiderProfile | 46 | 12 | 9 | — | Provider KYC documents |
+| `ridebookings` | RideBooking | 72 | 13 | 9 | — | Ride and SOS location traces |
+| `riderprofiles` | RiderProfile | 48 | 12 | 11 | — | Provider KYC documents |
 | `ridetrackings` | RideTracking | 10 | 3 | 3 | — | Ride and SOS location traces |
 | `savedfavorites` | SavedFavorite | 8 | 1 | 2 | — | **UNMAPPED — see gaps** |
 | `schedulechangerequests` | ScheduleChangeRequest | 35 | 2 | 1 | — | **UNMAPPED — see gaps** |
@@ -144,7 +146,7 @@
 | `systemsettings` | SystemSetting | 7 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `tests` | Test | 39 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `tokens` | Token | 24 | 4 | 3 | — | OTP / setup codes / tokens |
-| `transactionledgers` | TransactionLedger | 20 | 4 | 8 | — | Payment and ledger entries |
+| `transactionledgers` | TransactionLedger | 20 | 4 | 9 | — | Payment and ledger entries |
 | `triages` | Triage | 46 | 16 | 2 | — | Clinical records |
 | `users` | User | 93 | 26 | 18 | — | **UNMAPPED — see gaps** |
 | `vehicles` | Vehicle | 20 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
@@ -604,6 +606,9 @@ source `AssistantBooking.js` · timestamps: yes · virtuals: 0 · retention: Sta
 | `acceptances.acceptedAt` | Date |  |  | [function] |  |  |  |
 | `rejections` | Array<String> |  |  |  |  |  |  |
 | `windowEndsAt` | Date |  |  | null |  |  |  |
+| `retryCount` | Number |  |  | 0 |  |  |  |
+| `retryAt` | Date |  |  | null |  |  |  |
+| `retryRadii` | Array<Number> |  |  | [] |  |  |  |
 | `currentSearchRadiusKm` | Number |  |  | 5 |  |  |  |
 | `dispatchLog` | Array<subdocument> |  |  |  |  |  |  |
 | `dispatchLog.radiusKm` | Number |  |  |  |  |  |  |
@@ -622,6 +627,8 @@ source `AssistantBooking.js` · timestamps: yes · virtuals: 0 · retention: Sta
 | `taskChecklist.doneAt` | Date |  |  |  |  |  |  |
 | `checkInAt` | Date |  |  |  |  |  |  |
 | `completedAt` | Date |  |  |  |  |  |  |
+| `settledAt` | Date |  |  | null |  |  |  |
+| `settlementAmount` | Number |  |  | 0 |  |  |  |
 | `completionSummary` | String |  |  | "" |  |  |  |
 | `payment.method` | String |  |  | "pending" | demo_wallet, cash, pending, |  |  |
 | `payment.status` | String |  |  | "pending" | pending, paid, failed |  |  |
@@ -651,6 +658,7 @@ Indexes:
 | `targetAssistantOnly:1` |  |
 | `scheduledDate:1` |  |
 | `status:1` |  |
+| `retryAt:1` |  |
 | `createdAt:1` |  |
 | `location:2dsphere` |  |
 
@@ -713,6 +721,8 @@ source `AssistantProfile.js` · timestamps: yes · virtuals: 0 · retention: Lif
 | `assistantStatus` | String |  |  | "pending_approval" | pending_approval, active, rejected, suspended |  |  |
 | `rejectionReason` | String |  |  | "" |  |  |  |
 | `isAvailable` | Boolean |  |  | false |  |  |  |
+| `lastLocationAt` | Date |  |  | null |  |  |  |
+| `activeDispatchRequestId` | ObjectId |  |  | null |  |  |  |
 | `isOnlineForUrgent` | Boolean |  |  | false |  |  |  |
 | `isDocumentVerified` | Boolean |  |  | false |  |  |  |
 | `rating.avg` | Number |  |  | 5 |  |  |  |
@@ -740,6 +750,8 @@ Indexes:
 | `operatingCity:1` |  |
 | `assistantStatus:1` |  |
 | `isAvailable:1` |  |
+| `lastLocationAt:1` |  |
+| `activeDispatchRequestId:1` |  |
 | `isOnlineForUrgent:1` |  |
 | `currentLocation.h3Index8:1` |  |
 | `currentLocation.h3Index9:1` |  |
@@ -1002,6 +1014,9 @@ source `ChatConversation.js` · timestamps: yes · virtuals: 0 · retention: **U
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|
 | `participants` | Array<ObjectId> |  |  |  |  |  |  |
+| `contextType` | String |  |  | null | assistant-booking, lawyer-booking |  |  |
+| `contextId` | ObjectId |  |  | null |  |  |  |
+| `contextParticipants` | Array<ObjectId> |  |  |  |  |  |  |
 | `mutedBy` | Array<ObjectId> |  |  |  |  |  |  |
 | `blockedBy` | Array<ObjectId> |  |  |  |  |  |  |
 | `pinnedBy` | Array<ObjectId> |  |  |  |  |  |  |
@@ -1043,6 +1058,7 @@ Indexes:
 | `participants:1` |  |
 | `requestStatus:1` |  |
 | `lastMessageAt:1` |  |
+| `contextType:1, contextId:1` | unique, partial |
 
 ### `chatmessages` — ChatMessage
 
@@ -1450,18 +1466,21 @@ source `DemoPayment.js` · timestamps: yes · virtuals: 0 · retention: 8 years 
 
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|
-| `bookingType` | String |  |  | "ride" | ride, assistant, lawyer |  |  |
+| `bookingType` | String |  |  | "ride" | ride, assistant, lawyer, emergency_doctor |  |  |
 | `rideId` | ObjectId |  |  |  |  | RideBooking |  |
 | `bookingId` | ObjectId |  |  |  |  | AssistantBooking |  |
 | `lawyerBookingId` | ObjectId |  |  |  |  | LawyerBooking |  |
+| `doctorRequestId` | ObjectId |  |  |  |  | EmergencyDoctorRequest |  |
 | `userId` | ObjectId | yes |  |  |  | User | Identifier |
 | `riderId` | ObjectId |  |  |  |  | User | Identifier |
 | `assistantId` | ObjectId |  |  |  |  | User | Identifier |
 | `lawyerId` | ObjectId |  |  |  |  | User | Identifier |
+| `doctorId` | ObjectId |  |  |  |  | Doctor | Identifier |
 | `amount` | Number | yes |  |  |  |  |  |
 | `method` | String |  |  | "demo_wallet" | demo_wallet, cash |  |  |
 | `status` | String |  |  | "pending" | pending, held_in_escrow, paid, refunded, failed |  |  |
 | `transactionRef` | String |  | yes | [function] |  |  |  |
+| `bookingRef` | String |  |  |  |  |  |  |
 | `paidAt` | Date |  |  |  |  |  |  |
 | `createdAt` | Date |  |  | [function] |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
@@ -1475,12 +1494,19 @@ Indexes:
 | `rideId:1` |  |
 | `bookingId:1` |  |
 | `lawyerBookingId:1` |  |
+| `doctorRequestId:1` |  |
 | `userId:1` |  |
 | `riderId:1` |  |
 | `assistantId:1` |  |
 | `lawyerId:1` |  |
+| `doctorId:1` |  |
 | `status:1` |  |
 | `transactionRef:1` | unique |
+| `bookingType:1, bookingId:1` | unique, sparse, partial |
+| `bookingType:1, rideId:1` | unique, sparse, partial |
+| `bookingType:1, lawyerBookingId:1` | unique, sparse, partial |
+| `bookingType:1, doctorRequestId:1` | unique, sparse, partial |
+| `bookingRef:1` | unique, sparse, partial |
 
 ### `departments` — Department
 
@@ -1653,6 +1679,7 @@ source `Doctor.js` · timestamps: yes · virtuals: 29 · retention: Life of the 
 | `emergency_consultation` | Boolean |  |  | false |  |  |  |
 | `emergencySupport` | Boolean |  |  | false |  |  |  |
 | `isEmergencyDutyActive` | Boolean |  |  | false |  |  |  |
+| `activeDispatchRequestId` | ObjectId |  |  | null |  |  |  |
 | `emergencyRadiusKm` | Number |  |  | 10 |  |  |  |
 | `emergencyDoctorLocation.type` | String |  |  | "Point" | Point |  |  |
 | `emergencyDoctorLocation.coordinates` | Array<Number> |  |  | [79.9864,23.1815] |  |  | Location |
@@ -1660,7 +1687,7 @@ source `Doctor.js` · timestamps: yes · virtuals: 29 · retention: Life of the 
 | `emergencyDoctorLocation.lng` | Number |  |  | 79.9864 |  |  | Location |
 | `emergencyDoctorLocation.h3Index8` | String |  |  | null |  |  |  |
 | `emergencyDoctorLocation.h3Index9` | String |  |  | null |  |  |  |
-| `emergencyDoctorLocation.lastUpdatedAt` | Date |  |  | [function] |  |  |  |
+| `emergencyDoctorLocation.lastUpdatedAt` | Date |  |  | null |  |  |  |
 | `emergencyEquipmentKit` | Array<String> |  |  | ["BLS Kit","Pulse Oximeter","BP Monitor","Nebulizer","Glucometer","Emergency Inj… (92 chars) |  |  |  |
 | `refundOnMissedOrCancelled` | Boolean |  |  | true |  |  |  |
 | `appointmentModes` | Array<String> |  |  | ["chat","video","offline","home_visit","audio"] |  |  |  |
@@ -1707,6 +1734,7 @@ Indexes:
 | `email:1` | unique |
 | `hospitalId:1` |  |
 | `facilityId:1` |  |
+| `activeDispatchRequestId:1` |  |
 | `emergencyDoctorLocation.h3Index8:1` |  |
 | `emergencyDoctorLocation.h3Index9:1` |  |
 | `facilityId:1, approved:1` |  |
@@ -1798,9 +1826,10 @@ source `EmergencyDoctorRequest.js` · timestamps: yes · virtuals: 0 · retentio
 | `location.address` | String |  |  | "" |  |  | Contact |
 | `pickupLocation.type` | String |  |  | "Point" | Point |  | Location |
 | `pickupLocation.coordinates` | Array<Number> |  |  | [79.9864,23.1815] |  |  | Location |
-| `status` | String |  |  | "searching" | searching, assigned, in_progress, completed, cancelled_by_user, no_responders_found, escalated_to_ambulance |  |  |
+| `status` | String |  |  | "searching" | searching, assigned, in_progress, completed, cancelled_by_user, cancelled_by_doctor, no_responders_found, escalated_to_ambulance |  |  |
 | `currentSearchRadiusKm` | Number |  |  | 10 |  |  |  |
-| `assignedDoctorId` | ObjectId |  |  | null |  | User |  |
+| `assignedDoctorId` | ObjectId |  |  | null |  | Doctor |  |
+| `assignedDoctorUserId` | ObjectId |  |  | null |  | User |  |
 | `assignedAt` | Date |  |  | null |  |  |  |
 | `notified` | Array<subdocument> |  |  |  |  |  |  |
 | `notified.providerId` | String |  |  |  |  |  | Identifier |
@@ -1812,6 +1841,9 @@ source `EmergencyDoctorRequest.js` · timestamps: yes · virtuals: 0 · retentio
 | `acceptances.distanceKm` | Number |  |  |  |  |  |  |
 | `acceptances.acceptedAt` | Date |  |  | [function] |  |  |  |
 | `windowEndsAt` | Date |  |  | null |  |  |  |
+| `retryCount` | Number |  |  | 0 |  |  |  |
+| `retryAt` | Date |  |  | null |  |  |  |
+| `retryRadii` | Array<Number> |  |  | [] |  |  |  |
 | `dispatchLog` | Array<subdocument> |  |  |  |  |  |  |
 | `dispatchLog.radiusKm` | Number |  |  |  |  |  |  |
 | `dispatchLog.candidateCount` | Number |  |  |  |  |  |  |
@@ -1820,6 +1852,8 @@ source `EmergencyDoctorRequest.js` · timestamps: yes · virtuals: 0 · retentio
 | `fee` | Number |  |  | 0 |  |  |  |
 | `appointmentId` | ObjectId |  |  | null |  | Appointment |  |
 | `cancelledAt` | Date |  |  | null |  |  |  |
+| `cancelledBy` | String |  |  | "" | doctor, patient, |  |  |
+| `cancellationReason` | String |  |  | "" |  |  |  |
 | `completedAt` | Date |  |  | null |  |  |  |
 | `createdAt` | Date |  |  | [function] |  |  |  |
 | `updatedAt` | Date |  |  | [function] |  |  |  |
@@ -1832,6 +1866,7 @@ Indexes:
 | `userId:1` |  |
 | `bookingId:1` | unique, sparse |
 | `status:1` |  |
+| `retryAt:1` |  |
 | `createdAt:1` |  |
 | `location:2dsphere` |  |
 
@@ -2501,6 +2536,9 @@ source `LawyerBooking.js` · timestamps: yes · virtuals: 0 · retention: **UNMA
 | `acceptances.acceptedAt` | Date |  |  | [function] |  |  |  |
 | `rejections` | Array<String> |  |  |  |  |  |  |
 | `windowEndsAt` | Date |  |  | null |  |  |  |
+| `retryCount` | Number |  |  | 0 |  |  |  |
+| `retryAt` | Date |  |  | null |  |  |  |
+| `retryRadii` | Array<Number> |  |  | [] |  |  |  |
 | `currentSearchRadiusKm` | Number |  |  | 5 |  |  |  |
 | `dispatchLog` | Array<subdocument> |  |  |  |  |  |  |
 | `dispatchLog.radiusKm` | Number |  |  |  |  |  |  |
@@ -2551,6 +2589,7 @@ Indexes:
 | `isFollowUp:1` |  |
 | `targetLawyerOnly:1` |  |
 | `status:1` |  |
+| `retryAt:1` |  |
 | `isCaseClosed:1` |  |
 | `createdAt:1` |  |
 | `location:2dsphere` |  |
@@ -2615,6 +2654,8 @@ source `LawyerProfile.js` · timestamps: yes · virtuals: 0 · retention: Life o
 | `lawyerStatus` | String |  |  | "pending_approval" | pending_approval, active, rejected, suspended |  |  |
 | `rejectionReason` | String |  |  | "" |  |  |  |
 | `isAvailable` | Boolean |  |  | false |  |  |  |
+| `lastLocationAt` | Date |  |  | null |  |  |  |
+| `activeDispatchRequestId` | ObjectId |  |  | null |  |  |  |
 | `isDocumentVerified` | Boolean |  |  | false |  |  |  |
 | `rating.avg` | Number |  |  | 5 |  |  |  |
 | `rating.count` | Number |  |  | 0 |  |  |  |
@@ -2657,6 +2698,8 @@ Indexes:
 | `acceptsUrgent:1` |  |
 | `lawyerStatus:1` |  |
 | `isAvailable:1` |  |
+| `lastLocationAt:1` |  |
+| `activeDispatchRequestId:1` |  |
 | `currentLocation.h3Index8:1` |  |
 | `currentLocation.h3Index9:1` |  |
 | `isOnlineForUrgent:1` |  |
@@ -3089,6 +3132,7 @@ source `Notification.js` · timestamps: yes · virtuals: 0 · retention: 90 days
 | `type` | String |  |  | "system" | reminder, payment, appointment, records, system, ride, assistant, lawyer, lab, sos, billing, emergency, prescription, radiology, token |  |  |
 | `read` | Boolean |  |  | false |  |  |  |
 | `userId` | String | yes |  |  |  |  | Identifier |
+| `referenceId` | String |  |  | null |  |  |  |
 | `date` | String |  |  | [function] |  |  |  |
 | `createdAt` | Date |  |  | [function] |  |  |  |
 | `details` | Mixed |  |  | null |  |  |  |
@@ -3103,6 +3147,7 @@ Indexes:
 
 | Keys | Flags |
 |---|---|
+| `referenceId:1` |  |
 | `userId:1, read:1` |  |
 | `userId:1, dedupKey:1` | unique, partial |
 
@@ -3255,16 +3300,18 @@ source `OutboxEvent.js` · timestamps: yes · virtuals: 0 · retention: n/a — 
 
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|
-| `aggregateType` | String | yes |  |  | ride, lawyer, assistant, emergency_sos, emergency_doctor, payment, user, provider, RideBooking, LawyerBooking, AssistantBooking, EmergencyRequest |  |  |
+| `aggregateType` | String | yes |  |  | ride, lawyer, assistant, emergency_sos, emergency_doctor, payment, user, provider, Prescription, RideBooking, LawyerBooking, AssistantBooking, EmergencyRequest, PharmacyOrder |  |  |
 | `aggregateId` | String | yes |  |  |  |  |  |
 | `eventType` | String | yes |  |  |  |  |  |
 | `payload` | Mixed | yes |  |  |  |  |  |
 | `destinationTopic` | String | yes |  | "findmedi.dispatch.booking-events.v1" |  |  |  |
-| `status` | String |  |  | "PENDING" | PENDING, PUBLISHED, FAILED |  |  |
+| `status` | String |  |  | "PENDING" | PENDING, PROCESSING, PUBLISHED, FAILED |  |  |
 | `retryCount` | Number |  |  | 0 |  |  |  |
 | `nextAttemptAt` | Date |  |  | null |  |  |  |
 | `lastError` | String |  |  | null |  |  |  |
 | `publishedAt` | Date |  |  | null |  |  |  |
+| `processingAt` | Date |  |  | null |  |  |  |
+| `processingBy` | String |  |  | null |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -3278,8 +3325,10 @@ Indexes:
 | `eventType:1` |  |
 | `status:1` |  |
 | `nextAttemptAt:1` |  |
+| `processingAt:1` |  |
 | `status:1, createdAt:1` |  |
 | `status:1, nextAttemptAt:1` |  |
+| `status:1, processingAt:1` |  |
 
 ### `patientaddresses` — PatientAddress
 
@@ -3371,7 +3420,7 @@ source `Payment.js` · timestamps: yes · virtuals: 5 · retention: 8 years (sta
 | `patient_name` | String | yes |  |  |  |  | Identity |
 | `amount` | Number | yes |  |  |  |  |  |
 | `method` | String |  |  | "card" | card, upi, netbanking, cash, wallet |  |  |
-| `status` | String |  |  | "completed" | completed, pending, failed, refunded |  |  |
+| `status` | String |  |  | "pending" | completed, pending, failed, refunded, partially_refunded |  |  |
 | `invoice_id` | String |  |  | "" |  |  |  |
 | `serviceType` | String |  |  | "appointment" | appointment, test, medicine |  |  |
 | `referenceId` | String |  |  | "" |  |  |  |
@@ -3524,8 +3573,11 @@ source `PharmacyOrder.js` · timestamps: yes · virtuals: 0 · retention: Statut
 | `items.qty` | Number | yes |  |  |  |  |  |
 | `items.price` | Number | yes |  |  |  |  |  |
 | `total` | Number | yes |  |  |  |  |  |
+| `payableBeforeDiscount` | Number |  |  | 0 |  |  |  |
 | `status` | String |  |  | "Pending" | Pending, Confirmed, Preparing, Shipped, Out for Delivery, Delivered, Cancelled, Returned |  |  |
-| `paymentStatus` | String |  |  | "Unpaid" | Unpaid, Paid, Refunded |  |  |
+| `paymentStatus` | String |  |  | "Unpaid" | Pending, Unpaid, Paid, Refunded |  |  |
+| `inventoryReservationStatus` | String |  |  | "none" | none, reserved, consumed, released |  |  |
+| `inventoryReservationExpiresAt` | Date |  |  | null |  |  |  |
 | `note` | String |  |  | "" |  |  |  |
 | `orderDate` | Date |  |  | [function] |  |  |  |
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
@@ -3555,6 +3607,8 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `orderId:1` | unique |
+| `inventoryReservationStatus:1` |  |
+| `inventoryReservationExpiresAt:1` |  |
 | `hospitalId:1` |  |
 | `facilityId:1` |  |
 
@@ -3687,6 +3741,30 @@ Indexes:
 | `key:1` | unique |
 | `updatedAt:-1` |  |
 
+### `platformcouponredemptions` — PlatformCouponRedemption
+
+source `PlatformCouponRedemption.js` · timestamps: yes · virtuals: 0 · retention: 8 years (statutory accounting) (docs/privacy/RETENTION.md) · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `couponCode` | String | yes |  |  |  |  |  |
+| `userId` | ObjectId | yes |  |  |  | User | Identifier |
+| `discountPaise` | Number | yes |  |  |  |  |  |
+| `orderRef` | String | yes |  |  |  |  |  |
+| `status` | String |  |  | "applied" | applied, settled, reversed |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `userId:1` |  |
+| `status:1` |  |
+| `couponCode:1, orderRef:1` | unique |
+| `couponCode:1, userId:1, status:1` |  |
+
 ### `platformcoupons` — PlatformCoupon
 
 source `PlatformCoupon.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data in this collection
@@ -3717,6 +3795,25 @@ Indexes:
 |---|---|
 | `code:1` | unique |
 | `isActive:1, validFrom:1, validUntil:1` |  |
+
+### `platformcouponuserusages` — PlatformCouponUserUsage
+
+source `PlatformCouponUserUsage.js` · timestamps: yes · virtuals: 0 · retention: 8 years (statutory accounting) (docs/privacy/RETENTION.md) · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `couponCode` | String | yes |  |  |  |  |  |
+| `userId` | ObjectId | yes |  |  |  | User | Identifier |
+| `usedCount` | Number | yes |  | 0 |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `couponCode:1, userId:1` | unique |
 
 ### `preferredpharmacies` — PreferredPharmacy
 
@@ -4252,6 +4349,10 @@ source `RideBooking.js` · timestamps: yes · virtuals: 0 · retention: Trip dur
 | `acceptances.acceptedAt` | Date |  |  | [function] |  |  |  |
 | `rejections` | Array<String> |  |  |  |  |  |  |
 | `windowEndsAt` | Date |  |  | null |  |  |  |
+| `retryCount` | Number |  |  | 0 |  |  |  |
+| `retryAt` | Date |  |  | null |  |  |  |
+| `retryRadii` | Array<Number> |  |  | [] |  |  |  |
+| `retryWaveIndex` | Number |  |  | 0 |  |  |  |
 | `currentSearchRadiusKm` | Number |  |  | 5 |  |  |  |
 | `dispatchLog` | Array<subdocument> |  |  |  |  |  |  |
 | `dispatchLog.radiusKm` | Number |  |  |  |  |  |  |
@@ -4289,6 +4390,7 @@ Indexes:
 | `vehicleType:1` |  |
 | `isEmergency:1` |  |
 | `status:1` |  |
+| `retryAt:1` |  |
 | `lakeArchivedAt:1` |  |
 | `createdAt:1` |  |
 
@@ -4319,6 +4421,8 @@ source `RiderProfile.js` · timestamps: yes · virtuals: 0 · retention: Life of
 | `riderStatus` | String |  |  | "pending_approval" | pending_approval, active, rejected, suspended |  |  |
 | `rejectionReason` | String |  |  | "" |  |  |  |
 | `isOnline` | Boolean |  |  | false |  |  |  |
+| `lastLocationAt` | Date |  |  | null |  |  |  |
+| `activeDispatchRequestId` | ObjectId |  |  | null |  |  |  |
 | `emergencySupport` | Boolean |  |  | false |  |  |  |
 | `currentLocation.type` | String |  |  | "Point" | Point |  | Location |
 | `currentLocation.coordinates` | Array<Number> |  |  | [79.9864,23.1815] |  |  | Location |
@@ -4354,6 +4458,8 @@ Indexes:
 | `operatingCity:1` |  |
 | `riderStatus:1` |  |
 | `isOnline:1` |  |
+| `lastLocationAt:1` |  |
+| `activeDispatchRequestId:1` |  |
 | `emergencySupport:1` |  |
 | `currentLocation.h3Index8:1` |  |
 | `currentLocation.h3Index9:1` |  |
@@ -4767,6 +4873,7 @@ Indexes:
 | `createdAt:-1` |  |
 | `providerId:1, createdAt:-1` |  |
 | `facilityId:1, createdAt:-1` |  |
+| `source:1, sourceId:1` | unique, partial |
 
 ### `triages` — Triage
 

@@ -1,0 +1,6 @@
+{
+  "eventType": "pharmacy.cod_collected",
+  "orderId": "",
+  "transactionId": "txn_fixture_01",
+  "invoiceId": "inv_fixture_01"
+}

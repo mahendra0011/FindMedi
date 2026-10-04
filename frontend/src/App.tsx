@@ -564,6 +564,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ErrorBoundary>
     <ReduxAuthProvider>
+      <HashRouter>
       <NotificationProvider>
         <PreferredPharmacyProvider>
         <CartProvider>
@@ -578,7 +579,6 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <EmergencyFlowController />
             <ReminderAlarmHost />
             <LenisScroll>
@@ -1019,13 +1019,13 @@ const App = () => (
               </Suspense>
               </AppMotion>
             </LenisScroll>
-          </HashRouter>
         </TooltipProvider>
         </VideoCallProvider>
         </AudioCallProvider>
         </CartProvider>
         </PreferredPharmacyProvider>
       </NotificationProvider>
+      </HashRouter>
     </ReduxAuthProvider>
     </ErrorBoundary>
   </QueryClientProvider>

@@ -7,7 +7,7 @@ const paymentSchema = new mongoose.Schema({
   patient_name: { alias: 'patientName', type: String, required: true },
   amount: { type: Number, required: true },
   method: { type: String, enum: ['card', 'upi', 'netbanking', 'cash', 'wallet'], default: 'card' },
-  status: { type: String, enum: ['completed', 'pending', 'failed', 'refunded'], default: 'completed' },
+  status: { type: String, enum: ['completed', 'pending', 'failed', 'refunded', 'partially_refunded'], default: 'pending' },
   invoice_id: { alias: 'invoiceId', type: String, default: '' },
   serviceType: { type: String, enum: ['appointment', 'test', 'medicine'], default: 'appointment' },
   referenceId: { type: String, default: '' },

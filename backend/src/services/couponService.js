@@ -1,5 +1,7 @@
-import logger from '../config/logger.js';
 import { toPaise, fromPaise } from './ledgerService.js';
+import PlatformCoupon from '../models/PlatformCoupon.js';
+import PlatformCouponRedemption from '../models/PlatformCouponRedemption.js';
+import PlatformCouponUserUsage from '../models/PlatformCouponUserUsage.js';
 
 /**
  * LOYAL-B-02: server-side coupon resolution and eligibility re-check.
@@ -51,7 +53,6 @@ export async function resolveCoupon({
     return { ok: false, reason: COUPON_REJECT_REASONS.NOT_FOUND, message: 'Coupon code is required' };
   }
 
-  const { default: PlatformCoupon } = await import('../models/PlatformCoupon.js');
   const coupon = await PlatformCoupon.findOne({ code: normalized }).lean();
   if (!coupon) {
     return { ok: false, reason: COUPON_REJECT_REASONS.NOT_FOUND, message: 'Invalid coupon code' };
@@ -75,7 +76,8 @@ export async function resolveCoupon({
     }
   }
   if (Array.isArray(coupon.applicableServices) && coupon.applicableServices.length && serviceType) {
-    if (!coupon.applicableServices.includes(serviceType)) {
+    const canonicalService = String(serviceType).toLowerCase() === 'medicine' ? 'pharmacy' : serviceType;
+    if (!coupon.applicableServices.includes(serviceType) && !coupon.applicableServices.includes(canonicalService)) {
       return { ok: false, reason: COUPON_REJECT_REASONS.SERVICE_MISMATCH, message: 'This coupon does not apply to this service' };
     }
   }
@@ -142,18 +144,26 @@ export async function resolveCoupon({
   // Per-user cap, counted from real redemptions rather than a client counter.
   const perUserLimit = Number(coupon.perUserLimit ?? 0);
   if (perUserLimit > 0 && userId) {
-    const { default: PlatformCouponRedemption } = await import('../models/PlatformCouponRedemption.js').catch(() => ({ default: null }));
-    if (PlatformCouponRedemption) {
-      const mine = await PlatformCouponRedemption.countDocuments({
-        couponCode: normalized, userId, status: { $in: ['applied', 'settled'] },
-      });
-      if (mine >= perUserLimit) {
-        return {
-          ok: false,
-          reason: COUPON_REJECT_REASONS.PER_USER_LIMIT,
-          message: 'You have already used this coupon the maximum number of times',
-        };
-      }
+    const mine = await PlatformCouponRedemption.countDocuments({
+      couponCode: normalized, userId, status: { $in: ['applied', 'settled'] },
+    });
+    try {
+      await PlatformCouponUserUsage.updateOne(
+        { couponCode: normalized, userId },
+        { $setOnInsert: { usedCount: mine } },
+        { upsert: true },
+      );
+    } catch (err) {
+      // Concurrent first checkouts can race the unique-key bootstrap. The
+      // winner created the counter; its conditional update below arbitrates use.
+      if (err.code !== 11000) throw err;
+    }
+    if (mine >= perUserLimit) {
+      return {
+        ok: false,
+        reason: COUPON_REJECT_REASONS.PER_USER_LIMIT,
+        message: 'You have already used this coupon the maximum number of times',
+      };
     }
   }
 
@@ -169,42 +179,54 @@ export async function resolveCoupon({
 /**
  * Record a coupon redemption.
  *
- * The counter is incremented with an atomic `$inc`, so two concurrent checkouts
- * cannot both pass the usage check and both consume the last remaining use.
- * `matched` reports whether this particular increment moved past the limit, which
- * is what lets the caller reverse a payment that raced the cap.
+ * The global counter and redemption record join the payment transaction when a
+ * session is supplied. Exceeding the global cap throws so the caller aborts that
+ * transaction instead of committing an untracked discount.
  */
-export async function recordCouponRedemption({ code, userId, discountPaise, orderRef = null, matched = true }) {
+export async function recordCouponRedemption({ code, userId, discountPaise, orderRef = null, matched = true, perUserLimit = 0, session = null }) {
   const normalized = String(code || '').trim().toUpperCase();
-  const { default: PlatformCoupon } = await import('../models/PlatformCoupon.js');
-
   let newUsed = null;
   if (matched) {
-    const updated = await PlatformCoupon.findOneAndUpdate(
+    const updateQuery = PlatformCoupon.findOneAndUpdate(
       { code: normalized },
       { $inc: { usedCount: 1 }, $set: { lastUsedAt: new Date() } },
-      { new: true }
-    ).select('usedCount');
+      { new: true, ...(session ? { session } : {}) }
+    ).select('usedCount usageLimit');
+    const updated = await updateQuery;
     newUsed = updated?.usedCount ?? null;
 
     // Lost the race against the global cap: undo our own increment and tell the
     // caller to reverse the payment.
     const limit = Number(updated?.usageLimit ?? 0);
     if (limit > 0 && newUsed != null && newUsed > limit) {
-      await PlatformCoupon.updateOne({ code: normalized }, { $inc: { usedCount: -1 } });
-      return { code: normalized, usedCount: newUsed, exceededLimit: true };
+      const exceeded = new Error('This coupon has been fully redeemed');
+      exceeded.status = 409;
+      exceeded.code = 'coupon_global_usage_exhausted';
+      throw exceeded;
     }
   }
 
-  const { default: PlatformCouponRedemption } = await import('../models/PlatformCouponRedemption.js').catch(() => ({ default: null }));
-  if (PlatformCouponRedemption) {
-    await PlatformCouponRedemption.create({
-      couponCode: normalized,
-      userId,
-      discountPaise,
-      orderRef,
-      status: 'applied',
-    });
+  const cap = Number(perUserLimit);
+  if (cap > 0) {
+    const usage = await PlatformCouponUserUsage.findOneAndUpdate(
+      { couponCode: normalized, userId, usedCount: { $lt: cap } },
+      { $inc: { usedCount: 1 } },
+      { new: true, ...(session ? { session } : {}) },
+    );
+    if (!usage) {
+      const exceeded = new Error('You have already used this coupon the maximum number of times');
+      exceeded.status = 409;
+      exceeded.code = 'coupon_per_user_limit_reached';
+      throw exceeded;
+    }
   }
+
+  await PlatformCouponRedemption.create([{
+    couponCode: normalized,
+    userId,
+    discountPaise,
+    orderRef,
+    status: 'applied',
+  }], session ? { session } : {});
   return { code: normalized, discountPaise: fromPaise(discountPaise), usedCount: newUsed };
 }

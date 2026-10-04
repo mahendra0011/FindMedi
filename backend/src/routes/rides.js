@@ -22,9 +22,12 @@ import {
 import { generateRideReceiptPdf } from '../services/rideReceiptService.js';
 import { getIO } from '../services/socketService.js';
 import TransactionLedger from '../models/TransactionLedger.js';
+import { mirrorLedgerEntry } from '../lib/pgDualWrite.js';
 import { recordServiceSettlement } from '../services/ledgerService.js';
 import { loyaltyService } from '../services/loyaltyService.js';
 import { executeWithOutbox } from '../lib/transactionalOutbox.js';
+import { latLngToCell } from 'h3-js';
+import { claimProvider, releaseProviderClaim } from '../services/instantDispatchService.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -152,18 +155,21 @@ router.post('/book', protect, authorize('ride:write', 'ride:write:own'), validat
       [
         {
           aggregateType: 'RideBooking',
-          aggregateId: req.user._id,
+          aggregateId: (createdRide) => createdRide._id,
           eventType: 'RideBookingCreated.v1',
           destinationTopic: 'findmedi.dispatch.booking-events.v1',
-          payload: {
-            userId: req.user._id,
+          payload: (createdRide) => ({
+            bookingId: String(createdRide._id),
+            vertical: 'ride',
+            h3_cell: latLngToCell(Number(pickup.lat), Number(pickup.lng), 8),
+            event_time: new Date().toISOString(),
             vehicleType,
             isEmergency: !!isEmergency,
             pickup,
             drop,
             distanceKm,
             estimatedFare: fare?.total || 0,
-          },
+          }),
         },
       ]
     );
@@ -365,6 +371,8 @@ router.get('/:id', protect, authorize('ride:read', 'ride:read:own'), async (req,
 // ─── POST /api/ride/:id/accept ──────────────────────────────────────────────
 // Rider accepts a ride booking (Atomic update)
 router.post('/:id/accept', protect, authorize('ride:write'), idempotencyGuard(), async (req, res) => {
+  let providerClaimed = false;
+  let acceptedRideId = null;
   try {
     if (req.user.role !== 'rider') {
       return res.status(403).json({ message: 'Only registered riders can accept rides' });
@@ -374,6 +382,11 @@ router.post('/:id/accept', protect, authorize('ride:write'), idempotencyGuard(),
     if (!riderProfile || riderProfile.riderStatus !== 'active') {
       return res.status(403).json({ message: 'Your rider account is not active or verified' });
     }
+
+    if (!await claimProvider('rider', req.user._id, req.params.id)) {
+      return res.status(409).json({ message: 'Your account is already assigned to another active dispatch' });
+    }
+    providerClaimed = true;
 
     const ride = await RideBooking.findOneAndUpdate(
       { _id: req.params.id, status: 'searching' },
@@ -391,8 +404,11 @@ router.post('/:id/accept', protect, authorize('ride:write'), idempotencyGuard(),
       .populate('vehicleId');
 
     if (!ride) {
+      await releaseProviderClaim('rider', req.user._id, req.params.id);
+      providerClaimed = false;
       return res.status(400).json({ message: 'This ride has already been accepted or is no longer available' });
     }
+    acceptedRideId = ride._id;
 
     // Broadcast to other riders that ride was taken
     const io = getIO();
@@ -418,6 +434,18 @@ router.post('/:id/accept', protect, authorize('ride:write'), idempotencyGuard(),
       ride,
     });
   } catch (err) {
+    if (providerClaimed) {
+      const rideWasAssigned = acceptedRideId || await RideBooking.exists({
+        _id: req.params.id,
+        riderId: req.user._id,
+        status: { $in: ['accepted', 'rider_arriving', 'arrived', 'in_progress'] },
+      }).catch(() => false);
+      if (!rideWasAssigned) {
+        await releaseProviderClaim('rider', req.user._id, req.params.id).catch((releaseError) => {
+          logger.error(`Ride accept claim release failed: ${releaseError.message}`);
+        });
+      }
+    }
     logger.error(`Ride accept error: ${err.message}`);
     sendServerError(res, err, 'Failed to accept ride');
   }
@@ -522,31 +550,67 @@ router.post('/:id/start', protect, authorize('ride:write'), idempotencyGuard({ p
 // a ride still in_progress can complete, so a second call matches nothing.
 router.post('/:id/complete', protect, authorize('ride:write'), idempotencyGuard({ prefix: 'ride-complete', failClosed: true }), async (req, res) => {
   try {
-    const ride = await RideBooking.findOneAndUpdate(
-      { _id: req.params.id, riderId: req.user._id, status: 'in_progress' },
+    let settlementResult;
+    const rideEventPayload = {};
+    const ride = await executeWithOutbox(async (session) => {
+      const completedRide = await RideBooking.findOneAndUpdate(
+        { _id: req.params.id, riderId: req.user._id, status: 'in_progress' },
+        {
+          status: 'completed',
+          completedAt: new Date(),
+          $push: { statusHistory: { status: 'completed', at: new Date(), note: 'Trip completed' } },
+        },
+        { new: true, session }
+      ).populate('userId', 'name phone avatar');
+
+      if (!completedRide) {
+        const err = new Error('Unable to complete ride');
+        err.statusCode = 409;
+        throw err;
+      }
+
+      settlementResult = await recordServiceSettlement({
+        source: 'ride',
+        sourceId: completedRide._id,
+        bookingNumber: completedRide.bookingNumber,
+        userId: completedRide.userId?._id || completedRide.userId,
+        providerId: req.user._id,
+        patientName: completedRide.userId?.name || 'Passenger',
+        totalAmount: completedRide.fare?.total || 0,
+        customCommissionPercent: 10,
+        session,
+      });
+      Object.assign(rideEventPayload, {
+        bookingNumber: completedRide.bookingNumber,
+        rideId: String(completedRide._id),
+        userId: String(completedRide.userId?._id || completedRide.userId),
+        riderId: String(req.user._id),
+        fare: completedRide.fare?.total || 0,
+        completedAt: completedRide.completedAt,
+      });
+      return completedRide;
+    }, [
       {
-        status: 'completed',
-        completedAt: new Date(),
-        $push: { statusHistory: { status: 'completed', at: new Date(), note: 'Trip completed' } },
+        aggregateType: 'RideBooking',
+        aggregateId: req.params.id,
+        eventType: 'RideCompleted.v1',
+        destinationTopic: 'findmedi.dispatch.booking-events.v1',
+        payload: rideEventPayload,
       },
-      { new: true }
-    ).populate('userId', 'name phone avatar');
+    ]);
 
-    if (!ride) {
-      return res.status(400).json({ message: 'Unable to complete ride' });
+    await releaseProviderClaim('rider', req.user._id, ride._id);
+
+    // PostgreSQL is a separate system and cannot join Mongo's transaction.
+    // Mirror only after Mongo has committed; its consumer must be idempotent.
+    if (settlementResult?.ledgerId) {
+      const ledgerRecord = await TransactionLedger.findById(settlementResult.ledgerId).lean();
+      if (ledgerRecord) {
+        void mirrorLedgerEntry(ledgerRecord).catch((mirrorErr) => {
+          logger.error(`Ride ledger PostgreSQL mirror failed: ${mirrorErr.message}`);
+        });
+      }
     }
-
-    // Record double-entry financial settlement & credit net earnings to driver wallet
-    await recordServiceSettlement({
-      source: 'ride',
-      sourceId: ride._id,
-      bookingNumber: ride.bookingNumber,
-      userId: ride.userId?._id || ride.userId,
-      providerId: req.user._id,
-      patientName: ride.userId?.name || 'Passenger',
-      totalAmount: ride.fare?.total || 0,
-      customCommissionPercent: 10,
-    }).catch(e => logger.warn(`Ride ledger settlement warning: ${e.message}`));
 
     // Award passenger loyalty points for completed trip
     const passengerId = ride.userId?._id || ride.userId;
@@ -554,23 +618,6 @@ router.post('/:id/complete', protect, authorize('ride:write'), idempotencyGuard(
       loyaltyService.earnPoints(passengerId, 'ride_completed', ride._id)
         .catch(e => logger.warn(`Ride loyalty points award warning: ${e.message}`));
     }
-
-    // Persist RideCompleted event to Outbox for asynchronous downstream processing
-    const OutboxEvent = (await import('../models/OutboxEvent.js')).default;
-    await OutboxEvent.create({
-      aggregateType: 'RideBooking',
-      aggregateId: ride._id.toString(),
-      eventType: 'RideCompleted.v1',
-      destinationTopic: 'findmedi.dispatch.booking-events.v1',
-      payload: {
-        bookingNumber: ride.bookingNumber,
-        rideId: ride._id,
-        userId: passengerId,
-        riderId: req.user._id,
-        fare: ride.fare?.total || 0,
-        completedAt: ride.completedAt,
-      },
-    }).catch(e => logger.warn(`Ride completed outbox write warning: ${e.message}`));
 
     notifyRideUpdate(ride, 'ride_status_update');
 
@@ -583,6 +630,9 @@ router.post('/:id/complete', protect, authorize('ride:write'), idempotencyGuard(
 
     res.json({ success: true, ride });
   } catch (err) {
+    if (err.statusCode === 409) {
+      return res.status(409).json({ message: 'Ride cannot be completed in its current state' });
+    }
     sendServerError(res, err, 'Failed to complete ride');
   }
 });
@@ -625,6 +675,7 @@ router.post('/:id/cancel', protect, authorize('ride:write', 'ride:write:own'), i
       ride.cancelledBy = 'rider';
       ride.statusHistory.push({ status: 'cancelled_by_rider', at: new Date(), note: reason });
       await ride.save();
+      await releaseProviderClaim('rider', req.user._id, ride._id);
 
       await RiderProfile.findOneAndUpdate(
         { userId: req.user._id },
@@ -643,6 +694,7 @@ router.post('/:id/cancel', protect, authorize('ride:write', 'ride:write:own'), i
       ride.cancelledBy = 'user';
       ride.statusHistory.push({ status: 'cancelled_by_user', at: new Date(), note: reason });
       await ride.save();
+      if (ride.riderId) await releaseProviderClaim('rider', ride.riderId, ride._id);
 
       // LOYAL-M-02: a cancelled booking gives its points back. Fail-soft,
       // idempotent, and a no-op unless this ride actually earned (points are
@@ -723,7 +775,7 @@ router.get('/:id/receipt', protect, authorize('ride:read', 'ride:read:own'), asy
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
 
     const isOwner = ride.userId?.toString() === req.user._id.toString() || ride.riderId?.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === 'superadmin' || req.user.role === 'hospital_admin';
+    const isAdmin = req.user.role === 'superadmin';
     if (!isOwner && !isAdmin) {
       return res.status(403).json({ message: 'Not authorized to view this receipt' });
     }
@@ -752,7 +804,7 @@ router.get('/:id/thermal-receipt', protect, authorize('ride:read', 'ride:read:ow
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
 
     const isOwner = ride.userId?.toString() === req.user._id.toString() || ride.riderId?.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === 'superadmin' || req.user.role === 'hospital_admin';
+    const isAdmin = req.user.role === 'superadmin';
     if (!isOwner && !isAdmin) {
       return res.status(403).json({ message: 'Not authorized to view this receipt' });
     }
@@ -780,33 +832,19 @@ router.get('/:id/payout-statement', protect, authorize('ride:read', 'ride:read:o
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
 
     const isOwner = ride.userId?.toString() === req.user._id.toString() || ride.riderId?.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === 'superadmin' || req.user.role === 'hospital_admin';
+    const isAdmin = req.user.role === 'superadmin';
     if (!isOwner && !isAdmin) {
       return res.status(403).json({ message: 'Not authorized to view this payout statement' });
     }
 
-    const totalAmount = ride.fare?.total || 0;
-    const commissionPercent = 10; // platform commission % (configurable per source)
-    const commissionAmount = Math.round((totalAmount * commissionPercent) / 100);
-    const taxAmount = Math.round(totalAmount / 100); // 1% Section 194C/J TDS
-    const netAmount = Math.max(0, totalAmount - commissionAmount - taxAmount);
-
-    // Retrieve ledger entry for audit trail
-    const ledgerEntry = await TransactionLedger.findOne({ source: 'ride', sourceId: ride._id })
+    const ledgerEntry = await TransactionLedger.findOne({ source: 'ride', sourceId: String(ride._id), entryType: 'CREDIT', status: 'completed' })
+      .select('amount commissionPercent commissionAmount taxAmount netAmount status')
       .lean();
-
-    // Driver profile earnings info
-    let driverEarnings = { totalEarnings: 0, walletBalance: 0, commissionEarned: 0 };
-    if (ride.riderId) {
-      const riderProfile = await RiderProfile.findOne({ userId: ride.riderId._id }).lean();
-      if (riderProfile) {
-        driverEarnings = {
-          totalEarnings: riderProfile.totalEarnings || 0,
-          walletBalance: riderProfile.walletBalance || 0,
-          commissionEarned: riderProfile.commissionEarned || 0,
-        };
-      }
+    if (!ledgerEntry && ride.status === 'completed') {
+      return res.status(409).json({ message: 'Settlement is being reconciled' });
     }
+    const totalAmount = ledgerEntry?.amount ?? ride.fare?.total ?? 0;
+    const isAssignedRider = String(ride.riderId?._id || ride.riderId) === String(req.user._id);
 
     const statement = {
       rideId: ride._id,
@@ -827,21 +865,32 @@ router.get('/:id/payout-statement', protect, authorize('ride:read', 'ride:read:o
         total: totalAmount,
       },
       totalAmount,
-      commissionPercent,
-      commissionAmount,
-      taxAmount: taxAmount,
-      netAmount,
-      platformShare: commissionAmount,
-      driverNet: netAmount,
+      commissionPercent: ledgerEntry?.commissionPercent ?? null,
+      commissionAmount: ledgerEntry?.commissionAmount ?? null,
+      taxAmount: ledgerEntry?.taxAmount ?? null,
+      netAmount: ledgerEntry?.netAmount ?? null,
+      platformShare: ledgerEntry?.commissionAmount ?? null,
+      driverNet: ledgerEntry?.netAmount ?? null,
+      settlementStatus: ledgerEntry?.status ?? 'pending',
       ledgerEntryId: ledgerEntry?._id,
       generatedAt: new Date(),
     };
 
-    res.json({
+    const response = {
       success: true,
       payoutStatement: statement,
-      driverEarningsSummary: driverEarnings,
-    });
+    };
+    if (isAssignedRider) {
+      const riderProfile = await RiderProfile.findOne({ userId: ride.riderId?._id || ride.riderId })
+        .select('totalEarnings walletBalance commissionEarned')
+        .lean();
+      response.driverEarningsSummary = riderProfile ? {
+        totalEarnings: riderProfile.totalEarnings || 0,
+        walletBalance: riderProfile.walletBalance || 0,
+        commissionEarned: riderProfile.commissionEarned || 0,
+      } : null;
+    }
+    res.json(response);
   } catch (err) {
     logger.error(`Ride payout statement error: ${err.message}`);
     sendServerError(res, err, 'Failed to generate payout statement');
@@ -852,37 +901,46 @@ router.get('/:id/payout-statement', protect, authorize('ride:read', 'ride:read:o
 // Driver daily/weekly earnings summary with adjustments and deductions (PAY-R-04)
 router.get('/driver/earnings', protect, authorize('ride:read', 'ride:read:own'), async (req, res) => {
   try {
+    if (req.user.role !== 'rider') return res.status(403).json({ message: 'Rider access required' });
     const { period = 'week', startDate, endDate } = req.query;
+    if (!['day', 'week', 'month'].includes(period)) {
+      return res.status(400).json({ message: 'period must be day, week, or month' });
+    }
 
     // Determine date range
     const end = new Date(endDate || Date.now());
-    const start = new Date(startDate || 0);
-    const commissionPercent = 10; // platform commission % (configurable per source)
-    if (isNaN(start.getTime())) start.setDate(end.getDate() - 7); // default: last 7 days
+    const start = new Date(startDate || end.getTime() - 7 * 86400000);
+    if (!Number.isFinite(end.getTime()) || !Number.isFinite(start.getTime()) || start >= end) {
+      return res.status(400).json({ message: 'Invalid earnings date range' });
+    }
 
     // Clamp period
     let queryStart, queryEnd;
     if (period === 'day') {
-      queryStart = start;
-      queryEnd = end;
+      queryStart = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+      queryEnd = new Date(queryStart.getTime() + 86400000);
     } else if (period === 'week') {
-      queryStart = new Date(start.getTime() - start.getDay() * 86400000); // Monday
-      queryEnd = new Date(queryStart.getTime() + 6 * 86400000); // Sunday
+      const day = start.getUTCDay();
+      const daysSinceMonday = (day + 6) % 7;
+      queryStart = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() - daysSinceMonday));
+      queryEnd = new Date(queryStart.getTime() + 7 * 86400000);
     } else if (period === 'month') {
-      queryStart = new Date(start.getFullYear(), start.getMonth(), 1);
-      queryEnd = new Date(queryStart.getTime() + 30 * 86400000);
-    } else {
-      queryStart = start;
-      queryEnd = end;
+      queryStart = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+      queryEnd = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
+    }
+    if (queryEnd - queryStart > 366 * 86400000) {
+      return res.status(400).json({ message: 'Earnings range cannot exceed 366 days' });
     }
 
     // Find rides completed in this period for this user
-    const rides = await RideBooking.find({
-      userId: req.user._id,
+    const entries = await TransactionLedger.find({
+      source: 'ride',
+      providerId: req.user._id,
+      entryType: 'CREDIT',
       status: 'completed',
-      completedAt: { $gte: queryStart, $lte: queryEnd },
+      createdAt: { $gte: queryStart, $lt: queryEnd },
     })
-      .populate('riderId')
+      .select('amount commissionAmount taxAmount netAmount createdAt')
       .lean();
 
     // Aggregate earnings
@@ -892,12 +950,11 @@ router.get('/driver/earnings', protect, authorize('ride:read', 'ride:read:own'),
     let totalTDS = 0;
     let totalNet = 0;
 
-    rides.forEach(ride => {
-      const fare = ride.fare || { total: 0 };
-      const gross = fare.total || 0;
-      const commission = Math.round((gross * commissionPercent) / 100);
-      const tax = Math.round(gross / 100);
-      const net = Math.max(0, gross - commission - tax);
+    entries.forEach((entry) => {
+      const gross = entry.amount || 0;
+      const commission = entry.commissionAmount || 0;
+      const tax = entry.taxAmount || 0;
+      const net = entry.netAmount || 0;
 
       totalGross += gross;
       totalCommission += commission;
@@ -905,7 +962,7 @@ router.get('/driver/earnings', protect, authorize('ride:read', 'ride:read:own'),
       totalNet += net;
 
       // Daily bucket
-      const dayKey = ride.completedAt ? ride.completedAt.toISOString().split('T')[0] : 'unknown';
+      const dayKey = entry.createdAt ? entry.createdAt.toISOString().split('T')[0] : 'unknown';
       if (!dailyTotals[dayKey]) dailyTotals[dayKey] = { gross: 0, commission: 0, tax: 0, net: 0 };
       dailyTotals[dayKey].gross += gross;
       dailyTotals[dayKey].commission += commission;
@@ -932,7 +989,7 @@ router.get('/driver/earnings', protect, authorize('ride:read', 'ride:read:own'),
       totalCommission,
       totalTDS,
       totalNet,
-      rideCount: rides.length,
+      rideCount: entries.length,
       dailyBreakdown: sortedDaily,
       generatedAt: new Date(),
     };
@@ -960,7 +1017,7 @@ router.get('/:id/emergency-audit-trail', protect, authorize('ride:read', 'ride:r
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
 
     const isOwner = ride.userId?.toString() === req.user._id.toString() || ride.riderId?.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === 'superadmin' || req.user.role === 'hospital_admin';
+    const isAdmin = req.user.role === 'superadmin';
     if (!isOwner && !isAdmin) {
       return res.status(403).json({ message: 'Not authorized to view this emergency audit trail' });
     }

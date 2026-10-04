@@ -27,6 +27,21 @@ import LawyerProfile from '../models/LawyerProfile.js';
 import { assertRoomAccess, isParticipant } from '../middleware/chatMembership.js';
 
 let io = null;
+const socketEventTimes = new WeakMap();
+const SOCKET_LOCATION_INTERVAL_MS = Math.min(5000, Math.max(250, Number.parseInt(process.env.SOCKET_LOCATION_INTERVAL_MS || '1000', 10) || 1000));
+
+function isSocketEventRateLimited(socket, eventName) {
+  const now = Date.now();
+  let eventTimes = socketEventTimes.get(socket);
+  if (!eventTimes) {
+    eventTimes = new Map();
+    socketEventTimes.set(socket, eventTimes);
+  }
+  const previous = eventTimes.get(eventName);
+  if (previous != null && now - previous < SOCKET_LOCATION_INTERVAL_MS) return true;
+  eventTimes.set(eventName, now);
+  return false;
+}
 
 export function getIO() {
   return io;
@@ -92,7 +107,7 @@ export function setSocketIdentity(socket, userId, role) {
   return id;
 }
 
-function attachRideSocketHandlers(socket, namespace) {
+export function attachRideSocketHandlers(socket, namespace) {
   socket.on('join_ride_room', async ({ rideId }) => {
     // CHAT-B-02/10: this joined on a client-supplied id alone, so any
     // authenticated socket streamed a stranger's live GPS and could inject
@@ -108,26 +123,44 @@ function attachRideSocketHandlers(socket, namespace) {
   socket.on('leave_ride_room', ({ rideId }) => {
     if (rideId) socket.leave(`ride:${rideId}`);
   });
-  socket.on('rider_location_update', async ({ rideId, lat, lng, riderId }) => {
+    socket.on('rider_location_update', async ({ rideId, lat, lng, riderId, accuracy }) => {
     try {
       const id = selfOrReject(socket, riderId);
       if (!id) return;
+      if (!Number.isFinite(Number(lat)) || Number(lat) < -90 || Number(lat) > 90 || !Number.isFinite(Number(lng)) || Number(lng) < -180 || Number(lng) > 180) return;
+      if (accuracy != null && (!Number.isFinite(Number(accuracy)) || Number(accuracy) <= 0 || Number(accuracy) > 1000)) return;
+      if (!rideId) return;
+      if (isSocketEventRateLimited(socket, 'rider_location_update')) return;
+      const verdict = await assertRoomAccess(id, socket.userRole, 'ride', rideId);
+      if (!verdict.ok) return;
+      const ride = await (await import('../models/RideBooking.js')).default.findOne({ _id: rideId, riderId: id }).select('_id').lean();
+      if (!ride) return;
+      const RiderBookingProfile = await RiderProfile.findOne({ userId: id }).select('_id currentLocation').lean();
+      if (!RiderBookingProfile) return;
+      const oldCoordinates = RiderBookingProfile.currentLocation?.coordinates;
+      const oldTimestamp = RiderBookingProfile.currentLocation?.updatedAt ? new Date(RiderBookingProfile.currentLocation.updatedAt).getTime() : 0;
+      if (Array.isArray(oldCoordinates) && oldTimestamp > 0) {
+        const { calculateDistanceKm } = await import('../lib/geoUtils.js');
+        const seconds = Math.max((Date.now() - oldTimestamp) / 1000, 1);
+        const meters = calculateDistanceKm(oldCoordinates[1], oldCoordinates[0], Number(lat), Number(lng)) * 1000;
+        if ((meters / seconds) * 3.6 > 180) return;
+      }
       await RiderProfile.findOneAndUpdate(
-        { userId: id },
+        { _id: RiderBookingProfile._id, userId: id },
         {
           isOnline: true,
           'currentLocation.lat': lat,
           'currentLocation.lng': lng,
           'currentLocation.coordinates': [lng, lat],
+          ...(accuracy != null ? { 'currentLocation.accuracy': Number(accuracy) } : {}),
           'currentLocation.updatedAt': new Date(),
+          lastLocationAt: new Date(),
         }
       ).catch(() => {});
-      if (rideId) {
-        await RideTracking.create({ rideId, riderId: id, lat, lng }).catch(() => {});
-        namespace.to(`ride:${rideId}`).emit('ride_location_update', { rideId, lat, lng, timestamp: Date.now() });
-        if (io && namespace !== io) {
-          io.to(`ride:${rideId}`).emit('ride_location_update', { rideId, lat, lng, timestamp: Date.now() });
-        }
+      await RideTracking.create({ rideId, riderId: id, lat, lng }).catch(() => {});
+      namespace.to(`ride:${rideId}`).emit('ride_location_update', { rideId, lat, lng, timestamp: Date.now() });
+      if (io && namespace !== io) {
+        io.to(`ride:${rideId}`).emit('ride_location_update', { rideId, lat, lng, timestamp: Date.now() });
       }
     } catch (err) {
       logger.error(`rider_location_update error: ${err.message}`);
@@ -137,7 +170,7 @@ function attachRideSocketHandlers(socket, namespace) {
     try {
       const id = selfOrReject(socket, riderId);
       if (id) {
-        const update = { isOnline: true };
+        const update = { isOnline: true, lastLocationAt: new Date() };
         if (lat != null && lng != null) {
           update['currentLocation.lat'] = lat;
           update['currentLocation.lng'] = lng;
@@ -163,7 +196,7 @@ function attachRideSocketHandlers(socket, namespace) {
   });
 }
 
-function attachAssistantSocketHandlers(socket, namespace) {
+export function attachAssistantSocketHandlers(socket, namespace) {
   socket.on('join_booking_room', async ({ bookingId }) => {
     // CHAT-B-02/10: assistant booking rooms carry case notes and chat.
     const verdict = await assertRoomAccess(socket.userId, socket.userRole, 'assistant-booking', bookingId);
@@ -203,26 +236,18 @@ function attachAssistantSocketHandlers(socket, namespace) {
       logger.error(`assistant_go_unavailable error: ${err.message}`);
     }
   });
-  socket.on('send_chat_message', ({ bookingId, senderId, senderName, text }) => {
-    if (!bookingId || !text) return;
-    // CHAT-002: sender identity comes from the token, never the payload.
-    const actor = selfOrReject(socket, senderId);
-    if (!actor) return;
-    const msg = {
-      bookingId,
-      senderId: actor,
-      senderName: senderName || 'User',
-      text,
-      at: new Date().toISOString(),
-    };
-    namespace.to(`assistant-booking:${bookingId}`).emit('chat_message', msg);
-    if (io && namespace !== io) {
-      io.to(`assistant-booking:${bookingId}`).emit('chat_message', msg);
-    }
+  socket.on('send_chat_message', async ({ bookingId }) => {
+    if (!bookingId) return;
+    const actor = socket.userId;
+    const verdict = await assertRoomAccess(actor, socket.userRole, 'assistant-booking', bookingId);
+    if (!verdict.ok) return;
+    // Until booking-specific durable conversation IDs are available, do not
+    // broadcast clinical/legal free text through an unpersisted socket path.
+    socket.emit('chat_message_rejected', { bookingId, message: 'Use the secure conversation to send this message.' });
   });
 }
 
-function attachLawyerSocketHandlers(socket, namespace) {
+export function attachLawyerSocketHandlers(socket, namespace) {
   socket.on('join_booking_room', async ({ bookingId }) => {
     const verdict = await assertRoomAccess(socket.userId, socket.userRole, 'lawyer-booking', bookingId);
     if (!verdict.ok) {
@@ -261,34 +286,39 @@ function attachLawyerSocketHandlers(socket, namespace) {
       logger.error(`lawyer_go_unavailable error: ${err.message}`);
     }
   });
-  socket.on('case_note_updated', ({ bookingId, note }) => {
+  socket.on('case_note_updated', async ({ bookingId, note }) => {
     if (!bookingId) return;
-    const payload = { bookingId, note, at: new Date().toISOString() };
-    namespace.to(`lawyer-booking:${bookingId}`).emit('case_note_update', payload);
-    if (io && namespace !== io) {
-      io.to(`lawyer-booking:${bookingId}`).emit('case_note_update', payload);
-    }
+    const verdict = await assertRoomAccess(socket.userId, socket.userRole, 'lawyer-booking', bookingId);
+    if (!verdict.ok || !['lawyer', 'superadmin', 'hospital_admin'].includes(socket.userRole)) return;
+    socket.emit('case_note_rejected', { bookingId, message: 'Case notes must be saved through the authorized booking workflow.' });
   });
-  socket.on('send_chat_message', ({ bookingId, senderId, senderName, text }) => {
-    if (!bookingId || !text) return;
-    // CHAT-002: sender identity comes from the token, never the payload.
-    const actor = selfOrReject(socket, senderId);
-    if (!actor) return;
-    const msg = {
-      bookingId,
-      senderId: actor,
-      senderName: senderName || 'User',
-      text,
-      at: new Date().toISOString(),
-    };
-    namespace.to(`lawyer-booking:${bookingId}`).emit('chat_message', msg);
-    if (io && namespace !== io) {
-      io.to(`lawyer-booking:${bookingId}`).emit('chat_message', msg);
-    }
+  socket.on('send_chat_message', async ({ bookingId }) => {
+    if (!bookingId) return;
+    const actor = socket.userId;
+    const verdict = await assertRoomAccess(actor, socket.userRole, 'lawyer-booking', bookingId);
+    if (!verdict.ok) return;
+    socket.emit('chat_message_rejected', { bookingId, message: 'Use the secure conversation to send this message.' });
   });
 }
 
-function attachEmergencySocketHandlers(socket, namespace) {
+// Emergency GPS velocity gate (rider handler parity): reject jumps faster than
+// 180 km/h so a forged coordinate cannot teleport the responder on the live map.
+const EMERGENCY_MAX_KMH = 180;
+async function isEmergencyVelocityRejected(currentLocation, lat, lng) {
+  try {
+    const oldCoordinates = currentLocation?.coordinates;
+    const oldTimestamp = currentLocation?.updatedAt ? new Date(currentLocation.updatedAt).getTime() : 0;
+    if (!Array.isArray(oldCoordinates) || !(oldTimestamp > 0)) return false;
+    const { calculateDistanceKm } = await import('../lib/geoUtils.js');
+    const seconds = Math.max((Date.now() - oldTimestamp) / 1000, 1);
+    const meters = calculateDistanceKm(oldCoordinates[1], oldCoordinates[0], Number(lat), Number(lng)) * 1000;
+    return ((meters / seconds) * 3.6) > EMERGENCY_MAX_KMH;
+  } catch {
+    return false;
+  }
+}
+
+export function attachEmergencySocketHandlers(socket, namespace) {
   socket.on('join_emergency_room', async ({ requestId }) => {
     // CHAT-B-02: an emergency room carries a live dispatch, so joining by id
     // alone let any account watch another patient's emergency unfold.
@@ -314,23 +344,43 @@ function attachEmergencySocketHandlers(socket, namespace) {
   socket.on('leave_ambulance_room', ({ ambulanceId }) => {
     if (ambulanceId) socket.leave(`ambulance:${ambulanceId}`);
   });
-  socket.on('emergency_provider_location', async ({ requestId, providerId, providerType, lat, lng }) => {
+  socket.on('emergency_provider_location', async ({ requestId, providerId, providerType, lat, lng, accuracy }) => {
     try {
+      const actor = selfOrReject(socket, providerId);
+      if (!actor || !requestId || !Number.isFinite(Number(lat)) || Number(lat) < -90 || Number(lat) > 90 || !Number.isFinite(Number(lng)) || Number(lng) < -180 || Number(lng) > 180) return;
+      // Rider handler parity: emergency GPS must be precise — reject coarse fixes.
+      if (accuracy != null && (!Number.isFinite(Number(accuracy)) || Number(accuracy) <= 0 || Number(accuracy) > 250)) return;
+      if (isSocketEventRateLimited(socket, 'emergency_provider_location')) return;
+      const access = await assertRoomAccess(actor, socket.userRole, 'emergency', requestId);
+      if (!access.ok) return;
+      const EmergencyRequest = (await import('../models/EmergencyRequest.js')).default;
+      const activeRequest = await EmergencyRequest.findOne({ _id: requestId, status: { $in: ['assigned', 'en_route'] } }).select('assignedProviderId assignedProviderType').lean();
+      if (!activeRequest) return;
+      if (activeRequest.assignedProviderType !== providerType) return;
       if (providerType === 'ambulance' && providerId) {
         const Ambulance = (await import('../models/Ambulance.js')).default;
-        await Ambulance.findByIdAndUpdate(providerId, {
+        const ambulance = await Ambulance.findOne({ _id: activeRequest.assignedProviderId, userId: actor, currentEmergencyId: requestId }).select('_id currentLocation').lean();
+        if (!ambulance) return;
+        if (await isEmergencyVelocityRejected(ambulance?.currentLocation, lat, lng)) return;
+        await Ambulance.findByIdAndUpdate(ambulance._id, {
           'currentLocation.coordinates': [lng, lat],
           'currentLocation.updatedAt': new Date(),
+          ...(accuracy != null ? { 'currentLocation.accuracy': Number(accuracy) } : {}),
+          lastLocationAt: new Date(),
         }).catch(() => {});
-      } else if (providerId) {
-        const RiderProfile = (await import('../models/RiderProfile.js')).default;
+      } else if (providerType === 'rider' && providerId) {
+        const rider = await RiderProfile.findOne({ userId: actor }).select('_id currentLocation').lean();
+        if (!rider || String(activeRequest.assignedProviderId) !== String(actor)) return;
+        if (await isEmergencyVelocityRejected(rider?.currentLocation, lat, lng)) return;
         await RiderProfile.findOneAndUpdate(
-          { userId: providerId },
+          { _id: rider._id, userId: actor },
           {
             'currentLocation.lat': lat,
             'currentLocation.lng': lng,
             'currentLocation.coordinates': [lng, lat],
+            ...(accuracy != null ? { 'currentLocation.accuracy': Number(accuracy) } : {}),
             'currentLocation.updatedAt': new Date(),
+            lastLocationAt: new Date(),
           }
         ).catch(() => {});
       }
@@ -427,6 +477,46 @@ async function verifySocketAuth(socket, next) {
   }
 }
 
+export function attachDeliverySocketHandlers(socket, io) {
+  socket.on('deliveryboy:location', async ({ deliveryPartnerId, orderId, lat, lng }) => {
+    try {
+      const actor = selfOrReject(socket, deliveryPartnerId);
+      if (!actor || !Number.isFinite(Number(lat)) || Number(lat) < -90 || Number(lat) > 90 || !Number.isFinite(Number(lng)) || Number(lng) < -180 || Number(lng) > 180) return;
+      if (isSocketEventRateLimited(socket, 'deliveryboy:location')) return;
+      const partner = await DeliveryPartner.findOne({ userId: actor, status: 'approved' }).select('_id userId').lean();
+      if (!partner) return;
+      if (orderId) {
+        const verdict = await assertRoomAccess(actor, socket.userRole, 'order', orderId);
+        if (!verdict.ok) return;
+        const assigned = await PharmacyDelivery.findOne({ orderId, deliveryPartnerId: partner._id, status: { $in: ['Assigned', 'Picked Up', 'Out for Delivery'] } }).select('_id').lean();
+        if (!assigned) return;
+      }
+      try {
+        await updateDeliveryBoyLocation(actor, lat, lng);
+      } catch (redisErr) {
+        logger.warn(`Delivery location Redis cache skipped: ${redisErr.message}`);
+      }
+      await DeliveryPartner.findOneAndUpdate({ _id: partner._id, userId: actor }, {
+        currentLocation: { lat, lng, updatedAt: new Date() },
+      });
+      if (orderId) {
+        await PharmacyDelivery.findOneAndUpdate({ orderId, deliveryPartnerId: partner._id, status: { $in: ['Assigned', 'Picked Up', 'Out for Delivery'] } }, {
+          $push: { trackingHistory: { lat, lng, timestamp: new Date() } },
+        });
+        io.to(`order:${orderId}`).emit('location:updated', { lat, lng, timestamp: Date.now() });
+      }
+    } catch (err) {
+      logger.error(`location update failed: ${err.message}`);
+    }
+  });
+
+  socket.on('deliveryboy:online', async ({ deliveryPartnerId, online }) => {
+    const actor = selfOrReject(socket, deliveryPartnerId);
+    if (!actor || typeof online !== 'boolean') return;
+    await DeliveryPartner.findOneAndUpdate({ userId: actor, status: 'approved' }, { isOnline: online, isAvailable: online });
+  });
+}
+
 export async function initSocket(server) {
   io = new Server(server, {
     cors: {
@@ -516,30 +606,7 @@ export async function initSocket(server) {
       if (orderId) socket.leave(`order:${orderId}`);
     });
 
-    socket.on('deliveryboy:location', async ({ deliveryPartnerId, orderId, lat, lng }) => {
-      try {
-        try {
-          await updateDeliveryBoyLocation(deliveryPartnerId, lat, lng);
-        } catch (redisErr) {
-          logger.warn(`Delivery location Redis cache skipped: ${redisErr.message}`);
-        }
-        await DeliveryPartner.findByIdAndUpdate(deliveryPartnerId, {
-          currentLocation: { lat, lng, updatedAt: new Date() },
-        });
-        if (orderId) {
-          await PharmacyDelivery.findByIdAndUpdate(orderId, {
-            $push: { trackingHistory: { lat, lng, timestamp: new Date() } },
-          });
-          io.to(`order:${orderId}`).emit('location:updated', { lat, lng, timestamp: Date.now() });
-        }
-      } catch (err) {
-        logger.error(`location update failed: ${err.message}`);
-      }
-    });
-
-    socket.on('deliveryboy:online', async ({ deliveryPartnerId, online }) => {
-      await DeliveryPartner.findByIdAndUpdate(deliveryPartnerId, { isOnline: online, isAvailable: online });
-    });
+    attachDeliverySocketHandlers(socket, io);
 
     // ─── Vehicle & Ride Events (Doc 05 §4) ───────────────────────────
     attachRideSocketHandlers(socket, io);
@@ -580,14 +647,16 @@ export async function initSocket(server) {
     // into a thread they were never in, and `socket.to(room)` would faithfully
     // deliver them to both participants.
     socket.on('chat:typing', async ({ conversationId, userId, isTyping }) => {
-      if (!(await isRoomMember(socket, 'chat', conversationId))) return;
-      socket.to(`chat:${conversationId}`).emit('chat:typing', { conversationId, userId, isTyping });
+      const actor = selfOrReject(socket, userId);
+      if (!actor || !(await isRoomMember(socket, 'chat', conversationId))) return;
+      socket.to(`chat:${conversationId}`).emit('chat:typing', { conversationId, userId: actor, isTyping });
     });
 
     // Recording a voice message (mic button pressed)
     socket.on('chat:recording', async ({ conversationId, userId, isRecording }) => {
-      if (!(await isRoomMember(socket, 'chat', conversationId))) return;
-      socket.to(`chat:${conversationId}`).emit('chat:recording', { conversationId, userId, isRecording });
+      const actor = selfOrReject(socket, userId);
+      if (!actor || !(await isRoomMember(socket, 'chat', conversationId))) return;
+      socket.to(`chat:${conversationId}`).emit('chat:recording', { conversationId, userId: actor, isRecording });
     });
 
     // Delivery receipts — sender ko wapas broadcast karo
@@ -679,29 +748,34 @@ export async function initSocket(server) {
     ];
 
     allCallEvents.forEach((event) => {
-      socket.on(event, (payload = {}) => {
+      socket.on(event, async (payload = {}) => {
         const target = payload.to || payload.recipientId || payload.peerId || payload.targetUserId;
         // CHAT-002: `from` is the authenticated identity. A caller-supplied
         // `from` would let anyone place a call invite or SDP offer in someone
         // else's name.
         const from = socket.userId;
         if (!target || !from) return;
+        if (event.startsWith('chat:call_')) {
+          const conversationId = payload.conversationId;
+          if (!conversationId) return;
+          try {
+            const verdict = await assertRoomAccess(from, socket.userRole, 'chat', conversationId);
+            if (!verdict.ok) return;
+            const ChatConversation = (await import('../models/ChatConversation.js')).default;
+            const conversation = await ChatConversation.findById(conversationId).select('participants').lean();
+            const participants = (conversation?.participants || []).map((participant) => String(participant?._id || participant));
+            if (!participants.includes(String(from)) || !participants.includes(String(target)) || String(target) === String(from)) return;
+          } catch (error) {
+            logger.warn(`chat call relay denied after membership lookup failure: ${error.message}`);
+            return;
+          }
+        }
         const body = { ...payload, from };
         io.to(`user:${target}`).emit(event, body);
         if (payload.conversationId) {
           socket.to(`chat:${payload.conversationId}`).emit(event, body);
         }
       });
-    });
-
-    socket.on('chat:send_message', (message) => {
-      // Broadcast to the chat room
-      io.to(`chat:${message.conversationId}`).emit('chat:receive_message', message);
-      // Also trigger a notification event to the specific recipient user room if they aren't in the chat room
-      // Since it's 1-on-1, the recipient is the other participant
-      if (message.recipientId) {
-        io.to(`user:${message.recipientId}`).emit('chat:new_message_notification', message);
-      }
     });
 
     socket.on('disconnect', async () => {
