@@ -92,7 +92,14 @@ const isZipType = (mimetype) => mimetype.includes('officedocument');
 let _clamavScanner = null;
 let _clamavFailed = false;
 
-const clamavRequired = () => process.env.CLAMAV_REQUIRED === 'true';
+const clamavRequired = () => {
+  const v = process.env.CLAMAV_REQUIRED;
+  if (v !== undefined && v !== '') return v === 'true';
+  // P0: production defaults to REQUIRED - a missing CLAMAV_HOST (or a broken
+  // scanner) must refuse uploads, not skip scanning. Dev/test stay fail-open
+  // unless CLAMAV_REQUIRED=true is set explicitly.
+  return process.env.NODE_ENV === 'production';
+};
 
 // CHAT-M-02: exported so chatUploadService can run the same scanner on
 // base64 chat uploads (it previously served only the multer middleware path).

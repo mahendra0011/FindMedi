@@ -43,9 +43,38 @@ import {
   openCrisisQuery,
 } from '../services/mentalHealthAccess.js';
 
-const mhAssessmentSchema = z.object({}).passthrough();
-const mhSessionSchema = z.object({}).passthrough();
-const mhMedicationSchema = z.object({}).passthrough();
+// P3: explicit shape instead of passthrough. Flat keys mirror the assessment
+// sub-doc in models/MentalHealth.js (mongoose strict drops anything else on
+// save), and treatmentPlan/treatmentType/riskAssessment/diagnosis/riskNotes are
+// the fields the handler below actually reads — nothing else survives validate().
+const mhAssessmentSchema = z.object({
+  mentalStatus: z.any().optional(),
+  personalHistory: z.any().optional(),
+  familyHistory: z.any().optional(),
+  socialHistory: z.any().optional(),
+  riskAssessment: z.any().optional(),
+  diagnosis: z.any().optional(),
+  diagnosisCode: z.any().optional(),
+  treatmentPlan: z.any().optional(),
+  treatmentType: z.any().optional(),
+  riskNotes: z.any().optional(),
+  assessment: z.any().optional(),
+});
+// P1-5: the client may edit ONLY these two fields. `date`, `conductedBy`,
+// `retainUntil` and `consentId` are stamped by the handler below, and unknown
+// keys are stripped by zod so they cannot be smuggled through the spread.
+const mhSessionSchema = z.object({
+  type: z.string().max(160).optional(),
+  notes: z.string().max(8000).optional(),
+});
+// P3: explicit allowlist — prescribedBy/prescribedAt are stamped by the handler
+// (adminOnly route), so a client cannot pre-set them or smuggle other keys into
+// the medication sub-doc.
+const mhMedicationSchema = z.object({
+  name: z.any().optional(),
+  dosage: z.any().optional(),
+  frequency: z.any().optional(),
+});
 const mhFamilySchema = z.object({ familyMemberName: z.string().optional(), relationship: z.string().optional(), involvementType: z.string().optional(), notes: z.string().optional(), contactNumber: z.string().optional() });
 const mhConsentSchema = z.object({ consentType: z.string().optional(), documentUrl: z.string().optional(), expiryDate: z.string().optional(), notes: z.string().optional() });
 const mhBillingSchema = z.object({ amount: z.number().optional(), description: z.string().optional(), sessionType: z.string().optional() });

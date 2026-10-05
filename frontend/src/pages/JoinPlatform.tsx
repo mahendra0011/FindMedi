@@ -792,7 +792,7 @@ export default function JoinPlatform() {
       return true;
     }
     if (step === 1) return !!type;
-    if (step === 2) return account.name?.length >= 2 && account.email?.includes('@') && account.phone?.length >= 10 && account.password?.length >= 8 && account.password === confirmPassword;
+    if (step === 2) return account.name?.length >= 2 && account.email?.includes('@') && account.phone?.length >= 10 && account.password?.length >= 10 && account.password === confirmPassword;
     if (step === 3) {
       if (type === 'hospital') {
         return facility.name && facility.address && facility.city && facility.license?.trim().length >= 3

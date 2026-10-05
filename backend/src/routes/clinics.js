@@ -2,6 +2,7 @@ import express from 'express';
 import Doctor from '../models/Doctor.js';
 import Facility from '../models/Facility.js';
 import User from '../models/User.js';
+import { sanitizeDto } from '../utils/safeError.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, updateClinicProfileSchema, createClinicStaffSchema, updateClinicStaffSchema, CLINIC_STAFF_ROLES } from '../utils/validate.js';
 import { randomPassword } from '../utils/secureRandom.js';
@@ -65,9 +66,10 @@ router.post('/staff', protect, adminOnly, validate(createClinicStaffSchema), asy
       name, email: email.toLowerCase(), password: tempPassword, mustResetPassword: true, role, phone: phone || '',
       facilityId, isVerified: true, status: 'active', approvalStatus: 'not_required',
     });
-    // Never echo the password hash back; the admin gets the one-time plaintext.
-    const safe = user.toObject();
-    delete safe.password;
+    // §5.3/§5.4: sanitizeDto strips password/tokenVersion/2FA secrets/__v —
+    // `delete safe.password` alone left the rest of the auth internals on the wire.
+    // The admin still gets the one-time plaintext separately.
+    const safe = sanitizeDto(user);
     res.status(201).json({ user: safe, tempPassword, message: 'Share the temporary password securely; the user must change it on first login.' });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -88,7 +90,9 @@ router.put('/staff/:id', protect, adminOnly, validate(updateClinicStaffSchema), 
       { new: true, select: '-password' }
     );
     if (!user) return res.status(404).json({ message: 'Staff not found' });
-    res.json(user);
+    // §5.3/§5.4: `select: '-password'` was the only filter — tokenVersion,
+    // twoFactorSecret/backupCodes, driveTokens, __v still serialised out.
+    res.json(sanitizeDto(user));
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 

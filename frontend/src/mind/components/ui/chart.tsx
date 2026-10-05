@@ -22,6 +22,14 @@ const ChartContainer = React.forwardRef(({ id, className, children, config, ...p
     </ChartContext.Provider>);
 });
 ChartContainer.displayName = "Chart";
+// SECURITY (P1-7): values interpolated into this <style> tag are constrained
+// to safe CSS token characters so a hostile config string cannot break out of
+// the declaration and inject markup or extra rules.
+const cssIdent = (v: unknown): string => String(v ?? "").replace(/[^a-zA-Z0-9_-]/g, "");
+const cssColor = (v: unknown): string => {
+    const s = String(v ?? "");
+    return /^[\w#(),.%\s/-]+$/.test(s) ? s : "transparent";
+};
 const ChartStyle = ({ id, config }) => {
     const colorConfig = Object.entries(config).filter(([_, config]) => config.theme || config.color);
     if (!colorConfig.length) {
@@ -34,7 +42,7 @@ ${prefix} [data-chart=${id}] {
 ${colorConfig
                 .map(([key, itemConfig]) => {
                 const color = itemConfig.theme?.[theme] || itemConfig.color;
-                return color ? `  --color-${key}: ${color};` : null;
+                return color ? `  --color-${cssIdent(key)}: ${cssColor(color)};` : null;
             })
                 .join("\n")}
 }

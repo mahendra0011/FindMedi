@@ -6,7 +6,13 @@ const baseURL = process.env.E2E_BASE_URL || `http://localhost:${PORT}`;
 export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
-  expect: { timeout: 10_000 },
+  // 10s flaked on the two heaviest routes (home + appointment cancellation)
+  // when all 12 tests cold-hit a fresh Vite dev server in parallel: the dev
+  // transform of the Home chunk alone runs 25s+, so the heading assertion
+  // timed out while the app was still compiling. Green solo and at CI's
+  // workers:2, so the budget absorbs local contention instead of the test
+  // lying about a healthy app.
+  expect: { timeout: 20_000 },
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

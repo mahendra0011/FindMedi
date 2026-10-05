@@ -46,6 +46,9 @@ import mongoose from 'mongoose';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
+// §4.5/§4.6: extra NoSQL-injection layer + unknown filter fields ignored.
+mongoose.set('sanitizeFilter', true);
+mongoose.set('strictQuery', true);
 import pinoHttp from 'pino-http';
 import * as Sentry from '@sentry/node';
 import sanitizeHtml from 'sanitize-html';
@@ -56,6 +59,7 @@ import { validateEnv, printEnvStatus } from './config/envValidator.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { protect, superadminOnly } from './middleware/auth.js';
 import { verifyAccessToken } from './utils/jwtKeys.js';
+import { readAuthCookie } from './lib/cookiePolicy.js';
 import { csrfProtection, setCsrfToken } from './middleware/csrf.js';
 import { initSocket } from './services/socketService.js';
 // INF-M-02: Prometheus metrics (registry + HTTP instrumentation) and the
@@ -68,11 +72,48 @@ const app = express();
 configureMongoDns();
 
 // Sentry error tracking (env-gated: no SENTRY_DSN = no-op, zero overhead)
+// §6.4: scrub PII/PHI before it leaves the process — cookies, auth headers,
+// request bodies (OTP/password/PHI) and query strings (tokens/PHI in access logs).
 if (process.env.SENTRY_DSN) {
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
     tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE || 0.1),
+    sendDefaultPii: false,
+    beforeSend(event) {
+      try {
+        if (event.request) {
+          delete event.request.cookies;
+          delete event.request.data;
+          if (event.request.headers) {
+            delete event.request.headers.authorization;
+            delete event.request.headers.cookie;
+            delete event.request.headers['x-csrf-token'];
+            delete event.request.headers['x-api-key'];
+          }
+          if (typeof event.request.url === 'string') {
+            event.request.url = event.request.url.split('?')[0];
+          }
+        }
+        if (event.user) {
+          delete event.user.email;
+          delete event.user.ip_address;
+          delete event.user.username;
+        }
+        if (Array.isArray(event.breadcrumbs)) {
+          for (const crumb of event.breadcrumbs) {
+            if (crumb?.data?.url && typeof crumb.data.url === 'string') {
+              crumb.data.url = crumb.data.url.split('?')[0];
+            }
+            if (crumb?.data) {
+              delete crumb.data.request_body;
+              delete crumb.data.response_body;
+            }
+          }
+        }
+      } catch { /* scrubbing must never drop the event */ }
+      return event;
+    },
   });
 }
 // Database target: medicore
@@ -82,19 +123,46 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      fontSrc: ["'self'", "data:"],
-      // OpenFreeMap serves the basemap style JSON, the vector tiles and the
-      // glyph (label) PBF — all fetched by the browser, so it must be in
-      // connect-src or MapLibre silently renders a blank canvas. Its
-      // `ne2_shaded` layer is a raster .png, which is why it is also in
-      // img-src below.
-      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://basemaps.cartocdn.com", "https://api.maptiler.com", "https://*.tile.openstreetmap.org", "https://tiles.openfreemap.org"],
-      // OpenRouteService was removed from the frontend routing path (mapSlice
-      // now calls /api/routing/navigation → self-hosted Valhalla), so it is no
-      // longer an origin the browser needs to reach.
-      connectSrc: ["'self'", "https://api.maptiler.com", "https://api.open-elevation.com", "https://tiles.openfreemap.org"],
+      // Google Sign-In loads its helper from accounts.google.com (index.html).
+      scriptSrc: ["'self'", "https://accounts.google.com"],
+      // index.css @imports Google Fonts; Tailwind + React inline styles need
+      // 'unsafe-inline' (style-src, not script-src).
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+      // Images arrive from many hosts (Cloudinary, CMS content, chat
+      // attachments, map styles, avatars) — https: scheme covers them without
+      // allowing data: exfil beyond what img-src already permits.
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      // Audio/video: bundled sounds (self), MediaRecorder blobs, remote files.
+      mediaSrc: ["'self'", "data:", "blob:", "https:"],
+      // Google Sign-In renders a hidden iframe; the resource hub embeds
+      // YouTube videos.
+      frameSrc: ["'self'", "https://accounts.google.com", "https://www.youtube.com"],
+      // Workers: Vite bundles, PostHog session-recording blobs.
+      workerSrc: ["'self'", "blob:"],
+      // 'self' covers same-origin socket.io; the built SPA calls the API on
+      // its configured origin (findmedi-main.onrender.com) which can differ
+      // from the page origin. MapLibre fetches styles/tiles/glyphs via XHR,
+      // chat previews fetch attachment URLs, translate + nominatim are called
+      // directly from the client.
+      connectSrc: [
+        "'self'",
+        "wss://findmedi-main.onrender.com",
+        "https://findmedi-main.onrender.com",
+        "https://api.maptiler.com",
+        "https://api.open-elevation.com",
+        "https://tiles.openfreemap.org",
+        "https://demotiles.maplibre.org",
+        "https://tile.openstreetmap.org",
+        "https://*.tile.openstreetmap.org",
+        "https://basemaps.cartocdn.com",
+        "https://nominatim.openstreetmap.org",
+        "https://translate.googleapis.com",
+        "https://accounts.google.com",
+        "https://res.cloudinary.com",
+        "https://app.posthog.com",
+        "https://*.posthog.com",
+      ],
     },
   },
   hsts: { maxAge: 31536000, includeSubDomains: true },
@@ -102,7 +170,30 @@ app.use(helmet({
 }));
 
 // HTTP request logging (structured JSON via Pino)
-app.use(pinoHttp({ logger }));
+// §6.2: log method + path only — never query strings (tokens/PHI) or bodies.
+app.use(pinoHttp({
+  logger,
+  customProps: () => ({}),
+  serializers: {
+    req(req) {
+      const rawUrl = req.raw?.url || req.url || '';
+      return {
+        method: req.method,
+        url: String(rawUrl).split('?')[0],
+        remoteAddress: req.remoteAddress,
+      };
+    },
+  },
+}));
+
+// §5.13/§8.1: private API responses must never sit in a browser, CDN or proxy
+// cache — PHI replay past revocation, back-button/bfcache exposure, web-cache
+// deception. Public auth-issuer metadata stays cacheable.
+app.use('/api', (req, res, next) => {
+  if (req.method === 'GET' && req.path === '/api/auth/csrf-token') return next();
+  res.set({ 'Cache-Control': 'no-store', Pragma: 'no-cache' });
+  next();
+});
 
 // INF-M-02: count every response once, after logging so /metrics itself and
 // rate-limited requests are all observed by the same instruments.
@@ -297,7 +388,7 @@ app.use('/api/webhooks', express.raw({ type: 'application/json', limit: '1mb' })
 // parser to that ONE path (method+path matched, so no other route grows its
 // body limit); every other JSON request keeps the 1mb abuse/DoS guard.
 const jsonBody = express.json({ limit: '1mb' });
-const jsonChatUploadBody = express.json({ limit: '40mb' });
+const jsonChatUploadBody = express.json({ limit: '36mb' });
 app.use((req, res, next) => {
   if (req.method === 'POST' && req.path === '/api/chat/upload') {
     return jsonChatUploadBody(req, res, next);
@@ -311,6 +402,22 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 // body was ever sanitized (and the query/params sanitising still applies).
 // MongoDB injection protection
 app.use(mongoSanitize());
+
+// §13.9: HTTP Parameter Pollution — `?a=1&a=2` must not smuggle arrays into
+// filters/sorts. Keep the LAST scalar value (Express default for urlencoded),
+// drop objects. Runs after mongoSanitize so `$gt` objects are already gone.
+app.use((req, _res, next) => {
+  const deArray = (obj) => {
+    if (!obj || typeof obj !== 'object') return;
+    for (const k of Object.keys(obj)) {
+      const v = obj[k];
+      if (Array.isArray(v)) obj[k] = v.length ? v[v.length - 1] : undefined;
+    }
+  };
+  deArray(req.query);
+  deArray(req.params);
+  next();
+});
 
 // XSS protection - recursive sanitization for nested objects (strips all HTML tags/attrs)
 function sanitizeValue(value) {
@@ -392,7 +499,7 @@ app.use('/uploads', async (req, res, next) => {
   // 1. Always require a real session (no extension allow-list any more).
   let user = null;
   try {
-    const token = req.cookies?.token
+    const token = readAuthCookie(req.cookies, 'token')
       || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
     if (!token) return res.status(401).json({ message: 'Authentication required for file access' });
     // AUTH-F-01: jwtKeys, not bare JWT_SECRET (rotatable keys + refresh-as-
@@ -908,6 +1015,11 @@ logger.info('   URI: ' + redactMongoUri(MONGO_URI));
 
 if (process.env.NODE_ENV !== 'test') {
   const server = http.createServer(app);
+  // §15.4: Slowloris guard — a client dribbling headers/body no longer pins a
+  // socket for Node's 5-min default. Nginx client_*_timeout stays the outer layer.
+  server.headersTimeout = 15000;
+  server.requestTimeout = 30000;
+  server.keepAliveTimeout = 5000;
   let instantDispatchRetryTimer;
   // INF-M-02: nodejs_*/process_* gauges start only on a real boot, so tests
   // that import this file never spawn the collection interval.

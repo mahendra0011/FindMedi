@@ -10,33 +10,15 @@ function socketBaseUrl() {
 
 export function getRealtimeSocket() {
   if (socket?.connected) return socket;
-  let authPayload = {};
-  try {
-    const token = typeof localStorage !== "undefined" ? localStorage.getItem("token") : null;
-    if (token) authPayload = { token };
-    // Also forward userId/role if cached (helps merged-mode room join)
-    const cachedUser = typeof localStorage !== "undefined" ? localStorage.getItem("mind_user") || localStorage.getItem("user") : null;
-    if (cachedUser) {
-      try {
-        const u = JSON.parse(cachedUser);
-        if (u?._id || u?.id) authPayload.userId = u._id || u.id;
-        if (u?.role) authPayload.role = u.role;
-      } catch { /* ignore */ }
-    }
-  } catch { /* ignore */ }
+  // SECURITY (P1-6): no localStorage reads - handshake identity comes from
+  // the httpOnly session cookie (withCredentials) which the server verifies.
+  // The old code forwarded a never-written `token` key plus a cached user id
+  // the server used to trust blindly (room-join impersonation).
   socket = io(socketBaseUrl(), {
     withCredentials: true,
     transports: ["websocket", "polling"],
-    auth: authPayload,
+    auth: {},
   });
-  try {
-    socket.on("connect", () => {
-      try {
-        const t = localStorage.getItem("token");
-        if (t && socket?.emit) socket.emit("join", { token: t });
-      } catch { /* ignore */ }
-    });
-  } catch { /* ignore */ }
   return socket;
 }
 

@@ -8,6 +8,7 @@ import Doctor from '../models/Doctor.js';
 import Patient from '../models/Patient.js';
 import Record from '../models/Record.js';
 import { auditLog } from './audit.js';
+import { readAuthCookie } from '../lib/cookiePolicy.js';
 import { tenantQuotaGuard } from '../services/tenantQuotaService.js';
 
 export { authorize } from './authorize.js';
@@ -27,8 +28,33 @@ const isPasswordResetExempt = (req) => {
   return PASSWORD_RESET_EXEMPT_PATHS.includes(p);
 };
 
+// P2-11: roles that MUST run with 2FA. Comma-separated env, e.g.
+// TWO_FACTOR_REQUIRED_ROLES=superadmin,hospital_admin. Until such an account
+// enrols, protect() lets it reach ONLY the enrolment paths (plus the same
+// logout/me/change-password basics as AUTH-F-06) so the client can always
+// complete enrolment and never deadlocks itself. Exact paths, never prefixes.
+const TWO_FACTOR_REQUIRED_ROLES = new Set(
+  String(process.env.TWO_FACTOR_REQUIRED_ROLES || '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean),
+);
+const TWO_FACTOR_ENROL_EXEMPT_PATHS = new Set([
+  '/api/auth/2fa/setup',
+  '/api/auth/2fa/verify',
+  '/api/auth/2fa/status',
+  '/api/auth/logout',
+  '/api/auth/logout-all',
+  '/api/auth/me',
+  '/api/auth/change-password',
+]);
+const isTwoFactorEnrolExempt = (req) => {
+  const p = (req.originalUrl || '').split('?')[0].replace(/\/+$/, '');
+  return TWO_FACTOR_ENROL_EXEMPT_PATHS.has(p);
+};
+
 export const protect = async (req, res, next) => {
-  let token = req.cookies?.token;
+  let token = readAuthCookie(req.cookies, 'token');
   if (!token) {
     const auth = req.headers.authorization;
     if (!auth || !auth.startsWith('Bearer ')) {
@@ -103,6 +129,21 @@ export const protect = async (req, res, next) => {
       message: 'Please verify your email before continuing.',
       requiresVerification: true,
       email: user.email,
+    });
+  }
+
+  // P2-11: mandatory-2FA roles stay locked to the enrolment paths until they
+  // actually enrol. Gates HERE (session-level), not only at login, so tokens
+  // issued before the env was flipped also become subject to the rule.
+  if (
+    TWO_FACTOR_REQUIRED_ROLES.has(String(user.role || '').toLowerCase())
+    && !user.twoFactorEnabled
+    && !isTwoFactorEnrolExempt(req)
+  ) {
+    return res.status(403).json({
+      message: 'Two-factor authentication is required for your role. Please set it up first.',
+      code: 'TWO_FACTOR_REQUIRED',
+      requiresTwoFactorEnrollment: true,
     });
   }
 
@@ -316,7 +357,7 @@ export const canAccessPatient = async (req, res, next) => {
 };
 
 export const optionalProtect = async (req, res, next) => {
-  let token = req.cookies?.token;
+  let token = readAuthCookie(req.cookies, 'token');
   if (!token) {
     const auth = req.headers.authorization;
     if (auth && auth.startsWith('Bearer ')) {

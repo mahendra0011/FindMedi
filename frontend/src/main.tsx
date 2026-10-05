@@ -5,10 +5,37 @@ import "./index.css";
 import { initFeatureFlags, initPostHog } from "./services/featureFlags";
 
 // Sentry error tracking + performance (env-gated: no VITE_SENTRY_DSN = no-op)
+// §6.4: never ship cookies/auth headers, query strings (tokens/PHI) or bodies.
 if ((import.meta as any).env?.VITE_SENTRY_DSN) {
   Sentry.init({
     dsn: (import.meta as any).env.VITE_SENTRY_DSN,
     tracesSampleRate: 0.1,
+    sendDefaultPii: false,
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 0,
+    beforeSend(event) {
+      try {
+        if (event.request) {
+          delete (event.request as any).cookies;
+          delete (event.request as any).data;
+          const headers = (event.request as any).headers;
+          if (headers) {
+            delete headers.authorization;
+            delete headers.cookie;
+            delete headers['x-csrf-token'];
+          }
+          if (typeof (event.request as any).url === 'string') {
+            (event.request as any).url = ((event.request as any).url as string).split('?')[0];
+          }
+        }
+        if (event.user) {
+          delete (event.user as any).email;
+          delete (event.user as any).ip_address;
+          delete (event.user as any).username;
+        }
+      } catch { /* scrubbing must never drop the event */ }
+      return event;
+    },
   });
 }
 

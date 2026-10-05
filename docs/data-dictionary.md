@@ -83,7 +83,7 @@
 | `insurances` | Insurance | 42 | 5 | 2 | — | Payment and ledger entries |
 | `integrationconfigs` | IntegrationConfig | 18 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `inventories` | Inventory | 23 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
-| `labbookings` | LabBooking | 33 | 3 | 3 | — | Clinical records |
+| `labbookings` | LabBooking | 33 | 3 | 4 | — | Clinical records |
 | `laborders` | LabOrder | 39 | 7 | 3 | — | Clinical records |
 | `lawyerbookings` | LawyerBooking | 88 | 19 | 14 | — | **UNMAPPED — see gaps** |
 | `lawyerprofiles` | LawyerProfile | 86 | 12 | 13 | — | Provider KYC documents |
@@ -2423,6 +2423,7 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `bookingId:1` | unique |
+| `createdBy:1` |  |
 | `createdForUserId:1` |  |
 | `hospitalId:1` |  |
 

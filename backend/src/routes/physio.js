@@ -9,11 +9,32 @@ import { generateOrderId, generateInvoiceId } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
-const physioAssessSchema = z.object({}).passthrough();
-const physioSessionSchema = z.object({}).passthrough();
+// P3: explicit shapes instead of passthrough. Keys mirror the sub-docs in
+// models/Physiotherapy.js — mongoose strict would drop anything else on save,
+// and the handlers only read these fields (+ server-stamped ones), so nothing
+// a client legitimately sends is lost.
+const physioAssessSchema = z.object({
+  painScale: z.any().optional(),
+  rangeOfMotion: z.any().optional(),
+  strengthTest: z.any().optional(),
+  functionalAssessment: z.any().optional(),
+  notes: z.any().optional(),
+  treatmentPlan: z.any().optional(),
+});
+const physioSessionSchema = z.object({
+  exercisesPerformed: z.any().optional(),
+  progressNote: z.any().optional(),
+  painLevelBefore: z.any().optional(),
+  painLevelAfter: z.any().optional(),
+  duration: z.any().optional(),
+});
 const physioMidReviewSchema = z.object({ notes: z.string().optional(), response: z.string().optional(), progress: z.number().optional() });
 const physioBillingSchema = z.object({ amount: z.number().optional(), description: z.string().optional(), sessionType: z.string().optional() });
-const physioCompleteSchema = z.object({}).passthrough();
+const physioCompleteSchema = z.object({
+  homeExercise: z.any().optional(),
+  precautions: z.any().optional(),
+  followUpDate: z.any().optional(),
+});
 
 const router = express.Router();
 

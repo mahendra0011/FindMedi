@@ -26,9 +26,13 @@ export function isBotProtectionConfigured() {
   return Boolean(process.env.TURNSTILE_SECRET_KEY);
 }
 
-/** F8: opt-in fail-closed posture when Cloudflare itself is unreachable. */
+/** F8: fail-closed posture. Explicit env wins; production defaults to ON. */
 export function isTurnstileStrict() {
-  return /^(1|true|yes)$/i.test(String(process.env.TURNSTILE_STRICT || ''));
+  const v = process.env.TURNSTILE_STRICT;
+  if (v !== undefined && v !== '') return /^(1|true|yes)$/i.test(v);
+  // P0: in production an unconfigured/failed check must REFUSE, not silently
+  // degrade to "no bot protection". Dev/test keep the old fail-open default.
+  return process.env.NODE_ENV === 'production';
 }
 
 /**
@@ -64,7 +68,15 @@ export async function verifyTurnstileToken(token, remoteip) {
 }
 
 export const botProtection = () => async (req, res, next) => {
-  if (!isBotProtectionConfigured()) return next();
+  if (!isBotProtectionConfigured()) {
+    // P0: production must never run with the check silently OFF. Route through
+    // the same choke point: strict (prod default) => 503; an explicit
+    // TURNSTILE_STRICT=false opts back into fail-open and is still counted.
+    if (process.env.NODE_ENV === 'production') {
+      return providerUnavailable(res, 'not-configured', next);
+    }
+    return next();
+  }
   const token = req.body?.['cf-turnstile-response']
     ?? req.headers?.['cf-turnstile-response']
     ?? req.body?.turnstileToken;

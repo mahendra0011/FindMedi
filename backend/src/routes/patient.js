@@ -9,9 +9,34 @@ import { protect, authorize } from '../middleware/auth.js';
 import { validate } from '../utils/validate.js';
 import { mintQrToken, revokeQrToken, healthIdSettingsSchema } from '../lib/healthIdCard.js';
 
-const familySchema = z.object({}).passthrough();
-const addressSchema = z.object({}).passthrough();
-const favoriteSchema = z.object({ refType: z.string().optional(), refId: z.string().optional() }).passthrough();
+// P1-5: explicit, model-shaped schemas. The old passthrough + Object.assign
+// pattern let a client overwrite `patientId`/`isActive`/`createdAt` on PUT,
+// re-parenting their record onto another account. Unknown keys are stripped.
+const familySchema = z.object({
+  name: z.string().min(1).max(160).optional(),
+  relation: z.enum(['Spouse', 'Child', 'Parent', 'Sibling', 'Grandparent', 'Other']).optional(),
+  gender: z.enum(['Male', 'Female', 'Other']).optional(),
+  dateOfBirth: z.string().max(40).optional(),
+  phone: z.string().max(30).optional(),
+  bloodGroup: z.string().max(20).optional(),
+  allergies: z.string().max(2000).optional(),
+  medicalNotes: z.string().max(4000).optional(),
+});
+const addressSchema = z.object({
+  label: z.string().max(80).optional(),
+  address: z.string().min(1).max(600).optional(),
+  city: z.string().max(120).optional(),
+  state: z.string().max(120).optional(),
+  pincode: z.string().max(12).optional(),
+  phone: z.string().max(30).optional(),
+  isDefault: z.boolean().optional(),
+});
+const favoriteSchema = z.object({
+  refType: z.enum(['doctor', 'hospital', 'clinic', 'lab', 'pharmacy', 'technician']).optional(),
+  refId: z.string().max(64).optional(),
+  refName: z.string().max(200).optional(),
+  notes: z.string().max(1000).optional(),
+});
 
 const router = express.Router();
 

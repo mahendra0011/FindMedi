@@ -67,6 +67,8 @@ import {
   profileUpdateSchema,
   passwordSchema,
 } from '../utils/validate.js';
+import { isPwnedPassword } from '../utils/pwnedPassword.js';
+import { authCookieName, authCookieOptions, readAuthCookie } from '../lib/cookiePolicy.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 import { notifyUsers } from '../services/socketService.js';
@@ -195,29 +197,15 @@ const revokeAllSessions = async (userId) => {
 };
 
 const setAuthCookies = (res, accessToken, refreshToken) => {
-  const isProd = process.env.NODE_ENV === 'production';
-  res.cookie('token', accessToken, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'none' : 'lax',
-    path: '/',
-    maxAge: 15 * 60 * 1000,
-  });
+  res.cookie(authCookieName('token'), accessToken, authCookieOptions(15 * 60 * 1000));
   if (refreshToken) {
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie(authCookieName('refreshToken'), refreshToken, authCookieOptions(7 * 24 * 60 * 60 * 1000));
   }
 };
 
 const clearAuthCookies = (res) => {
-  const isProd = process.env.NODE_ENV === 'production';
-  res.clearCookie('token', { path: '/', httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax' });
-  res.clearCookie('refreshToken', { path: '/', httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax' });
+  res.clearCookie(authCookieName('token'), authCookieOptions());
+  res.clearCookie(authCookieName('refreshToken'), authCookieOptions());
 };
 
 const initialsFor = (name = '') => name
@@ -388,6 +376,15 @@ router.post('/register', authLimiter, botProtection(), validate(registerSchema),
     const SELF_SIGNUP_ROLES = ['doctor', 'patient', 'technician', 'rider', 'assistant', 'lawyer', 'counselor', 'counsellor', 'psychiatrist', 'ambulance', 'delivery_boy'];
     const normalizedRole = SELF_SIGNUP_ROLES.includes(role) ? role : 'patient';
     const lowerEmail = email.toLowerCase();
+
+    // P2-9: known-breached passwords are refused at signup (HIBP k-anonymity
+    // range search; fail-open with a counted warning if HIBP is unreachable).
+    if (await isPwnedPassword(password)) {
+      return res.status(400).json({
+        message: 'This password has appeared in a data breach. Please choose a different one.',
+        code: 'PASSWORD_PWNED',
+      });
+    }
 
     if (normalizedRole === 'doctor' && (!specialization || !licenseNumber || !(qualification || qualifications))) {
       return res.status(400).json({ message: 'Specialization, qualification and license number are required for doctor registration' });
@@ -1476,6 +1473,14 @@ router.post('/reset-password', authLimiter, validate(resetPasswordSchema), async
   try {
     const { email, otp, password } = req.body;
 
+    // P2-9: a reset is exactly when people pick a breached password.
+    if (await isPwnedPassword(password)) {
+      return res.status(400).json({
+        message: 'This password has appeared in a data breach. Please choose a different one.',
+        code: 'PASSWORD_PWNED',
+      });
+    }
+
     const user = await User.findOne({ email: email.toLowerCase() });
     // AUTH-B-15: same generic answer for unknown accounts (no enumeration oracle).
     if (!user) return res.status(400).json({ message: 'Invalid or expired reset code' });
@@ -1638,6 +1643,14 @@ router.put('/change-password', protect, validate(changePasswordSchema), async (r
     const user = await User.findById(req.user.id).select('+password');
     if (!user || !(await user.comparePassword(currentPassword))) {
       return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    // P2-9: known-breached passwords are refused here too.
+    if (await isPwnedPassword(newPassword)) {
+      return res.status(400).json({
+        message: 'This password has appeared in a data breach. Please choose a different one.',
+        code: 'PASSWORD_PWNED',
+      });
     }
 
     user.password = newPassword;
@@ -1807,7 +1820,7 @@ router.put('/profile', protect, validate(profileUpdateSchema), async (req, res) 
 // hammer the endpoint to force repeated RefreshToken.deleteOne() writes.
 router.post('/logout', authLimiter, async (req, res) => {
   try {
-    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    const refreshToken = readAuthCookie(req.cookies, 'refreshToken') || req.body?.refreshToken;
     if (refreshToken) {
       const tokenKey = RefreshToken.getTokenKey(refreshToken);
       await RefreshToken.deleteOne({ tokenKey });
@@ -1850,7 +1863,7 @@ router.get('/sessions', protect, async (req, res) => {
       .lean();
 
     // The jti of the session making this request, if we can identify it.
-    const presented = req.cookies?.refreshToken || req.query?.refreshToken;
+    const presented = readAuthCookie(req.cookies, 'refreshToken') || req.query?.refreshToken;
     let currentJti = null;
     if (presented) {
       try {
@@ -1919,7 +1932,7 @@ router.delete('/sessions/:jti', protect, authLimiter, async (req, res) => {
     }
 
     // If the caller just killed the session they are using, clear its cookies.
-    const presented = req.cookies?.refreshToken;
+    const presented = readAuthCookie(req.cookies, 'refreshToken');
     if (presented) {
       try {
         if (verifyRefreshToken(presented)?.jti === jti) clearAuthCookies(res);
@@ -1939,7 +1952,7 @@ router.delete('/sessions/:jti', protect, authLimiter, async (req, res) => {
 router.post('/refresh', authLimiter, validate(refreshTokenSchema), async (req, res) => {
   let newRefreshTokenDoc = null;
   try {
-    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    const refreshToken = readAuthCookie(req.cookies, 'refreshToken') || req.body?.refreshToken;
     if (!refreshToken) {
       return res.status(400).json({ message: 'Refresh token is required' });
     }

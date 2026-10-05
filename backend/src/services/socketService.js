@@ -445,7 +445,7 @@ function readHandshakeToken(socket) {
   // same-origin socket connects without the client having to duplicate the
   // token into the handshake payload.
   const cookieHeader = socket.handshake?.headers?.cookie || '';
-  const match = cookieHeader.match(/(?:^|;\s*)token=([^;]+)/);
+  const match = cookieHeader.match(/(?:^|;\s*)(?:__Host-)?token=([^;]+)/);
   if (match) return decodeURIComponent(match[1]);
 
   return null;

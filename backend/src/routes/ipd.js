@@ -8,9 +8,20 @@ import { validate, createAdmissionSchema } from '../utils/validate.js';
 import { generateAdmissionId, generate16DigitId } from '../utils/idGenerator.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
-const ipdBedSchema = z.object({}).passthrough();
+const ipdBedSchema = z.object({
+  bedNumber: z.string().trim().min(1).max(40).optional(),
+  ward: z.string().trim().max(80).optional(),
+  room: z.string().trim().max(80).optional(),
+  type: z.string().trim().max(80).optional(),
+  status: z.enum(['Available', 'Occupied', 'Maintenance', 'Reserved']).optional(),
+  notes: z.string().trim().max(2000).optional(),
+}).strict();
 const ipdDischargeSchema = z.object({ dischargeSummary: z.string().optional(), isInfectionCase: z.boolean().optional() });
-const ipdClinicalSchema = z.object({}).passthrough();
+const ipdClinicalSchema = z.object({
+  vitals: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
+  notes: z.string().trim().max(4000).optional(),
+  diagnosis: z.string().trim().max(2000).optional(),
+}).strict();
 
 const router = express.Router();
 
@@ -29,7 +40,13 @@ router.get('/beds', protect, async (req, res) => {
 
 router.post('/beds', protect, adminOnly, validate(ipdBedSchema), async (req, res) => {
   try {
-    const bed = await Bed.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    // §13.8: validated schema is already strict — still pick explicitly so a
+    // future field addition cannot smuggle hospitalId/status/tenant keys.
+    const { pickBody } = await import('../utils/pick.js');
+    const bed = await Bed.create({
+      ...pickBody(req.body, ['bedNumber', 'ward', 'room', 'type', 'status', 'notes']),
+      hospitalId: req.user.hospitalId || undefined,
+    });
     res.status(201).json(bed);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

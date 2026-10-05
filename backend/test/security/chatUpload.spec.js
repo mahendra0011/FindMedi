@@ -218,10 +218,16 @@ describe('POST /messages — attachments array is validated server-side', () => 
 });
 
 describe('wiring pins', () => {
-  it('route file does not import rate limiters (harness compatibility)', async () => {
+  it('upload route carries the chatUploadLimiter in the chain (P2-14)', async () => {
+    // This pin used to forbid any rateLimit import ("harness compatibility").
+    // The harness stubs every limiter export now (appHarness rateLimit mock,
+    // including chatUploadLimiter), so the constraint it protected is gone and
+    // the absence it pinned was a real gap: chat upload was the only file-capable
+    // POST with no write budget at all.
     const fs = await import('fs');
     const src = fs.readFileSync(new URL('../../src/routes/chat.js', import.meta.url), 'utf8');
-    expect(src).not.toMatch(/from\s+['"][^'"]*rateLimit/);
+    expect(src).toMatch(/from\s+['"][^'"]*rateLimit/);
+    expect(src).toMatch(/router\.post\('\/upload', protect, authorize\('chat:write:own'\), chatUploadLimiter/);
   });
 
   it('upload + messages keep the protect + authorize guard chain', async () => {

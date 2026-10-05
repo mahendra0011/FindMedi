@@ -106,7 +106,6 @@ describe('recordServiceSettlement', () => {
       const result = await recordServiceSettlement({
         source: 'ride', sourceId: `R-${gross}`, totalAmount: gross,
       });
-      // eslint-disable-next-line jest/no-standalone-expect
       const reconciles = paise(result.netAmount) + paise(result.commissionAmount) + paise(result.taxAmount);
       expect(reconciles).toBe(paise(gross));
       expect(result.netAmount).toBeGreaterThanOrEqual(0);

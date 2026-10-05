@@ -6,7 +6,10 @@ import { mountApp } from '../helpers/appHarness.js';
 // route-tree re-import; on a contended worker (full suite + coverage) a single
 // re-import can exceed jest's default 20s and flake the suite. Verified green
 // solo (28s for both reports suites) and at maxWorkers=2.
-jest.setTimeout(45000);
+// Raised 45s -> 120s: even 45s flaked on the full-suite+coverage run while the
+// machine also had a Docker Desktop VM up (same flake signature - solo green,
+// only the mountFresh superadmin cases time out; no route change involved).
+jest.setTimeout(120000);
 
 const model = (methods = {}) => ({ default: { find: jest.fn(), ...methods } });
 const csvModels = ({ rows = [] } = {}) => {

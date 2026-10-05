@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import fetch from 'node-fetch';
+import { safeFetchBuffer } from '../utils/safeFetchBuffer.js';
 import { v4 as uuidv4 } from 'uuid';
 import { generateInvoicePdfNative, NATIVE_PDF_AVAILABLE } from './napiPdfService.js';
  
@@ -232,15 +232,11 @@ const drawStatusPill = (doc, status, x, y) => {
   doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9).text(normalized, x, y + 6, { width: 84, align: 'center' });
 };
  
-const fetchImageBuffer = async (url) => {
-  if (!url) return null;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const buffer = await res.buffer();
-    return buffer;
-  } catch { return null; }
-};
+// P2-13: https-only, host-allowlisted (res.cloudinary.com), private-IP
+// blocked, size/time capped. The old helper did a bare fetch + res.buffer()
+// (buffer() does not exist on undici responses) and took its URL straight from
+// stored profile data - a stored-SSRF primitive with a broken success path.
+const fetchImageBuffer = (url) => safeFetchBuffer(url);
  
 const drawSignature = (doc, label = 'Authorized Signatory', signatureBuffer = null) => {
   ensureSpace(doc, 64);

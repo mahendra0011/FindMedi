@@ -8,9 +8,36 @@ import { validate, createTriageSchema } from '../utils/validate.js';
 import { generateEmergencyId, generateMLCNumber } from '../utils/idGenerator.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
-const triageUpdateSchema = z.object({}).passthrough();
+// P3: explicit allowlist matching pickBody() in the PUT handler — unknown keys
+// are stripped by zod, so the schema itself enforces the same list the handler
+// picks (defense in depth; status/assign/mlc have dedicated endpoints).
+const triageUpdateSchema = z.object({
+  patientName: z.any().optional(),
+  age: z.any().optional(),
+  gender: z.any().optional(),
+  phone: z.any().optional(),
+  arrivalMode: z.any().optional(),
+  broughtBy: z.any().optional(),
+  chiefComplaint: z.any().optional(),
+  triageLevel: z.any().optional(),
+  triageNotes: z.any().optional(),
+  vitals: z.any().optional(),
+  referredTo: z.any().optional(),
+  referredReason: z.any().optional(),
+});
 const triageAssignSchema = z.object({ doctorId: z.string().optional(), doctorName: z.string().optional() });
-const triageMlcSchema = z.object({}).passthrough();
+// P1-5: strict shape matching models/Triage.js `mlc.type`. Zod strips unknown
+// keys, so a client cannot smuggle privileged fields into the subdoc.
+const mlcTypeSchema = z.object({
+  caseType: z.string().max(160).optional(),
+  policeStation: z.string().max(240).optional(),
+  policeOfficer: z.string().max(240).optional(),
+  officerPhone: z.string().max(30).optional(),
+  firNumber: z.string().max(120).optional(),
+  notes: z.string().max(4000).optional(),
+  reportedAt: z.string().optional(),
+});
+const triageMlcSchema = z.object({ type: mlcTypeSchema.optional() });
 const triageNoteSchema = z.object({ text: z.string().min(1) });
 
 const router = express.Router();
@@ -112,7 +139,9 @@ router.put('/:id/mlc', protect, adminOnly, validate(triageMlcSchema), async (req
     }
     const mlcNumber = entry.mlcNumber || generateMLCNumber();
     entry.isMLCO = true; entry.mlcNumber = mlcNumber;
-    entry.mlc = { ...req.body, reportedAt: new Date() };
+    // P1-5: reportedAt lives INSIDE mlc.type (see the model) and is stamped
+    // server-side; only the validated type shape from the client is accepted.
+    entry.mlc = { type: { ...req.body.type, reportedAt: new Date() } };
     await entry.save();
     res.json(entry);
   } catch (err) { res.status(400).json({ message: err.message }); }

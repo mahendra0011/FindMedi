@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { requireConversationMember, assertRoomAccess } from '../middleware/chatMembership.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { chatUploadLimiter } from '../middleware/rateLimit.js';
 import ChatConversation from '../models/ChatConversation.js';
 import ChatMessage from '../models/ChatMessage.js';
 import AssistantBooking from '../models/AssistantBooking.js';
@@ -391,7 +392,7 @@ router.delete('/push-subscriptions/:id', protect, authorize('chat:write:own'), a
 // chatUploadService.storeChatUpload(). CHAT-B-06 still holds: the stored
 // extension is derived from the server-side MIME map, never from the client
 // filename.
-router.post('/upload', protect, authorize('chat:write:own'), async (req, res) => {
+router.post('/upload', protect, authorize('chat:write:own'), chatUploadLimiter, async (req, res) => {
   try {
     const { dataUrl, name = 'file' } = req.body || {};
     if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {

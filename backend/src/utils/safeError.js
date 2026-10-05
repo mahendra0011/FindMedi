@@ -42,6 +42,27 @@ export function sendSafeError(res, err, clientMessage = 'Something went wrong', 
   return res.status(500).json({ message: clientMessage, errorId });
 }
 
+// §5.3/§5.4: response-DTO allowlist guard — `...doc` / full-object returns leak
+// password, tokenVersion, 2FA secrets, __v, KYC/bank fields. Strip at the DTO
+// boundary (select:false is bypassed by .lean()/.select('+password')).
+const FORBIDDEN_RESPONSE_FIELDS = new Set([
+  'password', 'passwordHash', 'tokenVersion', 'tokenKey',
+  'twoFactorSecret', 'twoFactorTempSecret', 'twoFactorBackupCodes',
+  'driveTokens', 'abhaOtpHash', 'otp', 'otpHash',
+  'bankAccount', 'bankAccountNumber', 'accountNumber', 'ifsc', 'upiId',
+  'aadhaar', 'aadhaarNumber', 'pan', 'panNumber', 'passportNumber',
+  'voterId', 'kyc', 'kycDocs', '__v',
+]);
+
+export function sanitizeDto(input) {
+  if (!input || typeof input !== 'object') return input;
+  const obj = typeof input.toObject === 'function' ? input.toObject() : { ...input };
+  for (const field of FORBIDDEN_RESPONSE_FIELDS) delete obj[field];
+  return obj;
+}
+
+export { FORBIDDEN_RESPONSE_FIELDS };
+
 /**
  * Handle an unexpected failure inside an async route.
  *

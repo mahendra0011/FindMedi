@@ -178,6 +178,18 @@ export async function listQuotas() {
  * contract as the per-user limiters (>= at the cap, RL-01), then either
  * passes, or refuses with 429 TENANT_QUOTA_EXCEEDED + Retry-After.
  */
+/** P2-15: opt-in fail-closed posture (TENANT_QUOTA_STRICT=true). */
+const tenantQuotaStrict = () => /^(1|true|yes)$/i.test(String(process.env.TENANT_QUOTA_STRICT || ''));
+
+/** Shared 503 for both strict-mode refusal paths. */
+function refuseUnavailable(res) {
+  res.setHeader('Retry-After', '30');
+  return res.status(503).json({
+    success: false,
+    error: 'TENANT_QUOTA_UNAVAILABLE',
+    message: 'Capacity control is temporarily unavailable. Please retry shortly.',
+  });
+}
 export async function tenantQuotaGuard(req, res, next) {
   try {
     const hospitalId = req.user?.hospitalId;
@@ -193,6 +205,13 @@ export async function tenantQuotaGuard(req, res, next) {
     // one, and "how long were quotas unenforced?" must be graphable.
     if (!isRedisReady() || !redisClient.isOpen) {
       securityFailOpenTotal.inc({ control: 'tenant_quota' });
+      // P2-15: default is the documented fail-open (quota = capacity control),
+      // TENANT_QUOTA_STRICT=true flips it to 503 for deployments that would
+      // rather refuse than run un-metered.
+      if (tenantQuotaStrict()) {
+        logger.warn('tenant quota guard: Redis unavailable and TENANT_QUOTA_STRICT set - failing closed');
+        return refuseUnavailable(res);
+      }
       return next();
     }
 
@@ -221,6 +240,10 @@ export async function tenantQuotaGuard(req, res, next) {
     return next();
   } catch (err) {
     securityFailOpenTotal.inc({ control: 'tenant_quota' });
+    if (tenantQuotaStrict()) {
+      logger.warn(`tenant quota guard error: ${err.message}. TENANT_QUOTA_STRICT set - failing closed.`);
+      return refuseUnavailable(res);
+    }
     logger.warn(`tenant quota guard error: ${err.message}. Passing through.`);
     return next();
   }

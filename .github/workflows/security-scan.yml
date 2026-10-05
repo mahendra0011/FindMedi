@@ -1,0 +1,58 @@
+# Security scanning: gitleaks (secret detection across FULL history) + CodeQL.
+#
+# IMPORTANT - sequencing (2026-10-05 audit):
+# The gitleaks job scans the whole history, and `server/.env` with real
+# credentials is still reachable there (old commits ~486f79b..df495796).
+# Until the history is purged (git filter-repo) and secrets rotated, the
+# gitleaks job will (correctly) FAIL. Land this file together with, or right
+# after, the history rewrite - do not add it to required checks before that.
+#
+# The npm audit / semgrep / trivy guards already live in ci.yml; this file
+# adds only what was missing: secret-history scanning and CodeQL.
+
+name: Security Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # weekly, Monday 04:17 UTC
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    name: gitleaks (secrets)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # needed so gitleaks-action can annotate pull requests
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history - that is the whole point
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITLEAKS_LICENSE is only required for org-owned/private repos;
+          # this repo is public, so the action runs free.
+
+  codeql:
+    name: CodeQL (javascript)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3

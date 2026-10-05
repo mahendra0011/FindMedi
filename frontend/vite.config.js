@@ -35,6 +35,12 @@ export default defineConfig(({ mode }) => ({
         outDir: path.resolve(__dirname, "dist"),
         emptyOutDir: true,
         sourcemap: false,
+        // §6.16: console.log/info/warn me PHI/token leak hote hain — production
+        // bundle se drop karo (error stack ke liye Sentry hai).
+        minify: "esbuild",
+        esbuild: {
+            drop: ["console", "debugger"],
+        },
         rollupOptions: {
             output: {
                 manualChunks: function (id) {

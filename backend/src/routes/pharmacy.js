@@ -42,36 +42,149 @@ import { KAFKA_TOPICS } from '../config/kafka.js';
 import { canCollectPharmacyCod, canTransitionPharmacyOrder } from '../services/pharmacyOrderLifecycle.js';
 import { sealPrescription, issueToken, verifyToken } from '../services/prescriptionIntegrity.js';
 
-const medicineUpdateSchema = z.object({}).passthrough();
+// ─── Request-validation schemas ─────────────────────────────────────────────
+// These use zod's DEFAULT strip mode (plain z.object): keys not declared here
+// are REMOVED from req.body by `validate()` before the handler runs. That is
+// strictly stronger than the old `.passthrough()` for mass-assignment (forged
+// total/status/patientId never reach a handler — PHARM-B-11) while not
+// hard-failing legitimate client fields the way `.strict()` did (checkout
+// paymentMethod/storeId, edit-dialog string prices). Every key a handler or
+// the web client actually reads MUST be declared below or strip drops it.
+const medicineUpdateSchema = z.object({
+  // Numbers are union'd with string: the edit dialog prefills toString() values
+  // (and '' when unset), which mongoose Number casting accepts — matching the
+  // pre-hardening behaviour instead of 400-ing the stock/edit form.
+  name: z.string().trim().min(1).max(200).optional(),
+  genericName: z.string().trim().max(200).optional(),
+  category: z.string().trim().max(120).optional(),
+  form: z.string().trim().max(80).optional(),
+  manufacturer: z.string().trim().max(200).optional(),
+  batchNumber: z.string().trim().max(120).optional(),
+  expiryDate: z.string().max(40).optional(),
+  purchasePrice: z.union([z.number().nonnegative().max(10000000), z.string().max(30)]).optional(),
+  sellingPrice: z.union([z.number().nonnegative().max(10000000), z.string().max(30)]).optional(),
+  reorderLevel: z.union([z.number().int().nonnegative().max(1000000), z.string().max(30)]).optional(),
+  prescriptionReq: z.boolean().optional(),
+  rackLocation: z.string().trim().max(120).optional(),
+  interactions: z.string().trim().max(4000).optional(),
+  contraindications: z.string().trim().max(4000).optional(),
+  isActive: z.boolean().optional(),
+  // currentStock is deliberately NOT here: stock changes go through the
+  // dedicated /stock route, and strip drops it exactly as pickBody did before.
+});
 const pharmacyStockSchema = z.object({ quantity: z.number().int().positive().max(100000), type: z.enum(['add', 'deduct']) });
-const prescriptionSchema = z.object({}).passthrough();
+const prescriptionSchema = z.object({
+  patientId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
+  patientName: z.string().trim().max(200).optional(),
+  diagnosis: z.string().trim().max(2000).optional(),
+  clinicalNotes: z.string().trim().max(4000).optional(),
+  isEmergency: z.boolean().optional(),
+  medicines: z.array(z.object({
+    // Field names mirror what the handler reads (m.medicineName, m.route, …).
+    medicineId: z.string().min(1).max(100).optional(),
+    medicineName: z.string().trim().max(200).optional(),
+    dosage: z.string().trim().max(120).optional(),
+    frequency: z.string().trim().max(120).optional(),
+    duration: z.string().trim().max(120).optional(),
+    route: z.string().trim().max(60).optional(),
+    instructions: z.string().trim().max(1000).optional(),
+    quantity: z.coerce.number().int().nonnegative().max(10000).optional(),
+  })).max(50).optional(),
+});
 const pharmacyOrderSchema = z.object({
   items: z.array(z.object({
     medicineId: z.string().min(1),
     quantity: z.coerce.number().int().positive().max(100),
-  }).passthrough()).min(1).max(50),
-  address: z.string().trim().min(5).max(500).optional(),
-  deliveryAddress: z.string().trim().min(5).max(500).optional(),
+    // Read by the handler for multi-store rejection + stale-cart checks (:831+).
+    storeId: z.string().min(1).max(100).optional(),
+    // Anything else on an item (price, medicineName, rx) is strip-removed: the
+    // handler re-derives name/price from the catalogue, never from the cart.
+  })).min(1).max(50),
+  address: z.string().trim().max(500).optional(),
+  deliveryAddress: z.string().trim().max(500).optional(),
   deliveryMode: z.enum(['delivery', 'pickup']).optional(),
   deliverySlot: z.string().trim().max(80).optional(),
   couponCode: z.string().trim().max(40).optional(),
   prescriptionUrl: z.string().trim().max(2048).optional(),
-}).passthrough();
+  // Read by the handler (:934/:942) to map COD/UPI/Card — must survive strip.
+  paymentMethod: z.string().trim().max(40).optional(),
+  // Strip (not strict): the checkout page also sends display fields (total,
+  // status, patientId, patientName, email, phone). They are NOT declared, so
+  // zod removes them before the handler runs — a forged total/status can never
+  // reach the request object, while the request still succeeds with
+  // server-derived state (PHARM-B-14: forged totals → 201 + authoritative total).
+});
 const pharmacyOrderUpdateSchema = z.object({
+  // status is intentionally absent — status transitions have dedicated
+  // endpoints; strip drops it, so PUT /orders/:id can never flip status.
   phone: z.string().trim().max(40).optional(),
-  deliveryAddress: z.string().trim().min(5).max(500).optional(),
+  deliveryAddress: z.string().trim().max(500).optional(),
   note: z.string().trim().max(1000).optional(),
   prescriptionUrl: z.string().trim().max(2048).optional(),
   rejectionReason: z.string().trim().max(500).optional(),
   deliverySlot: z.string().trim().max(80).optional(),
-}).passthrough();
+});
 const pharmacyOrderStatusSchema = z.object({
   status: z.enum(['Confirmed', 'Preparing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled']),
 });
-const pharmacyDeliverySchema = z.object({}).passthrough();
-const pharmacyOfferSchema = z.object({}).passthrough();
-const pharmacyReturnSchema = z.object({}).passthrough();
-const pharmacyStaffSchema = z.object({}).passthrough();
+const pharmacyDeliverySchema = z.object({
+  // POST /deliveries does `{ ...req.body }` into the model, so every writable
+  // model field must be declared here and nothing more (strip enforces it).
+  // orderId is optional because PUT sends partial bodies like {status} — the
+  // model's required validator rejects a POST that omits it.
+  orderId: z.string().min(1).max(80).optional(),
+  orderRef: z.string().max(80).optional(),
+  deliveryPartnerId: z.string().max(80).optional(),
+  pickupName: z.string().trim().max(200).optional(),
+  pickupAddress: z.string().trim().max(500).optional(),
+  dropAddress: z.string().trim().max(500).optional(),
+  patientName: z.string().trim().max(200).optional(),
+  patientPhone: z.string().trim().max(40).optional(),
+  deliveryFee: z.union([z.number().nonnegative(), z.string().max(30)]).optional(),
+  notes: z.string().trim().max(2000).optional(),
+  estimatedTime: z.string().trim().max(120).optional(),
+  status: z.string().trim().max(60).optional(),
+  // PUT handler reads these for proof-of-delivery + OTP handoff.
+  deliveryProofPhoto: z.string().max(2048).optional(),
+  deliveryOtp: z.string().max(20).optional(),
+  otpVerified: z.boolean().optional(),
+  // Free-form progress note pushed onto trackingHistory by the PUT handler.
+  tracking: z.string().max(500).optional(),
+});
+const pharmacyOfferSchema = z.object({
+  // Field names mirror the PharmacyOffer model + what the offers page sends
+  // (discount/type/minPurchase/usageLimit — not discountPct).
+  code: z.string().trim().min(1).max(40).optional(),
+  title: z.string().trim().max(200).optional(),
+  discount: z.union([z.number().min(0), z.string().max(30)]).optional(),
+  type: z.enum(['percentage', 'flat']).optional(),
+  minPurchase: z.union([z.number().nonnegative(), z.string().max(30)]).optional(),
+  maxDiscount: z.union([z.number().nonnegative(), z.string().max(30)]).optional(),
+  usageLimit: z.union([z.number().int().nonnegative(), z.string().max(30)]).optional(),
+  validTill: z.string().max(40).optional(),
+  isActive: z.boolean().optional(),
+});
+const pharmacyReturnSchema = z.object({
+  reason: z.string().trim().min(1).max(1000).optional(),
+  quantity: z.number().int().positive().max(1000).optional(),
+  notes: z.string().trim().max(2000).optional(),
+  // PUT handler allowlists these; strip drops everything else (total/status
+  // are server-owned).
+  orderId: z.string().max(80).optional(),
+  orderRef: z.string().max(80).optional(),
+  patientName: z.string().trim().max(200).optional(),
+  status: z.string().trim().max(40).optional(),
+});
+const pharmacyStaffSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  role: z.string().trim().max(120).optional(),
+  email: z.string().trim().max(200).optional(),
+  phone: z.string().trim().max(40).optional(),
+  licenseNumber: z.string().trim().max(120).optional(),
+  experience: z.string().trim().max(120).optional(),
+  shift: z.string().trim().max(40).optional(),
+  isActive: z.boolean().optional(),
+});
 const pharmacyDispenseSchema = z.object({ medicineIndex: z.number().int().nonnegative() });
 
 const router = express.Router();

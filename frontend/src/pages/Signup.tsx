@@ -41,7 +41,7 @@ export default function Signup() {
   const passwordStrength = (() => {
     if (!password) return { score: 0, label: '', color: 'bg-border' };
     let score = 0;
-    if (password.length >= 8) score += 1;
+    if (password.length >= 10) score += 1;
     if (password.length >= 12) score += 1;
     if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
     if (/\d/.test(password)) score += 1;
@@ -235,8 +235,8 @@ export default function Signup() {
           setLoading(false);
           return;
         }
-        if (password.length < 8) {
-          setError('Password must be at least 8 characters');
+        if (password.length < 10) {
+          setError('Password must be at least 10 characters');
           setLoading(false);
           return;
         }

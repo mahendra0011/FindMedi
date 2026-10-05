@@ -124,6 +124,7 @@ export async function mountApp(name, models = {}, options = {}) {
     publicSearchLimiter: (_req, _res, next) => next(),
     reviewWriteLimiter: (_req, _res, next) => next(),
     auditSearchLimiter: (_req, _res, next) => next(),
+    chatUploadLimiter: (_req, _res, next) => next(),
   }));
   for (const [specifier, factory] of Object.entries(models)) {
     jest.unstable_mockModule(specifier, factory);

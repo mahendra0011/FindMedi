@@ -50,7 +50,6 @@ router.get('/profile', protect, requireRole(['assistant']), async (req, res) => 
       walletBalance: profile.walletBalance,
       totalEarnings: profile.totalEarnings,
       totalBookings: profile.totalBookings,
-      userId: profile.userId,
       bankDetails: profile.bankDetails ? {
         accountHolder: profile.bankDetails.accountHolder,
         accountNumber: profile.bankDetails.accountNumber ? `****${String(profile.bankDetails.accountNumber).slice(-4)}` : '',

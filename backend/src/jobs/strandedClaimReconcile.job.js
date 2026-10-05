@@ -83,7 +83,7 @@ export async function runStrandedClaimReconcileOnce({ targets, now = new Date(),
   let scanned = 0;
   let released = 0;
   for (const { Provider, Requests } of list) {
-    let rows = [];
+    let rows;
     try {
       rows = await Provider.find({ activeDispatchRequestId: { $ne: null } })
         .select('_id activeDispatchRequestId updatedAt lastLocationAt')
@@ -95,7 +95,7 @@ export async function runStrandedClaimReconcileOnce({ targets, now = new Date(),
     }
     for (const row of rows) {
       scanned += 1;
-      let requestDoc = null;
+      let requestDoc;
       try {
         requestDoc = await findRequestById(Requests, row.activeDispatchRequestId);
       } catch (err) {

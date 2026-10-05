@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import mongoose from "mongoose";
 import { CLIENT_ORIGIN, GOOGLE_MEET_DEFAULT_LINK, JWT_SECRET, NOTES_ENCRYPTION_KEY, maskMongoUri, MONGODB_DATABASE, MONGODB_URI, PORT } from "./config/env.js";
 import { verifyAccessToken } from "../../src/utils/jwtKeys.js";
+import { readAuthCookie } from "../../../src/lib/cookiePolicy.js";
 import { connectDatabase, isDatabaseReady } from "./database/connect.js";
 import {
   Appointment,
@@ -271,7 +272,7 @@ function attachFindMediUser(req) {
   try {
     const header = req.headers?.authorization || "";
     const bearer = /^Bearer\s+(.+)$/i.exec(header)?.[1] || "";
-    const token = req.cookies?.token || bearer;
+    const token = readAuthCookie(req.cookies, 'token') || bearer;
     if (!token) return null;
     const payload = verifyAccessToken(token);
     const id = payload?.id || payload?._id || payload?.userId;

@@ -20,7 +20,18 @@ import { generateTimestampedId } from '../utils/idGenerator.js';
 import { paymentLimiter } from '../middleware/rateLimit.js';
 import { idempotencyGuard } from '../middleware/idempotency.js';
 
-const updateInsuranceSchema = z.object({}).passthrough();
+// P3: explicit allowlist matching the pickBody() list in the PUT handler below.
+// Unknown keys are stripped by zod, so req.body can never carry a privileged
+// path (claimId, hospitalId, patientId, claimStatus, approvedAmount) into the
+// route even if the pick list is edited later.
+const updateInsuranceSchema = z.object({
+  tpaContact: z.any().optional(),
+  documents: z.any().optional(),
+  notes: z.any().optional(),
+  diagnosis: z.any().optional(),
+  treatmentPlan: z.any().optional(),
+  estimatedCost: z.any().optional(),
+});
 // INS-M-02: the pre-auth is a state machine, not a free-form status write.
 // Request (cashless only, empanelled hospital only) -> decision (admin, with a
 // mandatory reason for any denial or partial) -> optional resubmission after a

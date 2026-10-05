@@ -16,7 +16,9 @@ import { getReportExportScope, REPORT_EXPORT_ROW_CAP } from '../../src/routes/re
 // 45s file-wide: every test re-imports the full route tree through
 // mountFresh/jest.resetModules(); a contended worker (full suite + coverage)
 // can blow jest's default 20s on a single re-import and flake the suite.
-jest.setTimeout(45000);
+// Raised 45s -> 120s: flaked at 45s on full-suite+coverage runs with a Docker
+// Desktop VM up (solo green; same mountFresh re-import cause, no route change).
+jest.setTimeout(120000);
 
 const capturedLimits = [];
 const model = (methods = {}) => ({ default: { find: jest.fn(), ...methods } });

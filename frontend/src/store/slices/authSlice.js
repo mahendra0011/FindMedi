@@ -225,6 +225,13 @@ export const logoutUser = () => (dispatch) => {
     import('@/lib/axios').then(m => m.clearRefreshTokenCache?.()).catch(() => {});
   } catch { /* ignore */ }
 
+  // §7.5: tell every cache owner (React Query in App.tsx, persisted slices) to
+  // drop PHI NOW — before the backend round-trip finishes. Shared clinic PCs
+  // reuse the same browser profile, so stale cache = next user's PHI.
+  try {
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('findmedi:logout'));
+  } catch { /* ignore */ }
+
   dispatch(logout());
 
   // 2. Fire backend logout in background without blocking UI

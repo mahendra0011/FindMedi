@@ -177,3 +177,17 @@ export const auditSearchLimiter = createGrlRateLimiter({
   // under load is exactly when it is needed.
   failClosed: true,
 });
+
+/**
+ * P2-14: chat file uploads. The body is up to ~34MB of base64 and each POST
+ * runs MIME + magic-byte + AV-scan work, so an authenticated flood here is a
+ * cheap way to burn CPU/bandwidth. Per-user budget, generous enough for a
+ * normal conversation, tight enough to stop a loop.
+ */
+export const chatUploadLimiter = createGrlRateLimiter({
+  windowMs: 60 * 1000,
+  max: 30,
+  keyPrefix: 'rl:chat-upload',
+  isEmergencyExempt: false,
+  failClosed: true,
+});

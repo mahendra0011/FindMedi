@@ -522,7 +522,8 @@ export default function Login() {
             {googleLoading ? 'Connecting...' : 'Continue with Google'}
           </Button>
 
-          <div className="mt-4 p-3 bg-muted/50 rounded-xl border border-border/50">
+          {import.meta.env.DEV && (
+              <div className="mt-4 p-3 bg-muted/50 rounded-xl border border-border/50">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold text-foreground">⚡ Quick Demo Login:</p>
               <span className="text-[10px] text-muted-foreground font-mono">Password: password</span>
@@ -591,6 +592,7 @@ export default function Login() {
               </p>
             )}
           </div>
+            )}
         </motion.div>
       </div>
     </div>

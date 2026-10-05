@@ -12,6 +12,13 @@ import Hospital from './src/models/Hospital.js';
 import Ambulance from './src/models/Ambulance.js';
 
 configureMongoDns();
+// SECURITY (P0): this seed creates well-known demo credentials. It must never
+// run against a production database - one 'npm run seed' would resurrect
+// backdoor accounts in prod.
+if (process.env.NODE_ENV === 'production') {
+  console.error('Refusing to seed demo accounts with NODE_ENV=production.');
+  process.exit(1);
+}
 
 const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/findmedi';
 

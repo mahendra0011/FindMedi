@@ -67,13 +67,9 @@ api.interceptors.request.use((config) => {
     if (config.data instanceof FormData) {
         delete config.headers["Content-Type"];
     }
-    // Same FindMedi session as the main app: localStorage token → Bearer.
-    try {
-        const token = typeof localStorage !== "undefined" ? localStorage.getItem("token") : null;
-        if (token && !config.headers["Authorization"]) {
-            config.headers["Authorization"] = `Bearer ${token}`;
-        }
-    } catch { /* storage unavailable */ }
+    // SECURITY (P1-6): no localStorage token - auth rides on the httpOnly
+    // session cookie (withCredentials). The old Bearer block read a key that
+    // was never written anywhere, so it only advertised dead auth code.
     const method = (config.method || "get").toLowerCase();
     if (["post", "put", "patch", "delete"].includes(method)) {
         const csrfToken = getCookie("csrf-token");

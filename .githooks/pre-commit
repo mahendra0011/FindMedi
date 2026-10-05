@@ -1,0 +1,30 @@
+#!/bin/sh
+# FindMedi pre-commit: stop secrets from reaching git.
+#
+# Install once per clone:   npm run hooks:install
+# (= git config core.hooksPath .githooks)
+#
+# Preferred: gitleaks (https://github.com/gitleaks/gitleaks)
+#   winget install gitleaks   |   brew install gitleaks
+# Fallback without gitleaks: pattern scan of staged ADDED lines.
+# Examples (*.example) and docs (*.md) are excluded on purpose.
+
+if command -v gitleaks >/dev/null 2>&1; then
+  exec gitleaks protect --staged --redact --no-banner
+fi
+
+staged=$(git diff --cached --unified=0 -- . \
+  ':(exclude)*.example' ':(exclude)*.md' ':(exclude)*package-lock.json' \
+  | grep -E '^\+' | grep -Ev '^\+\+\+' || true)
+[ -z "$staged" ] && exit 0
+
+pattern='AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{80}|xox[baprs]-[A-Za-z0-9-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|mongodb(\+srv)?:\/\/[^:]+:[^@[:space:]]{8,}@|(cloudinary|smtp):\/\/[^:]+:[^@[:space:]]{8,}@|JWT_SECRET=[A-Za-z0-9/+_-]{32,}'
+
+if printf '%s' "$staged" | grep -Eq "$pattern"; then
+  echo 'pre-commit: BLOCKED - staged changes look like they contain a secret.' >&2
+  echo '  Real secret?  Rotate it FIRST, then remove it from the commit.' >&2
+  echo '  False positive? Install gitleaks (smarter rules) or adjust' >&2
+  echo '  .githooks/pre-commit.' >&2
+  exit 1
+fi
+exit 0

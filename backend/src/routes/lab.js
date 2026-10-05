@@ -38,19 +38,94 @@ const labEnterResultSchema = z.object({ testIndex: z.number().int().nonnegative(
 const labVerifySchema = z.object({ testIndex: z.number().int().nonnegative(), approved: z.boolean().optional(), notes: z.string().optional() });
 const labDeliverReportSchema = z.object({ testIndex: z.number().int().nonnegative(), reportUrl: z.string().optional() });
 const labDispatchReportSchema = z.object({
-  reportUrl: z.string().optional(),
-  dropAddress: z.string().optional(),
-  pickupAddress: z.string().optional(),
-  pickupName: z.string().optional(),
-  patientPhone: z.string().optional(),
-  deliveryFee: z.coerce.number().nonnegative().optional(),
-  estimatedTime: z.string().optional(),
-  notes: z.string().optional(),
-  deliveryPartnerId: z.string().optional(),
-}).passthrough();
-const labBookingSchema = z.object({}).passthrough();
-const labEquipmentSchema = z.object({}).passthrough();
-const labPackageSchema = z.object({}).passthrough();
+  reportUrl: z.string().max(2048).optional(),
+  dropAddress: z.string().max(500).optional(),
+  pickupAddress: z.string().max(500).optional(),
+  pickupName: z.string().max(200).optional(),
+  patientPhone: z.string().max(20).optional(),
+  deliveryFee: z.coerce.number().nonnegative().max(100000).optional(),
+  estimatedTime: z.string().max(120).optional(),
+  notes: z.string().max(2000).optional(),
+  deliveryPartnerId: z.string().max(100).optional(),
+}).strict();
+// §5.15/§13.8: two-layer write guard for lab bookings.
+//  Layer 1 (here): .strict() — unknown/malformed keys are rejected loudly
+//  (bounded types + lengths) instead of being silently passed downstream.
+//  Layer 2 (handlers): pickBody allowlist — status / paymentStatus / reportStatus /
+//  patientId / totalAmount / notified / phlebotomist are ACCEPTED by this schema
+//  only so that legacy first-party clients (jo abhi bhi ye keys bhejte hain) 400
+//  na karein; the create/update pickBody allowlists never write them. Server-owned
+//  state is therefore validated but never persisted from a client body.
+const labBookingSchema = z.object({
+  // catalogue + patient-input (create ki pickBody allowlist me writable)
+  tests: z.array(z.string().max(300)).max(200).optional(),
+  testIds: z.array(z.string().max(64)).max(200).optional(),
+  testName: z.string().max(300).optional(),
+  patientName: z.string().max(200).optional(),
+  patientPhone: z.string().max(20).optional(),
+  patientEmail: z.string().max(200).optional(),
+  patientId: z.string().max(64).optional(),
+  patient: z.string().max(200).optional(),
+  hospitalId: z.string().max(64).optional(),
+  bookingId: z.string().max(64).optional(),
+  bookingDate: z.union([z.string().max(64), z.number()]).optional(),
+  timeSlot: z.string().max(80).optional(),
+  visitType: z.string().max(40).optional(),
+  homeCollectionAddress: z.string().max(500).optional(),
+  homeCollectionFee: z.coerce.number().nonnegative().max(1000000).optional(),
+  prescriptionUrl: z.string().max(2048).optional(),
+  prescriptionVerified: z.boolean().optional(),
+  notes: z.string().max(4000).optional(),
+  discountedAmount: z.coerce.number().nonnegative().max(100000000).optional(),
+  totalAmount: z.coerce.number().nonnegative().max(100000000).optional(),
+  amount: z.coerce.number().nonnegative().max(100000000).optional(),
+  discount: z.coerce.number().nonnegative().max(100000000).optional(),
+  total: z.coerce.number().nonnegative().max(100000000).optional(),
+  // report/delivery (PUT allowlist me writable)
+  reportUrl: z.string().max(2048).optional(),
+  reportDeliveryMode: z.string().max(30).optional(),
+  reportDeliveryFee: z.coerce.number().nonnegative().max(1000000).optional(),
+  // Server-owned state: validated here (legacy clients 400 na karein) but
+  // STRIPPED by the handlers' pickBody — never written from req.body.
+  status: z.string().max(40).optional(),
+  paymentStatus: z.string().max(40).optional(),
+  reportStatus: z.string().max(40).optional(),
+  notified: z.union([z.boolean(), z.number().int().min(0).max(1)]).optional(),
+  phlebotomist: z.string().max(200).optional(),
+  phlebotomistId: z.string().max(64).optional(),
+}).strict();
+// Equipment create `{...req.body}` spread karta hai — isliye strict allowlist
+// exactly model-writable fields (tenant fields handler set karta hai, yahan reject).
+const labEquipmentSchema = z.object({
+  name: z.string().max(200).optional(),
+  type: z.string().max(60).optional(),
+  model: z.string().max(200).optional(),
+  serialNumber: z.string().max(120).optional(),
+  manufacturer: z.string().max(200).optional(),
+  installationDate: z.string().max(40).optional(),
+  lastMaintenanceDate: z.string().max(40).optional(),
+  nextMaintenanceDate: z.string().max(40).optional(),
+  maintenanceInterval: z.coerce.number().int().nonnegative().max(3650).optional(),
+  status: z.string().max(60).optional(),
+  location: z.string().max(300).optional(),
+  notes: z.string().max(4000).optional(),
+}).strict();
+// Package create bhi `{...req.body}` spread karta hai — strict allowlist.
+// originalPrice/packagePrice number-input se string aati hain, isliye coerce.
+const labPackageSchema = z.object({
+  name: z.string().max(200).optional(),
+  description: z.string().max(4000).optional(),
+  category: z.string().max(60).optional(),
+  tests: z.array(z.string().max(64)).max(500).optional(),
+  testNames: z.union([z.array(z.string().max(300)).max(500), z.string().max(4000)]).optional(),
+  originalPrice: z.coerce.number().nonnegative().max(100000000).optional(),
+  packagePrice: z.coerce.number().nonnegative().max(100000000).optional(),
+  discount: z.coerce.number().int().nonnegative().max(100).optional(),
+  popular: z.boolean().optional(),
+  homeCollectionAvailable: z.boolean().optional(),
+  reportTime: z.string().max(60).optional(),
+  isActive: z.boolean().optional(),
+}).strict();
 
 const router = express.Router();
 
@@ -391,7 +466,7 @@ router.get('/stats', protect, async (req, res) => {
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     // AUTHZ-B-07: the two if (req.user.hospitalId && ...) lines made lab stats
     // platform-wide for every tenant-less account. Fail closed instead. A patient
-    // is already restricted to their own orders by ilter.patientId above, so the
+    // is already restricted to their own orders by filter.patientId above, so the
     // tenant predicate is only applied to staff.
     if (req.user.role !== 'patient') {
       const scope = applyTenantScope(req, filter, { fields: ['facilityId'] });

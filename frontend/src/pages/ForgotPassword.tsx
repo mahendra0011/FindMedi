@@ -20,7 +20,7 @@ export default function ForgotPassword() {
   const passwordStrength = (() => {
     if (!password) return { score: 0, label: '', color: 'bg-border' };
     let score = 0;
-    if (password.length >= 8) score += 1;
+    if (password.length >= 10) score += 1;
     if (password.length >= 12) score += 1;
     if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
     if (/\d/.test(password)) score += 1;
@@ -65,8 +65,8 @@ export default function ForgotPassword() {
       setError('Enter the 6-digit reset OTP');
       return;
     }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+    if (password.length < 10) {
+      setError('Password must be at least 10 characters');
       return;
     }
     if (password !== confirmPassword) {

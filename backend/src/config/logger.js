@@ -54,6 +54,12 @@ const logger = pino(
         'body.password', 'body.otp', 'body.currentPassword', 'body.newPassword',
         'body.refreshToken', 'body.accessToken', 'body.setupToken',
         'req.body.password', 'req.body.otp', 'req.body.refreshToken',
+        // §6.1: PHI/PII fields — logs me kabhi plaintext nahi (DPDP/HIPAA).
+        '*.email', '*.phone', '*.mobile', '*.address', '*.dob', '*.dateOfBirth',
+        '*.diagnosis', '*.diagnosisCode', '*.prescription*', '*.treatment*',
+        '*.therapy*', '*.patient*', '*.doctor*', '*.hospital*', '*.clinic*',
+        'body.email', 'body.phone', 'body.name', 'body.diagnosis', 'body.notes',
+        'req.body.email', 'req.body.phone', 'req.body.name',
       ],
       censor: '[redacted]',
       remove: false,

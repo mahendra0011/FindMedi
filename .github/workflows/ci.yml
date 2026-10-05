@@ -67,9 +67,12 @@ jobs:
       with:
         node-version: 20.x
     - name: Install dependencies
+      # P1-8: npm ci - installs EXACTLY the committed lockfile. `npm install`
+      # may silently rewrite the lock and pick newer transitive deps, so the
+      # vulnerability ratchet below was never comparing the same tree twice.
       run: |
-        cd backend && npm install --no-audit
-        cd ../frontend && npm install --no-audit
+        cd backend && npm ci --no-audit --no-fund
+        cd ../frontend && npm ci --no-audit --no-fund
 
     # INF-M-05 / TEST-M-08. A RATCHET, not a zero-tolerance gate: every current
     # advisory reports fixAvailable:false, so a "no high" gate would be red on
@@ -653,7 +656,7 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: 20.x
-    - run: cd backend && npm install
+    - run: cd backend && npm ci
     - name: The helper must actually neutralise metacharacters
       run: cd backend && node --test test/escapeRegex.test.js 2>/dev/null || cd backend && node --experimental-vm-modules node_modules/jest/bin/jest.js test/escapeRegex --forceExit
 
@@ -664,7 +667,7 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: 20.x
-    - run: cd backend && npm install
+    - run: cd backend && npm ci
     - name: Guards must stay reachable for the owning account
       run: cd backend && node scripts/checkAuthzCallerReachability.mjs
 
@@ -675,7 +678,7 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: 20.x
-    - run: cd backend && npm install
+    - run: cd backend && npm ci
     - name: Every authorize() permission is defined in the matrix
       run: cd backend && node scripts/checkPermissionMatrix.mjs
 
@@ -708,7 +711,7 @@ jobs:
         cache-dependency-path: backend/package-lock.json
 
     - name: Install Dependencies
-      run: cd backend && npm install
+      run: cd backend && npm ci
 
     - name: Lint
       run: cd backend && npm run lint

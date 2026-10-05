@@ -208,7 +208,7 @@ router.post('/:requestId/accept', protect, authorize('emergency:write'), async (
     const { requestId } = req.params;
     const userId = req.user._id || req.user.id;
 
-    let doctor = await Doctor.findOne({ user_id: userId });
+    const doctor = await Doctor.findOne({ user_id: userId });
     if (!doctor) return res.status(404).json({ success: false, message: 'Doctor profile not found' });
 
     // Concurrency lock check

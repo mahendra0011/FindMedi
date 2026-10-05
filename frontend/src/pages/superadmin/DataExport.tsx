@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
-import { api, getApiBaseUrl } from '@/lib/api';
+import { api, apiClient } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 
 const EXPORTS = [
@@ -25,13 +25,15 @@ export default function DataExport() {
       const params = new URLSearchParams({ format: 'csv', ...dateRange });
       if (dateRange.from) params.set('from', dateRange.from);
       if (dateRange.to) params.set('to', dateRange.to);
-      const token = localStorage.getItem('token');
-      const url = `${getApiBaseUrl()}/export/${type}?${params}`;
+      // SECURITY (P1-6): no localStorage token - apiClient attaches the
+      // httpOnly session cookie (withCredentials) + CSRF header. The old
+      // `Bearer ${localStorage.getItem('token')}` read a key nothing ever
+      // wrote, so the header was literally `Bearer null`.
+      const res = await apiClient.get(`/export/${type}?${params}`, {
+        responseType: 'blob',
+      });
 
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error('Export failed');
-
-      const blob = await res.blob();
+      const blob = res.data;
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `${type}-${getISTDateString()}.csv`;

@@ -10,6 +10,7 @@ import Notification from '../models/Notification.js';
 import { protect, adminOnly, hospitalAdminOnly, superadminOnly, scopeToHospital } from '../middleware/auth.js';
 import { sendDoctorApprovalEmail, sendDoctorRejectionEmail, sendEmail } from '../services/notificationService.js';
 import { auditLog } from '../middleware/audit.js';
+import logger from '../config/logger.js';
 import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
 import { z } from 'zod';
 import { validate, createDoctorSchema, updateDoctorSchema } from '../utils/validate.js';
@@ -422,7 +423,26 @@ router.put('/:id', protect, validate(updateDoctorSchema), async (req, res) => {
   } catch (err) { sendServerError(res, err, 'Could not update doctor profile'); }
 });
 
-const clinicProfileSchema = z.object({ clinicProfile: z.object({}).passthrough() });
+// §5.4: strict — client sirf ClinicProfile ke writable fields bhej sakta hai.
+// Wire format SNAKE_CASE hai (frontend DoctorProfile `clinic_name` bhejta hai);
+// doctorId/clinicId server-owned hain (clinicId client-settable hota to unique
+// index collide karke kisi aur profile ko hijack kar sakte the).
+const clinicProfileSchema = z.object({
+  clinicProfile: z.object({
+    clinic_name: z.string().max(200).optional(),
+    clinic_address: z.string().max(500).optional(),
+    clinic_category: z.string().max(120).optional(),
+    clinic_timing: z.record(z.string(), z.union([z.string().max(100), z.number(), z.boolean()])).optional(),
+    clinic_photos: z.array(z.string().max(2048)).max(20).optional(),
+    clinic_facilities: z.array(z.string().max(200)).max(50).optional(),
+    clinic_treatments: z.array(z.string().max(200)).max(50).optional(),
+    clinic_insurance: z.array(z.string().max(200)).max(50).optional(),
+    clinic_faqs: z.array(z.record(z.string(), z.unknown())).max(50).optional(),
+    clinic_license: z.string().max(200).optional(),
+    established_year: z.number().int().min(1800).max(2100).nullable().optional(),
+    social: z.record(z.string(), z.union([z.string().max(500), z.number(), z.boolean()])).optional(),
+  }).strict(),
+});
 
 router.put('/:id/clinic-profile', protect, validate(clinicProfileSchema), async (req, res) => {
   try {

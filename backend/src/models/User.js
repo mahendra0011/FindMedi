@@ -214,9 +214,17 @@ emergencyContact: {
   // timestamps:true already maintains createdAt/updatedAt — no explicit field.
 }, { timestamps: true });
 
+// P2-9: cost 12 is the floor (cost 10 is ~4x cheaper for an offline cracker).
+// The env override exists for controlled migration runs only and is clamped so
+// it can never weaken a production login below the old cost 10.
+const BCRYPT_ROUNDS = (() => {
+  const n = Number(process.env.BCRYPT_ROUNDS);
+  return Number.isInteger(n) && n >= 10 && n <= 15 ? n : 12;
+})();
+
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 10);
+  this.password = await bcrypt.hash(this.password, BCRYPT_ROUNDS);
   next();
 });
 
@@ -237,8 +245,21 @@ userSchema.pre('save', function (next) {
   next();
 });
 
-userSchema.methods.comparePassword = function (plain) {
-  return bcrypt.compare(plain, this.password);
+userSchema.methods.comparePassword = async function (plain) {
+  const ok = await bcrypt.compare(plain, this.password);
+  if (ok) {
+    // P2-9: opportunistic upgrade - a hash minted at an older cost is silently
+    // re-hashed at BCRYPT_ROUNDS on the next successful login. The pre-save
+    // hook does the hashing; a failure here must never fail the login itself.
+    try {
+      const cost = Number.parseInt(String(this.password).slice(4, 6), 10);
+      if (Number.isInteger(cost) && cost < BCRYPT_ROUNDS) {
+        this.password = plain;
+        await this.save();
+      }
+    } catch { /* keep the successful login */ }
+  }
+  return ok;
 };
 
 // AUTHZ-B-05: collapse the deprecated `counselor` spellings on write so the
@@ -264,4 +285,20 @@ userSchema.pre(['updateOne', 'findOneAndUpdate'], function canonicaliseRoleAlias
 });
 
 export default mongoose.model('User', userSchema);
+
+// §5.3/§5.4: never let secrets/internal flags leave in a response — `select: false`
+// is bypassed by .lean()/.select('+password'), so strip at the DTO boundary too.
+const USER_FORBIDDEN_FIELDS = new Set([
+  'password', 'tokenVersion', 'twoFactorSecret', 'twoFactorTempSecret',
+  'twoFactorBackupCodes', 'driveTokens', 'abhaOtpHash', '__v',
+]);
+
+export function sanitizeUserDto(input) {
+  if (!input || typeof input !== 'object') return input;
+  const obj = typeof input.toObject === 'function' ? input.toObject() : { ...input };
+  for (const field of USER_FORBIDDEN_FIELDS) delete obj[field];
+  return obj;
+}
+
+export { USER_FORBIDDEN_FIELDS };
 

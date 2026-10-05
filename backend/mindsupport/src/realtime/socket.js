@@ -10,6 +10,13 @@ function allowedSocketOrigins() {
   return origins;
 }
 
+/** httpOnly session cookie carriage (same parser shape as main socketService). */
+function readCookieToken(socket) {
+  const cookieHeader = socket.handshake?.headers?.cookie || "";
+  const match = cookieHeader.match(/(?:^|;\s*)(?:__Host-)?token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
 export function createRealtimeServer(httpServer) {
   const io = new SocketIOServer(httpServer, {
     cors: {
@@ -19,39 +26,30 @@ export function createRealtimeServer(httpServer) {
   });
 
   io.use(async (socket, next) => {
+    // SECURITY (P1-6/CHAT-001): identity comes ONLY from a verified JWT. The
+    // old code fell back to a client-supplied `auth.userId` (and even trusted
+    // it without a DB lookup), so any socket could join any user's room and
+    // read their notifications/chat. Token carriage: handshake payload (legacy)
+    // or the httpOnly session cookie - the mind FE keeps no token in
+    // localStorage.
+    const token = socket.handshake.auth?.token
+      || socket.handshake.query?.token
+      || readCookieToken(socket);
+    if (!token) return next(new Error("unauthorized: no token"));
     try {
-      const token = socket.handshake.auth?.token || socket.handshake.query?.token || "";
-      if (token) {
-        try {
-          // AUTH-F-01: findmedi access tokens only, key-rotatable. The old
-          // raw verify used JWT_SECRET directly (dead under JWT_KEYS) with a
-          // MIND_JWT_SECRET/dev-secret fallback no signer ever used.
-          const payload = verifyAccessToken(token);
-          const uid = payload.id || payload._id || payload.userId;
-          if (uid) {
-            const user = await User.findById(uid);
-            if (user && user.status !== "suspended") {
-              socket.user = user;
-              next();
-              return;
-            }
-          }
-        } catch { /* fallback to userId */ }
-      }
-      const userId = socket.handshake.auth?.userId || socket.handshake.query?.userId || "";
-      const role = socket.handshake.auth?.role || socket.handshake.query?.role || "";
-      if (userId) {
-        const user = await User.findById(userId);
-        if (user && user.status !== "suspended") {
-          socket.user = user;
-          next();
-          return;
-        }
-      }
-      socket.user = userId ? { _id: userId, role: role || "user" } : null;
+      // AUTH-F-01: findmedi access tokens only, key-rotatable. The old
+      // raw verify used JWT_SECRET directly (dead under JWT_KEYS) with a
+      // MIND_JWT_SECRET/dev-secret fallback no signer ever used.
+      const payload = verifyAccessToken(token);
+      const uid = payload.id || payload._id || payload.userId;
+      if (!uid) return next(new Error("unauthorized: no identity in token"));
+      const user = await User.findById(uid);
+      if (!user || user.status === "suspended") return next(new Error("unauthorized"));
+      socket.user = user;
       next();
     } catch {
-      next();
+      // A bad token or DB failure must never become "authenticated".
+      return next(new Error("unauthorized: invalid token"));
     }
   });
 

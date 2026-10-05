@@ -6,7 +6,17 @@ import { auditLog } from '../middleware/audit.js';
 import { validate } from '../utils/validate.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
-const licenseSchema = z.object({}).passthrough();
+const licenseSchema = z.object({
+  facilityName: z.string().trim().min(1).max(200).optional(),
+  licenseType: z.string().trim().max(120).optional(),
+  licenseNumber: z.string().trim().max(120).optional(),
+  issuingAuthority: z.string().trim().max(200).optional(),
+  issueDate: z.string().max(40).optional(),
+  expiryDate: z.string().max(40).optional(),
+  status: z.string().trim().max(60).optional(),
+  documentUrl: z.string().trim().max(2048).optional(),
+  notes: z.string().trim().max(2000).optional(),
+}).strict();
 
 const router = express.Router();
 

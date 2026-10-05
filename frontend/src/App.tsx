@@ -320,6 +320,15 @@ const MindDashboardLayout = lazy(() => import('./mind/components/MindDashboardLa
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } });
 
+// §7.5: shared-device PHI leak — logout par React Query + persisted stores ka
+// cached PHI turant clear ho, warna agla user back-button se pichhle patient
+// ka data dekh lega. Auth slice se fire hota hai (window event).
+if (typeof window !== 'undefined') {
+  window.addEventListener('findmedi:logout', () => {
+    try { queryClient.clear(); } catch { /* ignore */ }
+  });
+}
+
 const loadingFallback = (
   <div className="min-h-screen flex items-center justify-center">
     <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
