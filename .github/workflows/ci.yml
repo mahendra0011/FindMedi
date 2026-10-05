@@ -12,7 +12,7 @@ jobs:
   gitleaks:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
     - uses: gitleaks/gitleaks-action@v2
@@ -22,7 +22,7 @@ jobs:
   plaintext-aadhaar-guard:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Fail on plaintext Aadhaar-shaped storage
       run: |
         ! grep -rEn "aadhaar(_number|Number)?['\"]?\s*:\s*\{[^}]*type:\s*String" backend/src/models/ || (echo "plaintext Aadhaar field in a model" && exit 1)
@@ -31,7 +31,7 @@ jobs:
   mass-assignment-guard:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Fail on new unscoped findByIdAndUpdate(req.body)
       run: |
         ! grep -rEn "findByIdAndUpdate\([^,]+,\s*req\.body" backend/src/routes/ || (echo "unscoped findByIdAndUpdate(req.body) — use an allowlist" && exit 1)
@@ -43,7 +43,7 @@ jobs:
   raw-jwt-guard:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Fail on jsonwebtoken use outside utils/jwtKeys.js
       run: |
         ! grep -rEn "jwt\.[\w.]*\.(verify|sign|decode)\(" backend/src backend/mindsupport/src --include='*.js' \
@@ -62,7 +62,7 @@ jobs:
     name: Dependency Vulnerability Ratchet
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: actions/setup-node@v4
       with:
         node-version: 20.x
@@ -103,7 +103,7 @@ jobs:
     name: SAST + Container Image Scan
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0   # semgrep ci needs history to diff against
 
@@ -149,7 +149,7 @@ jobs:
   tenant-guard-regression:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: actions/setup-node@v4
       with:
         node-version: 20.x
@@ -559,7 +559,7 @@ jobs:
   infra-hardening-guard:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: actions/setup-node@v4
       with:
         node-version: 20.x
@@ -646,7 +646,7 @@ jobs:
   unescaped-regex-guard:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Fail on unescaped user input reaching new RegExp
       run: |
         # Direct request-body/query reads.
@@ -663,7 +663,7 @@ jobs:
   authz-caller-reachability:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: actions/setup-node@v4
       with:
         node-version: 20.x
@@ -674,7 +674,7 @@ jobs:
   permission-matrix-sanity:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: actions/setup-node@v4
       with:
         node-version: 20.x
@@ -685,7 +685,7 @@ jobs:
   env-doc-drift:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: actions/setup-node@v4
       with:
         node-version: 20.x
@@ -701,7 +701,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Use Node.js 20.x
       uses: actions/setup-node@v4
@@ -764,7 +764,7 @@ jobs:
         os: [ubuntu-latest, ubuntu-22.04, windows-latest]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Use Node.js 20.x
       uses: actions/setup-node@v4
@@ -870,7 +870,7 @@ jobs:
       NEXT_TELEMETRY_DISABLED: 1
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     # Node 22+ is required: this app runs Vitest 5 (engines: ^22.12.0 || ^24.0.0 || >=26)
     # and @testing-library/jest-dom 7 (engines: >=22), unlike the api job.
@@ -913,7 +913,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Use Node.js 22.x
       uses: actions/setup-node@v4
@@ -944,7 +944,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Install k6
       run: |

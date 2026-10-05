@@ -34,7 +34,7 @@ jobs:
       # needed so gitleaks-action can annotate pull requests
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # full history - that is the whole point
       - uses: gitleaks/gitleaks-action@v2
@@ -50,7 +50,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript
