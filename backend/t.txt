@@ -1,2 +1,0 @@
-npm notice run findmedi-server@1.0.0 test
-npm notice run node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit test/security/authAccountTakeover.spec.js
