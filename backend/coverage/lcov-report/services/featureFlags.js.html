@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">7.4% </span>
+                <span class="strong">12% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>2/27</span>
+                <span class='fraction'>3/25</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/17</span>
+                <span class='fraction'>0/18</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/9</span>
+                <span class='fraction'>0/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">9.09% </span>
+                <span class="strong">12.5% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>2/22</span>
+                <span class='fraction'>3/24</span>
             </div>
         
             
@@ -125,32 +125,23 @@
 <a name='L60'></a><a href='#L60'>60</a>
 <a name='L61'></a><a href='#L61'>61</a>
 <a name='L62'></a><a href='#L62'>62</a>
-<a name='L63'></a><a href='#L63'>63</a>
-<a name='L64'></a><a href='#L64'>64</a>
-<a name='L65'></a><a href='#L65'>65</a>
-<a name='L66'></a><a href='#L66'>66</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L63'></a><a href='#L63'>63</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -180,6 +171,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -188,34 +186,24 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Unleash } from 'unleash-client';
-import { PostHog } from 'posthog-node';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { PostHog } from 'posthog-node';
 &nbsp;
 let unleash = null;
+const configuredFlags = <span class="fstat-no" title="function not covered" >()</span> =&gt; {
+<span class="cstat-no" title="statement not covered" >  try {</span>
+    const value = <span class="cstat-no" title="statement not covered" >JSON.parse(process.env.FEATURE_FLAGS || '{}');</span>
+<span class="cstat-no" title="statement not covered" >    return value &amp;&amp; typeof value === 'object' &amp;&amp; !Array.isArray(value) ? value : {};</span>
+  } catch {
+<span class="cstat-no" title="statement not covered" >    return {};</span>
+  }
+};
 let posthog = null;
 &nbsp;
 export function <span class="fstat-no" title="function not covered" >initFeatureFlags(</span>) {
-<span class="cstat-no" title="statement not covered" >  if (!process.env.UNLEASH_URL || !process.env.UNLEASH_API_TOKEN) {</span>
-<span class="cstat-no" title="statement not covered" >    console.warn('Unleash not configured, feature flags disabled');</span>
-<span class="cstat-no" title="statement not covered" >    return null;</span>
-  }
-  
-<span class="cstat-no" title="statement not covered" >  unleash = new Unleash({</span>
-    url: process.env.UNLEASH_URL,
-    clientKey: process.env.UNLEASH_API_TOKEN,
-    appName: 'findmedi-backend',
-    refreshInterval: 15000,
-    disableMetrics: true,
-  });
-  
-<span class="cstat-no" title="statement not covered" >  unleash.on('error', <span class="fstat-no" title="function not covered" >(e</span>rr) =&gt; <span class="cstat-no" title="statement not covered" >console.error('Unleash error:', err.message))</span>;</span>
-<span class="cstat-no" title="statement not covered" >  unleash.on('warn', <span class="fstat-no" title="function not covered" >(m</span>sg) =&gt; <span class="cstat-no" title="statement not covered" >console.warn('Unleash warn:', msg))</span>;</span>
-  
+  // Backend flags are currently environment-backed; do not fetch remote rules
+  // or send request context to an external feature-flag service.
+<span class="cstat-no" title="statement not covered" >  unleash = configuredFlags();</span>
 <span class="cstat-no" title="statement not covered" >  return unleash;</span>
 }
 &nbsp;
@@ -243,13 +231,15 @@ export function <span class="fstat-no" title="function not covered" >getPostHog(
 }
 &nbsp;
 export function <span class="fstat-no" title="function not covered" >isFeatureEnabled(</span>flagName, context = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
-<span class="cstat-no" title="statement not covered" >  if (!unleash) <span class="cstat-no" title="statement not covered" >return false;</span></span>
-<span class="cstat-no" title="statement not covered" >  return unleash.isEnabled(flagName, context);</span>
+<span class="cstat-no" title="statement not covered" >  void context;</span>
+  const flags = <span class="cstat-no" title="statement not covered" >unleash || configuredFlags();</span>
+<span class="cstat-no" title="statement not covered" >  return flags[flagName] === true;</span>
 }
 &nbsp;
 export function <span class="fstat-no" title="function not covered" >getVariant(</span>flagName, context = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
-<span class="cstat-no" title="statement not covered" >  if (!unleash) <span class="cstat-no" title="statement not covered" >return null;</span></span>
-<span class="cstat-no" title="statement not covered" >  return unleash.getVariant(flagName, context);</span>
+<span class="cstat-no" title="statement not covered" >  void flagName;</span>
+<span class="cstat-no" title="statement not covered" >  void context;</span>
+<span class="cstat-no" title="statement not covered" >  return null;</span>
 }
 &nbsp;
 export function <span class="fstat-no" title="function not covered" >capturePostHogEvent(</span>event, properties = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
@@ -258,14 +248,15 @@ export function <span class="fstat-no" title="function not covered" >capturePost
     event,
     properties,
   });
-}</pre></td></tr></table></pre>
+}
+&nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-09-30T19:23:47.559Z
+                at 2026-10-05T09:44:05.995Z
             </div>
         <script src="../prettify.js"></script>
         <script>

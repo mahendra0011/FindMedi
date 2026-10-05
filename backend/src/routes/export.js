@@ -7,6 +7,9 @@ import Hospital from '../models/Hospital.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 import AuditLog from '../models/AuditLog.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
+// AUTHZ-M-03 (F7): bulk exports are the data-exfil path - a stolen session
+// token must not be enough to pull them.
+import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { toCsvNative, toCsvFallback, NATIVE_CSV_AVAILABLE } from '../services/napiCsvService.js';
 
 const toCSV = (data, fields) => {
@@ -65,7 +68,7 @@ const recordExport = async (req, kind, result, fields) => {
 // ──────────────────────────────────────────────
 const EXPORT_JOB_TYPES = ['users', 'revenue', 'bookings', 'facilities', 'audit'];
 
-router.post('/jobs', protect, superadminOnly, async (req, res) => {
+router.post('/jobs', protect, superadminOnly, requireStepUp('export:full'), async (req, res) => {
   try {
     const { type, from, to } = req.body || {};
     if (!EXPORT_JOB_TYPES.includes(type)) {
@@ -87,7 +90,7 @@ router.get('/jobs/:id', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/users', protect, superadminOnly, async (req, res) => {
+router.get('/users', protect, superadminOnly, requireStepUp('export:full'), async (req, res) => {
   try {
     const users = await User.find({}).select('-password').lean();
     const FIELDS = ['name', 'email', 'role', 'phone', 'status', 'isVerified', 'approvalStatus', 'createdAt'];
@@ -102,7 +105,7 @@ router.get('/users', protect, superadminOnly, async (req, res) => {
   } catch (err) { sendServerError(res, err, 'Could not export users'); }
 });
 
-router.get('/revenue', protect, superadminOnly, async (req, res) => {
+router.get('/revenue', protect, superadminOnly, requireStepUp('export:full'), async (req, res) => {
   try {
     const filter = {};
     if (req.query.from || req.query.to) {
@@ -124,7 +127,7 @@ router.get('/revenue', protect, superadminOnly, async (req, res) => {
   } catch (err) { sendServerError(res, err, 'Could not export revenue'); }
 });
 
-router.get('/bookings', protect, superadminOnly, async (req, res) => {
+router.get('/bookings', protect, superadminOnly, requireStepUp('export:full'), async (req, res) => {
   try {
     const filter = {};
     if (req.query.from || req.query.to) {
@@ -146,7 +149,7 @@ router.get('/bookings', protect, superadminOnly, async (req, res) => {
   } catch (err) { sendServerError(res, err, 'Could not export bookings'); }
 });
 
-router.get('/facilities', protect, superadminOnly, async (req, res) => {
+router.get('/facilities', protect, superadminOnly, requireStepUp('export:full'), async (req, res) => {
   try {
     const hospitals = await Hospital.find({}).lean();
     const FIELDS = ['id', 'name', 'type', 'email', 'phone', 'city', 'status', 'plan', 'createdAt'];
@@ -162,7 +165,7 @@ router.get('/facilities', protect, superadminOnly, async (req, res) => {
   } catch (err) { sendServerError(res, err, 'Could not export facilities'); }
 });
 
-router.get('/audit', protect, superadminOnly, async (req, res) => {
+router.get('/audit', protect, superadminOnly, requireStepUp('export:full'), async (req, res) => {
   try {
     const filter = {};
     if (req.query.from || req.query.to) {

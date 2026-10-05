@@ -2,6 +2,12 @@ import { jest } from '@jest/globals';
 import ExcelJS from 'exceljs';
 import { mountApp } from '../helpers/appHarness.js';
 
+// 45s file-wide: every test does mountFresh = jest.resetModules() + a full
+// route-tree re-import; on a contended worker (full suite + coverage) a single
+// re-import can exceed jest's default 20s and flake the suite. Verified green
+// solo (28s for both reports suites) and at maxWorkers=2.
+jest.setTimeout(45000);
+
 const model = (methods = {}) => ({ default: { find: jest.fn(), ...methods } });
 const csvModels = ({ rows = [] } = {}) => {
   const find = jest.fn(() => ({ limit: jest.fn(() => ({ lean: jest.fn().mockResolvedValue(rows) })) }));

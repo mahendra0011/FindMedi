@@ -141,8 +141,10 @@ export default function Login() {
 
   // Wait for /auth/me hydration before redirecting. Otherwise a stale user in
   // memory during session validation can bounce between /login and /dashboard.
+  // AUTH-F-06: a temp-password session goes to /set-password instead - every
+  // data endpoint will 403 PASSWORD_RESET_REQUIRED until the flag is cleared.
   if (authLoading) return <div className="min-h-screen" role="status" aria-label="Checking session" />;
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={user.mustResetPassword ? '/set-password' : '/dashboard'} replace />;
 
   const pickRole = (r: string) => {
     setRole(r);
@@ -161,9 +163,11 @@ export default function Login() {
     try {
       const data = await api.googleAuth({ idToken, accessToken, role });
       if (data.exists && data.token && data.user) {
-        setAuthTokens(data.token, data.refreshToken);
+        setAuthTokens(data.token);
         completeGoogleLogin(data.user);
-        navigate('/dashboard');
+        // AUTH-F-06: google sessions for temp-password accounts land on the
+        // forced-rotation page too (the old login-time check never ran here).
+        navigate(data.user.mustResetPassword ? '/set-password' : '/dashboard', { replace: true });
         return;
       }
 
@@ -237,6 +241,11 @@ export default function Login() {
       if (result?.requiresTwoFactor) {
         setTwoFactorTicket(result.twoFactorTicket);
         setTwoFactorCode('');
+        return;
+      }
+      // AUTH-F-06: temp-password accounts must rotate before anything else.
+      if (result?.mustResetPassword) {
+        navigate('/set-password', { replace: true });
         return;
       }
       navigate('/dashboard');

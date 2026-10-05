@@ -1,6 +1,9 @@
 import { Server } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
-import jwt from 'jsonwebtoken';
+// AUTH-F-01/F-04: one verification path (jwtKeys, not bare JWT_SECRET) plus a
+// tokenVersion check, so a socket handshake obeys the same revocation rules as
+// every REST request.
+import { verifyAccessToken } from '../utils/jwtKeys.js';
 import logger from '../config/logger.js';
 import {
   redisPub,
@@ -118,7 +121,7 @@ export function attachRideSocketHandlers(socket, namespace) {
       socket.emit('error:room', { room: 'ride', id: rideId, message: 'Not authorized' });
       return;
     }
-    socket.join(`ride:${rideId}`);
+    socket.join(verdict.room);
   });
   socket.on('leave_ride_room', ({ rideId }) => {
     if (rideId) socket.leave(`ride:${rideId}`);
@@ -328,7 +331,7 @@ export function attachEmergencySocketHandlers(socket, namespace) {
       socket.emit('error:room', { room: 'emergency', id: requestId, message: 'Not authorized' });
       return;
     }
-    socket.join(`emergency:${requestId}`);
+    socket.join(verdict.room);
   });
   socket.on('leave_emergency_room', ({ requestId }) => {
     if (requestId) socket.leave(`emergency:${requestId}`);
@@ -339,7 +342,7 @@ export function attachEmergencySocketHandlers(socket, namespace) {
       socket.emit('error:room', { room: 'ambulance', id: ambulanceId, message: 'Not authorized' });
       return;
     }
-    socket.join(`ambulance:${ambulanceId}`);
+    socket.join(verdict.room);
   });
   socket.on('leave_ambulance_room', ({ ambulanceId }) => {
     if (ambulanceId) socket.leave(`ambulance:${ambulanceId}`);
@@ -448,7 +451,8 @@ function readHandshakeToken(socket) {
   return null;
 }
 
-async function verifySocketAuth(socket, next) {
+// Exported for test/security coverage of the handshake gate.
+export async function verifySocketAuth(socket, next) {
   const token = readHandshakeToken(socket);
   if (!token) {
     return next(new Error('unauthorized: no token'));
@@ -456,15 +460,21 @@ async function verifySocketAuth(socket, next) {
 
   let decoded;
   try {
-    decoded = jwt.verify(token, process.env.JWT_SECRET);
+    decoded = verifyAccessToken(token);
   } catch {
     return next(new Error('unauthorized: invalid token'));
   }
 
   try {
-    const user = await User.findById(decoded.id).select('role status isVerified');
+    const user = await User.findById(decoded.id).select('role status isVerified tokenVersion');
     if (!user) return next(new Error('unauthorized: user not found'));
     if (user.status === 'blocked') return next(new Error('unauthorized: blocked'));
+    // AUTH-F-04: logout-all / password change bump tokenVersion; a socket that
+    // only checked the signature stayed authenticated on a revoked token until
+    // it expired.
+    if ((decoded.tv ?? 0) !== (user.tokenVersion || 0)) {
+      return next(new Error('unauthorized: session revoked'));
+    }
 
     // CHAT-B-04: written once, through one accessor, so `socket.data.*` and the
     // legacy mirrors can never diverge after a reconnect or a merge flow.
@@ -600,7 +610,7 @@ export async function initSocket(server) {
         socket.emit('error:room', { room: 'order', id: orderId, message: 'Not authorized' });
         return;
       }
-      socket.join(`order:${orderId}`);
+      socket.join(verdict.room);
     });
     socket.on('order:leave_tracking', (orderId) => {
       if (orderId) socket.leave(`order:${orderId}`);

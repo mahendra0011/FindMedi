@@ -1,5 +1,5 @@
 import express from 'express';
-import jwt from 'jsonwebtoken';
+import { verifyAccessToken } from '../utils/jwtKeys.js';
 import Facility from '../models/Facility.js';
 import Hospital from '../models/Hospital.js';
 import User from '../models/User.js';
@@ -70,7 +70,7 @@ router.get('/', async (req, res) => {
     if (status && req.headers.authorization) {
       try {
         const token = req.headers.authorization.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = verifyAccessToken(token);
         const user = await User.findById(decoded.id).select('role status isVerified');
         if (user && user.role === 'superadmin' && user.status !== 'blocked' && user.isVerified) {
           filter.status = status;

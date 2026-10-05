@@ -42,7 +42,6 @@ export function buildOpenApiDocument() {
           type: 'object',
           properties: {
             token: { type: 'string' },
-            refreshToken: { type: 'string' },
             user: { $ref: '#/components/schemas/User' },
           },
         },

@@ -36,6 +36,23 @@ jobs:
       run: |
         ! grep -rEn "findByIdAndUpdate\([^,]+,\s*req\.body" backend/src/routes/ || (echo "unscoped findByIdAndUpdate(req.body) — use an allowlist" && exit 1)
 
+  # AUTH-F-01: key rotation (JWT_KEYS) and refresh-vs-access purpose checks only
+  # hold if EVERY verification goes through utils/jwtKeys.js. A bare
+  # jwt.verify(..., JWT_SECRET) silently ignores the keyset AND accepts a
+  # refresh token as an access token, so each new one reopens both defects.
+  raw-jwt-guard:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Fail on jsonwebtoken use outside utils/jwtKeys.js
+      run: |
+        ! grep -rEn "jwt\.[\w.]*\.(verify|sign|decode)\(" backend/src backend/mindsupport/src --include='*.js' \
+          | grep -v 'backend/src/utils/jwtKeys.js' \
+          || (echo "raw jwt.verify/sign/decode outside utils/jwtKeys.js (AUTH-F-01)" && exit 1)
+        ! grep -rEn "from ['\"]jsonwebtoken['\"]|import\(['\"]jsonwebtoken['\"]\)|require\(['\"]jsonwebtoken['\"]\)" backend/src backend/mindsupport/src --include='*.js' \
+          | grep -v 'backend/src/utils/jwtKeys.js' \
+          || (echo "jsonwebtoken imported outside utils/jwtKeys.js (AUTH-F-01)" && exit 1)
+
   # AUTHZ-B-07: the hand-rolled guard `if (req.user.hospitalId && …)` collapses
   # to "no tenant filter" for any account without a hospitalId, which is how
   # platform-wide reads were reachable. Migrations to applyTenantScope() are in

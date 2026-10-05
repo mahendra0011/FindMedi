@@ -55,6 +55,7 @@ import { getPipelineHealth } from './services/dataPipelineHealth.js';
 import { validateEnv, printEnvStatus } from './config/envValidator.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { protect, superadminOnly } from './middleware/auth.js';
+import { verifyAccessToken } from './utils/jwtKeys.js';
 import { csrfProtection, setCsrfToken } from './middleware/csrf.js';
 import { initSocket } from './services/socketService.js';
 // INF-M-02: Prometheus metrics (registry + HTTP instrumentation) and the
@@ -391,11 +392,12 @@ app.use('/uploads', async (req, res, next) => {
   // 1. Always require a real session (no extension allow-list any more).
   let user = null;
   try {
-    const { default: jwt } = await import('jsonwebtoken');
     const token = req.cookies?.token
       || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
     if (!token) return res.status(401).json({ message: 'Authentication required for file access' });
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // AUTH-F-01: jwtKeys, not bare JWT_SECRET (rotatable keys + refresh-as-
+    // access rejection), matching `protect` exactly.
+    const decoded = verifyAccessToken(token);
     user = await User.findById(decoded.id).select('-password');
     if (!user) return res.status(401).json({ message: 'Authentication required for file access' });
     if ((decoded.tv ?? 0) !== (user.tokenVersion || 0) || user.status === 'blocked') {

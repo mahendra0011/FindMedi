@@ -97,11 +97,11 @@ To answer "what proves finding X is fixed?":
 grep -r "AUTH-B-03" backend/test backend/scripts .github/workflows
 ```
 
-### Family → primary evidence (as of 2026-10-02)
+### Family → primary evidence (as of 2026-10-05)
 
 | Family | Primary evidence |
 |---|---|
-| AUTH-B-01..19 (authn/2FA/limiter) | `test/security/{authAccountTakeover,loginLockout,loginAnomaly,stepUpAuth,sessionRevocation.http,twoFactor,...}.spec.js` + FIXED-LOG |
+| AUTH-B-01..19 (authn/2FA/limiter) | `test/security/{authAccountTakeover,loginLockout,loginAnomaly,stepUpAuth,forcePasswordReset,tokenPurpose,...}.spec.js` + `test/integration/sessionRevocation.http.spec.js` + `test/unit/twoFactor.spec.js` + FIXED-LOG |
 | DL/DLB (data-leak batch) | same security suites (uploads gate, export caps, notification scoping) |
 | AUTHZ-B-* + AUTHZ-M-01 | CI `tenant-guard-regression` step names, `authzManifest.spec.js`, `authorizeObjectMigration*.spec.js`, `check-authz-coverage.mjs` manifest |
 | PAY-B-01..08 | CI steps `PAY-B-01..08` + `test/unit/{ledger,moneyRounding}.spec.js`, `test/security/paymentIdempotency.spec.js` |

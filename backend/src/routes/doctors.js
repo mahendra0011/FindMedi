@@ -1,6 +1,6 @@
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 import express from 'express';
-import jwt from 'jsonwebtoken';
+import { verifyAccessToken, signToken as signJwt } from '../utils/jwtKeys.js';
 import crypto from 'node:crypto';
 import multer from 'multer';
 import Doctor from '../models/Doctor.js';
@@ -41,7 +41,7 @@ const isAdminListRequest = async (req) => {
 
   try {
     const token = auth.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifyAccessToken(token);
     const user = await User.findById(decoded.id).select('role status isVerified');
     return Boolean(user && user.role === 'hospital_admin' && user.status !== 'blocked' && user.isVerified);
   } catch {
@@ -310,7 +310,7 @@ router.post('/', protect, validate(createDoctorSchema), async (req, res) => {
 
     // Create User with temporary status
     const tempPassword = randomPassword(12);
-    const setupToken = jwt.sign({ email: email.toLowerCase(), type: 'doctor_setup', jti: crypto.randomBytes(12).toString('hex') }, process.env.JWT_SECRET, { expiresIn: '48h' });
+    const setupToken = signJwt({ email: email.toLowerCase(), type: 'doctor_setup', jti: crypto.randomBytes(12).toString('hex') }, { expiresIn: '48h' });
 
     const user = await User.create({
       name,

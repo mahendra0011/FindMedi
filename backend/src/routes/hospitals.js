@@ -1,4 +1,5 @@
 import express from 'express';
+import { verifyAccessToken, signToken as signJwt } from '../utils/jwtKeys.js';
 import Hospital from '../models/Hospital.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
@@ -32,9 +33,8 @@ router.get('/', async (req, res) => {
 
     if (status && req.headers.authorization) {
       try {
-        const jwt = (await import('jsonwebtoken')).default;
         const token = req.headers.authorization.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = verifyAccessToken(token);
         const user = await User.findById(decoded.id).select('role status isVerified');
         if (user && user.role === 'superadmin' && user.status !== 'blocked' && user.isVerified) {
           filter.status = status;
@@ -302,9 +302,8 @@ router.post('/ambulances/:id/resend-invite', protect, hospitalAdminOnly, async (
     const { createAmbulanceLogin } = await import('../services/ambulanceLoginService.js');
     if (existing && String(existing._id) === String(ambulance.userId)) {
       // Re-issue token only
-      const jwt = (await import('jsonwebtoken')).default;
       const crypto = (await import('node:crypto')).default;
-      const token = jwt.sign({ email: ambulance.loginEmail.toLowerCase(), type: 'ambulance_setup', jti: crypto.randomBytes(12).toString('hex') }, process.env.JWT_SECRET, { expiresIn: '48h' });
+      const token = signJwt({ email: ambulance.loginEmail.toLowerCase(), type: 'ambulance_setup', jti: crypto.randomBytes(12).toString('hex') }, { expiresIn: '48h' });
       return res.json({ success: true, message: 'Invite re-issued' });
     }
     if (existing) return res.status(400).json({ message: 'Is email se user pehle se hai' });

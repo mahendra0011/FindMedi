@@ -1,5 +1,11 @@
 import express from 'express';
-import { signToken as signJwt, verifyToken as verifyJwt } from '../utils/jwtKeys.js';
+import {
+  signToken as signJwt,
+  verifyToken as verifyJwt,
+  verifyRefreshToken,
+  ACCESS_TOKEN_TYP,
+  REFRESH_TOKEN_TYP,
+} from '../utils/jwtKeys.js';
 import crypto from 'node:crypto';
 import multer from 'multer';
 import fs from 'fs/promises';
@@ -147,15 +153,18 @@ const saveAvatarLocally = async (file, req) => {
   };
 };
 
+// AUTH-F-02: `typ` marks the purpose. A refresh token is a 7-day rotating
+// session secret; without this claim it verified as an access token on every
+// endpoint (protect now rejects it via verifyAccessToken).
 const signAccessToken = (user) => signJwt(
-  { id: user._id, role: user.role, name: user.name, email: user.email, tv: user.tokenVersion || 0, jti: crypto.randomBytes(8).toString('hex') },
+  { id: user._id, role: user.role, name: user.name, email: user.email, tv: user.tokenVersion || 0, jti: crypto.randomBytes(8).toString('hex'), typ: ACCESS_TOKEN_TYP },
   { expiresIn: '15m' }
 );
 
 const signRefreshToken = (user, familyId) => {
   const jti = crypto.randomBytes(12).toString('hex');
   const token = signJwt(
-    { id: user._id, tv: user.tokenVersion || 0, jti, family: familyId || jti },
+    { id: user._id, tv: user.tokenVersion || 0, jti, family: familyId || jti, typ: REFRESH_TOKEN_TYP },
     { expiresIn: '7d' }
   );
   return { token, jti, familyId: familyId || jti };
@@ -309,6 +318,9 @@ const userResponse = async (user) => {
      consultationFee: user.consultationFee,
      isVerified: user.isVerified,
      status: user.status,
+     // AUTH-F-06: the client needs this on EVERY auth response (login, google,
+     // 2fa/complete, /me) to route into /set-password without a 403 round-trip.
+     mustResetPassword: Boolean(user.mustResetPassword),
      approvalStatus: approval,
      doctorApproved: entityApproved,
      doctorProfileId: doctorProfile?._id,
@@ -772,7 +784,7 @@ router.post('/verify-otp', authLimiter, totpLimiter, validate(verifyOtpSchema), 
     res.json({
       message: 'OTP verified successfully',
       token: accessToken,
-      refreshToken,
+      // AUTH-F-03: no refreshToken in the body - httpOnly cookie only.
       user: await userResponse(user),
     });
   } catch (err) {
@@ -939,14 +951,13 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
       return res.status(403).json({ message: 'Your account is pending activation.', inactive: true });
     }
 
-    // AUTH-010: temp-password accounts must set a real password first.
-    if (user.mustResetPassword) {
-      return res.status(403).json({
-        message: 'You must set a new password before continuing.',
-        mustResetPassword: true,
-        email: user.email,
-      });
-    }
+    // AUTH-F-06: the old AUTH-010 `mustResetPassword` 403 that lived here is
+    // gone. It ran only on this password-login path (google/2FA issued tokens
+    // anyway) and - fatally - BEFORE token issuance, so the account could never
+    // reach PUT /auth/change-password, the one route that clears the flag.
+    // `protect` now enforces the lock session-level on every route with a
+    // four-path allowlist; the flag rides in userResponse so the client routes
+    // to /set-password immediately.
 
     if (!user.isVerified) {
       const otpResult = await sendVerificationOtp(user);
@@ -1072,11 +1083,11 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
     setAuthCookies(res, accessToken, refreshToken);
     return res.json({
       token: accessToken,
-      // refreshToken body me bhi do — cross-origin me cookies kabhi-kabhi
-      // store/send nahi hoti (localhost:5173 → localhost:5001). Client is
-      // refresh token ko memory me rakh kar /auth/refresh body me bhejega,
-      // taaki cookie fail hone par bhi session survive kare (koi logout nahi).
-      refreshToken,
+      // AUTH-F-03: the refresh token travels ONLY in the httpOnly cookie.
+      // Putting it in the JSON body handed a 7-day session secret to any
+      // script that can read a response (XSS, extension, logged payload) -
+      // and the frontend never read it (lib/axios.js keeps a tripwire log
+      // that must never fire).
       user: await userResponse(user),
     });
   } catch (err) {
@@ -1186,7 +1197,7 @@ router.post('/2fa/complete', authLimiter, totpLimiter, async (req, res) => {
       success: true,
       method,
       token: accessToken,
-      refreshToken,
+      // AUTH-F-03: cookie-only refresh token.
       user: await userResponse(user),
     });
   } catch (err) {
@@ -1286,7 +1297,7 @@ router.post('/google', authLimiter, validate(googleAuthSchema), async (req, res)
         success: true,
         exists: true,
         token,
-        refreshToken,
+        // AUTH-F-03: cookie-only refresh token.
         user: await userResponse(user),
       });
     }
@@ -1417,7 +1428,7 @@ router.post('/google-register', authLimiter, botProtection(), validate(googleReg
     return res.json({
       success: true,
       token,
-      refreshToken,
+      // AUTH-F-03: cookie-only refresh token.
       user: await userResponse(user),
     });
   } catch (err) {
@@ -1843,7 +1854,7 @@ router.get('/sessions', protect, async (req, res) => {
     let currentJti = null;
     if (presented) {
       try {
-        currentJti = verifyJwt(presented)?.jti || null;
+        currentJti = verifyRefreshToken(presented)?.jti || null;
       } catch {
         currentJti = null; // unparseable token: no row is "current"
       }
@@ -1911,7 +1922,7 @@ router.delete('/sessions/:jti', protect, authLimiter, async (req, res) => {
     const presented = req.cookies?.refreshToken;
     if (presented) {
       try {
-        if (verifyJwt(presented)?.jti === jti) clearAuthCookies(res);
+        if (verifyRefreshToken(presented)?.jti === jti) clearAuthCookies(res);
       } catch {
         // Unparseable presented token: leave the cookies alone.
       }
@@ -1984,10 +1995,11 @@ router.post('/refresh', authLimiter, validate(refreshTokenSchema), async (req, r
       return res.status(401).json({ message: 'Session compromised. Please login again.' });
     }
 
-    // jwt.verify to validate JWT signature and get user ID
+    // Signature + PURPOSE check: an access token must not mint a new 7-day
+    // session (AUTH-F-02). family must be present, typ must be 'refresh' when set.
     let decoded;
     try {
-      decoded = verifyJwt(refreshToken);
+      decoded = verifyRefreshToken(refreshToken);
     } catch {
       await RefreshToken.deleteOne({ _id: stored._id });
       return res.status(401).json({ message: 'Invalid refresh token' });
@@ -2029,9 +2041,11 @@ router.post('/refresh', authLimiter, validate(refreshTokenSchema), async (req, r
     });
 
     setAuthCookies(res, newAccessToken, newRefreshToken);
+    // AUTH-F-03: rotation result goes back as cookies + the short-lived
+    // access token only. The rotated refresh token in a body would defeat
+    // the httpOnly storage the whole design rests on.
     res.json({
       token: newAccessToken,
-      refreshToken: newRefreshToken,
     });
   } catch (err) {
     // Cleanup partial refresh token if created mid-failure

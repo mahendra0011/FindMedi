@@ -36,6 +36,7 @@ import HealthIdView from './pages/public/HealthIdView';
 import AppMotion from './components/AppMotion';
 import { LenisScroll } from './components/LenisScroll';
 import ErrorBoundary from './components/ErrorBoundary';
+import StepUpDialog from './components/StepUpDialog';
 import { useProactiveTokenRefresh } from '@/lib/useProactiveTokenRefresh';
 import EmergencyFlowController from '@/components/emergency/EmergencyFlowController';
 import ReminderAlarmHost from '@/components/patient/ReminderAlarmHost';
@@ -45,6 +46,7 @@ const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const SetPassword = lazy(() => import('./pages/SetPassword'));
 const OTPVerification = lazy(() => import('./pages/OTPVerification'));
 const PendingApproval = lazy(() => import('./pages/PendingApproval'));
 const DoctorSetup = lazy(() => import('./pages/DoctorSetup'));
@@ -576,6 +578,8 @@ const App = () => (
           <VideoCallOverlay />
           <IncomingVideoCallDialog />
           <VideoCallMinimized />
+          {/* AUTHZ-M-03 (F7): global re-verification prompt for STEP_UP_REQUIRED */}
+          <StepUpDialog />
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -599,6 +603,8 @@ const App = () => (
                     <Route path="/patient-rights" element={<PatientRights />} />
                     <Route path="/cookies" element={<CookiePolicy />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
+                  {/* AUTH-F-06: forced rotation landing page for mustResetPassword sessions */}
+                  <Route path="/set-password" element={<SetPassword />} />
                   <Route path="/verify-otp" element={<OTPVerification />} />
                   <Route path="/pending-approval" element={<PendingApproval />} />
                   <Route path="/doctor-setup" element={<DoctorSetup />} />

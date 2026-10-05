@@ -162,6 +162,12 @@ export function Map({
       container: containerRef.current,
       style: activeStyle as string | maplibregl.StyleSpecification,
       center: normalizeLngLat(center) ?? DEFAULT_CENTER,
+      // Zoom must be part of the initial camera, not just the post-load
+      // easeTo below: without it MapLibre's default zoom (0 = whole world)
+      // renders first and the correction only runs after the remote style
+      // finishes loading — so users see a world-view flash (and, if 'load'
+      // is late or never fires, stay stuck at zoom 0 with no roads/labels).
+      zoom: finiteNumber(zoom, 13),
       attributionControl: false,
       ...options,
     });

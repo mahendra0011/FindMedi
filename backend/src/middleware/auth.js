@@ -1,4 +1,8 @@
-import jwt from 'jsonwebtoken';
+// AUTH-F-01: EVERY token verification goes through jwtKeys. A bare verify
+// against a static JWT_SECRET cannot rotate keys (it rejects anything signed
+// under JWT_KEYS) and accepts a refresh token as an access token.
+// verifyAccessToken closes both.
+import { verifyAccessToken } from '../utils/jwtKeys.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import Patient from '../models/Patient.js';
@@ -7,6 +11,21 @@ import { auditLog } from './audit.js';
 import { tenantQuotaGuard } from '../services/tenantQuotaService.js';
 
 export { authorize } from './authorize.js';
+
+// AUTH-F-06: the ONLY routes a mustResetPassword session may reach. Exact
+// paths (minus query/trailing slash), never prefixes - `/api/auth/
+// change-password-evil` must not ride the allowlist. Everything else needs a
+// real password first, which is the whole point of the flag.
+const PASSWORD_RESET_EXEMPT_PATHS = [
+  '/api/auth/change-password',
+  '/api/auth/logout',
+  '/api/auth/logout-all',
+  '/api/auth/me',
+];
+const isPasswordResetExempt = (req) => {
+  const p = (req.originalUrl || '').split('?')[0].replace(/\/+$/, '');
+  return PASSWORD_RESET_EXEMPT_PATHS.includes(p);
+};
 
 export const protect = async (req, res, next) => {
   let token = req.cookies?.token;
@@ -20,7 +39,7 @@ export const protect = async (req, res, next) => {
 
   let decoded;
   try {
-    decoded = jwt.verify(token, process.env.JWT_SECRET);
+    decoded = verifyAccessToken(token);
   } catch {
     // Siraf asli token failure (invalid/expired) ko auth failure banao
     return res.status(401).json({ message: 'Token invalid or expired' });
@@ -65,6 +84,20 @@ export const protect = async (req, res, next) => {
     return res.status(403).json({ message: 'Your account has been blocked. Contact administrator.' });
   }
 
+  // AUTH-F-06: temp-password accounts are locked to the four-path allowlist
+  // until they rotate. Enforced HERE, not (only) at login: the login-time
+  // check never ran for google/2FA-issued tokens or sessions minted before an
+  // admin set the flag, and because it ran before token issuance the user
+  // could never reach PUT /auth/change-password - the one route that clears
+  // the flag. Session-level enforcement closes both holes.
+  if (user.mustResetPassword && !isPasswordResetExempt(req)) {
+    return res.status(403).json({
+      message: 'You must set a new password before continuing.',
+      code: 'PASSWORD_RESET_REQUIRED',
+      mustResetPassword: true,
+    });
+  }
+
   if (!user.isVerified) {
     return res.status(403).json({
       message: 'Please verify your email before continuing.',
@@ -99,6 +132,9 @@ export const protect = async (req, res, next) => {
     facilityId: user.facilityId || null,
     facilityType: user.facilityType || '',
     doctorProfileId: (user.role === 'doctor' || user.role === 'clinic_doctor' || user.role === 'counsellor' || user.role === 'psychiatrist') ? (doctor?._id || null) : null,
+    // AUTH-F-06: the reset-lock flag rides along so handlers can react without
+    // re-reading the full document (req.authUser already has it too).
+    mustResetPassword: Boolean(user.mustResetPassword),
   };
   req.authUser = user;
   // ADM-M-06: last gate before the handler. Every authenticated request from a
@@ -294,7 +330,7 @@ export const optionalProtect = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifyAccessToken(token);
     const user = await User.findById(decoded.id).select('-password');
     // AUTH-B-10: optional auth must apply the SAME account-state rules as
     // `protect`, otherwise a blocked / revoked / unverified account keeps acting
@@ -303,6 +339,9 @@ export const optionalProtect = async (req, res, next) => {
     if (!user) return next();
     if ((decoded.tv ?? 0) !== (user.tokenVersion || 0)) return next();
     if (user.status === 'blocked') return next();
+    // AUTH-F-06: same rule as `protect` - a mustResetPassword account is
+    // anonymous on optional-auth routes rather than quietly privileged.
+    if (user.mustResetPassword) return next();
     if (!user.isVerified) return next();
     req.user = user;
   } catch {

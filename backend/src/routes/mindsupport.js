@@ -1,5 +1,8 @@
 import express from 'express';
 import mongoose from 'mongoose';
+// AUTH-F-01: room joins prove a session through the same rotatable-key gate
+// as REST, never a bare JWT_SECRET verify.
+import { verifyAccessToken } from '../utils/jwtKeys.js';
 
 // ─── Phase 5 (merge): MindSupport sub-app bridge ─────────────────────────────
 // MindSupport (`backend/mindsupport/src/app.js`) runs IN-PROCESS, mounted at
@@ -80,13 +83,11 @@ export function attachMindRealtime(mainIo) {
       // Token-based join (frontend sends { token })
       const token = socket.handshake.auth?.token || socket.handshake.query?.token || '';
       if (token && !userId) {
-        import('jsonwebtoken').then(({ default: jwt }) => {
-          try {
-            const payload = jwt.verify(token, process.env.JWT_SECRET);
-            const uid = payload.id || payload._id || payload.userId;
-            if (uid) joinRooms(socket, String(uid), payload.role || role);
-          } catch { /* invalid token, ignore */ }
-        }).catch(() => {});
+        try {
+          const payload = verifyAccessToken(token);
+          const uid = payload.id || payload._id || payload.userId;
+          if (uid) joinRooms(socket, String(uid), payload.role || role);
+        } catch { /* invalid token, ignore */ }
       }
     } catch {
       // realtime rooms are best-effort; never break the main connection
@@ -106,13 +107,11 @@ export function attachMindRealtime(mainIo) {
         }
         const t = payload?.token || '';
         if (t) {
-          import('jsonwebtoken').then(({ default: jwt }) => {
-            try {
-              const p = jwt.verify(t, process.env.JWT_SECRET);
-              const id = p.id || p._id || p.userId;
-              if (id) joinRooms(socket, String(id), p.role || r);
-            } catch { /* ignore */ }
-          }).catch(() => {});
+          try {
+            const p = verifyAccessToken(t);
+            const id = p.id || p._id || p.userId;
+            if (id) joinRooms(socket, String(id), p.role || r);
+          } catch { /* ignore */ }
         }
       } catch { /* ignore */ }
     });

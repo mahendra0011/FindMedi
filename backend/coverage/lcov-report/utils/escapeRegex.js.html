@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">14.28% </span>
+                <span class="strong">42.85% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>2/14</span>
+                <span class='fraction'>6/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">43.75% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/16</span>
+                <span class='fraction'>7/16</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">50% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>2/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">18.18% </span>
+                <span class="strong">54.54% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>2/11</span>
+                <span class='fraction'>6/11</span>
             </div>
         
             
@@ -114,23 +114,23 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">13x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">13x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -160,9 +160,9 @@ const REGEX_META = /[.*+?^${}()|[\]\\]/g;
 &nbsp;
 /** Escape regex metacharacters. Returns '' for null/undefined so callers can
  *  branch on emptiness instead of building a match-everything pattern. */
-export function <span class="fstat-no" title="function not covered" >escapeRegex(</span>value) {
-<span class="cstat-no" title="statement not covered" >  if (value === null || value === undefined) <span class="cstat-no" title="statement not covered" >return '';</span></span>
-<span class="cstat-no" title="statement not covered" >  return String(value).replace(REGEX_META, '\\$&amp;');</span>
+export function escapeRegex(value) {
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (value === null || value === undefined) <span class="cstat-no" title="statement not covered" >return '';</span>
+  return String(value).replace(REGEX_META, '\\$&amp;');
 }
 &nbsp;
 // Long enough for real names ("Dextromethorphan", hospital names, batch codes)
@@ -170,9 +170,9 @@ export function <span class="fstat-no" title="function not covered" >escapeRegex
 export const SEARCH_MAX_LENGTH = 120;
 &nbsp;
 /** Normalise a user-supplied search term: coerce to string, trim, length-cap. */
-export function <span class="fstat-no" title="function not covered" >capSearch(</span>value, max = <span class="branch-0 cbranch-no" title="branch not covered" >SEARCH_MAX_LENGTH)</span> {
-<span class="cstat-no" title="statement not covered" >  if (value === null || value === undefined) <span class="cstat-no" title="statement not covered" >return '';</span></span>
-<span class="cstat-no" title="statement not covered" >  return String(value).trim().slice(0, max);</span>
+export function capSearch(value, max = SEARCH_MAX_LENGTH) {
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (value === null || value === undefined) <span class="cstat-no" title="statement not covered" >return '';</span>
+  return String(value).trim().slice(0, max);
 }
 &nbsp;
 /** Build a case-insensitive, metacharacter-safe, length-capped RegExp.
@@ -196,7 +196,7 @@ export function <span class="fstat-no" title="function not covered" >hasRegexMet
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-09-30T19:23:47.559Z
+                at 2026-10-05T09:44:05.995Z
             </div>
         <script src="../prettify.js"></script>
         <script>

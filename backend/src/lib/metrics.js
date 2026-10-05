@@ -55,6 +55,21 @@ export const httpRequestsInFlight = new Gauge({
 });
 
 /**
+ * AUTH-M-05 / ADM-M-06 (F8/F9): every time a control that SHOULD gate traffic
+ * lets a request through because its backend (Cloudflare Turnstile, Redis) was
+ * unreachable. Fail-open is a deliberate availability trade for these two
+ * controls - but an unCOUNTED fail-open is invisible, and "how often are we
+ * running unprotected?" has to be answerable as a graph, not a grep of logs.
+ * Label cardinality is bounded by design: one value per control.
+ */
+export const securityFailOpenTotal = new Counter({
+  name: 'security_fail_open_total',
+  help: 'Times bot protection or the tenant quota guard allowed a request through because its backend was unreachable (label = control).',
+  labelNames: ['control'],
+  registers: [registry],
+});
+
+/**
  * The Prometheus `route` label: mounted prefix + matched sub-path.
  *
  * Falls back to `unmatched` when no route handled the request (404s and

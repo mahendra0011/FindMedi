@@ -58,7 +58,13 @@ const auditModule = {
   countDocuments: jest.fn(async () => auditRows.length),
   create: jest.fn(async (payload) => { createCalls.push(payload); return { _id: 'row', ...payload }; }),
 };
-const userModule = { find: jest.fn(() => chain(userRows)) };
+const userModule = {
+  find: jest.fn(() => chain(userRows)),
+  // F7: stepUpAuth (mounted on GET /export) reads the account's 2FA state.
+  // This spec's user has none, so step-up skips and the export flow is the
+  // behaviour under test.
+  findById: jest.fn(() => chain({ twoFactorEnabled: false })),
+};
 
 let as;
 beforeAll(async () => {

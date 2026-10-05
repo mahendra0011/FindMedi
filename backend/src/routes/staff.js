@@ -5,6 +5,9 @@ import Staff from '../models/Staff.js';
 import Billing from '../models/Billing.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly, authorize } from '../middleware/auth.js';
+// AUTHZ-M-03 (F7): updateStaffSchema carries `role` - a role change is the
+// privilege-escalation action, so it re-proves with a fresh factor.
+import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { validate, createStaffSchema, updateStaffSchema } from '../utils/validate.js';
 import { generateTimestampedId } from '../utils/idGenerator.js';
 
@@ -23,7 +26,7 @@ const genId = () => generateTimestampedId('EMP');
 // this module had NO tenant predicate on the attendance/shift/overtime paths.
 //
 // Three distinct bugs, one root cause — every handler resolved its target with a
-// bare `Staff.findById(staffId)` or `Staff.findOne({})`:
+// bare `Staff.findById(...)` on the raw param or `Staff.findOne({})`:
 //   ADM-B-02 reads   : /attendance with no staffId returned the FIRST staff
 //                      document in the collection (salary, bank fields), and
 //                      /shifts returned every staff of every tenant.
@@ -112,7 +115,7 @@ router.get('/:id', protect, authorize('staff:manage'), async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, authorize('staff:manage'), adminOnly, validate(updateStaffSchema), async (req, res) => {
+router.put('/:id', protect, authorize('staff:manage'), adminOnly, validate(updateStaffSchema), requireStepUp('users:role-change'), async (req, res) => {
   try {
     const filter = { _id: req.params.id };
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;

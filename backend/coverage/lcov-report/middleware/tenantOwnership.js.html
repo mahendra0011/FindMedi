@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">3.63% </span>
+                <span class="strong">32.72% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>2/55</span>
+                <span class='fraction'>18/55</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">6.77% </span>
+                <span class="strong">22.03% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>4/59</span>
+                <span class='fraction'>13/59</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">12.5% </span>
+                <span class="strong">25% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/8</span>
+                <span class='fraction'>2/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">4.65% </span>
+                <span class="strong">30.23% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>2/43</span>
+                <span class='fraction'>13/43</span>
             </div>
         
             
@@ -195,27 +195,27 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -253,7 +253,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">38x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -314,24 +314,24 @@
 const TENANT_FIELDS = ['facilityId', 'hospitalId'];
 &nbsp;
 /** The tenant ids the caller can act within, or null for a cross-tenant caller. */
-function <span class="fstat-no" title="function not covered" >callerTenants(</span>user) {
-  const out = <span class="cstat-no" title="statement not covered" >new Set();</span>
-<span class="cstat-no" title="statement not covered" >  if (user?.facilityId) <span class="cstat-no" title="statement not covered" >out.add(String(user.facilityId));</span></span>
-<span class="cstat-no" title="statement not covered" >  if (user?.hospitalId) <span class="cstat-no" title="statement not covered" >out.add(String(user.hospitalId));</span></span>
-<span class="cstat-no" title="statement not covered" >  return out;</span>
+function callerTenants(user) {
+  const out = new Set();
+  if (user?.facilityId) out.add(String(user.facilityId));
+  if (user?.hospitalId) out.add(String(user.hospitalId));
+  return out;
 }
 &nbsp;
 /** True when the caller is allowed to act on `doc`'s tenant. Fails closed. */
-export function <span class="fstat-no" title="function not covered" >callerMayActOnDoc(</span>doc, user) {
-<span class="cstat-no" title="statement not covered" >  if (!user) <span class="cstat-no" title="statement not covered" >return false;</span></span>
-<span class="cstat-no" title="statement not covered" >  if (user.role === 'superadmin') <span class="cstat-no" title="statement not covered" >return true;</span></span>
-  const owned = <span class="cstat-no" title="statement not covered" >callerTenants(user);</span>
-<span class="cstat-no" title="statement not covered" >  if (owned.size === 0) <span class="cstat-no" title="statement not covered" >return false; </span></span>// no tenant at all -&gt; deny
-<span class="cstat-no" title="statement not covered" >  for (const field of TENANT_FIELDS) {</span>
-    const v = <span class="cstat-no" title="statement not covered" >doc?.[field];</span>
-<span class="cstat-no" title="statement not covered" >    if (v &amp;&amp; owned.has(String(v))) <span class="cstat-no" title="statement not covered" >return true;</span></span>
+export function callerMayActOnDoc(doc, user) {
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (!user) <span class="cstat-no" title="statement not covered" >return false;</span>
+  if (user.role === 'superadmin') return true;
+  const owned = callerTenants(user);
+  if (owned.size === 0) return false; // no tenant at all -&gt; deny
+  for (const field of TENANT_FIELDS) {
+    const v = doc?.[field];
+    if (v &amp;&amp; owned.has(String(v))) return true;
   }
-<span class="cstat-no" title="statement not covered" >  return false;</span>
+  return false;
 }
 &nbsp;
 /**
@@ -368,8 +368,8 @@ export function <span class="fstat-no" title="function not covered" >callerOwnsD
  *                patients, who have no tenant of their own (PHARM-B-12).
  *   requireTenant when true, ownership alone is NOT enough (staff-only documents).
  */
-export function requireTenantOwnership(load, { param = 'id', message, ownerFields = ['patientId', 'patient_id', 'userId'], requireTenant = false } = {}) {
-  return <span class="fstat-no" title="function not covered" >as</span>ync (req, res, next) =&gt; {
+export function <span class="fstat-no" title="function not covered" >requireTenantOwnership(</span>load, { param = <span class="branch-0 cbranch-no" title="branch not covered" >'id',</span> message, ownerFields = <span class="branch-0 cbranch-no" title="branch not covered" >['patientId', 'patient_id', 'userId'],</span> requireTenant = <span class="branch-0 cbranch-no" title="branch not covered" >false </span>} = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
+<span class="cstat-no" title="statement not covered" >  return <span class="fstat-no" title="function not covered" >as</span>ync (req, res, next) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
 <span class="cstat-no" title="statement not covered" >      if (req.user?.role === 'superadmin') <span class="cstat-no" title="statement not covered" >return next();</span></span>
       const id = <span class="cstat-no" title="statement not covered" >req.params[param];</span>
@@ -418,7 +418,7 @@ export function <span class="fstat-no" title="function not covered" >requireOwne
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-09-30T19:23:47.559Z
+                at 2026-10-05T09:44:05.995Z
             </div>
         <script src="../prettify.js"></script>
         <script>

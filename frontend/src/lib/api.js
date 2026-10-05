@@ -756,6 +756,8 @@ export const api = {
   disable2FA: (body) => request('/auth/2fa/disable', { method: 'POST', body: JSON.stringify(body) }),
   // AUTH-B-03: exchange the pending-login ticket for a real session.
   complete2FA: (body) => request('/auth/2fa/complete', { method: 'POST', body: JSON.stringify(body) }),
+  // AUTHZ-M-03 (F7): mint a single-use step-up grant for one sensitive scope.
+  stepUp: (scope, code) => request('/auth/step-up', { method: 'POST', body: JSON.stringify({ scope, code }) }),
 
   getNursingCharts: (p={}) => request('/nursing?' + new URLSearchParams(p)),
   createVitalsChart: (b) => request('/nursing/vitals', { method: 'POST', body: JSON.stringify(b) }),

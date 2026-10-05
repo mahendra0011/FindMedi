@@ -85,7 +85,8 @@ describe('INF-M-02 HTTP instrumentation', () => {
   app.use(metricsMiddleware);
   app.get('/probe/:id', (req, res) => res.json({ ok: true }));
   app.get('/boom', (req, res) => res.status(500).json({ err: 1 }));
-  app.get('/hang', () => { /* never responds: client will abort */ });
+  let hangSeen = null;
+  app.get('/hang', () => { hangSeen?.(); /* never responds: client will abort */ });
 
   const metricsText = async () => {
     const res = await scrape({ Authorization: `Bearer ${TOKEN}` });
@@ -127,17 +128,33 @@ describe('INF-M-02 HTTP instrumentation', () => {
     const server = app.listen(0);
     try {
       const { port } = server.address();
+      const seen = new Promise((resolve) => { hangSeen = resolve; });
       const req = http.request({ port, path: '/hang' });
       req.on('error', () => {});
       req.end();
-      // wait for the middleware to see the request, then yank the socket
-      await new Promise((r) => setTimeout(r, 80));
+      // Yank the socket only once the server has actually picked the request
+      // up. The old fixed sleep raced the accept queue under full-suite
+      // parallelism: the socket died mid-connect, the middleware never ran,
+      // and the 499 counter legitimately never appeared.
+      await Promise.race([
+        seen,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('server never saw GET /hang within 5s')), 5000)),
+      ]);
       req.destroy();
-      await new Promise((r) => setTimeout(r, 80));
-      const text = await metricsText();
-      expect(text).toMatch(/http_requests_total\{[^}]*route="\/hang"[^}]*status_code="499"\} \d/);
+      // The 499 is recorded when the abort event lands; poll past event-loop
+      // delay instead of sleeping a fixed 80ms and hoping.
+      const abortCount = /http_requests_total\{[^}]*route="\/hang"[^}]*status_code="499"\} \d/;
+      const deadline = Date.now() + 5000;
+      let text = await metricsText();
+      while (!abortCount.test(text) && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 50));
+        text = await metricsText();
+      }
+      expect(text).toMatch(abortCount);
       expect(text).toMatch(/^http_requests_in_flight 0$/m);
     } finally {
+      hangSeen = null;
       await new Promise((r) => server.close(r));
     }
   });

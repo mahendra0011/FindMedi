@@ -4,6 +4,7 @@ import SystemSetting from '../models/SystemSetting.js';
 import { redisClient, isRedisReady } from '../config/redis.js';
 import logger from '../config/logger.js';
 import { ADMIT_LUA } from '../lib/admitLua.js';
+import { securityFailOpenTotal } from '../lib/metrics.js';
 
 /**
  * ADM-M-06 - per-tenant API quotas ("one tenant can starve the platform").
@@ -188,7 +189,12 @@ export async function tenantQuotaGuard(req, res, next) {
     if (url.includes('/emergency') || url.includes('/sos')) return next();
 
     // Fail-open: quota is capacity control, availability wins (see header).
-    if (!isRedisReady() || !redisClient.isOpen) return next();
+    // F9: count it - a silent fail-open is indistinguishable from a healthy
+    // one, and "how long were quotas unenforced?" must be graphable.
+    if (!isRedisReady() || !redisClient.isOpen) {
+      securityFailOpenTotal.inc({ control: 'tenant_quota' });
+      return next();
+    }
 
     const { windowMs, max } = await getQuota(hospitalId);
     const now = Date.now();
@@ -214,6 +220,7 @@ export async function tenantQuotaGuard(req, res, next) {
     }
     return next();
   } catch (err) {
+    securityFailOpenTotal.inc({ control: 'tenant_quota' });
     logger.warn(`tenant quota guard error: ${err.message}. Passing through.`);
     return next();
   }

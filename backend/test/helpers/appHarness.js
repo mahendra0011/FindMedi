@@ -103,6 +103,18 @@ export async function mountApp(name, models = {}, options = {}) {
   };
 
   jest.unstable_mockModule('../../src/middleware/auth.js', () => authStub);
+  // AUTHZ-M-03 (F7): requireStepUp() (a real middleware, not part of the auth
+  // stub) reads the account's 2FA state on guarded routes. The harness user
+  // has no 2FA, so step-up SKIPS by design and each spec still tests its own
+  // feature. A spec modelling a specific user overrides this (registered
+  // below, so it wins).
+  jest.unstable_mockModule('../../src/models/User.js', () => ({
+    default: {
+      findById: () => ({
+        select: () => Promise.resolve({ _id: '64b0000000000000000000ee', twoFactorEnabled: false }),
+      }),
+    },
+  }));
   jest.unstable_mockModule('../../src/middleware/rateLimit.js', () => ({
     bookingLimiter: (_req, _res, next) => next(),
     authLimiter: (_req, _res, next) => next(),

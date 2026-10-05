@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
 import { protect, authorize } from '../middleware/auth.js';
+// AUTHZ-M-03 (F7): the audit trail itself is a sensitive export.
+import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { auditLog } from '../middleware/audit.js';
 // AUD-B-01: a `$regex` built from user input is a ReDoS vector.
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
@@ -127,7 +129,7 @@ router.get('/', protect, authorize('audit:read'), auditSearchLimiter, async (req
 //   - SELF-AUDITED: exporting the audit trail is itself an admin action.
 const EXPORT_MAX_ROWS = 10000;
 
-router.get('/export', protect, authorize('audit:read'), auditSearchLimiter, async (req, res) => {
+router.get('/export', protect, authorize('audit:read'), auditSearchLimiter, requireStepUp('export:full'), async (req, res) => {
   try {
     const filter = await buildAuditFilter(req);
     const logs = await AuditLog.find(filter).sort({ timestamp: -1 }).limit(EXPORT_MAX_ROWS).lean();

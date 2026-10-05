@@ -7,8 +7,6 @@ import { getISTDateString } from '../utils/dateUtils.js';
 import User from '../models/User.js';
 import Record from '../models/Record.js';
 import Notification from '../models/Notification.js';
-
-import jwt from 'jsonwebtoken';
 import crypto from 'node:crypto';
 
 const router = express.Router();

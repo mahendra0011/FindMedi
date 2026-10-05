@@ -1,6 +1,5 @@
 import "dotenv/config";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { buildCorsOptions } from "../src/config/cors.js";
@@ -14,6 +13,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import mongoose from "mongoose";
 import { CLIENT_ORIGIN, GOOGLE_MEET_DEFAULT_LINK, JWT_SECRET, NOTES_ENCRYPTION_KEY, maskMongoUri, MONGODB_DATABASE, MONGODB_URI, PORT } from "./config/env.js";
+import { verifyAccessToken } from "../../src/utils/jwtKeys.js";
 import { connectDatabase, isDatabaseReady } from "./database/connect.js";
 import {
   Appointment,
@@ -272,8 +272,8 @@ function attachFindMediUser(req) {
     const header = req.headers?.authorization || "";
     const bearer = /^Bearer\s+(.+)$/i.exec(header)?.[1] || "";
     const token = req.cookies?.token || bearer;
-    if (!token || !JWT_SECRET) return null;
-    const payload = jwt.verify(token, JWT_SECRET);
+    if (!token) return null;
+    const payload = verifyAccessToken(token);
     const id = payload?.id || payload?._id || payload?.userId;
     if (!id) return null;
     const findRole = String(payload?.role || "patient").toLowerCase();

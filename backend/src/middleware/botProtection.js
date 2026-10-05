@@ -1,4 +1,5 @@
 import logger from '../config/logger.js';
+import { securityFailOpenTotal } from '../lib/metrics.js';
 
 // AUTH-M-05: bot protection on signup & OTP request.
 //
@@ -15,11 +16,38 @@ import logger from '../config/logger.js';
 // error: this control fights spam, not account takeover — refusing every
 // signup because Cloudflare is unreachable would turn a spam control into a
 // self-inflicted outage. A missing/invalid token while configured is 403.
+// F8: every fail-open is counted (security_fail_open_total), and
+// TURNSTILE_STRICT=true flips the outage posture to fail-CLOSED (503) for
+// deployments that would rather refuse signups than admit unverified ones.
 
 const VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
 export function isBotProtectionConfigured() {
   return Boolean(process.env.TURNSTILE_SECRET_KEY);
+}
+
+/** F8: opt-in fail-closed posture when Cloudflare itself is unreachable. */
+export function isTurnstileStrict() {
+  return /^(1|true|yes)$/i.test(String(process.env.TURNSTILE_STRICT || ''));
+}
+
+/**
+ * The single choke point for "the provider is broken, not the token".
+ * Counts the fail-open either way - even in strict mode the ATTEMPTED
+ * pass-through is what the metric is about - then either allows (default)
+ * or refuses with 503 (TURNSTILE_STRICT).
+ */
+function providerUnavailable(res, reason, next) {
+  securityFailOpenTotal.inc({ control: 'bot_protection' });
+  if (isTurnstileStrict()) {
+    logger.error(`botProtection provider failure (${reason}); TURNSTILE_STRICT set - failing closed`);
+    return res.status(503).json({
+      message: 'Bot verification is temporarily unavailable. Please retry shortly.',
+      code: 'BOT_CHECK_UNAVAILABLE',
+    });
+  }
+  logger.error(`botProtection provider failure (${reason}); allowing request through`);
+  return next();
 }
 
 export async function verifyTurnstileToken(token, remoteip) {
@@ -47,14 +75,13 @@ export const botProtection = () => async (req, res, next) => {
     const verdict = await verifyTurnstileToken(token, req.ip);
     if (verdict.ok) return next();
     if (verdict.reason !== 'invalid-token') {
-      // Provider unreachable/misbehaving: fail open, but loudly.
-      logger.error(`botProtection provider failure (${verdict.reason}); allowing request through`);
-      return next();
+      // Provider unreachable/misbehaving: fail open (or closed under
+      // TURNSTILE_STRICT), but always loudly and always counted.
+      return providerUnavailable(res, verdict.reason, next);
     }
     logger.warn(`botProtection reject for ${req.ip} codes=${(verdict.codes || []).join(',')}`);
     return res.status(403).json({ message: 'Bot check failed', code: 'BOT_CHECK_FAILED' });
   } catch (err) {
-    logger.error(`botProtection error (${err.message}); allowing request through`);
-    return next();
+    return providerUnavailable(res, err.message, next);
   }
 };

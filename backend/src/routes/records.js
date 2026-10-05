@@ -8,6 +8,9 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import { protect, authorize } from '../middleware/auth.js';
+// AUTHZ-M-03 (F7): amending a medico-legal record re-proves the operator is
+// still there - the session token alone must not suffice.
+import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { validate, createRecordSchema } from '../utils/validate.js';
 import { generatePrescriptionPDF } from '../services/pdfService.js';
 import { auditLog } from '../middleware/audit.js';
@@ -267,7 +270,7 @@ date: getISTDateString(),
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, authorize('records:write', 'records:write:own'), async (req, res) => {
+router.put('/:id', protect, authorize('records:write', 'records:write:own'), requireStepUp('records:amend'), async (req, res) => {
   try {
     const existing = await Record.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Record not found' });

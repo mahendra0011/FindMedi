@@ -59,42 +59,20 @@ import { scanRoutes, SELF_HINTS, HANDLER_GUARDS } from './lib/routeScan.mjs';
  * surfaced that, which is the behaviour worth keeping.
  */
 const REVIEWED_SAFE = new Map([
-  // Self-scoped through the session: `req.user.id` / `req.user._id`. The user
-  // cannot name a target, so there is no object to authorize.
-  ['auth.js:PUT /change-password', 'self-scoped via req.user.id; also requires the current password'],
-  ['auth.js:POST /avatar', 'self-scoped via req.user.id; writes only the caller own avatar'],
-
-  // Self-scoped through the session tenant: the target facility/hospital comes
-  // from the token, never from the request.
-  ['facilities.js:GET /settings', 'self-scoped via req.user.facilityId/hospitalId; no tenant in the path'],
-  ['facilities.js:PUT /settings', 'self-scoped via req.user.facilityId/hospitalId; no tenant in the path'],
-  ['clinics.js:GET /staff', 'scoped to req.user.facilityId; sibling POST is adminOnly, this read is facility-internal'],
-
-  // Public catalogue data. No PHI, no per-tenant ownership - a provider
-  // directory or a drug list is meant to be searchable by any signed-in user.
-  ['search.js:GET /providers', 'public provider directory; no patient data'],
-  ['search.js:GET /drugs', 'public drug catalogue; searchDrugs() has its own denial path'],
-  ['search.js:GET /icd', 'public ICD-10 reference list; no PHI'],
-
-  // Platform-wide AGGREGATES. Counts per time/date/cell, never identities.
-  ['appointments.js:GET /booked-slots', 'returns per-slot COUNTS for a doctor, no patient names'],
-  ['beds.js:GET /heatmap', 'available-bed counts aggregated per H3 cell, no identities'],
-  ['lab.js:GET /outbreak', 'abnormal-test counts per H3 cell, no identities'],
-  ['surge.js:GET /:cell', 'surge projection for a cell, no identities'],
-  ['reports.js:GET /types/list', 'static config list of report types'],
-  ['video.js:GET /status', 'returns a boolean and the public LiveKit URL, no token or secret'],
-
-  // Stateless compute. Reads nothing from the database, so there is no record
-  // to authorize. (It IS an unauthenticated-callable wrapper around a paid
-  // routing API - a cost/abuse concern tracked as a rate-limit item, not an
-  // authorization one.)
-  ['delivery.js:POST /optimize-route', 'stateless Valhalla call; no DB read, no PHI'],
-
-  // Existence probe for a coupon the CALLER is about to redeem. The redeem path
-  // is the server-owned one; this only reports whether a code is live, and
-  // does not return another tenant order data.
-  ['pharmacy.js:POST /coupons/validate', 'existence probe only; the real discount is derived server-side on the order'],
-]);
+  // EMPTY as of 2026-10-05.
+  //
+  // The 16 historic clearances (auth.js change-password/avatar, facility
+  // settings, search catalogue, aggregate heatmaps, coupon probe, ...) were
+  // RETIRED: every one of those routes now lands in the `guarded` bucket on
+  // its own - the handlers grew a self-scoped shape match (`req.user._id` /
+  // role check) or route-line guard middleware, the same standard the other
+  // 732 guarded routes are counted by. Keeping dead keys would print them
+  // under STALE forever; the clearance write-ups remain in git history.
+  //
+  // Add an entry ONLY for a route that reaches the else-branch below and was
+  // read in full. The reason travels with the key so a later reviewer can
+  // re-check the claim, and a path change invalidates it by design.
+]);;
 
 const reviewedSafe = [];
 

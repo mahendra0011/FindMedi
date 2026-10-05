@@ -1,5 +1,6 @@
 import { Server as SocketIOServer } from "socket.io";
 import { User } from "../models/index.js";
+import { verifyAccessToken } from "../../../src/utils/jwtKeys.js";
 
 function allowedSocketOrigins() {
   const origins = [process.env.CLIENT_ORIGIN || "http://localhost:8080"];
@@ -22,9 +23,10 @@ export function createRealtimeServer(httpServer) {
       const token = socket.handshake.auth?.token || socket.handshake.query?.token || "";
       if (token) {
         try {
-          const jwt = await import("jsonwebtoken");
-          const secret = process.env.JWT_SECRET || process.env.MIND_JWT_SECRET || "dev-secret";
-          const payload = jwt.default.verify(token, secret);
+          // AUTH-F-01: findmedi access tokens only, key-rotatable. The old
+          // raw verify used JWT_SECRET directly (dead under JWT_KEYS) with a
+          // MIND_JWT_SECRET/dev-secret fallback no signer ever used.
+          const payload = verifyAccessToken(token);
           const uid = payload.id || payload._id || payload.userId;
           if (uid) {
             const user = await User.findById(uid);

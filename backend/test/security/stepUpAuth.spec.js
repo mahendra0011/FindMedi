@@ -6,6 +6,7 @@
  * otherwise let a stolen long-lived token do something its owner never re-confirmed.
  */
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+import fs from 'node:fs';
 
 const userFindById = jest.fn();
 jest.unstable_mockModule('../../src/models/User.js', () => ({
@@ -157,5 +158,62 @@ describe('STEP-UP · issuing a grant requires a correct code', () => {
     const out = await issueStepUpFor('u1', '123456', 'payouts:add');
     expect(out.ok).toBe(true);
     expect(out.token).toBeTruthy();
+  });
+});
+
+describe('STEP-UP F7: the sensitive mounts exist and every scope is registered', () => {
+  const routeDir = new URL('../../src/routes/', import.meta.url);
+  const read = (p) => fs.readFileSync(new URL(p, routeDir), 'utf8');
+  // Comments carry `requireStepUp('<scope>')` examples - only live code counts.
+  const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+  const scopesIn = (src) => [...stripComments(src).matchAll(/requireStepUp\('([^']+)'\)/g)].map((m) => m[1]);
+
+  it('every scope used at a route is registered in SENSITIVE_SCOPES', () => {
+    // An unregistered scope cannot be minted by /auth/step-up, so the mount
+    // would 403 every 2FA user into a dead end.
+    const authSrc = read('auth.js');
+    const registry = authSrc.slice(authSrc.indexOf('SENSITIVE_SCOPES = new Set('), authSrc.indexOf(']);'));
+    let found = 0;
+    for (const f of fs.readdirSync(routeDir)) {
+      if (!f.endsWith('.js')) continue;
+      for (const scope of scopesIn(read(f))) {
+        found += 1;
+        expect(registry).toContain(`'${scope}'`);
+      }
+    }
+    expect(found).toBeGreaterThanOrEqual(11); // 6 export + reports + audit + records + staff + payouts + refunds
+  });
+
+  it('export.js guards job creation and the five data pulls', () => {
+    const src = read('export.js');
+    const scopes = scopesIn(src);
+    expect(scopes).toHaveLength(6);
+    expect(scopes.every((s) => s === 'export:full')).toBe(true);
+    // The job-status poll stays unguarded: it reveals nothing about the data,
+    // and prompting on every poll tick would loop the dialog.
+    expect(src).toMatch(/router\.get\('\/jobs\/:id', protect, superadminOnly, async/);
+  });
+
+  it('reports and audit-log exports require a fresh proof', () => {
+    expect(read('reports.js')).toMatch(
+      /router\.get\('\/export\/:type', protect, adminOnly, requireStepUp\('export:full'\)/
+    );
+    expect(read('auditLogs.js')).toMatch(
+      /router\.get\('\/export', protect, authorize\('audit:read'\), auditSearchLimiter, requireStepUp\('export:full'\)/
+    );
+  });
+
+  it('amending a medical record and changing a staff role require a fresh proof', () => {
+    expect(read('records.js')).toMatch(
+      /router\.put\('\/:id', protect, authorize\('records:write', 'records:write:own'\), requireStepUp\('records:amend'\)/
+    );
+    expect(read('staff.js')).toMatch(
+      /router\.put\('\/:id', protect, authorize\('staff:manage'\), adminOnly, validate\(updateStaffSchema\), requireStepUp\('users:role-change'\)/
+    );
+  });
+
+  it('the pre-existing money mounts still hold (payouts, refunds)', () => {
+    expect(read('commission.js')).toMatch(/requireStepUp\('payouts:add'\)/);
+    expect(read('payments.js')).toMatch(/requireStepUp\('refunds:issue'\)/);
   });
 });

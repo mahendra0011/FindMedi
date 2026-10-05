@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FindMedi — Book Care in Seconds (Promo Film)</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="viewport"><div id="stage">
+<div class="grid"></div>
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+<div id="dust"></div>
+<div class="pulse-ring pr1"></div><div class="pulse-ring pr2"></div>
+<!-- SCENE 1 : LOGO REVEAL -->
+<section class="scene" id="s1"><div class="center">
+<div class="logoWrap"><svg class="logoDraw" viewBox="0 0 120 120"><circle class="lg-ring" cx="60" cy="60" r="52"/><path class="lg-cross" d="M60 34 V86 M34 60 H86"/></svg>
+<div class="ecg"><svg viewBox="0 0 600 80"><path class="ecgLine" d="M0 40 H180 L200 40 212 12 226 66 238 40 H330 L344 40 352 24 362 56 370 40 H470 L484 40 492 20 502 60 510 40 H600"/></svg></div>
+<h1 class="brand"><span>F</span><span>i</span><span>n</span><span>d</span><span>M</span><span>e</span><span>d</span><span>i</span></h1>
+<p class="tagline">Book care in seconds.</p></div></div></section>
+<!-- SCENE 2 : HOOK -->
+<section class="scene" id="s2"><div class="center">
+<h2 class="hookA">Tired of hospital queues?</h2>
+<div class="queue" id="queue"></div>
+<h2 class="hookB"><span>Find.</span> <span>Book.</span> <span class="teal">Heal.</span></h2>
+<div class="uLine"></div></div>
+<div class="marquee"><div class="mqIn" id="mq"></div></div></section>
+<!-- SCENE 3 : STATS -->
+<section class="scene" id="s3"><div class="center">
+<h2 class="secT">Trusted across India</h2>
+<div class="statRow" id="statRow"></div>
+<div class="stars" id="stars"></div>
+<div class="orbit"><div class="orbDot"></div></div></div></section>
+<!-- SCENE 4 : STEP 1 SPECIALTIES -->
+<section class="scene" id="s4"><div class="split">
+<div class="left"><div class="chip">① Choose your specialty</div>
+<h2 class="secT">Top verified<br>specialists,<br><span class="teal">one tap away.</span></h2></div>
+<div class="phone"><div class="notch"></div><div class="scr">
+<div class="appBar">✚ FindMedi</div><div class="scrT">Choose specialty</div>
+<div class="specGrid" id="specGrid"></div></div></div></div></section>
+<!-- SCENE 5 : STEP 2 DOCTORS -->
+<section class="scene" id="s5"><div class="split">
+<div class="left"><div class="chip">② Pick your doctor</div>
+<h2 class="secT">Compare by rating,<br>experience <span class="teal">&amp; fee.</span></h2></div>
+<div class="phone"><div class="notch"></div><div class="scr">
+<div class="appBar">✚ FindMedi</div><div class="scrT">Cardiologists near you</div>
+<div class="docList" id="docList"></div><div class="scan"></div></div></div></div></section>
+<!-- SCENE 6 : STEP 3 DATE+SLOT+MODE -->
+<section class="scene" id="s6"><div class="split">
+<div class="left"><div class="chip">③ Date, time &amp; visit mode</div>
+<h2 class="secT">Live slots.<br><span class="teal">Your choice</span> of visit.</h2></div>
+<div class="phone"><div class="notch"></div><div class="scr">
+<div class="appBar">✚ FindMedi</div><div class="scrT">Tomorrow • Dr. Sharma</div>
+<div class="dStrip" id="dStrip"></div>
+<div class="slotGrid" id="slotGrid"></div>
+<div class="modeRow" id="modeRow"></div></div></div></div></section>
+<!-- SCENE 7 : STEP 4 CONFIRM -->
+<section class="scene" id="s7"><div class="split">
+<div class="left"><div class="chip">④ Confirm in one tap</div>
+<h2 class="secT">One tap.<br><span class="teal">Done.</span></h2></div>
+<div class="phone"><div class="notch"></div><div class="scr">
+<div class="appBar">✚ FindMedi</div><div class="scrT">Confirm booking</div>
+<div class="form" id="formBox"></div>
+<div class="sumCard" id="sumCard"></div>
+<button class="ctaBtn" id="ctaBtn">Confirm Booking</button></div></div></div></section>
+<!-- SCENE 8 : SUCCESS -->
+<section class="scene" id="s8"><div class="split">
+<div class="left"><div class="chip">✓ Booked!</div>
+<h2 class="secT">Instant confirmation.<br><span class="teal">Zero waiting.</span></h2></div>
+<div class="phone"><div class="notch"></div><div class="scr suc">
+<div class="flash"></div><div class="glowBurst"></div>
+<svg class="bigCheck" viewBox="0 0 120 120"><circle class="ckRing" cx="60" cy="60" r="52"/><path class="ckMark" d="M38 62 L54 78 L84 44"/></svg>
+<div class="apptCard" id="apptCard"><div class="tkRow">Token <b id="tokNum">A-01</b></div>
+<div class="apRow">👩‍⚕️ Dr. Ananya Sharma</div><div class="apRow">📅 Tomorrow • 11:30 AM</div>
+<div class="apRow">📹 Video Consult • ₹800</div></div>
+<div class="orbitMin" id="orbitMin"></div></div></div></div></section>
+<!-- SCENE 9 : TIMELINE -->
+<section class="scene" id="s9"><div class="center">
+<div class="chip">Live tracking</div>
+<h2 class="secT">Every visit, <span class="teal">tracked live.</span></h2>
+<div class="tlWrap"><div class="tlLine"><div class="tlFill" id="tlFill"></div><div class="tlDot" id="tlDot"></div></div>
+<div class="tlNodes" id="tlNodes"></div></div>
+<div class="miniRow" id="miniRow"></div></div></section>
+<!-- SCENE 10 : FEATURES -->
+<section class="scene" id="s10"><div class="center">
+<div class="fLogo">✚<b>FindMedi</b></div>
+<div class="featOrbit" id="featOrbit"></div></div></section>
+<!-- SCENE 11 : OUTRO -->
+<section class="scene" id="s11"><div class="center">
+<svg class="logoDraw sm" viewBox="0 0 120 120"><circle class="lg-ring" cx="60" cy="60" r="52"/><path class="lg-cross" d="M60 34 V86 M34 60 H86"/></svg>
+<h1 class="brand sm">FindMedi</h1>
+<p class="tagline2">Book care in seconds.</p>
+<div class="ctaPill">▶ Book your demo today</div>
+<div class="url"><span id="urlType"></span><i class="caret"></i></div></div></section>
+<div id="wipe"><div class="wipeBar"></div></div>
+<div id="streakBox"></div>
+<div id="confetti"></div>
+<div id="cursor"><div class="curDot"></div><div class="curRing"></div></div>
+<div id="capBox"><div id="capWords"></div><div class="capSweep"></div></div>
+<div id="prog"><div id="progFill"></div></div>
+<div class="grain"></div>
+<div id="ui"><button id="ppBtn" title="Play/Pause">⏸</button>
+<button id="rsBtn" title="Restart">↺</button>
+<div id="tcode">00:00 / 01:00</div></div>
+</div></div>
+<script src="app.js"></script>
+</body>
+</html>

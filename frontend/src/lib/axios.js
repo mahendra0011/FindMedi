@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { requestStepUpCode, invalidateStepUpCode } from './stepUp';
 
 /**
  * Normalize BASE API URL so that even if VITE_API_URL is configured without "/api"
@@ -339,6 +340,52 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
       } finally {
         isRefreshing = false;
+      }
+    }
+
+    // AUTH-F-06: the server locked this session to the password-reset
+    // allowlist (change-password / logout / logout-all / me). Send the tab to
+    // the one page that can clear the flag; the request itself still rejects
+    // below so no caller treats it as success. Hash guard so a failing call
+    // FROM /set-password cannot bounce in a loop.
+    if (error.response?.status === 403 && error.response?.data?.code === 'PASSWORD_RESET_REQUIRED') {
+      if (typeof window !== 'undefined' && (window.location.hash || '').split('?')[0] !== '#/set-password') {
+        window.location.hash = '#/set-password';
+      }
+    }
+
+    // AUTHZ-M-03 (F7): sensitive routes demand a FRESH 2FA proof, not just the
+    // session token. Collect the code once per scope (the dialog registers
+    // itself through ./stepUp), exchange it for a single-use token, and replay
+    // the original request with x-step-up-token. Exactly one replay per request
+    // so a stubborn 403 can never loop, and a rejected exchange falls through
+    // so the caller still sees the original STEP_UP_REQUIRED error.
+    //
+    // Export routes use responseType:'blob', so an error body arrives as a
+    // Blob - read it before looking for the marker, or the dialog never opens
+    // on exactly the flows this guard protects.
+    if (error.response?.status === 403 && error.config && !error.config._stepUpRetried) {
+      let body = error.response.data;
+      if (body && typeof body.text === 'function') {
+        try { body = JSON.parse(await body.text()); } catch { body = null; }
+      } else if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch { body = null; }
+      }
+      const scope = body && body.error === 'STEP_UP_REQUIRED' ? body.scope : null;
+      if (scope) {
+        const original = error.config;
+        original._stepUpRetried = true;
+        try {
+          const code = await requestStepUpCode(scope);
+          const grant = await apiClient.post('/auth/step-up', { scope, code });
+          original.headers = { ...(original.headers || {}), 'x-step-up-token': grant.data?.token };
+          return apiClient(original);
+        } catch (stepErr) {
+          // Bad/expired code: drop the cached one so the next attempt re-asks.
+          if (stepErr?.response?.status === 401 || stepErr?.response?.status === 409) {
+            invalidateStepUpCode(scope);
+          }
+        }
       }
     }
 

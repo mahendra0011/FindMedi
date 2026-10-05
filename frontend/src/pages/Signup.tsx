@@ -93,9 +93,10 @@ export default function Signup() {
     try {
       const data = await api.googleAuth({ idToken, accessToken, role: 'patient' });
       if (data.exists && data.token && data.user) {
-        setAuthTokens(data.token, data.refreshToken);
+        setAuthTokens(data.token);
         completeGoogleLogin(data.user);
-        navigate('/dashboard');
+        // AUTH-F-06: temp-password accounts rotate first.
+        navigate(data.user.mustResetPassword ? '/set-password' : '/dashboard', { replace: true });
         return;
       }
 
@@ -222,9 +223,9 @@ export default function Signup() {
         localStorage.removeItem('google_signup');
 
         if (data.token && data.user) {
-          setAuthTokens(data.token, data.refreshToken);
+          setAuthTokens(data.token);
           completeGoogleLogin(data.user);
-          navigate('/dashboard');
+          navigate(data.user.mustResetPassword ? '/set-password' : '/dashboard', { replace: true });
           return;
         }
       } else {

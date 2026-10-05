@@ -277,7 +277,17 @@ router.put('/admin/reward-catalog/:id', protect, adminOnly, async (req, res) => 
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Access denied' });
     }
-    const item = await RewardCatalogItem.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    // mass-assignment-guard: allowlist — a raw req.body here let callers
+    // overwrite non-editable fields (e.g. the redeemedCount redemption counter).
+    const UPDATABLE = [
+      'title', 'description', 'category', 'pointsRequired', 'rewardType',
+      'rewardValue', 'applicableService', 'maxCapAmount', 'validityDays',
+      'stockLimit', 'isActive',
+    ];
+    const patch = Object.fromEntries(
+      UPDATABLE.filter((key) => key in req.body).map((key) => [key, req.body[key]])
+    );
+    const item = await RewardCatalogItem.findByIdAndUpdate(req.params.id, patch, { new: true });
     if (!item) return res.status(404).json({ message: 'Reward item nahi mila' });
     res.json(item);
   } catch (err) {

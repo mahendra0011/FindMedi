@@ -168,15 +168,16 @@ These are real, and none of them are theoretical:
 4. **No independent penetration test, and no SOC 2 / ISO 27001 certification**
    has been performed. This document describes our own controls, not audited
    assurance.
-5. **A portion of authorization routes are not yet exhaustively classified.**
-   `backend/scripts/check-authz-coverage.mjs` still reports 289 routes it cannot
-   categorise. Those are the least-reviewed part of the access-control surface.
-   `npm run authz:triage` narrows this further and currently reports **0 unguarded**
-   routes, but it is a static parser: it can prove a guard is *absent*, never that
-   a present guard is *correct*. A guard scoped to the wrong field passes it. The
-   16 routes it marks reviewed-safe are listed with their reasoning in
-   `backend/scripts/triage-authz-gaps.mjs` and are re-checkable, but that is
-   reviewer judgement recorded in a file, not a machine-checked guarantee.
+ 5. **Classification is machine-checked; guard CORRECTNESS is not.**
+    `npm run authz:coverage` classifies all 854 routes (0 unclassified) and
+    `npm run authz:triage` currently reports **0 unguarded** routes, but both
+    are static parsers: they can prove a guard is *absent*, never that a
+    present guard is *correct*. A guard scoped to the wrong field passes them.
+    The triage script's REVIEWED_SAFE clearance list is empty as of 2026-10-05
+    - its 16 historic entries were retired once each of those routes matched
+    the shape-based guard detector on its own (clearance write-ups remain in
+    git history). Any future clearance is reviewer judgement recorded in
+    `backend/scripts/triage-authz-gaps.mjs`, not a machine-checked guarantee.
 6. **Physical and organisational controls are out of scope of this repository.**
    Staff vetting, device management and office security are assumed, not
    evidenced here.

@@ -36,6 +36,29 @@ import logger from '../config/logger.js';
 
 const LEGACY_KID = 'default';
 
+/**
+ * TOKEN PURPOSE (AUTH-F-02).
+ *
+ * `typ` separates "prove who you are for one request" (access, 15 min) from
+ * "prove you still hold the rotating session secret" (refresh, 7 d). Before
+ * this, both were the same shape of JWT signed by the same keyset, and
+ * `protect` only checked the signature + `id` + `tv` - so a LEAKED REFRESH
+ * TOKEN was a valid 7-day access token that bypassed the whole 15-minute
+ * expiry design.
+ *
+ * The rules are written so a token minted BEFORE this module change still
+ * works for its own purpose (see verifyAccessToken): a legacy access token
+ * carries neither `typ` nor `family`, a legacy refresh token always carries
+ * `family` (signRefreshToken has set it from day one).
+ */
+export const ACCESS_TOKEN_TYP = 'access';
+export const REFRESH_TOKEN_TYP = 'refresh';
+
+// Issued on every NEW token (legacy tokens predate these and pass the
+// tolerant check below for one rotation window).
+export const ISSUER = 'findmedi';
+export const AUDIENCE = 'findmedi-api';
+
 let cache = null;
 
 /** @returns {Array<{kid:string, secret:string, status:'active'|'retiring'}>} */
@@ -57,7 +80,7 @@ export function loadKeyset() {
     // JWT_SECRET here would silently downgrade a configured rotation policy to a
     // single key, which is the failure this module exists to prevent.
     logger.error(`JWT_KEYS is not valid JSON - refusing to fall back to JWT_SECRET: ${err.message}`);
-    throw new Error('JWT_KEYS is not valid JSON');
+    throw new Error('JWT_KEYS is not valid JSON', { cause: err });
   }
 
   if (!Array.isArray(parsed) || parsed.length === 0) {
@@ -116,11 +139,28 @@ export const currentKid = () => activeKey()?.kid || null;
 export function signToken(payload, options = {}) {
   const key = activeKey();
   if (!key) throw new Error('No active signing key');
-  return jwt.sign({ jti: crypto.randomUUID(), ...payload }, key.secret, {
-    ...options,
-    keyid: key.kid,
-  });
+  return jwt.sign(
+    { jti: crypto.randomUUID(), iss: ISSUER, aud: AUDIENCE, ...payload },
+    key.secret,
+    { ...options, keyid: key.kid }
+  );
 }
+
+/**
+ * Issuer/audience, checked TOLERANTLY: a token that carries them must match,
+ * a token that predates them (no `iss` claim) passes. Rejecting the absent
+ * claim would log out every live session the moment this ships; accepting a
+ * WRONG one would make `iss`/`aud` decorative.
+ */
+const assertIssuerAudience = (payload) => {
+  if (payload.iss != null && payload.iss !== ISSUER) {
+    throw new Error('Invalid token issuer');
+  }
+  if (payload.aud != null && payload.aud !== AUDIENCE) {
+    throw new Error('Invalid token audience');
+  }
+  return payload;
+};
 
 /**
  * Verify against the key named in the token's own header.
@@ -132,10 +172,12 @@ export function signToken(payload, options = {}) {
 export function verifyToken(token) {
   const decoded = jwt.decode(token, { complete: true });
   const kid = decoded?.header?.kid;
-  if (!kid) {
-    throw new Error('Token has no kid header');
-  }
-  let key = loadKeyset().find((k) => k.kid === kid);
+  // No throw on a missing kid. The migration contract below (and the raw
+  // verify that AUTH-F-01 replaced) accepts a token signed directly with
+  // JWT_SECRET; rejecting it here would make the `|| !kid` fallback dead
+  // code, contradict this module's own comments, and 401 every token minted
+  // before kid stamping the moment auth.js switched to verifyAccessToken.
+  const key = kid ? loadKeyset().find((k) => k.kid === kid) : undefined;
 
   // Zero-downtime migration path. Tokens minted BEFORE this module existed were
   // signed with the bare JWT_SECRET and carry no kid, so their header decodes to
@@ -152,13 +194,56 @@ export function verifyToken(token) {
   // from the verifier's point of view and was caught by the first version of
   // this function testing only `!kid`.
   if (!key && (kid === LEGACY_KID || !kid) && process.env.JWT_SECRET) {
-    return jwt.verify(token, process.env.JWT_SECRET);
+    return assertIssuerAudience(jwt.verify(token, process.env.JWT_SECRET));
   }
 
   if (!key) {
-    throw new Error(`Unknown kid "${kid}"`);
+    throw new Error(kid ? `Unknown kid "${kid}"` : 'Token has no kid header');
   }
-  return jwt.verify(token, key.secret);
+  return assertIssuerAudience(jwt.verify(token, key.secret));
+}
+
+/**
+ * THE access-token gate. Every authenticated request path verifies through
+ * here (protect, optionalProtect, /uploads, socket handshake, the optional
+ * admin checks in doctors/facilities/hospitals, mind-support room joins) -
+ * never through a bare `jwt.verify(token, JWT_SECRET)`, which cannot rotate
+ * keys and accepts a refresh token as if it were an access token.
+ *
+ * Purpose rules:
+ *   - `typ` present and not 'access'  -> reject (refresh presented as access).
+ *   - `typ` absent AND `family` present -> reject. That is a legacy refresh
+ *     token (pre-`typ`), and it must not reach a data endpoint.
+ *   - `typ` absent, no `family`       -> legacy access token; allowed.
+ */
+export function verifyAccessToken(token) {
+  const payload = verifyToken(token);
+  if (payload.typ != null && payload.typ !== ACCESS_TOKEN_TYP) {
+    throw new Error('Token is not an access token');
+  }
+  if (payload.typ == null && payload.family != null) {
+    throw new Error('Refresh token presented as access token');
+  }
+  return payload;
+}
+
+/**
+ * THE refresh-token gate, used only by POST /auth/refresh (and the two
+ * session-listing routes that read a refresh cookie's `jti`).
+ *
+ *   - no `family` -> it is an access token; an access token must not be able
+ *     to mint a new 7-day session (that would defeat rotation entirely).
+ *   - `typ` present and not 'refresh' -> reject.
+ */
+export function verifyRefreshToken(token) {
+  const payload = verifyToken(token);
+  if (payload.family == null) {
+    throw new Error('Access token presented as refresh token');
+  }
+  if (payload.typ != null && payload.typ !== REFRESH_TOKEN_TYP) {
+    throw new Error('Token is not a refresh token');
+  }
+  return payload;
 }
 
 export { LEGACY_KID };

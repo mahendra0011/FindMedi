@@ -207,7 +207,7 @@ export const KNOWN_ROOMS = new Set([
   'order', 'appointment', 'ride-tracking',
 ]);
 
-export async function assertRoomAccess(userId, role, room, id) {
+async function checkRoomAccess(userId, role, room, id) {
   if (!userId || !id) return { ok: false, reason: 'missing-identity' };
 
   // CHAT-B-02: deny by default, FOR EVERY ROLE INCLUDING SUPERADMIN.
@@ -349,6 +349,16 @@ export async function assertRoomAccess(userId, role, room, id) {
     default:
       return { ok: false, reason: 'unknown-room' };
   }
+}
+
+/**
+ * Public ACL gate. A success verdict carries the canonical room name, so the
+ * caller joins exactly the room THIS helper validated — the join site never
+ * re-derives the string from the raw payload (CHAT raw-join guard).
+ */
+export async function assertRoomAccess(userId, role, room, id) {
+  const verdict = await checkRoomAccess(userId, role, room, id);
+  return verdict.ok ? { ...verdict, room: `${room}:${String(id)}` } : verdict;
 }
 
 /**

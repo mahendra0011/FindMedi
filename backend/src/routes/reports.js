@@ -14,6 +14,7 @@ import Staff from '../models/Staff.js';
 import Patient from '../models/Patient.js';
 import Doctor from '../models/Doctor.js';
 import { protect, adminOnly, authorize } from '../middleware/auth.js';
+import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { validate } from '../utils/validate.js';
 import { parseExcelFile, parseFile, exportToExcel, exportToCSV, validatePatientData, validateDoctorData, validateBillingData, formatPatientsForExport, formatDoctorsForExport, formatBillingForExport, formatAppointmentsForExport } from '../utils/excelUtils.js';
 import { getConfig } from '../utils/configLoader.js';
@@ -411,7 +412,9 @@ router.get('/types/list', protect, async (req, res) => {
 // Import / Export routes
 // ──────────────────────────────────────────────
 
-router.get('/export/:type', protect, adminOnly, async (req, res) => {
+// AUTHZ-M-03 (F7): the whole patient table walks out through this route - a
+// fresh 2FA proof is required, not just the session token.
+router.get('/export/:type', protect, adminOnly, requireStepUp('export:full'), async (req, res) => {
   try {
     const { type } = req.params;
     const format = req.query.format || 'excel';

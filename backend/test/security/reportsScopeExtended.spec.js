@@ -13,6 +13,11 @@ import { jest } from '@jest/globals';
 import { mountApp } from '../helpers/appHarness.js';
 import { getReportExportScope, REPORT_EXPORT_ROW_CAP } from '../../src/routes/reports.js';
 
+// 45s file-wide: every test re-imports the full route tree through
+// mountFresh/jest.resetModules(); a contended worker (full suite + coverage)
+// can blow jest's default 20s on a single re-import and flake the suite.
+jest.setTimeout(45000);
+
 const capturedLimits = [];
 const model = (methods = {}) => ({ default: { find: jest.fn(), ...methods } });
 const exportModels = ({ rows = [] } = {}) => {
