@@ -12,7 +12,7 @@ jobs:
   gitleaks:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
     - uses: gitleaks/gitleaks-action@v2
@@ -22,7 +22,7 @@ jobs:
   plaintext-aadhaar-guard:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Fail on plaintext Aadhaar-shaped storage
       run: |
         ! grep -rEn "aadhaar(_number|Number)?['\"]?\s*:\s*\{[^}]*type:\s*String" backend/src/models/ || (echo "plaintext Aadhaar field in a model" && exit 1)
@@ -31,7 +31,7 @@ jobs:
   mass-assignment-guard:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Fail on new unscoped findByIdAndUpdate(req.body)
       run: |
         ! grep -rEn "findByIdAndUpdate\([^,]+,\s*req\.body" backend/src/routes/ || (echo "unscoped findByIdAndUpdate(req.body) — use an allowlist" && exit 1)
@@ -43,7 +43,7 @@ jobs:
   raw-jwt-guard:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Fail on jsonwebtoken use outside utils/jwtKeys.js
       run: |
         ! grep -rEn "jwt\.[\w.]*\.(verify|sign|decode)\(" backend/src backend/mindsupport/src --include='*.js' \
@@ -62,8 +62,8 @@ jobs:
     name: Dependency Vulnerability Ratchet
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
+    - uses: actions/checkout@v7
+    - uses: actions/setup-node@v7
       with:
         node-version: 20.x
     - name: Install dependencies
@@ -85,7 +85,7 @@ jobs:
 
     - name: Upload backend and frontend npm audit JSON
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: npm-audit-json-${{ github.run_id }}
         path: ${{ runner.temp }}/findmedi-vulnerability-audit/*.json
@@ -103,7 +103,7 @@ jobs:
     name: SAST + Container Image Scan
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0   # semgrep ci needs history to diff against
 
@@ -149,8 +149,8 @@ jobs:
   tenant-guard-regression:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
+    - uses: actions/checkout@v7
+    - uses: actions/setup-node@v7
       with:
         node-version: 20.x
     - name: No NEW fail-open tenant guard
@@ -559,8 +559,8 @@ jobs:
   infra-hardening-guard:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
+    - uses: actions/checkout@v7
+    - uses: actions/setup-node@v7
       with:
         node-version: 20.x
 
@@ -646,14 +646,14 @@ jobs:
   unescaped-regex-guard:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Fail on unescaped user input reaching new RegExp
       run: |
         # Direct request-body/query reads.
         ! grep -rEn "new RegExp\(\s*req\.(body|query|params)" backend/src/ || (echo "new RegExp(req.*) — use escapeRegex(capSearch(x))" && exit 1)
         # A variable derived from the request but not passed through the helpers.
         ! grep -rEn "new RegExp\(\s*[A-Za-z_$][\w$]*\s*,\s*['\"]i" backend/src/routes/ | grep -v "escapeRegex(" || (echo "new RegExp(<var>, 'i') without escapeRegex — use new RegExp(escapeRegex(capSearch(var)), 'i')" && exit 1)
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v7
       with:
         node-version: 20.x
     - run: cd backend && npm ci
@@ -663,8 +663,8 @@ jobs:
   authz-caller-reachability:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
+    - uses: actions/checkout@v7
+    - uses: actions/setup-node@v7
       with:
         node-version: 20.x
     - run: cd backend && npm ci
@@ -674,8 +674,8 @@ jobs:
   permission-matrix-sanity:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
+    - uses: actions/checkout@v7
+    - uses: actions/setup-node@v7
       with:
         node-version: 20.x
     - run: cd backend && npm ci
@@ -685,8 +685,8 @@ jobs:
   env-doc-drift:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
+    - uses: actions/checkout@v7
+    - uses: actions/setup-node@v7
       with:
         node-version: 20.x
     - name: DOC-B-03 · every required/manifest env var is in .env.example
@@ -701,10 +701,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Use Node.js 20.x
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: 20.x
         cache: 'npm'
@@ -744,7 +744,7 @@ jobs:
 
     - name: Upload coverage report
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: backend-coverage
         path: backend/coverage/
@@ -764,10 +764,10 @@ jobs:
         os: [ubuntu-latest, ubuntu-22.04, windows-latest]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Use Node.js 20.x
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: 20.x
         cache: 'npm'
@@ -852,7 +852,7 @@ jobs:
     # runner, and production silently fell back to the JS path.
     - name: Upload native artifacts
       if: runner.os == 'Linux'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: medi-core-napi-${{ matrix.os }}-${{ hashFiles('backend/rust-helper/Cargo.lock') }}
         path: |
@@ -870,12 +870,12 @@ jobs:
       NEXT_TELEMETRY_DISABLED: 1
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     # Node 22+ is required: this app runs Vitest 5 (engines: ^22.12.0 || ^24.0.0 || >=26)
     # and @testing-library/jest-dom 7 (engines: >=22), unlike the api job.
     - name: Use Node.js 22.x
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: 22.x
         cache: 'npm'
@@ -913,10 +913,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Use Node.js 22.x
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: 22.x
         cache: 'npm'
@@ -933,7 +933,7 @@ jobs:
 
     - name: Upload Playwright report
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: playwright-report
         path: frontend/playwright-report
@@ -944,7 +944,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Install k6
       run: |
