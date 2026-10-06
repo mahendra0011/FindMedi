@@ -62,6 +62,18 @@ describe('P2-11 pepper (passwordMatchesHash)', () => {
     expect((await passwordMatchesHash('WrongPass999!xy', hash)).ok).toBe(false);
   });
 
+  it('argon2id is the default new-hash format; bcrypt rows still verify', async () => {
+    delete process.env.PASSWORD_PEPPER;
+    delete process.env.PASSWORD_HASHER;
+    const { hashNewPassword, passwordMatchesHash } = await import('../../src/models/User.js');
+    const fresh = await hashNewPassword('FreshPass123!xy');
+    expect(fresh.startsWith('$argon2id$')).toBe(true);
+    expect(await passwordMatchesHash('FreshPass123!xy', fresh)).toEqual({ ok: true, legacy: false });
+    expect((await passwordMatchesHash('WrongPass999!xy', fresh)).ok).toBe(false);
+    const legacyBcrypt = await bcrypt.hash('OldPass123!xy', 12);
+    expect(await passwordMatchesHash('OldPass123!xy', legacyBcrypt)).toEqual({ ok: true, legacy: false });
+  });
+
   it('matches legacy hashes (legacy:true) and new peppered hashes after enabling pepper', async () => {
     const crypto = await import('node:crypto');
     const { passwordMatchesHash } = await import('../../src/models/User.js');

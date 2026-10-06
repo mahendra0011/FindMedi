@@ -12,6 +12,7 @@ import {
 import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
 import logger from '../config/logger.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
+import { revealPhi, mergeBankDetails } from '../utils/phiFields.js';
 
 const router = express.Router();
 
@@ -161,16 +162,22 @@ router.get('/profile', protect, requireRole(['lawyer']), async (req, res) => {
       return res.status(404).json({ message: 'Lawyer profile not found' });
     }
     const safeProfile = profile.toObject?.() || profile;
-    safeProfile.govtIdNumber = safeProfile.govtIdNumber ? `****${String(safeProfile.govtIdNumber).slice(-4)}` : '';
+    // P2-9: ciphertext at rest — decrypt, then mask.
+    const _gid = revealPhi('LawyerProfile', 'govtIdNumber', safeProfile.govtIdNumber);
+    const _bd = safeProfile.bankDetails || {};
+    const _acc = revealPhi('LawyerProfile', 'bankDetails.accountNumber', _bd.accountNumber);
+    const _ifsc = revealPhi('LawyerProfile', 'bankDetails.ifsc', _bd.ifsc);
+    const _upi = revealPhi('LawyerProfile', 'bankDetails.upiId', _bd.upiId);
+    safeProfile.govtIdNumber = _gid ? `****${String(_gid).slice(-4)}` : '';
     safeProfile.govtIdDocUrl = undefined;
     safeProfile.barCouncilCertUrl = undefined;
     safeProfile.lawDegreeCertUrl = undefined;
     safeProfile.bankDetails = safeProfile.bankDetails ? {
-      accountHolder: safeProfile.bankDetails.accountHolder,
-      accountNumber: safeProfile.bankDetails.accountNumber ? `****${String(safeProfile.bankDetails.accountNumber).slice(-4)}` : '',
-      ifsc: safeProfile.bankDetails.ifsc ? `${String(safeProfile.bankDetails.ifsc).slice(0, 4)}****` : '',
-      upiId: safeProfile.bankDetails.upiId ? `${String(safeProfile.bankDetails.upiId).slice(0, 2)}****` : '',
-      verified: safeProfile.bankDetails.verified,
+      accountHolder: _bd.accountHolder,
+      accountNumber: _acc ? `****${String(_acc).slice(-4)}` : '',
+      ifsc: _ifsc ? `${String(_ifsc).slice(0, 4)}****` : '',
+      upiId: _upi ? `${String(_upi).slice(0, 2)}****` : '',
+      verified: _bd.verified,
     } : undefined;
     safeProfile.verificationDocuments = (safeProfile.verificationDocuments || []).map(({ kind, uploadedAt, verifiedAt }) => ({ kind, uploadedAt, verifiedAt }));
     res.json({ success: true, profile: safeProfile });
@@ -223,11 +230,9 @@ router.put('/profile', protect, requireRole(['lawyer']), async (req, res) => {
     if (acceptsUrgent !== undefined) profile.acceptsUrgent = Boolean(acceptsUrgent);
     if (jurisdictionCity) profile.jurisdictionCity = jurisdictionCity;
     if (lawFirmName !== undefined) profile.lawFirmName = lawFirmName;
+    // P2-9: encrypt genuinely-new bank fields; masked echoes keep stored values.
     if (bankDetails) {
-      profile.bankDetails = {
-        ...profile.bankDetails?.toObject?.() || profile.bankDetails,
-        ...bankDetails,
-      };
+      profile.bankDetails = mergeBankDetails('LawyerProfile', profile.bankDetails, bankDetails);
     }
     if (gstin !== undefined) profile.gstin = String(gstin).trim().slice(0, 20);
     if (settings && typeof settings === 'object') {

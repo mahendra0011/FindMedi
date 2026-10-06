@@ -7,6 +7,7 @@ import { protect, requireRole } from '../middleware/auth.js';
 import { validate, riderStatusSchema, riderLocationSchema } from '../utils/validate.js';
 import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
 import { calculateDistanceKm } from '../lib/geoUtils.js';
+import { revealPhi, mergeBankDetails } from '../utils/phiFields.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -25,6 +26,12 @@ router.get('/profile', protect, requireRole(['rider']), async (req, res) => {
       return res.status(404).json({ message: 'Rider profile not found' });
     }
 
+    // P2-9: IDs/bank fields are ciphertext at rest — decrypt, then mask.
+    const _gid = revealPhi('RiderProfile', 'govtIdNumber', rider.govtIdNumber);
+    const _bd = rider.bankDetails || {};
+    const _acc = revealPhi('RiderProfile', 'bankDetails.accountNumber', _bd.accountNumber);
+    const _ifsc = revealPhi('RiderProfile', 'bankDetails.ifsc', _bd.ifsc);
+    const _upi = revealPhi('RiderProfile', 'bankDetails.upiId', _bd.upiId);
     const safeRider = {
       _id: rider._id,
       userId: rider.userId,
@@ -40,13 +47,13 @@ router.get('/profile', protect, requireRole(['rider']), async (req, res) => {
       settings: rider.settings,
       vehicleId: rider.vehicleId,
       govtIdType: rider.govtIdType,
-      govtIdNumber: rider.govtIdNumber ? `****${String(rider.govtIdNumber).slice(-4)}` : '',
+      govtIdNumber: _gid ? `****${String(_gid).slice(-4)}` : '',
       drivingLicenseNumber: rider.drivingLicenseNumber ? `****${String(rider.drivingLicenseNumber).slice(-4)}` : '',
       bankDetails: rider.bankDetails ? {
-        accountHolder: rider.bankDetails.accountHolder,
-        accountNumber: rider.bankDetails.accountNumber ? `****${String(rider.bankDetails.accountNumber).slice(-4)}` : '',
-        ifsc: rider.bankDetails.ifsc ? `${String(rider.bankDetails.ifsc).slice(0, 4)}****` : '',
-        upiId: rider.bankDetails.upiId ? `${String(rider.bankDetails.upiId).slice(0, 2)}****` : '',
+        accountHolder: _bd.accountHolder,
+        accountNumber: _acc ? `****${String(_acc).slice(-4)}` : '',
+        ifsc: _ifsc ? `${String(_ifsc).slice(0, 4)}****` : '',
+        upiId: _upi ? `${String(_upi).slice(0, 2)}****` : '',
       } : undefined,
       docs: rider.docs ? Object.fromEntries(Object.entries(rider.docs).map(([key, value]) => [key, { status: value.status, uploadedAt: value.uploadedAt }])) : undefined,
     };
@@ -76,7 +83,8 @@ router.put('/profile', protect, requireRole(['rider']), async (req, res) => {
     if (operatingArea) rider.operatingArea = operatingArea;
     if (availableDays) rider.availableDays = availableDays;
     if (availableTimeSlot) rider.availableTimeSlot = availableTimeSlot;
-    if (bankDetails) rider.bankDetails = { ...rider.bankDetails?.toObject?.() || rider.bankDetails, ...bankDetails };
+    // P2-9: encrypt genuinely-new bank fields; masked echoes keep stored values.
+    if (bankDetails) rider.bankDetails = mergeBankDetails('RiderProfile', rider.bankDetails, bankDetails);
     if (emergencySupport !== undefined) rider.emergencySupport = Boolean(emergencySupport);
     if (settings && typeof settings === 'object') {
       const next = { ...(rider.settings?.toObject?.() || rider.settings || {}) };

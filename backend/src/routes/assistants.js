@@ -6,6 +6,7 @@ import TransactionLedger from '../models/TransactionLedger.js';
 import { protect, requireRole } from '../middleware/auth.js';
 import { validate, assistantStatusSchema, searchAssistantSchema } from '../utils/validate.js';
 import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
+import { revealPhi, mergeBankDetails } from '../utils/phiFields.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -50,13 +51,20 @@ router.get('/profile', protect, requireRole(['assistant']), async (req, res) => 
       walletBalance: profile.walletBalance,
       totalEarnings: profile.totalEarnings,
       totalBookings: profile.totalBookings,
-      bankDetails: profile.bankDetails ? {
-        accountHolder: profile.bankDetails.accountHolder,
-        accountNumber: profile.bankDetails.accountNumber ? `****${String(profile.bankDetails.accountNumber).slice(-4)}` : '',
-        ifsc: profile.bankDetails.ifsc ? `${String(profile.bankDetails.ifsc).slice(0, 4)}****` : '',
-        upiId: profile.bankDetails.upiId ? `${String(profile.bankDetails.upiId).slice(0, 2)}****` : '',
-        verified: profile.bankDetails.verified,
-      } : undefined,
+      bankDetails: (() => {
+        // P2-9: ciphertext at rest — decrypt, then mask.
+        const _bd = profile.bankDetails || {};
+        const _acc = revealPhi('AssistantProfile', 'bankDetails.accountNumber', _bd.accountNumber);
+        const _ifsc = revealPhi('AssistantProfile', 'bankDetails.ifsc', _bd.ifsc);
+        const _upi = revealPhi('AssistantProfile', 'bankDetails.upiId', _bd.upiId);
+        return profile.bankDetails ? {
+          accountHolder: _bd.accountHolder,
+          accountNumber: _acc ? `****${String(_acc).slice(-4)}` : '',
+          ifsc: _ifsc ? `${String(_ifsc).slice(0, 4)}****` : '',
+          upiId: _upi ? `${String(_upi).slice(0, 2)}****` : '',
+          verified: _bd.verified,
+        } : undefined;
+      })(),
       emergencyContact: profile.emergencyContact ? {
         name: profile.emergencyContact.name,
         phone: profile.emergencyContact.phone ? `****${String(profile.emergencyContact.phone).slice(-4)}` : '',
@@ -106,7 +114,8 @@ router.put('/profile', protect, requireRole(['assistant']), async (req, res) => 
     if (pricePerHour !== undefined) profile.pricePerHour = Number(pricePerHour);
     if (pricePerFullDay !== undefined) profile.pricePerFullDay = Number(pricePerFullDay);
     if (extraSkills) profile.extraSkills = { ...profile.extraSkills, ...extraSkills };
-    if (bankDetails) profile.bankDetails = { ...profile.bankDetails?.toObject?.() || profile.bankDetails, ...bankDetails };
+    // P2-9: encrypt genuinely-new bank fields; masked echoes keep stored values.
+    if (bankDetails) profile.bankDetails = mergeBankDetails('AssistantProfile', profile.bankDetails, bankDetails);
     // Section-10 settings master with strict allow-list
     if (settings && typeof settings === 'object') {
       const next = { ...(profile.settings?.toObject?.() || profile.settings || {}) };

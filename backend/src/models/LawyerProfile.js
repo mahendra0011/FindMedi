@@ -26,6 +26,8 @@ const lawyerProfileSchema = new mongoose.Schema({
     default: 'Aadhaar',
   },
   govtIdNumber: { type: String, default: '' },
+  // P2-9: HMAC blind index for duplicate checks (see AssistantProfile).
+  govtIdNumberHash: { type: String, default: '', index: true },
   govtIdDocUrl: { type: String, default: '' },
   practiceCategories: [
     {

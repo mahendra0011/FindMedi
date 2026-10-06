@@ -5,6 +5,31 @@ import { protect, roleOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { getNearbyDeliveryBoys } from '../config/redis.js';
 import { getIO, emitDeliveryStatus } from '../services/socketService.js';
+import { encryptPhi, revealPhi, looksMasked } from '../utils/phiFields.js';
+
+// P2-9: DeliveryPartner bank field names differ (accountNo/holderName) —
+// helpers bound to this model with its own AAD scope.
+const DP = 'DeliveryPartner';
+const encryptDpBank = (bank = {}) => ({
+  accountNo: encryptPhi(DP, 'bankDetails.accountNo', bank.accountNo || ''),
+  ifsc: encryptPhi(DP, 'bankDetails.ifsc', bank.ifsc || ''),
+  holderName: bank.holderName || '',
+  upiId: encryptPhi(DP, 'bankDetails.upiId', bank.upiId || ''),
+});
+const scrubDpBank = (doc) => {
+  const o = doc && typeof doc.toObject === 'function' ? doc.toObject() : doc;
+  if (!o || !o.bankDetails) return o;
+  const acc = revealPhi(DP, 'bankDetails.accountNo', o.bankDetails.accountNo);
+  const ifsc = revealPhi(DP, 'bankDetails.ifsc', o.bankDetails.ifsc);
+  const upi = revealPhi(DP, 'bankDetails.upiId', o.bankDetails.upiId);
+  o.bankDetails = {
+    holderName: o.bankDetails.holderName || '',
+    accountNo: acc ? `****${String(acc).slice(-4)}` : '',
+    ifsc: ifsc ? `${String(ifsc).slice(0, 4)}****` : '',
+    upiId: upi ? `${String(upi).slice(0, 2)}****` : '',
+  };
+  return o;
+};
 
 const router = express.Router();
 
@@ -152,13 +177,13 @@ router.get('/my-deliveries', protect, roleOnly(['delivery_boy']), async (req, re
 router.get('/profile/me', protect, async (req, res) => {
   const partner = await DeliveryPartner.findOne({ userId: req.user.id });
   if (!partner) return res.status(404).json({ message: 'Profile not found' });
-  res.json(partner);
+  res.json(scrubDpBank(partner));
 });
 
 router.get('/profile/:userId', protect, async (req, res) => {
   const partner = await DeliveryPartner.findOne({ userId: req.params.userId });
   if (!partner) return res.status(404).json({ message: 'Delivery partner not found' });
-  res.json(partner);
+  res.json(scrubDpBank(partner));
 });
 
 router.put('/profile/:id', protect, async (req, res) => {
@@ -167,9 +192,22 @@ router.put('/profile/:id', protect, async (req, res) => {
   if (!partner) return res.status(404).json({ message: 'Delivery partner not found' });
   // AUTH-030: allowlisted fields only — status/verification/counters immutable here.
   const { pickBody } = await import('../utils/pick.js');
-  Object.assign(partner, pickBody(req.body, ['name', 'phone', 'email', 'photo', 'dob', 'gender', 'address', 'city', 'pincode', 'vehicleType', 'vehicleNumber', 'drivingLicenseDoc', 'vehicleRcDoc', 'insuranceDoc', 'aadharDoc', 'panDoc', 'bankDetails', 'workZone', 'availability', 'emergencyContact', 'currentLocation', 'settings']));
+  const picked = pickBody(req.body, ['name', 'phone', 'email', 'photo', 'dob', 'gender', 'address', 'city', 'pincode', 'vehicleType', 'vehicleNumber', 'drivingLicenseDoc', 'vehicleRcDoc', 'insuranceDoc', 'aadharDoc', 'panDoc', 'bankDetails', 'workZone', 'availability', 'emergencyContact', 'currentLocation', 'settings']);
+  // P2-9: encrypt genuinely-new bank fields; masked echoes/absent keys keep stored values.
+  if (picked.bankDetails && typeof picked.bankDetails === 'object') {
+    const stored = partner.bankDetails?.toObject?.() || partner.bankDetails || {};
+    const next = { ...stored };
+    const inc = picked.bankDetails;
+    if (inc.holderName !== undefined) next.holderName = inc.holderName || '';
+    for (const f of ['accountNo', 'ifsc', 'upiId']) {
+      if (inc[f] === undefined || inc[f] === '' || looksMasked(inc[f])) continue;
+      next[f] = encryptPhi(DP, `bankDetails.${f}`, inc[f]);
+    }
+    picked.bankDetails = next;
+  }
+  Object.assign(partner, picked);
   await partner.save();
-  res.json(partner);
+  res.json(scrubDpBank(partner));
 });
 
 router.post('/upload-document', protect, async (req, res) => {

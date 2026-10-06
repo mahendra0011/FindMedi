@@ -14,6 +14,9 @@ const assistantProfileSchema = new mongoose.Schema({
     required: true,
   },
   govtIdNumber: { type: String, required: true },
+  // P2-9: HMAC blind index for duplicate checks — the plaintext ID is
+  // AES-256-GCM ciphertext at rest and can never be queried directly.
+  govtIdNumberHash: { type: String, default: '', index: true },
   govtIdDocUrl: { type: String, default: '' },
   policeVerificationDocUrl: { type: String, default: '' },
   emergencyContact: {

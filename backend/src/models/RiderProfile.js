@@ -20,6 +20,8 @@ const riderProfileSchema = new mongoose.Schema({
     required: true,
   },
   govtIdNumber: { type: String, required: true },
+  // P2-9: HMAC blind index for duplicate checks (see AssistantProfile).
+  govtIdNumberHash: { type: String, default: '', index: true },
   govtIdDocUrl: { type: String, default: '' },
   drivingLicenseNumber: { type: String, required: true },
   drivingLicenseDocUrl: { type: String, default: '' },

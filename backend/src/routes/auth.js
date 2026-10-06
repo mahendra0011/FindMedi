@@ -75,6 +75,7 @@ import {
 import { isPwnedPassword } from '../utils/pwnedPassword.js';
 import { checkPasswordStrength, strongPasswordMessage } from '../utils/passwordStrength.js';
 import { enforceConcurrentCap, enforceRefreshTimeouts } from '../utils/sessionPolicy.js';
+import { encryptPhi, encryptBankDetails, phiBlindIndex, normalizeGovtId, revealPhi } from '../utils/phiFields.js';
 import { authCookieName, authCookieOptions, readAuthCookie } from '../lib/cookiePolicy.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
@@ -276,13 +277,24 @@ const userResponse = async (user) => {
   if (user.role === 'rider') {
     const rp = await RiderProfile.findOne({ userId: user._id }).populate('vehicleId').lean();
     if (rp) {
+      // P2-9: bankDetails are ciphertext at rest — decrypt-then-mask, never raw.
+      const _bd = rp.bankDetails || {};
+      const _acc = revealPhi('RiderProfile', 'bankDetails.accountNumber', _bd.accountNumber);
+      const _ifsc = revealPhi('RiderProfile', 'bankDetails.ifsc', _bd.ifsc);
+      const _upi = revealPhi('RiderProfile', 'bankDetails.upiId', _bd.upiId);
       riderData = {
         riderProfileId: rp._id,
         riderStatus: rp.riderStatus,
         isOnline: rp.isOnline,
         rating: rp.rating || { avg: 5.0, count: 0 },
         vehicle: rp.vehicleId,
-        bankDetails: rp.bankDetails,
+        bankDetails: {
+          accountHolder: _bd.accountHolder || '',
+          accountNumber: _acc ? `****${String(_acc).slice(-4)}` : '',
+          ifsc: _ifsc ? `${String(_ifsc).slice(0, 4)}****` : '',
+          upiId: _upi ? `${String(_upi).slice(0, 2)}****` : '',
+          verified: Boolean(_bd.verified),
+        },
         operatingArea: rp.operatingArea,
       };
     }
@@ -454,7 +466,8 @@ router.post('/register', authLimiter, botProtection(), validate(registerSchema),
       if (!pricePerHour || Number(pricePerHour) <= 0) {
         return res.status(400).json({ message: 'Price per hour must be greater than 0' });
       }
-      const existingAssistant = await AssistantProfile.findOne({ govtIdNumber: govtIdNumber.trim().toUpperCase() });
+      // P2-9: IDs are ciphertext at rest — duplicate check runs on the blind index.
+      const existingAssistant = await AssistantProfile.findOne({ govtIdNumberHash: phiBlindIndex(govtIdNumber) });
       if (existingAssistant) {
         return res.status(400).json({ message: 'This Government ID is already registered' });
       }
@@ -521,10 +534,13 @@ router.post('/register', authLimiter, botProtection(), validate(registerSchema),
     recordSignupEvent({ ip: req.ip, userId: user._id, email: lowerEmail }).catch(() => {});
 
     if (normalizedRole === 'assistant') {
+      // P2-9: govt ID + bank details encrypted before they touch the DB.
+      const assistantGovtId = normalizeGovtId(req.body.govtIdNumber || `ID-${Date.now()}`);
       await AssistantProfile.create({
         userId: user._id,
         govtIdType: req.body.govtIdType || 'Aadhaar',
-        govtIdNumber: (req.body.govtIdNumber || `ID-${Date.now()}`).trim().toUpperCase(),
+        govtIdNumber: encryptPhi('AssistantProfile', 'govtIdNumber', assistantGovtId),
+        govtIdNumberHash: phiBlindIndex(assistantGovtId),
         govtIdDocUrl: req.body.govtIdDocUrl || '',
         policeVerificationDocUrl: req.body.policeVerificationDocUrl || '',
         emergencyContact: {
@@ -542,12 +558,12 @@ router.post('/register', authLimiter, botProtection(), validate(registerSchema),
         pricePerHour: Number(req.body.pricePerHour) || 150,
         pricePerFullDay: Number(req.body.pricePerFullDay) || (Number(req.body.pricePerHour || 150) * 8 * 0.85),
         extraSkills: req.body.extraSkills || {},
-        bankDetails: {
+        bankDetails: encryptBankDetails('AssistantProfile', {
           accountHolder: req.body.bankAccountHolder || name,
           accountNumber: req.body.bankAccountNumber || '',
           ifsc: req.body.bankIfsc || '',
           upiId: req.body.bankUpi || '',
-        },
+        }),
         availableDays: req.body.availableDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
         availableTimeSlots: req.body.availableTimeSlots || [{ start: '08:00', end: '20:00' }],
         healthCertification: req.body.healthCertification || {
@@ -569,6 +585,8 @@ router.post('/register', authLimiter, botProtection(), validate(registerSchema),
     }
 
     if (normalizedRole === 'lawyer') {
+      // P2-9: govt ID + bank details encrypted before they touch the DB.
+      const lawyerGovtId = normalizeGovtId(req.body.govtIdNumber || '');
       await LawyerProfile.create({
         userId: user._id,
         barCouncilNumber: (req.body.barCouncilNumber || `BAR-${Date.now()}`).trim().toUpperCase(),
@@ -577,7 +595,8 @@ router.post('/register', authLimiter, botProtection(), validate(registerSchema),
         yearOfEnrollment: Number(req.body.yearOfEnrollment) || new Date().getFullYear(),
         lawDegreeCertUrl: req.body.lawDegreeCertUrl || '',
         govtIdType: req.body.govtIdType || 'Aadhaar',
-        govtIdNumber: req.body.govtIdNumber || '',
+        govtIdNumber: encryptPhi('LawyerProfile', 'govtIdNumber', lawyerGovtId),
+        govtIdNumberHash: lawyerGovtId ? phiBlindIndex(lawyerGovtId) : '',
         govtIdDocUrl: req.body.govtIdDocUrl || '',
         practiceCategories: req.body.practiceCategories || ['general_consultation'],
         yearsOfPractice: Number(req.body.yearsOfPractice) || 1,
@@ -599,12 +618,12 @@ router.post('/register', authLimiter, botProtection(), validate(registerSchema),
         followUpFee: Number(req.body.followUpFee) || 500,
         freeFirstConsultation: Boolean(req.body.freeFirstConsultation),
         sessionDuration: Number(req.body.sessionDuration) || 30,
-        bankDetails: {
+        bankDetails: encryptBankDetails('LawyerProfile', {
           accountHolder: req.body.bankAccountHolder || name,
           accountNumber: req.body.bankAccountNumber || '',
           ifsc: req.body.bankIfsc || '',
           upiId: req.body.bankUpi || '',
-        },
+        }),
         availableDays: req.body.availableDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         availableTimeSlots: req.body.availableTimeSlots || [{ start: '10:00 AM', end: '06:00 PM' }],
         acceptsUrgent: req.body.acceptsUrgent !== undefined ? Boolean(req.body.acceptsUrgent) : true,
@@ -638,21 +657,24 @@ router.post('/register', authLimiter, botProtection(), validate(registerSchema),
         isDocumentVerified: false,
       });
 
+      // P2-9: govt ID + bank details encrypted before they touch the DB.
+      const riderGovtId = normalizeGovtId(req.body.govtIdNumber || 'PENDING');
       await RiderProfile.create({
         userId: user._id,
         vehicleId: vehicle._id,
         govtIdType: req.body.govtIdType || 'Aadhaar',
-        govtIdNumber: req.body.govtIdNumber || 'PENDING',
+        govtIdNumber: encryptPhi('RiderProfile', 'govtIdNumber', riderGovtId),
+        govtIdNumberHash: phiBlindIndex(riderGovtId),
         govtIdDocUrl: req.body.govtIdDocUrl || '',
         drivingLicenseNumber: req.body.drivingLicenseNumber || 'DL-PENDING',
         drivingLicenseDocUrl: req.body.drivingLicenseDocUrl || '',
         drivingLicenseExpiry: req.body.drivingLicenseExpiry ? new Date(req.body.drivingLicenseExpiry) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        bankDetails: {
+        bankDetails: encryptBankDetails('RiderProfile', {
           accountHolder: req.body.bankAccountHolder || name,
           accountNumber: req.body.bankAccountNumber || '',
           ifsc: req.body.bankIfsc || '',
           upiId: req.body.bankUpi || '',
-        },
+        }),
         operatingArea: req.body.operatingArea || '',
         availableDays: req.body.availableDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         availableTimeSlot: req.body.availableTimeSlot || { start: '08:00', end: '20:00' },

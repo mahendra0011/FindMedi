@@ -1,8 +1,33 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import argon2 from 'argon2';
 import crypto from 'node:crypto';
 import { generate16DigitId } from '../utils/idGenerator.js';
 import { canonicalRole } from '../config/permissions.js';
+
+// P2-11: Argon2id is the default password hasher (m=19456, t=2, p=1 —
+// OWASP minimums). bcrypt-cost-12 remains readable forever so every
+// existing row keeps verifying, and upgrades transparently on next login.
+// Escape hatch: PASSWORD_HASHER=bcrypt (new hashes stay bcrypt).
+const ARGON_OPTS = { type: argon2.argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 };
+export const passwordHasher = () =>
+  String(process.env.PASSWORD_HASHER || 'argon2').toLowerCase() === 'bcrypt' ? 'bcrypt' : 'argon2';
+
+export async function hashNewPassword(plain) {
+  const pepper = getPasswordPepper();
+  const material = pepper ? peppered(plain, pepper) : String(plain);
+  if (passwordHasher() === 'bcrypt') return bcrypt.hash(material, BCRYPT_ROUNDS);
+  return argon2.hash(material, ARGON_OPTS);
+}
+
+async function verifyAgainstHash(material, hash) {
+  try {
+    if (String(hash).startsWith('$argon2')) return await argon2.verify(hash, material);
+    return await bcrypt.compare(material, hash);
+  } catch {
+    return false;
+  }
+}
 
 // P2-11: server-side pepper. When PASSWORD_PEPPER is set (secret manager, NOT
 // the DB), passwords are HMAC-SHA256'd with it BEFORE bcrypt, so a DB-only
@@ -17,17 +42,18 @@ export const getPasswordPepper = () => {
 const peppered = (plain, pepper) =>
   crypto.createHmac('sha256', pepper).update(String(plain), 'utf8').digest('hex');
 
-// Compare a plaintext candidate against a stored hash, trying the peppered
-// form first and falling back to the legacy unpeppered form (pre-pepper rows).
-// Returns { ok, legacy } so callers can trigger a re-hash upgrade.
+// Compare a plaintext candidate against a stored hash (argon2id or bcrypt),
+// trying the peppered form first and falling back to the legacy unpeppered
+// form (pre-pepper rows). Returns { ok, legacy } so callers can trigger a
+// re-hash upgrade.
 export async function passwordMatchesHash(plain, hash) {
   const pepper = getPasswordPepper();
   if (pepper) {
-    if (await bcrypt.compare(peppered(plain, pepper), hash)) return { ok: true, legacy: false };
-    if (await bcrypt.compare(String(plain), hash)) return { ok: true, legacy: true };
+    if (await verifyAgainstHash(peppered(plain, pepper), hash)) return { ok: true, legacy: false };
+    if (await verifyAgainstHash(String(plain), hash)) return { ok: true, legacy: true };
     return { ok: false, legacy: false };
   }
-  const ok = await bcrypt.compare(String(plain), hash);
+  const ok = await verifyAgainstHash(String(plain), hash);
   return { ok, legacy: false };
 }
 
@@ -253,9 +279,7 @@ const BCRYPT_ROUNDS = (() => {
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  const pepper = getPasswordPepper();
-  const material = pepper ? peppered(this.password, pepper) : this.password;
-  this.password = await bcrypt.hash(material, BCRYPT_ROUNDS);
+  this.password = await hashNewPassword(this.password);
   next();
 });
 
@@ -279,13 +303,19 @@ userSchema.pre('save', function (next) {
 userSchema.methods.comparePassword = async function (plain) {
   const { ok, legacy } = await passwordMatchesHash(plain, this.password);
   if (ok) {
-    // P2-9/P2-11: opportunistic upgrade - a hash minted at an older cost, or
-    // before PASSWORD_PEPPER was configured, is silently re-hashed on the
-    // next successful login. The pre-save hook does the hashing; a failure
-    // here must never fail the login itself.
+    // P2-9/P2-11: opportunistic upgrade — a bcrypt row (any cost), a hash
+    // minted at an older bcrypt cost, or a pre-pepper row is silently
+    // re-hashed to argon2id on the next successful login. The pre-save hook
+    // does the hashing; a failure here must never fail the login itself.
     try {
-      const cost = Number.parseInt(String(this.password).slice(4, 6), 10);
-      if (legacy || (Number.isInteger(cost) && cost < BCRYPT_ROUNDS)) {
+      const stored = String(this.password);
+      const cost = stored.startsWith('$2')
+        ? Number.parseInt(stored.slice(4, 6), 10)
+        : null;
+      const needsRehash = legacy
+        || (passwordHasher() === 'argon2' && !stored.startsWith('$argon2'))
+        || (Number.isInteger(cost) && cost < BCRYPT_ROUNDS);
+      if (needsRehash) {
         this.password = plain;
         await this.save();
       }
