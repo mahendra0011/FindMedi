@@ -79,7 +79,7 @@ describe('INF-M-05 audit evidence artifacts', () => {
   it('uploads audit JSON even when the vulnerability ratchet fails', () => {
     const workflow = fs.readFileSync(path.join(REPO, '.github', 'workflows', 'ci.yml'), 'utf8');
     expect(workflow).toContain('VULN_AUDIT_ARTIFACT_DIR: ${{ runner.temp }}/findmedi-vulnerability-audit');
-    expect(workflow).toContain('actions/upload-artifact@v4');
+    expect(workflow).toContain('actions/upload-artifact@v7');
     expect(workflow).toContain('if: always()');
     expect(workflow).toContain('findmedi-vulnerability-audit/*.json');
     expect(workflow).toContain('retention-days: 30');

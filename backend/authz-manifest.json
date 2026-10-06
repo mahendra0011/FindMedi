@@ -665,63 +665,63 @@
     },
     {
       "file": "assistants.js",
-      "line": 15,
+      "line": 16,
       "method": "GET",
       "target": "'/profile'",
       "tag": "role"
     },
     {
       "file": "assistants.js",
-      "line": 74,
+      "line": 82,
       "method": "PUT",
       "target": "'/profile'",
       "tag": "role"
     },
     {
       "file": "assistants.js",
-      "line": 147,
+      "line": 156,
       "method": "PUT",
       "target": "'/status'",
       "tag": "role"
     },
     {
       "file": "assistants.js",
-      "line": 192,
+      "line": 201,
       "method": "PUT",
       "target": "'/location'",
       "tag": "role"
     },
     {
       "file": "assistants.js",
-      "line": 232,
+      "line": 241,
       "method": "GET",
       "target": "'/earnings'",
       "tag": "role"
     },
     {
       "file": "assistants.js",
-      "line": 283,
+      "line": 292,
       "method": "POST",
       "target": "'/withdraw-demo'",
       "tag": "role"
     },
     {
       "file": "assistants.js",
-      "line": 322,
+      "line": 331,
       "method": "POST",
       "target": "'/search'",
       "tag": "object"
     },
     {
       "file": "assistants.js",
-      "line": 377,
+      "line": 386,
       "method": "GET",
       "target": "'/'",
       "tag": "public"
     },
     {
       "file": "assistants.js",
-      "line": 492,
+      "line": 501,
       "method": "GET",
       "target": "'/:id'",
       "tag": "public"
@@ -749,147 +749,147 @@
     },
     {
       "file": "auth.js",
-      "line": 371,
+      "line": 383,
       "method": "POST",
       "target": "'/register'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 755,
+      "line": 777,
       "method": "POST",
       "target": "'/verify-otp'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 823,
+      "line": 845,
       "method": "POST",
       "target": "'/resend-otp'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 874,
+      "line": 896,
       "method": "POST",
       "target": "'/login'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1155,
+      "line": 1177,
       "method": "POST",
       "target": "'/step-up'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 1186,
+      "line": 1208,
       "method": "POST",
       "target": "'/2fa/complete'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1259,
+      "line": 1281,
       "method": "POST",
       "target": "'/google'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1384,
+      "line": 1406,
       "method": "POST",
       "target": "'/google-register'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1491,
+      "line": 1513,
       "method": "POST",
       "target": "'/forgot-password'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1525,
+      "line": 1547,
       "method": "POST",
       "target": "'/reset-password'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1619,
+      "line": 1641,
       "method": "POST",
       "target": "'/doctor-setup'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1657,
+      "line": 1679,
       "method": "POST",
       "target": "'/ambulance-setup'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1710,
+      "line": 1732,
       "method": "GET",
       "target": "'/me'",
       "tag": "self"
     },
     {
       "file": "auth.js",
-      "line": 1717,
+      "line": 1739,
       "method": "PUT",
       "target": "'/change-password'",
       "tag": "self"
     },
     {
       "file": "auth.js",
-      "line": 1781,
+      "line": 1803,
       "method": "POST",
       "target": "'/avatar'",
       "tag": "self"
     },
     {
       "file": "auth.js",
-      "line": 1833,
+      "line": 1855,
       "method": "PUT",
       "target": "'/profile'",
       "tag": "self"
     },
     {
       "file": "auth.js",
-      "line": 1925,
+      "line": 1947,
       "method": "POST",
       "target": "'/logout'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1941,
+      "line": 1963,
       "method": "POST",
       "target": "'/logout-all'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 1961,
+      "line": 1983,
       "method": "GET",
       "target": "'/sessions'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2015,
+      "line": 2037,
       "method": "DELETE",
       "target": "'/sessions/:jti'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2056,
+      "line": 2078,
       "method": "POST",
       "target": "'/refresh'",
       "tag": "public"
@@ -1834,70 +1834,70 @@
     },
     {
       "file": "deliveryPartners.js",
-      "line": 11,
+      "line": 36,
       "method": "POST",
       "target": "'/register'",
       "tag": "object"
     },
     {
       "file": "deliveryPartners.js",
-      "line": 22,
+      "line": 47,
       "method": "PUT",
       "target": "'/:id/verify'",
       "tag": "role"
     },
     {
       "file": "deliveryPartners.js",
-      "line": 45,
+      "line": 70,
       "method": "GET",
       "target": "'/nearby'",
       "tag": "role"
     },
     {
       "file": "deliveryPartners.js",
-      "line": 55,
+      "line": 80,
       "method": "POST",
       "target": "'/assign'",
       "tag": "role"
     },
     {
       "file": "deliveryPartners.js",
-      "line": 73,
+      "line": 98,
       "method": "PUT",
       "target": "'/deliveries/:id/status'",
       "tag": "role"
     },
     {
       "file": "deliveryPartners.js",
-      "line": 131,
+      "line": 156,
       "method": "GET",
       "target": "'/my-deliveries'",
       "tag": "role"
     },
     {
       "file": "deliveryPartners.js",
-      "line": 152,
+      "line": 177,
       "method": "GET",
       "target": "'/profile/me'",
       "tag": "self"
     },
     {
       "file": "deliveryPartners.js",
-      "line": 158,
+      "line": 183,
       "method": "GET",
       "target": "'/profile/:userId'",
       "tag": "self"
     },
     {
       "file": "deliveryPartners.js",
-      "line": 164,
+      "line": 189,
       "method": "PUT",
       "target": "'/profile/:id'",
       "tag": "self"
     },
     {
       "file": "deliveryPartners.js",
-      "line": 175,
+      "line": 213,
       "method": "POST",
       "target": "'/upload-document'",
       "tag": "object"
@@ -3577,63 +3577,63 @@
     },
     {
       "file": "lawyers.js",
-      "line": 60,
+      "line": 61,
       "method": "GET",
       "target": "'/'",
       "tag": "public"
     },
     {
       "file": "lawyers.js",
-      "line": 154,
+      "line": 155,
       "method": "GET",
       "target": "'/profile'",
       "tag": "role"
     },
     {
       "file": "lawyers.js",
-      "line": 185,
+      "line": 192,
       "method": "PUT",
       "target": "'/profile'",
       "tag": "role"
     },
     {
       "file": "lawyers.js",
-      "line": 258,
+      "line": 263,
       "method": "PUT",
       "target": "'/status'",
       "tag": "role"
     },
     {
       "file": "lawyers.js",
-      "line": 301,
+      "line": 306,
       "method": "PUT",
       "target": "'/location'",
       "tag": "role"
     },
     {
       "file": "lawyers.js",
-      "line": 341,
+      "line": 346,
       "method": "GET",
       "target": "'/earnings'",
       "tag": "role"
     },
     {
       "file": "lawyers.js",
-      "line": 415,
+      "line": 420,
       "method": "POST",
       "target": "'/withdraw-demo'",
       "tag": "role"
     },
     {
       "file": "lawyers.js",
-      "line": 503,
+      "line": 508,
       "method": "POST",
       "target": "'/search'",
       "tag": "public"
     },
     {
       "file": "lawyers.js",
-      "line": 519,
+      "line": 524,
       "method": "GET",
       "target": "'/:id'",
       "tag": "public"
@@ -5187,56 +5187,56 @@
     },
     {
       "file": "riders.js",
-      "line": 16,
+      "line": 17,
       "method": "GET",
       "target": "'/profile'",
       "tag": "role"
     },
     {
       "file": "riders.js",
-      "line": 62,
+      "line": 69,
       "method": "PUT",
       "target": "'/profile'",
       "tag": "role"
     },
     {
       "file": "riders.js",
-      "line": 107,
+      "line": 115,
       "method": "PUT",
       "target": "'/emergency-toggle'",
       "tag": "role"
     },
     {
       "file": "riders.js",
-      "line": 130,
+      "line": 138,
       "method": "PUT",
       "target": "'/status'",
       "tag": "role"
     },
     {
       "file": "riders.js",
-      "line": 174,
+      "line": 182,
       "method": "PUT",
       "target": "'/location'",
       "tag": "role"
     },
     {
       "file": "riders.js",
-      "line": 218,
+      "line": 226,
       "method": "GET",
       "target": "'/earnings'",
       "tag": "role"
     },
     {
       "file": "riders.js",
-      "line": 259,
+      "line": 267,
       "method": "POST",
       "target": "'/withdraw-demo'",
       "tag": "role"
     },
     {
       "file": "riders.js",
-      "line": 290,
+      "line": 298,
       "method": "POST",
       "target": "'/documents'",
       "tag": "role"

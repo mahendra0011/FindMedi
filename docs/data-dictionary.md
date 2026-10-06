@@ -14,7 +14,7 @@
 ## Summary
 
 - **116 models** across 115 files (0 skipped)
-- **3224 schema fields**, of which **465 classified as PII** in **84 collections**
+- **3227 schema fields**, of which **465 classified as PII** in **84 collections**
 - **6 collections** carry a TTL index
 - **17 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -46,7 +46,7 @@
 | `appointments` | Appointment | 78 | 10 | 12 | — | Clinical records |
 | `appointmentseries` | AppointmentSeries | 24 | 4 | 3 | — | **UNMAPPED — see gaps** |
 | `assistantbookings` | AssistantBooking | 82 | 15 | 11 | — | Clinical records |
-| `assistantprofiles` | AssistantProfile | 72 | 13 | 12 | — | Provider KYC documents |
+| `assistantprofiles` | AssistantProfile | 73 | 13 | 13 | — | Provider KYC documents |
 | `auditlogs` | AuditLog | 9 | 3 | 3 | 31536000s | Audit logs |
 | `beds` | Bed | 15 | 0 | 2 | — | No PII fields detected |
 | `billings` | Billing | 38 | 3 | 3 | — | Payment and ledger entries |
@@ -86,7 +86,7 @@
 | `labbookings` | LabBooking | 33 | 3 | 4 | — | Clinical records |
 | `laborders` | LabOrder | 39 | 7 | 3 | — | Clinical records |
 | `lawyerbookings` | LawyerBooking | 88 | 19 | 14 | — | **UNMAPPED — see gaps** |
-| `lawyerprofiles` | LawyerProfile | 86 | 12 | 13 | — | Provider KYC documents |
+| `lawyerprofiles` | LawyerProfile | 87 | 12 | 14 | — | Provider KYC documents |
 | `leaverequests` | LeaveRequest | 15 | 2 | 1 | — | **UNMAPPED — see gaps** |
 | `licenses` | License | 17 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `loginevents` | LoginEvent | 10 | 3 | 4 | 15552000s | Audit logs |
@@ -134,7 +134,7 @@
 | `rewardcatalogitems` | RewardCatalogItem | 15 | 0 | 2 | — | No PII fields detected |
 | `rewardredemptions` | RewardRedemption | 11 | 1 | 4 | — | Payment and ledger entries |
 | `ridebookings` | RideBooking | 72 | 13 | 9 | — | Ride and SOS location traces |
-| `riderprofiles` | RiderProfile | 48 | 12 | 11 | — | Provider KYC documents |
+| `riderprofiles` | RiderProfile | 49 | 12 | 12 | — | Provider KYC documents |
 | `ridetrackings` | RideTracking | 10 | 3 | 3 | — | Ride and SOS location traces |
 | `savedfavorites` | SavedFavorite | 8 | 1 | 2 | — | **UNMAPPED — see gaps** |
 | `schedulechangerequests` | ScheduleChangeRequest | 35 | 2 | 1 | — | **UNMAPPED — see gaps** |
@@ -339,7 +339,7 @@ source `Ambulance.js` · timestamps: yes · virtuals: 0 · retention: Trip durat
 | `isOnDuty` | Boolean |  |  | false |  |  |  |
 | `emergencySupport` | Boolean |  |  | true |  |  |  |
 | `currentLocation.type` | String |  |  | "Point" | Point |  | Location |
-| `currentLocation.coordinates` | Array<Number> |  |  |  |  |  | Location |
+| `currentLocation.coordinates` | Array<Mixed> |  |  |  |  |  | Location |
 | `currentLocation.accuracy` | Number |  |  | null |  |  | Location |
 | `currentLocation.updatedAt` | Date |  |  | null |  |  | Location |
 | `settings.lifeSupportTier` | String |  |  | "BLS" | BLS, ALS, PTV, NICU |  |  |
@@ -404,7 +404,7 @@ source `Announcement.js` · timestamps: yes · virtuals: 0 · retention: n/a —
 | `title` | String | yes |  |  |  |  |  |
 | `message` | String | yes |  |  |  |  |  |
 | `priority` | String |  |  | "normal" | low, normal, high, urgent |  |  |
-| `targetRoles` | Array<String> |  |  |  |  |  |  |
+| `targetRoles` | Array<Mixed> |  |  |  |  |  |  |
 | `createdBy` | ObjectId | yes |  |  |  | User |  |
 | `createdAt` | Date |  |  | [function] |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
@@ -471,7 +471,7 @@ source `Appointment.js` · timestamps: yes · virtuals: 0 · retention: Statutor
 | `preConsultationDetails.familyHistory.hasHistory` | Boolean |  |  | false |  |  |  |
 | `preConsultationDetails.familyHistory.details` | String |  |  | "" |  |  |  |
 | `preConsultationDetails.filledAt` | Date |  |  |  |  |  |  |
-| `services` | Array<String> |  |  |  |  |  |  |
+| `services` | Array<Mixed> |  |  |  |  |  |  |
 | `fees` | Number |  |  | 0 |  |  |  |
 | `queuePosition` | Number |  |  | 0 |  |  |  |
 | `estimatedWaitTime` | Number |  |  | 0 |  |  |  |
@@ -538,8 +538,8 @@ source `AppointmentSeries.js` · timestamps: yes · virtuals: 0 · retention: **
 | `count` | Number | yes |  |  |  |  |  |
 | `startDate` | String | yes |  |  |  |  |  |
 | `time` | String | yes |  |  |  |  |  |
-| `occurrenceDates` | Array<String> |  |  |  |  |  |  |
-| `occurrenceIds` | Array<ObjectId> |  |  |  |  |  |  |
+| `occurrenceDates` | Array<Mixed> |  |  |  |  |  |  |
+| `occurrenceIds` | Array<Mixed> |  |  |  |  |  |  |
 | `feesPerOccurrence` | Number |  |  | 0 |  |  |  |
 | `totalFees` | Number |  |  | 0 |  |  |  |
 | `status` | String |  |  | "active" | active, cancelled |  |  |
@@ -567,7 +567,7 @@ source `AssistantBooking.js` · timestamps: yes · virtuals: 0 · retention: Sta
 | `patientId` | ObjectId | yes |  |  |  | User | Identifier |
 | `assistantId` | ObjectId |  |  | null |  | User | Identifier |
 | `hospital` | String | yes |  |  |  |  |  |
-| `serviceCategories` | Array<String> |  |  |  |  |  |  |
+| `serviceCategories` | Array<Mixed> |  |  |  |  |  |  |
 | `isUrgent` | Boolean |  |  | false |  |  |  |
 | `targetAssistantOnly` | Boolean |  |  | false |  |  |  |
 | `intakeSource` | String |  |  | "scheduled_profile_form" | quick_urgent_card, scheduled_profile_form, booking_wizard |  |  |
@@ -580,17 +580,17 @@ source `AssistantBooking.js` · timestamps: yes · virtuals: 0 · retention: Sta
 | `otherPatient.age` | String |  |  | "" |  |  | Demographic |
 | `taskDescription` | String |  |  | "" |  |  |  |
 | `phone` | String |  |  | "" |  |  | Contact |
-| `documents` | Array<String> |  |  |  |  |  |  |
+| `documents` | Array<Mixed> |  |  |  |  |  |  |
 | `scheduledDate` | Date | yes |  |  |  |  |  |
 | `startTime` | String | yes |  |  |  |  |  |
 | `durationType` | String |  |  | "4hr" | 2hr, 4hr, full_day, overnight |  |  |
 | `specialInstructions` | String |  |  | "" |  |  |  |
-| `patientAllergies` | Array<String> |  |  |  |  |  |  |
+| `patientAllergies` | Array<Mixed> |  |  |  |  |  |  |
 | `cost.ratePerHour` | Number |  |  | 150 |  |  |  |
 | `cost.estimatedHours` | Number |  |  | 4 |  |  |  |
 | `cost.total` | Number | yes |  |  |  |  |  |
 | `location.type` | String |  |  | "Point" | Point |  | Location |
-| `location.coordinates` | Array<Number> |  |  | [79.9864,23.1815] |  |  | Location |
+| `location.coordinates` | Array<Mixed> |  |  | [79.9864,23.1815] |  |  | Location |
 | `location.lat` | Number |  |  | 23.1815 |  |  | Location |
 | `location.lng` | Number |  |  | 79.9864 |  |  | Location |
 | `location.address` | String |  |  | "" |  |  | Contact |
@@ -604,11 +604,11 @@ source `AssistantBooking.js` · timestamps: yes · virtuals: 0 · retention: Sta
 | `acceptances.providerId` | String |  |  |  |  |  | Identifier |
 | `acceptances.distanceKm` | Number |  |  |  |  |  |  |
 | `acceptances.acceptedAt` | Date |  |  | [function] |  |  |  |
-| `rejections` | Array<String> |  |  |  |  |  |  |
+| `rejections` | Array<Mixed> |  |  |  |  |  |  |
 | `windowEndsAt` | Date |  |  | null |  |  |  |
 | `retryCount` | Number |  |  | 0 |  |  |  |
 | `retryAt` | Date |  |  | null |  |  |  |
-| `retryRadii` | Array<Number> |  |  | [] |  |  |  |
+| `retryRadii` | Array<Mixed> |  |  | [] |  |  |  |
 | `currentSearchRadiusKm` | Number |  |  | 5 |  |  |  |
 | `dispatchLog` | Array<subdocument> |  |  |  |  |  |  |
 | `dispatchLog.radiusKm` | Number |  |  |  |  |  |  |
@@ -671,19 +671,20 @@ source `AssistantProfile.js` · timestamps: yes · virtuals: 0 · retention: Lif
 | `userId` | ObjectId | yes | yes |  |  | User | Identifier |
 | `govtIdType` | String | yes |  |  | Aadhaar, PAN, Voter ID, Passport, Other |  |  |
 | `govtIdNumber` | String | yes |  |  |  |  |  |
+| `govtIdNumberHash` | String |  |  | "" |  |  |  |
 | `govtIdDocUrl` | String |  |  | "" |  |  |  |
 | `policeVerificationDocUrl` | String |  |  | "" |  |  |  |
 | `emergencyContact.name` | String |  |  | "" |  |  | Identity |
 | `emergencyContact.phone` | String |  |  | "" |  |  | Contact |
 | `experienceYears` | Number |  |  | 1 |  |  |  |
-| `experienceTypes` | Array<String> |  |  |  |  |  |  |
-| `certifications` | Array<String> |  |  |  |  |  |  |
-| `languages` | Array<String> |  |  |  |  |  |  |
+| `experienceTypes` | Array<Mixed> |  |  |  |  |  |  |
+| `certifications` | Array<Mixed> |  |  |  |  |  |  |
+| `languages` | Array<Mixed> |  |  |  |  |  |  |
 | `bio` | String |  |  | "" |  |  |  |
-| `serviceCategories` | Array<String> |  |  |  |  |  |  |
-| `hospitalsCovered` | Array<String> |  |  |  |  |  |  |
+| `serviceCategories` | Array<Mixed> |  |  |  |  |  |  |
+| `hospitalsCovered` | Array<Mixed> |  |  |  |  |  |  |
 | `operatingCity` | String |  |  | "Jabalpur" |  |  |  |
-| `shiftTypes` | Array<String> |  |  |  |  |  |  |
+| `shiftTypes` | Array<Mixed> |  |  |  |  |  |  |
 | `pricePerHour` | Number |  |  | 150 |  |  |  |
 | `pricePerFullDay` | Number |  |  | 1000 |  |  |  |
 | `extraSkills.mobilityAssistance` | Boolean |  |  | false |  |  |  |
@@ -692,7 +693,7 @@ source `AssistantProfile.js` · timestamps: yes · virtuals: 0 · retention: Lif
 | `extraSkills.overnightStays` | Boolean |  |  | false |  |  |  |
 | `policeVerificationStatus` | String |  |  | "verified" | verified, pending, not_submitted |  |  |
 | `healthCertification.isVaccinated` | Boolean |  |  | true |  |  |  |
-| `healthCertification.vaccines` | Array<String> |  |  | ["COVID-19 Booster","Hepatitis B"] |  |  |  |
+| `healthCertification.vaccines` | Array<Mixed> |  |  | ["COVID-19 Booster","Hepatitis B"] |  |  |  |
 | `healthCertification.healthCertDocUrl` | String |  |  | "" |  |  |  |
 | `healthCertification.isCertifiedFit` | Boolean |  |  | true |  |  |  |
 | `onTimeRate` | Number |  |  | 98 |  |  |  |
@@ -712,9 +713,9 @@ source `AssistantProfile.js` · timestamps: yes · virtuals: 0 · retention: Lif
 | `settings.rateCard.day8h` | Number |  |  | 0 |  |  |  |
 | `settings.rateCard.night12h` | Number |  |  | 0 |  |  |  |
 | `settings.rateCard.full24h` | Number |  |  | 0 |  |  |  |
-| `settings.clinicalTags` | Array<String> |  |  |  |  |  |  |
-| `settings.preferredHospitals` | Array<String> |  |  |  |  |  |  |
-| `availableDays` | Array<String> |  |  |  |  |  |  |
+| `settings.clinicalTags` | Array<Mixed> |  |  |  |  |  |  |
+| `settings.preferredHospitals` | Array<Mixed> |  |  |  |  |  |  |
+| `availableDays` | Array<Mixed> |  |  |  |  |  |  |
 | `availableTimeSlots` | Array<subdocument> |  |  |  |  |  |  |
 | `availableTimeSlots.start` | String |  |  | "09:00 AM" |  |  |  |
 | `availableTimeSlots.end` | String |  |  | "06:00 PM" |  |  |  |
@@ -731,7 +732,7 @@ source `AssistantProfile.js` · timestamps: yes · virtuals: 0 · retention: Lif
 | `walletBalance` | Number |  |  | 0 |  |  |  |
 | `favoritedByCount` | Number |  |  | 0 |  |  |  |
 | `currentLocation.type` | String |  |  | "Point" | Point |  | Location |
-| `currentLocation.coordinates` | Array<Number> |  |  | [79.9864,23.1815] |  |  | Location |
+| `currentLocation.coordinates` | Array<Mixed> |  |  | [79.9864,23.1815] |  |  | Location |
 | `currentLocation.lat` | Number |  |  | 23.1815 |  |  | Location |
 | `currentLocation.lng` | Number |  |  | 79.9864 |  |  | Location |
 | `currentLocation.h3Index8` | String |  |  | null |  |  | Location |
@@ -746,6 +747,7 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `userId:1` | unique |
+| `govtIdNumberHash:1` |  |
 | `hospitalsCovered:1` |  |
 | `operatingCity:1` |  |
 | `assistantStatus:1` |  |
@@ -881,7 +883,7 @@ source `BloodBank.js` · timestamps: yes · virtuals: 0 · retention: Statutory 
 | `reason` | String |  |  |  |  |  |  |
 | `priority` | String |  |  | "Routine" | Routine, Urgent, Emergency |  |  |
 | `status` | String |  |  | "Pending" | Pending, Crossmatching, Issued, Transfusing, Reaction, Completed, Cancelled |  |  |
-| `issuedUnits` | Array<String> |  |  |  |  |  |  |
+| `issuedUnits` | Array<Mixed> |  |  |  |  |  |  |
 | `crossMatchResult` | String |  |  | "Not Done" | Compatible, Incompatible, Not Done |  |  |
 | `crossMatchTechnician` | String |  |  |  |  |  |  |
 | `patientBloodGroup` | String |  |  |  |  |  |  |
@@ -927,7 +929,7 @@ source `BloodBank.js` · timestamps: yes · virtuals: 0 · retention: Statutory 
 | `expiryDate` | Date | yes |  |  |  |  |  |
 | `volume` | Number |  |  | 450 |  |  |  |
 | `status` | String |  |  | "Available" | Available, Reserved, Issued, Expired, Discarded |  |  |
-| `components` | Array<String> |  |  |  |  |  |  |
+| `components` | Array<Mixed> |  |  |  |  |  |  |
 | `hiv` | String |  |  | "Negative" | Negative, Positive |  |  |
 | `hbsag` | String |  |  | "Negative" | Negative, Positive |  |  |
 | `hcv` | String |  |  | "Negative" | Negative, Positive |  |  |
@@ -968,7 +970,7 @@ source `CallLog.js` · timestamps: yes · virtuals: 0 · retention: n/a — no p
 | `recordingUrl` | String |  |  | null |  |  |  |
 | `recordingDuration` | Number |  |  | 0 |  |  |  |
 | `appointmentId` | ObjectId |  |  | null |  | Appointment |  |
-| `deletedFor` | Array<ObjectId> |  |  |  |  |  |  |
+| `deletedFor` | Array<Mixed> |  |  |  |  |  |  |
 | `notes` | String |  |  | "" |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
@@ -1013,18 +1015,18 @@ source `ChatConversation.js` · timestamps: yes · virtuals: 0 · retention: **U
 
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|
-| `participants` | Array<ObjectId> |  |  |  |  |  |  |
+| `participants` | Array<Mixed> |  |  |  |  |  |  |
 | `contextType` | String |  |  | null | assistant-booking, lawyer-booking |  |  |
 | `contextId` | ObjectId |  |  | null |  |  |  |
-| `contextParticipants` | Array<ObjectId> |  |  |  |  |  |  |
-| `mutedBy` | Array<ObjectId> |  |  |  |  |  |  |
-| `blockedBy` | Array<ObjectId> |  |  |  |  |  |  |
-| `pinnedBy` | Array<ObjectId> |  |  |  |  |  |  |
-| `archivedBy` | Array<ObjectId> |  |  |  |  |  |  |
+| `contextParticipants` | Array<Mixed> |  |  |  |  |  |  |
+| `mutedBy` | Array<Mixed> |  |  |  |  |  |  |
+| `blockedBy` | Array<Mixed> |  |  |  |  |  |  |
+| `pinnedBy` | Array<Mixed> |  |  |  |  |  |  |
+| `archivedBy` | Array<Mixed> |  |  |  |  |  |  |
 | `clearedFor` | Array<subdocument> |  |  |  |  |  |  |
 | `clearedFor.userId` | ObjectId |  |  |  |  | User | Identifier |
 | `clearedFor.at` | Date |  |  |  |  |  |  |
-| `deletedFor` | Array<ObjectId> |  |  |  |  |  |  |
+| `deletedFor` | Array<Mixed> |  |  |  |  |  |  |
 | `drafts` | Array<subdocument> |  |  |  |  |  |  |
 | `drafts.userId` | ObjectId |  |  |  |  | User | Identifier |
 | `drafts.text` | String |  |  |  |  |  |  |
@@ -1086,8 +1088,8 @@ source `ChatMessage.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPP
 | `reactions.at` | Date |  |  | [function] |  |  |  |
 | `edited` | Boolean |  |  | false |  |  |  |
 | `deletedForEveryone` | Boolean |  |  | false |  |  |  |
-| `deletedFor` | Array<ObjectId> |  |  |  |  |  |  |
-| `starredBy` | Array<ObjectId> |  |  |  |  |  |  |
+| `deletedFor` | Array<Mixed> |  |  |  |  |  |  |
+| `starredBy` | Array<Mixed> |  |  |  |  |  |  |
 | `deliveredTo` | Array<subdocument> |  |  |  |  |  |  |
 | `deliveredTo.userId` | ObjectId | yes |  |  |  | User | Identifier |
 | `deliveredTo.at` | Date |  |  | [function] |  |  |  |
@@ -1226,7 +1228,7 @@ source `ChronicCarePlan.js` · timestamps: yes · virtuals: 0 · retention: Stat
 | `condition` | String | yes |  | "Diabetes" | Diabetes, Hypertension, Thyroid, Asthma, Heart Disease, Arthritis, COPD, Other |  | Health |
 | `customCondition` | String |  |  | "" |  |  |  |
 | `linkedDoctorId` | ObjectId |  |  | null |  | Doctor |  |
-| `medicineReminderIds` | Array<ObjectId> |  |  |  |  |  |  |
+| `medicineReminderIds` | Array<Mixed> |  |  |  |  |  |  |
 | `vitalsTracked` | Array<subdocument> |  |  |  |  |  |  |
 | `vitalsTracked.vitalType` | String | yes |  |  | bp, blood_sugar, weight, temperature |  |  |
 | `vitalsTracked.targetDescription` | String |  |  | "" |  |  |  |
@@ -1285,10 +1287,10 @@ source `ClinicProfile.js` · timestamps: yes · virtuals: 11 · retention: n/a �
 | `clinic_address` | String |  |  | "" |  |  |  |
 | `clinic_category` | String |  |  | "" |  |  |  |
 | `clinic_timing` | Mixed |  |  | [function] |  |  |  |
-| `clinic_photos` | Array<String> |  |  | [] |  |  |  |
-| `clinic_facilities` | Array<String> |  |  | [] |  |  |  |
-| `clinic_treatments` | Array<String> |  |  | [] |  |  |  |
-| `clinic_insurance` | Array<String> |  |  | [] |  |  |  |
+| `clinic_photos` | Array<Mixed> |  |  | [] |  |  |  |
+| `clinic_facilities` | Array<Mixed> |  |  | [] |  |  |  |
+| `clinic_treatments` | Array<Mixed> |  |  | [] |  |  |  |
+| `clinic_insurance` | Array<Mixed> |  |  | [] |  |  |  |
 | `clinic_faqs` | Array<Mixed> |  |  | [] |  |  |  |
 | `clinic_license` | String |  |  | "" |  |  |  |
 | `established_year` | Number |  |  | null |  |  |  |
@@ -1340,7 +1342,7 @@ source `ConsentRecord.js` · timestamps: yes · virtuals: 0 · retention: Consen
 | `patientId` | ObjectId | yes |  |  |  | User | Identifier |
 | `doctorId` | ObjectId |  |  |  |  | User | Identifier |
 | `purposeOfCare` | String |  |  | "General Clinical Evaluation" |  |  |  |
-| `dataTypes` | Array<String> |  |  |  |  |  |  |
+| `dataTypes` | Array<Mixed> |  |  |  |  |  |  |
 | `status` | String |  |  | "REQUESTED" | REQUESTED, GRANTED, DENIED, REVOKED, EXPIRED |  |  |
 | `validityHours` | Number |  |  | 24 |  |  |  |
 | `grantedAt` | Date |  |  |  |  |  |  |
@@ -1385,7 +1387,7 @@ source `DeletionRequest.js` · timestamps: yes · virtuals: 0 · retention: 7 ye
 | `certificate.id` | String |  |  |  |  |  |  |
 | `certificate.sha256` | String |  |  |  |  |  |  |
 | `certificate.issuedAt` | Date |  |  |  |  |  |  |
-| `certificate.scope` | Array<String> |  |  |  |  |  |  |
+| `certificate.scope` | Array<Mixed> |  |  |  |  |  |  |
 | `certificate.skipped` | Array<subdocument> |  |  |  |  |  |  |
 | `certificate.skipped.name` | String |  |  |  |  |  |  |
 | `certificate.skipped.reason` | String |  |  |  |  |  |  |
@@ -1428,7 +1430,7 @@ source `DeliveryPartner.js` · timestamps: yes · virtuals: 0 · retention: Life
 | `bankDetails.ifsc` | String |  |  |  |  |  | Financial |
 | `bankDetails.holderName` | String |  |  |  |  |  |  |
 | `bankDetails.upiId` | String |  |  |  |  |  | Financial |
-| `workZone` | Array<String> |  |  |  |  |  |  |
+| `workZone` | Array<Mixed> |  |  |  |  |  |  |
 | `availability` | String |  |  | "flexible" | full-time, part-time, flexible |  |  |
 | `emergencyContact.name` | String |  |  |  |  |  | Identity |
 | `emergencyContact.phone` | String |  |  |  |  |  | Contact |
@@ -1545,7 +1547,7 @@ source `DietOrder.js` · timestamps: yes · virtuals: 0 · retention: Statutory 
 | `doctorId` | ObjectId | yes |  |  |  | User | Identifier |
 | `doctorName` | String | yes |  |  |  |  | Identity |
 | `dietType` | String | yes |  |  | Regular, Diabetic, Low Sodium, Liquid, Soft, High Protein, Low Fat, Renal, NPO, Other |  |  |
-| `mealTimes` | Array<String> |  |  |  |  |  |  |
+| `mealTimes` | Array<Mixed> |  |  |  |  |  |  |
 | `instructions` | String |  |  |  |  |  |  |
 | `allergies` | String |  |  |  |  |  | Health |
 | `status` | String |  |  | "Active" | Active, Completed, Cancelled |  |  |
@@ -1628,9 +1630,9 @@ source `Doctor.js` · timestamps: yes · virtuals: 29 · retention: Life of the 
 | `profile_photo` | String |  |  | "" |  |  | Image/Biometric |
 | `qualifications` | String |  |  | "" |  |  |  |
 | `bio` | String |  |  | "" |  |  |  |
-| `time_slots` | Array<String> |  |  | ["09:00 AM","10:00 AM","11:00 AM","02:00 PM","03:00 PM","04:00 PM"] |  |  |  |
+| `time_slots` | Array<Mixed> |  |  | ["09:00 AM","10:00 AM","11:00 AM","02:00 PM","03:00 PM","04:00 PM"] |  |  |  |
 | `weekly_schedule` | Mixed |  |  | {"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"sa… (109 chars) |  |  |  |
-| `leaves` | Array<String> |  |  | [] |  |  |  |
+| `leaves` | Array<Mixed> |  |  | [] |  |  |  |
 | `leaveBalance.sick` | Number |  |  | 12 |  |  |  |
 | `leaveBalance.casual` | Number |  |  | 15 |  |  |  |
 | `leaveBalance.earned` | Number |  |  | 20 |  |  |  |
@@ -1661,15 +1663,15 @@ source `Doctor.js` · timestamps: yes · virtuals: 29 · retention: Life of the 
 | `settings.payoutAccount` | String |  |  | "" |  |  |  |
 | `settings.payoutIfsc` | String |  |  | "" |  |  |  |
 | `doctor_type` | String |  |  | "hospital" | hospital, clinic |  |  |
-| `languages` | Array<String> |  |  | [] |  |  |  |
+| `languages` | Array<Mixed> |  |  | [] |  |  |  |
 | `practice_type` | String |  |  | "" | private, corporate, |  |  |
-| `areas_of_expertise` | Array<String> |  |  | [] |  |  |  |
-| `services_offered` | Array<String> |  |  | [] |  |  |  |
-| `surgeries_procedures` | Array<String> |  |  | [] |  |  |  |
+| `areas_of_expertise` | Array<Mixed> |  |  | [] |  |  |  |
+| `services_offered` | Array<Mixed> |  |  | [] |  |  |  |
+| `surgeries_procedures` | Array<Mixed> |  |  | [] |  |  |  |
 | `education` | Array<Mixed> |  |  | [] |  |  |  |
 | `work_experience` | Array<Mixed> |  |  | [] |  |  |  |
-| `memberships` | Array<String> |  |  | [] |  |  |  |
-| `awards` | Array<String> |  |  | [] |  |  |  |
+| `memberships` | Array<Mixed> |  |  | [] |  |  |  |
+| `awards` | Array<Mixed> |  |  | [] |  |  |  |
 | `registrations` | Mixed |  |  | [function] |  |  |  |
 | `clinic_reception_phone` | String |  |  | "" |  |  | Contact |
 | `walk_in_accepted` | Boolean |  |  | false |  |  |  |
@@ -1682,15 +1684,15 @@ source `Doctor.js` · timestamps: yes · virtuals: 29 · retention: Life of the 
 | `activeDispatchRequestId` | ObjectId |  |  | null |  |  |  |
 | `emergencyRadiusKm` | Number |  |  | 10 |  |  |  |
 | `emergencyDoctorLocation.type` | String |  |  | "Point" | Point |  |  |
-| `emergencyDoctorLocation.coordinates` | Array<Number> |  |  | [79.9864,23.1815] |  |  | Location |
+| `emergencyDoctorLocation.coordinates` | Array<Mixed> |  |  | [79.9864,23.1815] |  |  | Location |
 | `emergencyDoctorLocation.lat` | Number |  |  | 23.1815 |  |  | Location |
 | `emergencyDoctorLocation.lng` | Number |  |  | 79.9864 |  |  | Location |
 | `emergencyDoctorLocation.h3Index8` | String |  |  | null |  |  |  |
 | `emergencyDoctorLocation.h3Index9` | String |  |  | null |  |  |  |
 | `emergencyDoctorLocation.lastUpdatedAt` | Date |  |  | null |  |  |  |
-| `emergencyEquipmentKit` | Array<String> |  |  | ["BLS Kit","Pulse Oximeter","BP Monitor","Nebulizer","Glucometer","Emergency Inj… (92 chars) |  |  |  |
+| `emergencyEquipmentKit` | Array<Mixed> |  |  | ["BLS Kit","Pulse Oximeter","BP Monitor","Nebulizer","Glucometer","Emergency Inj… (92 chars) |  |  |  |
 | `refundOnMissedOrCancelled` | Boolean |  |  | true |  |  |  |
-| `appointmentModes` | Array<String> |  |  | ["chat","video","offline","home_visit","audio"] |  |  |  |
+| `appointmentModes` | Array<Mixed> |  |  | ["chat","video","offline","home_visit","audio"] |  |  |  |
 | `appointmentFees.chat` | Number |  |  | 300 |  |  |  |
 | `appointmentFees.video` | Number |  |  | 500 |  |  |  |
 | `appointmentFees.audio` | Number |  |  | 400 |  |  |  |
@@ -1708,7 +1710,7 @@ source `Doctor.js` · timestamps: yes · virtuals: 29 · retention: Life of the 
 | `emergency_fee` | Number |  |  | 800 |  |  |  |
 | `surgery_available` | Boolean |  |  | false |  |  |  |
 | `home_visit` | Boolean |  |  | false |  |  |  |
-| `payment_modes` | Array<String> |  |  | ["Cash","UPI","Card"] |  |  |  |
+| `payment_modes` | Array<Mixed> |  |  | ["Cash","UPI","Card"] |  |  |  |
 | `opd_timings` | String |  |  | "9:00 AM – 5:00 PM" |  |  |  |
 | `workingHours.start` | String |  |  | "09:00" |  |  |  |
 | `workingHours.end` | String |  |  | "17:00" |  |  |  |
@@ -1716,7 +1718,7 @@ source `Doctor.js` · timestamps: yes · virtuals: 29 · retention: Life of the 
 | `bufferPerHour` | Number |  |  | 1 |  |  |  |
 | `autoConfirmAppointment` | Boolean |  |  | null |  |  |  |
 | `maxBookingsPerSlot` | Number |  |  | 1 |  |  |  |
-| `disabled_time_slots` | Array<String> |  |  | [] |  |  |  |
+| `disabled_time_slots` | Array<Mixed> |  |  | [] |  |  |  |
 | `breakTime.start` | String |  |  | "" |  |  |  |
 | `breakTime.end` | String |  |  | "" |  |  |  |
 | `dateDisabledSlots` | Mixed |  |  | [function] |  |  |  |
@@ -1803,11 +1805,11 @@ source `EmergencyDoctorRequest.js` · timestamps: yes · virtuals: 0 · retentio
 | `timeline.stage` | String |  |  |  |  |  |  |
 | `timeline.timestamp` | Date |  |  | [function] |  |  |  |
 | `timeline.note` | String |  |  | "" |  |  |  |
-| `timeline.coordinates` | Array<Number> |  |  |  |  |  | Location |
+| `timeline.coordinates` | Array<Mixed> |  |  |  |  |  | Location |
 | `transitDistanceKm` | Number |  |  | 0 |  |  |  |
 | `estimatedArrivalMinutes` | Number |  |  | 0 |  |  |  |
 | `doctorLiveLocation.type` | String |  |  | "Point" | Point |  |  |
-| `doctorLiveLocation.coordinates` | Array<Number> |  |  | [0,0] |  |  | Location |
+| `doctorLiveLocation.coordinates` | Array<Mixed> |  |  | [0,0] |  |  | Location |
 | `doctorLiveLocation.updatedAt` | Date |  |  | [function] |  |  |  |
 | `patientDetails.name` | String |  |  | "" |  |  | Identity |
 | `patientDetails.age` | Number |  |  | null |  |  | Demographic |
@@ -1822,10 +1824,10 @@ source `EmergencyDoctorRequest.js` · timestamps: yes · virtuals: 0 · retentio
 | `webrtcRoom.endedAt` | Date |  |  | null |  |  |  |
 | `severityScore` | Number |  |  | null |  |  |  |
 | `location.type` | String |  |  | "Point" | Point |  | Location |
-| `location.coordinates` | Array<Number> | yes |  |  |  |  | Location |
+| `location.coordinates` | Array<Mixed> | yes |  |  |  |  | Location |
 | `location.address` | String |  |  | "" |  |  | Contact |
 | `pickupLocation.type` | String |  |  | "Point" | Point |  | Location |
-| `pickupLocation.coordinates` | Array<Number> |  |  | [79.9864,23.1815] |  |  | Location |
+| `pickupLocation.coordinates` | Array<Mixed> |  |  | [79.9864,23.1815] |  |  | Location |
 | `status` | String |  |  | "searching" | searching, assigned, in_progress, completed, cancelled_by_user, cancelled_by_doctor, no_responders_found, escalated_to_ambulance |  |  |
 | `currentSearchRadiusKm` | Number |  |  | 10 |  |  |  |
 | `assignedDoctorId` | ObjectId |  |  | null |  | Doctor |  |
@@ -1843,7 +1845,7 @@ source `EmergencyDoctorRequest.js` · timestamps: yes · virtuals: 0 · retentio
 | `windowEndsAt` | Date |  |  | null |  |  |  |
 | `retryCount` | Number |  |  | 0 |  |  |  |
 | `retryAt` | Date |  |  | null |  |  |  |
-| `retryRadii` | Array<Number> |  |  | [] |  |  |  |
+| `retryRadii` | Array<Mixed> |  |  | [] |  |  |  |
 | `dispatchLog` | Array<subdocument> |  |  |  |  |  |  |
 | `dispatchLog.radiusKm` | Number |  |  |  |  |  |  |
 | `dispatchLog.candidateCount` | Number |  |  |  |  |  |  |
@@ -1890,12 +1892,12 @@ source `EmergencyRequest.js` · timestamps: yes · virtuals: 0 · retention: Tri
 | `reporterDetails.phone` | String |  |  | "" |  |  | Contact |
 | `category` | String |  |  | "" | accident, heart_attack, breathing_issue, burn, fall, stroke, other, |  |  |
 | `location.type` | String |  |  | "Point" | Point |  | Location |
-| `location.coordinates` | Array<Number> | yes |  |  |  |  | Location |
+| `location.coordinates` | Array<Mixed> | yes |  |  |  |  | Location |
 | `location.address` | String |  |  | "" |  |  | Contact |
 | `location.accuracy` | Number |  |  | null |  |  | Location |
 | `status` | String |  |  | "searching" | searching, assigned, en_route, completed, cancelled_by_user, no_responders_found |  |  |
 | `requestMode` | String |  |  | "manual_select" | manual_select, auto_select_vehicle, auto_select_ambulance |  |  |
-| `selectedVehicleTypes` | Array<String> |  |  |  |  |  |  |
+| `selectedVehicleTypes` | Array<Mixed> |  |  |  |  |  |  |
 | `autoBookEnabled` | Boolean |  |  | false |  |  |  |
 | `autoFindEnabled` | Boolean |  |  | false |  |  |  |
 | `startingRadiusKm` | Number |  |  | 5 |  |  |  |
@@ -1919,7 +1921,7 @@ source `EmergencyRequest.js` · timestamps: yes · virtuals: 0 · retention: Tri
 | `acceptances.userId` | String |  |  |  |  |  | Identifier |
 | `acceptances.distanceKm` | Number |  |  |  |  |  |  |
 | `acceptances.acceptedAt` | Date |  |  | [function] |  |  |  |
-| `rejections` | Array<String> |  |  |  |  |  |  |
+| `rejections` | Array<Mixed> |  |  |  |  |  |  |
 | `windowEndsAt` | Date |  |  | null |  |  |  |
 | `progressStage` | String |  |  | "assigned" | assigned, reached_pickup, heading_to_hospital, reached_hospital, completed |  |  |
 | `progressLog` | Array<subdocument> |  |  |  |  |  |  |
@@ -1930,7 +1932,7 @@ source `EmergencyRequest.js` · timestamps: yes · virtuals: 0 · retention: Tri
 | `dispatchLog.phase` | String |  |  |  | ambulance, vehicle |  |  |
 | `dispatchLog.attemptNumber` | Number |  |  | 1 |  |  |  |
 | `dispatchLog.candidateCount` | Number |  |  |  |  |  |  |
-| `dispatchLog.acceptedProviderIds` | Array<String> |  |  |  |  |  |  |
+| `dispatchLog.acceptedProviderIds` | Array<Mixed> |  |  |  |  |  |  |
 | `dispatchLog.outcome` | String |  |  |  | assigned, no_response, no_acceptance, escalated, booked |  |  |
 | `dispatchLog.timestamp` | Date |  |  | [function] |  |  |  |
 | `cancelledAt` | Date |  |  | null |  |  |  |
@@ -1996,7 +1998,7 @@ source `Facility.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `licenseNumber` | String | yes |  |  |  |  |  |
 | `logo` | String |  |  | "" |  |  |  |
 | `description` | String |  |  | "" |  |  |  |
-| `specialties` | Array<String> |  |  |  |  |  |  |
+| `specialties` | Array<Mixed> |  |  |  |  |  |  |
 | `status` | String |  |  | "pending" | pending, approved, rejected, suspended |  |  |
 | `rejectionReason` | String |  |  | "" |  |  |  |
 | `rating` | Number |  |  | 0 |  |  |  |
@@ -2005,12 +2007,12 @@ source `Facility.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `createdAt` | Date |  |  | [function] |  |  |  |
 | `establishedYear` | Number |  |  | null |  |  |  |
 | `totalDoctors` | Number |  |  | 0 |  |  |  |
-| `accreditations` | Array<String> |  |  |  |  |  |  |
+| `accreditations` | Array<Mixed> |  |  |  |  |  |  |
 | `hospitalType` | String |  |  | "Private" |  |  |  |
 | `emergency24x7` | Boolean |  |  | false |  |  |  |
 | `emergencySupport` | Boolean |  |  | false |  |  |  |
 | `refundOnMissedOrCancelled` | Boolean |  |  | true |  |  |  |
-| `appointmentModes` | Array<String> |  |  | ["chat","video","offline","home_visit","audio"] |  |  |  |
+| `appointmentModes` | Array<Mixed> |  |  | ["chat","video","offline","home_visit","audio"] |  |  |  |
 | `appointmentFees.chat` | Number |  |  | 300 |  |  |  |
 | `appointmentFees.video` | Number |  |  | 500 |  |  |  |
 | `appointmentFees.audio` | Number |  |  | 400 |  |  |  |
@@ -2053,7 +2055,7 @@ source `Facility.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `socialLinks.instagram` | String |  |  | "" |  |  |  |
 | `socialLinks.youtube` | String |  |  | "" |  |  |  |
 | `location.type` | String |  |  | "Point" | Point |  |  |
-| `location.coordinates` | Array<Number> |  |  |  |  |  |  |
+| `location.coordinates` | Array<Mixed> |  |  |  |  |  |  |
 | `settings.autoConfirmAppointment` | Boolean |  |  | true |  |  |  |
 | `details` | Mixed |  |  | [function] |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
@@ -2132,8 +2134,8 @@ source `HealthPackage.js` · timestamps: yes · virtuals: 0 · retention: n/a �
 | `name` | String | yes |  |  |  |  |  |
 | `description` | String |  |  |  |  |  |  |
 | `category` | String |  |  | "Basic" | Basic, Comprehensive, Cardiac, Diabetic, Women, Senior Citizen, Corporate, Other |  |  |
-| `tests` | Array<ObjectId> |  |  |  |  |  |  |
-| `testNames` | Array<String> |  |  |  |  |  |  |
+| `tests` | Array<Mixed> |  |  |  |  |  |  |
+| `testNames` | Array<Mixed> |  |  |  |  |  |  |
 | `originalPrice` | Number | yes |  |  |  |  |  |
 | `packagePrice` | Number | yes |  |  |  |  |  |
 | `discount` | Number |  |  | 0 |  |  |  |
@@ -2173,7 +2175,7 @@ source `Hospital.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `website` | String |  |  | "" |  |  |  |
 | `logo` | String |  |  | "" |  |  |  |
 | `description` | String |  |  | "" |  |  |  |
-| `specialties` | Array<String> |  |  |  |  |  |  |
+| `specialties` | Array<Mixed> |  |  |  |  |  |  |
 | `status` | String |  |  | "pending" | pending, approved, rejected, suspended |  |  |
 | `rejectionReason` | String |  |  | "" |  |  |  |
 | `rating` | Number |  |  | 0 |  |  |  |
@@ -2182,12 +2184,12 @@ source `Hospital.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `createdAt` | Date |  |  | [function] |  |  |  |
 | `establishedYear` | Number |  |  | null |  |  |  |
 | `totalDoctors` | Number |  |  | 0 |  |  |  |
-| `accreditations` | Array<String> |  |  |  |  |  |  |
+| `accreditations` | Array<Mixed> |  |  |  |  |  |  |
 | `hospitalType` | String |  |  | "Private" |  |  |  |
 | `emergency24x7` | Boolean |  |  | false |  |  |  |
 | `emergencySupport` | Boolean |  |  | false |  |  |  |
 | `refundOnMissedOrCancelled` | Boolean |  |  | true |  |  |  |
-| `appointmentModes` | Array<String> |  |  | ["chat","video","offline","home_visit","audio"] |  |  |  |
+| `appointmentModes` | Array<Mixed> |  |  | ["chat","video","offline","home_visit","audio"] |  |  |  |
 | `appointmentFees.chat` | Number |  |  | 300 |  |  |  |
 | `appointmentFees.video` | Number |  |  | 500 |  |  |  |
 | `appointmentFees.audio` | Number |  |  | 400 |  |  |  |
@@ -2196,16 +2198,16 @@ source `Hospital.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `bedAvailability` | Number |  |  | 0 |  |  |  |
 | `ambulanceService` | Boolean |  |  | false |  |  |  |
 | `image` | String |  |  | "" |  |  |  |
-| `amenities` | Array<String> |  |  |  |  |  |  |
+| `amenities` | Array<Mixed> |  |  |  |  |  |  |
 | `socialLinks.facebook` | String |  |  | "" |  |  |  |
 | `socialLinks.instagram` | String |  |  | "" |  |  |  |
 | `socialLinks.youtube` | String |  |  | "" |  |  |  |
 | `location.type` | String |  |  | "Point" | Point |  |  |
-| `location.coordinates` | Array<Number> |  |  |  |  |  |  |
+| `location.coordinates` | Array<Mixed> |  |  |  |  |  |  |
 | `insuranceAccepted` | Array<subdocument> |  |  |  |  |  |  |
 | `insuranceAccepted.provider` | String |  |  |  |  |  |  |
 | `insuranceAccepted.planType` | String |  |  |  |  |  |  |
-| `paymentModes` | Array<String> |  |  |  |  |  |  |
+| `paymentModes` | Array<Mixed> |  |  |  |  |  |  |
 | `settings.autoConfirmAppointment` | Boolean |  |  | true |  |  |  |
 | `workingHours.weekdays` | String |  |  | "9:00 AM - 6:00 PM" |  |  |  |
 | `workingHours.saturday` | String |  |  | "9:00 AM - 2:00 PM" |  |  |  |
@@ -2323,7 +2325,7 @@ source `IntegrationConfig.js` · timestamps: yes · virtuals: 0 · retention: n/
 | `webhooks` | Array<subdocument> |  |  |  |  |  |  |
 | `webhooks.name` | String |  |  |  |  |  |  |
 | `webhooks.url` | String |  |  |  |  |  |  |
-| `webhooks.events` | Array<String> |  |  |  |  |  |  |
+| `webhooks.events` | Array<Mixed> |  |  |  |  |  |  |
 | `webhooks.isActive` | Boolean |  |  | true |  |  |  |
 | `webhooks.secret` | String |  |  |  |  |  |  |
 | `webhooks.createdAt` | Date |  |  | [function] |  |  |  |
@@ -2391,8 +2393,8 @@ source `LabBooking.js` · timestamps: yes · virtuals: 0 · retention: Statutory
 | `patientName` | String | yes |  |  |  |  | Identity |
 | `patientPhone` | String |  |  |  |  |  |  |
 | `patientEmail` | String |  |  |  |  |  |  |
-| `tests` | Array<String> |  |  |  |  |  |  |
-| `testIds` | Array<ObjectId> |  |  |  |  |  |  |
+| `tests` | Array<Mixed> |  |  |  |  |  |  |
+| `testIds` | Array<Mixed> |  |  |  |  |  |  |
 | `totalAmount` | Number | yes |  |  |  |  |  |
 | `discountedAmount` | Number |  |  |  |  |  |  |
 | `paymentStatus` | String |  |  | "Pending" | Pending, Partially Paid, Paid, Refunded |  |  |
@@ -2462,7 +2464,7 @@ source `LabOrder.js` · timestamps: yes · virtuals: 0 · retention: Statutory p
 | `clinicalNotes` | String |  |  |  |  |  | Health |
 | `status` | String |  |  | "Ordered" | Ordered, Sample Pending, Processing, Under Verification, Completed, Partially Completed, Cancelled |  |  |
 | `priority` | String |  |  | "Routine" | Routine, Urgent, STAT |  |  |
-| `sampleIds` | Array<String> |  |  |  |  |  |  |
+| `sampleIds` | Array<Mixed> |  |  |  |  |  |  |
 | `reportUrl` | String |  |  |  |  |  |  |
 | `isBilled` | Boolean |  |  | false |  |  |  |
 | `billAmount` | Number |  |  | 0 |  |  |  |
@@ -2502,14 +2504,14 @@ source `LawyerBooking.js` · timestamps: yes · virtuals: 0 · retention: **UNMA
 | `scheduledTime` | String |  |  | "Immediate" |  |  |  |
 | `budgetRange.min` | Number |  |  | 0 |  |  |  |
 | `budgetRange.max` | Number |  |  | 5000 |  |  |  |
-| `documents` | Array<String> |  |  |  |  |  |  |
+| `documents` | Array<Mixed> |  |  |  |  |  |  |
 | `fee` | Number | yes |  |  |  |  |  |
 | `isFollowUp` | Boolean |  |  | false |  |  |  |
 | `targetLawyerOnly` | Boolean |  |  | false |  |  |  |
 | `intakeSource` | String |  |  | "scheduled_profile_form" | quick_urgent_card, scheduled_profile_form |  |  |
 | `broadcastFallbackAt` | Date |  |  |  |  |  |  |
 | `location.type` | String |  |  | "Point" | Point |  | Location |
-| `location.coordinates` | Array<Number> |  |  | [79.9864,23.1815] |  |  | Location |
+| `location.coordinates` | Array<Mixed> |  |  | [79.9864,23.1815] |  |  | Location |
 | `location.lat` | Number |  |  | 23.1815 |  |  | Location |
 | `location.lng` | Number |  |  | 79.9864 |  |  | Location |
 | `location.address` | String |  |  | "" |  |  | Contact |
@@ -2535,11 +2537,11 @@ source `LawyerBooking.js` · timestamps: yes · virtuals: 0 · retention: **UNMA
 | `acceptances.providerId` | String |  |  |  |  |  | Identifier |
 | `acceptances.distanceKm` | Number |  |  |  |  |  |  |
 | `acceptances.acceptedAt` | Date |  |  | [function] |  |  |  |
-| `rejections` | Array<String> |  |  |  |  |  |  |
+| `rejections` | Array<Mixed> |  |  |  |  |  |  |
 | `windowEndsAt` | Date |  |  | null |  |  |  |
 | `retryCount` | Number |  |  | 0 |  |  |  |
 | `retryAt` | Date |  |  | null |  |  |  |
-| `retryRadii` | Array<Number> |  |  | [] |  |  |  |
+| `retryRadii` | Array<Mixed> |  |  | [] |  |  |  |
 | `currentSearchRadiusKm` | Number |  |  | 5 |  |  |  |
 | `dispatchLog` | Array<subdocument> |  |  |  |  |  |  |
 | `dispatchLog.radiusKm` | Number |  |  |  |  |  |  |
@@ -2609,16 +2611,17 @@ source `LawyerProfile.js` · timestamps: yes · virtuals: 0 · retention: Life o
 | `lawDegreeCertUrl` | String |  |  | "" |  |  |  |
 | `govtIdType` | String |  |  | "Aadhaar" | Aadhaar, PAN, Voter ID, Passport, Other |  |  |
 | `govtIdNumber` | String |  |  | "" |  |  |  |
+| `govtIdNumberHash` | String |  |  | "" |  |  |  |
 | `govtIdDocUrl` | String |  |  | "" |  |  |  |
-| `practiceCategories` | Array<String> |  |  |  |  |  |  |
+| `practiceCategories` | Array<Mixed> |  |  |  |  |  |  |
 | `yearsOfPractice` | Number |  |  | 1 |  |  |  |
-| `courtsPracticedIn` | Array<String> |  |  |  |  |  |  |
+| `courtsPracticedIn` | Array<Mixed> |  |  |  |  |  |  |
 | `jurisdictionCity` | String |  |  | "Jabalpur" |  |  |  |
 | `operatingCity` | String |  |  | "Jabalpur" |  |  |  |
 | `lawFirmName` | String |  |  | "" |  |  |  |
 | `bio` | String |  |  | "" |  |  |  |
-| `languages` | Array<String> |  |  |  |  |  |  |
-| `consultationModes` | Array<String> |  |  |  |  |  |  |
+| `languages` | Array<Mixed> |  |  |  |  |  |  |
+| `consultationModes` | Array<Mixed> |  |  |  |  |  |  |
 | `consultationFee` | Number |  |  | 800 |  |  |  |
 | `followUpFee` | Number |  |  | 500 |  |  |  |
 | `freeFirstConsultation` | Boolean |  |  | false |  |  |  |
@@ -2635,7 +2638,7 @@ source `LawyerProfile.js` · timestamps: yes · virtuals: 0 · retention: Life o
 | `settings.feeSchedule.chamberVisit` | Number |  |  | 0 |  |  |  |
 | `settings.feeSchedule.bedsideVisit` | Number |  |  | 0 |  |  |  |
 | `settings.feeSchedule.noticeDrafting` | Number |  |  | 0 |  |  |  |
-| `settings.practicingCourts` | Array<String> |  |  |  |  |  |  |
+| `settings.practicingCourts` | Array<Mixed> |  |  |  |  |  |  |
 | `settings.privilegeLocked` | Boolean |  |  | true |  |  |  |
 | `licenseExpiryDate` | Date |  |  | null |  |  |  |
 | `verificationLastChecked` | Date |  |  | null |  |  |  |
@@ -2647,7 +2650,7 @@ source `LawyerProfile.js` · timestamps: yes · virtuals: 0 · retention: Life o
 | `verificationDocuments.uploadedAt` | Date |  |  | [function] |  |  |  |
 | `verificationDocuments.verifiedAt` | Date |  |  |  |  |  |  |
 | `verificationDocuments.verifiedBy` | String |  |  | "" |  |  |  |
-| `availableDays` | Array<String> |  |  |  |  |  |  |
+| `availableDays` | Array<Mixed> |  |  |  |  |  |  |
 | `availableTimeSlots` | Array<subdocument> |  |  |  |  |  |  |
 | `availableTimeSlots.start` | String |  |  | "10:00 AM" |  |  |  |
 | `availableTimeSlots.end` | String |  |  | "06:00 PM" |  |  |  |
@@ -2665,7 +2668,7 @@ source `LawyerProfile.js` · timestamps: yes · virtuals: 0 · retention: Life o
 | `lastWithdrawalAt` | Date |  |  |  |  |  |  |
 | `casesHandled` | Number |  |  | 25 |  |  |  |
 | `favorableOutcomesRate` | Number |  |  | 88 |  |  |  |
-| `notableCases` | Array<String> |  |  |  |  |  |  |
+| `notableCases` | Array<Mixed> |  |  |  |  |  |  |
 | `practiceType` | String |  |  | "independent" | independent, firm |  |  |
 | `yearsAtCurrentPractice` | Number |  |  | 3 |  |  |  |
 | `avgResponseMinutes` | Number |  |  | 12 |  |  |  |
@@ -2673,11 +2676,11 @@ source `LawyerProfile.js` · timestamps: yes · virtuals: 0 · retention: Life o
 | `faqs` | Array<subdocument> |  |  |  |  |  |  |
 | `faqs.question` | String | yes |  |  |  |  |  |
 | `faqs.answer` | String | yes |  |  |  |  |  |
-| `awards` | Array<String> |  |  |  |  |  |  |
+| `awards` | Array<Mixed> |  |  |  |  |  |  |
 | `isPoliceVerified` | Boolean |  |  | false |  |  |  |
 | `policeVerificationDocUrl` | String |  |  | "" |  |  |  |
 | `currentLocation.type` | String |  |  | "Point" | Point |  | Location |
-| `currentLocation.coordinates` | Array<Number> |  |  | [79.9864,23.1815] |  |  | Location |
+| `currentLocation.coordinates` | Array<Mixed> |  |  | [79.9864,23.1815] |  |  | Location |
 | `currentLocation.lat` | Number |  |  | 23.1815 |  |  | Location |
 | `currentLocation.lng` | Number |  |  | 79.9864 |  |  | Location |
 | `currentLocation.h3Index8` | String |  |  | null |  |  | Location |
@@ -2694,6 +2697,7 @@ Indexes:
 |---|---|
 | `userId:1` | unique |
 | `barCouncilNumber:1` | unique |
+| `govtIdNumberHash:1` |  |
 | `jurisdictionCity:1` |  |
 | `operatingCity:1` |  |
 | `acceptsUrgent:1` |  |
@@ -2776,7 +2780,7 @@ source `LoginEvent.js` · timestamps: yes · virtuals: 0 · retention: 7 years (
 | `deviceHash` | String | yes |  |  |  |  |  |
 | `userAgent` | String |  |  | "" |  |  | Device/Network |
 | `success` | Boolean |  |  | true |  |  |  |
-| `anomalies` | Array<String> |  |  | [] |  |  |  |
+| `anomalies` | Array<Mixed> |  |  | [] |  |  |  |
 | `country` | String |  |  | null |  |  |  |
 | `city` | String |  |  | null |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
@@ -2876,7 +2880,7 @@ source `MedicineReminder.js` · timestamps: yes · virtuals: 0 · retention: Sta
 | `dosage` | String | yes |  |  |  |  |  |
 | `form` | String |  |  | "Tablet" | Tablet, Capsule, Syrup, Injection, Inhaler, Drops, Ointment, Other |  |  |
 | `frequency` | String |  |  | "once_daily" | once_daily, twice_daily, thrice_daily, custom |  |  |
-| `times` | Array<String> |  |  |  |  |  |  |
+| `times` | Array<Mixed> |  |  |  |  |  |  |
 | `startDate` | Date |  |  | [function] |  |  |  |
 | `endDate` | Date |  |  | null |  |  |  |
 | `alarmSound.presetId` | String |  |  | "classic_alarm" | classic_alarm, digital_buzzer, gentle_rise, chime_cascade, custom |  |  |
@@ -2915,8 +2919,8 @@ source `Medicine.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `reorderLevel` | Number |  |  | 10 |  |  |  |
 | `prescriptionReq` | Boolean |  |  | false |  |  |  |
 | `rackLocation` | String |  |  | "" |  |  |  |
-| `interactions` | Array<String> |  |  |  |  |  |  |
-| `contraindications` | Array<String> |  |  |  |  |  |  |
+| `interactions` | Array<Mixed> |  |  |  |  |  |  |
+| `contraindications` | Array<Mixed> |  |  |  |  |  |  |
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
 | `facilityId` | ObjectId |  |  |  |  | Facility |  |
 | `isActive` | Boolean |  |  | true |  |  |  |
@@ -2951,7 +2955,7 @@ source `MentalHealth.js` · timestamps: yes · virtuals: 0 · retention: Clinica
 | `assessment.diagnosisCode` | String |  |  |  |  |  |  |
 | `treatmentPlan` | String |  |  |  |  |  |  |
 | `treatmentType` | String |  |  |  | Medication, Therapy, Counseling, Combined |  |  |
-| `sessions` | Array<String> |  |  |  |  |  |  |
+| `sessions` | Array<Mixed> |  |  |  |  |  |  |
 | `medications` | Array<subdocument> |  |  |  |  |  | Health |
 | `medications.name` | String |  |  |  |  |  | Health |
 | `medications.dosage` | String |  |  |  |  |  | Health |
@@ -2973,7 +2977,7 @@ source `MentalHealth.js` · timestamps: yes · virtuals: 0 · retention: Clinica
 | `consents.signedAt` | Date |  |  | [function] |  |  |  |
 | `consents.expiryDate` | Date |  |  |  |  |  |  |
 | `consents.notes` | String |  |  |  |  |  |  |
-| `consents.purposes` | Array<String> |  |  |  |  |  |  |
+| `consents.purposes` | Array<Mixed> |  |  |  |  |  |  |
 | `consents.retentionDays` | Number |  |  |  |  |  |  |
 | `consents.grantedAt` | Date |  |  | [function] |  |  |  |
 | `consents.renewedFrom` | String |  |  | null |  |  |  |
@@ -3107,7 +3111,7 @@ source `NotificationPreference.js` · timestamps: yes · virtuals: 0 · retentio
 | `channels.sms` | Boolean |  |  | true |  |  |  |
 | `channels.push` | Boolean |  |  | true |  |  |  |
 | `marketingOptIn` | Boolean |  |  | true |  |  |  |
-| `mutedTypes` | Array<String> |  |  | [] |  |  |  |
+| `mutedTypes` | Array<Mixed> |  |  | [] |  |  |  |
 | `quietHours` | Subdocument |  |  | [function] |  |  |  |
 | `quietHours.enabled` | Boolean |  |  | false |  |  |  |
 | `quietHours.startMinute` | Number |  |  | 1320 |  |  |  |
@@ -3213,7 +3217,7 @@ source `OperationTheatre.js` · timestamps: yes · virtuals: 0 · retention: Sta
 | `surgeryName` | String | yes |  |  |  |  |  |
 | `surgeryType` | String |  |  | "Elective" | Elective, Emergency, Urgent |  |  |
 | `anaesthesiaType` | String |  |  | "General" | General, Spinal, Epidural, Local, Sedation, Not Required |  |  |
-| `assistants` | Array<String> |  |  |  |  |  |  |
+| `assistants` | Array<Mixed> |  |  |  |  |  |  |
 | `preOpChecklist.consentSigned` | Boolean |  |  | false |  |  |  |
 | `preOpChecklist.bloodGroupConfirmed` | Boolean |  |  | false |  |  |  |
 | `preOpChecklist.anaesthesiaFitness` | Boolean |  |  | false |  |  |  |
@@ -3782,7 +3786,7 @@ source `PlatformCoupon.js` · timestamps: yes · virtuals: 0 · retention: n/a �
 | `usageLimit` | Number |  |  | 0 |  |  |  |
 | `usedCount` | Number |  |  | 0 |  |  |  |
 | `perUserLimit` | Number |  |  | 1 |  |  |  |
-| `applicableServices` | Array<String> |  |  |  |  |  |  |
+| `applicableServices` | Array<Mixed> |  |  |  |  |  |  |
 | `validFrom` | Date | yes |  |  |  |  |  |
 | `validUntil` | Date | yes |  |  |  |  |  |
 | `isActive` | Boolean |  |  | true |  |  |  |
@@ -3977,7 +3981,7 @@ source `Radiology.js` · timestamps: yes · virtuals: 0 · retention: Statutory 
 | `impression` | String |  |  |  |  |  |  |
 | `recommendation` | String |  |  |  |  |  |  |
 | `reportUrl` | String |  |  |  |  |  |  |
-| `imageUrls` | Array<String> |  |  |  |  |  |  |
+| `imageUrls` | Array<Mixed> |  |  |  |  |  |  |
 | `reportedBy` | ObjectId |  |  |  |  | User |  |
 | `reportedAt` | Date |  |  |  |  |  |  |
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
@@ -4030,7 +4034,7 @@ source `Record.js` · timestamps: yes · virtuals: 0 · retention: Statutory per
 | `examination.musculoskeletal` | String |  |  |  |  |  |  |
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
 | `data` | Mixed |  |  | [function] |  |  |  |
-| `attachments` | Array<String> |  |  |  |  |  |  |
+| `attachments` | Array<Mixed> |  |  |  |  |  |  |
 | `createdAt` | Date |  |  | [function] |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -4349,11 +4353,11 @@ source `RideBooking.js` · timestamps: yes · virtuals: 0 · retention: Trip dur
 | `acceptances.providerId` | String |  |  |  |  |  | Identifier |
 | `acceptances.distanceKm` | Number |  |  |  |  |  |  |
 | `acceptances.acceptedAt` | Date |  |  | [function] |  |  |  |
-| `rejections` | Array<String> |  |  |  |  |  |  |
+| `rejections` | Array<Mixed> |  |  |  |  |  |  |
 | `windowEndsAt` | Date |  |  | null |  |  |  |
 | `retryCount` | Number |  |  | 0 |  |  |  |
 | `retryAt` | Date |  |  | null |  |  |  |
-| `retryRadii` | Array<Number> |  |  | [] |  |  |  |
+| `retryRadii` | Array<Mixed> |  |  | [] |  |  |  |
 | `retryWaveIndex` | Number |  |  | 0 |  |  |  |
 | `currentSearchRadiusKm` | Number |  |  | 5 |  |  |  |
 | `dispatchLog` | Array<subdocument> |  |  |  |  |  |  |
@@ -4407,6 +4411,7 @@ source `RiderProfile.js` · timestamps: yes · virtuals: 0 · retention: Life of
 | `vehicleId` | ObjectId |  |  |  |  | Vehicle |  |
 | `govtIdType` | String | yes |  |  | Aadhaar, PAN, Voter ID, Passport |  |  |
 | `govtIdNumber` | String | yes |  |  |  |  |  |
+| `govtIdNumberHash` | String |  |  | "" |  |  |  |
 | `govtIdDocUrl` | String |  |  | "" |  |  |  |
 | `drivingLicenseNumber` | String | yes |  |  |  |  |  |
 | `drivingLicenseDocUrl` | String |  |  | "" |  |  |  |
@@ -4417,7 +4422,7 @@ source `RiderProfile.js` · timestamps: yes · virtuals: 0 · retention: Life of
 | `bankDetails.upiId` | String |  |  | "" |  |  | Financial |
 | `operatingArea` | String |  |  | "" |  |  |  |
 | `operatingCity` | String |  |  | "Jabalpur" |  |  |  |
-| `availableDays` | Array<String> |  |  |  |  |  |  |
+| `availableDays` | Array<Mixed> |  |  |  |  |  |  |
 | `availableTimeSlot.start` | String |  |  | "08:00" |  |  |  |
 | `availableTimeSlot.end` | String |  |  | "20:00" |  |  |  |
 | `riderStatus` | String |  |  | "pending_approval" | pending_approval, active, rejected, suspended |  |  |
@@ -4427,7 +4432,7 @@ source `RiderProfile.js` · timestamps: yes · virtuals: 0 · retention: Life of
 | `activeDispatchRequestId` | ObjectId |  |  | null |  |  |  |
 | `emergencySupport` | Boolean |  |  | false |  |  |  |
 | `currentLocation.type` | String |  |  | "Point" | Point |  | Location |
-| `currentLocation.coordinates` | Array<Number> |  |  | [79.9864,23.1815] |  |  | Location |
+| `currentLocation.coordinates` | Array<Mixed> |  |  | [79.9864,23.1815] |  |  | Location |
 | `currentLocation.lat` | Number |  |  | 23.1815 |  |  | Location |
 | `currentLocation.lng` | Number |  |  | 79.9864 |  |  | Location |
 | `currentLocation.h3Index8` | String |  |  | null |  |  | Location |
@@ -4457,6 +4462,7 @@ Indexes:
 |---|---|
 | `userId:1` | unique |
 | `vehicleId:1` |  |
+| `govtIdNumberHash:1` |  |
 | `operatingCity:1` |  |
 | `riderStatus:1` |  |
 | `isOnline:1` |  |
@@ -4533,7 +4539,7 @@ source `ScheduleChangeRequest.js` · timestamps: yes · virtuals: 0 · retention
 | `requestedChanges.bookingWindow.unit` | String |  |  |  |  |  |  |
 | `requestedChanges.bookingWindow.value` | Number |  |  |  |  |  |  |
 | `requestedChanges.weekly_schedule` | Mixed |  |  |  |  |  |  |
-| `requestedChanges.leaves` | Array<String> |  |  |  |  |  |  |
+| `requestedChanges.leaves` | Array<Mixed> |  |  |  |  |  |  |
 | `requestedChanges.dateDisabledSlots` | Mixed |  |  |  |  |  |  |
 | `requestedChanges.bufferPerHour` | Number |  |  |  |  |  |  |
 | `oldValues.slotDuration` | Number |  |  |  |  |  |  |
@@ -4544,10 +4550,10 @@ source `ScheduleChangeRequest.js` · timestamps: yes · virtuals: 0 · retention
 | `oldValues.bookingWindow.unit` | String |  |  |  |  |  |  |
 | `oldValues.bookingWindow.value` | Number |  |  |  |  |  |  |
 | `oldValues.weekly_schedule` | Mixed |  |  |  |  |  |  |
-| `oldValues.leaves` | Array<String> |  |  |  |  |  |  |
+| `oldValues.leaves` | Array<Mixed> |  |  |  |  |  |  |
 | `oldValues.dateDisabledSlots` | Mixed |  |  |  |  |  |  |
 | `oldValues.bufferPerHour` | Number |  |  |  |  |  |  |
-| `appliedFields` | Array<String> |  |  | [] |  |  |  |
+| `appliedFields` | Array<Mixed> |  |  | [] |  |  |  |
 | `rejectionNote` | String |  |  | "" |  |  |  |
 | `adminNote` | String |  |  | "" |  |  |  |
 | `reviewedBy` | ObjectId |  |  |  |  | User |  |
@@ -4590,7 +4596,7 @@ source `SOSVehicleSettings.js` · timestamps: yes · virtuals: 0 · retention: n
 
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|
-| `radiusSteps` | Array<Number> |  |  | [5,10,15,20] |  |  |  |
+| `radiusSteps` | Array<Mixed> |  |  | [5,10,15,20] |  |  |  |
 | `windowSeconds` | Number |  |  | 30 |  |  |  |
 | `maxRetriesPerRadius` | Number |  |  | 3 |  |  |  |
 | `retryPauseSeconds` | Number |  |  | 3 |  |  |  |
@@ -4669,7 +4675,7 @@ source `Supplier.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `address` | String |  |  |  |  |  |  |
 | `gstNumber` | String |  |  |  |  |  |  |
 | `category` | String |  |  | "General" | Medical Supplies, Pharmaceuticals, Surgical Instruments, Equipment, General |  |  |
-| `items` | Array<ObjectId> |  |  |  |  |  |  |
+| `items` | Array<Mixed> |  |  |  |  |  |  |
 | `rating` | Number |  |  |  |  |  |  |
 | `leadTime` | Number |  |  | 7 |  |  |  |
 | `paymentTerms` | String |  |  | "Net 30" |  |  |  |
@@ -4946,7 +4952,7 @@ source `User.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — 
 | `name` | String | yes |  |  |  |  | Identity |
 | `email` | String | yes | yes |  |  |  | Contact |
 | `password` | String | yes |  |  |  |  | Credential |
-| `passwordHistory` | Array<String> |  |  | [] |  |  |  |
+| `passwordHistory` | Array<Mixed> |  |  | [] |  |  |  |
 | `mustResetPassword` | Boolean |  |  | false |  |  |  |
 | `tokenVersion` | Number |  |  | 0 |  |  |  |
 | `role` | String |  |  | "patient" | superadmin, hospital_admin, doctor, clinic_doctor, patient, lab_owner, lab_receptionist, lab_technician, pathologist, pharmacy_owner, pharmacist, nurse, radiologist, dietitian, physiotherapist, counsellor, counselor, mid_level_counselor, senior_counselor, psychiatrist, accountant… (361 chars) |  |  |
@@ -4984,7 +4990,7 @@ source `User.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — 
 | `approvalStatus` | String |  |  | "not_required" | not_required, pending, approved, rejected |  |  |
 | `twoFactorEnabled` | Boolean |  |  | false |  |  |  |
 | `twoFactorSecret` | String |  |  | "" |  |  |  |
-| `twoFactorBackupCodes` | Array<String> |  |  |  |  |  |  |
+| `twoFactorBackupCodes` | Array<Mixed> |  |  |  |  |  |  |
 | `twoFactorTempSecret` | String |  |  | "" |  |  |  |
 | `driveTokens` | Mixed |  |  | null |  |  |  |
 | `settings` | Mixed |  |  | [function] |  |  |  |
@@ -5007,7 +5013,7 @@ source `User.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — 
 | `currentLocation.lng` | Number |  |  | null |  |  | Location |
 | `isOnline` | Boolean |  |  | false |  |  |  |
 | `lastActive` | Date |  |  | [function] |  |  |  |
-| `deliveryZone` | Array<String> |  |  |  |  |  |  |
+| `deliveryZone` | Array<Mixed> |  |  |  |  |  |  |
 | `workingHours` | Mixed |  |  | [function] |  |  |  |
 | `emergencyContact.name` | String |  |  | "" |  |  | Identity |
 | `emergencyContact.phone` | String |  |  | "" |  |  | Contact |
@@ -5077,7 +5083,7 @@ source `Vehicle.js` · timestamps: yes · virtuals: 0 · retention: n/a — no p
 | `insuranceDocUrl` | String |  |  | "" |  |  |  |
 | `insuranceExpiry` | Date | yes |  |  |  |  |  |
 | `color` | String |  |  | "" |  |  |  |
-| `photos` | Array<String> |  |  |  |  |  |  |
+| `photos` | Array<Mixed> |  |  |  |  |  |  |
 | `capacity` | Number |  |  | 4 |  |  |  |
 | `fuelType` | String |  |  | "Petrol" | Petrol, Diesel, CNG, Electric, Hybrid, Other |  |  |
 | `extraFields` | Mixed |  |  | [function] |  |  |  |
@@ -5147,9 +5153,9 @@ source `VitalsReminder.js` · timestamps: yes · virtuals: 0 · retention: Statu
 | `userId` | ObjectId | yes |  |  |  | User | Identifier |
 | `carePlanId` | ObjectId |  |  | null |  | ChronicCarePlan |  |
 | `vitalType` | String | yes |  |  | bp, blood_sugar, weight, temperature |  |  |
-| `times` | Array<String> |  |  |  |  |  |  |
+| `times` | Array<Mixed> |  |  |  |  |  |  |
 | `frequency` | String |  |  | "daily" | daily, specific_days |  |  |
-| `daysOfWeek` | Array<String> |  |  |  |  |  |  |
+| `daysOfWeek` | Array<Mixed> |  |  |  |  |  |  |
 | `alarmSound.presetId` | String |  |  | "classic_alarm" | classic_alarm, digital_buzzer, gentle_rise, chime_cascade, custom |  |  |
 | `alarmSound.customSoundUrl` | String |  |  | null |  |  |  |
 | `status` | String |  |  | "active" | active, paused |  |  |
