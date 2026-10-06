@@ -43,22 +43,30 @@ import {
   openCrisisQuery,
 } from '../services/mentalHealthAccess.js';
 
-// P3: explicit shape instead of passthrough. Flat keys mirror the assessment
-// sub-doc in models/MentalHealth.js (mongoose strict drops anything else on
-// save), and treatmentPlan/treatmentType/riskAssessment/diagnosis/riskNotes are
-// the fields the handler below actually reads — nothing else survives validate().
+// P3 + P1 #6: explicit shape instead of passthrough. Flat keys mirror the
+// assessment sub-doc in models/MentalHealth.js (mongoose strict drops anything
+// else on save), and treatmentPlan/treatmentType/riskAssessment/diagnosis/
+// riskNotes are the fields the handler below actually reads — nothing else
+// survives validate(). Values are TYPE-checked now: bounded text for the
+// narrative fields, the model's own enums for the coded ones — `z.any()`
+// accepted arbitrary objects/arrays as a "riskAssessment".
+const assessmentShape = {
+  mentalStatus: z.string().max(4000).optional(),
+  personalHistory: z.string().max(8000).optional(),
+  familyHistory: z.string().max(8000).optional(),
+  socialHistory: z.string().max(8000).optional(),
+  riskAssessment: z.enum(['Low', 'Medium', 'High', 'Immediate']).optional(),
+  diagnosis: z.string().max(2000).optional(),
+  diagnosisCode: z.string().max(60).optional(),
+  treatmentPlan: z.string().max(8000).optional(),
+  treatmentType: z.enum(['Medication', 'Therapy', 'Counseling', 'Combined']).optional(),
+  riskNotes: z.string().max(4000).optional(),
+};
 const mhAssessmentSchema = z.object({
-  mentalStatus: z.any().optional(),
-  personalHistory: z.any().optional(),
-  familyHistory: z.any().optional(),
-  socialHistory: z.any().optional(),
-  riskAssessment: z.any().optional(),
-  diagnosis: z.any().optional(),
-  diagnosisCode: z.any().optional(),
-  treatmentPlan: z.any().optional(),
-  treatmentType: z.any().optional(),
-  riskNotes: z.any().optional(),
-  assessment: z.any().optional(),
+  ...assessmentShape,
+  // The crisis trigger also reads a NESTED body.assessment?.riskAssessment
+  // (mentalhealth.js risk check) as an alternate payload shape.
+  assessment: z.object(assessmentShape).optional(),
 });
 // P1-5: the client may edit ONLY these two fields. `date`, `conductedBy`,
 // `retainUntil` and `consentId` are stamped by the handler below, and unknown
@@ -67,13 +75,14 @@ const mhSessionSchema = z.object({
   type: z.string().max(160).optional(),
   notes: z.string().max(8000).optional(),
 });
-// P3: explicit allowlist — prescribedBy/prescribedAt are stamped by the handler
-// (adminOnly route), so a client cannot pre-set them or smuggle other keys into
-// the medication sub-doc.
+// P3 + P1 #6: explicit allowlist — prescribedBy/prescribedAt are stamped by
+// the handler (adminOnly route), so a client cannot pre-set them or smuggle
+// other keys into the medication sub-doc. Values bounded: a "dosage" is text,
+// not an arbitrary JSON value.
 const mhMedicationSchema = z.object({
-  name: z.any().optional(),
-  dosage: z.any().optional(),
-  frequency: z.any().optional(),
+  name: z.string().trim().max(300).optional(),
+  dosage: z.string().trim().max(300).optional(),
+  frequency: z.string().trim().max(300).optional(),
 });
 const mhFamilySchema = z.object({ familyMemberName: z.string().optional(), relationship: z.string().optional(), involvementType: z.string().optional(), notes: z.string().optional(), contactNumber: z.string().optional() });
 const mhConsentSchema = z.object({ consentType: z.string().optional(), documentUrl: z.string().optional(), expiryDate: z.string().optional(), notes: z.string().optional() });

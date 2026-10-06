@@ -26,9 +26,9 @@ export default function SetPassword() {
   const [error, setError] = useState('');
   const [loadingSubmit, setLoadingSubmit] = useState(false);
 
-  // Mirrors backend passwordSchema: >=8, <=128, upper, lower, digit, special.
+  // Mirrors backend passwordSchema: >=12, <=128, upper, lower, digit, special.
   const rules = [
-    { ok: password.length >= 10, text: 'At least 10 characters' },
+    { ok: password.length >= 12, text: 'At least 12 characters' },
     { ok: /[A-Z]/.test(password), text: 'One uppercase letter' },
     { ok: /[a-z]/.test(password), text: 'One lowercase letter' },
     { ok: /[0-9]/.test(password), text: 'One number' },

@@ -1,12 +1,41 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 import { generate16DigitId } from '../utils/idGenerator.js';
 import { canonicalRole } from '../config/permissions.js';
+
+// P2-11: server-side pepper. When PASSWORD_PEPPER is set (secret manager, NOT
+// the DB), passwords are HMAC-SHA256'd with it BEFORE bcrypt, so a DB-only
+// leak (dump/backup/SQLi) gives an attacker hashes that still need the pepper
+// to crack. Unset = disabled (zero behaviour change); enabling later upgrades
+// hashes transparently on next successful login (see comparePassword).
+export const getPasswordPepper = () => {
+  const p = String(process.env.PASSWORD_PEPPER || '');
+  return p.length >= 16 ? p : '';
+};
+
+const peppered = (plain, pepper) =>
+  crypto.createHmac('sha256', pepper).update(String(plain), 'utf8').digest('hex');
+
+// Compare a plaintext candidate against a stored hash, trying the peppered
+// form first and falling back to the legacy unpeppered form (pre-pepper rows).
+// Returns { ok, legacy } so callers can trigger a re-hash upgrade.
+export async function passwordMatchesHash(plain, hash) {
+  const pepper = getPasswordPepper();
+  if (pepper) {
+    if (await bcrypt.compare(peppered(plain, pepper), hash)) return { ok: true, legacy: false };
+    if (await bcrypt.compare(String(plain), hash)) return { ok: true, legacy: true };
+    return { ok: false, legacy: false };
+  }
+  const ok = await bcrypt.compare(String(plain), hash);
+  return { ok, legacy: false };
+}
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true, lowercase: true },
   password: { type: String, required: true, select: false },
+  passwordHistory: { type: [String], select: false, default: [] },
   mustResetPassword: { type: Boolean, default: false, index: true },
   // AUTH-012/MISS-001: bumped on password change/reset, 2FA change, logout-all.
   // Every access/refresh token carries tv; mismatch → 401 (session revoked).
@@ -224,7 +253,9 @@ const BCRYPT_ROUNDS = (() => {
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, BCRYPT_ROUNDS);
+  const pepper = getPasswordPepper();
+  const material = pepper ? peppered(this.password, pepper) : this.password;
+  this.password = await bcrypt.hash(material, BCRYPT_ROUNDS);
   next();
 });
 
@@ -246,14 +277,15 @@ userSchema.pre('save', function (next) {
 });
 
 userSchema.methods.comparePassword = async function (plain) {
-  const ok = await bcrypt.compare(plain, this.password);
+  const { ok, legacy } = await passwordMatchesHash(plain, this.password);
   if (ok) {
-    // P2-9: opportunistic upgrade - a hash minted at an older cost is silently
-    // re-hashed at BCRYPT_ROUNDS on the next successful login. The pre-save
-    // hook does the hashing; a failure here must never fail the login itself.
+    // P2-9/P2-11: opportunistic upgrade - a hash minted at an older cost, or
+    // before PASSWORD_PEPPER was configured, is silently re-hashed on the
+    // next successful login. The pre-save hook does the hashing; a failure
+    // here must never fail the login itself.
     try {
       const cost = Number.parseInt(String(this.password).slice(4, 6), 10);
-      if (Number.isInteger(cost) && cost < BCRYPT_ROUNDS) {
+      if (legacy || (Number.isInteger(cost) && cost < BCRYPT_ROUNDS)) {
         this.password = plain;
         await this.save();
       }
@@ -289,7 +321,7 @@ export default mongoose.model('User', userSchema);
 // §5.3/§5.4: never let secrets/internal flags leave in a response — `select: false`
 // is bypassed by .lean()/.select('+password'), so strip at the DTO boundary too.
 const USER_FORBIDDEN_FIELDS = new Set([
-  'password', 'tokenVersion', 'twoFactorSecret', 'twoFactorTempSecret',
+  'password', 'passwordHistory', 'tokenVersion', 'twoFactorSecret', 'twoFactorTempSecret',
   'twoFactorBackupCodes', 'driveTokens', 'abhaOtpHash', '__v',
 ]);
 

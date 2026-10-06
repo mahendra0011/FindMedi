@@ -65,8 +65,8 @@ export default function ForgotPassword() {
       setError('Enter the 6-digit reset OTP');
       return;
     }
-    if (password.length < 10) {
-      setError('Password must be at least 10 characters');
+    if (password.length < 12) {
+      setError('Password must be at least 12 characters');
       return;
     }
     if (password !== confirmPassword) {

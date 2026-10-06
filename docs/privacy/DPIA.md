@@ -84,9 +84,32 @@ Patient ──HTTPS──▶ API (Express) ──▶ MongoDB (replica set, TLS)
                       │   └──▶ MapTiler     (maps)
 ```
 
-Each processor, the data it receives, and its classification are listed in
-`SECURITY.md` §6. Adding a processor requires updating that table **and** this
-document before it receives production data.
+Each processor, the data it receives, its region, DPA status, and breach contact are listed in
+`SECURITY.md` §6 (including MongoDB Atlas, Cloudinary, Brevo, Razorpay, Google, MapTiler, Twilio, Sentry, PostHog, Unleash, LiveKit, and Render).
+Adding a processor requires updating that table **and** this document before it receives production data.
+
+### 5.1 Processor Governance and Breach Contacts
+
+| Processor | Region | DPA / BAA | Breach Contact | Security & Minimisation Controls |
+|---|---|---|---|---|
+| MongoDB Atlas | India (AWS ap-south-1) | DPA + BAA | security@mongodb.com | TLS 1.3, encrypted at rest, VPC peering, IP allowlist |
+| Cloudinary | US / Global | DPA signed | security@cloudinary.com | Signed delivery URLs, private storage bucket, ClamAV scan before upload |
+| Brevo | EU (Germany) | GDPR DPA | privacy@brevo.com | Transactional notices only; OTP credentials never emailed |
+| Razorpay | India | DPA signed | security@razorpay.com | PCI-DSS Level 1 compliant; zero PAN/card storage on FindMedi servers |
+| Google | Global | DPA signed | security@google.com | OAuth 2.0 PKCE / OIDC identity verification |
+| MapTiler | EU | DPA signed | privacy@maptiler.com | Ephemeral coordinate lookups; zero patient metadata attached |
+| Twilio | US / Global | DPA signed | privacy@twilio.com | SMS delivery for OTPs with 5-minute strict TTL |
+| Sentry | US / EU | DPA + BAA | security@sentry.io | In-flight PII scrubbing; PHI and passwords masked before transmission |
+| PostHog | EU (Germany) | DPA signed | privacy@posthog.com | User IDs pseudonymized, form inputs and canvas masked in session recordings |
+| Unleash | EU / Self-hosted | DPA signed | security@getunleash.io | Feature flag context only (role, tenantId); zero PHI |
+| LiveKit | Global / Self-hosted | DPA signed | privacy@livekit.io | SRTP encrypted WebRTC media streams; zero persistent recording without explicit consent |
+| Render | US / EU | DPA signed | security@render.com | Isolated container instances, non-root execution, automated TLS |
+
+### 5.2 Per-Purpose Location Consent
+
+Location coordinates are collected under distinct, non-bundled purposes:
+1. **Emergency SOS & Ambulance Dispatch**: Immediate point-in-time coordinates used solely for routing response vehicles to the incident location. Coordinates are not stored as long-term tracking history.
+2. **Blood Bank Donor Directory**: Explicit, separate consent (`donorDirectoryConsent` flag) required to list proximity in the donor discovery directory. Users can participate in dispatch or general care without exposing their location to the public donor list.
 
 ## 6. Retention
 

@@ -312,7 +312,7 @@ const en = {
   'settings.saveError': 'Unable to save settings.',
   'settings.passwordSaved': 'Password updated successfully.',
   'settings.passwordError': 'Unable to update password.',
-  'settings.passwordLength': 'New password must be at least 6 characters.',
+  'settings.passwordLength': 'New password must be at least 12 characters.',
   'settings.passwordMismatch': 'New password and confirmation do not match.',
   'settings.profilePhoto': 'Profile Photo',
   'settings.uploadPhoto': 'Upload Photo',

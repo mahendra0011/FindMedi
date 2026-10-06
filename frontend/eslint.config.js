@@ -4,6 +4,8 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import reactPlugin from "eslint-plugin-react";
 import tseslint from "typescript-eslint";
+// P1-5: catch future unsafe innerHTML / dangerouslySetInnerHTML uses.
+import noUnsanitized from "eslint-plugin-no-unsanitized";
 
 export default tseslint.config(
   { ignores: ["dist", "dist-node"] },
@@ -21,6 +23,11 @@ export default tseslint.config(
       react: reactPlugin,
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      // P1-5: no-unsanitized flags any new dangerouslySetInnerHTML that is NOT
+      // going through a sanitizer. The two chart.tsx uses are safe (CSS tokens
+      // only via cssIdent/cssColor) but are marked with eslint-disable comments
+      // in the source so new additions are caught automatically.
+      "no-unsanitized": noUnsanitized,
     },
     settings: { react: { version: "detect" } },
     rules: {
@@ -29,6 +36,12 @@ export default tseslint.config(
       "react/jsx-uses-vars": "error",
       "react/jsx-uses-react": "off",
       "react/react-in-jsx-scope": "off",
+
+      // P1-5: warn on dangerouslySetInnerHTML without a documented sanitizer.
+      // Existing chart.tsx usages are CSS-only (cssIdent+cssColor) and carry
+      // suppressions; new ones must do the same or fix.
+      "no-unsanitized/method": "warn",
+      "no-unsanitized/property": "warn",
 
       // Legacy codebase me unused vars hain — signal rakho (warn), gate nahi.
       "no-unused-vars": "off",

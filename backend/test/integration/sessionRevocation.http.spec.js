@@ -15,7 +15,7 @@ const JTI_B = 'f0e1d2c3b4a5968778695a4b';
 const refreshFind = jest.fn();
 const refreshDeleteOne = jest.fn();
 const auditLog = jest.fn(async () => {});
-const stubModel = (extra = {}) => ({ default: { find: () => query([]), findById: () => query(null), updateOne: () => query({}), ...extra } });
+const stubModel = (extra = {}) => ({ default: { find: () => query([]), findById: () => query(null), updateOne: () => query({}), ...extra }, passwordMatchesHash: async () => ({ ok: false, legacy: false }) });
 
 jest.unstable_mockModule('../../src/models/RefreshToken.js', () => ({
   default: {

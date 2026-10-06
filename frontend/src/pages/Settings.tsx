@@ -412,7 +412,7 @@ export default function Settings() {
 
   const savePassword = () => {
     setNotice(null);
-    if (password.newPassword.length < 6) {
+    if (password.newPassword.length < 12) {
       setNotice({ type: 'error', text: tr('settings.passwordLength') });
       return;
     }

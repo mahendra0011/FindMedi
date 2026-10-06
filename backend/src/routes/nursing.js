@@ -3,12 +3,12 @@ import { z } from 'zod';
 import NursingChart from '../models/NursingChart.js';
 import Admission from '../models/Admission.js';
 import { protect, adminOnly } from '../middleware/auth.js';
-import { validate } from '../utils/validate.js';
+import { validate, vitalsShape, boundedShallow } from '../utils/validate.js';
 
-const nursingVitalsSchema = z.object({ patientId: z.string().min(1), patientName: z.string().optional(), admissionId: z.string().optional(), vitals: z.any() });
-const nursingMarSchema = z.object({ patientId: z.string().min(1), patientName: z.string().optional(), admissionId: z.string().optional(), medicationAdmin: z.any() });
-const nursingIOSchema = z.object({ patientId: z.string().min(1), patientName: z.string().optional(), admissionId: z.string().optional(), vitals: z.any().optional() });
-const nursingWoundSchema = z.object({ patientId: z.string().min(1), patientName: z.string().optional(), admissionId: z.string().optional(), woundDressing: z.any().optional() });
+const nursingVitalsSchema = z.object({ patientId: z.string().min(1).max(100), patientName: z.string().trim().max(200).optional(), admissionId: z.string().trim().max(100).optional(), vitals: vitalsShape });
+const nursingMarSchema = z.object({ patientId: z.string().min(1).max(100), patientName: z.string().trim().max(200).optional(), admissionId: z.string().trim().max(100).optional(), medicationAdmin: boundedShallow });
+const nursingIOSchema = z.object({ patientId: z.string().min(1).max(100), patientName: z.string().trim().max(200).optional(), admissionId: z.string().trim().max(100).optional(), vitals: vitalsShape.optional() });
+const nursingWoundSchema = z.object({ patientId: z.string().min(1).max(100), patientName: z.string().trim().max(200).optional(), admissionId: z.string().trim().max(100).optional(), woundDressing: boundedShallow.optional() });
 
 const router = express.Router();
 

@@ -47,8 +47,8 @@ export default function DoctorSetup() {
     e.preventDefault();
     setError('');
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 12) {
+      setError('Password must be at least 12 characters');
       return;
     }
     if (password !== confirmPassword) {
@@ -125,7 +125,7 @@ export default function DoctorSetup() {
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">Create Password</label>
-                <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" required />
+                <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 12 characters" required />
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password</label>

@@ -1,0 +1,47 @@
+# ==============================================================================
+# FindMedi Backend — DEVELOPMENT image (hot reload + live code sync)
+# ==============================================================================
+# Production ke liye `Dockerfile` use karo; ye file sirf local dev ke liye hai.
+# Source code bind-mount hota hai (infra/docker-compose.app.dev.yml), isliye
+# yahan sirf dependencies install ki jaati hain. node_modules ek named volume me
+# rehta hai taaki host ke Windows binaries container (Linux) ko dikhte na.
+#
+# Toolchain pin (zaroori — warna `npm ci` lockfile sync error deta hai):
+#   - node:24  = host parity (backend/frontend deps Node >=22 maangte hain)
+#   - npm@12   = host ka npm (lockfile isi se author hua hai; npm 10/11 `npm ci`
+#                par optional-peer tree computation alag hai → EUSAGE fail)
+#
+# Usage:  npm run docker:dev   (repo root se)
+# ==============================================================================
+
+FROM node:24-bookworm-slim
+
+# Host ke npm se match karte rakho (lockfile validation npm major par depend karta hai)
+RUN npm i -g npm@12
+
+WORKDIR /app
+
+# openssl + ca-certificates: mongoose/Atlas TLS ke liye;
+# curl: compose healthcheck ke liye. glibc (bookworm) sharp/grpc native ko chahiye.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# .npmrc = lockfile authoring parity (legacy-peer-deps) — COPY zaroori hai,
+# warna container ka strict `npm ci` lock ko "out of sync" bolega.
+COPY package*.json .npmrc ./
+COPY prisma ./prisma/
+
+# Dev image = FULL deps (jest/eslint/supertest container ke andar chal sakein),
+# plus prisma client generate (output node_modules/.prisma me — named volume).
+RUN npm ci && npx prisma generate
+
+ENV NODE_ENV=development
+ENV PORT=5001
+
+EXPOSE 5001
+
+# src/ bind mount se aata hai; node --watch src/ ya .env change pe auto-restart.
+CMD ["npm", "run", "dev"]

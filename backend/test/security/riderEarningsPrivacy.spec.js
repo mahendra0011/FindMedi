@@ -14,7 +14,7 @@ jest.unstable_mockModule('../../src/models/TransactionLedger.js', () => ({ defau
 jest.unstable_mockModule('../../src/models/Vehicle.js', () => ({ default: vehicles }));
 jest.unstable_mockModule('../../src/models/User.js', () => ({ default: {
   findById: (id) => ({ select: () => Promise.resolve(users.get(String(id)) || null) }),
-} }));
+}, passwordMatchesHash: async () => ({ ok: false, legacy: false }) }));
 jest.unstable_mockModule('../../src/models/Doctor.js', () => ({ default: { findOne: jest.fn() } }));
 jest.unstable_mockModule('../../src/services/tenantQuotaService.js', () => ({
   tenantQuotaGuard: (_req, _res, next) => next(),

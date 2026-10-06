@@ -121,6 +121,15 @@ router.put('/:id', protect, authorize('staff:manage'), adminOnly, validate(updat
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     const staff = await Staff.findOneAndUpdate(filter, req.body, { new: true });
     if (!staff) return res.status(404).json({ message: 'Not found' });
+    // P2-10: role or status change bumps tokenVersion so stale JWTs revoke immediately
+    if (req.body.role || req.body.status) {
+      const User = mongoose.model('User');
+      if (staff.userId) {
+        await User.updateOne({ _id: staff.userId }, { $inc: { tokenVersion: 1 } }).catch(() => {});
+      } else if (staff.email) {
+        await User.updateOne({ email: String(staff.email).toLowerCase() }, { $inc: { tokenVersion: 1 } }).catch(() => {});
+      }
+    }
     res.json(staff);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -131,6 +140,13 @@ router.delete('/:id', protect, authorize('staff:manage'), adminOnly, async (req,
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     const staff = await Staff.findOneAndDelete(filter);
     if (!staff) return res.status(404).json({ message: 'Staff not found' });
+    // P2-10: staff termination revokes existing sessions
+    const User = mongoose.model('User');
+    if (staff.userId) {
+      await User.updateOne({ _id: staff.userId }, { $inc: { tokenVersion: 1 } }).catch(() => {});
+    } else if (staff.email) {
+      await User.updateOne({ email: String(staff.email).toLowerCase() }, { $inc: { tokenVersion: 1 } }).catch(() => {});
+    }
     res.json({ message: 'Staff deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

@@ -1,0 +1,11 @@
+# Build context chhota rakho (Vite ko ye sab chahiye hi nahi).
+# NOTE: `.env` / `.env.production` EXCLUDE mat karo — `npm run build` ko
+# VITE_* vars chahiye. Ye sirf `docker build` par apply hota hai — dev bind
+# mounts (npm run docker:dev) par koi asar nahi.
+node_modules
+dist
+dist-node
+test-results
+playwright-report
+e2e
+*.log

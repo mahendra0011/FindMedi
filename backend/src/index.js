@@ -49,6 +49,10 @@ import mongoSanitize from 'express-mongo-sanitize';
 // §4.5/§4.6: extra NoSQL-injection layer + unknown filter fields ignored.
 mongoose.set('sanitizeFilter', true);
 mongoose.set('strictQuery', true);
+// P1-5: HTTP Parameter Pollution -- collapses duplicate keys so
+// ` ?sort=asc&sort[]=desc ` cannot bypass a sort-field allowlist or trigger an
+// unexpected array inside a handler that expects a string.
+import hpp from 'hpp';
 import pinoHttp from 'pino-http';
 import * as Sentry from '@sentry/node';
 import sanitizeHtml from 'sanitize-html';
@@ -247,9 +251,13 @@ const tokenRefreshLimiter = rateLimit({
   message: { message: 'Too many token refresh requests, please try again later.' },
 });
 
-// AUTH-004: behind nginx/Render, req.ip is the proxy without this — every
+// AUTH-004: behind nginx/Render/Cloudflare, req.ip is the proxy without this — every
 // IP-keyed limiter and audit row would collapse to one address.
-app.set('trust proxy', 1);
+// Allows TRUST_PROXY env configuration (e.g. 2 for Cloudflare + Render LB, 1 for single proxy).
+const trustProxySetting = process.env.TRUST_PROXY
+  ? (!isNaN(Number(process.env.TRUST_PROXY)) ? parseInt(process.env.TRUST_PROXY, 10) : process.env.TRUST_PROXY)
+  : 1;
+app.set('trust proxy', trustProxySetting);
 
 // AUTH-005: normalize /auth/login → /api/auth/login BEFORE the limiters run,
 // otherwise prefix-less URLs skip every limiter and only get rewritten later.
@@ -403,21 +411,9 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 // MongoDB injection protection
 app.use(mongoSanitize());
 
-// §13.9: HTTP Parameter Pollution — `?a=1&a=2` must not smuggle arrays into
-// filters/sorts. Keep the LAST scalar value (Express default for urlencoded),
-// drop objects. Runs after mongoSanitize so `$gt` objects are already gone.
-app.use((req, _res, next) => {
-  const deArray = (obj) => {
-    if (!obj || typeof obj !== 'object') return;
-    for (const k of Object.keys(obj)) {
-      const v = obj[k];
-      if (Array.isArray(v)) obj[k] = v.length ? v[v.length - 1] : undefined;
-    }
-  };
-  deArray(req.query);
-  deArray(req.params);
-  next();
-});
+// P1-5: HTTP Parameter Pollution â€” the `hpp` package collapses duplicate
+// query/body keys to the last scalar value, running after mongoSanitize.
+app.use(hpp());
 
 // XSS protection - recursive sanitization for nested objects (strips all HTML tags/attrs)
 function sanitizeValue(value) {
@@ -990,6 +986,18 @@ if (process.env.NODE_ENV === 'production') {
 }
  
 // 404 handler for unknown routes
+// TEMP-PROBE (debug, delete after use)
+app.get('/__probe/router', (_req, res) => {
+  res.json({
+    healthzRegistered: app._router.stack.some((l) => l.route && String(l.route.path).includes('/healthz')),
+    stack: app._router.stack.map((l) => ({
+      name: l.name,
+      route: l.route ? String(l.route.path) : undefined,
+      mount: l.path,
+      regexp: l.regexp ? String(l.regexp).slice(0, 140) : undefined,
+    })),
+  });
+});
 app.use(notFound);
 
 // Sentry captures unhandled route errors before our responder formats them

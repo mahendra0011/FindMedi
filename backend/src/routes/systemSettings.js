@@ -3,9 +3,13 @@ import { z } from 'zod';
 import SystemSetting from '../models/SystemSetting.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
-import { validate } from '../utils/validate.js';
+import { validate, boundedShallow } from '../utils/validate.js';
 
-const systemSettingSchema = z.object({ value: z.any().optional() });
+// P1-6: setting values are scalars / flat lists / one-level maps (see
+// DEFAULT_SETTINGS above) — never arbitrary depth. superadmin-only route.
+const systemSettingSchema = z.object({
+  value: z.union([boundedShallow, z.string().trim().max(8000)]).optional(),
+});
 
 const router = express.Router();
 

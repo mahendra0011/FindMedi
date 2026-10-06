@@ -4,26 +4,35 @@ import Triage from '../models/Triage.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/auth.js';
-import { validate, createTriageSchema } from '../utils/validate.js';
+import { validate, createTriageSchema, triageVitalsSchema } from '../utils/validate.js';
 import { generateEmergencyId, generateMLCNumber } from '../utils/idGenerator.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
-// P3: explicit allowlist matching pickBody() in the PUT handler — unknown keys
-// are stripped by zod, so the schema itself enforces the same list the handler
-// picks (defense in depth; status/assign/mlc have dedicated endpoints).
+// P3 + P1 #6: explicit allowlist matching pickBody() in the PUT handler —
+// unknown keys are stripped by zod, so the schema itself enforces the same
+// list the handler picks (defense in depth). Values are now TYPE-checked
+// against the model: enums mirror models/Triage.js, text fields are bounded,
+// and vitals uses the shared number|string shape (the form submits strings).
 const triageUpdateSchema = z.object({
-  patientName: z.any().optional(),
-  age: z.any().optional(),
-  gender: z.any().optional(),
-  phone: z.any().optional(),
-  arrivalMode: z.any().optional(),
-  broughtBy: z.any().optional(),
-  chiefComplaint: z.any().optional(),
-  triageLevel: z.any().optional(),
-  triageNotes: z.any().optional(),
-  vitals: z.any().optional(),
-  referredTo: z.any().optional(),
-  referredReason: z.any().optional(),
+  patientName: z.string().trim().min(1).max(200).optional(),
+  age: z.union([z.number().int().nonnegative().max(150), z.string().max(10)]).optional(),
+  gender: z.string().trim().max(40).optional(),
+  phone: z.string().trim().max(30).optional(),
+  arrivalMode: z.enum(['Walk-in', 'Ambulance', 'Police', 'Referral']).optional(),
+  broughtBy: z.string().trim().max(200).optional(),
+  chiefComplaint: z.string().trim().min(1).max(1000).optional(),
+  triageLevel: z.enum(['P1-Immediate', 'P2-Urgent', 'P3-Less Urgent', 'P4-Non Urgent', 'P5-Deceased']).optional(),
+  triageNotes: z.string().max(4000).optional(),
+  vitals: triageVitalsSchema.optional(),
+  referredTo: z.string().trim().max(200).optional(),
+  referredReason: z.string().trim().max(1000).optional(),
+  // The UI's Discharge button IS this endpoint (TriagePage dischargeMut) —
+  // there is no dedicated status route, so the old comment ("status has a
+  // dedicated endpoint") was wrong and zod's strip silently ate the action:
+  // the request returned 200 having changed nothing. adminOnly + the model's
+  // own enum keep it as tight as the dedicated route the comment assumed.
+  status: z.enum(['In Treatment', 'Admitted', 'Referred', 'Discharged', 'DOD']).optional(),
+  dischargedAt: z.string().refine((v) => !Number.isNaN(Date.parse(v)), 'dischargedAt must be a valid date').optional(),
 });
 const triageAssignSchema = z.object({ doctorId: z.string().optional(), doctorName: z.string().optional() });
 // P1-5: strict shape matching models/Triage.js `mlc.type`. Zod strips unknown
@@ -106,9 +115,11 @@ router.put('/:id', protect, adminOnly, validate(triageUpdateSchema), async (req,
     if (req.user.hospitalId && req.user.role !== 'superadmin' && entry.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    // AUTH-030: allowlisted fields only — status/assign/mlc have dedicated endpoints.
+    // AUTH-030: allowlisted fields only — assign/mlc/notes have dedicated
+    // endpoints; status/dischargedAt are here because the Discharge button
+    // sends them to THIS route (see triageUpdateSchema).
     const { pickBody } = await import('../utils/pick.js');
-    Object.assign(entry, pickBody(req.body, ['patientName', 'age', 'gender', 'phone', 'arrivalMode', 'broughtBy', 'chiefComplaint', 'triageLevel', 'triageNotes', 'vitals', 'referredTo', 'referredReason']));
+    Object.assign(entry, pickBody(req.body, ['patientName', 'age', 'gender', 'phone', 'arrivalMode', 'broughtBy', 'chiefComplaint', 'triageLevel', 'triageNotes', 'vitals', 'referredTo', 'referredReason', 'status', 'dischargedAt']));
     await entry.save();
     res.json(entry);
   } catch (err) { res.status(400).json({ message: err.message }); }

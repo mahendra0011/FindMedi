@@ -59,6 +59,10 @@ router.put('/:id/block', protect, adminOnly, validate(blockUserSchema), async (r
     }
 
     user.status = user.status === 'blocked' ? 'active' : 'blocked';
+    if (user.status === 'blocked') {
+      // P2-10: immediately invalidate all sessions for blocked users
+      user.tokenVersion = (user.tokenVersion || 0) + 1;
+    }
     await user.save();
 
     if (user.status === 'blocked') {

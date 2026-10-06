@@ -74,7 +74,8 @@ jest.unstable_mockModule('../../src/models/User.js', () => {
     find: jest.fn(() => queryResult([])),
     modelName: 'User',
   };
-  return { default: Model, __esModule: true };
+  // P2-11: routes/auth.js imports this named helper (history checks).
+  return { default: Model, passwordMatchesHash: async () => ({ ok: false, legacy: false }), __esModule: true };
 });
 jest.unstable_mockModule('../../src/models/RefreshToken.js', () => ({
   default: {

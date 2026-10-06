@@ -13,7 +13,7 @@ import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
 import { z } from 'zod';
-import { validate, createDoctorSchema, updateDoctorSchema } from '../utils/validate.js';
+import { validate, createDoctorSchema, updateDoctorSchema, boundedShallow } from '../utils/validate.js';
 import { sendServerError } from '../utils/safeError.js';
 import { paginatedResults } from '../utils/pagination.js';
 import { randomPassword } from '../utils/secureRandom.js';
@@ -543,14 +543,14 @@ router.put('/:id/reject', protect, async (req, res) => {
 });
 
 const scheduleSchema = z.object({
-  time_slots: z.any().optional(),
-  weekly_schedule: z.any().optional(),
-  leaves: z.any().optional(),
-  slotDuration: z.number().optional(),
-  bufferPerHour: z.number().optional(),
-  workingHours: z.object({ start: z.string(), end: z.string() }).optional(),
-  breakTime: z.object({ start: z.string(), end: z.string() }).optional(),
-  dateDisabledSlots: z.any().optional(),
+  time_slots: z.array(z.union([z.string().trim().max(20), z.number().finite()])).max(500).optional(),
+  weekly_schedule: z.record(z.string().max(20), z.array(z.string().trim().max(20)).max(100)).optional(),
+  leaves: z.array(z.union([z.string().trim().max(30), boundedShallow])).max(200).optional(),
+  slotDuration: z.number().finite().positive().max(1440).optional(),
+  bufferPerHour: z.number().finite().nonnegative().max(60).optional(),
+  workingHours: z.object({ start: z.string().trim().max(10), end: z.string().trim().max(10) }).optional(),
+  breakTime: z.object({ start: z.string().trim().max(10), end: z.string().trim().max(10) }).optional(),
+  dateDisabledSlots: z.record(z.string().max(30), z.array(z.string().trim().max(20)).max(100)).optional(),
   bookingWindow: z.object({
     unit: z.enum(['hours', 'days', 'weeks', 'months']),
     value: z.number().min(0),

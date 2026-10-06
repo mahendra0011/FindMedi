@@ -4,7 +4,13 @@ import Physiotherapy from '../models/Physiotherapy.js';
 import Billing from '../models/Billing.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
-import { validate, createPhysioReferralSchema } from '../utils/validate.js';
+import { validate, createPhysioReferralSchema, boundedShallow } from '../utils/validate.js';
+
+// P1-6: pain levels are 0–10 numbers (or short text); narrative fields are
+// bounded text; structured fields accept text or one level of JSON — never
+// arbitrary depth/values.
+const painLevelShape = z.union([z.number().min(0).max(10), z.string().trim().max(50)]);
+const physioTextOrStructured = z.union([z.string().trim().max(8000), boundedShallow]);
 import { generateOrderId, generateInvoiceId } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
@@ -14,26 +20,26 @@ import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 // and the handlers only read these fields (+ server-stamped ones), so nothing
 // a client legitimately sends is lost.
 const physioAssessSchema = z.object({
-  painScale: z.any().optional(),
-  rangeOfMotion: z.any().optional(),
-  strengthTest: z.any().optional(),
-  functionalAssessment: z.any().optional(),
-  notes: z.any().optional(),
-  treatmentPlan: z.any().optional(),
+  painScale: painLevelShape.optional(),
+  rangeOfMotion: physioTextOrStructured.optional(),
+  strengthTest: physioTextOrStructured.optional(),
+  functionalAssessment: physioTextOrStructured.optional(),
+  notes: z.string().trim().max(8000).optional(),
+  treatmentPlan: physioTextOrStructured.optional(),
 });
 const physioSessionSchema = z.object({
-  exercisesPerformed: z.any().optional(),
-  progressNote: z.any().optional(),
-  painLevelBefore: z.any().optional(),
-  painLevelAfter: z.any().optional(),
-  duration: z.any().optional(),
+  exercisesPerformed: z.union([z.string().trim().max(8000), z.array(boundedShallow).max(200)]).optional(),
+  progressNote: z.string().trim().max(8000).optional(),
+  painLevelBefore: painLevelShape.optional(),
+  painLevelAfter: painLevelShape.optional(),
+  duration: z.union([z.number().finite().nonnegative().max(1440), z.string().trim().max(50)]).optional(),
 });
 const physioMidReviewSchema = z.object({ notes: z.string().optional(), response: z.string().optional(), progress: z.number().optional() });
 const physioBillingSchema = z.object({ amount: z.number().optional(), description: z.string().optional(), sessionType: z.string().optional() });
 const physioCompleteSchema = z.object({
-  homeExercise: z.any().optional(),
-  precautions: z.any().optional(),
-  followUpDate: z.any().optional(),
+  homeExercise: physioTextOrStructured.optional(),
+  precautions: physioTextOrStructured.optional(),
+  followUpDate: z.string().trim().max(50).optional(),
 });
 
 const router = express.Router();

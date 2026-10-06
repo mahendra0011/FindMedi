@@ -5,7 +5,7 @@ import User from '../models/User.js';
 import Hospital from '../models/Hospital.js';
 import Facility from '../models/Facility.js';
 import Doctor from '../models/Doctor.js';
-import { validate } from '../utils/validate.js';
+import { validate, boundedShallow } from '../utils/validate.js';
 import { createAndSendOTP } from '../services/otpService.js';
 import { createGrlRateLimiter } from '../middleware/rateLimit.js';
 import { randomPassword } from '../utils/secureRandom.js';
@@ -16,7 +16,7 @@ const platformRegisterSchema = z.object({
     name: z.string().min(2),
     email: z.string().email(),
     phone: z.string().min(10),
-    password: z.string().min(8),
+    password: z.string().min(12, 'Password must be at least 12 characters'),
   }),
   facility: z.object({
     name: z.string().min(2),
@@ -34,15 +34,15 @@ const platformRegisterSchema = z.object({
     logo: z.string().optional(),
     image: z.string().optional(),
     accreditations: z.array(z.string()).optional(),
-    weekSchedule: z.any().optional(),
-    insurance: z.array(z.string()).optional(),
-    amenities: z.any().optional(),
-    socialLinks: z.any().optional(),
+    weekSchedule: boundedShallow.optional(),
+    insurance: z.array(z.string().trim().max(200)).max(100).optional(),
+    amenities: z.union([z.string().trim().max(2000), z.array(z.string().trim().max(200)).max(100)]).optional(),
+    socialLinks: z.record(z.string().max(100), z.string().trim().max(500)).optional(),
     timing: z.string().optional(),
     nablNumber: z.string().optional(),
     aerbNumber: z.string().optional(),
   }).passthrough().optional(),
-  services: z.array(z.any()).optional(),
+  services: z.array(boundedShallow).max(200).optional(),
   doctors: z.array(z.object({
     name: z.string().optional(),
     email: z.string().optional(),
@@ -53,9 +53,9 @@ const platformRegisterSchema = z.object({
     licenseNumber: z.string().optional(),
     consultationFee: z.number().optional(),
     appointmentModes: z.array(z.string()).optional(),
-    appointmentFees: z.any().optional(),
+    appointmentFees: z.union([z.number().finite().nonnegative(), z.record(z.string().max(100), z.number().finite().nonnegative())]).optional(),
   }).passthrough()).optional(),
-  specialist: z.any().optional(),
+  specialist: boundedShallow.optional(),
   ambulances: z.array(z.object({
     registrationNumber: z.string().optional(),
     vehicleModel: z.string().optional(),

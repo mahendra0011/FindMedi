@@ -2,14 +2,14 @@ import express from 'express';
 import { z } from 'zod';
 import { BloodUnit, BloodRequest } from '../models/BloodBank.js';
 import { protect, adminOnly } from '../middleware/auth.js';
-import { validate, createBloodUnitSchema, createBloodRequestSchema } from '../utils/validate.js';
+import { validate, createBloodUnitSchema, createBloodRequestSchema, vitalsShape } from '../utils/validate.js';
 import { generateTimestampedId } from '../utils/idGenerator.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 import logger from '../config/logger.js';
 import { sendServerError } from '../utils/safeError.js';
 
 const bloodIssueSchema = z.object({ unitIds: z.array(z.string()).optional() });
-const bloodTransfuseSchema = z.object({ endTime: z.string().optional(), vitals: z.any().optional() });
+const bloodTransfuseSchema = z.object({ endTime: z.string().max(50).optional(), vitals: vitalsShape.optional() });
 const bloodStartTransfusionSchema = z.object({ startTime: z.string().optional(), nurseName: z.string().optional(), preBp: z.string().optional(), prePulse: z.number().optional(), preTemp: z.number().optional() });
 const bloodReactionSchema = z.object({ reactionType: z.string().optional(), severity: z.string().optional(), symptoms: z.string().optional(), actionTaken: z.string().optional(), stopped: z.boolean().optional() });
 const bloodCrossmatchSchema = z.object({ unitIds: z.array(z.string()).optional(), crossMatchResult: z.string().optional(), technician: z.string().optional(), patientGroup: z.string().optional(), donorUnitId: z.string().optional() });

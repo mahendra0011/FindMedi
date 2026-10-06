@@ -111,9 +111,11 @@ export async function mountApp(name, models = {}, options = {}) {
   jest.unstable_mockModule('../../src/models/User.js', () => ({
     default: {
       findById: () => ({
-        select: () => Promise.resolve({ _id: '64b0000000000000000000ee', twoFactorEnabled: false }),
+        select: () => Promise.resolve({ _id: '64b0000000000000000ee', twoFactorEnabled: false }),
       }),
     },
+    // P2-11: routes/auth.js imports this named helper (history checks).
+    passwordMatchesHash: async () => ({ ok: false, legacy: false }),
   }));
   jest.unstable_mockModule('../../src/middleware/rateLimit.js', () => ({
     bookingLimiter: (_req, _res, next) => next(),

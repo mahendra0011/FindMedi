@@ -1,0 +1,95 @@
+# ==============================================================================
+# FindMedi APP — LOCAL DEV in Docker (live code sync ke saath)
+# ==============================================================================
+# Sirf app services (backend + frontend). Infra (mongo/redis/kafka/...) alag se
+# chalta hai — `npm run infra:up`. Kyunki dono compose files ka project dir
+# `infra/` hai, ye services usi network (infra_default) me aakar mongo1/redis
+# ko service-DNS se paa sakti hain.
+#
+# CODE SYNC kaise kaam karta hai:
+#   - bind mount:   ../backend|/../frontend -> /app  (host ka source = container ka source)
+#   - named volume: /app/node_modules       (Linux binaries — host ke Windows
+#                                             node_modules se clash nahi karte)
+#   - backend:  `node --watch`  src/ ya .env change pe process auto-restart
+#   - frontend: Vite dev server + HMR  browser me turant reload
+#
+# USAGE (repo root se):
+#   npm run infra:up          # ek baar — mongo/redis/kafka etc.
+#   npm run docker:dev        # app containers build + start
+#   npm run docker:dev:logs   # backend + frontend ke live logs
+#   npm run docker:dev:stop   # app containers band (infra chalta rahega)
+#
+# package.json dependency badli?
+#   npm run docker:dev:install   # dono services me npm install (volume refresh)
+#
+# NOTES:
+#   - backend/.env bind mount se container me bhi load hota hai (dotenv), to
+#     MONGO_URI (Atlas) waisa hi rehta hai — data source change NAHI hota.
+#   - LOCAL mongo/redis chahiye to backend ke `environment` block me commented
+#     MONGO_URI/REDIS_URL uncomment kar do (services same network me hain).
+#   - Ports host par same hain (5001/5173), isliye .env / VITE_API_URL /
+#     CORS CLIENT_URL sab waise hi kaam karte hain.
+#   - Ye file DEVELOPMENT only hai (infra/docker-compose.yml ke saath merge
+#     karke chalayi jaati hai) — production ke liye docker-compose.prod.yml.
+# ==============================================================================
+
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.dev
+    container_name: findmedi-backend-dev
+    init: true
+    ports:
+      - "5001:5001"
+    volumes:
+      # Code sync: host ka backend/ = container ka /app
+      - ../backend:/app
+      # node_modules host (Windows) ka nahi — image wala Linux version chale
+      - backend_node_modules:/app/node_modules
+    environment:
+      NODE_ENV: development
+      # LOCAL docker mongo+redis (Atlas ki jagah) ke liye uncomment karo:
+      # MONGO_URI: mongodb://mongo1:27017/findmedi?directConnection=true
+      # REDIS_URL: redis://redis:6379
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5001/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    container_name: findmedi-frontend-dev
+    init: true
+    ports:
+      - "5173:5173"
+    volumes:
+      # Code sync: host ka frontend/ = container ka /app
+      - ../frontend:/app
+      - frontend_node_modules:/app/node_modules
+    environment:
+      # Bind-mount file watching (Windows/WSL2) ka polling fallback —
+      # chokidar (Vite) event na de to bhi reload hota rahe.
+      CHOKIDAR_USEPOLLING: "true"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  backend_node_modules:
+  frontend_node_modules:

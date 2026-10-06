@@ -11,6 +11,10 @@ const pharmacyReturnSchema = new mongoose.Schema({
     qty: { type: Number },
     reason: { type: String },
   }],
+  // Why the return was initiated — POST /returns persists the client's reason
+  // here (per-item reasons stay in items[].reason above). Without a top-level
+  // field the reason was silently dropped on create (mongoose strict mode).
+  reason: { type: String },
   total: { type: Number, required: true },
   status: { type: String, enum: ['Pending', 'Approved', 'Rejected', 'Refunded'], default: 'Pending' },
   initiatedAt: { type: Date, default: Date.now },

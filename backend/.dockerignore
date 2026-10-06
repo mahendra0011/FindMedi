@@ -1,0 +1,13 @@
+# Build context ko chhota + fast rakho (image waise bhi sirf package*.json,
+# prisma, src aur mindsupport COPY karti hai). `.env` KABHI image me nahi
+# jaana chahiye — secrets env-injection se aate hain, build context se nahi.
+# (Ye sirf `docker build` par apply hota hai — dev bind mounts par koi asar nahi.)
+node_modules
+coverage
+logs
+*.log
+test
+mock-data
+.env
+.env.*
+*.txt

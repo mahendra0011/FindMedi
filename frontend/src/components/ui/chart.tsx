@@ -87,13 +87,13 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null;
   }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
+  // P1-4: plain text child instead of dangerouslySetInnerHTML. Values are
+  // still constrained to safe CSS tokens via cssIdent()/cssColor() so a
+  // hostile config string cannot break out of the declaration.
+  const cssText = Object.entries(THEMES)
+    .map(
+      ([theme, prefix]) => `
+${prefix} [data-chart=${cssIdent(id)}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
     const color =
@@ -105,11 +105,10 @@ ${colorConfig
   .join('\n')}
 }
 `
-          )
-          .join('\n'),
-      }}
-    />
-  );
+    )
+    .join('\n');
+
+  return <style>{cssText}</style>;
 };
 
 const ChartTooltip = RechartsPrimitive.Tooltip;

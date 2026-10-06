@@ -141,14 +141,40 @@ export async function scanBufferForMalware(buffer) {
   }
 }
 
-export function validateFileContent(buffer, mimetype) {
+export async function validateFileContent(buffer, mimetype) {
+  if (!buffer || buffer.length < 4) return false;
+
+  // P1-5: `file-type` content sniff is FIRST and authoritative. It knows
+  // ~100+ signatures (and container structures like WEBP/OOXML) that a
+  // prefix table cannot express, and — critically — it judges EVERY mime,
+  // while the native/table validators below only know image prefixes and
+  // fail OPEN on anything else (a PNG-bytes-as-PDF spoof sailed through).
+  // A positive DETECTION that disagrees with the claimed MIME is a spoof:
+  // fail closed. `undefined` (unknown to the library) falls through to the
+  // validators below instead of rejecting outright.
+  try {
+    const { fileTypeFromBuffer } = await import('file-type');
+    const detected = await fileTypeFromBuffer(buffer);
+    if (detected) {
+      const claimed = String(mimetype || '').toLowerCase();
+      const found = String(detected.mime || '').toLowerCase();
+      if (found === claimed) return true;
+      // Known-equivalent spellings the routes accept.
+      const ALIASES = { 'image/jpg': 'image/jpeg' };
+      if (ALIASES[claimed] === found) return true;
+      return false;
+    }
+  } catch {
+    // Library unavailable/unable — fall through (route MIME allowlist +
+    // ClamAV remain in front, same as before).
+  }
+
   // Use native Rust validation when the napi module is available
   if (NATIVE_AVAILABLE) {
     return napiValidateMagicBytes(buffer, mimetype).valid;
   }
 
   // Fallback: pure JavaScript magic byte validation
-  if (!buffer || buffer.length < 4) return false;
 
   const signatures = MAGIC_BYTES[mimetype];
   // AUTH-021: unknown MIME → reject (fail-closed). The route-level MIME filter
@@ -179,7 +205,7 @@ export function requireValidatedFile(allowedTypes, maxFileSize) {
         message: `File type ${req.file.mimetype} is not allowed. Allowed types: ${allowedTypes.join(', ')}`,
       });
     }
-    if (!validateFileContent(req.file.buffer, req.file.mimetype)) {
+    if (!(await validateFileContent(req.file.buffer, req.file.mimetype))) {
       return res.status(400).json({
         message: `File content does not match its MIME type. The file may be corrupted or malicious.`,
       });

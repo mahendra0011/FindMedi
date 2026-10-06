@@ -1,14 +1,10 @@
-# Security scanning: gitleaks (secret detection across FULL history) + CodeQL.
+# Security scanning: gitleaks, CodeQL, dependency review, and OSV scanner.
 #
 # IMPORTANT - sequencing (2026-10-05 audit):
 # The gitleaks job scans the whole history, and `server/.env` with real
 # credentials is still reachable there (old commits ~486f79b..df495796).
 # Until the history is purged (git filter-repo) and secrets rotated, the
-# gitleaks job will (correctly) FAIL. Land this file together with, or right
-# after, the history rewrite - do not add it to required checks before that.
-#
-# The npm audit / semgrep / trivy guards already live in ci.yml; this file
-# adds only what was missing: secret-history scanning and CodeQL.
+# gitleaks job will (correctly) FAIL.
 
 name: Security Scan
 
@@ -31,17 +27,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # needed so gitleaks-action can annotate pull requests
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # full history - that is the whole point
+          fetch-depth: 0 # full history
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # GITLEAKS_LICENSE is only required for org-owned/private repos;
-          # this repo is public, so the action runs free.
 
   codeql:
     name: CodeQL (javascript)
@@ -56,3 +49,75 @@ jobs:
           languages: javascript-typescript
       - uses: github/codeql-action/autobuild@v3
       - uses: github/codeql-action/analyze@v3
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+
+  osv-scan:
+    name: OSV Vulnerability Scanner
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google/osv-scanner-action/osv-scanner-action@v1.9.2
+        with:
+          scan-args: |-
+            --skip-git
+            --recursive
+            ./
+
+  # P2-8: OWASP ZAP baseline against staging (NOT prod). Runs on the weekly
+  # schedule + manual dispatch only — too slow/flaky per-push. Requires the
+  # STAGING_URL repository secret; skips silently without it.
+  zap-baseline:
+    name: OWASP ZAP baseline (staging)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Check STAGING_URL configured
+        id: cfg
+        run: test -n "${{ secrets.STAGING_URL }}" && echo "ready=true" >> "$GITHUB_OUTPUT" || echo "ready=false" >> "$GITHUB_OUTPUT"
+      - uses: zaproxy/action-baseline@v0.14.0
+        if: steps.cfg.outputs.ready == 'true'
+        with:
+          target: ${{ secrets.STAGING_URL }}
+          fail_action: true
+          allow_issue_writing: false
+
+  # P3: SBOM (Syft) for backend + frontend lockfiles, kept as a build
+  # artifact for release attestations and audit evidence.
+  sbom:
+    name: SBOM (Syft)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anchore/sbom-action@v0.20.3
+        with:
+          path: ./backend
+          format: spdx-json
+          output-file: sbom-backend.spdx.json
+      - uses: anchore/sbom-action@v0.20.3
+        with:
+          path: ./frontend
+          format: spdx-json
+          output-file: sbom-frontend.spdx.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom-*.spdx.json
+          retention-days: 90

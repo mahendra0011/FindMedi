@@ -4,13 +4,13 @@ import OperationTheatre from '../models/OperationTheatre.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/auth.js';
-import { validate, createSurgerySchema } from '../utils/validate.js';
+import { validate, createSurgerySchema, vitalsShape, checklistMapShape } from '../utils/validate.js';
 import { generateTimestampedId } from '../utils/idGenerator.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const otCompleteSchema = z.object({ findings: z.string().optional(), procedure: z.string().optional(), complications: z.string().optional(), postOpInstructions: z.string().optional(), instrumentsAfter: z.number().optional(), spongesAfter: z.number().optional() });
-const otRecoverySchema = z.object({ recoveryNotes: z.string().optional(), vitals: z.any().optional() });
-const otChecklistSchema = z.object({ checklist: z.any() });
+const otRecoverySchema = z.object({ recoveryNotes: z.string().trim().max(4000).optional(), vitals: vitalsShape.optional() });
+const otChecklistSchema = z.object({ checklist: checklistMapShape });
 const otPreOpVitalsSchema = z.object({ bp: z.string().optional(), hr: z.string().optional(), temp: z.string().optional(), spO2: z.string().optional(), weight: z.string().optional(), notes: z.string().optional() });
 const otInstrumentsSchema = z.object({ instrumentsBefore: z.number().optional(), spongesBefore: z.number().optional() });
 

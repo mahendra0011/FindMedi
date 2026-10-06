@@ -59,6 +59,7 @@ jest.unstable_mockModule('../../src/models/User.js', () => ({
     find: jest.fn(() => ({ lean: async () => [] })),
     modelName: 'User',
   },
+  passwordMatchesHash: async () => ({ ok: false, legacy: false }),
   __esModule: true,
 }));
 

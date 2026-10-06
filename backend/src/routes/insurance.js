@@ -20,17 +20,25 @@ import { generateTimestampedId } from '../utils/idGenerator.js';
 import { paymentLimiter } from '../middleware/rateLimit.js';
 import { idempotencyGuard } from '../middleware/idempotency.js';
 
-// P3: explicit allowlist matching the pickBody() list in the PUT handler below.
-// Unknown keys are stripped by zod, so req.body can never carry a privileged
-// path (claimId, hospitalId, patientId, claimStatus, approvedAmount) into the
-// route even if the pick list is edited later.
+// P3 + P1 #6: explicit allowlist matching the pickBody() list in the PUT
+// handler below. Unknown keys are stripped by zod, so req.body can never carry
+// a privileged path (claimId, hospitalId, patientId, claimStatus,
+// approvedAmount) into the route even if the pick list is edited later, and
+// every value is TYPE-checked against models/Insurance.js: contact is text,
+// documents are {name,url} pairs, diagnosis/treatmentPlan are bounded text,
+// estimatedCost is numeric (edit forms send `Input type=number` strings, so
+// union'd like the pharmacy price fields — mongoose casts on update).
+// `notes` is gone from both schema and pickBody: the model has no such field
+// (strict mode dropped it on every save), making it a dead allowlist entry.
 const updateInsuranceSchema = z.object({
-  tpaContact: z.any().optional(),
-  documents: z.any().optional(),
-  notes: z.any().optional(),
-  diagnosis: z.any().optional(),
-  treatmentPlan: z.any().optional(),
-  estimatedCost: z.any().optional(),
+  tpaContact: z.string().trim().max(300).optional(),
+  documents: z.array(z.object({
+    name: z.string().max(300).optional(),
+    url: z.string().max(2048).optional(),
+  })).max(50).optional(),
+  diagnosis: z.string().trim().max(4000).optional(),
+  treatmentPlan: z.string().trim().max(8000).optional(),
+  estimatedCost: z.union([z.number().nonnegative().max(100000000), z.string().max(30)]).optional(),
 });
 // INS-M-02: the pre-auth is a state machine, not a free-form status write.
 // Request (cashless only, empanelled hospital only) -> decision (admin, with a
@@ -216,7 +224,8 @@ router.put('/:id', protect, authorize('insurance:write', 'insurance:write:own'),
     // gates apply (empanelment, pre-auth) behind an already-approved attempt.
     const updated = await Insurance.findByIdAndUpdate(
       req.params.id,
-      pickBody(req.body, ['tpaContact', 'documents', 'notes', 'diagnosis', 'treatmentPlan', 'estimatedCost']),
+      // 'notes' removed with the schema: the model never had the field.
+      pickBody(req.body, ['tpaContact', 'documents', 'diagnosis', 'treatmentPlan', 'estimatedCost']),
       { new: true }
     );
     if (!updated) return res.status(404).json({ message: 'Claim not found' });

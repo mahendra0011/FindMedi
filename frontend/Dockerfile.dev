@@ -1,0 +1,31 @@
+# ==============================================================================
+# FindMedi Frontend — DEVELOPMENT image (Vite dev server + HMR)
+# ==============================================================================
+# `Dockerfile` production ke liye hai (multi-stage build + nginx). Dev me
+# source bind-mount hota hai aur Vite dev server chalta hai — browser HMR se
+# turant reload hota hai.
+#
+# Toolchain pin (zaroori — warna `npm ci` lockfile sync error deta hai):
+#   - node:24  = host parity (deps Node >=22 maangte hain, e.g. machina@7)
+#   - npm@12   = host ka npm (lockfile isi se author hua hai)
+#
+# Usage:  npm run docker:dev   (repo root se)
+# ==============================================================================
+
+FROM node:24-alpine
+
+# Host ke npm se match karte rakho (lockfile validation npm major par depend karta hai)
+RUN npm i -g npm@12
+
+WORKDIR /app
+
+# .npmrc = lockfile authoring parity (legacy-peer-deps) — COPY zaroori hai,
+# warna container ka strict `npm ci` lock ko "out of sync" bolega.
+COPY package*.json .npmrc ./
+RUN npm ci
+
+EXPOSE 5173
+
+# --host 0.0.0.0: container ke bahar (host browser) tak listen kare —
+# vite.config.js ka `host: "::"` CLI flag se override hota hai.
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]

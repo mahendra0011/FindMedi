@@ -26,7 +26,11 @@
     "seed:cluster": "npm run seed:cluster --prefix backend",
     "infra:up": "node scripts/infra.mjs up",
     "infra:status": "node scripts/infra.mjs status",
-    "infra:down": "node scripts/infra.mjs down"
+    "infra:down": "node scripts/infra.mjs down",
+    "docker:dev": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.app.dev.yml up -d --build backend frontend",
+    "docker:dev:logs": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.app.dev.yml logs -f --tail 200 backend frontend",
+    "docker:dev:stop": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.app.dev.yml stop backend frontend",
+    "docker:dev:install": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.app.dev.yml run --rm backend npm install && docker compose -f infra/docker-compose.yml -f infra/docker-compose.app.dev.yml run --rm frontend npm install"
   },
   "devDependencies": {
     "concurrently": "^9.2.4"

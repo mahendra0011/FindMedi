@@ -235,8 +235,8 @@ export default function Signup() {
           setLoading(false);
           return;
         }
-        if (password.length < 10) {
-          setError('Password must be at least 10 characters');
+        if (password.length < 12) {
+          setError('Password must be at least 12 characters');
           setLoading(false);
           return;
         }

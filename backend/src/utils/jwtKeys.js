@@ -142,7 +142,9 @@ export function signToken(payload, options = {}) {
   return jwt.sign(
     { jti: crypto.randomUUID(), iss: ISSUER, aud: AUDIENCE, ...payload },
     key.secret,
-    { ...options, keyid: key.kid }
+    // AUTH hardening: pin the algorithm LAST so neither a caller option nor a
+    // poisoned payload spread can mint an `none`/asymmetric token.
+    { ...options, keyid: key.kid, algorithm: 'HS256' }
   );
 }
 
@@ -161,6 +163,14 @@ const assertIssuerAudience = (payload) => {
   }
   return payload;
 };
+
+/**
+ * AUTH hardening: algorithms pinned to HS256 — jsonwebtoken must never be
+ * steered by the token's own header (alg:none / RS256-confusion), and
+ * `clockTolerance: 5` absorbs ≤5s of skew between NTP-synced nodes without
+ * turning into an open expiry window.
+ */
+const VERIFY_OPTIONS = { algorithms: ['HS256'], clockTolerance: 5 };
 
 /**
  * Verify against the key named in the token's own header.
@@ -194,13 +204,13 @@ export function verifyToken(token) {
   // from the verifier's point of view and was caught by the first version of
   // this function testing only `!kid`.
   if (!key && (kid === LEGACY_KID || !kid) && process.env.JWT_SECRET) {
-    return assertIssuerAudience(jwt.verify(token, process.env.JWT_SECRET));
+    return assertIssuerAudience(jwt.verify(token, process.env.JWT_SECRET, VERIFY_OPTIONS));
   }
 
   if (!key) {
     throw new Error(kid ? `Unknown kid "${kid}"` : 'Token has no kid header');
   }
-  return assertIssuerAudience(jwt.verify(token, key.secret));
+  return assertIssuerAudience(jwt.verify(token, key.secret, VERIFY_OPTIONS));
 }
 
 /**

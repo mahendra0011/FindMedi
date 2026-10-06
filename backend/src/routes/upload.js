@@ -13,6 +13,7 @@ import { getISTDateString } from '../utils/dateUtils.js';
 import { validateFileContent } from '../middleware/upload.js';
 import { createGrlRateLimiter } from '../middleware/rateLimit.js';
 import { resizeToFit as napiResizeToFit, NATIVE_AVAILABLE } from '../services/napiImageService.js';
+import { publicOrigin } from '../utils/publicOrigin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -96,7 +97,7 @@ router.post('/', protect, authorize('upload:write', 'upload:write:own'), upload.
     }
 
     // Content-based file type verification (magic bytes) — prevents MIME type spoofing
-    if (!validateFileContent(req.file.buffer, req.file.mimetype)) {
+    if (!(await validateFileContent(req.file.buffer, req.file.mimetype))) {
       return res.status(400).json({
         error: 'File content does not match its claimed type. Upload rejected for security.',
       });
@@ -209,7 +210,9 @@ router.post('/', protect, authorize('upload:write', 'upload:write:own'), upload.
       );
     } catch (cloudErr) {
       console.warn('Cloudinary upload failed, using local storage:', cloudErr.message);
-      cloudResult = saveFileLocally(req.file, `${req.protocol}://${req.get('host')}`);
+      // AUTH host-header (P1 #7): publicOrigin pins the configured origin —
+      // a forged Host header must not poison the persisted attachment URL.
+      cloudResult = saveFileLocally(req.file, publicOrigin(req));
     }
 
     const recordType = detectRecordType(clientUploadType);
@@ -309,7 +312,7 @@ router.post('/public', publicUploadLimiter, upload.single('file'), async (req, r
       }
     } catch { /* limiter is best effort */ }
 
-    if (!validateFileContent(req.file.buffer, req.file.mimetype)) {
+    if (!(await validateFileContent(req.file.buffer, req.file.mimetype))) {
       return res.status(400).json({
         error: 'File content does not match its claimed type. Upload rejected for security.',
       });
@@ -338,7 +341,7 @@ router.post('/public', publicUploadLimiter, upload.single('file'), async (req, r
       );
     } catch (cloudErr) {
       console.warn('Cloudinary public upload failed, using local storage:', cloudErr.message);
-      cloudResult = saveFileLocally(req.file, `${req.protocol}://${req.get('host')}`);
+      cloudResult = saveFileLocally(req.file, publicOrigin(req));
     }
 
     res.json({

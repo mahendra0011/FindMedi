@@ -14,7 +14,7 @@
 ## Summary
 
 - **116 models** across 115 files (0 skipped)
-- **3222 schema fields**, of which **465 classified as PII** in **84 collections**
+- **3224 schema fields**, of which **465 classified as PII** in **84 collections**
 - **6 collections** carry a TTL index
 - **17 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -111,7 +111,7 @@
 | `pharmacydeliveries` | PharmacyDelivery | 34 | 9 | 5 | — | Clinical records |
 | `pharmacyoffers` | PharmacyOffer | 14 | 0 | 2 | — | No PII fields detected |
 | `pharmacyorders` | PharmacyOrder | 39 | 4 | 5 | — | Clinical records |
-| `pharmacyreturns` | PharmacyReturn | 17 | 2 | 2 | — | Clinical records |
+| `pharmacyreturns` | PharmacyReturn | 18 | 2 | 2 | — | Clinical records |
 | `pharmacystaffs` | PharmacyStaff | 13 | 3 | 1 | — | Provider KYC documents |
 | `physiotherapies` | Physiotherapy | 34 | 6 | 2 | — | Clinical records |
 | `platformcontents` | PlatformContent | 10 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
@@ -148,7 +148,7 @@
 | `tokens` | Token | 24 | 4 | 3 | — | OTP / setup codes / tokens |
 | `transactionledgers` | TransactionLedger | 20 | 4 | 9 | — | Payment and ledger entries |
 | `triages` | Triage | 46 | 16 | 2 | — | Clinical records |
-| `users` | User | 93 | 26 | 18 | — | **UNMAPPED — see gaps** |
+| `users` | User | 94 | 26 | 18 | — | **UNMAPPED — see gaps** |
 | `vehicles` | Vehicle | 20 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `vitalslogs` | VitalsLog | 23 | 3 | 6 | — | Clinical records |
 | `vitalsreminders` | VitalsReminder | 13 | 1 | 1 | — | Clinical records |
@@ -3628,6 +3628,7 @@ source `PharmacyReturn.js` · timestamps: yes · virtuals: 0 · retention: Statu
 | `items.medicineName` | String |  |  |  |  |  |  |
 | `items.qty` | Number |  |  |  |  |  |  |
 | `items.reason` | String |  |  |  |  |  |  |
+| `reason` | String |  |  |  |  |  |  |
 | `total` | Number | yes |  |  |  |  |  |
 | `status` | String |  |  | "Pending" | Pending, Approved, Rejected, Refunded |  |  |
 | `initiatedAt` | Date |  |  | [function] |  |  |  |
@@ -4945,6 +4946,7 @@ source `User.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — 
 | `name` | String | yes |  |  |  |  | Identity |
 | `email` | String | yes | yes |  |  |  | Contact |
 | `password` | String | yes |  |  |  |  | Credential |
+| `passwordHistory` | Array<String> |  |  | [] |  |  |  |
 | `mustResetPassword` | Boolean |  |  | false |  |  |  |
 | `tokenVersion` | Number |  |  | 0 |  |  |  |
 | `role` | String |  |  | "patient" | superadmin, hospital_admin, doctor, clinic_doctor, patient, lab_owner, lab_receptionist, lab_technician, pathologist, pharmacy_owner, pharmacist, nurse, radiologist, dietitian, physiotherapist, counsellor, counselor, mid_level_counselor, senior_counselor, psychiatrist, accountant… (361 chars) |  |  |

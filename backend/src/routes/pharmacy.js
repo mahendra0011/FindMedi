@@ -165,14 +165,13 @@ const pharmacyOfferSchema = z.object({
   isActive: z.boolean().optional(),
 });
 const pharmacyReturnSchema = z.object({
+  // POST reads orderId + reason and derives EVERYTHING else server-side
+  // (patientName/total/orderRef from the order, status = 'Pending') — PHARM-B-11:
+  // a client can no longer set total or status on create. PUT's allowlist
+  // picks only `status`. patientName/orderRef/items/total are deliberately NOT
+  // declared: strip drops them on the way in, so they never reach a handler.
+  orderId: z.string().min(1).max(80).optional(),
   reason: z.string().trim().min(1).max(1000).optional(),
-  quantity: z.number().int().positive().max(1000).optional(),
-  notes: z.string().trim().max(2000).optional(),
-  // PUT handler allowlists these; strip drops everything else (total/status
-  // are server-owned).
-  orderId: z.string().max(80).optional(),
-  orderRef: z.string().max(80).optional(),
-  patientName: z.string().trim().max(200).optional(),
   status: z.string().trim().max(40).optional(),
 });
 const pharmacyStaffSchema = z.object({
@@ -1226,19 +1225,15 @@ router.put('/deliveries/:id', protect, authorizeObject({ model: lazyModel('../mo
     try {
       const delivery = await PharmacyDelivery.findById(req.params.id);
       if (!delivery) return res.status(404).json({ message: 'Delivery not found' });
-      if (req.body.tracking) delivery.trackingHistory.push({ location: req.body.tracking, time: new Date() });
       const { pickBody } = await import('../utils/pick.js');
       const allowed = pickBody(req.body, ['pickupName', 'pickupAddress', 'pickupLocation', 'dropAddress', 'dropLocation', 'patientName', 'patientPhone', 'deliveryFee', 'notes', 'estimatedTime', 'deliveryProofPhoto', 'deliveryOtp', 'otpVerified', 'status']);
-      Object.assign(delivery, allowed);
-      // PHARM-M-04: enforce proof-of-delivery capture — if status is Delivered and no proof photo exists, require it.
-      if (delivery.status === 'Delivered' && !delivery.deliveryProofPhoto) {
-        return res.status(400).json({ message: 'Delivery proof photo required to mark delivery as completed' });
-      }
-      // PHARM-M-04: OTP-at-door handoff — if a new OTP is provided, mark it verified and transition to Delivered if appropriate.
-      if (req.body.deliveryOtp && !delivery.otpVerified) {
-        delivery.otpVerified = true;
-      }
-      // PHARM-M-04: status timeline — enforce valid transitions
+      // PHARM-M-04: status timeline — validate against the PREVIOUS status and
+      // only then mutate the document. The old check ran AFTER Object.assign,
+      // so the map lookup read the NEW status and every legal transition
+      // (Assigned → Picked Up, Out for Delivery → Delivered, …) was rejected
+      // with a 409; the pre-computed `currentIndex` was dead code. An unchanged
+      // status is an idempotent re-PUT, anything else must be a listed edge,
+      // and a status outside the map fails closed (no edge → 409).
       const validTransitions = {
         'Pending Assignment': ['Assigned'],
         'Assigned': ['Picked Up', 'Cancelled'],
@@ -1248,9 +1243,20 @@ router.put('/deliveries/:id', protect, authorizeObject({ model: lazyModel('../mo
         'Failed': [], // terminal
         'Cancelled': [], // terminal
       };
-      const currentIndex = validTransitions[delivery.status] || [];
-      if (allowed.status && !validTransitions[delivery.status].includes(allowed.status)) {
-        return res.status(409).json({ message: `Invalid status transition from ${delivery.status} to ${allowed.status}` });
+      const previousStatus = delivery.status;
+      if (allowed.status && allowed.status !== previousStatus
+        && !validTransitions[previousStatus]?.includes(allowed.status)) {
+        return res.status(409).json({ message: `Invalid status transition from ${previousStatus} to ${allowed.status}` });
+      }
+      if (req.body.tracking) (delivery.trackingHistory = delivery.trackingHistory || []).push({ location: req.body.tracking, time: new Date() });
+      Object.assign(delivery, allowed);
+      // PHARM-M-04: enforce proof-of-delivery capture — if status is Delivered and no proof photo exists, require it.
+      if (delivery.status === 'Delivered' && !delivery.deliveryProofPhoto) {
+        return res.status(400).json({ message: 'Delivery proof photo required to mark delivery as completed' });
+      }
+      // PHARM-M-04: OTP-at-door handoff — if a new OTP is provided, mark it verified and transition to Delivered if appropriate.
+      if (req.body.deliveryOtp && !delivery.otpVerified) {
+        delivery.otpVerified = true;
       }
       await delivery.save();
       res.json(delivery);
@@ -1313,8 +1319,34 @@ router.get('/returns', protect, async (req, res) => {
 
 router.post('/returns', protect, authorize('pharmacy:manage'), validate(pharmacyReturnSchema), async (req, res) => {
   try {
+    const oid = String(req.body.orderId || '').trim();
+    if (!oid) return res.status(400).json({ message: 'orderId is required' });
+    // PHARM-B-11: patientName/total/orderRef are SERVER-OWNED — derived from
+    // the order, never read from the request. The old handler spread the body
+    // straight into create(), but both model fields are required and neither
+    // client sends them (Pharmacy.tsx → {orderId, reason}; OrderTracking →
+    // {orderId, reason, status:'Requested'} — also outside the model enum), so
+    // every legitimate return failed 400 while a forger still could not set
+    // the fields either. Accepts either id shape: a 24-hex _id (Pharmacy.tsx
+    // sends option.value = o._id) or the human orderId string.
+    let order = null;
+    if (/^[0-9a-fA-F]{24}$/.test(oid)) order = await PharmacyOrder.findById(oid);
+    if (!order) order = await PharmacyOrder.findOne({ orderId: oid });
+    if (!order) return res.status(404).json({ message: 'Order not found' });
     const returnId = generateTimestampedId('RET');
-    const ret = await PharmacyReturn.create({ ...req.body, returnId, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    const ret = await PharmacyReturn.create({
+      orderId: oid,
+      orderRef: order._id,
+      patientName: order.patientName,
+      total: order.total,
+      reason: req.body.reason,
+      // Client status is ignored — returns always start at 'Pending', the
+      // first value the staff returns UI knows how to act on.
+      status: 'Pending',
+      returnId,
+      hospitalId: req.user.hospitalId,
+      facilityId: req.user.facilityId || req.user.hospitalId || undefined,
+    });
     await auditLog('create_pharmacy_return', req.user._id, { recordId: ret._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(ret);
   } catch (err) { res.status(400).json({ message: err.message }); }
@@ -1325,9 +1357,12 @@ router.put('/returns/:id', protect, authorizeObject({ model: lazyModel('../model
     const ret = await PharmacyReturn.findById(req.params.id);
     if (!ret) return res.status(404).json({ message: 'Return not found' });
     if (req.body.status === 'Approved' || req.body.status === 'Refunded') ret.completedAt = new Date();
-    // AUTH-030: allowlisted fields only — returnId/patient/tenant linkage immutable.
+    // AUTH-030 / PHARM-B-11: only the staff UI's status updates are writable.
+    // Order/patient linkage and the server-derived total are immutable here;
+    // items/total were never reachable anyway — validate() strips anything the
+    // schema does not declare, which made the old allowlist entries no-ops.
     const { pickBody } = await import('../utils/pick.js');
-    Object.assign(ret, pickBody(req.body, ['orderId', 'orderRef', 'patientName', 'items', 'total', 'status']));
+    Object.assign(ret, pickBody(req.body, ['status']));
     await ret.save();
     await auditLog('update_pharmacy_return', req.user._id, { recordId: ret._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(ret);

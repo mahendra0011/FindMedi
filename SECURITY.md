@@ -210,15 +210,20 @@ own right — please report it.
 
 ## 6. Third-party processors
 
-| Processor | Data | Purpose | Notes |
-|---|---|---|---|
-| MongoDB Atlas | All application data incl. PHI | Primary datastore | — |
-| Cloudinary | Uploaded images, prescriptions, documents | Media storage | Signed URLs |
-| Brevo (Sendinblue) | Email address, notification content | Transactional email | OTP codes are **not** emailed |
-| Razorpay | Payment metadata, amounts | Payment processing | No card data touches our servers |
-| Google | OAuth identity (email, name) | Federated sign-in | — |
-| MapTiler | Coordinates | Maps and dispatch | — |
-| Twilio | Phone number, message body | SMS/OTP delivery | — |
+| Processor | Data Processed | Purpose | Region | DPA / BAA | Breach Contact | Notes |
+|---|---|---|---|---|---|---|
+| MongoDB Atlas | All application data incl. PHI | Primary managed datastore | AWS ap-south-1 (Mumbai) | DPA + BAA | security@mongodb.com | TLS 1.3, encrypted at rest |
+| Cloudinary | Uploaded images, medical prescriptions, docs | Media storage & CDN | US / Global | DPA signed | security@cloudinary.com | Signed URLs, strict access control |
+| Brevo (Sendinblue) | Email address, notification text | Transactional email | EU (Frankfurt) | GDPR DPA | privacy@brevo.com | OTP codes are never emailed |
+| Razorpay | Order IDs, transaction amount, customer email/phone | Payment gateway | India | RBI/DPDP DPA | security@razorpay.com | PCI-DSS Level 1; no card data touches our servers |
+| Google | OAuth profile (sub, email, name, avatar) | Federated single sign-on | Global | DPA signed | security@google.com | Verified via Google Auth Library |
+| MapTiler | Latitude / longitude coordinates | Map tiles and dispatch routing | EU | DPA signed | privacy@maptiler.com | Ephemeral coordinates; no patient identities |
+| Twilio | Phone number, SMS notification body | SMS & OTP delivery | US / Global | DPA signed | privacy@twilio.com | Sensitive codes expire in 5 min |
+| Sentry | Stack traces, sanitized breadcrumbs, HTTP status | Error and exception monitoring | US / EU | DPA + BAA | security@sentry.io | PII scrubbing active (beforeSend masks PHI/emails) |
+| PostHog | Pageviews, anonymized feature usage events | Product analytics | EU (Germany) | DPA signed | privacy@posthog.com | Distinct IDs pseudonymized, form inputs masked |
+| Unleash | Anonymous context (user role, tenant ID) | Feature flag evaluation | EU / Self-hosted | DPA signed | security@getunleash.io | No clinical or demographic data transmitted |
+| LiveKit | WebRTC media streams (audio / video) | Telemedicine consultations | Global / Self-hosted | DPA signed | privacy@livekit.io | End-to-end WebSockets + SRTP encrypted; no media recording stored unless consented |
+| Render | Container execution environment, build artifacts | Application & background worker hosting | US / EU (Frankfurt) | DPA signed | security@render.com | Hardened Linux containers, TLS termination |
 
 Any new processor must be added here **and** to the DPIA before it receives
 production data.

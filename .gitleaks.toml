@@ -1,0 +1,14 @@
+# FindMedi gitleaks config — local `protect` and CI `gitleaks-action` both read this.
+# Rule: production secrets live ONLY in env/secret-manager, never in git.
+# The allowlists below pin the exact values of DOCUMENTED test-only constants
+# (matched by secret content, not line number, so edits elsewhere in the file
+# don't silently re-open the hole). A NEW secret value still fails the scan.
+# Adding an entry needs a security review, not a silent edit.
+
+[[allowlists]]
+description = "test-only HMAC pepper constant (hardeningGates.spec.js) - never leaves the test process"
+regexes = ['''test-pepper-that-is-long-enough-123''']
+
+[[allowlists]]
+description = "test-only JWT secret (jwtHardening.spec.js) - never leaves the test process"
+regexes = ['''hardening-secret-0123456789abcdef''']

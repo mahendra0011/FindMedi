@@ -569,7 +569,7 @@ export default function JoinPlatform() {
   const canProceed = () => {
     if (type === 'delivery') {
       if (step === 1) return !!type;
-      if (step === 2) return delivery.name?.length >= 2 && delivery.phone?.length >= 10 && delivery.dateOfBirth && delivery.gender && delivery.address && delivery.city && delivery.pincode && delivery.password?.length >= 8;
+      if (step === 2) return delivery.name?.length >= 2 && delivery.phone?.length >= 10 && delivery.dateOfBirth && delivery.gender && delivery.address && delivery.city && delivery.pincode && delivery.password?.length >= 12;
       if (step === 3) return delivery.vehicleType;
       if (step === 4) return deliveryDocs.aadharFront && deliveryDocs.photo && delivery.bankAccountNumber && delivery.bankIfsc && delivery.bankAccountHolderName;
       if (step === 5) return true;
@@ -792,7 +792,7 @@ export default function JoinPlatform() {
       return true;
     }
     if (step === 1) return !!type;
-    if (step === 2) return account.name?.length >= 2 && account.email?.includes('@') && account.phone?.length >= 10 && account.password?.length >= 10 && account.password === confirmPassword;
+    if (step === 2) return account.name?.length >= 2 && account.email?.includes('@') && account.phone?.length >= 10 && account.password?.length >= 12 && account.password === confirmPassword;
     if (step === 3) {
       if (type === 'hospital') {
         return facility.name && facility.address && facility.city && facility.license?.trim().length >= 3
@@ -1577,7 +1577,7 @@ export default function JoinPlatform() {
                    <label className="text-sm font-medium text-foreground mb-1.5 block">Password <span className="text-red-500">*</span></label>
                    <div className="relative">
                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                     <Input type={showPassword ? 'text' : 'password'} value={delivery.password} onChange={updateDelivery('password')} placeholder="Min 8 characters" className="pl-10 pr-10" />
+                     <Input type={showPassword ? 'text' : 'password'} value={delivery.password} onChange={updateDelivery('password')} placeholder="Min 12 characters" className="pl-10 pr-10" />
                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                      </button>
@@ -2037,7 +2037,7 @@ export default function JoinPlatform() {
                       <label className="text-sm font-medium text-foreground mb-1.5 block">Password <span className="text-red-500">*</span></label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input type={showPassword ? 'text' : 'password'} value={rider.password} onChange={updateRider('password')} placeholder="Min 8 characters" className="pl-10 pr-10" />
+                        <Input type={showPassword ? 'text' : 'password'} value={rider.password} onChange={updateRider('password')} placeholder="Min 12 characters" className="pl-10 pr-10" />
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -2594,7 +2594,7 @@ export default function JoinPlatform() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium text-foreground mb-1.5 block">Password <span className="text-red-500">*</span></label>
-                        <Input type="password" value={assistant.password} onChange={updateAssistant('password')} placeholder="Min 8 characters" />
+                        <Input type="password" value={assistant.password} onChange={updateAssistant('password')} placeholder="Min 12 characters" />
                       </div>
                       <div>
                         <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password <span className="text-red-500">*</span></label>
@@ -3030,7 +3030,7 @@ export default function JoinPlatform() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium text-foreground mb-1.5 block">Password <span className="text-red-500">*</span></label>
-                        <Input type="password" value={lawyer.password} onChange={updateLawyer('password')} placeholder="Min 8 characters" />
+                        <Input type="password" value={lawyer.password} onChange={updateLawyer('password')} placeholder="Min 12 characters" />
                       </div>
                       <div>
                         <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password <span className="text-red-500">*</span></label>
@@ -3495,7 +3495,7 @@ export default function JoinPlatform() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium text-foreground mb-1.5 block">Password <span className="text-red-500">*</span></label>
-                        <Input type="password" value={counsellor.password} onChange={updateCounsellor('password')} placeholder="Min 8 characters" />
+                        <Input type="password" value={counsellor.password} onChange={updateCounsellor('password')} placeholder="Min 12 characters" />
                       </div>
                       <div>
                         <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password <span className="text-red-500">*</span></label>
@@ -4011,7 +4011,7 @@ export default function JoinPlatform() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium text-foreground mb-1.5 block">Password <span className="text-red-500">*</span></label>
-                        <Input type="password" value={psychiatrist.password} onChange={updatePsychiatrist('password')} placeholder="Min 8 characters" />
+                        <Input type="password" value={psychiatrist.password} onChange={updatePsychiatrist('password')} placeholder="Min 12 characters" />
                       </div>
                       <div>
                         <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password <span className="text-red-500">*</span></label>
@@ -4494,7 +4494,7 @@ export default function JoinPlatform() {
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Password <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input type={showPassword ? 'text' : 'password'} value={account.password} onChange={updateAccount('password')} placeholder="Min 8 characters" className="pl-10 pr-10" />
+                    <Input type={showPassword ? 'text' : 'password'} value={account.password} onChange={updateAccount('password')} placeholder="Min 12 characters" className="pl-10 pr-10" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>

@@ -5,15 +5,19 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Billing from '../models/Billing.js';
 import { protect, adminOnly } from '../middleware/auth.js';
-import { validate, createDietOrderSchema } from '../utils/validate.js';
+import { validate, createDietOrderSchema, boundedScalar, boundedShallow } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { generateOrderId, generateInvoiceId } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
-const dietDeliverMealSchema = z.object({ mealType: z.string().optional(), items: z.any().optional() });
-const dietConfirmMealSchema = z.object({ mealIndex: z.number().int().nonnegative(), feedback: z.string().optional(), feedbackNote: z.string().optional() });
-const dietBillingSchema = z.object({ amount: z.number().optional(), description: z.string().optional(), items: z.array(z.any()).optional(), sessionType: z.string().optional() });
+const mealItemShape = z.union([
+  z.string().trim().max(300),
+  z.object({ name: z.string().trim().max(300), quantity: z.string().trim().max(100).optional() }).catchall(boundedScalar),
+]);
+const dietDeliverMealSchema = z.object({ mealType: z.string().trim().max(100).optional(), items: z.array(mealItemShape).max(200).optional() });
+const dietConfirmMealSchema = z.object({ mealIndex: z.number().int().nonnegative(), feedback: z.string().trim().max(1000).optional(), feedbackNote: z.string().trim().max(2000).optional() });
+const dietBillingSchema = z.object({ amount: z.number().finite().optional(), description: z.string().trim().max(1000).optional(), items: z.array(boundedShallow).max(200).optional(), sessionType: z.string().trim().max(100).optional() });
 
 const router = express.Router();
 

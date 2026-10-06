@@ -13,12 +13,41 @@ export const validate = (schema) => (req, res, next) => {
 // â”€â”€â”€ Reusable Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const passwordSchema = z
   .string()
-  .min(10, 'Password must be at least 10 characters')
+  .min(12, 'Password must be at least 12 characters')
   .max(128, 'Password must be at most 128 characters')
   .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
   .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
   .regex(/[0-9]/, 'Password must contain at least one number')
   .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
+
+// ─── P1-6: bounded replacements for `z.any()` in request schemas ───────────
+// Keys stay open, but VALUES are type/length-checked: flat scalars, one level
+// of arrays/records, no deep nesting, no unbounded strings. This rejects
+// prototype-pollution-shaped objects, 10MB-string DoS payloads and type-
+// confusion values while accepting every legitimate clinical payload
+// (vitals maps, checklists, meal items, schedules, assessments).
+export const boundedScalar = z.union([
+  z.string().trim().max(4000),
+  z.number().finite(),
+  z.boolean(),
+]);
+export const boundedShallow = z.union([
+  boundedScalar,
+  z.null(),
+  z.array(z.union([z.string().trim().max(4000), z.number().finite(), z.boolean(), z.null()])).max(500),
+  z.record(z.string().max(200), z.union([z.string().trim().max(8000), z.number().finite(), z.boolean(), z.null()])),
+]);
+export const boundedText = (max = 2000) => z.string().trim().max(max);
+// Vitals-shaped readings: flat string/number map (bp, pulse, temp, spo2…).
+export const vitalsShape = z.record(
+  z.string().max(120),
+  z.union([z.string().trim().max(200), z.number().finite(), z.boolean(), z.null()]),
+);
+// Checklist as stored by housekeeping/OT: { itemKey: done|note }.
+export const checklistMapShape = z.record(
+  z.string().max(200),
+  z.union([z.boolean(), z.string().trim().max(1000), z.number().finite()]),
+);
 
 export const emailSchema = z.string().email('Valid email is required').transform(e => e.toLowerCase());
 export const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid ID format');
@@ -72,7 +101,7 @@ export const registerSchema = z.object({
   vehiclePhotos: z.array(z.string()).optional(),
   seatingCapacity: z.union([z.string(), z.number()]).optional(),
   fuelType: z.string().optional(),
-  extraFields: z.record(z.any()).optional(),
+  extraFields: z.record(z.string().max(200), boundedScalar).optional(),
 
   // Assistant-specific fields (Doc 02)
   policeVerificationDocUrl: z.string().optional(),
@@ -88,7 +117,7 @@ export const registerSchema = z.object({
   shiftTypes: z.array(z.string()).optional(),
   pricePerHour: z.union([z.string(), z.number()]).optional(),
   pricePerFullDay: z.union([z.string(), z.number()]).optional(),
-  extraSkills: z.record(z.any()).optional(),
+  extraSkills: z.record(z.string().max(200), boundedScalar).optional(),
 
   // Banking & Availability (Doc 02)
   bankAccountHolder: z.string().optional(),
@@ -524,7 +553,7 @@ export const createHousekeepingSchema = z.object({
   ward: z.string().optional(),
   type: z.string().min(1, 'Type is required'),
   priority: z.string().optional(),
-  checklist: z.any().optional(),
+  checklist: checklistMapShape.optional(),
 });
 
 export const createSupportTicketSchema = z.object({
@@ -554,9 +583,9 @@ export const createScheduleChangeRequestSchema = z.object({
     workingHours: z.object({ start: z.string(), end: z.string() }).optional(),
     breakTime: z.object({ start: z.string(), end: z.string() }).optional(),
     bookingWindow: z.object({ unit: z.enum(['hours', 'days', 'weeks', 'months']), value: z.number().min(0) }).optional(),
-    weekly_schedule: z.any().optional(),
-    leaves: z.any().optional(),
-    dateDisabledSlots: z.any().optional(),
+    weekly_schedule: z.record(z.string().max(20), z.array(z.string().trim().max(20)).max(100)).optional(),
+    leaves: z.array(z.union([z.string().trim().max(30), boundedShallow])).max(200).optional(),
+    dateDisabledSlots: z.record(z.string().max(30), z.array(z.string().trim().max(20)).max(100)).optional(),
     bufferPerHour: z.number().optional(),
   }).passthrough(),
 });
@@ -737,18 +766,38 @@ export const createTokenSchema = z.object({
 });
 
 // â”€â”€â”€ Triage Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// P1 #6: shared vitals shape for triage POST/PUT. The form's number inputs
+// submit STRING values (TriagePage `Input type=number` → e.target.value), so
+// each field is number|string and mongoose does the numeric cast — the same
+// union pattern the pharmacy price fields use, instead of `z.any()` (which
+// accepted objects/arrays too deep or large to be a vital) or plain
+// z.number() (which 400'd every form submission).
+export const triageVitalsSchema = z.object({
+  bpSystolic: z.union([z.number(), z.string().max(10)]).optional(),
+  bpDiastolic: z.union([z.number(), z.string().max(10)]).optional(),
+  heartRate: z.union([z.number(), z.string().max(10)]).optional(),
+  respRate: z.union([z.number(), z.string().max(10)]).optional(),
+  temperature: z.union([z.number(), z.string().max(10)]).optional(),
+  spO2: z.union([z.number(), z.string().max(10)]).optional(),
+  bloodSugar: z.union([z.number(), z.string().max(10)]).optional(),
+  painScale: z.union([z.number().min(0).max(10), z.string().max(4)]).optional(),
+});
+
 export const createTriageSchema = z.object({
   patientName: z.string().min(1, 'Patient name is required'),
-  age: z.number().optional(),
-  gender: z.string().optional(),
-  phone: z.string().optional(),
-  patientId: z.string().optional(),
-  arrivalMode: z.string().optional(),
-  broughtBy: z.string().optional(),
-  chiefComplaint: z.string().min(1, 'Chief complaint is required'),
-  triageLevel: z.string().min(1, 'Triage level is required'),
-  triageNotes: z.string().optional(),
-  vitals: z.any().optional(),
+  // TriagePage keeps age as a string in state (`age: ''`, Input onChange →
+  // e.target.value), and z.number() rejected EVERY create. Union lets the
+  // string through; mongoose casts (and '' → null), non-numeric strings 400.
+  age: z.union([z.number().int().nonnegative().max(150), z.string().max(10)]).optional(),
+  gender: z.string().max(40).optional(),
+  phone: z.string().max(30).optional(),
+  patientId: z.string().max(40).optional(),
+  arrivalMode: z.enum(['Walk-in', 'Ambulance', 'Police', 'Referral']).optional(),
+  broughtBy: z.string().max(200).optional(),
+  chiefComplaint: z.string().min(1, 'Chief complaint is required').max(1000),
+  triageLevel: z.enum(['P1-Immediate', 'P2-Urgent', 'P3-Less Urgent', 'P4-Non Urgent', 'P5-Deceased']),
+  triageNotes: z.string().max(4000).optional(),
+  vitals: triageVitalsSchema.optional(),
   isMLCO: z.boolean().optional(),
 });
 
@@ -794,7 +843,7 @@ export const registerFacilitySchema = z.object({
   image: z.string().optional(),
   nablNumber: z.string().optional(),
   aerbNumber: z.string().optional(),
-  workingHours: z.any().optional(),
+  workingHours: z.union([z.string().trim().max(500), z.record(z.string().max(100), z.string().trim().max(100))]).optional(),
   pathologistName: z.string().optional(),
   pathologistQualification: z.string().optional(),
   radiologistName: z.string().optional(),
@@ -805,13 +854,13 @@ export const registerFacilitySchema = z.object({
   technicianRole: z.string().optional(),
   technicianQualification: z.string().optional(),
   technicianExperience: z.string().optional(),
-  timing: z.any().optional(),
-  amenities: z.any().optional(),
-  socialLinks: z.any().optional(),
+  timing: z.union([z.string().trim().max(500), z.record(z.string().max(100), z.string().trim().max(100))]).optional(),
+  amenities: z.union([z.string().trim().max(2000), z.array(z.string().trim().max(200)).max(100)]).optional(),
+  socialLinks: z.record(z.string().max(100), z.string().trim().max(500)).optional(),
   adminName: z.string().optional(),
   adminEmail: z.string().optional(),
   adminPhone: z.string().optional(),
-  details: z.any().optional(),
+  details: boundedShallow.optional(),
 });
 
 export const updateFacilitySchema = z.object({
@@ -842,10 +891,10 @@ export const updateFacilitySchema = z.object({
   technicianRole: z.string().optional(),
   technicianQualification: z.string().optional(),
   technicianExperience: z.string().optional(),
-  timing: z.any().optional(),
-  amenities: z.any().optional(),
-  socialLinks: z.any().optional(),
-  details: z.any().optional(),
+  timing: z.union([z.string().trim().max(500), z.record(z.string().max(100), z.string().trim().max(100))]).optional(),
+  amenities: z.union([z.string().trim().max(2000), z.array(z.string().trim().max(200)).max(100)]).optional(),
+  socialLinks: z.record(z.string().max(100), z.string().trim().max(500)).optional(),
+  details: boundedShallow.optional(),
 });
 
 // â”€â”€â”€ Announcement Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -915,7 +964,7 @@ export const updateClinicProfileSchema = z.object({
   description: z.string().optional(),
   specialties: z.array(z.string()).optional(),
   image: z.string().optional(),
-  details: z.any().optional(),
+  details: boundedShallow.optional(),
 });
 
 // AUTH-B-19: facility staff endpoints may only mint facility-scoped roles.

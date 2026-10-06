@@ -1,0 +1,16 @@
+# FindMedi CODEOWNERS
+# Security-critical paths requiring explicit owner review
+
+* @mahendra0011
+
+# Sensitive security middleware and authorization
+/backend/src/middleware/ @mahendra0011
+/backend/src/utils/jwtKeys.js @mahendra0011
+/backend/src/utils/publicOrigin.js @mahendra0011
+/backend/src/routes/auth.js @mahendra0011
+
+# Infrastructure, CI/CD, and deployment configurations
+/.github/ @mahendra0011
+/infra/ @mahendra0011
+/docker-compose*.yml @mahendra0011
+/Dockerfile* @mahendra0011

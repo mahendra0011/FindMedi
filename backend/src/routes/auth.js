@@ -7,11 +7,15 @@ import {
   REFRESH_TOKEN_TYP,
 } from '../utils/jwtKeys.js';
 import crypto from 'node:crypto';
+import bcrypt from 'bcryptjs';
+
+// Cost-12 dummy hash for timing equalization against unknown user lookups
+const DUMMY_BCRYPT_HASH = '$2a$12$IYGSxRF4OeDhBdJetsO8cufklkviy4grvekqGNwcd2yN4Izh/lq96';
 import multer from 'multer';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import User from '../models/User.js';
+import User, { passwordMatchesHash } from '../models/User.js';
 import RefreshToken from '../models/RefreshToken.js';
 import Doctor from '../models/Doctor.js';
 import Facility from '../models/Facility.js';
@@ -25,6 +29,7 @@ import LawyerProfile from '../models/LawyerProfile.js';
 import { protect } from '../middleware/auth.js';
 import { issueStepUpFor, clearStepUps } from '../middleware/stepUpAuth.js';
 import { sendServerError } from '../utils/safeError.js';
+import { publicOrigin } from '../utils/publicOrigin.js';
 
 /**
  * The actions that require a fresh proof of possession.
@@ -68,6 +73,8 @@ import {
   passwordSchema,
 } from '../utils/validate.js';
 import { isPwnedPassword } from '../utils/pwnedPassword.js';
+import { checkPasswordStrength, strongPasswordMessage } from '../utils/passwordStrength.js';
+import { enforceConcurrentCap, enforceRefreshTimeouts } from '../utils/sessionPolicy.js';
 import { authCookieName, authCookieOptions, readAuthCookie } from '../lib/cookiePolicy.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
@@ -100,7 +107,7 @@ const avatarUpload = multer({
 const allowedAvatarTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 const handleAvatarUpload = (req, res, next) => {
-  avatarUpload.single('file')(req, res, (err) => {
+  avatarUpload.single('file')(req, res, async (err) => {
     if (err) {
       const message = err.code === 'LIMIT_FILE_SIZE'
         ? 'Profile photo must be 5MB or smaller'
@@ -119,7 +126,7 @@ const handleAvatarUpload = (req, res, next) => {
     }
 
     // Content-based file type verification (magic bytes) — prevents MIME type spoofing
-    if (!validateFileContent(file.buffer, file.mimetype)) {
+    if (!(await validateFileContent(file.buffer, file.mimetype))) {
       return res.status(400).json({ message: 'File content does not match its claimed type. Upload rejected for security.' });
     }
 
@@ -149,8 +156,10 @@ const saveAvatarLocally = async (file, req) => {
   const filename = `${req.user.id}-${Date.now()}${ext}`;
   await fs.writeFile(path.join(uploadDir, filename), file.buffer);
 
+  // AUTH host-header (P1 #7): never derive a persisted URL from the request's
+  // Host header in production — publicOrigin() pins the configured origin.
   return {
-    url: `${req.protocol}://${req.get('host')}/uploads/avatars/${filename}`,
+    url: `${publicOrigin(req)}/uploads/avatars/${filename}`,
     storedIn: 'local',
   };
 };
@@ -158,8 +167,13 @@ const saveAvatarLocally = async (file, req) => {
 // AUTH-F-02: `typ` marks the purpose. A refresh token is a 7-day rotating
 // session secret; without this claim it verified as an access token on every
 // endpoint (protect now rejects it via verifyAccessToken).
+// AUTH claims minimisation: the access token carries identity + purpose only.
+// `name`/`email` were never read back — protect() loads the user from the DB
+// on every request and nothing decodes the JWT for profile data (verified by
+// repo-wide grep) — so they only widened what a leaked token discloses.
+// Tokens minted before this still verify; the claims are simply ignored.
 const signAccessToken = (user) => signJwt(
-  { id: user._id, role: user.role, name: user.name, email: user.email, tv: user.tokenVersion || 0, jti: crypto.randomBytes(8).toString('hex'), typ: ACCESS_TOKEN_TYP },
+  { id: user._id, role: user.role, tv: user.tokenVersion || 0, jti: crypto.randomBytes(8).toString('hex'), typ: ACCESS_TOKEN_TYP },
   { expiresIn: '15m' }
 );
 
@@ -186,6 +200,9 @@ const sign = (user, req) => {
     ip: req?.ip || '',
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   }).catch(err => logger.error('Failed to save refresh token:', err.message));
+  // P2-10: concurrent session cap — evict oldest live sessions beyond the
+  // role cap (fire-and-forget; never fails the login itself).
+  enforceConcurrentCap(user._id, user.role).catch(() => {});
   return { accessToken, refreshToken };
 };
 
@@ -384,6 +401,19 @@ router.post('/register', authLimiter, botProtection(), validate(registerSchema),
         message: 'This password has appeared in a data breach. Please choose a different one.',
         code: 'PASSWORD_PWNED',
       });
+    }
+
+    // P2-11: zxcvbn strength gate — length/complexity passed zod, but keyboard
+    // walks and leetspeak pass those too. User inputs salt the estimator.
+    {
+      const strength = checkPasswordStrength(password, [name, email]);
+      if (!strength.ok) {
+        return res.status(400).json({
+          message: strongPasswordMessage(strength.feedback),
+          code: 'PASSWORD_TOO_WEAK',
+          score: strength.score,
+        });
+      }
     }
 
     if (normalizedRole === 'doctor' && (!specialization || !licenseNumber || !(qualification || qualifications))) {
@@ -880,7 +910,16 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
 
     const user = await User.findOne({ email: lowerEmail }).select('+password');
 
-    if (!user || !(await user.comparePassword(password))) {
+    let passwordMatches = false;
+    if (user) {
+      passwordMatches = await user.comparePassword(password);
+    } else {
+      // P2-11: Timing equalization — run real bcrypt comparison against a precomputed
+      // cost-12 hash so unknown emails take the exact same time as known emails.
+      await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
+    }
+
+    if (!user || !passwordMatches) {
       // Incremented for unknown emails too. Counting only real accounts would
       // let an attacker enumerate which addresses are registered by watching the
       // backoff grow.
@@ -930,6 +969,20 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
           });
       }
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // P2-11: breached password presented at login → flag mustResetPassword so
+    // subsequent sessions force a fresh, uncompromised password (protect
+    // enforces the reset lock session-level; this login still succeeds).
+    // Fail-open: an HIBP outage must never break login.
+    if (!user.mustResetPassword) {
+      try {
+        if (await isPwnedPassword(password)) {
+          user.mustResetPassword = true;
+          await user.save();
+          logger.warn(`[auth] user ${user._id} logged in with pwned password; flagged mustResetPassword`);
+        }
+      } catch { /* HIBP/save failure keeps the successful login */ }
     }
     try {
       const { resetLoginFailures } = await import('../config/redis.js');
@@ -1481,7 +1534,19 @@ router.post('/reset-password', authLimiter, validate(resetPasswordSchema), async
       });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    // P2-11: zxcvbn strength gate on reset too.
+    {
+      const strength = checkPasswordStrength(password, [email]);
+      if (!strength.ok) {
+        return res.status(400).json({
+          message: strongPasswordMessage(strength.feedback),
+          code: 'PASSWORD_TOO_WEAK',
+          score: strength.score,
+        });
+      }
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password +passwordHistory');
     // AUTH-B-15: same generic answer for unknown accounts (no enumeration oracle).
     if (!user) return res.status(400).json({ message: 'Invalid or expired reset code' });
 
@@ -1506,6 +1571,19 @@ router.post('/reset-password', authLimiter, validate(resetPasswordSchema), async
       return res.status(400).json({ message: verificationResult.message });
     }
 
+    if (user.password && (await passwordMatchesHash(password, user.password)).ok) {
+      return res.status(400).json({ message: 'New password cannot be the same as your current password' });
+    }
+    if (user.passwordHistory && user.passwordHistory.length > 0) {
+      for (const oldHash of user.passwordHistory) {
+        if ((await passwordMatchesHash(password, oldHash)).ok) {
+          return res.status(400).json({ message: 'You cannot reuse any of your last 5 passwords' });
+        }
+      }
+    }
+    if (user.password) {
+      user.passwordHistory = [user.password, ...(user.passwordHistory || [])].slice(0, 5);
+    }
     user.password = password;
     user.mustResetPassword = false;
     await user.save();
@@ -1640,9 +1718,22 @@ router.put('/change-password', protect, validate(changePasswordSchema), async (r
   try {
     const { currentPassword, newPassword } = req.body;
 
-    const user = await User.findById(req.user.id).select('+password');
+    const user = await User.findById(req.user.id).select('+password +passwordHistory');
     if (!user || !(await user.comparePassword(currentPassword))) {
       return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    if ((await passwordMatchesHash(newPassword, user.password)).ok) {
+      return res.status(400).json({ message: 'New password cannot be the same as your current password' });
+    }
+
+    // P2-11: Password history (last 5) check
+    if (user.passwordHistory && user.passwordHistory.length > 0) {
+      for (const oldHash of user.passwordHistory) {
+        if ((await passwordMatchesHash(newPassword, oldHash)).ok) {
+          return res.status(400).json({ message: 'You cannot reuse any of your last 5 passwords' });
+        }
+      }
     }
 
     // P2-9: known-breached passwords are refused here too.
@@ -1653,6 +1744,19 @@ router.put('/change-password', protect, validate(changePasswordSchema), async (r
       });
     }
 
+    // P2-11: zxcvbn strength gate on change too.
+    {
+      const strength = checkPasswordStrength(newPassword, [user.email, user.name]);
+      if (!strength.ok) {
+        return res.status(400).json({
+          message: strongPasswordMessage(strength.feedback),
+          code: 'PASSWORD_TOO_WEAK',
+          score: strength.score,
+        });
+      }
+    }
+
+    user.passwordHistory = [user.password, ...(user.passwordHistory || [])].slice(0, 5);
     user.password = newPassword;
     user.mustResetPassword = false;
     await user.save();
@@ -2006,6 +2110,15 @@ router.post('/refresh', authLimiter, validate(refreshTokenSchema), async (req, r
       }
       logger.error(`[auth] refresh reuse detected for user ${stored.userId} (family ${stored.familyId}) - all sessions revoked`);
       return res.status(401).json({ message: 'Session compromised. Please login again.' });
+    }
+
+    // P2-10: idle + absolute family timeouts (env-gated, default off).
+    // Expired families are revoked family-wide + audited here.
+    {
+      const timeout = await enforceRefreshTimeouts(stored, { ip: req.ip, userAgent: req.get?.('user-agent') });
+      if (!timeout.ok) {
+        return res.status(401).json({ message: 'Session expired. Please login again.' });
+      }
     }
 
     // Signature + PURPOSE check: an access token must not mint a new 7-day

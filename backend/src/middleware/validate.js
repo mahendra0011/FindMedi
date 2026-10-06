@@ -45,7 +45,7 @@ export const registerSchema = z.object({
     email: z.string().email('Valid email is required'),
     password: z
       .string()
-      .min(10, 'Password must be at least 10 characters')
+      .min(10, 'Password must be at least 12 characters')
       .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
       .regex(/[0-9]/, 'Password must contain at least one number')
       .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
@@ -58,7 +58,7 @@ export const changePasswordSchema = z.object({
     currentPassword: z.string().min(1, 'Current password is required'),
     newPassword: z
       .string()
-      .min(10, 'New password must be at least 10 characters')
+      .min(12, 'New password must be at least 12 characters')
       .regex(/[A-Z]/, 'New password must contain at least one uppercase letter')
       .regex(/[0-9]/, 'New password must contain at least one number')
       .regex(/[^A-Za-z0-9]/, 'New password must contain at least one special character'),
@@ -77,7 +77,7 @@ export const resetPasswordSchema = z.object({
     otp: z.string().length(6, 'OTP must be 6 digits'),
     password: z
       .string()
-      .min(10, 'Password must be at least 10 characters')
+      .min(10, 'Password must be at least 12 characters')
       .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
       .regex(/[0-9]/, 'Password must contain at least one number')
       .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
@@ -89,7 +89,7 @@ export const createUserSchema = z.object({
   body: z.object({
     name: z.string().min(2, 'Name is required'),
     email: z.string().email('Valid email is required'),
-    password: z.string().min(10, 'Password must be at least 10 characters'),
+    password: z.string().min(10, 'Password must be at least 12 characters'),
     role: z.enum(['patient', 'doctor', 'hospital_admin', 'staff']),
     phone: z.string().optional(),
   }),
