@@ -84,7 +84,7 @@
         "recharts": "^3.8.1",
         "socket.io-client": "^4.8.3",
         "sonner": "^1.7.4",
-        "tailwind-merge": "^2.6.0",
+        "tailwind-merge": "^3.7.0",
         "unleash-proxy-client": "^3.8.2",
         "vaul": "^0.9.9",
         "zod": "^4.6.5",
