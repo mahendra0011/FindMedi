@@ -441,14 +441,24 @@ router.get('/consents', protect, authorize('profile:read:own'), async (req, res)
 router.get('/access-log', protect, authorize('profile:read:own'), async (req, res) => {
   try {
     const { default: AuditLog } = await import('../models/AuditLog.js');
+    const { default: Record } = await import('../models/Record.js');
     const me = String(req.user._id);
+    // My record ids, so break-glass (details.subjectId) and restricted
+    // (details.recordId) reads of MY files surface here too (file 25 §8).
+    const myRecords = await Record.find({ patientId: req.user._id }).select('_id').lean().catch(() => []);
+    const myRecordIds = myRecords.map((r) => String(r._id));
     const entries = await AuditLog.find({
       $or: [
         { userId: req.user._id },
         { 'details.resourceId': me },
         { 'details.patientId': me },
+        { 'details.subjectId': me },
+        ...(myRecordIds.length ? [
+          { 'details.recordId': { $in: myRecordIds } },
+          { 'details.subjectId': { $in: myRecordIds } },
+        ] : []),
       ],
-    }).sort({ timestamp: -1 }).limit(50).select('action userId ip timestamp details').lean();
+    }).sort({ timestamp: -1 }).limit(100).select('action userId ip timestamp details').lean();
     res.json(entries);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

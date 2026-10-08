@@ -114,6 +114,18 @@ router.get('/', protect, authorize('records:read', 'records:read:own'), async (r
       }
     }
 
+    // File 25 §11 step 3 — shadow mode: new IAM evaluator runs log-only;
+    // the legacy scoped decision above stays binding until migration flips.
+    try {
+      const { iamShadow, principalFromRequest } = await import('../lib/iamEvaluator.js');
+      void iamShadow({
+        principal: principalFromRequest(req),
+        action: 'records:read',
+        resource: { type: 'record', id: 'list', tenantId: String(filter.hospitalId || '') },
+        ctx: {}, oldDecision: true, route: 'GET /api/records',
+      }).catch(() => {});
+    } catch { /* shadow must never break the request */ }
+
     const result = await paginatedResults(Record, filter, {
       page, limit,
       sort: { createdAt: -1 },
@@ -345,7 +357,23 @@ router.get('/:id/versions', protect, authorize('records:read', 'records:read:own
     const record = await Record.findById(req.params.id);
     if (!record) return res.status(404).json({ message: 'Record not found' });
     if (!canAccessRecordDoc(req, record)) {
-      return res.status(403).json({ message: 'Not authorized' });
+      // File 25 §8: tenant emergency grant opens this ONE record when the
+      // normal checks deny (reason + time-box + audit live on the grant).
+      const { findTenantGrant } = await import('../middleware/requireTenantGrant.js');
+      const tenantId = req.user.hospitalId || req.user.facilityId;
+      const grant = (await findTenantGrant(tenantId, req.user._id || req.user.id, record._id))
+        || (await findTenantGrant(tenantId, req.user._id || req.user.id, record.patientId));
+      if (!grant) return res.status(403).json({ message: 'Not authorized' });
+      req.tenantGrant = grant;
+      grant.accessLog.push({ ts: new Date(), route: req.originalUrl, objectId: String(record._id) });
+      await grant.save().catch(() => {});
+      await auditLog('tenant_grant_used', req.user._id, {
+        grantId: String(grant._id), route: req.originalUrl, recordId: String(record._id), ip: req.ip,
+      }).catch(() => {});
+    }
+    const reasonCheck = await restrictedReasonCheck(req, record);
+    if (reasonCheck !== true) {
+      return res.status(428).json({ message: 'Access reason required for restricted records', code: 'REASON_REQUIRED' });
     }
     const { default: RecordVersion } = await import('../models/RecordVersion.js');
     const versions = await RecordVersion.find({ recordId: record._id })
@@ -374,6 +402,25 @@ router.get('/:id/versions', protect, authorize('records:read', 'records:read:own
 const recordAuthorBelongsToCaller = (req, record) => {
   const ownProfile = (req.user.doctorProfileId || req.user._id)?.toString();
   return Boolean(record.doctorId && record.doctorId.toString() === ownProfile);
+};
+
+// File 25 §8: reason-for-access on restricted/vip/minor records. Owner
+// (patient) and authoring clinician pass freely; everyone else must supply
+// a reason (query/body/header) which is audit-logged. Returns true, false,
+// or 'reason-required'.
+const restrictedReasonCheck = async (req, record) => {
+  if (!['restricted', 'vip', 'minor'].includes(record.sensitivity)) return true;
+  const me = String(req.user._id || req.user.id || '');
+  if (req.user.role === 'patient' && String(record.patientId || '') === me) return true;
+  if (recordAuthorBelongsToCaller(req, record)) return true;
+  const reason = String(req.query?.reason || req.body?.reason || req.headers?.['x-access-reason'] || '').slice(0, 300);
+  if (!reason) return 'reason-required';
+  await auditLog('restricted_access', req.user._id, {
+    recordId: record._id, sensitivity: record.sensitivity, reason,
+    grantId: req.breakGlass ? String(req.breakGlass._id) : undefined,
+    ip: req.ip, userAgent: req.get('user-agent'),
+  }).catch(() => {});
+  return true;
 };
 
 const canAccessRecordDoc = (req, record) => {
@@ -405,10 +452,27 @@ router.get('/:id/prescription-pdf', protect, authorize('records:read', 'records:
     const record = await Record.findById(req.params.id).populate('doctorId', 'name specialization email signatureUrl');
     if (!record) return res.status(404).json({ message: 'Record not found' });
     if (!canAccessRecordDoc(req, record)) {
-      await auditLog('access_denied_prescription_download', req.user._id, {
-        resourceType: 'Record', resourceId: record._id, ip: req.ip, userAgent: req.get('user-agent'),
-      });
-      return res.status(403).json({ message: 'Not authorized' });
+      // File 25 §8: tenant emergency grant fallback (same as versions route).
+      const { findTenantGrant } = await import('../middleware/requireTenantGrant.js');
+      const tenantId = req.user.hospitalId || req.user.facilityId;
+      const grant = (await findTenantGrant(tenantId, req.user._id || req.user.id, record._id))
+        || (await findTenantGrant(tenantId, req.user._id || req.user.id, record.patientId));
+      if (!grant) {
+        await auditLog('access_denied_prescription_download', req.user._id, {
+          resourceType: 'Record', resourceId: record._id, ip: req.ip, userAgent: req.get('user-agent'),
+        });
+        return res.status(403).json({ message: 'Not authorized' });
+      }
+      req.tenantGrant = grant;
+      grant.accessLog.push({ ts: new Date(), route: req.originalUrl, objectId: String(record._id) });
+      await grant.save().catch(() => {});
+      await auditLog('tenant_grant_used', req.user._id, {
+        grantId: String(grant._id), route: req.originalUrl, recordId: String(record._id), ip: req.ip,
+      }).catch(() => {});
+    }
+    const reasonCheck = await restrictedReasonCheck(req, record);
+    if (reasonCheck !== true) {
+      return res.status(428).json({ message: 'Access reason required for restricted records', code: 'REASON_REQUIRED' });
     }
     let docSignatureUrl = '';
     if (record.doctorId?.signatureUrl) {

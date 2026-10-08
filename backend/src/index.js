@@ -609,6 +609,7 @@ import patientDsrRoutes from './routes/dsr.js';
 import adminDsrRoutes from './routes/adminDsr.js';
 import breakGlassRoutes from './routes/breakGlass.js';
 import crmRoutes from './routes/crm.js';
+import iamRoutes from './routes/iam.js';
 import mealSubscriptionRoutes from './routes/mealSubscriptions.js';
 import membershipRoutes from './routes/memberships.js';
 import patientEventRoutes from './routes/patientEvents.js';
@@ -823,6 +824,8 @@ app.use('/api/admin/dsr', adminDsrRoutes);
 app.use('/api/admin/break-glass', breakGlassRoutes);
 // File 24: supply/partnership CRM (crm:read/write) + command center.
 app.use('/api/crm', crmRoutes);
+// File 25: tenant Access Control Center (staff:manage gate inside).
+app.use('/api/iam', iamRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/ops-health', opsHealthRoutes);
 app.use('/api/tenant-quotas', tenantQuotaRoutes);

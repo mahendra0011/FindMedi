@@ -219,15 +219,18 @@ describe('GET /access-log', () => {
       { action: 'view_patient_records', userId: 'doc-9', timestamp: new Date() },
       { action: 'privacy_setting_changed', userId: 'pat-1', timestamp: new Date() },
     ];
-    const res = await as(PATIENT).get('/access-log');
+    const res = await as(PATIENT).get('/access-log?patientId=someone-else');
     expect(res.status).toBe(200);
-    expect(lastAuditFilter).toEqual({
-      $or: [
-        { userId: 'pat-1' },
-        { 'details.resourceId': 'pat-1' },
-        { 'details.patientId': 'pat-1' },
-      ],
-    });
+    // File 25: break-glass (subjectId) + restricted (recordId) reads of MY
+    // files also surface. Everything is server-derived (own id + own record
+    // ids) — the ?patientId=someone-else parameter must appear nowhere.
+    expect(lastAuditFilter.$or).toEqual(expect.arrayContaining([
+      { userId: 'pat-1' },
+      { 'details.resourceId': 'pat-1' },
+      { 'details.patientId': 'pat-1' },
+      { 'details.subjectId': 'pat-1' },
+    ]));
+    expect(JSON.stringify(lastAuditFilter)).not.toContain('someone-else');
     expect(res.body).toHaveLength(2);
     expect(res.body[0].action).toBe('view_patient_records');
   });

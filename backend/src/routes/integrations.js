@@ -1,9 +1,21 @@
 import express from 'express';
 import IntegrationConfig from '../models/IntegrationConfig.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
+import { apiKeyAuth } from '../middleware/apiKeyAuth.js';
 import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();
+
+// File 25 §10: service-account status (HL7/PACS/lab machines) — x-api-key
+// auth, tenant-scoped, names/status only (never secret values).
+router.get('/service-status', apiKeyAuth, async (req, res) => {
+  try {
+    const rows = await IntegrationConfig.find().select('provider label category updatedAt').sort({ category: 1 }).lean();
+    return res.json({ tenantId: req.serviceAccount.tenantId, integrations: rows });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
 
 const DEFAULT_INTEGRATIONS = [
   { provider: 'razorpay', label: 'Razorpay', category: 'payment', config: { keyId: '', keySecret: '', webhookSecret: '' } },

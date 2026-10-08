@@ -10,12 +10,12 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1037,
+  "total": 1057,
   "counts": {
     "inherited": 4,
     "object": 366,
-    "public": 62,
-    "role": 546,
+    "public": 63,
+    "role": 565,
     "self": 59
   },
   "byMechanism": {
@@ -34,13 +34,14 @@
     "platformAdminOnly": 15,
     "requireConversationMember": 18,
     "requireMetricsToken": 1,
-    "requireObjectId": 62,
+    "requireObjectId": 67,
     "requirePatientGrant": 4,
     "requireReportScope": 2,
     "requireRole": 79,
     "requireSosAccess": 7,
     "requireStaff": 3,
-    "requireStepUp": 14,
+    "requireStepUp": 22,
+    "requireTenant": 19,
     "resolvePartner": 6,
     "roleOnly": 5,
     "scopeToHospital": 9,
@@ -3404,6 +3405,139 @@
       "tag": "object"
     },
     {
+      "file": "iam.js",
+      "line": 45,
+      "method": "GET",
+      "target": "'/policies'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 57,
+      "method": "GET",
+      "target": "'/policies/templates'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 61,
+      "method": "POST",
+      "target": "'/policies'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 81,
+      "method": "GET",
+      "target": "'/roles'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 92,
+      "method": "POST",
+      "target": "'/roles'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 121,
+      "method": "POST",
+      "target": "'/assignments'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 172,
+      "method": "DELETE",
+      "target": "'/assignments/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 189,
+      "method": "GET",
+      "target": "'/groups'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 199,
+      "method": "POST",
+      "target": "'/groups'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 219,
+      "method": "GET",
+      "target": "'/scopes'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 229,
+      "method": "POST",
+      "target": "'/scopes'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 248,
+      "method": "POST",
+      "target": "'/simulate'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 270,
+      "method": "POST",
+      "target": "'/requests'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 292,
+      "method": "POST",
+      "target": "'/requests/:id/decision'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 329,
+      "method": "POST",
+      "target": "'/grants'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 357,
+      "method": "POST",
+      "target": "'/grants/:id/decision'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 396,
+      "method": "POST",
+      "target": "'/grants/:id/revoke'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 412,
+      "method": "POST",
+      "target": "'/apikeys'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 433,
+      "method": "POST",
+      "target": "'/apikeys/:id/revoke'",
+      "tag": "role"
+    },
+    {
       "file": "instantDispatch.js",
       "line": 27,
       "method": "POST",
@@ -3489,42 +3623,49 @@
     },
     {
       "file": "integrations.js",
-      "line": 20,
+      "line": 11,
+      "method": "GET",
+      "target": "'/service-status'",
+      "tag": "public"
+    },
+    {
+      "file": "integrations.js",
+      "line": 32,
       "method": "GET",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "integrations.js",
-      "line": 40,
+      "line": 52,
       "method": "PUT",
       "target": "'/:provider'",
       "tag": "role"
     },
     {
       "file": "integrations.js",
-      "line": 56,
+      "line": 68,
       "method": "POST",
       "target": "'/:provider/test'",
       "tag": "role"
     },
     {
       "file": "integrations.js",
-      "line": 67,
+      "line": 79,
       "method": "GET",
       "target": "'/:provider/webhooks'",
       "tag": "role"
     },
     {
       "file": "integrations.js",
-      "line": 75,
+      "line": 87,
       "method": "POST",
       "target": "'/:provider/webhooks'",
       "tag": "role"
     },
     {
       "file": "integrations.js",
-      "line": 86,
+      "line": 98,
       "method": "DELETE",
       "target": "'/:provider/webhooks/:webhookId'",
       "tag": "role"
@@ -3629,14 +3770,14 @@
     },
     {
       "file": "inventory.js",
-      "line": 261,
+      "line": 266,
       "method": "PUT",
       "target": "'/purchase-orders/:id/receive'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 297,
+      "line": 302,
       "method": "DELETE",
       "target": "'/purchase-orders/:id'",
       "tag": "object"
@@ -6002,70 +6143,70 @@
     },
     {
       "file": "records.js",
-      "line": 129,
+      "line": 141,
       "method": "GET",
       "target": "'/patient/:patientId'",
       "tag": "role"
     },
     {
       "file": "records.js",
-      "line": 178,
+      "line": 190,
       "method": "POST",
       "target": "'/'",
       "tag": "object"
     },
     {
       "file": "records.js",
-      "line": 273,
+      "line": 285,
       "method": "PUT",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "records.js",
-      "line": 343,
+      "line": 355,
       "method": "GET",
       "target": "'/:id/versions'",
       "tag": "role"
     },
     {
       "file": "records.js",
-      "line": 403,
+      "line": 450,
       "method": "GET",
       "target": "'/:id/prescription-pdf'",
       "tag": "role"
     },
     {
       "file": "records.js",
-      "line": 448,
+      "line": 512,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "records.js",
-      "line": 473,
+      "line": 537,
       "method": "POST",
       "target": "'/consent-request'",
       "tag": "object"
     },
     {
       "file": "records.js",
-      "line": 537,
+      "line": 601,
       "method": "POST",
       "target": "'/consent-response'",
       "tag": "object"
     },
     {
       "file": "records.js",
-      "line": 597,
+      "line": 661,
       "method": "POST",
       "target": "'/consent-revoke'",
       "tag": "object"
     },
     {
       "file": "records.js",
-      "line": 614,
+      "line": 678,
       "method": "GET",
       "target": "'/consents'",
       "tag": "object"
@@ -6730,84 +6871,84 @@
     },
     {
       "file": "staff.js",
-      "line": 118,
+      "line": 128,
       "method": "PUT",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "staff.js",
-      "line": 137,
+      "line": 152,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "staff.js",
-      "line": 154,
+      "line": 174,
       "method": "GET",
       "target": "'/stats'",
       "tag": "role"
     },
     {
       "file": "staff.js",
-      "line": 168,
+      "line": 188,
       "method": "POST",
       "target": "'/attendance'",
       "tag": "role"
     },
     {
       "file": "staff.js",
-      "line": 193,
+      "line": 213,
       "method": "POST",
       "target": "'/attendance/bulk'",
       "tag": "role"
     },
     {
       "file": "staff.js",
-      "line": 239,
+      "line": 259,
       "method": "GET",
       "target": "'/attendance'",
       "tag": "role"
     },
     {
       "file": "staff.js",
-      "line": 268,
+      "line": 288,
       "method": "POST",
       "target": "'/shifts'",
       "tag": "role"
     },
     {
       "file": "staff.js",
-      "line": 284,
+      "line": 304,
       "method": "GET",
       "target": "'/shifts'",
       "tag": "role"
     },
     {
       "file": "staff.js",
-      "line": 299,
+      "line": 319,
       "method": "POST",
       "target": "'/payroll/calculate'",
       "tag": "role"
     },
     {
       "file": "staff.js",
-      "line": 342,
+      "line": 362,
       "method": "GET",
       "target": "'/payroll/history'",
       "tag": "role"
     },
     {
       "file": "staff.js",
-      "line": 356,
+      "line": 376,
       "method": "POST",
       "target": "'/overtime'",
       "tag": "role"
     },
     {
       "file": "staff.js",
-      "line": 379,
+      "line": 399,
       "method": "GET",
       "target": "'/overtime'",
       "tag": "role"

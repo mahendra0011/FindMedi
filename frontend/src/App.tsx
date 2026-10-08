@@ -249,6 +249,7 @@ const ClinicPlatformSettings = lazy(() => import('./pages/clinic/ClinicPlatformS
 
 const DeliveryDashboard = lazy(() => import('./pages/delivery/DeliveryDashboard'));
 const StaffDashboardPage = lazy(() => import('./pages/StaffDashboard'));
+const AccessControl = lazy(() => import('./pages/AccessControl'));
 const DeliveryOrders = lazy(() => import('./pages/delivery/DeliveryOrders'));
 const DeliveryHistory = lazy(() => import('./pages/delivery/DeliveryHistory'));
 const DeliveryEarnings = lazy(() => import('./pages/delivery/DeliveryEarnings'));
@@ -851,6 +852,7 @@ const App = () => (
                     <Route path="/mentalhealth" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><MentalHealth /></RoleRoute>} />
                     <Route path="/analytics-reports" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor']}><Reports /></RoleRoute>} />
                     <Route path="/staff" element={<RoleRoute allowedRoles={['hospital_admin']}><Staff /></RoleRoute>} />
+                    <Route path="/access-control" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><AccessControl /></RoleRoute>} />
                     <Route path="/inventory" element={<RoleRoute allowedRoles={['hospital_admin']}><Inventory /></RoleRoute>} />
                     <Route path="/housekeeping" element={<RoleRoute allowedRoles={['hospital_admin']}><Housekeeping /></RoleRoute>} />
                     <Route path="/opd-token" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><OPDToken /></RoleRoute>} />

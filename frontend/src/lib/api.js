@@ -721,6 +721,24 @@ export const api = {
   decideBreakGlass:       (id,b)    => request(`/admin/break-glass/${id}/decision`, { method:'POST', body: JSON.stringify(b) }),
   revokeBreakGlass:       (id)      => request(`/admin/break-glass/${id}/revoke`, { method:'POST' }),
 
+  // File 25 tenant Access Control Center
+  getIamPolicies:        ()        => request('/iam/policies'),
+  getIamTemplates:       ()        => request('/iam/policies/templates'),
+  createIamPolicy:       (body)    => request('/iam/policies', { method:'POST', body: JSON.stringify(body) }),
+  getIamRoles:          ()        => request('/iam/roles'),
+  createIamRole:        (body)    => request('/iam/roles', { method:'POST', body: JSON.stringify(body) }),
+  createIamAssignment:  (body)    => request('/iam/assignments', { method:'POST', body: JSON.stringify(body) }),
+  revokeIamAssignment:  (id)      => request(`/iam/assignments/${id}`, { method:'DELETE' }),
+  getIamGroups:         ()        => request('/iam/groups'),
+  createIamGroup:       (body)    => request('/iam/groups', { method:'POST', body: JSON.stringify(body) }),
+  iamSimulate:          (body)    => request('/iam/simulate', { method:'POST', body: JSON.stringify(body) }),
+  createIamRequest:     (body)    => request('/iam/requests', { method:'POST', body: JSON.stringify(body) }),
+  decideIamRequest:     (id,b)    => request(`/iam/requests/${id}/decision`, { method:'POST', body: JSON.stringify(b) }),
+  createIamGrant:       (body)    => request('/iam/grants', { method:'POST', body: JSON.stringify(body) }),
+  decideIamGrant:       (id,b)    => request(`/iam/grants/${id}/decision`, { method:'POST', body: JSON.stringify(b) }),
+  createIamApiKey:      (body)    => request('/iam/apikeys', { method:'POST', body: JSON.stringify(body) }),
+  revokeIamApiKey:      (id)      => request(`/iam/apikeys/${id}/revoke`, { method:'POST' }),
+
   // File 24 supply/partnership CRM
   getCommandCenter:       (p={})    => request('/crm/command-center?' + new URLSearchParams(p)),
   getCrmLeads:           (p={})    => request('/crm/leads?' + new URLSearchParams(p)),

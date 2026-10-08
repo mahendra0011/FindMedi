@@ -115,10 +115,25 @@ router.get('/:id', protect, authorize('staff:manage'), async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// File 25 §9: last-owner protection — a tenant must always keep ≥1
+// hospital_admin; demoting/deleting the last one is a 409 (no lockout).
+const isLastOwner = async (staffDoc) => {
+  if (staffDoc.role !== 'hospital_admin') return false;
+  const scope = { role: 'hospital_admin', status: { $in: ['Active', 'On Leave'] } };
+  if (staffDoc.hospitalId) scope.hospitalId = staffDoc.hospitalId;
+  const count = await Staff.countDocuments(scope);
+  return count <= 1;
+};
+
 router.put('/:id', protect, authorize('staff:manage'), adminOnly, validate(updateStaffSchema), requireStepUp('users:role-change'), async (req, res) => {
   try {
     const filter = { _id: req.params.id };
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const current = await Staff.findOne(filter);
+    if (!current) return res.status(404).json({ message: 'Not found' });
+    if (req.body.role && req.body.role !== 'hospital_admin' && (await isLastOwner(current))) {
+      return res.status(409).json({ message: 'Cannot demote the last owner: assign another hospital_admin first' });
+    }
     const staff = await Staff.findOneAndUpdate(filter, req.body, { new: true });
     if (!staff) return res.status(404).json({ message: 'Not found' });
     // P2-10: role or status change bumps tokenVersion so stale JWTs revoke immediately
@@ -138,6 +153,11 @@ router.delete('/:id', protect, authorize('staff:manage'), adminOnly, async (req,
   try {
     const filter = { _id: req.params.id };
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const doomed = await Staff.findOne(filter);
+    if (!doomed) return res.status(404).json({ message: 'Staff not found' });
+    if (await isLastOwner(doomed)) {
+      return res.status(409).json({ message: 'Cannot delete the last owner: assign another hospital_admin first' });
+    }
     const staff = await Staff.findOneAndDelete(filter);
     if (!staff) return res.status(404).json({ message: 'Staff not found' });
     // P2-10: staff termination revokes existing sessions

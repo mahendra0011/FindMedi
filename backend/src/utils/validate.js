@@ -2610,3 +2610,43 @@ export const createPolicySchema = z.object({
   (value) => value.validTo.getTime() > value.validFrom.getTime(),
   { message: 'validTo must be after validFrom', path: ['validTo'] },
 );
+
+// File 25 §4: strict IAM policy grammar — ≤50 statements, no wildcard
+// actions/global resources for tenant policies, allowlisted conditions only,
+// no templating/eval. Keep in sync with lib/iamEvaluator.js IAM_CONDITION_KEYS.
+export const IAM_CONDITION_KEYS_LIST = [
+  'mfa', 'ip', 'expires_at', 'shift', 'time_between', 'dept_in', 'ward_in',
+  'careteam_includes_me', 'sensitivity_not', 'reason_required', 'consent_required', 'emergency_flag',
+];
+
+const iamStatementSchema = z.object({
+  sid: z.string().trim().max(80).optional().default(''),
+  effect: z.enum(['Allow', 'Deny']),
+  actions: z.array(z.string().trim().min(1).max(120)).min(1).max(30),
+  resources: z.array(z.string().trim().min(1).max(200)).min(1).max(30),
+  conditions: z.record(z.string(), z.unknown()).optional().default({}),
+}).strict().superRefine((stmt, ctx) => {
+  for (const a of stmt.actions) {
+    // Wildcards only in Deny statements (NeverRestricted pattern): an Allow
+    // with `records:*` is how over-permissioned roles are born (§9).
+    if (a === '*' || (a.endsWith(':*') && stmt.effect !== 'Deny')) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Wildcard action not allowed: ${a}` });
+    }
+  }
+  for (const r of stmt.resources) {
+    if (r === '*') {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Global wildcard resource not allowed' });
+    }
+  }
+  for (const k of Object.keys(stmt.conditions || {})) {
+    if (!IAM_CONDITION_KEYS_LIST.includes(k)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown condition: ${k}` });
+    }
+  }
+});
+
+export const iamPolicySchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  statements: z.array(iamStatementSchema).min(1).max(50),
+  boundaryId: z.string().regex(/^[0-9a-f]{24}$/i).optional(),
+}).strict();

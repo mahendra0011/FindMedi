@@ -63,7 +63,32 @@ const recordSchema = new mongoose.Schema({
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   data: { type: Object, default: {} },
   attachments: [{ type: String }],
+  // File 25 §8: sensitivity labels. `restricted` (mental health, HIV/STD,
+  // sexual/reproductive health, substance use, abuse/MLC) needs
+  // reason-for-access + audit; `vip`/`minor` are manual flags with the same
+  // gate. Auto-classified server-side on save (best-effort); an explicitly
+  // set label is never downgraded.
+  sensitivity: {
+    type: String,
+    enum: ['standard', 'sensitive', 'restricted', 'vip', 'minor'],
+    default: 'standard', index: true,
+  },
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
+
+const RESTRICTED_PATTERNS = [
+  /mental/i, /psych/i, /counsell?ing/i, /hiv/i, /\bstd\b/i, /\bsti\b/i,
+  /sexual/i, /reproduct/i, /fertil/i, /ivf/i, /abortion/i, /addict/i,
+  /substance/i, /abuse/i, /\bmlc\b/i, /medico.?legal/i,
+];
+
+recordSchema.pre('save', function (next) {
+  try {
+    if (this.isModified('sensitivity') && this.sensitivity !== 'standard') return next();
+    const hay = `${this.type || ''} ${this.diagnosis || ''}`;
+    if (RESTRICTED_PATTERNS.some((re) => re.test(hay))) this.sensitivity = 'restricted';
+  } catch { /* best-effort only */ }
+  next();
+});
 
 export default mongoose.model('Record', recordSchema);

@@ -250,6 +250,11 @@ router.put('/purchase-orders/:id/status', protect, adminOnly, validate(poStatusS
     if (req.user.hospitalId && req.user.role !== 'superadmin' && po.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
+    // File 25 §8 SoD: creator cannot approve their own purchase order.
+    if (String(status || '').toLowerCase() === 'approved'
+      && po.createdBy && String(po.createdBy) === String(req.user._id || req.user.id)) {
+      return res.status(403).json({ message: 'Separation of duties: a purchase order must be approved by someone other than its creator' });
+    }
     po.status = status;
     if (approvedBy) po.approvedBy = req.user._id;
     await po.save();
