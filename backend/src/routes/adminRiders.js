@@ -4,24 +4,29 @@ import Vehicle from '../models/Vehicle.js';
 import User from '../models/User.js';
 import RideBooking from '../models/RideBooking.js';
 import Notification from '../models/Notification.js';
-import { protect, adminOnly, superadminOnly } from '../middleware/auth.js';
+import { protect, requireRole } from '../middleware/auth.js';
 // ADM-B-01 / DLB-11: on-demand providers are a PLATFORM marketplace, not a tenant.
 // Their profiles carry Aadhaar, driving-licence and bank details, and the models
 // have no hospitalId to scope by - so dminOnly (which a hospital_admin holds)
 // gave every hospital KYC PII, plate numbers, bank details and ride analytics for
-// every other hospital. These are platform-level operations: superadmin only.
+// every other hospital. These are platform-level operations: superadmin only -
+// except the three verification-queue routes below, which the ops console's
+// kyc_reviewer also holds (8.md 2). Both are platform roles; neither is ever
+// hospital-scoped.
 import { platformAdminOnly } from '../middleware/authorize.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
 
-// All routes here require admin access
-router.use(protect, superadminOnly);
+// Platform access for all routes here; every route still carries its own
+// platformAdminOnly/kyc_reviewer guard, so opening this to the kyc_reviewer
+// does not widen /suspend, /all, /vehicles, /rides or /analytics.
+router.use(protect, requireRole(['superadmin', 'kyc_reviewer']));
 
 // ─── GET /api/admin/riders/pending ──────────────────────────────────────────
 // Pending verification queue
-router.get('/pending', platformAdminOnly, async (req, res) => {
+router.get('/pending', requireRole(['superadmin', 'kyc_reviewer']), async (req, res) => {
   try {
     const riders = await RiderProfile.find({ riderStatus: 'pending_approval' })
       .populate('userId', 'name email phone avatar address dateOfBirth gender createdAt')
@@ -38,7 +43,7 @@ router.get('/pending', platformAdminOnly, async (req, res) => {
 
 // ─── PUT /api/admin/riders/:id/approve ──────────────────────────────────────
 // Approve rider application
-router.put('/:id/approve', platformAdminOnly, async (req, res) => {
+router.put('/:id/approve', requireRole(['superadmin', 'kyc_reviewer']), async (req, res) => {
   try {
     const rider = await RiderProfile.findById(req.params.id);
     if (!rider) return res.status(404).json({ message: 'Rider not found' });
@@ -87,7 +92,7 @@ router.put('/:id/approve', platformAdminOnly, async (req, res) => {
 
 // ─── PUT /api/admin/riders/:id/reject ───────────────────────────────────────
 // Reject rider application
-router.put('/:id/reject', platformAdminOnly, async (req, res) => {
+router.put('/:id/reject', requireRole(['superadmin', 'kyc_reviewer']), async (req, res) => {
   try {
     const { reason = 'Documents invalid or insufficient' } = req.body;
     const rider = await RiderProfile.findById(req.params.id);

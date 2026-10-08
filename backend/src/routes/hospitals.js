@@ -3,7 +3,7 @@ import { verifyAccessToken, signToken as signJwt } from '../utils/jwtKeys.js';
 import Hospital from '../models/Hospital.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
-import { protect, superadminOnly, hospitalAdminOnly } from '../middleware/auth.js';
+import { protect, superadminOnly, hospitalAdminOnly, requireRole } from '../middleware/auth.js';
 import { validate, registerHospitalSchema } from '../utils/validate.js';
 import Ambulance from '../models/Ambulance.js';
 import Staff from '../models/Staff.js';
@@ -15,6 +15,7 @@ import { getCache, setCache, flushCachePattern } from '../config/redis.js';
 import { paginatedResults } from '../utils/pagination.js';
 import { randomPassword } from '../utils/secureRandom.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
+import { specialtyPattern } from '../lib/taxonomy.js';
 
 const router = express.Router();
 
@@ -54,7 +55,9 @@ router.get('/', async (req, res) => {
       ];
     }
     if (city) filter.city = new RegExp(escapeRegex(capSearch(city)), 'i');
-    if (specialty) filter.specialties = new RegExp(escapeRegex(capSearch(specialty)), 'i');
+    if (specialty && capSearch(specialty)) {
+      filter.specialties = specialtyPattern(specialty) || new RegExp(escapeRegex(capSearch(specialty)), 'i');
+    }
 
     const { page, limit } = req.query;
     const result = await paginatedResults(Hospital, filter, { page, limit, sort: { createdAt: -1 } });
@@ -63,7 +66,7 @@ router.get('/', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/pending', protect, superadminOnly, async (req, res) => {
+router.get('/pending', protect, requireRole(['superadmin', 'kyc_reviewer']), async (req, res) => {
   try {
     const { page, limit } = req.query;
     const result = await paginatedResults(Hospital, { status: 'pending' }, { page, limit, sort: { createdAt: -1 } });
@@ -149,7 +152,7 @@ router.post('/register', validate(registerHospitalSchema), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/approve', protect, superadminOnly, async (req, res) => {
+router.put('/:id/approve', protect, requireRole(['superadmin', 'kyc_reviewer']), async (req, res) => {
   try {
     const hospital = await Hospital.findByIdAndUpdate(req.params.id, { status: 'approved' }, { new: true });
     if (!hospital) return res.status(404).json({ message: 'Hospital not found' });
@@ -159,7 +162,7 @@ router.put('/:id/approve', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id/reject', protect, superadminOnly, async (req, res) => {
+router.put('/:id/reject', protect, requireRole(['superadmin', 'kyc_reviewer']), async (req, res) => {
   try {
     const { reason } = req.body;
     const hospital = await Hospital.findByIdAndUpdate(req.params.id, { status: 'rejected', rejectionReason: reason || '' }, { new: true });

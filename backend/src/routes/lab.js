@@ -18,7 +18,7 @@ import PharmacyDelivery from '../models/PharmacyDelivery.js';
 import DeliveryPartner from '../models/DeliveryPartner.js';
 import { protect, adminOnly, requireRole, authorize } from '../middleware/auth.js';
 import { authorizeObject, rolesWithPermission } from '../middleware/authorize.js';
-import { validate, createLabOrderSchema } from '../utils/validate.js';
+import { validate, createLabOrderSchema, sampleTypeSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { generateOrderId, generateSampleId, generateTimestampedId } from '../utils/idGenerator.js';
 import { randomDigits } from '../utils/secureRandom.js';
@@ -32,7 +32,7 @@ const LAB_STAFF_ROLES = ['lab_owner', 'lab_receptionist', 'lab_technician', 'pat
 // Report courier dispatch ke liye allowed roles (doctors bhi bhej sakte hain).
 const REPORT_DISPATCH_ROLES = [...LAB_STAFF_ROLES, 'doctor', 'clinic_doctor', 'radiologist'];
 
-const labRegisterSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), sampleType: z.string().optional() });
+const labRegisterSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), sampleType: sampleTypeSchema.optional() });
 const labCollectSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), rejectionReason: z.string().optional() });
 const labEnterResultSchema = z.object({ testIndex: z.number().int().nonnegative(), resultValue: z.string().min(1), normalRange: z.string().optional(), unit: z.string().optional() });
 const labVerifySchema = z.object({ testIndex: z.number().int().nonnegative(), approved: z.boolean().optional(), notes: z.string().optional() });

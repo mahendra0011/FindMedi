@@ -26,6 +26,12 @@ const PATIENT_STAFF_ROLES = [
   'hospital_admin', 'doctor', 'clinic_doctor', 'nurse', 'lab_owner', 'lab_receptionist',
   'lab_technician', 'pathologist', 'pharmacy_owner', 'pharmacist', 'receptionist',
   'accountant', 'counsellor', 'psychiatrist', 'dietitian', 'physiotherapist', 'radiologist',
+  // 7.md 3: clinical + facility roles that run care episodes (tenant-scoped
+  // to their own facility by the check below). Retail/marketplace roles stay
+  // out — an equipment vendor has no care relationship to list patients by.
+  'dentist', 'dental_clinic_admin', 'optician', 'phlebotomist',
+  'home_nursing_admin', 'dialysis_admin', 'fertility_admin', 'maternity_admin',
+  'rehab_admin', 'govt_facility_staff',
 ];
 
 const canReadPatientList = (req) => {

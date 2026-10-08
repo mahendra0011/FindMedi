@@ -92,6 +92,17 @@ export const NAME_CONTEXT_DENY = /(^|\.)(attachments|files|steps|certifications|
 /** Per-model field suppression for paths the shared rules get wrong. */
 const MODEL_FIELD_SUPPRESS = {
   PreferredPharmacy: [/^name$/], // pharmacy's name, not the patient's
+  // Plan/Product are catalogue rows: `name` is the offering's title and
+  // `providerid`/vendor links point at the seller org, the same precision
+  // Service already gets below.
+  Plan: [/^name$/, /^providerid$/],
+  Product: [/^name$/],
+  Service: [
+    /^name$/, // a service's title ("Cardiology consult"), not a person
+    /^packages\.name$/, // the title of a bundled package ("Full body checkup"), not a person
+    /^providerid$/, // foreign key to the PROVIDER organisation, not an identifier of a person
+    /^eligibility\.gender$/, // an eligibility filter on the offering, not anyone's gender
+  ],
 };
 
 /** Classify one schema path. `modelName` enables org/label precision guards. */
@@ -115,19 +126,25 @@ export function classifyField(fieldPath, modelName = '') {
 export const RETENTION_RULES = [
   [/^MentalHealth$/, 'Mental-health records', 'Clinical statutory period, plus the consent validity period'],
   [/^Consent/, 'ABDM consent records', 'Consent validity, then 1 year'],
-  [/^(AuditLog|LoginEvent|NotificationAudit|DeletionRequest)$/, 'Audit logs', '7 years (longer than the data they describe)'],
+  // A handled DPDP request (access/correct/export) is the EVIDENCE the right
+  // was honoured — same reason DeletionRequest sits here: the proof must
+  // outlive the data it describes.
+  [/^(AuditLog|LoginEvent|NotificationAudit|DeletionRequest|DataSubjectRequest)$/, 'Audit logs', '7 years (longer than the data they describe)'],
     [/^(TransactionLedger|Payment|DemoPayment|Refund|Payout|CommissionConfig|Billing|LoyaltyLedger|LoyaltyEarnRule|RewardCatalogItem|RewardRedemption|WalletGuard|Dispute|Insurance|PlatformCouponRedemption|PlatformCouponUserUsage)$/, 'Payment and ledger entries', '8 years (statutory accounting)'],
   [/^(Notification|NotificationDelivery)$/, 'Notifications', '90 days'],
   [/^(OTP|RefreshToken|AmbulanceSetupCode|Token)$/, 'OTP / setup codes / tokens', '15–60 minutes (TTL index) — tokens until logout or expiry'],
   [/^(RideBooking|RideTracking|Emergency|EmergencyRequest|EmergencyDoctorRequest|Ambulance)$/, 'Ride and SOS location traces', 'Trip duration + 30 days (dispute window)'],
   // Provider profiles: the KYC class is the only provider-relationship class
   // in RETENTION.md — it covers the person behind the profile, so the profile
-  // PII rides the same "life of relationship + 1 year" clock.
-  [/^(Doctor|Staff|AssistantProfile|LawyerProfile|RiderProfile|DeliveryPartner|PharmacyStaff)$/, 'Provider KYC documents', 'Life of the provider relationship + 1 year (provider deletion flow)'],
+  // PII rides the same "life of relationship + 1 year" clock. The join
+  // application and its KYC documents are that same record from BEFORE the
+  // relationship existed (2.md 12 keeps rejected applications so a re-apply
+  // can reuse them), so they are held on the identical clock.
+  [/^(ProviderApplication|ProviderDocument|Doctor|Staff|AssistantProfile|LawyerProfile|RiderProfile|DeliveryPartner|PharmacyStaff|Provider|PractitionerProfile)$/, 'Provider KYC documents', 'Life of the provider relationship + 1 year (provider deletion flow)'],
   // Clinical: dispensing (Pharmacy*), blood bank, physio and OT episodes are
   // health records about a patient, even though RETENTION.md's examples are
   // appointments/prescriptions/labs.
-  [/^(Patient|PatientAddress|Appointment|Prescription|Record|RecordVersion|Report|LabOrder|LabBooking|Admission|VitalsLog|VitalsReminder|Triage|NursingChart|Radiology|DietOrder|ChronicCarePlan|MedicineDoseLog|MedicineReminder|Referral|FamilyMember|Physiotherapy|OperationTheatre|BloodRequest|BloodUnit|PharmacyOrder|PharmacyReturn|PharmacyDelivery|AssistantBooking)$/, 'Clinical records', 'Statutory period for the jurisdiction, minimum 3 years'],
+  [/^(Patient|PatientAddress|Appointment|Prescription|Record|RecordVersion|Report|LabOrder|LabBooking|Admission|VitalsLog|VitalsReminder|Triage|NursingChart|Radiology|DietOrder|ChronicCarePlan|MedicineDoseLog|MedicineReminder|Referral|FamilyMember|Physiotherapy|OperationTheatre|BloodRequest|BloodUnit|PharmacyOrder|PharmacyReturn|PharmacyDelivery|AssistantBooking|VaccinationSchedule)$/, 'Clinical records', 'Statutory period for the jurisdiction, minimum 3 years'],
 ];
 
 export const OPERATIONAL_ORG_CLASS = {

@@ -46,6 +46,12 @@ const notificationPreferenceSchema = new mongoose.Schema({
   // Explicit per-type mute. Only consulted for non-critical messages.
   mutedTypes: { type: [String], default: [] },
 
+  // 6.md 2.15 discreet mode: previews and subject lines collapse to neutral
+  // copy (templates supply `discreetVariant`). Weaker than a mute — it hides
+  // WHAT, not THAT — and it must never apply to critical/transactional
+  // messages, same carve-out as quiet hours above.
+  discreetMode: { type: Boolean, default: false },
+
   quietHours: { type: quietHoursSchema, default: () => ({}) },
 
   updatedAt: { type: Date, default: Date.now },

@@ -2,7 +2,25 @@ import mongoose from 'mongoose';
 
 const equipmentSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  type: { type: String, enum: ['MRI', 'CT Scan', 'X-Ray', 'Ultrasound', 'ECG', 'EEG', 'Mammography', 'DEXA', 'PET Scan', 'Lab Analyzer', 'Centrifuge', 'Microscope', 'Other'], required: true },
+  // subcatogary.md C24 — original 13 plus the §24 additions (ventilator,
+  // defibrillator, pumps, dialysis, OT gear, monitors…). A1 #13: Radiology
+  // modality and this list now cover the same equipment (DEXA, PET Scan).
+  type: {
+    type: String,
+    enum: [
+      'MRI', 'CT Scan', 'X-Ray', 'Ultrasound', 'ECG', 'EEG', 'Mammography',
+      'DEXA', 'PET Scan', 'Lab Analyzer', 'Centrifuge', 'Microscope', 'Other',
+      // §24 additions
+      'Ventilator', 'Defibrillator', 'Infusion Pump', 'Dialysis Machine',
+      'Autoclave', 'Anaesthesia Machine', 'Patient Monitor',
+      'OT Table/Lights', 'C-Arm', 'Portable USG/X-Ray', 'Suction',
+      'Nebuliser', 'Warmer/Incubator',
+      // A2 also calls for Fluoroscopy (pairs with Radiology.modality) and
+      // a generic bucket for ambulance-borne kit.
+      'Fluoroscopy', 'Ambulance Equipment',
+    ],
+    required: true,
+  },
   model: { type: String },
   serialNumber: { type: String },
   manufacturer: { type: String },

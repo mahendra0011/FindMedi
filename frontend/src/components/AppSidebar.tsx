@@ -55,6 +55,60 @@ const navConfig = {
     { icon: BrainCircuit,    labelKey: 'nav.saAiSafety',       path: '/superadmin/ai-safety', section: 'Command Center' },
     { icon: ShieldAlert,     labelKey: 'nav.saSecurity',       path: '/superadmin/security', section: 'Command Center' },
   ],
+  // 8.md 1: one console section per ops role - the sidebar shows exactly the
+  // routes App.tsx lets that role open, so an ops user never clicks into a 403.
+  kyc_reviewer: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard' },
+    { icon: ShieldCheck,     labelKey: 'nav.saKyc',            path: '/superadmin/kyc-command' },
+    { icon: Clock,           labelKey: 'nav.saPending',        path: '/superadmin/pending' },
+    { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications' },
+    { icon: Settings,        labelKey: 'nav.settings',         path: '/settings' },
+  ],
+  moderator: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard' },
+    { icon: Flag,            labelKey: 'nav.saModeration',     path: '/superadmin/moderation' },
+    { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications' },
+    { icon: Settings,        labelKey: 'nav.settings',         path: '/settings' },
+  ],
+  support_agent: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard' },
+    { icon: Headset,         labelKey: 'nav.saTickets',        path: '/superadmin/tickets' },
+    { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications' },
+    { icon: Settings,        labelKey: 'nav.settings',         path: '/settings' },
+  ],
+  finance_admin: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard' },
+    { icon: DollarSign,      labelKey: 'nav.saRevenue',        path: '/superadmin/revenue' },
+    { icon: Receipt,         labelKey: 'nav.saTax',            path: '/superadmin/tax-ledger' },
+    { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications' },
+    { icon: Settings,        labelKey: 'nav.settings',         path: '/settings' },
+  ],
+  catalog_manager: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard' },
+    { icon: FileText,        labelKey: 'nav.saCatalog',        path: '/superadmin/catalog' },
+    { icon: Tags,            labelKey: 'nav.saCategories',     path: '/superadmin/categories' },
+    { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications' },
+    { icon: Settings,        labelKey: 'nav.settings',         path: '/settings' },
+  ],
+  compliance_officer: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard' },
+    { icon: History,         labelKey: 'nav.saAudit',          path: '/superadmin/audit' },
+    { icon: FileCheck,       labelKey: 'nav.saLicenses',       path: '/superadmin/licenses' },
+    { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications' },
+    { icon: Settings,        labelKey: 'nav.settings',         path: '/settings' },
+  ],
+  content_editor: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard' },
+    { icon: FileText,        labelKey: 'nav.saLegal',          path: '/superadmin/legal' },
+    { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications' },
+    { icon: Settings,        labelKey: 'nav.settings',         path: '/settings' },
+  ],
+  city_manager: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard' },
+    { icon: MapPin,          labelKey: 'nav.saCities',         path: '/superadmin/cities' },
+    { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications' },
+    { icon: Settings,        labelKey: 'nav.settings',         path: '/settings' },
+  ],
   hospital_admin: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'        },
     { icon: Bot,             labelKey: 'nav.chatWithAI',       path: '/ai-chat'          },

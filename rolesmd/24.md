@@ -1,0 +1,142 @@
+# 22 — Pitch / Investor Deck Outline (+ Q&A prep)
+
+> ⚠️ **Honesty note:** Is outline me **koi market size, competitor, traction ya financial numbers maine nahi daale** — mere paas verified data nahi hai, aur investors ke saamne galat/inflated numbers sabse bada risk hota hai. Jahan `[ ]` hai wahan **aapka real data** aayega (pilot metrics, sourced market reports). Har external number ka **source cite** karo.
+> Use cases: angel/seed investors, grants/incubators, hospital/insurer/corporate partnerships, accelerator applications. Deck 10–14 slides + appendix.
+
+---
+
+## 0. Deck principles
+1. **Ek story:** problem → insight → solution → proof → market → model → plan → team → ask.
+2. **Proof > promises:** pilot data, provider LOIs, repeat rates, unit economics, compliance posture.
+3. **Focus:** "1 city, 3 categories, ek proven loop" — poore ecosystem ka vision ek slide me, execution focus alag.
+4. **Trust/compliance as moat** (health = regulated, sensitive): security, privacy, verification.
+5. 3-minute version (5 slides) + full version + appendix.
+
+---
+
+## 1. Slide-by-slide outline
+
+### Slide 1 — Title
+FindMedi — logo, one-line promise (e.g., "Bharosemand health & wellness, aapke shehar me — ek hi jagah"), presenter, contact. Visual: product hero image.
+
+### Slide 2 — Problem
+Concrete, local, emotional but factual. Examples to validate via interviews:
+- Patients/families struggle to **find verified providers**, compare prices, book reliably, keep records, and coordinate care for elders/children.
+- Providers (small clinics, labs, pharmacies, wellness centres) **lack digital reach and tools**; no-shows, manual scheduling, payments leakage.
+- Fragmented journey: doctor ↔ lab ↔ pharmacy ↔ home care ↔ insurance ↔ wellness; records scattered.
+- `[Insert 2–3 data points + sources / your interview findings: "X of Y patients said…"]`
+Slide format: one statement + 3 pain points + 1 real quote/story (consented).
+
+### Slide 3 — Why now (insight/timing)
+Policy & infrastructure tailwinds (verify & cite): ABDM/ABHA health IDs, UPI payments, smartphone/data penetration, telemedicine guidelines (NMC 2020), DPDP Act (privacy compliance as differentiator), post-pandemic digital comfort, Ayushman Bharat/PM-JAY ecosystem, growing chronic disease/elder-care needs. `[Add sourced stats]`.
+
+### Slide 4 — Solution (product)
+FindMedi = **health ecosystem marketplace + care coordination layer**:
+- **Discover** (verified doctors, hospitals, labs, pharmacies, dentists, AYUSH, physio, dietitians, home care, wellness) → **Book/Order** (in-person, video, home visit, tests, medicines, rentals, memberships, camps) → **Pay** → **Records & reminders** (ABHA-ready, family profiles) → **Support & safety** (SOS, ambulance, grievance).
+- Show 3 screenshots/wireframes (file 12): search → booking → dashboard.
+- **For providers:** onboarding in minutes (config-driven wizard), calendar/bookings/payouts, reviews, analytics.
+- Differentiators (only if true/provable): Hindi-first, verification + trust badges, family & elder care, home services, privacy-by-design, unified records.
+
+### Slide 5 — Product proof / demo
+Live demo or 60–90s video: patient books dentist → pays → reminder → records; provider joins → approved → first booking. Metrics from pilot: `[bookings, providers live, repeat %, avg rating, time-to-book]`.
+*(Existing codebase: multi-role platform with hospital/clinic/lab/pharmacy/delivery/ambulance/assistant/lawyer/counsellor modules, wallet, loyalty, chat, video, SOS, audit & security stack — say what's actually live in production vs built.)*
+
+### Slide 6 — Traction (be precise)
+| Metric | Value (from your data) |
+|---|---|
+| Cities / launch date | `[ ]` |
+| Providers onboarded / active | `[ ]` / `[ ]` |
+| Patients registered / active (MAU) | `[ ]` |
+| Completed bookings/orders (monthly) | `[ ]` |
+| GMV / revenue / take rate | `[ ]` |
+| Repeat booking rate (30/90d) | `[ ]` |
+| Provider retention | `[ ]` |
+| NPS / rating | `[ ]` |
+| Waitlist/LOIs/partnerships | `[ ]` |
+If pre-traction: show **pilot plan + signed LOIs + interview learnings + prototype usability results**; don't fake numbers.
+
+### Slide 7 — Market
+Bottom-up (preferred): `[# providers in target city/category] × [avg monthly bookings] × [avg order value] × [take rate]`; then expansion cities/categories. Top-down only as context with **cited** sources. Segment: patients, providers (SaaS), wellness, B2B. Show **beachhead** (city + categories) → expansion path.
+
+### Slide 8 — Business model
+Revenue streams (file 16): commission, provider subscriptions, featured listings, memberships/programs, events, B2B wellness, (later) marketplace products. **Unit economics (per category) with real/pilot numbers:** AOV, take rate, variable costs, contribution/booking, CAC, LTV:CAC, payback. Guardrails: no pay-for-clinical-trust; fee structure legally reviewed.
+
+### Slide 9 — Go-to-market
+City playbook (file 21): supply-first (field ops + associations), demand via SEO/camps/RWAs/partners/WhatsApp/referrals; provider-driven QR; city launch gates; expansion criteria. Show **90-day plan** and early channel CAC `[ ]`.
+
+### Slide 10 — Competition & differentiation
+Honest map: directories/listing sites, telemedicine apps, e-pharmacies, diagnostics aggregators, hospital-chain apps, wellness/fitness marketplaces, offline word-of-mouth. **Use a positioning grid** (e.g., breadth of ecosystem vs local trust/verification vs provider tooling) — only claim what you can defend. List *why you win in your beachhead* (local supply depth, vernacular, verification, family/elder care bundles, provider tooling, ops). `[Research real competitors in your city]`.
+
+### Slide 11 — Trust, safety & compliance (moat for health)
+- Verified providers (type-wise KYC, two-person approval for high-risk), review integrity, SOS/emergency flows, crisis escalation.
+- **Privacy & security:** DPDP-oriented consent, field-level encryption (T1), audit logs, RBAC, tenant isolation, pentest roadmap, incident response — be factual about current status (e.g., "security hardening in progress; pentest scheduled").
+- Regulatory map: telemedicine, Rx rules, claims policy, grievance officer, ABDM readiness.
+- Clinical advisory board `[names if any]`.
+
+### Slide 12 — Roadmap
+R-1 stabilise/secure → R0 foundations → R1 pilot categories → R2 engagement (memberships/events) → R3 commerce/scale → R4 regulated categories (file 14). Milestones with dates and gates (data-driven). What we're **not** doing yet (focus signal).
+
+### Slide 13 — Team
+Founders + key hires with relevant credentials (health, ops, tech, compliance); advisors (clinical, legal, ex-hospital/insurer); gaps being hired with this round; why this team (domain insight, execution proof, local network).
+
+### Slide 14 — The Ask & use of funds
+- **Raise:** `[amount]` for `[runway]` months; instrument/terms (if known).
+- **Use of funds (example structure; fill %):** product & engineering · field ops/supply & verification · marketing/partnerships · compliance/legal/security (pentest) · support/ops · working capital/incentives.
+- **Milestones this round delivers:** `[X providers, Y bookings/month, Z cities, contribution-positive categories, key compliance milestones]`.
+- **What we need beyond money:** hospital/lab/pharmacy partnerships, insurer/TPA intros, government/ABDM ecosystem, local media.
+
+### Appendix (as needed)
+Unit-economics sheets · cohort charts · product screenshots · security & privacy overview · compliance register · provider/patient testimonials (consented) · risk register & mitigations · detailed roadmap · cap table & fundraising history · references/sources.
+
+---
+
+## 2. 3-minute (5-slide) version
+1. Problem + why now · 2. Solution (demo screenshot) · 3. Traction/pilot proof + business model · 4. GTM + roadmap · 5. Team + ask.
+
+## 3. Narrative script (example flow, 3–5 min)
+"Aapke ghar me kisi ko dard hota hai — kaunsa doctor? kitna fee? slot kab? dawai kahan se? report kahan rakhein? Aaj ye sab alag-alag jagah, bharose ke bina. FindMedi [city] me verified providers ko ek jagah laata hai… Humne [X] providers ke saath pilot kiya; [Y] bookings, [Z]% repeat. Har booking par hum [take rate] kamate hain, provider tools ke liye subscription… Hamari taakat: trust & compliance, local supply, family-centric care. Agle 12 mahine me [milestones]. Hum [amount] raise kar rahe hain…"
+
+## 4. Investor Q&A prep (honest answers needed)
+
+| Likely question | What to prepare |
+|---|---|
+| **Why won't big players/hospital chains/telemedicine apps crush you locally?** | Local supply depth, vernacular, trust verification, provider tooling, ops; defensibility via data/network effects & relationships (be realistic) |
+| **How will you stop disintermediation?** | Records/reminders/payments/CRM value, follow-ups on platform, loyalty, memberships (file 16 §12) |
+| **Unit economics?** | Category-wise sheets with real pilot data; take rate legal structure (no referral fees to doctors) |
+| **Regulatory risk?** | Compliance register, addenda, advisors, phased entry into regulated categories (R4 after audits) |
+| **Data/security/privacy?** | Honest status + roadmap; no PHI sold; DPDP consent, encryption, audits; **don't overclaim "100% secure"** |
+| **Supply quality?** | KYC, probation, reviews integrity, strikes, field verification, two-person approvals |
+| **CAC & scalability?** | SEO/camps/partners/provider-driven demand; city launch gates; costs per 1k bookings |
+| **Why this team?** | Domain expertise, execution speed (platform already built), advisors |
+| **Moat?** | Trust/verification + compliance posture + local network + integrated ecosystem + provider tooling + data (consented/aggregated) |
+| **Exit/return path?** | Strategic acquirers (hospital groups, insurers, e-health platforms), IPO unlikely early — be candid |
+| **Biggest risks?** | Regulation, supply quality, cash burn, payment/fraud, concentration; mitigations (file 14 §12) |
+| **What if a data breach happens?** | IR plan, insurance (cyber), notification process, drills (file 20) |
+| **AI usage?** | Safety-first, no diagnosis, opt-in, red-flag escalation, human handoff |
+
+## 5. Due-diligence data room (prepare early)
+- **Corporate:** incorporation docs, cap table, shareholder agreements, ESOP, board/advisor agreements, IP assignment (employees/contractors), trademark filings.
+- **Product/tech:** architecture, security overview (pentest report when available), DPIA, data-flow diagram, vendor list/DPAs, incident log, uptime metrics, tech-debt/roadmap.
+- **Legal/compliance:** ToS/Privacy/Provider agreements (lawyer-reviewed), licences/registrations, compliance register, regulator correspondence, litigation/complaints log.
+- **Financial:** books, MIS, GMV/revenue reconciliation, unit economics, payouts/TDS/GST filings, burn & runway model, projections with assumptions.
+- **Commercial:** provider contracts/LOIs, partnership MoUs, customer interviews, NPS/CSAT, cohort data.
+- **People:** org chart, key contracts, hiring plan.
+- **Security evidence:** secret-rotation records, access reviews, backup/restore drill logs.
+(Honest disclosure of known issues + remediation plan builds credibility — e.g., credential-rotation/history clean-up completion proof.)
+
+## 6. Funding path & alternatives (verify current schemes)
+Bootstrapping with revenue-based milestones · angel networks · health-tech accelerators/incubators · Startup India/DPIIT recognition benefits · state startup policies (e.g., MP) · grants (health/innovation) · strategic partners (hospital groups, insurers, diagnostics chains) · CSR partnerships for camps. `[Research current eligibility and deadlines]`.
+
+## 7. Design & delivery tips
+Visual consistency with brand/design system (file 11) · one idea per slide · big numbers, real screenshots · avoid jargon & buzzwords · cite sources in footnotes · practice 5-min and 10-min versions · prepare "demo fails" backup video · leave-behind PDF (no sensitive data) · track investor feedback; iterate.
+
+## 8. Checklist
+- [ ] Collect pilot metrics + cohort charts; per-category unit economics
+- [ ] Bottom-up market sizing with sources
+- [ ] Competitor research in beachhead city
+- [ ] Security/compliance status slide that is **accurate** (include pentest timeline)
+- [ ] Legal review of business model (fee-splitting, advertising, e-pharmacy, IRDAI)
+- [ ] Team/advisors slide; hiring plan
+- [ ] Fundraising ask: amount, runway, milestones, use of funds
+- [ ] Data room prepared; references ready (providers, partners)
+- [ ] Demo script + backup video; Q&A rehearsal

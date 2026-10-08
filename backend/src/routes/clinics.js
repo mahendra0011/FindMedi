@@ -105,6 +105,7 @@ router.delete('/staff/:id', protect, adminOnly, async (req, res) => {
 });
 import ClinicProfile from '../models/ClinicProfile.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
+import { specialtyCondition } from '../lib/taxonomy.js';
 
 // ─── Public Clinic Discovery (no auth) ─────────────────────────────────────
 router.get('/public', async (req, res) => {
@@ -115,7 +116,10 @@ router.get('/public', async (req, res) => {
       { name: new RegExp(escapeRegex(capSearch(search)), 'i') },
       { specialization: new RegExp(escapeRegex(capSearch(search)), 'i') },
     ];
-    if (specialty && specialty !== 'All') filter.specialization = new RegExp(escapeRegex(capSearch(specialty)), 'i');
+    if (specialty && specialty !== 'All') {
+      const condition = specialtyCondition(specialty);
+      if (condition) filter.$and = [...(filter.$and || []), condition];
+    }
     if (city && city !== 'All') filter.location = new RegExp(escapeRegex(capSearch(city)), 'i');
     let doctors = await Doctor.find(filter).populate('facilityId').sort({ rating: -1 }).lean();
     const doctorIds = doctors.map(d => d._id);

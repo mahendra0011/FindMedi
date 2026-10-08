@@ -72,8 +72,11 @@ export default function AllTests() {
   const navigate = useNavigate();
   const { addItem, updateQty, entries } = useCart();
   const [showAllCategories, setShowAllCategories] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    const p = new URLSearchParams(window.location.search).get('category');
+    return p && TEST_CATEGORIES.some(c => c.name === p) ? p : null;
+  });
+  const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('q') || '');
   const [providerFilter, setProviderFilter] = useState('all');
   const [sortBy, setSortBy] = useState('popularity');
   const [priceRange, setPriceRange] = useState([0, 5000]);

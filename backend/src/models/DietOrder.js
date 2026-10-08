@@ -1,5 +1,13 @@
 import mongoose from 'mongoose';
 
+// subcatogary.md C13 — meal types: the 4 originals plus early-morning,
+// mid-morning, bedtime and supplement. Used by `mealTimes` and `meals[]`
+// below, so the two never drift apart.
+const MEAL_TYPES = [
+  'Breakfast', 'Lunch', 'Evening Snack', 'Dinner',
+  'Early Morning', 'Mid Morning', 'Bedtime', 'Supplement',
+];
+
 const dietOrderSchema = new mongoose.Schema({
   orderId: { type: String, required: true, unique: true },
   patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -9,15 +17,30 @@ const dietOrderSchema = new mongoose.Schema({
   bedNumber: { type: String },
   doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   doctorName: { type: String, required: true },
-  dietType: { type: String, enum: ['Regular', 'Diabetic', 'Low Sodium', 'Liquid', 'Soft', 'High Protein', 'Low Fat', 'Renal', 'NPO', 'Other'], required: true },
-  mealTimes: [{ type: String, enum: ['Breakfast', 'Lunch', 'Evening Snack', 'Dinner'] }],
+  // catogary.md L231-233 + subcatogary.md C13 — the 10 originals plus the
+  // §13 diet types (cardiac, keto, weight-loss, clear/full liquid, tube…).
+  // Additive only.
+  dietType: {
+    type: String,
+    enum: [
+      'Regular', 'Diabetic', 'Low Sodium', 'Liquid', 'Soft', 'High Protein',
+      'Low Fat', 'Renal', 'NPO', 'Other',
+      // §13 additions
+      'Cardiac', 'Bland', 'Low Residue', 'Clear Liquid', 'Full Liquid',
+      'Pureed/Dysphagia', 'Tube/Enteral', 'Gluten Free', 'Neutropenic',
+      'Paediatric', 'Weight Loss', 'Keto', 'Post Surgery',
+      'Pregnancy/Lactation', 'Geriatric',
+    ],
+    required: true,
+  },
+  mealTimes: [{ type: String, enum: MEAL_TYPES }],
   instructions: { type: String },
   allergies: { type: String },
   status: { type: String, enum: ['Active', 'Completed', 'Cancelled'], default: 'Active' },
   reviewedByDietitian: { type: Boolean, default: false },
   dietitianName: { type: String },
   meals: [{
-    mealType: { type: String, enum: ['Breakfast', 'Lunch', 'Evening Snack', 'Dinner'] },
+    mealType: { type: String, enum: MEAL_TYPES },
     date: { type: Date },
     items: { type: String },
     deliveredAt: { type: Date },

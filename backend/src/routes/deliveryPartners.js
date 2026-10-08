@@ -44,7 +44,9 @@ router.post('/register', protect, async (req, res) => {
   }
 });
 
-router.put('/:id/verify', protect, roleOnly(['hospital_admin', 'superadmin', 'pharmacy_owner']), async (req, res) => {
+// KYC queue (8.md 2): verifying a delivery partner is onboarding verification,
+// so the kyc_reviewer joins the platform roles that may do it.
+router.put('/:id/verify', protect, roleOnly(['hospital_admin', 'superadmin', 'pharmacy_owner', 'kyc_reviewer']), async (req, res) => {
   const { action, reason } = req.body;
   const partner = await DeliveryPartner.findByIdAndUpdate(req.params.id, {
     status: action === 'approve' ? 'approved' : 'rejected',

@@ -1,7 +1,6 @@
 import express from 'express';
 import ServiceCity from '../models/ServiceCity.js';
-import { protect } from '../middleware/auth.js';
-import { platformAdminOnly } from '../middleware/authorize.js';
+import { protect, requireRole } from '../middleware/auth.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -30,9 +29,11 @@ router.get('/', async (req, res) => {
 // AUTHZ-B-04: the service-city list gates which cities the whole platform can be
 // used in — a platform-wide operation. It was `restrictTo('superadmin', 'admin')`,
 // and `'admin'` is not a real role in the permission matrix, so the effective rule
-// was "any role whose name happens to be 'admin'". Replaced with the explicit,
-// auditable `platformAdminOnly` (superadmin only).
-router.post('/', protect, platformAdminOnly, async (req, res) => {
+// was "any role whose name happens to be 'admin'". Replaced with an explicit
+// role gate: superadmin plus the ops `city_manager` who owns launch/pause
+// (8.md 4). Still platform-wide - a hospital_admin must not decide where the
+// platform operates.
+router.post('/', protect, requireRole(['superadmin', 'city_manager']), async (req, res) => {
   try {
     const { name, state, centerLat, centerLng, isActive } = req.body;
 
@@ -65,8 +66,8 @@ router.post('/', protect, platformAdminOnly, async (req, res) => {
 });
 
 // ─── PUT /api/service-cities/:id ───────────────────────────────────────────
-// Admin: Update service city
-router.put('/:id', protect, platformAdminOnly, async (req, res) => {
+// Admin: Update service city (same gate as create: superadmin or city_manager)
+router.put('/:id', protect, requireRole(['superadmin', 'city_manager']), async (req, res) => {
   try {
     const { name, state, centerLat, centerLng, isActive } = req.body;
 

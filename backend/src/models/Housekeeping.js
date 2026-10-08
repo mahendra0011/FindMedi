@@ -5,7 +5,19 @@ const housekeepingSchema = new mongoose.Schema({
   room: { type: String, required: true },
   bedNumber: { type: String },
   ward: { type: String },
-  type: { type: String, enum: ['Routine Cleaning', 'Deep Cleaning', 'Discharge Cleaning', 'Terminal Cleaning', 'Fumigation'], required: true },
+  // subcatogary.md C24 — original 5 plus the §24 additions (BMW pickup,
+  // linen change, pest control, water-tank cleaning).
+  type: {
+    type: String,
+    enum: [
+      'Routine Cleaning', 'Deep Cleaning', 'Discharge Cleaning',
+      'Terminal Cleaning', 'Fumigation',
+      // §24 additions
+      'Biomedical Waste Pickup', 'Linen Change', 'Pest Control',
+      'Water Tank Cleaning',
+    ],
+    required: true,
+  },
   status: { type: String, enum: ['Pending', 'In Progress', 'Completed', 'Verified'], default: 'Pending' },
   assignedTo: { type: String },
   notes: { type: String },

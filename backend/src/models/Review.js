@@ -30,6 +30,17 @@ const reviewSchema = new mongoose.Schema({
   // REV-B-01: one review per patient per doctor. Without it the same account can
   // post repeatedly and a doctor's average is whatever the loudest poster chose.
   isVerifiedVisit: { type: Boolean, default: false },
+  // 8.md §5: what the moderation queue (routes/moderation.js via
+  // lib/moderationActions.js) decided about this row. The public list serves
+  // only 'visible' (and rows that predate the field, which have no verdict
+  // yet); shadow_hidden keeps the author's copy alive while nobody else sees
+  // it — the pending-review shadow-hide of §5.1.
+  moderationStatus: {
+    type: String,
+    enum: ['visible', 'hidden', 'shadow_hidden', 'removed'],
+    default: 'visible',
+    index: true,
+  },
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 

@@ -4,7 +4,7 @@ import Facility from '../models/Facility.js';
 import Hospital from '../models/Hospital.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
-import { protect, superadminOnly, adminOnly } from '../middleware/auth.js';
+import { protect, superadminOnly, adminOnly, requireRole } from '../middleware/auth.js';
 import { validate, registerFacilitySchema, updateFacilitySchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import License from '../models/License.js';
@@ -91,7 +91,7 @@ router.get('/', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/pending', protect, superadminOnly, async (req, res) => {
+router.get('/pending', protect, requireRole(['superadmin', 'kyc_reviewer']), async (req, res) => {
   try {
     const { type } = req.query;
     const filter = { status: 'pending' };
@@ -254,7 +254,7 @@ router.post('/register', validate(registerFacilitySchema), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/approve', protect, superadminOnly, async (req, res) => {
+router.put('/:id/approve', protect, requireRole(['superadmin', 'kyc_reviewer']), async (req, res) => {
   try {
     const facility = await Facility.findByIdAndUpdate(req.params.id, { status: 'approved' }, { new: true });
     if (!facility) return res.status(404).json({ message: 'Facility not found' });
@@ -264,7 +264,7 @@ router.put('/:id/approve', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id/reject', protect, superadminOnly, async (req, res) => {
+router.put('/:id/reject', protect, requireRole(['superadmin', 'kyc_reviewer']), async (req, res) => {
   try {
     const { reason } = req.body;
     const facility = await Facility.findByIdAndUpdate(req.params.id, { status: 'rejected', rejectionReason: reason || '' }, { new: true });

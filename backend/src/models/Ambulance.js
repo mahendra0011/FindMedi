@@ -16,9 +16,12 @@ const ambulanceSchema = new mongoose.Schema({
     index: true,
   },
   vehicleModel: { type: String, default: '' },
+  // A2 + subcatogary.md §6 — NICU/neonatal existed only in `lifeSupportTier`,
+  // so a NICU ambulance could not be typed; air / bike responder / cardiac
+  // come from the §6 ambulance list. Additive only.
   ambulanceType: {
     type: String,
-    enum: ['BLS', 'ALS', 'PATIENT_TRANSPORT', 'MORTUARY'],
+    enum: ['BLS', 'ALS', 'PATIENT_TRANSPORT', 'MORTUARY', 'NICU', 'NEONATAL', 'AIR', 'BIKE_RESPONDER', 'CARDIAC_AMBULANCE'],
     default: 'BLS',
   },
   equipmentLevel: { type: String, default: '' }, // e.g. "Oxygen, Defibrillator, Ventilator"

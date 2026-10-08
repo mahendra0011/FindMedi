@@ -93,11 +93,14 @@ export default function DiagnosticCenters() {
     load();
 }, []);
 
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [activeCategory, setActiveCategory] = useState(() => {
+    const p = new URLSearchParams(window.location.search).get('category');
+    return p && CATEGORIES.some(c => c.key === p) ? p : 'All';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [openNow, setOpenNow] = useState(false);
   const [sortBy, setSortBy] = useState('rating');
-  const [homeCollectionOnly, setHomeCollectionOnly] = useState(false);
+  const [homeCollectionOnly, setHomeCollectionOnly] = useState(() => Boolean(new URLSearchParams(window.location.search).get('homeCollection')));
   const [nablOnly, setNablOnly] = useState(false);
   const [distanceFilter, setDistanceFilter] = useState('any');
   const [showMoreFilters, setShowMoreFilters] = useState(false);

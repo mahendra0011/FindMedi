@@ -9,6 +9,7 @@ import { api } from '@/lib/api';
 function ContentModerationTab() {
   const [reviews, setReviews] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [adClaimsOnly, setAdClaimsOnly] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchReviews = useCallback(async () => {
@@ -39,13 +40,18 @@ function ContentModerationTab() {
 
   return (
     <div className="space-y-5">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {['all', 'flagged'].map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${filter === f ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
             {f === 'all' ? 'All Reviews' : 'Flagged'}
           </button>
         ))}
+        {/* adClaimsRestricted: listings/ads making banned efficacy claims */}
+        <label className="flex items-center gap-1.5 ml-1 px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-500/10 text-xs font-medium text-amber-700 dark:text-amber-300 cursor-pointer">
+          <input type="checkbox" checked={adClaimsOnly} onChange={(e) => setAdClaimsOnly(e.target.checked)} className="w-3.5 h-3.5" />
+          Banned ad claims only
+        </label>
       </div>
 
       {loading ? (
@@ -57,15 +63,20 @@ function ContentModerationTab() {
         </div>
       ) : (
         <div className="space-y-3">
-          {reviews.map(r => (
+          {reviews
+            .filter(r => !adClaimsOnly || hasBannedClaim([r.comment, r.flagReason, r.doctorName].filter(Boolean).join(' ')))
+            .map(r => (
             <div key={r._id} className="bg-card rounded-xl border p-4 flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <p className="font-medium text-foreground">{r.patientName}</p>
                   <span className="text-xs text-muted-foreground">→</span>
                   <p className="font-medium text-foreground">{r.doctorName}</p>
                   {r.flagged && (
                     <Badge className="bg-destructive/10 text-destructive border-0 text-xs">Flagged</Badge>
+                  )}
+                  {hasBannedClaim(r.comment || '') && (
+                    <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-0 text-xs">adClaimsRestricted</Badge>
                   )}
                 </div>
                 <div className="flex items-center gap-1 mb-1">

@@ -12,6 +12,15 @@ import { mintQrToken, revokeQrToken, healthIdSettingsSchema } from '../lib/healt
 // P1-5: explicit, model-shaped schemas. The old passthrough + Object.assign
 // pattern let a client overwrite `patientId`/`isActive`/`createdAt` on PUT,
 // re-parenting their record onto another account. Unknown keys are stripped.
+//
+// A4: the three subdocuments FamilyMember already STORES are now writable -
+// guardian consent (5.md §2.1 step 2), the SOS emergency card (6.md §2.5) and
+// the privacy prefs (6.md §2.15). What stays OUT is as deliberate as what goes
+// in: `dependentOf` and `wearableLinks` are server-managed (a client that could
+// re-point dependentOf would adopt a stranger's row; device links are their own
+// flow), and the stamps - grantedBy/grantedAt/sharedAt - are never accepted
+// from a body: applyServerStamps() writes them, because a client attesting its
+// own consent is not consent.
 const familySchema = z.object({
   name: z.string().min(1).max(160).optional(),
   relation: z.enum(['Spouse', 'Child', 'Parent', 'Sibling', 'Grandparent', 'Other']).optional(),
@@ -21,7 +30,55 @@ const familySchema = z.object({
   bloodGroup: z.string().max(20).optional(),
   allergies: z.string().max(2000).optional(),
   medicalNotes: z.string().max(4000).optional(),
+  guardianConsent: z.object({
+    granted: z.boolean().optional(),
+    note: z.string().max(500).optional(),
+  }).optional(),
+  emergencyCard: z.object({
+    allergies: z.string().max(2000).optional(),
+    conditions: z.string().max(2000).optional(),
+    bloodGroup: z.string().max(20).optional(),
+    contacts: z.array(z.object({
+      name: z.string().max(120),
+      relation: z.string().max(60),
+      phone: z.string().max(30),
+    }).strict()).max(10).optional(),
+    sharedInSos: z.boolean().optional(),
+  }).optional(),
+  privacyPrefs: z.object({
+    hiddenCategories: z.array(z.string().max(64)).max(50).optional(),
+    discreetNotifications: z.boolean().optional(),
+  }).optional(),
 });
+
+// Merge each presented subdocument onto what is already stored (a PUT that
+// sends only `note` must not silently reset `granted`, and one that sends only
+// `discreetNotifications` must not drop `hiddenCategories`), then stamp the
+// moments a consent turns ON - grant, SOS share - with who did it and when.
+// Turning consent OFF keeps its stamps: who granted it and when is history,
+// and history is what an auditor reads.
+const applyServerStamps = (body, existing, req) => {
+  const out = { ...body };
+  if (out.guardianConsent) {
+    const merged = { ...(existing?.guardianConsent ?? {}), ...out.guardianConsent };
+    if (merged.granted && !existing?.guardianConsent?.granted) {
+      merged.grantedBy = req.user._id ?? req.user.id;
+      merged.grantedAt = new Date();
+    }
+    out.guardianConsent = merged;
+  }
+  if (out.emergencyCard) {
+    const merged = { ...(existing?.emergencyCard ?? {}), ...out.emergencyCard };
+    if (merged.sharedInSos && !existing?.emergencyCard?.sharedInSos) {
+      merged.sharedAt = new Date();
+    }
+    out.emergencyCard = merged;
+  }
+  if (out.privacyPrefs) {
+    out.privacyPrefs = { ...(existing?.privacyPrefs ?? {}), ...out.privacyPrefs };
+  }
+  return out;
+};
 const addressSchema = z.object({
   label: z.string().max(80).optional(),
   address: z.string().min(1).max(600).optional(),
@@ -38,6 +95,35 @@ const favoriteSchema = z.object({
   notes: z.string().max(1000).optional(),
 });
 
+// ── Privacy centre (6.md §2.15, 10.md §4.3 GET/PUT /api/patient/privacy) ───
+//
+// The storage home is `User.settings` - profileVisibility and
+// patientRecordSharing already lived there, and hiddenCategories is the same
+// kind of account-level preference. The OTHER settings route (auth.js profile
+// update) spreads an unvalidated `settings` object straight through; this is
+// the closed, validated surface the spec lists, so the schema is strict:
+// a key outside this vocabulary is a 400, not a silent write.
+const PRIVACY_VISIBILITY = ['private', 'care_team'];
+const privacySchema = z.object({
+  hiddenCategories: z.array(z.string().min(1).max(64)).max(50).optional(),
+  profileVisibility: z.enum(PRIVACY_VISIBILITY).optional(),
+  patientRecordSharing: z.boolean().optional(),
+  dataSharing: z.boolean().optional(),
+}).strict();
+
+// The read view doubles as the write response. `settings` predates this
+// endpoint on a loose Object path, so the READ side normalises: a value the
+// vocabulary cannot store is reported as the default rather than echoed back,
+// and a missing/legacy settings object still answers with a full shape.
+const privacyView = (settings = {}) => ({
+  hiddenCategories: Array.isArray(settings.hiddenCategories) ? settings.hiddenCategories : [],
+  profileVisibility: PRIVACY_VISIBILITY.includes(settings.profileVisibility)
+    ? settings.profileVisibility
+    : 'care_team',
+  patientRecordSharing: settings.patientRecordSharing === true,
+  dataSharing: settings.dataSharing === true,
+});
+
 const router = express.Router();
 
 // ─── Family Members ────────────────────────────────────────────────────────
@@ -50,7 +136,10 @@ router.get('/family', protect, authorize('profile:read:own'), async (req, res) =
 
 router.post('/family', protect, authorize('profile:write:own'), validate(familySchema), async (req, res) => {
   try {
-    const member = await FamilyMember.create({ ...req.body, patientId: req.user._id });
+    const member = await FamilyMember.create({
+      ...applyServerStamps(req.body, null, req),
+      patientId: req.user._id,
+    });
     res.status(201).json(member);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -59,7 +148,7 @@ router.put('/family/:id', protect, authorize('profile:write:own'), validate(fami
   try {
     const member = await FamilyMember.findOne({ _id: req.params.id, patientId: req.user._id });
     if (!member) return res.status(404).json({ message: 'Family member not found' });
-    Object.assign(member, req.body);
+    Object.assign(member, applyServerStamps(req.body, member, req));
     await member.save();
     res.json(member);
   } catch (err) { res.status(400).json({ message: err.message }); }
@@ -277,6 +366,90 @@ router.put('/health-id/settings', protect, authorize('profile:write:own'), valid
     }
     await user.save();
     res.json({ user: { healthIdCard: user.healthIdCard } });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Privacy centre: settings (6.md §2.15, 10.md §4.3) ────────────────────
+router.get('/privacy', protect, authorize('profile:read:own'), async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(privacyView(user.settings));
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.put('/privacy', protect, authorize('profile:write:own'), validate(privacySchema), async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const next = { ...(user.settings ?? {}) };
+    const changed = [];
+    if (req.body.hiddenCategories !== undefined) {
+      // A category hidden twice is still one category - the list is a set of
+      // names the UI filters by, so duplicates would render as duplicate rows.
+      next.hiddenCategories = [...new Set(req.body.hiddenCategories)];
+      changed.push('hiddenCategories');
+    }
+    for (const key of ['profileVisibility', 'patientRecordSharing', 'dataSharing']) {
+      if (req.body[key] !== undefined) {
+        next[key] = req.body[key];
+        changed.push(key);
+      }
+    }
+    if (changed.length) {
+      // Reassign the whole object rather than poke nested keys: `settings` is
+      // a Mixed path, and mongoose cannot see a nested mutation without
+      // markModified(). Replacing the reference is how auth.js's profile
+      // update persists the same path.
+      const { auditLog } = await import('../middleware/audit.js');
+      user.settings = next;
+      await user.save();
+      await auditLog('privacy_setting_changed', req.user._id, {
+        settingKeys: changed,
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+    }
+    res.json(privacyView(next));
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Privacy centre: consents ledger (6.md §2.15, 10.md §4.3) ─────────────
+// The data subject's read of ConsentRecord. records.js already serves the
+// care-side copy at /api/records/consents; this is the /api/patient path the
+// spec lists, hard-scoped to the session account - no doctor branch, no other
+// party's consents reachable by parameter.
+router.get('/consents', protect, authorize('profile:read:own'), async (req, res) => {
+  try {
+    const { default: ConsentRecord } = await import('../models/ConsentRecord.js');
+    const list = await ConsentRecord.find({ patientId: req.user._id }).sort({ createdAt: -1 }).limit(50).lean();
+    const now = new Date();
+    res.json(list.map((c) => ({
+      ...c,
+      effectiveStatus: c.status === 'GRANTED' && c.expiresAt && new Date(c.expiresAt) < now ? 'EXPIRED' : c.status,
+    })));
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Privacy centre: access log (6.md §2.15) ──────────────────────────────
+// "Who touched my data" - the patient-visible half of the Phase-8 audit trail.
+// Three populations, one session-scoped query: my OWN actions (userId), and
+// actions ON MY records, where the code stores the subject id under either
+// details.resourceId (the records-list read) or details.patientId (record
+// writes). The subject id never comes from a parameter, so a caller cannot
+// read anyone else's log by asking.
+router.get('/access-log', protect, authorize('profile:read:own'), async (req, res) => {
+  try {
+    const { default: AuditLog } = await import('../models/AuditLog.js');
+    const me = String(req.user._id);
+    const entries = await AuditLog.find({
+      $or: [
+        { userId: req.user._id },
+        { 'details.resourceId': me },
+        { 'details.patientId': me },
+      ],
+    }).sort({ timestamp: -1 }).limit(50).select('action userId ip timestamp details').lean();
+    res.json(entries);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

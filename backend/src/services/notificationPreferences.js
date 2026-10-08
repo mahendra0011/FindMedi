@@ -1,5 +1,6 @@
 import NotificationPreference from '../models/NotificationPreference.js';
 import NotificationAudit from '../models/NotificationAudit.js';
+import { NEUTRAL_COPY } from '../lib/neutralCopy.js';
 import logger from '../config/logger.js';
 
 /**
@@ -62,6 +63,11 @@ export const DEFAULT_PREFERENCE = {
   marketingOptIn: true,
   mutedTypes: [],
   quietHours: { enabled: false, startMinute: 22 * 60, endMinute: 7 * 60 },
+  // 6.md §2.15 / 9.md §3: the flag itself existed on the model but was
+  // unreachable - no reader returned it and no writer accepted it. Defaulted
+  // here so loadPreference answers with a complete shape even before the
+  // first row exists.
+  discreetMode: false,
 };
 
 /** Load a user's preference, falling back to defaults on any failure. */
@@ -74,11 +80,33 @@ export const loadPreference = async (userId) => {
       marketingOptIn: pref.marketingOptIn !== false,
       mutedTypes: Array.isArray(pref.mutedTypes) ? pref.mutedTypes : [],
       quietHours: { ...DEFAULT_PREFERENCE.quietHours, ...(pref.quietHours || {}) },
+      discreetMode: pref.discreetMode === true,
     };
   } catch (err) {
     logger.error(`[notif] preference lookup failed for ${userId}, using defaults: ${err.message}`);
     return { ...DEFAULT_PREFERENCE };
   }
+};
+
+/**
+ * 6.md §2.15 / 9.md §3: discreet mode hides WHAT, not THAT.
+ *
+ * The neutral wording is the model's own NEUTRAL_COPY table (the same one the
+ * push hook already uses for every user), so a discreet preview reads exactly
+ * like a non-discreet push payload. Two rules shape it:
+ *  - `critical` is never redacted: an SOS preview that has been neutralised is
+ *    an SOS somebody does not react to - same carve-out quiet hours have;
+ *  - a preference read failure (null) returns the notification untouched,
+ *    matching loadPreference's documented fail-open-to-defaults behaviour.
+ *
+ * Documents are converted before the swap: mongoose path getters are not own
+ * properties, so spreading a Document would drop every field.
+ */
+export const applyDiscreetCopy = (notification, preference) => {
+  if (!preference?.discreetMode || notification?.priority === 'critical') return notification;
+  const base = typeof notification?.toObject === 'function' ? notification.toObject() : { ...notification };
+  const copy = NEUTRAL_COPY[base.type] || NEUTRAL_COPY.system;
+  return { ...base, title: copy.title, message: copy.body, discreet: true };
 };
 
 /**

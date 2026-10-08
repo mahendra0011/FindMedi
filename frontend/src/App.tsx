@@ -51,6 +51,8 @@ const OTPVerification = lazy(() => import('./pages/OTPVerification'));
 const PendingApproval = lazy(() => import('./pages/PendingApproval'));
 const DoctorSetup = lazy(() => import('./pages/DoctorSetup'));
 const JoinPlatform = lazy(() => import('./pages/JoinPlatform'));
+// R1: config-driven join wizard (parallel run — JoinPlatform.tsx stays intact)
+const JoinWizard = lazy(() => import('./pages/join/JoinWizard'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -97,6 +99,7 @@ const GrievanceRedressal = lazy(() => import('./pages/GrievanceRedressal'));
 const TelemedicineConsent = lazy(() => import('./pages/TelemedicineConsent'));
 const PatientRights = lazy(() => import('./pages/PatientRights'));
 const CookiePolicy = lazy(() => import('./pages/CookiePolicy'));
+const HealthcarePage = lazy(() => import('./pages/HealthcarePage'));
 const HospitalDirectory = lazy(() => import('./pages/HospitalDirectory'));
 const HospitalProfile = lazy(() => import('./pages/HospitalProfile'));
 const HospitalDoctors = lazy(() => import('./pages/HospitalDoctors'));
@@ -165,6 +168,10 @@ const PatientRegistration = lazy(() => import('./pages/PatientRegistration'));
 const DoctorConsultation = lazy(() => import('./pages/DoctorConsultation'));
 
 const PatientDashboard = lazy(() => import('./pages/patient/PatientDashboard'));
+// R1: patient dashboard v2 + timeline + privacy centre (old routes untouched)
+const PatientDashboardV2 = lazy(() => import('./pages/patient/PatientDashboardV2'));
+const PatientTimeline = lazy(() => import('./pages/patient/Timeline'));
+const PatientPrivacyCentre = lazy(() => import('./pages/patient/PrivacyCentre'));
 const PatientAppointments = lazy(() => import('./pages/patient/PatientAppointments'));
 const PatientRecords = lazy(() => import('./pages/patient/PatientRecords'));
 const PatientReviews = lazy(() => import('./pages/patient/PatientReviews'));
@@ -250,6 +257,16 @@ const DeliveryDocuments = lazy(() => import('./pages/delivery/DeliveryDocuments'
 const DeliverySettings = lazy(() => import('./pages/delivery/DeliverySettings'));
 const DeliveryPartnerRegister = lazy(() => import('./pages/register/DeliveryPartnerRegister'));
 const SuperAdminDeliveryPartners = lazy(() => import('./pages/superadmin/DeliveryPartners'));
+
+// R1: generic shell + thin role dashboards (RoleDashboardShell + 8 wrappers)
+const DentistDashboard = lazy(() => import('./pages/dashboards/DentistDashboard'));
+const DietitianDashboard = lazy(() => import('./pages/dashboards/DietitianDashboard'));
+const PhysioDashboard = lazy(() => import('./pages/dashboards/PhysioDashboard'));
+const YogaStudioDashboard = lazy(() => import('./pages/dashboards/YogaStudioDashboard'));
+const GymDashboard = lazy(() => import('./pages/dashboards/GymDashboard'));
+const EquipmentVendorDashboard = lazy(() => import('./pages/dashboards/EquipmentVendorDashboard'));
+const EventOrganizerDashboard = lazy(() => import('./pages/dashboards/EventOrganizerDashboard'));
+const PhlebotomistDashboard = lazy(() => import('./pages/dashboards/PhlebotomistDashboard'));
 
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminPrescriptionQueue = lazy(() => import('./pages/admin/AdminPrescriptionQueue'));
@@ -603,6 +620,8 @@ const App = () => (
                   <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
                     <Route path="/join-platform" element={<JoinPlatform />} />
+                    {/* R1: config-driven wizard — parallel run, old page intact */}
+                    <Route path="/join/new" element={<JoinWizard />} />
                     <Route path="/terms" element={<TermsOfService />} />
                     <Route path="/privacy" element={<PrivacyPolicy />} />
                     <Route path="/disclaimer" element={<Disclaimer />} />
@@ -618,6 +637,7 @@ const App = () => (
                   <Route path="/pending-approval" element={<PendingApproval />} />
                   <Route path="/doctor-setup" element={<DoctorSetup />} />
                   <Route path="/ambulance-setup" element={<AmbulanceSetup />} />
+<Route path="/healthcare" element={<PublicLayout><HealthcarePage /></PublicLayout>} />
 <Route path="/hospitals" element={<PublicLayout><HospitalDirectory /></PublicLayout>} />
                    <Route path="/hospitals/:id" element={<PublicLayout><HospitalProfile /></PublicLayout>} />
 <Route path="/hospitals/:hospitalId/doctors" element={<PublicLayout><HospitalDoctors /></PublicLayout>} />
@@ -746,35 +766,38 @@ const App = () => (
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/upload" element={<FileUpload />} />
 
-                    {/* Super Admin routes */}
+                    {/* Super Admin / ops-console routes.
+                         8.md 1: each ops role gets its OWN section, never the
+                         whole console - RoleRoute is the UI half of the same
+                         least-privilege rule the backend gates enforce. */}
                     <Route path="/superadmin" element={<Navigate to="/superadmin/overview" replace />} />
                     <Route path="/superadmin/overview" element={<RoleRoute allowedRoles={['superadmin']}><SAPlatformKPIs /></RoleRoute>} />
-                    <Route path="/superadmin/pending" element={<RoleRoute allowedRoles={['superadmin']}><SAPendingApprovals /></RoleRoute>} />
+                    <Route path="/superadmin/pending" element={<RoleRoute allowedRoles={['superadmin', 'kyc_reviewer']}><SAPendingApprovals /></RoleRoute>} />
                     <Route path="/superadmin/facilities" element={<RoleRoute allowedRoles={['superadmin']}><SAAllFacilities /></RoleRoute>} />
                     <Route path="/superadmin/stats" element={<RoleRoute allowedRoles={['superadmin']}><SAPlatformStats /></RoleRoute>} />
                     <Route path="/superadmin/users" element={<RoleRoute allowedRoles={['superadmin']}><SAUserManagement /></RoleRoute>} />
-                    <Route path="/superadmin/moderation" element={<RoleRoute allowedRoles={['superadmin']}><SAContentModeration /></RoleRoute>} />
+                    <Route path="/superadmin/moderation" element={<RoleRoute allowedRoles={['superadmin', 'moderator']}><SAContentModeration /></RoleRoute>} />
                     <Route path="/superadmin/disputes" element={<RoleRoute allowedRoles={['superadmin']}><SADisputes /></RoleRoute>} />
-                    <Route path="/superadmin/revenue" element={<RoleRoute allowedRoles={['superadmin']}><SARevenue /></RoleRoute>} />
-                    <Route path="/superadmin/licenses" element={<RoleRoute allowedRoles={['superadmin']}><SALicenses /></RoleRoute>} />
-                    <Route path="/superadmin/categories" element={<RoleRoute allowedRoles={['superadmin']}><SACategories /></RoleRoute>} />
-                    <Route path="/superadmin/catalog" element={<RoleRoute allowedRoles={['superadmin']}><SAGlobalCatalog /></RoleRoute>} />
-                    <Route path="/superadmin/audit" element={<RoleRoute allowedRoles={['superadmin']}><SAAuditLogs /></RoleRoute>} />
+                    <Route path="/superadmin/revenue" element={<RoleRoute allowedRoles={['superadmin', 'finance_admin']}><SARevenue /></RoleRoute>} />
+                    <Route path="/superadmin/licenses" element={<RoleRoute allowedRoles={['superadmin', 'compliance_officer']}><SALicenses /></RoleRoute>} />
+                    <Route path="/superadmin/categories" element={<RoleRoute allowedRoles={['superadmin', 'catalog_manager']}><SACategories /></RoleRoute>} />
+                    <Route path="/superadmin/catalog" element={<RoleRoute allowedRoles={['superadmin', 'catalog_manager']}><SAGlobalCatalog /></RoleRoute>} />
+                    <Route path="/superadmin/audit" element={<RoleRoute allowedRoles={['superadmin', 'compliance_officer']}><SAAuditLogs /></RoleRoute>} />
                     <Route path="/audit-logs" element={<ProtectedRoute><SAAuditLogs /></ProtectedRoute>} />
                     <Route path="/superadmin/broadcast" element={<RoleRoute allowedRoles={['superadmin']}><SABroadcast /></RoleRoute>} />
-                    <Route path="/superadmin/tickets" element={<RoleRoute allowedRoles={['superadmin']}><SASupportTickets /></RoleRoute>} />
+                    <Route path="/superadmin/tickets" element={<RoleRoute allowedRoles={['superadmin', 'support_agent']}><SASupportTickets /></RoleRoute>} />
                     <Route path="/superadmin/settings" element={<RoleRoute allowedRoles={['superadmin']}><SASystemSettings /></RoleRoute>} />
                     <Route path="/superadmin/team" element={<RoleRoute allowedRoles={['superadmin']}><SASuperAdminTeam /></RoleRoute>} />
                     <Route path="/superadmin/promotions" element={<RoleRoute allowedRoles={['superadmin']}><SAPromotions /></RoleRoute>} />
                     <Route path="/superadmin/loyalty" element={<RoleRoute allowedRoles={['superadmin']}><SALoyaltyRewards /></RoleRoute>} />
                     <Route path="/superadmin/referrals" element={<RoleRoute allowedRoles={['superadmin']}><SAReferralSettings /></RoleRoute>} />
                     <Route path="/superadmin/export" element={<RoleRoute allowedRoles={['superadmin']}><SADataExport /></RoleRoute>} />
-                    <Route path="/superadmin/cities" element={<RoleRoute allowedRoles={['superadmin']}><SACities /></RoleRoute>} />
-                    <Route path="/superadmin/legal" element={<RoleRoute allowedRoles={['superadmin']}><SALegal /></RoleRoute>} />
+                    <Route path="/superadmin/cities" element={<RoleRoute allowedRoles={['superadmin', 'city_manager']}><SACities /></RoleRoute>} />
+                    <Route path="/superadmin/legal" element={<RoleRoute allowedRoles={['superadmin', 'content_editor']}><SALegal /></RoleRoute>} />
                     <Route path="/superadmin/integrations" element={<RoleRoute allowedRoles={['superadmin']}><SAIntegrations /></RoleRoute>} />
                     <Route path="/superadmin/emergency-war-room" element={<RoleRoute allowedRoles={['superadmin']}><SAEmergencyWarRoom /></RoleRoute>} />
-                    <Route path="/superadmin/kyc-command" element={<RoleRoute allowedRoles={['superadmin']}><SAKycCommand /></RoleRoute>} />
-                    <Route path="/superadmin/tax-ledger" element={<RoleRoute allowedRoles={['superadmin']}><SATaxLedger /></RoleRoute>} />
+                    <Route path="/superadmin/kyc-command" element={<RoleRoute allowedRoles={['superadmin', 'kyc_reviewer']}><SAKycCommand /></RoleRoute>} />
+                    <Route path="/superadmin/tax-ledger" element={<RoleRoute allowedRoles={['superadmin', 'finance_admin']}><SATaxLedger /></RoleRoute>} />
                     <Route path="/superadmin/ai-safety" element={<RoleRoute allowedRoles={['superadmin']}><SAAiSafety /></RoleRoute>} />
                     <Route path="/superadmin/security" element={<RoleRoute allowedRoles={['superadmin']}><SASecurity /></RoleRoute>} />
 
@@ -871,6 +894,10 @@ const App = () => (
                     <Route path="/patient/rides" element={<RoleRoute allowedRoles={['patient']}><PatientRides /></RoleRoute>} />
                     <Route path="/patient/assistants" element={<RoleRoute allowedRoles={['patient']}><PatientAssistants /></RoleRoute>} />
                     <Route path="/patient/lawyers" element={<RoleRoute allowedRoles={['patient']}><PatientLawyers /></RoleRoute>} />
+                    {/* R1: patient dashboard v2 + timeline + privacy (old /patient/* intact) */}
+                    <Route path="/patient/home-v2" element={<RoleRoute allowedRoles={['patient']}><PatientDashboardV2 /></RoleRoute>} />
+                    <Route path="/patient/timeline" element={<RoleRoute allowedRoles={['patient']}><PatientTimeline /></RoleRoute>} />
+                    <Route path="/patient/privacy" element={<RoleRoute allowedRoles={['patient']}><PatientPrivacyCentre /></RoleRoute>} />
 
                     {/* Doctor routes */}
                     <Route path="/doctor/appointments/approve" element={<RoleRoute allowedRoles={['doctor', 'hospital_admin']}><DoctorAppointments /></RoleRoute>} />
@@ -1022,6 +1049,16 @@ const App = () => (
                     <Route path="/lawyer/history" element={<Navigate to="/lawyer/dashboard?tab=cases" replace />} />
                     <Route path="/lawyer/earnings" element={<Navigate to="/lawyer/dashboard?tab=earnings" replace />} />
                     <Route path="/lawyer/profile" element={<Navigate to="/lawyer/dashboard?tab=profile" replace />} />
+
+                    {/* R1: thin role dashboards over RoleDashboardShell */}
+                    <Route path="/dashboard/dentist" element={<DentistDashboard />} />
+                    <Route path="/dashboard/dietitian" element={<DietitianDashboard />} />
+                    <Route path="/dashboard/physio" element={<PhysioDashboard />} />
+                    <Route path="/dashboard/yoga" element={<YogaStudioDashboard />} />
+                    <Route path="/dashboard/gym" element={<GymDashboard />} />
+                    <Route path="/dashboard/equipment" element={<EquipmentVendorDashboard />} />
+                    <Route path="/dashboard/events" element={<EventOrganizerDashboard />} />
+                    <Route path="/dashboard/phlebotomist" element={<PhlebotomistDashboard />} />
                     </Route>
 
                    <Route path="/register/delivery-partner" element={<DeliveryPartnerRegister />} />

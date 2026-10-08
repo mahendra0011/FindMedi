@@ -4,7 +4,24 @@ import { moneyRounding } from '../utils/money.js';
 const healthPackageSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String },
-  category: { type: String, enum: ['Basic', 'Comprehensive', 'Cardiac', 'Diabetic', 'Women', 'Senior Citizen', 'Corporate', 'Other'], default: 'Basic' },
+  // subcatogary.md C4.3 — original 8 plus the §4.3 additions (executive,
+  // organ panels, men/child, pregnancy, pre-marital/employment, screening…).
+  // Additive only; `Other` stays last as the catch-all.
+  category: {
+    type: String,
+    enum: [
+      'Basic', 'Comprehensive', 'Cardiac', 'Diabetic', 'Women',
+      'Senior Citizen', 'Corporate',
+      // §4.3 additions
+      'Executive', 'Thyroid', 'Liver', 'Kidney', 'Bone & Joint', 'Men',
+      'Child', 'Pregnancy', 'Pre-Marital', 'Pre-Employment',
+      'Cancer Screening', 'Fever/Seasonal', 'Vitamin/Immunity',
+      'Fitness/Athlete', 'Allergy', 'Sexual Health', 'Travel/Visa Medical',
+      'Insurance Medical',
+      'Other',
+    ],
+    default: 'Basic',
+  },
   tests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Test' }],
   testNames: [{ type: String }],
   originalPrice: { type: Number, required: true },

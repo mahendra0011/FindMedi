@@ -601,6 +601,28 @@ import clinicRoutes from './routes/clinics.js';
 import platformRoutes from './routes/platform.js';
 import twoFactorRoutes from './routes/twoFactor.js';
 import patientPortalRoutes from './routes/patient.js';
+// A4 patient portal (rolesmd 10.md 4.3 + 4.4, 6.md 2.5/2.15/2.7): vaccination
+// schedules, DPDP data-subject requests (self-service + the compliance queue)
+// and meal subscriptions - each its own resource, like deletionRequests below.
+import patientVaccinationRoutes from './routes/vaccinations.js';
+import patientDsrRoutes from './routes/dsr.js';
+import adminDsrRoutes from './routes/adminDsr.js';
+import mealSubscriptionRoutes from './routes/mealSubscriptions.js';
+import membershipRoutes from './routes/memberships.js';
+import patientEventRoutes from './routes/patientEvents.js';
+import patientPolicyRoutes from './routes/patientInsurancePolicies.js';
+import patientDashboardRoutes from './routes/patientDashboard.js';
+import patientTimelineRoutes from './routes/patientTimeline.js';
+import patientRecommendationsRoutes from './routes/patientRecommendations.js';
+import patientWomensHealthRoutes from './routes/patientWomensHealth.js';
+import patientWellnessRoutes from './routes/patientWellness.js';
+import secondOpinionRoutes from './routes/secondOpinions.js';
+import dentalRoutes from './routes/dental.js';
+import eyeRoutes from './routes/eye.js';
+import dialysisRoutes from './routes/dialysis.js';
+import fertilityRoutes from './routes/fertility.js';
+import doctorCmeRoutes from './routes/doctorCme.js';
+import qualityChecklistRoutes from './routes/qualityChecklists.js';
 import auditLogRoutes from './routes/auditLogs.js';
 import opsHealthRoutes from './routes/opsHealth.js';
 import tenantQuotaRoutes from './routes/tenantQuotas.js';
@@ -613,6 +635,25 @@ import supportTicketRoutes from './routes/supportTickets.js';
 import leaveRequestRoutes from './routes/leaveRequests.js';
 import scheduleChangeRequestRoutes from './routes/scheduleChangeRequests.js';
 import categoryRoutes from './routes/categories.js';
+import providerRoutes from './routes/providers.js';
+import practitionerRoutes from './routes/practitioners.js';
+import productRoutes from './routes/products.js';
+import providerTypeRoutes from './routes/providerTypes.js';
+import adminProviderTypeRoutes from './routes/adminProviderTypes.js';
+import providerServiceRoutes from './routes/providerServices.js';
+// Catalogue half of the provider workspace (10.md 4.2 plans + products).
+// Mounted at /api/provider AFTER /api/provider/services so the deeper, earlier
+// mount keeps serving /services untouched — this router only ever sees
+// /plans and /products.
+import providerCatalogRoutes from './routes/providerCatalog.js';
+import joinRoutes from './routes/join.js';
+import adminApplicationRoutes from './routes/adminApplications.js';
+import onboardingMetricsRoutes from './routes/onboardingMetrics.js';
+// rolesmd 5.md flows B (quote), E (events) and G (rental) + 8.md §5/§6 queue.
+import quoteRoutes from './routes/quotes.js';
+import eventRoutes from './routes/events.js';
+import rentalRoutes from './routes/rentals.js';
+import moderationRoutes from './routes/moderation.js';
 import licenseRoutes from './routes/licenses.js';
 import announcementRoutes from './routes/announcements.js';
 import broadcastRoutes from './routes/broadcast.js';
@@ -718,6 +759,63 @@ app.use('/api/facilities', facilityRoutes);
 app.use('/api/clinics', clinicRoutes);
 app.use('/api/platform', platformRoutes);
 app.use('/api/patient', patientPortalRoutes);
+// A4. Mounted as their OWN resources right after the patient portal: patient.js
+// has no catch-all, so an unknown /api/patient/* subpath falls through to these
+// mounts regardless of order - the same reason deletionRequests is separate.
+app.use('/api/patient/vaccinations', patientVaccinationRoutes);
+app.use('/api/patient/dsr', patientDsrRoutes);
+app.use('/api/patient/meals', mealSubscriptionRoutes);
+// Flow D purchase (5.md 5). The spec spells the path two ways - 10.md 4.3
+// "POST /api/memberships", 6.md dashboard "GET/POST /patient/memberships" -
+// so the SAME router answers both; one handler, zero duplicated logic, and
+// whichever spelling the page is built against is already covered.
+app.use('/api/memberships', membershipRoutes);
+app.use('/api/patient/memberships', membershipRoutes);
+// 6.md 140 dashboard additions: my event registrations (session-scoped list,
+// join carries the public event fields) and the policy registry (own rows,
+// expiry derived at read — the Insurance model stays the CLAIMS registry).
+app.use('/api/patient/events', patientEventRoutes);
+app.use('/api/patient/insurance/policies', patientPolicyRoutes);
+// 6.md §8 `GET /patient/dashboard/summary?profileId=` — aggregated, cached
+// short (60s server-side), object-authz self-or-family via profileAccess.
+app.use('/api/patient/dashboard', patientDashboardRoutes);
+// 6.md §2.6/§2.10 unified timeline: segment=upcoming merges bookings,
+// segment=history is the records timeline (person/type/date filters).
+app.use('/api/patient/timeline', patientTimelineRoutes);
+// 6.md §2.11 discover feed: near-you events/facilities, packages, trending,
+// programs, care-plan suggestions (opt-out via ?personalised=false), seasonal
+// alerts, reviewed content — object-authz via profileAccess on ?profileId=.
+app.use('/api/patient/recommendations', patientRecommendationsRoutes);
+// 6.md §2.9 women's health (opt-in): separate per-profile consent, private by
+// design — no other surface reads these collections.
+app.use('/api/patient/wellness/womens', patientWomensHealthRoutes);
+// 6.md §2.10/§2.11 fitness (opt-in) + nutrition logs, computed streaks.
+app.use('/api/patient/wellness', patientWellnessRoutes);
+// 7.md:39 second-opinion inbox: patient shares records+question with a doctor,
+// doctor answers/declines; the share is a minted ConsentRecord that dies with
+// the request.
+app.use('/api/second-opinions', secondOpinionRoutes);
+// 7.md:3.1 dental charts, treatment plans, lab-work tracker, sterilisation
+// log — provider-ownership guarded, patient read-own via /mine.
+app.use('/api/provider/dental', dentalRoutes);
+// 7.md:3.2 eye exams, optical job cards, surgery pipeline — same guards.
+app.use('/api/provider/eye', eyeRoutes);
+// 7.md:3.16 dialysis sessions + water-quality logs — same guards.
+app.use('/api/provider/dialysis', dialysisRoutes);
+// 7.md:3.17 fertility cycles + audited outcome reporting — same guards.
+app.use('/api/provider/fertility', fertilityRoutes);
+// 7.md:39 doctor CME tracker — scoped to the caller's own Doctor profiles.
+app.use('/api/doctor/cme', doctorCmeRoutes);
+// 7.md:3.41 quality/NABH checklists — immutable snapshots, derived scores.
+app.use('/api/provider/quality', qualityChecklistRoutes);
+// 6.md 140 `GET /patient/rentals`: the self-scoped list already lives at
+// /api/rentals (rentals.js GET /, authz: self) — same router, dashboard
+// spelling, exactly like /api/patient/memberships above.
+app.use('/api/patient/rentals', rentalRoutes);
+// 10.md 4.4: "GET/POST /api/admin/dsr (data-subject requests)" - the compliance
+// queue behind dsr:read/dsr:approve (compliance_officer), separate from the
+// self-service half above so neither surface inherits the other's gate.
+app.use('/api/admin/dsr', adminDsrRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/ops-health', opsHealthRoutes);
 app.use('/api/tenant-quotas', tenantQuotaRoutes);
@@ -768,6 +866,26 @@ app.use('/api/support-tickets', supportTicketRoutes);
 app.use('/api/leave-requests', leaveRequestRoutes);
 app.use('/api/schedule-change-requests', scheduleChangeRequestRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/providers', providerRoutes);
+// 10.md 4.1 public catalogue: the practitioner spelling of the detail DTO and
+// the cross-vendor storefront listing. Both anonymous + DTO-only, like
+// /api/providers above (Cache-Control set per route, allowlisted fields).
+app.use('/api/practitioners', practitionerRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/config/provider-types', providerTypeRoutes);
+app.use('/api/admin/provider-type-configs', adminProviderTypeRoutes);
+app.use('/api/join', joinRoutes);
+app.use('/api/admin/applications', adminApplicationRoutes);
+// 2.md 13: onboarding funnel metrics. Superadmin only, no-store - see the
+// route file for why neither the data nor a cached copy of it is public.
+app.use('/api/onboarding-metrics', onboardingMetricsRoutes);
+// FLOW-B / FLOW-E / FLOW-G and the 8.md §5/§6 moderation queue.
+app.use('/api/quotes', quoteRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/rentals', rentalRoutes);
+app.use('/api/moderation', moderationRoutes);
+app.use('/api/provider/services', providerServiceRoutes);
+app.use('/api/provider', providerCatalogRoutes);
 app.use('/api/licenses', licenseRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/broadcast', broadcastRoutes);
@@ -1206,6 +1324,16 @@ if (process.env.NODE_ENV !== 'test') {
         startPayoutReconcile(process.env.PAYOUT_RECON_CRON || '0 3 * * *');
       } catch (e) {
         logger.warn('payout reconcile job failed to start (non-fatal): ' + e.message);
+      }
+
+      // 2.md 5 / 8.md 2 / 8.md 14: document expiry (60/30/7-day reminders,
+      // grace-suspension of the listing, ops alert on expiry). Daily, 06:00 —
+      // offset from the 02:00 wallet and 03:00 payout jobs.
+      try {
+        const { startDocumentExpiry } = await import('./jobs/documentExpiry.job.js');
+        startDocumentExpiry(process.env.DOC_EXPIRY_CRON || '0 6 * * *');
+      } catch (e) {
+        logger.warn('document expiry job failed to start (non-fatal): ' + e.message);
       }
     } catch (e) {
       logger.error('⚠️ Failed to sync indexes, seed demo users, or start outbox poller: ' + e.message);

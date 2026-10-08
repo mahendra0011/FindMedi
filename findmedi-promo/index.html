@@ -1,114 +1,509 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FindMedi — Book Care in Seconds (Promo Film)</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FindMedi — Complete A to Z Healthcare Appointment System (Cinematic Motion Film)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="viewport"><div id="stage">
-<div class="grid"></div>
-<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
-<div id="dust"></div>
-<div class="pulse-ring pr1"></div><div class="pulse-ring pr2"></div>
-<!-- SCENE 1 : LOGO REVEAL -->
-<section class="scene" id="s1"><div class="center">
-<div class="logoWrap"><svg class="logoDraw" viewBox="0 0 120 120"><circle class="lg-ring" cx="60" cy="60" r="52"/><path class="lg-cross" d="M60 34 V86 M34 60 H86"/></svg>
-<div class="ecg"><svg viewBox="0 0 600 80"><path class="ecgLine" d="M0 40 H180 L200 40 212 12 226 66 238 40 H330 L344 40 352 24 362 56 370 40 H470 L484 40 492 20 502 60 510 40 H600"/></svg></div>
-<h1 class="brand"><span>F</span><span>i</span><span>n</span><span>d</span><span>M</span><span>e</span><span>d</span><span>i</span></h1>
-<p class="tagline">Book care in seconds.</p></div></div></section>
-<!-- SCENE 2 : HOOK -->
-<section class="scene" id="s2"><div class="center">
-<h2 class="hookA">Tired of hospital queues?</h2>
-<div class="queue" id="queue"></div>
-<h2 class="hookB"><span>Find.</span> <span>Book.</span> <span class="teal">Heal.</span></h2>
-<div class="uLine"></div></div>
-<div class="marquee"><div class="mqIn" id="mq"></div></div></section>
-<!-- SCENE 3 : STATS -->
-<section class="scene" id="s3"><div class="center">
-<h2 class="secT">Trusted across India</h2>
-<div class="statRow" id="statRow"></div>
-<div class="stars" id="stars"></div>
-<div class="orbit"><div class="orbDot"></div></div></div></section>
-<!-- SCENE 4 : STEP 1 SPECIALTIES -->
-<section class="scene" id="s4"><div class="split">
-<div class="left"><div class="chip">① Choose your specialty</div>
-<h2 class="secT">Top verified<br>specialists,<br><span class="teal">one tap away.</span></h2></div>
-<div class="phone"><div class="notch"></div><div class="scr">
-<div class="statusbar"><span>9:41</span><span class="sig">▂▄▆ 5G ▮</span></div>
-<div class="appBar">✚ FindMedi</div><div class="scrT">Choose specialty</div>
-<div class="specGrid" id="specGrid"></div></div></div></div></section>
-<!-- SCENE 5 : STEP 2 DOCTORS -->
-<section class="scene" id="s5"><div class="split">
-<div class="left"><div class="chip">② Pick your doctor</div>
-<h2 class="secT">Compare by rating,<br>experience <span class="teal">&amp; fee.</span></h2></div>
-<div class="phone"><div class="notch"></div><div class="scr">
-<div class="statusbar"><span>9:41</span><span class="sig">▂▄▆ 5G ▮</span></div>
-<div class="appBar">✚ FindMedi</div><div class="scrT">Cardiologists near you</div>
-<div class="docList" id="docList"></div><div class="scan"></div></div></div></div></section>
-<!-- SCENE 6 : STEP 3 DATE+SLOT+MODE -->
-<section class="scene" id="s6"><div class="split">
-<div class="left"><div class="chip">③ Date, time &amp; visit mode</div>
-<h2 class="secT">Live slots.<br><span class="teal">Your choice</span> of visit.</h2></div>
-<div class="phone"><div class="notch"></div><div class="scr">
-<div class="statusbar"><span>9:41</span><span class="sig">▂▄▆ 5G ▮</span></div>
-<div class="appBar">✚ FindMedi</div><div class="scrT">Tomorrow • Dr. Sharma</div>
-<div class="dStrip" id="dStrip"></div>
-<div class="slotGrid" id="slotGrid"></div>
-<div class="modeRow" id="modeRow"></div></div></div></div></section>
-<!-- SCENE 7 : STEP 4 CONFIRM -->
-<section class="scene" id="s7"><div class="split">
-<div class="left"><div class="chip">④ Confirm in one tap</div>
-<h2 class="secT">One tap.<br><span class="teal">Done.</span></h2></div>
-<div class="phone"><div class="notch"></div><div class="scr">
-<div class="statusbar"><span>9:41</span><span class="sig">▂▄▆ 5G ▮</span></div>
-<div class="appBar">✚ FindMedi</div><div class="scrT">Confirm booking</div>
-<div class="form" id="formBox"></div>
-<div class="sumCard" id="sumCard"></div>
-<button class="ctaBtn" id="ctaBtn">Confirm Booking</button></div></div></div></section>
-<!-- SCENE 8 : SUCCESS -->
-<section class="scene" id="s8"><div class="split">
-<div class="left"><div class="chip">✓ Booked!</div>
-<h2 class="secT">Instant confirmation.<br><span class="teal">Zero waiting.</span></h2></div>
-<div class="phone"><div class="notch"></div><div class="scr suc">
-<div class="statusbar"><span>9:41</span><span class="sig">▂▄▆ 5G ▮</span></div>
-<div class="flash"></div><div class="glowBurst"></div>
-<svg class="bigCheck" viewBox="0 0 120 120"><circle class="ckRing" cx="60" cy="60" r="52"/><path class="ckMark" d="M38 62 L54 78 L84 44"/></svg>
-<div class="apptCard" id="apptCard"><div class="tkRow">Token <b id="tokNum">A-01</b></div>
-<div class="apRow">👩‍⚕️ Dr. Ananya Sharma</div><div class="apRow">📅 Tomorrow • 11:30 AM</div>
-<div class="apRow">📹 Video Consult • ₹800</div></div>
-<div class="orbitMin" id="orbitMin"></div></div></div></div></section>
-<!-- SCENE 9 : TIMELINE -->
-<section class="scene" id="s9"><div class="center">
-<div class="chip">Live tracking</div>
-<h2 class="secT">Every visit, <span class="teal">tracked live.</span></h2>
-<div class="tlWrap"><div class="tlLine"><div class="tlFill" id="tlFill"></div><div class="tlDot" id="tlDot"></div></div>
-<div class="tlNodes" id="tlNodes"></div></div>
-<div class="miniRow" id="miniRow"></div></div></section>
-<!-- SCENE 10 : FEATURES -->
-<section class="scene" id="s10"><div class="center">
-<div class="fLogo">✚<b>FindMedi</b></div>
-<div class="featOrbit" id="featOrbit"></div></div></section>
-<!-- SCENE 11 : OUTRO -->
-<section class="scene" id="s11"><div class="center">
-<svg class="logoDraw sm" viewBox="0 0 120 120"><circle class="lg-ring" cx="60" cy="60" r="52"/><path class="lg-cross" d="M60 34 V86 M34 60 H86"/></svg>
-<h1 class="brand sm">FindMedi</h1>
-<p class="tagline2">Book care in seconds.</p>
-<div class="ctaPill">▶ Book your demo today</div>
-<div class="url"><span id="urlType"></span><i class="caret"></i></div></div></section>
-<div id="wipe"><div class="wipeBar"></div></div>
-<div id="streakBox"></div>
-<div id="confetti"></div>
-<div id="cursor"><div class="curDot"></div><div class="curRing"></div></div>
-<div id="capBox"><div id="capWords"></div><div class="capSweep"></div></div>
-<div id="prog"><div id="progFill"></div></div>
-<div class="grain"></div>
-<div id="ui"><button id="ppBtn" title="Play/Pause">⏸</button>
-<button id="rsBtn" title="Restart">↺</button>
-<div id="tcode">00:00 / 00:30</div></div>
-</div></div>
+<div id="viewport">
+  <div id="scaler">
+    <div id="camera-rig">
+      <div id="stage">
+        <!-- AMBIENT MOTION GRAPHIC ENVIRONMENT -->
+        <div class="ambient-glow ag-1"></div>
+        <div class="ambient-glow ag-2"></div>
+        <div class="ambient-glow ag-3"></div>
+        <div class="space-grid"></div>
+        <div class="radial-vignette"></div>
+        <div class="lens-flare" id="mainFlare"></div>
+        
+        <!-- HOLOGRAPHIC FLOATING PARTICLES & RADAR -->
+        <div id="dust"></div>
+        <div class="hud-circle hud-c1"></div>
+        <div class="hud-circle hud-c2"></div>
+        <div class="hud-circle hud-c3"></div>
+
+        <!-- ========================================================
+             CONTINUOUS STAGE ARCHITECTURE (NO DISJOINTED SCENE JUMPS)
+             ======================================================== -->
+        <div id="continuousStage">
+          
+          <!-- LEFT SIDE: DYNAMIC KINETIC NARRATIVE -->
+          <div id="narrativeColumn">
+            <!-- S1 Hero Intro Block (Centered during S1) -->
+            <div id="introHeroBlock">
+              <div class="hero-logo-box">
+                <div class="hologram-rings">
+                  <div class="h-ring hr-outer"></div>
+                  <div class="h-ring hr-mid"></div>
+                  <div class="h-ring hr-inner"></div>
+                </div>
+                <div class="logo-emblem">
+                  <svg class="logoDraw" viewBox="0 0 140 140">
+                    <defs>
+                      <linearGradient id="emblemGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#00F0D0" />
+                        <stop offset="50%" stop-color="#38BDF8" />
+                        <stop offset="100%" stop-color="#10B981" />
+                      </linearGradient>
+                    </defs>
+                    <circle class="lg-ring" cx="70" cy="70" r="60"/>
+                    <path class="lg-cross" d="M70 36 V104 M36 70 H104"/>
+                  </svg>
+                </div>
+                <div class="ecg-trace">
+                  <svg viewBox="0 0 700 90">
+                    <path class="ecgLine" d="M0 45 H200 L216 45 228 15 244 75 258 45 H380 L394 45 404 22 416 68 426 45 H540 L554 45 564 18 574 72 584 45 H700"/>
+                  </svg>
+                </div>
+              </div>
+              <h1 class="brand-title">
+                <span class="char-span">F</span><span class="char-span">i</span><span class="char-span">n</span><span class="char-span">d</span><span class="char-span brand-accent">M</span><span class="char-span brand-accent">e</span><span class="char-span brand-accent">d</span><span class="char-span brand-accent">i</span>
+              </h1>
+              <p class="hero-tagline">Healthcare booking, <span class="text-gradient">perfected from A to Z.</span></p>
+            </div>
+
+            <!-- Continuous Story Narrative Card -->
+            <div id="activeStoryCard">
+              <div class="step-chip" id="storyChip">
+                <span class="step-num" id="storyNum">01</span>
+                <span id="storyStepText">SMART SEARCH &amp; TRIAGE</span>
+              </div>
+              
+              <h2 class="sec-headline" id="storyHeadline">
+                Search by symptoms,<br><span class="text-gradient" id="storyGradient">specialty or hospital.</span>
+              </h2>
+              
+              <p class="narrative-desc" id="storyDesc">
+                Instant intelligent matching across 140+ cities, 8,500+ verified doctors, and premier hospital networks (Max, Apollo, Fortis).
+              </p>
+
+              <div class="feature-bullets" id="storyBullets">
+                <div class="f-bullet">✓ AI Symptom Checker &amp; Department Triage</div>
+                <div class="f-bullet">✓ Multi-facility: Hospital OPD, Clinics, Home Visits</div>
+                <div class="f-bullet">✓ Hyperlocal radius: Doctors within 2 to 10 km</div>
+              </div>
+
+              <!-- Problem / Chaos State Display (Visible in S2) -->
+              <div id="problemChaosWidget">
+                <div class="alert-pill"><span class="pulse-dot red-dot"></span> THE PROBLEM TODAY</div>
+                <div class="chaos-avatars" id="queueAvatars"></div>
+                <div class="chaos-stats">
+                  <div class="c-stat"><span>Average OPD Wait</span><b>3.5 Hours</b></div>
+                  <div class="c-stat"><span>Physical Paperwork</span><b>Lost &amp; Misplaced</b></div>
+                  <div class="c-stat"><span>Doctor Availability</span><b>Zero Visibility</b></div>
+                </div>
+              </div>
+
+              <!-- Grand Finale CTA Cluster (Visible in S11) -->
+              <div id="finaleCtaBlock">
+                <div class="finale-cta-cluster">
+                  <a href="javascript:void(0)" class="primary-hero-btn" id="heroCta">
+                    <span class="btn-label">Book Your Doctor Today</span>
+                    <span class="btn-arrow">➔</span>
+                  </a>
+                  <div class="app-badges">
+                    <span class="badge-pill">📱 iOS App</span>
+                    <span class="badge-pill">🤖 Android App</span>
+                    <span class="badge-pill">🌐 Web Platform</span>
+                  </div>
+                  <div class="url-typing-box">
+                    <span class="url-prefix">Visit</span>
+                    <span class="url-typed" id="typedUrl">findmedi.com</span>
+                    <span class="url-cursor"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT SIDE: THE SINGLE PERSISTENT 3D HERO SMARTPHONE -->
+          <div id="phoneColumn">
+            <div class="device-mockup" id="heroPhone">
+              <div class="device-reflection"></div>
+              <div class="device-bezel">
+                
+                <!-- Live Dynamic Island -->
+                <div class="dynamic-island" id="heroIsland">
+                  <div class="island-camera"></div>
+                  <div class="island-pill" id="islandText">FindMedi Live</div>
+                </div>
+
+                <div class="screen-content">
+                  <!-- Persistent Top Statusbar -->
+                  <div class="screen-header">
+                    <div class="sys-time">9:41</div>
+                    <div class="sys-icons"><span>5G</span><div class="battery-icon"></div></div>
+                  </div>
+
+                  <!-- SEAMLESS CONTINUOUS SCREEN VIEWPORT -->
+                  <div class="screen-viewport" id="screenViewport">
+                    <div class="screen-track" id="screenTrack">
+                      
+                      <!-- ==============================================
+                           SCREEN 1 : SEARCH & TRIAGE (S3)
+                           ============================================== -->
+                      <div class="app-screen" id="appScreen1">
+                        <div class="phone-nav-bar">
+                          <div class="p-brand">✚ FindMedi</div>
+                          <div class="user-chip">📍 South Delhi • 2.4 km</div>
+                        </div>
+
+                        <div class="search-bar-mock">
+                          <span class="search-icon">🔍</span>
+                          <span class="search-text-typed" id="typedSearch">Cardiology / Chest pain...</span>
+                        </div>
+
+                        <div class="consult-type-pills">
+                          <div class="c-pill active">🏥 Hospital OPD</div>
+                          <div class="c-pill">📹 4K Video</div>
+                          <div class="c-pill">🏠 Home Visit</div>
+                        </div>
+
+                        <div class="screen-subhead">
+                          <span class="screen-title">Top Specialties</span>
+                          <span class="screen-count">48 Active</span>
+                        </div>
+                        <div class="specialty-grid" id="specGrid"></div>
+                      </div>
+
+                      <!-- ==============================================
+                           SCREEN 2 : DOCTOR COMPARISON (S4)
+                           ============================================== -->
+                      <div class="app-screen" id="appScreen2">
+                        <div class="phone-nav-bar">
+                          <div class="p-brand">✚ FindMedi</div>
+                          <div class="filter-pill">Filter: ⭐ 4.8+ • OPD</div>
+                        </div>
+                        <div class="screen-subhead">
+                          <span class="screen-title">Senior Cardiologists</span>
+                          <span class="screen-badge">Max Healthcare • Saket</span>
+                        </div>
+                        <div class="doctor-list" id="doctorList"></div>
+                        <div class="phone-laser-scan"></div>
+                      </div>
+
+                      <!-- ==============================================
+                           SCREEN 3 : FAMILY HUB & ABHA ID (S5)
+                           ============================================== -->
+                      <div class="app-screen" id="appScreen3">
+                        <div class="screen-subhead">
+                          <span class="screen-title">Select Patient</span>
+                          <span class="screen-badge">Family Health Hub</span>
+                        </div>
+
+                        <div class="family-selector" id="familySelector">
+                          <div class="fam-member active">
+                            <div class="fam-avatar">👨</div>
+                            <b>Self (Aarav)</b>
+                            <small>29 Yrs • Male</small>
+                          </div>
+                          <div class="fam-member">
+                            <div class="fam-avatar">👵</div>
+                            <b>Mother</b>
+                            <small>58 Yrs • Female</small>
+                          </div>
+                          <div class="fam-member">
+                            <div class="fam-avatar">👴</div>
+                            <b>Father</b>
+                            <small>62 Yrs • Male</small>
+                          </div>
+                        </div>
+
+                        <div class="abha-card-widget">
+                          <div class="abha-header">
+                            <span class="abha-flag">🇮🇳</span>
+                            <b>ABHA HEALTH ACCOUNT</b>
+                            <span class="abha-status">VERIFIED ✓</span>
+                          </div>
+                          <div class="abha-number">91-8821-4920-1102</div>
+                          <div class="abha-footer">
+                            <span>Aarav Mehta</span>
+                            <small>Linked to National Health Locker</small>
+                          </div>
+                        </div>
+
+                        <div class="symptom-attachment-box">
+                          <span class="att-icon">📋</span>
+                          <div class="att-text">
+                            <b>Chief Complaint</b>
+                            <small>"Occasional palpitations after exertion • 2 weeks"</small>
+                          </div>
+                          <span class="att-tag">+ ECG Uploaded</span>
+                        </div>
+                      </div>
+
+                      <!-- ==============================================
+                           SCREEN 4 : LIVE SLOTS & LOCK TIMER (S6)
+                           ============================================== -->
+                      <div class="app-screen" id="appScreen4">
+                        <div class="doctor-mini-summary">
+                          <div class="mini-avatar">👩‍⚕️</div>
+                          <div>
+                            <b>Dr. Ananya Sharma</b>
+                            <small>Max Super Speciality • Saket</small>
+                          </div>
+                          <div class="status-indicator">🟢 Available Today</div>
+                        </div>
+
+                        <div class="section-label">Consultation Date</div>
+                        <div class="date-scroll" id="dateScroll"></div>
+
+                        <div class="section-label">Consultation Mode</div>
+                        <div class="mode-selector" id="modeSelector"></div>
+
+                        <div class="section-label">OPD Timing Slots (Morning &amp; Afternoon)</div>
+                        <div class="slots-matrix" id="slotsMatrix"></div>
+
+                        <div class="slot-timer-badge">
+                          <span class="timer-dot"></span>
+                          <span>Slot Locked for: <b id="lockTime">09:59</b> (Exclusive Seat Lock)</span>
+                        </div>
+                      </div>
+
+                      <!-- ==============================================
+                           SCREEN 5 : 1-TAP CHECKOUT & PAYMENT (S7)
+                           ============================================== -->
+                      <div class="app-screen" id="appScreen5">
+                        <div class="screen-subhead">
+                          <span class="screen-title">Review &amp; Pay</span>
+                          <span class="screen-count">100% Encrypted</span>
+                        </div>
+
+                        <div class="booking-receipt-card">
+                          <div class="r-row"><span>Doctor</span><b>Dr. Ananya Sharma</b></div>
+                          <div class="r-row"><span>Hospital</span><b>Max Super Speciality • Room 4</b></div>
+                          <div class="r-row"><span>Date &amp; Slot</span><b>Tomorrow • 11:30 AM (OPD)</b></div>
+                          <div class="r-row"><span>Patient</span><b>Aarav Mehta (ABHA Linked)</b></div>
+                          <div class="r-row r-price">
+                            <span>Total Payable</span>
+                            <b>₹800 <small>(Zero convenience fees)</small></b>
+                          </div>
+                        </div>
+
+                        <div class="payment-methods-grid">
+                          <div class="p-method active"><span>⚡</span> UPI / GPay</div>
+                          <div class="p-method"><span>💳</span> Card</div>
+                          <div class="p-method"><span>🏥</span> Pay at Clinic</div>
+                          <div class="p-method"><span>🛡️</span> Insurance TPA</div>
+                        </div>
+
+                        <button class="action-confirm-btn" id="confirmBtn">
+                          <span class="btn-shine"></span>
+                          <span class="btn-text">Confirm Booking (₹800)</span>
+                          <span class="btn-arrow">→</span>
+                        </button>
+                      </div>
+
+                      <!-- ==============================================
+                           SCREEN 6 : DIGITAL TOKEN PASS (S8)
+                           ============================================== -->
+                      <div class="app-screen" id="appScreen6">
+                        <div class="celebration-burst"></div>
+                        <div class="check-animation-box">
+                          <svg class="checkSvg" viewBox="0 0 120 120">
+                            <circle class="ck-ring" cx="60" cy="60" r="50"/>
+                            <path class="ck-check" d="M36 62 L52 78 L84 42"/>
+                          </svg>
+                        </div>
+
+                        <div class="digital-ticket-card" id="digitalTicket">
+                          <div class="ticket-header">
+                            <span class="t-badge">OFFICIAL HOSPITAL OPD PASS</span>
+                            <span class="t-token" id="tokenDisplay">TOKEN #A-01</span>
+                          </div>
+                          <div class="ticket-body">
+                            <div class="t-info-row">
+                              <div>
+                                <small>PATIENT NAME</small>
+                                <b>Aarav Mehta</b>
+                              </div>
+                              <div class="text-right">
+                                <small>ROOM / FLOOR</small>
+                                <b class="text-emerald">Room 4 • 2nd Floor</b>
+                              </div>
+                            </div>
+                            <div class="t-divider"></div>
+                            <div class="t-doc-row">
+                              <div class="t-avatar">👩‍⚕️</div>
+                              <div>
+                                <b>Dr. Ananya Sharma</b>
+                                <small>Max Super Speciality • Tomorrow 11:30 AM</small>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="ticket-barcode">
+                            <div class="barcode-lines"></div>
+                            <span class="qr-mock">QR VALID</span>
+                          </div>
+                        </div>
+
+                        <div class="ticket-toast">📲 WhatsApp Pass &amp; Directions Sent</div>
+                      </div>
+
+                      <!-- ==============================================
+                           SCREEN 7 : LIVE OPD QUEUE TRACKER (S9)
+                           ============================================== -->
+                      <div class="app-screen" id="appScreen7">
+                        <div class="screen-subhead">
+                          <span class="screen-title">Live OPD Queue</span>
+                          <span class="screen-badge">Room 4 Active</span>
+                        </div>
+
+                        <div class="live-queue-widget">
+                          <div class="queue-status-banner">
+                            <span class="radar-ping"></span>
+                            <b>Dr. Ananya Sharma is seeing patients</b>
+                          </div>
+
+                          <div class="queue-token-split">
+                            <div class="q-token-box current-box">
+                              <small>NOW IN CABIN</small>
+                              <b class="token-glow" id="qCurrent">A-08</b>
+                              <span>Dr. Room 4</span>
+                            </div>
+                            <div class="q-arrow">➔</div>
+                            <div class="q-token-box user-box">
+                              <small>YOUR TOKEN</small>
+                              <b class="token-glow-user">A-01</b>
+                              <span class="badge-priority">Next Up!</span>
+                            </div>
+                          </div>
+
+                          <div class="queue-timeline-bar">
+                            <div class="q-line-fill" id="qLineFill"></div>
+                            <div class="q-dot qd-1 active">A-07</div>
+                            <div class="q-dot qd-2 active">A-08</div>
+                            <div class="q-dot qd-3 pulse-dot-live">A-09</div>
+                            <div class="q-dot qd-4 your-dot">A-01</div>
+                          </div>
+
+                          <div class="queue-eta-card">
+                            <div>
+                              <small>ESTIMATED WAIT</small>
+                              <b>~ 8 Minutes</b>
+                            </div>
+                            <div class="text-right">
+                              <small>RECOMMENDATION</small>
+                              <b class="text-emerald">Proceed to Room 4</b>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="queue-action-alert">🔔 Buzzer Notification Active on Phone</div>
+                      </div>
+
+                      <!-- ==============================================
+                           SCREEN 8 : POST-CARE SERVICES (S10)
+                           ============================================== -->
+                      <div class="app-screen" id="appScreen8">
+                        <div class="screen-subhead">
+                          <span class="screen-title">Post-Care Services</span>
+                          <span class="screen-badge">All-in-One</span>
+                        </div>
+
+                        <div class="erx-card-widget">
+                          <div class="erx-header">
+                            <span class="erx-icon">💊</span>
+                            <b>DIGITAL E-PRESCRIPTION</b>
+                            <span class="erx-signed">DOCTOR SIGNED ✓</span>
+                          </div>
+                          <div class="erx-medicines">
+                            <div>• Tab. Telmisartan 40mg (1-0-0) • 30 Days</div>
+                            <div>• Tab. Rosuvastatin 10mg (0-0-1) • 30 Days</div>
+                          </div>
+                          <div class="erx-action-btn">
+                            <span>🚴 1-Tap Order Medicines (Delivered in 28 mins)</span>
+                          </div>
+                        </div>
+
+                        <div class="lab-booking-card">
+                          <span class="lab-icon">🧪</span>
+                          <div>
+                            <b>Lipid Profile &amp; HbA1c Lab Test</b>
+                            <small>Home sample pickup scheduled tomorrow 7:30 AM</small>
+                          </div>
+                          <span class="lab-badge">Booked</span>
+                        </div>
+
+                        <div class="ambulance-sos-strip">
+                          <span class="sos-icon">🚑</span>
+                          <div>
+                            <b>24/7 Emergency Ambulance SOS</b>
+                            <small>GPS hospital dispatch in under 12 mins</small>
+                          </div>
+                          <button class="sos-btn">SOS</button>
+                        </div>
+                      </div>
+
+                    </div><!-- #screenTrack -->
+                  </div><!-- #screenViewport -->
+
+                </div><!-- .screen-content -->
+              </div><!-- .device-bezel -->
+            </div><!-- #heroPhone -->
+          </div><!-- #phoneColumn -->
+
+        </div><!-- #continuousStage -->
+
+        <!-- CINEMATIC OVERLAYS & CONTROLS -->
+        <div id="wipeShutter"><div class="wipe-blade"></div></div>
+        <div id="lightStreakContainer"></div>
+        <div id="confettiCannon"></div>
+        <div id="mousePointer"><div class="pointer-dot"></div><div class="pointer-aura"></div></div>
+
+        <!-- KINETIC SUBTITLES / KARAOKE PILL -->
+        <div id="cinematicCaptions">
+          <div class="caption-icon" id="voiceIndicator" title="Voiceover Active">🎙️</div>
+          <div id="karaokeWords"></div>
+          <div class="caption-glow-line"></div>
+        </div>
+
+        <!-- MASTER TIMELINE SCRUBBER -->
+        <div id="masterTimeline">
+          <div class="timeline-chapters" id="timelineChapters"></div>
+          <div id="timelineProgress"></div>
+        </div>
+
+        <div class="film-grain"></div>
+
+        <!-- PLAYER HUD CONTROLS -->
+        <div id="playerHUD">
+          <button id="btnPlayPause" class="hud-btn" title="Play / Pause (Space)">
+            <svg class="icon-play" viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+
+          <button id="btnVoiceToggle" class="hud-btn hud-chip" title="Toggle Voiceover (V)">
+            <span class="vo-icon">🎙️</span>
+            <span class="vo-label" id="voLabel">VOICE ON</span>
+          </button>
+
+          <button id="btnAudioToggle" class="hud-btn" title="Toggle Sound SFX (M)">
+            <div class="equalizer-bars">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <span class="audio-label" id="audioLabel">SFX ON</span>
+          </button>
+
+          <button id="btnSpeed" class="hud-btn hud-chip" title="Playback Speed">1.0x</button>
+          <button id="btnRestart" class="hud-btn" title="Restart (R)">↺</button>
+          
+          <div id="timecodeDisplay">00:00 / 00:52</div>
+
+          <button id="btnFullscreen" class="hud-btn" title="Fullscreen (F)">⛶</button>
+        </div>
+
+      </div><!-- #stage -->
+    </div><!-- #camera-rig -->
+  </div><!-- #scaler -->
+</div><!-- #viewport -->
+
 <script src="app.js"></script>
 </body>
 </html>

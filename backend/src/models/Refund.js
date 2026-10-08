@@ -88,6 +88,10 @@ const refundSchema = new mongoose.Schema({
     enum: [
       'orphan_payment_no_appointment', 'service_not_delivered', 'duplicate_payment',
       'overcharge', 'patient_request', 'fraud', 'goodwill',
+      // A5: the two cancellation codes. `appointment_cancelled` is a patient
+      // cancel settled at the tier-table percent (possibly partial);
+      // `provider_cancelled` is a provider cancel, which is always full.
+      'appointment_cancelled', 'provider_cancelled',
     ],
     default: 'patient_request',
   },

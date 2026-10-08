@@ -28,6 +28,24 @@ const pharmacyOrderSchema = new mongoose.Schema({
  prescriptionUrl: { type: String, default: '' },
  prescriptionStatus: { type: String, enum: ['pending', 'verified', 'rejected', 'not_required'], default: 'not_required' },
  rejectionReason: { type: String, default: '' },
+ // 10.md 2.9 rxVerification: `verifiedBy`/`h1Register` are the WHO and the
+ // H1 register entry alongside the existing status — flattened beside
+ // `prescriptionStatus` rather than nested under it, because every existing
+ // route reads the flat field and a restructure would break them for no gain.
+ verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+ h1Register: { type: String, maxlength: 120, default: '' },
+ // 19.md UAT + 10.md 2.9 substitution[]: a generic swap is a CONSENT event,
+ // not a silent item edit — the original line stays, the substitution records
+ // what was proposed and whether the patient said yes.
+ substitution: [{
+   itemIndex: { type: Number, min: 0, default: 0 },
+   originalName: { type: String, required: true, maxlength: 300 },
+   suggestedName: { type: String, required: true, maxlength: 300 },
+   reason: { type: String, maxlength: 300, default: '' },
+   consent: { type: String, enum: ['pending', 'accepted', 'declined'], default: 'pending' },
+   consentAt: { type: Date, default: null },
+   substitutedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+ }],
  // Delivery fields
  deliveryFee: { type: Number, default: 0 },
  deliveryMode: { type: String, enum: ['delivery', 'pickup'], default: 'delivery' },

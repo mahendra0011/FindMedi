@@ -1,4 +1,5 @@
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
+import { resolveSpecialtyCode, specialtyCondition } from '../lib/taxonomy.js';
 import express from 'express';
 import { verifyAccessToken, signToken as signJwt } from '../utils/jwtKeys.js';
 import crypto from 'node:crypto';
@@ -104,7 +105,10 @@ router.get('/', async (req, res) => {
       { name: new RegExp(escapeRegex(capSearch(search)), 'i') },
       { specialization: new RegExp(escapeRegex(capSearch(search)), 'i') },
     ];
-    if (specialization && specialization !== 'All') filter.specialization = new RegExp(escapeRegex(capSearch(specialization)), 'i');
+    if (specialization && specialization !== 'All') {
+      const condition = specialtyCondition(specialization);
+      if (condition) filter.$and = [...(filter.$and || []), condition];
+    }
     const locOrCity = city || location;
     if (locOrCity && locOrCity !== 'All') filter.location = new RegExp(escapeRegex(capSearch(locOrCity)), 'i');
     if (available !== undefined) filter.available = available === 'true';
@@ -332,6 +336,7 @@ router.post('/', protect, validate(createDoctorSchema), async (req, res) => {
       email: email.toLowerCase(),
       phone: phone || '',
       specialization: specialization || 'General Medicine',
+      specialtyCode: resolveSpecialtyCode(specialization || 'General Medicine') || '',
       experience: experience || '1 year',
       qualifications: qualification || '',
       fees: Number(consultation_fees || fees || 500),
@@ -417,6 +422,9 @@ router.put('/:id', protect, validate(updateDoctorSchema), async (req, res) => {
     }
     // The legacy flat settings keys were folded into body.settings above.
     writable.settings = body.settings;
+    if (writable.specialization !== undefined) {
+      writable.specialtyCode = resolveSpecialtyCode(writable.specialization) || '';
+    }
 
     const updated = await Doctor.findByIdAndUpdate(req.params.id, writable, { new: true, runValidators: true });
     res.json(updated);

@@ -4,7 +4,25 @@ const staffSchema = new mongoose.Schema({
   employeeId: { type: String, required: true, unique: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   name: { type: String, required: true },
-  role: { type: String, enum: ['hospital_admin', 'Doctor', 'Nurse', 'Pharmacist', 'Lab Technician', 'Radiologist', 'Dietitian', 'Physiotherapist', 'Counselor', 'Technician', 'Helper', 'Security', 'Accountant', 'Receptionist', 'Driver', 'Ambulance Driver'], required: true },
+  // subcatogary.md C24 — the original 16 plus the operational roles §24 adds.
+  // Additive only: stored documents keep validating.
+  role: {
+    type: String,
+    enum: [
+      'hospital_admin', 'Doctor', 'Nurse', 'Pharmacist', 'Lab Technician',
+      'Radiologist', 'Dietitian', 'Physiotherapist', 'Counselor', 'Technician',
+      'Helper', 'Security', 'Accountant', 'Receptionist', 'Driver',
+      'Ambulance Driver',
+      // §24 additions
+      'Anaesthetist', 'Surgeon', 'Resident/Intern', 'OT Technician',
+      'Ward Boy/Ayah', 'Paramedic/EMT', 'Phlebotomist',
+      'Radiographer/Sonographer', 'Cook/Kitchen Staff', 'Housekeeping',
+      'Biomedical Engineer', 'Storekeeper', 'Billing/TPA/Insurance Executive',
+      'Medical Records Officer', 'Social Worker', 'HR', 'IT Support',
+      'Quality/Infection Control Officer', 'Fire Safety Officer',
+    ],
+    required: true,
+  },
   assignedAmbulanceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ambulance', default: null },
   department: { type: String },
   designation: { type: String },

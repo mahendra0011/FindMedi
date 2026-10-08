@@ -101,6 +101,11 @@ export async function mountApp(name, models = {}, options = {}) {
     if (!req.user) return res.status(401).json({ message: 'Not authorized' });
     return next();
   };
+  // scopeToHospital is the tenant-scoping middleware some routers chain after
+  // protect (appointments mounts it at definition time). Like authorize, it is
+  // a MARKER here — pass-through, with tenant semantics covered by the real
+  // middleware and check-tenant-guard-regression.mjs.
+  authStub.scopeToHospital = (req, _res, next) => next();
 
   jest.unstable_mockModule('../../src/middleware/auth.js', () => authStub);
   // AUTHZ-M-03 (F7): requireStepUp() (a real middleware, not part of the auth

@@ -1,4 +1,10 @@
 import mongoose from 'mongoose';
+// A5: the status enum and its transition table live in ONE pure module
+// (lib/appointmentLifecycle.js). The model takes its enum from it, the route
+// asserts moves against the same table, and the zod schema mirrors it — so the
+// three copies that used to drift (the `Rescheduled` value that was valid in
+// zod but rejected by this enum is the standing example) cannot diverge again.
+import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS } from '../lib/appointmentLifecycle.js';
 
 // LAB_SERVICES removed — use Test catalog / LabOrder model instead
 
@@ -27,7 +33,7 @@ const appointmentSchema = new mongoose.Schema({
   department: { type: String, required: true },
   date: { type: String, required: true },
   time: { type: String, required: true },
-  status: { type: String, enum: ['Pending', 'Confirmed', 'Cancelled', 'Completed', 'In Queue', 'Serving', 'Missed'], default: 'Pending' },
+  status: { type: String, enum: APPOINTMENT_STATUSES, default: APPOINTMENT_STATUS.PENDING },
   // APPT-B-08: `patientId` is canonically the USER id on every write path.
   // `patientRecordId` is the linked Patient document, which for a genuine
   // walk-in with no account is the ONLY identifier that exists — keeping it in a
@@ -41,6 +47,19 @@ const appointmentSchema = new mongoose.Schema({
   checkoutExpiresAt: { type: Date, default: null, index: true },
   cancellationReason: { type: String, default: '' },
   cancelledAt: { type: Date },
+  // A5 (5.md §2.4): the cancellation decision, recorded on the row so the
+  // refund and the fee can be reconstructed without replaying the request.
+  //   cancelledBy       — who triggered it (patient tier table vs provider
+  //                       always-full-refund are different rules);
+  //   cancellationTier  — which band of the tier table the start time fell in;
+  //   cancellationFee   — what the provider KEPT (policy amount);
+  //   refundAmount      — what the policy says the patient gets back; the
+  //                       payment's own refund_amount records what was actually
+  //                       issued, so a gateway refusal leaves both auditable.
+  cancelledBy: { type: String, enum: ['patient', 'provider', 'system'] },
+  cancellationTier: { type: String, enum: ['early', 'mid', 'late', 'no_show'] },
+  cancellationFee: { type: Number, default: 0 },
+  refundAmount: { type: Number, default: 0 },
   priority: { type: String, enum: ['Normal', 'Urgent', 'Emergency'], default: 'Normal' },
   type: { type: String, enum: ['Consultation', 'Follow-up', 'Check-up', 'Emergency', 'Chat Consultation', 'Video Consultation', 'Audio Call Consultation', 'Audio Consultation', 'Home Visit Consultation'], default: 'Consultation' },
   appointmentMode: { type: String, enum: ['chat', 'video', 'audio', 'voice', 'call', 'offline', 'in_person', 'home_visit', 'home'], default: 'offline' },
@@ -118,6 +137,12 @@ const appointmentSchema = new mongoose.Schema({
   seriesId: { type: mongoose.Schema.Types.ObjectId, ref: 'AppointmentSeries', index: true },
   seriesIndex: { type: Number },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
+  // A3-part-2: what the patient actually bought. Optional so the decade of
+  // walk-in/desk rows without a catalog stays valid — when present, POST
+  // guarantees the service is active and its practitioner matches the booked
+  // doctor (or is unassigned, e.g. lab panels).
+  serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service', default: null },
+  providerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Provider', default: null },
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 
@@ -129,6 +154,7 @@ appointmentSchema.index({ doctorId: 1, patientId: 1, date: 1, time: 1 }, { uniqu
 appointmentSchema.index({ doctorId: 1, date: -1 });     // doctor/clinic appointment list
 appointmentSchema.index({ patientId: 1, date: -1 });     // patient my-appointments
 appointmentSchema.index({ hospitalId: 1, date: -1 });    // hospital admin dashboard
+appointmentSchema.index({ providerId: 1, date: -1 });    // provider booking lists (7.md dashboards)
 appointmentSchema.index({ status: 1, createdAt: -1 });   // stale pending cleanup + status filters
 appointmentSchema.index({ date: -1 });                    // date-based queries
 

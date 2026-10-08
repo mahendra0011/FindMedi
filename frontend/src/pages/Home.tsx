@@ -60,13 +60,14 @@ const services = [
   { icon: Syringe, name: "Vaccination", price: "₹250" },
 ];
 
+// Static fallback only — live DB counts overwrite these on load (no hardcoded marketing numbers).
 const specialties = [
-  { icon: Stethoscope, name: "General Physician", color: "bg-emerald-500/10 text-emerald-600", count: "45+" },
-  { icon: Baby, name: "Gynecologist", color: "bg-pink-500/10 text-pink-600", count: "32+" },
-  { icon: Smile, name: "Dermatologist", color: "bg-rose-500/10 text-rose-600", count: "28+" },
-  { icon: Heart, name: "Pediatricians", color: "bg-violet-500/10 text-violet-600", count: "25+" },
-  { icon: Brain, name: "Neurologist", color: "bg-blue-500/10 text-blue-600", count: "20+" },
-  { icon: UtensilsCrossed, name: "Gastroenterologist", color: "bg-amber-500/10 text-amber-600", count: "18+" },
+  { icon: Stethoscope, name: "General Physician", query: "General Physician", color: "bg-emerald-500/10 text-emerald-600", count: "45+" },
+  { icon: Baby, name: "Gynecologist", query: "Obstetrics & Gynaecology", color: "bg-pink-500/10 text-pink-600", count: "32+" },
+  { icon: Smile, name: "Dermatologist", query: "Dermatology", color: "bg-rose-500/10 text-rose-600", count: "28+" },
+  { icon: Heart, name: "Pediatricians", query: "Paediatrics", color: "bg-violet-500/10 text-violet-600", count: "25+" },
+  { icon: Brain, name: "Neurologist", query: "Neurology", color: "bg-blue-500/10 text-blue-600", count: "20+" },
+  { icon: UtensilsCrossed, name: "Gastroenterologist", query: "Gastroenterology", color: "bg-amber-500/10 text-amber-600", count: "18+" },
 ];
 
 const whyChooseUs = [
@@ -157,6 +158,7 @@ const Home = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [doctorsList, setDoctorsList] = useState([]);
+  const [specialtyCounts, setSpecialtyCounts] = useState<Record<string, number | null>>({});
   const [counters, setCounters] = useState(statsData.map(() => 0));
   const [countersVisible, setCountersVisible] = useState(false);
   const [ctaPointer, setCtaPointer] = useState({ x: 50, y: 50 });
@@ -173,6 +175,24 @@ const Home = () => {
       }
     };
     load();
+  }, []);
+
+  // Live specialty counts from DB (limit=1 + total); fallback keeps static text on failure.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const entries = await Promise.all(specialties.map(async (s) => {
+          try {
+            const res: any = await api.getDoctors({ specialization: s.query, limit: '1' });
+            const total = res?.total ?? res?.totalCount ?? res?.count ?? (Array.isArray(res?.doctors) ? undefined : undefined);
+            return [s.name, typeof total === 'number' ? total : null] as const;
+          } catch { return [s.name, null] as const; }
+        }));
+        if (!cancelled) setSpecialtyCounts(Object.fromEntries(entries));
+      } catch { /* keep fallback counts */ }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -533,7 +553,7 @@ const Home = () => {
                   <spec.icon className="w-7 h-7" />
                 </div>
                 <h3 className="font-semibold text-foreground">{spec.name}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{spec.count} Doctors</p>
+                <p className="text-sm text-muted-foreground mt-1">{specialtyCounts[spec.name] != null ? `${specialtyCounts[spec.name]} Doctors` : `${spec.count} Doctors`}</p>
               </motion.div>
             ))}
           </div>

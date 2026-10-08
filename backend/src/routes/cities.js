@@ -1,6 +1,6 @@
 import express from 'express';
 import City from '../models/City.js';
-import { protect, superadminOnly } from '../middleware/auth.js';
+import { protect, superadminOnly, requireRole } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
@@ -17,7 +17,10 @@ router.get('/', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, superadminOnly, async (req, res) => {
+// 8.md 4: the city launch/pause console is the city_manager's (public read is
+// anonymous above). Deleting a city stays superadmin: it silently strands every
+// service mapped to it.
+router.post('/', protect, requireRole(['superadmin', 'city_manager']), async (req, res) => {
   try {
     const city = await City.create(req.body);
     await auditLog('create_city', req.user._id, { cityName: city.name, ip: req.ip, userAgent: req.get('user-agent') });
@@ -25,7 +28,7 @@ router.post('/', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, superadminOnly, async (req, res) => {
+router.put('/:id', protect, requireRole(['superadmin', 'city_manager']), async (req, res) => {
   try {
     const { pickBody } = await import('../utils/pick.js');
     const city = await City.findByIdAndUpdate(req.params.id,

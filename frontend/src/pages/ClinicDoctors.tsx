@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Star, MapPin, Stethoscope, UserRound, CalendarDays, IndianRupee, Award, Users, SlidersHorizontal, X, Building2, Clock, Shield, Syringe, BedDouble, Languages, GraduationCap, CircleDot, ChevronDown, ChevronUp, Ambulance, Eye, Heart, Bone, Baby, Activity, Brain, BadgeCheck, Phone, Mail, ArrowRight, Navigation, Globe, FlaskConical, AlertCircle, CheckCircle, CreditCard, Smartphone, Landmark, Wallet, ChevronRight } from 'lucide-react';
+import { Search, Star, MapPin, Stethoscope, UserRound, CalendarDays, IndianRupee, Award, Users, SlidersHorizontal, X, Building2, Clock, Shield, Syringe, BedDouble, Languages, GraduationCap, CircleDot, ChevronDown, ChevronUp, Ambulance, Eye, Heart, Bone, Baby, Activity, Brain, BadgeCheck, Phone, Mail, ArrowRight, Navigation, Globe, FlaskConical, AlertCircle, CheckCircle, CreditCard, Smartphone, Landmark, Wallet, ChevronRight, Sparkles, HeartHandshake, HeartPulse } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,8 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { matchesSpecialty, canonicalName } from '@/lib/specialtyFilter';
+import { useCategories } from '@/hooks/useCategories';
 import { toast } from 'sonner';
 import BookingModal from '@/components/BookingModal';
 
@@ -39,6 +41,11 @@ const ALL_SPECIALTIES = [
   { name: 'Medical Oncology', icon: Activity, color: 'from-orange-600/20 to-orange-600/5', textColor: 'text-orange-600' },
   { name: 'Diabetology', icon: Activity, color: 'from-amber-400/20 to-amber-400/5', textColor: 'text-amber-400' },
   { name: 'Dentist', icon: Activity, color: 'from-pink-400/20 to-pink-400/5', textColor: 'text-pink-400' },
+  { name: 'Ayurveda', icon: Sparkles, color: 'from-green-500/20 to-green-500/5', textColor: 'text-green-500' },
+  { name: 'Homeopathy', icon: Heart, color: 'from-violet-500/20 to-violet-500/5', textColor: 'text-violet-500' },
+  { name: 'Naturopathy', icon: HeartHandshake, color: 'from-lime-500/20 to-lime-500/5', textColor: 'text-lime-500' },
+  { name: 'Unani', icon: HeartPulse, color: 'from-teal-500/20 to-teal-500/5', textColor: 'text-teal-500' },
+  { name: 'Physiotherapy', icon: Activity, color: 'from-cyan-500/20 to-cyan-500/5', textColor: 'text-cyan-500' },
 ];
 const QUALIFICATIONS = ['MBBS', 'MD', 'MS', 'DM', 'MCh', 'DNB'];
 const LANGUAGES = ['Hindi', 'English', 'Marathi', 'Gujarati', 'Tamil', 'Telugu', 'Kannada', 'Bengali', 'Punjabi', 'Spanish', 'French', 'Korean', 'Japanese', 'Mandarin', 'German', 'Portuguese'];
@@ -72,17 +79,6 @@ function getClinicAddress(doc: ClinicDoctor | null | undefined): string {
   return doc.clinicProfile?.clinic_address || doc.facilityId?.address || doc.location || doc.area || doc.address || doc.city || '';
 }
 
-function matchesSpecialty(doc: ClinicDoctor | null | undefined, specialty: string): boolean {
-  if (specialty === 'All') return true;
-  if (!doc) return false;
-  const normalized = specialty.toLowerCase();
-  const docSpec = (doc.specialization || '').toLowerCase();
-  if (normalized === 'general physician/ internal medicine') return ['general medicine', 'internal medicine'].includes(docSpec);
-  if (normalized === 'orthopaedics') return docSpec === 'orthopedics' || docSpec === 'orthopaedics';
-  if (normalized === 'paediatrics') return docSpec === 'pediatrics' || docSpec === 'paediatrics';
-  return docSpec === normalized;
-}
-
 export default function ClinicDoctors() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -114,7 +110,7 @@ export default function ClinicDoctors() {
     }
   };
 
-  const [specFilter, setSpecFilter] = useState(searchParams.get('specialization') || 'All');
+  const [specFilter, setSpecFilter] = useState(searchParams.get('specialty') || searchParams.get('specialization') || 'All');
   const [clinicFilter, setClinicFilter] = useState(searchParams.get('clinic') || searchParams.get('hospital') || '');
   const [locationFilter, setLocationFilter] = useState('');
   const [availabilityFilter, setAvailabilityFilter] = useState('');
@@ -133,6 +129,23 @@ export default function ClinicDoctors() {
   const [admissionFilter, setAdmissionFilter] = useState('');
   const [insuranceFilter, setInsuranceFilter] = useState('');
   const [emergencyFilter, setEmergencyFilter] = useState('');
+
+  const { categories: specialtyCategories } = useCategories('specialty', []);
+  const specialtyChips = useMemo(() => {
+    const presentation = new Map(ALL_SPECIALTIES.map((s) => [s.name.toLowerCase(), s]));
+    const generic = { icon: Stethoscope, color: 'from-slate-500/20 to-slate-500/5', textColor: 'text-slate-500' };
+    const byCanonical = new Map();
+    for (const s of ALL_SPECIALTIES) {
+      const canonical = canonicalName(s.name, specialtyCategories);
+      if (canonical && !byCanonical.has(canonical)) byCanonical.set(canonical, s);
+    }
+    const canonical = specialtyCategories.map((c: { name: string }) => ({
+      name: c.name,
+      ...(byCanonical.get(c.name) || presentation.get(c.name.toLowerCase()) || generic),
+    }));
+    const uncovered = ALL_SPECIALTIES.filter((s) => !canonicalName(s.name, specialtyCategories));
+    return [...canonical, ...uncovered];
+  }, [specialtyCategories]);
 
 const loadDoctors = async () => {
     setLoading(true);
@@ -164,7 +177,7 @@ const loadDoctors = async () => {
   useEffect(() => {
     let filtered = Array.isArray(allDoctors) ? [...allDoctors] : [];
 
-    if (specFilter !== 'All') filtered = filtered.filter(d => matchesSpecialty(d, specFilter));
+    if (specFilter !== 'All') filtered = filtered.filter(d => matchesSpecialty(d.specialization, specFilter, specialtyCategories));
     if (clinicFilter) filtered = filtered.filter(d => getClinicName(d) === clinicFilter);
     if (locationFilter && locationFilter !== 'All') filtered = filtered.filter(d => getClinicAddress(d).toLowerCase().includes(locationFilter.toLowerCase()));
     if (availabilityFilter === 'today') filtered = filtered.filter(d => d.available === true && d.next_available_slot?.toLowerCase().includes('today'));
@@ -207,7 +220,7 @@ const loadDoctors = async () => {
     else if (sortBy === 'fee') filtered.sort((a, b) => (a.consultation_fees || a.fees || 0) - (b.consultation_fees || b.fees || 0));
 
     setDoctors(filtered);
-  }, [allDoctors, specFilter, clinicFilter, locationFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy]);
+  }, [allDoctors, specFilter, clinicFilter, locationFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy, specialtyCategories]);
 
   const renderStars = (rating: number) => (
     <div className="flex items-center gap-0.5">
@@ -246,19 +259,19 @@ const loadDoctors = async () => {
               <Stethoscope className="w-5 h-5 text-primary" />
               Browse by Specialties
             </h2>
-            {!showAdvanced && ALL_SPECIALTIES.length > 7 && (
+            {!showAdvanced && specialtyChips.length > 7 && (
               <Button variant="ghost" size="sm" onClick={() => setShowAdvanced(true)} className="gap-1 text-primary">
                 More <ChevronDown className="w-3.5 h-3.5" />
               </Button>
             )}
-            {showAdvanced && ALL_SPECIALTIES.length > 7 && (
+            {showAdvanced && specialtyChips.length > 7 && (
               <Button variant="ghost" size="sm" onClick={() => setShowAdvanced(false)} className="gap-1 text-primary">
                 Less <ChevronUp className="w-3.5 h-3.5" />
               </Button>
             )}
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3">
-            {ALL_SPECIALTIES.slice(0, showAdvanced ? undefined : 7).map((spec) => {
+            {specialtyChips.slice(0, showAdvanced ? undefined : 7).map((spec) => {
               const Icon = spec.icon;
               const isActive = specFilter === spec.name;
               return (
@@ -278,7 +291,7 @@ const loadDoctors = async () => {
                     {spec.name === 'All' ? 'All Departments' : spec.name}
                   </span>
                   <span className="text-[10px] text-muted-foreground">
-                    {allDoctors.filter(d => matchesSpecialty(d, spec.name)).length}
+                    {allDoctors.filter(d => matchesSpecialty(d.specialization, spec.name, specialtyCategories)).length}
                   </span>
                 </button>
               );

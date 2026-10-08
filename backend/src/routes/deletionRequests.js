@@ -16,7 +16,12 @@ import logger from '../config/logger.js';
  */
 const router = express.Router();
 
-const isAdmin = (role) => role === 'superadmin' || role === 'admin';
+// Admins may see the whole queue (filter: all) and read anyone's record or
+// certificate. APPROVE and EXECUTE are NOT in here - those stay behind
+// superadminOnly below, keeping 8.md 11's four-hands split: the compliance
+// officer investigates and reads the audit trail, a second pair of hands
+// performs the erasure.
+const isAdmin = (role) => role === 'superadmin' || role === 'admin' || role === 'compliance_officer';
 
 // ─── Request erasure (user self-service) ────────────────────────────────────
 router.post('/', protect, async (req, res) => {

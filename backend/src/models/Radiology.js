@@ -6,7 +6,22 @@ const radiologySchema = new mongoose.Schema({
   patientName: { type: String, required: true },
   doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   doctorName: { type: String, required: true },
-  modality: { type: String, enum: ['X-Ray', 'MRI', 'CT Scan', 'Ultrasound', 'Echo', 'ECG', 'Mammography'], required: true },
+  // A1 #13 + subcatogary.md C4.2 — the 7 originals now cover the equipment
+  // list too (DEXA, PET Scan, EEG sit in Equipment.type), plus the §4.2
+  // modalities (nuclear, fluoroscopy, angiography, OPG/CBCT, elastography)
+  // and the cardiac/neuro studies A2 called missing.
+  modality: {
+    type: String,
+    enum: [
+      'X-Ray', 'MRI', 'CT Scan', 'Ultrasound', 'Echo', 'ECG', 'Mammography',
+      // A1 #13 — align with Equipment.type
+      'DEXA', 'PET Scan', 'EEG',
+      // §4.2 additions
+      'Nuclear Scan', 'Fluoroscopy', 'Angiography', 'OPG/CBCT', 'Stress Echo',
+      'Elastography', 'Doppler', 'TMT', 'EMG/NCV',
+    ],
+    required: true,
+  },
   bodyPart: { type: String, required: true },
   clinicalHistory: { type: String },
   priority: { type: String, enum: ['Routine', 'Urgent', 'STAT'], default: 'Routine' },

@@ -2,38 +2,21 @@
   "totals": {
     "backend": {
       "critical": 0,
-      "high": 10,
-      "moderate": 7,
+      "high": 0,
+      "moderate": 19,
       "low": 0,
-      "total": 17
+      "total": 19
     },
     "frontend": {
-      "critical": 1,
-      "high": 4,
-      "moderate": 4,
+      "critical": 0,
+      "high": 0,
+      "moderate": 2,
       "low": 0,
-      "total": 9
+      "total": 2
     }
   },
   "packages": {
-    "backend": {
-      "@unleash/proxy": "fix-available",
-      "@wesleytodd/openapi": "fix-available",
-      "brace-expansion": "fix-available",
-      "engine.io": "fix-available",
-      "ip-address": "fix-available",
-      "js-yaml": "fix-available",
-      "multer": "fix-available",
-      "path-to-regexp": "fix-available",
-      "router": "fix-available",
-      "sharp": "fix-available"
-    },
-    "frontend": {
-      "axios": "fix-available",
-      "brace-expansion": "fix-available",
-      "js-yaml": "fix-available",
-      "maplibre-gl": "fix-available",
-      "nanoid": "fix-available"
-    }
+    "backend": {},
+    "frontend": {}
   }
 }

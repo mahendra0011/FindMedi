@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Activity, Menu, X, Moon, Sun, UserRound, MapPin, ChevronDown, ShoppingCart, Lock, Check, Car, Navigation, Power, Users, Scale } from 'lucide-react';
+import { Activity, Menu, X, Moon, Sun, UserRound, MapPin, ChevronDown, ShoppingCart, Lock, Check, Car, Navigation, Power, Users, Scale, HeartPulse } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -11,10 +11,7 @@ import { allCities } from '@/data/cities';
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 
-const DEFAULT_MAIN_NAV = [
-  { label: 'Home', path: '/' },
-  { label: 'Find Hospital', path: '/hospitals' },
-  { label: 'Find Clinic', path: '/clinic-doctors' },
+const MAIN_NAV_ITEMS = [
   { label: 'Diagnostic Centers', path: '/diagnostic-centers' },
   { label: 'Book Test', path: '/all-tests' },
   { label: 'Buy Medicine', path: '/buy-medicine' },
@@ -327,7 +324,32 @@ export default function PublicNavbar() {
               ))
             ) : (
               <>
-                {DEFAULT_MAIN_NAV.map((item) => (
+                <Link
+                  to="/"
+                  className={`px-2.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                    location.pathname === '/'
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  Home
+                </Link>
+
+                {/* Healthcare Link (Replaces Find Hospital & Find Clinic) */}
+                <Link
+                  to="/healthcare"
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
+                    location.pathname === '/healthcare' || location.pathname === '/hospitals' || location.pathname === '/clinic-doctors'
+                      ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm'
+                      : 'text-foreground hover:text-primary hover:bg-primary/10'
+                  }`}
+                  aria-label="Healthcare Services"
+                >
+                  <HeartPulse className="w-4 h-4 text-primary" />
+                  <span>Healthcare</span>
+                </Link>
+
+                {MAIN_NAV_ITEMS.map((item) => (
                   <Link
                     key={item.path}
                     to={item.path}
@@ -340,14 +362,19 @@ export default function PublicNavbar() {
                     {item.label}
                   </Link>
                 ))}
+
                 <Link
                   to="/mind"
-                  className="px-2.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  className={`px-2.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                    isActive('/mind')
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
                 >
                   Mind Support
                 </Link>
 
-                {/* Services Dropdown (User instruction: ak dropdown bana dena nav bar me aayega nhi ye) */}
+                {/* Services Dropdown */}
                 <Popover open={servicesOpen} onOpenChange={setServicesOpen}>
                   <PopoverTrigger asChild>
                     <button
@@ -624,7 +651,34 @@ export default function PublicNavbar() {
               ))
             ) : (
               <>
-                {DEFAULT_MAIN_NAV.map((item) => (
+                <Link
+                  to="/"
+                  onClick={() => setMobileOpen(false)}
+                  className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    location.pathname === '/'
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  Home
+                </Link>
+
+                {/* Healthcare Link in Mobile */}
+                <Link
+                  to="/healthcare"
+                  onClick={() => setMobileOpen(false)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-semibold text-sm transition-all border border-primary/20 my-1"
+                >
+                  <div className="flex items-center gap-2">
+                    <HeartPulse className="w-4 h-4" />
+                    <span>Healthcare (Hospitals & Clinics)</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/20 text-current">
+                    Open
+                  </span>
+                </Link>
+
+                {MAIN_NAV_ITEMS.map((item) => (
                   <Link
                     key={item.path}
                     to={item.path}
@@ -638,6 +692,7 @@ export default function PublicNavbar() {
                     {item.label}
                   </Link>
                 ))}
+
                 <Link
                   to="/mind"
                   onClick={() => setMobileOpen(false)}

@@ -9,7 +9,20 @@ const supplierSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   address: { type: String },
   gstNumber: { type: String },
-  category: { type: String, enum: ['Medical Supplies', 'Pharmaceuticals', 'Surgical Instruments', 'Equipment', 'General'], default: 'General' },
+  // A2 (rolesmd/subcatogary.md) + catogary.md L290 — the 5 originals plus
+  // reagents, implants, linen, gases, food, IT and B2B surgical/OT
+  // consumables. Additive only.
+  category: {
+    type: String,
+    enum: [
+      'Medical Supplies', 'Pharmaceuticals', 'Surgical Instruments',
+      'Equipment', 'General',
+      // A2 / L290 additions
+      'Reagents', 'Implants', 'Linen', 'Medical Gases', 'Food', 'IT',
+      'OT Consumables',
+    ],
+    default: 'General',
+  },
   items: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Inventory' }],
   rating: { type: Number, min: 1, max: 5 },
   leadTime: { type: Number, default: 7 }, // days

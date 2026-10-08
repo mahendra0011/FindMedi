@@ -9,7 +9,25 @@ const recordSchema = new mongoose.Schema({
   date: { type: String, required: true },
   diagnosis: { type: String, default: '' },
   prescription: { type: String, default: '' },
-  type: { type: String, enum: ['diagnosis', 'prescription', 'lab_report', 'imaging', 'discharge_summary', 'bill_invoice', 'payment_invoice'], default: 'diagnosis', set: v => typeof v === 'string' ? v.toLowerCase().replace(/\s+/g, '_') : v },
+  // subcatogary.md C19 — the 7 originals plus the record types §19 asks for.
+  // `set` below normalises display spellings ("Lab Report") to snake_case, so
+  // every enum token is already lowercase.
+  type: {
+    type: String,
+    enum: [
+      // originals
+      'diagnosis', 'prescription', 'lab_report', 'imaging', 'discharge_summary',
+      'bill_invoice', 'payment_invoice',
+      // §19 additions
+      'vaccination_record', 'consent_form', 'referral_letter', 'operative_note',
+      'histopathology_report', 'ecg_echo_report', 'mlc_report',
+      'medical_certificate', 'allergy_list', 'growth_chart',
+      'insurance_claim_docs', 'pre_auth', 'death_birth_intimation',
+      'abha_linked_document', 'patient_external_report', 'wearable_export',
+    ],
+    default: 'diagnosis',
+    set: v => typeof v === 'string' ? v.toLowerCase().replace(/\s+/g, '_') : v,
+  },
   notes: { type: String, default: '' },
 
   // Vitals

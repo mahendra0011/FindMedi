@@ -1,10 +1,17 @@
 import mongoose from 'mongoose';
 import { generate16DigitId } from '../utils/idGenerator.js';
+import { normalizeModes } from '../lib/appointmentModes.js';
+import { resolveSpecialtyCode } from '../lib/taxonomy.js';
 
 const doctorSchema = new mongoose.Schema({
   doctorId: { type: String, unique: true, sparse: true, index: true },
   name: { type: String, required: true },
   specialization: { type: String, required: true },
+  specialtyCode: { type: String, default: '', index: true },
+  // R0 taxonomy (subcatogary.md A1 #2 / D1 step 1): canonical sub-specialty
+  // codes alongside the free-text `specialization`, which stays required so
+  // old documents and old clients keep working.
+  subSpecialtyCodes: [{ type: String, maxlength: 64 }],
   experience: { type: String, default: '1 year' },
   rating: { type: Number, default: 0, min: 0, max: 5 },
   patients: { type: Number, default: 0 },
@@ -151,6 +158,28 @@ const doctorSchema = new mongoose.Schema({
 doctorSchema.pre('save', async function (next) {
   if (!this.doctorId) {
     this.doctorId = generate16DigitId();
+  }
+  // R0 taxonomy: auto-fill the canonical code from free-text `specialization`
+  // (Orthopedics/Orthopaedics, Pediatrics/Paediatrics, ...) so direct model
+  // writes get the same mapping the doctors route + migration script apply.
+  // Only fills when blank — an explicitly set code is never overwritten.
+  // Normalization is best-effort and must never block a save.
+  try {
+    if (!this.specialtyCode && this.specialization) {
+      this.specialtyCode = resolveSpecialtyCode(this.specialization) || '';
+    }
+    if (Array.isArray(this.subSpecialtyCodes)) {
+      this.subSpecialtyCodes = [
+        ...new Set(
+          this.subSpecialtyCodes.map((code) => String(code ?? '').trim()).filter(Boolean),
+        ),
+      ];
+    }
+    if (Array.isArray(this.appointmentModes)) {
+      this.appointmentModes = normalizeModes(this.appointmentModes);
+    }
+  } catch {
+    // ignore: a normalization failure must not fail the write
   }
   next();
 });

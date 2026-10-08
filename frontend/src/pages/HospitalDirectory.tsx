@@ -43,7 +43,7 @@ export default function HospitalDirectory() {
   const [searchParams] = useSearchParams();
   const [hospitals, setHospitals] = useState([]);
   const [allHospitals, setAllHospitals] = useState([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('q') || searchParams.get('search') || '');
   const [cityFilter, setCityFilter] = useState(
     () => searchParams.get('city') || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city') || ''
   );
@@ -71,12 +71,17 @@ export default function HospitalDirectory() {
   // Advanced filters
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [sortBy, setSortBy] = useState('relevance');
-  const [filterHospitalType, setFilterHospitalType] = useState([]);
+  const [filterHospitalType, setFilterHospitalType] = useState<string[]>(() => {
+    const t = searchParams.get('type');
+    if (t === 'government') return ['Government'];
+    if (t === 'private') return ['Private'];
+    return [];
+  });
   const [filterEmergency, setFilterEmergency] = useState(false);
   const [filterMinRating, setFilterMinRating] = useState(0);
   const [filterInsurance, setFilterInsurance] = useState(false);
   const [filterBedAvailable, setFilterBedAvailable] = useState(false);
-  const [filterCategory, setFilterCategory] = useState([]);
+  const [filterCategory, setFilterCategory] = useState<string[]>([]);
   const [filterAccreditation, setFilterAccreditation] = useState([]);
   const [filterBedSize, setFilterBedSize] = useState('');
   const [filterAmbulance, setFilterAmbulance] = useState(false);
@@ -85,6 +90,20 @@ export default function HospitalDirectory() {
   const [filterDoctorsRange, setFilterDoctorsRange] = useState('');
   const [filterPayment, setFilterPayment] = useState([]);
   const [filterInsuranceProvider, setFilterInsuranceProvider] = useState('');
+
+  // Healthcare catalogue se aaye query params (?type= ?category= ?emergency= ?specialty= ?q=)
+  useEffect(() => {
+    const type = searchParams.get('type');
+    const category = searchParams.get('category');
+    const emergency = searchParams.get('emergency');
+    const q = searchParams.get('q') || searchParams.get('search') || '';
+    const specialty = searchParams.get('specialty') || '';
+    setFilterHospitalType(type ? [type] : []);
+    setFilterCategory(category ? [category] : []);
+    setFilterEmergency(Boolean(emergency));
+    setSearch(q);
+    setSpecFilter(specialty);
+  }, [searchParams]);
 
   const getType = (h) => {
     const t = h.hospitalType || h.type || '';

@@ -20,6 +20,8 @@
     "dev:legacy": "npx concurrently \"npm run dev --prefix backend\" \"npm run dev:mind --prefix backend\" \"npm run dev --prefix frontend\"",
     "dev:mind": "npm run dev:mind --prefix backend",
     "build": "npm run build --prefix frontend",
+    "promo": "npx -y serve findmedi-promo -p 4200",
+    "promo:open": "powershell -Command \"Start-Process d:\\projects\\Findmedi\\findmedi-promo\\index.html\"",
     "typecheck": "npm run typecheck --prefix frontend",
     "seed": "npm run seed --prefix backend",
     "seed:admin": "npm run seed:admin --prefix backend",

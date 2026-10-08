@@ -704,6 +704,7 @@ export const api = {
   getTicketStats:         ()        => request('/support-tickets/stats'),
 
   getCategories:          (p={})    => request('/categories?' + new URLSearchParams(p)),
+  getPublicCategories:    (p={})    => request('/categories/public?' + new URLSearchParams(p)),
   createCategory:         (body)    => request('/categories', { method:'POST', body: JSON.stringify(body) }),
   updateCategory:         (id,b)    => request(`/categories/${id}`, { method:'PUT', body: JSON.stringify(b) }),
   deleteCategory:         (id)      => request(`/categories/${id}`, { method:'DELETE' }),

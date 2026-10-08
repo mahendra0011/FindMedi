@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { NEUTRAL_COPY } from '../lib/neutralCopy.js';
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 function getISTDateString() {
@@ -60,26 +61,8 @@ notificationSchema.index(
  * screen, so the push-safe strings are generated from the TYPE only and never
  * from caller-supplied content.
  */
-const PUSH_COPY = {
-  lab: { title: 'New lab update', body: 'A lab report update is available in FindMedi.' },
-  radiology: { title: 'New radiology update', body: 'A radiology report update is available in FindMedi.' },
-  prescription: { title: 'Prescription update', body: 'There is a prescription update in FindMedi.' },
-  emergency: { title: 'Emergency alert', body: 'An emergency alert was raised. Open FindMedi.' },
-  billing: { title: 'Billing update', body: 'There is a billing update in FindMedi.' },
-  token: { title: 'Security alert', body: 'There was a security-related change on your account. Open FindMedi.' },
-  records: { title: 'New health record update', body: 'A health record was updated in FindMedi.' },
-  appointment: { title: 'Appointment update', body: 'You have an appointment update in FindMedi.' },
-  payment: { title: 'Payment update', body: 'There is a payment update in FindMedi.' },
-  ride: { title: 'Ride update', body: 'There is an update about your ride in FindMedi.' },
-  reminder: { title: 'Reminder', body: 'You have a new reminder in FindMedi.' },
-  sos: { title: 'Emergency alert', body: 'An emergency alert was raised. Open FindMedi.' },
-  assistant: { title: 'Assistant update', body: 'You have a new assistant message in FindMedi.' },
-  lawyer: { title: 'Legal update', body: 'You have a new legal update in FindMedi.' },
-  system: { title: 'FindMedi', body: 'You have a new notification in FindMedi.' },
-};
-
 notificationSchema.pre('validate', function sanitizeNotification(doc) {
-  const copy = PUSH_COPY[doc.type] || PUSH_COPY.system;
+  const copy = NEUTRAL_COPY[doc.type] || NEUTRAL_COPY.system;
   if (!doc.pushTitle) doc.pushTitle = copy.title;
   if (!doc.pushBody) doc.pushBody = copy.body;
   if (doc.dedupKey) doc.dedupKey = String(doc.dedupKey);

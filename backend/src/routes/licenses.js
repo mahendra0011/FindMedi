@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import License from '../models/License.js';
-import { protect, superadminOnly } from '../middleware/auth.js';
+import { protect, requireRole } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { validate } from '../utils/validate.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
@@ -20,7 +20,10 @@ const licenseSchema = z.object({
 
 const router = express.Router();
 
-router.get('/', protect, superadminOnly, async (req, res) => {
+// 8.md 11: the licence/registry tracker is the compliance_officer's console
+// (list, edit, expiry watch, stats). Licences are evidence of who may practise
+// at a facility, so the gate is platform-wide - never tenant-scoped.
+router.get('/', protect, requireRole(['superadmin', 'compliance_officer']), async (req, res) => {
   try {
     const { status, facilityType, search } = req.query;
     const filter = {};
@@ -35,7 +38,7 @@ router.get('/', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, superadminOnly, validate(licenseSchema), async (req, res) => {
+router.put('/:id', protect, requireRole(['superadmin', 'compliance_officer']), validate(licenseSchema), async (req, res) => {
   try {
     const { pickBody } = await import('../utils/pick.js');
     const license = await License.findByIdAndUpdate(req.params.id,
@@ -46,14 +49,14 @@ router.put('/:id', protect, superadminOnly, validate(licenseSchema), async (req,
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.get('/expiring', protect, superadminOnly, async (req, res) => {
+router.get('/expiring', protect, requireRole(['superadmin', 'compliance_officer']), async (req, res) => {
   try {
     const licenses = await License.find({ status: 'Expiring Soon' }).sort({ expiryDate: 1 });
     res.json({ licenses });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/stats', protect, superadminOnly, async (req, res) => {
+router.get('/stats', protect, requireRole(['superadmin', 'compliance_officer']), async (req, res) => {
   try {
     const total = await License.countDocuments();
     const active = await License.countDocuments({ status: 'Active' });

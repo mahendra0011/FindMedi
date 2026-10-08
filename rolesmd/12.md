@@ -1,0 +1,169 @@
+# 11 — Design System (UI Kit Spec)
+
+> **Repo se jo mila (✅):** React 18 · Vite · Tailwind 4 + `tailwindcss-animate` · Radix UI (shadcn-style) · `lucide-react` · `framer-motion` · `react-hook-form` + `zod` · `recharts` · `maplibre-gl` · dark mode (`class`) · tokens: `--primary: 174 62% 38%` (teal), `--accent: 174 45% 92%`, `--destructive: 0 72% 51%`, `--radius: 0.75rem`, fonts **Plus Jakarta Sans** (heading) + **Inter** (body).
+> **Gaps (🆕):** i18n library nahi mili · `manifest.json` nahi (sirf `sw.js`) · semantic tokens (success/warning/info/tier colours) limited · category-wise icon system · motion & accessibility rules documented nahi.
+> **Goal:** 25+ provider types ka UI ek hi language me — naye cards/pages (files 02–04) isi kit se banein.
+
+---
+
+## 1. Principles
+1. **Calm & trustworthy** — medical context me loud/flashy nahi; teal + neutral + clear hierarchy.
+2. **Clarity before beauty** — fee, timing, availability, verification pehle dikhein.
+3. **Inclusive by default** — elderly, low-literacy, low-bandwidth, regional languages, screen readers.
+4. **One pattern per problem** — ek card anatomy, ek booking sheet, ek empty-state pattern.
+5. **Sensitive-aware** — discreet mode, no alarming colours for private categories, no fear-based UI.
+6. **Fast on cheap phones** — 3G/4G, 2–3 GB RAM Android target.
+
+## 2. Colour system
+
+### 2.1 Brand & neutrals (existing tokens, formalised)
+| Token | Light | Use |
+|---|---|---|
+| `--primary` | hsl(174 62% 38%) teal | Primary CTA, links, active nav |
+| `--primary-glow` | hsl(174 62% 50%) | Highlights, focus glow (sparingly) |
+| `--accent` | hsl(174 45% 92%) | Soft backgrounds, chips, selected rows |
+| `--background` | hsl(200 20% 98%) | App background |
+| `--foreground` | hsl(210 30% 12%) | Body text |
+| `--muted` / `--border` | neutral cool greys | Secondary text, dividers |
+| `--destructive` | hsl(0 72% 51%) | Errors, cancel, delete |
+
+### 2.2 Semantic tokens to ADD 🆕
+| Token | Use |
+|---|---|
+| `--success` (green) | Confirmed, verified, delivered |
+| `--warning` (amber) | Pending, expiring, low stock |
+| `--info` (blue) | Neutral info, tips |
+| `--emergency` (red, distinct from destructive) | SOS, emergency tags only |
+| `--tier-t1/t2/t3` | Internal badges for data sensitivity (ops only) |
+
+### 2.3 Category colour accents (tags/icons only, never full backgrounds)
+Clinical (teal) · Diagnostics (indigo) · Pharmacy (green) · Mind (soft violet) · Wellness/Fitness (orange) · Elder/Home care (warm sand) · Govt (navy) · Events (rose) · Commerce (slate). Keep **≥ 4.5:1 contrast** for text; icons carry meaning too (not colour alone).
+
+### 2.4 Dark mode
+All tokens have dark equivalents; elevation via lighter surfaces (not shadows); images dim 8–10%; test charts/maps. Default = system.
+
+## 3. Typography
+| Role | Font | Size/Weight (mobile → desktop) |
+|---|---|---|
+| Display / H1 | Plus Jakarta Sans | 28/700 → 40/700 |
+| H2 | Plus Jakarta Sans | 22/600 → 28/600 |
+| H3 | Plus Jakarta Sans | 18/600 → 20/600 |
+| Body | Inter | 16/400 (never < 14 on mobile) |
+| Small / caption | Inter | 13–14/400 |
+| Numbers (price, vitals) | Inter tabular-nums | 16–24/600 |
+- **Indic scripts:** add **Noto Sans Devanagari** (Hindi/Marathi) + Noto Sans for Bengali/Tamil/Telugu/Gujarati/Kannada/Malayalam/Odia/Gurmukhi as **on-demand subset** fonts (`font-display: swap`); line-height +10–15% for Indic.
+- **Elder mode:** scale ×1.15–1.3, weight 500+, min tap 48px.
+- Line length 45–75 chars; no ALL-CAPS paragraphs.
+
+## 4. Spacing, grid, radius, elevation
+- **8px base** (4px for tight). Scale: 4, 8, 12, 16, 24, 32, 48, 64.
+- **Breakpoints:** 360 (small phone) · 480 · 768 (tablet) · 1024 · 1280. Mobile-first.
+- **Container:** max 1200 (public), full-fluid dashboards with 280px sidebar (collapsible).
+- **Radius:** `--radius 0.75rem` for cards/modals; 0.5rem inputs; full for avatars/chips.
+- **Elevation:** 0 (flat) · 1 (card) · 2 (dropdown) · 3 (modal) · 4 (toast). Soft, low-opacity shadows.
+
+## 5. Iconography & imagery
+- `lucide-react` stroke 1.75, 20/24px; **category icon map** (Dental=Smile/Tooth custom, Eye=Eye, Pharmacy=Pill, Lab=TestTube, Yoga=Flower/Person-standing, Gym=Dumbbell, Equipment=Wheelchair/Bed, Event=CalendarHeart, Govt=Landmark, Ambulance=Ambulance, Mind=Brain).
+- Missing medical glyphs → custom SVG set (same stroke weight).
+- **Photos:** real, diverse Indian context; formal doctor headshots; no stock cliché; WebP/AVIF + `srcset`; alt text mandatory; no patient photos without consent.
+- **Illustrations:** flat, minimal, culturally neutral for empty states.
+
+## 6. Motion
+`framer-motion` with restraint: 150–250ms ease-out; page/section fades; skeleton shimmer; sheet slide-up; **respect `prefers-reduced-motion`** (disable parallax/auto-play). No motion on emergency flows.
+
+## 7. Core components (reuse shadcn/Radix; extend)
+
+### 7.1 Foundation
+Button (primary/secondary/ghost/destructive/link; sizes sm–lg; loading; icon) · IconButton · Input/Textarea/Select/Combobox · Checkbox/Radio/Switch · DatePicker (`react-day-picker` ✅) · TimePicker/SlotPicker 🆕 · OTP input 🆕 · PhoneInput (+91) 🆕 · FileUpload (drag/camera, progress, scan status) 🆕 · Tabs · Accordion · Dialog/Sheet/Drawer · Tooltip/Popover · Toast · Skeleton · Badge/Chip · Avatar · Tag · Pagination · Breadcrumb · Table · Stepper/Wizard 🆕 · Progress.
+
+### 7.2 Domain components 🆕
+| Component | Notes |
+|---|---|
+| **ProviderCard** (variants per file 02) | Slots: media, title, meta, chips, price, trust, availability, CTAs |
+| **PractitionerHeader / BookingWidget** | Mode tabs → date strip → slots → price → CTA; sticky |
+| **SlotPicker** | Morning/afternoon/evening groups, waitlist, held-slot countdown |
+| **PriceBreakup** | Fee + platform fee + GST − coupon/wallet; "inclusive" note |
+| **VerificationBadge** | Levels + tooltip (what/when verified) |
+| **RatingStars + Histogram** | Hides numeric rating when <3 reviews |
+| **FilterBar + FilterSheet** | Chips (quick) + full sheet (mobile); URL-synced state |
+| **MapPinCard / MapView** | `maplibre-gl` ✅; cluster; privacy-safe pins |
+| **StatusTimeline** | Booking/order/application status with timestamps |
+| **UploadScanStatus** | uploaded → scanning → clean/rejected |
+| **ConsentToggle** | Purpose, data, retention, revoke link |
+| **DiscreetBanner** | "Private mode on" indicator |
+| **EmergencyButton (SOS)** | Always-visible floating, distinct colour, long-press/confirm |
+| **EmptyState / ErrorState / Offline banner** | Illustration + next action |
+| **KPI Tile / Chart wrappers** (`recharts`) | Accessible labels, colour-blind-safe palette |
+| **ChipGroup (multi-select)** | Languages, concerns, skills |
+| **Wizard (config-driven)** | Renders ProviderTypeConfig steps; autosave indicator |
+| **CalendarGrid (provider)** | Week/day, drag-to-block, leave |
+| **DataTable (ops)** | Sort, filter, column chooser, bulk actions, masked cells, export (capped) |
+| **ReviewItem** | Verified-visit badge, reply, report |
+| **Ticket/QR component** | Event ticket, check-in QR |
+
+### 7.3 States (every component)
+default · hover · focus-visible (2px ring, offset) · active · disabled · loading · error · success · read-only. Focus ring always visible (keyboard).
+
+## 8. Layout patterns
+| Pattern | Use |
+|---|---|
+| **Public shell** | Top nav (logo, city, search, login), footer (links, legal, helplines), SOS pill |
+| **Patient app shell** | Mobile bottom-nav (Home · Search · Bookings · Records · Profile) + SOS FAB; desktop sidebar |
+| **Provider dashboard shell** | Sidebar (permission-driven), top bar (branch switcher, notifications), content cards |
+| **Ops console shell** | Dense tables, queue layout, split-pane review workspace |
+| **Wizard layout** | Progress, step title, form, sticky footer actions |
+| **Detail page layout** | Hero + sticky action bar + tabs + right rail (file 03) |
+
+## 9. Forms & validation UX
+`react-hook-form` + `zod` (same schema shared with backend where possible) · inline errors on blur, summary on submit · plain-language messages ("Enter a 10-digit mobile number") · input masks (phone, PIN, IFSC, PAN, GSTIN) · autosave drafts for long forms · camera upload for docs · **never clear a form on error** · password: show/hide, strength meter (zxcvbn) + breached check.
+
+## 10. Content & tone
+- Friendly, simple, non-jargon; Hindi/regional microcopy reviewed by native speakers.
+- **Medical tone:** factual, no fear, no guarantees; disclaimers short and visible.
+- Buttons: verb-first ("Book appointment", "Upload prescription").
+- Errors: what happened + what to do.
+- Terminology glossary (Doctor/Dr., "Consult", "Lab test", "Home visit") consistent across languages.
+- Sensitive categories: neutral labels in notifications ("Your session is confirmed").
+
+## 11. Accessibility (WCAG 2.1 AA minimum)
+Contrast ≥ 4.5:1 · keyboard navigable · focus-visible · semantic landmarks/headings · ARIA for custom widgets (Radix ✅) · alt text · captions for video · form labels/error association · tap targets ≥ 44px (elder 48px) · no colour-only meaning · reduced-motion · zoom to 200% · screen-reader test (TalkBack/VoiceOver) in CI checklist · voice input/read-aloud for key flows · plain-language option.
+
+## 12. Internationalisation (🆕 big gap — no i18n lib found)
+- Add **`react-i18next`** (or `lingui`) + namespaces per area; ICU plurals; locale files for **hi, en** first, then mr, bn, ta, te, gu, kn, ml, pa, or, as.
+- Backend: localised notification templates; category/specialty names from taxonomy (`name.{en,hi}`).
+- Number/date/currency formatting (₹, Indian numbering lakh/crore), 12/24h, calendars.
+- RTL (Urdu) support check; font fallbacks; text-expansion tolerant layouts (Hindi ~20–30% longer).
+- Language switcher persists; server-side detect (Accept-Language) as default.
+
+## 13. Performance budget
+LCP < 2.5s on 4G mid-range Android · JS per route < 200 KB gz (code-split by role/route) · images lazy + CDN · fonts subset · skeletons not spinners · list virtualisation for long tables · prefetch on intent · cache read-mostly data (react-query ✅) · offline shell + last-known data · reduce `framer-motion` on low-end (feature-detect).
+
+## 14. PWA gaps (🆕)
+`sw.js` hai par **`manifest.webmanifest` nahi** → add: name, short_name, icons (192/512 maskable), `display: standalone`, theme/background colour, start_url, shortcuts (Book, SOS, Records). Offline fallback page; cache strategy: static assets cache-first, API network-first with safe fallbacks; **never cache PHI responses in SW** (`no-store` ✅) — only app shell + non-personal public data.
+
+## 15. Theming per surface
+| Surface | Notes |
+|---|---|
+| Patient | Light, airy, large touch; elder mode toggle |
+| Provider | Denser, productivity; tables, calendars |
+| Ops | Dense, neutral; high-contrast warnings; PHI masked by default |
+| Wellness (gym/yoga) | Slightly warmer accent allowed; **no medical iconography/claims** |
+| Mind/Counselling | Softer palette, discreet mode default, no red/alarm styling except crisis help |
+
+## 16. Documentation & governance
+- **Storybook** (components + states + a11y checks `@storybook/addon-a11y`) · visual regression (Chromatic/Playwright screenshots).
+- Token source of truth: CSS variables + Tailwind theme; export to Figma (Tokens Studio).
+- Contribution rules: new component needs spec, states, a11y notes, tests.
+- Versioning: changelog; deprecate before removing.
+- **Figma library** mirroring components (cards, booking widget, wizard, dashboards).
+
+## 17. Deliverables checklist
+- [ ] Add semantic + category tokens; dark-mode parity
+- [ ] Indic font strategy + `react-i18next` set up
+- [ ] `manifest.webmanifest` + offline shell
+- [ ] ProviderCard base + variants; PractitionerHeader; BookingWidget; SlotPicker; PriceBreakup
+- [ ] Wizard component (config-driven)
+- [ ] FilterBar/FilterSheet; MapPinCard; StatusTimeline; ConsentToggle; DiscreetBanner; SOS button
+- [ ] DataTable for ops (masked cells, capped exports)
+- [ ] Storybook + a11y CI + Figma library
+- [ ] Elder mode + low-bandwidth mode

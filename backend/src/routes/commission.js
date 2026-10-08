@@ -4,7 +4,7 @@ import CommissionConfig from '../models/CommissionConfig.js';
 import Payout from '../models/Payout.js';
 import TransactionLedger from '../models/TransactionLedger.js';
 import Hospital from '../models/Hospital.js';
-import { protect, superadminOnly } from '../middleware/auth.js';
+import { protect, superadminOnly, requireRole } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { validate } from '../utils/validate.js';
 import { paymentLimiter } from '../middleware/rateLimit.js';
@@ -17,9 +17,14 @@ const commissionConfigSchema = z.object({ commissionPercent: z.number().optional
 const payoutCreateSchema = z.object({ facilityId: z.string().min(1), periodStart: z.string().optional(), periodEnd: z.string().optional() });
 const payoutPaySchema = z.object({ transactionRef: z.string().optional() });
 
+// 8.md 8 / 7.md 3.23: the finance console READS config, ledger, tax summary,
+// stats and the payout queue, and provides the second pair of eyes on approval.
+// Writes that move money or change the revenue split - editing config,
+// CREATING a payout, paying a payout, the recon report - keep superadminOnly,
+// so finance_admin can never authorise its own payout.
 const router = express.Router();
 
-router.get('/config', protect, superadminOnly, async (req, res) => {
+router.get('/config', protect, requireRole(['superadmin', 'finance_admin']), async (req, res) => {
   try {
     const configs = await CommissionConfig.find().sort({ facilityName: 1 }).lean();
 
@@ -74,7 +79,7 @@ router.put('/config/:id', protect, paymentLimiter, superadminOnly, validate(comm
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/ledger', protect, superadminOnly, async (req, res) => {
+router.get('/ledger', protect, requireRole(['superadmin', 'finance_admin']), async (req, res) => {
   try {
     const { facilityId, source, status, page = 1, limit = 30 } = req.query;
     const filter = {};
@@ -106,7 +111,7 @@ router.get('/ledger', protect, superadminOnly, async (req, res) => {
 });
 
 // SA-M3: quarterly TDS (194-O, 1% of gross) summary per facility for Form 16A.
-router.get('/tax-summary', protect, superadminOnly, async (req, res) => {
+router.get('/tax-summary', protect, requireRole(['superadmin', 'finance_admin']), async (req, res) => {
   try {
     const { quarter } = req.query; // e.g. "2026-Q3" (fiscal: Q1=Apr-Jun … Q4=Jan-Mar)
     const m = /^(\d{4})-Q([1-4])$/.exec(String(quarter || ''));
@@ -155,7 +160,7 @@ router.get('/tax-summary', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/payouts', protect, superadminOnly, async (req, res) => {
+router.get('/payouts', protect, requireRole(['superadmin', 'finance_admin']), async (req, res) => {
   try {
     const { facilityId, status, page = 1, limit = 30 } = req.query;
     const filter = {};
@@ -248,7 +253,7 @@ router.post('/payouts', protect, paymentLimiter, requireStepUp('payouts:add'), i
 });
 
 // SA-M5: record a four-eyes approval (idempotent per admin).
-router.put('/payouts/:id/approve', protect, paymentLimiter, idempotencyGuard({ prefix: 'payout-approve', failClosed: true }), superadminOnly, async (req, res) => {
+router.put('/payouts/:id/approve', protect, paymentLimiter, idempotencyGuard({ prefix: 'payout-approve', failClosed: true }), requireRole(['superadmin', 'finance_admin']), async (req, res) => {
   try {
     const payout = await Payout.findById(req.params.id);
     if (!payout) return res.status(404).json({ message: 'Payout not found' });
@@ -308,7 +313,7 @@ router.put('/payouts/:id/pay', protect, paymentLimiter, idempotencyGuard({ prefi
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/stats', protect, superadminOnly, async (req, res) => {
+router.get('/stats', protect, requireRole(['superadmin', 'finance_admin']), async (req, res) => {
   try {
     const totalCommission = (await CommissionConfig.aggregate([
       { $group: { _id: null, total: { $sum: '$totalEarnings' }, pending: { $sum: '$pendingPayout' } } },

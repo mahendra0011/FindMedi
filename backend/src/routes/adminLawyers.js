@@ -3,12 +3,15 @@ import LawyerProfile from '../models/LawyerProfile.js';
 import LawyerBooking from '../models/LawyerBooking.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { protect, adminOnly, superadminOnly } from '../middleware/auth.js';
+import { protect, requireRole } from '../middleware/auth.js';
 // ADM-B-01 / DLB-11: on-demand providers are a PLATFORM marketplace, not a tenant.
 // Their profiles carry Aadhaar, driving-licence and bank details, and the models
 // have no hospitalId to scope by - so dminOnly (which a hospital_admin holds)
 // gave every hospital KYC PII, plate numbers, bank details and ride analytics for
-// every other hospital. These are platform-level operations: superadmin only.
+// every other hospital. These are platform-level operations: superadmin only -
+// except the three verification-queue routes below, which the ops console's
+// kyc_reviewer also holds (8.md 2). Both are platform roles; neither is ever
+// hospital-scoped.
 import { platformAdminOnly } from '../middleware/authorize.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
@@ -16,12 +19,14 @@ import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const router = express.Router();
 
-// Only SuperAdmin and HospitalAdmin can access
-router.use(protect, superadminOnly);
+// Platform access for all routes in this file; each route keeps its own guard,
+// so the kyc_reviewer reaches the queue only, never /suspend, /all, /bookings
+// or /analytics.
+router.use(protect, requireRole(['superadmin', 'kyc_reviewer']));
 
 // ─── GET /api/admin/lawyers/pending ───────────────────────────────────────
 // Get all pending lawyer applications for Bar Council verification
-router.get('/pending', platformAdminOnly, async (req, res) => {
+router.get('/pending', requireRole(['superadmin', 'kyc_reviewer']), async (req, res) => {
   try {
     const pending = await LawyerProfile.find({ lawyerStatus: 'pending_approval' })
       .populate('userId', 'name email phone avatar address createdAt')
@@ -68,7 +73,7 @@ router.get('/all', platformAdminOnly, async (req, res) => {
 
 // ─── PUT /api/admin/lawyers/:id/approve ───────────────────────────────────
 // Approve lawyer application
-router.put('/:id/approve', platformAdminOnly, async (req, res) => {
+router.put('/:id/approve', requireRole(['superadmin', 'kyc_reviewer']), async (req, res) => {
   try {
     const profile = await LawyerProfile.findById(req.params.id);
     if (!profile) {
@@ -112,7 +117,7 @@ router.put('/:id/approve', platformAdminOnly, async (req, res) => {
 
 // ─── PUT /api/admin/lawyers/:id/reject ────────────────────────────────────
 // Reject lawyer application with reason
-router.put('/:id/reject', platformAdminOnly, async (req, res) => {
+router.put('/:id/reject', requireRole(['superadmin', 'kyc_reviewer']), async (req, res) => {
   try {
     const { reason = 'Bar Council verification details could not be verified' } = req.body;
     const profile = await LawyerProfile.findById(req.params.id);

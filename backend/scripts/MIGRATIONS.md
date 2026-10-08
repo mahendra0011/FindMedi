@@ -11,3 +11,4 @@ One-off data migrations. Run manually with `node scripts/<file>` from `server/`.
 | `backfill-appointment-completion-time.mjs` | Once: backfills `completionTime` on historical appointments. |
 | `fix-payment-index.mjs` | Once (or after index drift): drops the stale `referenceId_1_status_1` index so Mongoose recreates it. |
 | `clear-appointments.mjs` | DANGER — deletes all appointments/tokens/appointment-payments. Dev/test reset only, never production. |
+| `migrate-enum-normalization.mjs` | Once after the subcatogary.md A1/A2 enum work: merges `Medicine.category` `Vitamin` -> `Vitamins` and rewrites the legacy `appointmentModes` aliases (`home` -> `home_visit`, `voice`/`call` -> `audio`) on hospitals, facilities and doctors. The enums keep the old values, so it can be skipped safely and re-run whenever legacy rows reappear. |

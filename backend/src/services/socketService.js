@@ -5,6 +5,7 @@ import { createAdapter } from '@socket.io/redis-adapter';
 // every REST request.
 import { verifyAccessToken } from '../utils/jwtKeys.js';
 import logger from '../config/logger.js';
+import { loadPreference, applyDiscreetCopy } from './notificationPreferences.js';
 import {
   redisPub,
   redisSub,
@@ -823,10 +824,26 @@ export async function initSocket(server) {
 }
 
 
-export function notifyUser(userId, notification) {
-  if (io) {
-    io.to(`user:${userId}`).emit('notification', notification);
+// 6.md §2.15: the live toast is a PREVIEW surface exactly like the list and
+// the read-ack, so it carries the same neutral copy for a discreet-mode user
+// (applyDiscreetCopy reads the OWNER's preference). The io guard runs BEFORE
+// the preference read: with no server there is nothing to emit, and a process
+// that never called initIo (tests, workers) must not pay a preference lookup
+// - or a buffered Mongo query - for a no-op. The read is awaited inside a
+// fire-and-forget promise, so callers keep their sync contract; the toast may
+// now land a few ms after the HTTP response, which is harmless because the
+// list itself is redacted too.
+async function emitPreview(userId, notification) {
+  const pref = await loadPreference(userId).catch(() => null);
+  try {
+    io?.to(`user:${userId}`).emit('notification', applyDiscreetCopy(notification, pref));
+  } catch {
+    // io closed between the guard and the emit - the toast is lost either way.
   }
+}
+
+export function notifyUser(userId, notification) {
+  if (io) void emitPreview(userId, notification);
 }
 
 /**
@@ -853,7 +870,8 @@ export function emitChatNotification(userId, event, payload) {
 export function notifyUsers(userIds, notification) {
   if (io) {
     userIds.forEach((userId) => {
-      io.to(`user:${userId}`).emit('notification', notification);
+      // Per user, not per batch: each recipient reads their OWN preference.
+      void emitPreview(userId, notification);
     });
   }
 }

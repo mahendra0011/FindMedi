@@ -1,0 +1,325 @@
+# FindMedi analytics event registry (rolesmd/18.md §8 — 17-Analytics).
+# Rule #1: NO PHI/PII in analytics — no name, phone, email, diagnosis,
+# medicine/test names (sensitive classes), report content, exact address,
+# lat/lng, free-text queries. Coarse values only (city_code, age band,
+# category_code for non-sensitive categories). Sensitive categories
+# (mental/sexual health, de-addiction, fertility, HIV/STD, women's health):
+# count-only, no category-level detail in third-party tools.
+# CI rule: code must only emit events + properties registered here.
+schema_version: "1.0"
+retention_months_raw: 13
+pseudonymous_id: "distinct_id = HMAC(userId, secret), never raw userId/phone/email"
+
+globals:
+  schema_version: string
+  event_id: uuid
+  distinct_id: string
+  session_id: string
+  platform: "enum(web,pwa,android,ios,server)"
+  app_version: string
+  locale: "enum(hi,en)"
+  city_code: string
+  user_role: "enum(patient,provider,ops)"
+  consent_analytics: bool
+
+# pii_class: none | coarse (city/bucket/enum only) | count-only (sensitive)
+events:
+  - name: app_opened
+    source: client
+    owner: growth
+    pii_class: none
+    properties: { entry_point: "enum(direct,push,deeplink,seo)", is_first_open: bool }
+
+  - name: landing_viewed
+    source: client
+    owner: growth
+    pii_class: none
+    properties: { page_type: "enum(home,city,category)" }
+
+  - name: city_selected
+    source: client
+    owner: growth
+    pii_class: coarse
+    properties: { city_code: string, method: "enum(manual,location)" }
+
+  - name: language_changed
+    source: client
+    owner: growth
+    pii_class: none
+    properties: { from: "enum(hi,en)", to: "enum(hi,en)" }
+
+  - name: install_prompt_accepted
+    source: client
+    owner: growth
+    pii_class: none
+    properties: { platform: "enum(web,pwa,android,ios)" }
+
+  - name: consent_updated
+    source: server
+    owner: privacy
+    pii_class: none
+    properties: { purpose: "enum(analytics,marketing,ai)", granted: bool }
+
+  - name: signup_started
+    source: client
+    owner: auth
+    pii_class: none
+    properties: { method: "enum(otp,google)" }
+
+  - name: otp_requested
+    source: server
+    owner: auth
+    pii_class: none
+    properties: { channel: "enum(sms,whatsapp)" }
+
+  - name: otp_verified
+    source: server
+    owner: auth
+    pii_class: none
+    properties: { attempts_bucket: string }
+
+  - name: signup_completed
+    source: server
+    owner: auth
+    pii_class: none
+    properties: { method: "enum(otp,google)" }
+
+  - name: login_succeeded
+    source: server
+    owner: auth
+    pii_class: none
+    properties: { method: "enum(otp,google)", mfa_used: bool }
+
+  - name: login_failed
+    source: server
+    owner: auth
+    pii_class: none
+    properties: { reason_code: string }
+
+  - name: onboarding_step_completed
+    source: client
+    owner: auth
+    pii_class: none
+    properties: { step: string }
+
+  - name: search_performed
+    source: client
+    owner: discovery
+    pii_class: coarse
+    properties: {
+      query_type: "enum(typed,voice,suggestion)",
+      query_length_bucket: string,
+      result_count_bucket: string,
+      category_code: string,
+      has_filters: bool,
+      latency_ms_bucket: string
+    }
+
+  - name: search_no_results
+    source: client
+    owner: discovery
+    pii_class: coarse
+    properties: { query_class: string, city_code: string }
+
+  - name: filter_applied
+    source: client
+    owner: discovery
+    pii_class: none
+    properties: { filter_key: string, value_class: string }
+
+  - name: category_browsed
+    source: client
+    owner: discovery
+    pii_class: coarse
+    properties: { category_code: string, level: number }
+
+  - name: provider_card_clicked
+    source: client
+    owner: discovery
+    pii_class: none
+    properties: {
+      provider_type: string,
+      position: number,
+      list_context: string,
+      is_sponsored: bool
+    }
+
+  - name: provider_viewed
+    source: client
+    owner: discovery
+    pii_class: coarse
+    properties: { provider_type: string, provider_id_hash: string, source: string }
+
+  - name: favorite_toggled
+    source: client
+    owner: discovery
+    pii_class: none
+    properties: { provider_type: string, action: "enum(add,remove)" }
+
+  - name: booking_started
+    source: client
+    owner: bookings
+    pii_class: coarse
+    properties: { provider_type: string, mode: "enum(inperson,video,home)" }
+
+  - name: slot_selected
+    source: client
+    owner: bookings
+    pii_class: none
+    properties: { slots_available_bucket: string }
+
+  - name: payment_started
+    source: server
+    owner: payments
+    pii_class: none
+    properties: { method_type: "enum(upi,card,netbanking,wallet)" }
+
+  - name: payment_succeeded
+    source: server
+    owner: payments
+    pii_class: none
+    properties: { method_type: string, amount_bucket: string }
+
+  - name: payment_failed
+    source: server
+    owner: payments
+    pii_class: none
+    properties: { error_class: string }
+
+  - name: booking_confirmed
+    source: server
+    owner: bookings
+    pii_class: coarse
+    properties: { provider_type: string, mode: string, amount_bucket: string }
+
+  - name: booking_cancelled
+    source: server
+    owner: bookings
+    pii_class: none
+    properties: { by: "enum(patient,provider,ops)", hours_before_bucket: string, reason_code: string }
+
+  - name: cart_updated
+    source: client
+    owner: pharmacy
+    pii_class: none
+    properties: { item_count_bucket: string, has_rx_item: bool }
+
+  - name: order_placed
+    source: server
+    owner: pharmacy
+    pii_class: coarse
+    properties: { order_type: "enum(medicine,otc,device)", amount_bucket: string }
+
+  - name: order_status_changed
+    source: server
+    owner: pharmacy
+    pii_class: none
+    properties: { status: string }
+
+  - name: delivery_completed
+    source: server
+    owner: pharmacy
+    pii_class: none
+    properties: { eta_met: bool }
+
+  - name: refund_issued
+    source: server
+    owner: payments
+    pii_class: none
+    properties: { amount_bucket: string, tat_hours_bucket: string }
+
+  - name: membership_started
+    source: server
+    owner: memberships
+    pii_class: none
+    properties: { plan_type: string, term_months: number }
+
+  - name: membership_cancelled
+    source: server
+    owner: memberships
+    pii_class: none
+    properties: { reason_class: string }
+
+  - name: event_viewed
+    source: client
+    owner: events
+    pii_class: none
+    properties: { event_type: string, fee_type: "enum(free,paid)" }
+
+  - name: event_registered
+    source: server
+    owner: events
+    pii_class: none
+    properties: { event_type: string, fee_type: "enum(free,paid)" }
+
+  - name: event_attended
+    source: server
+    owner: events
+    pii_class: none
+    properties: { event_type: string }
+
+  - name: record_uploaded
+    source: client
+    owner: records
+    pii_class: count-only
+    properties: { record_type: string }
+
+  - name: join_step_completed
+    source: client
+    owner: onboarding-provider
+    pii_class: none
+    properties: { provider_type: string, step_key: string, duration_sec_bucket: string }
+
+  - name: join_submitted
+    source: server
+    owner: onboarding-provider
+    pii_class: none
+    properties: { provider_type: string, doc_count: number, time_to_submit_min_bucket: string }
+
+  - name: provider_activated
+    source: server
+    owner: onboarding-provider
+    pii_class: none
+    properties: { provider_type: string, days_since_approval_bucket: string }
+
+  - name: review_submitted
+    source: server
+    owner: trust-safety
+    pii_class: none
+    properties: { rating: number, has_text: bool }
+
+  - name: sos_triggered
+    source: client
+    owner: trust-safety
+    pii_class: none
+    properties: { type: "enum(medical,police,fire)" }
+
+  - name: notification_opened
+    source: client
+    owner: engagement
+    pii_class: none
+    properties: { channel: "enum(push,sms,whatsapp)", template_key: string }
+
+  - name: ai_chat_started
+    source: client
+    owner: ai
+    pii_class: none
+    properties: { entry_point: string }
+
+  - name: ai_message_sent
+    source: client
+    owner: ai
+    pii_class: count-only
+    properties: { length_bucket: string }
+
+  - name: api_error
+    source: client
+    owner: platform
+    pii_class: none
+    properties: { route_group: string, status_class: string }
+
+  - name: offline_mode_entered
+    source: client
+    owner: platform
+    pii_class: none
+    properties: { network_type: "enum(wifi,4g,3g,offline)" }

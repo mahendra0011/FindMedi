@@ -1,6 +1,6 @@
 import express from 'express';
 import PlatformContent from '../models/PlatformContent.js';
-import { protect, superadminOnly } from '../middleware/auth.js';
+import { protect, requireRole } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();
@@ -22,7 +22,10 @@ router.get('/:key', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:key', protect, superadminOnly, async (req, res) => {
+// 8.md 11 / 7.md 3.21: the console edits versioned platform content (ToS,
+// privacy, policies) - every write bumps `version` and is audited, so handing
+// it to the ops content_editor is a scoped edit right, not a delete right.
+router.put('/:key', protect, requireRole(['superadmin', 'content_editor']), async (req, res) => {
   try {
     const { title, body, changeNotes } = req.body;
     let content = await PlatformContent.findOne({ key: req.params.key });

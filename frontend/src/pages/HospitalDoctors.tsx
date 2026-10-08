@@ -9,6 +9,8 @@ import { Card } from '@/components/ui/card';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { matchesSpecialty } from '@/lib/specialtyFilter';
+import { useCategories } from '@/hooks/useCategories';
 import BookingModal from '@/components/BookingModal';
 
 const DEFAULT_SPECS = ['All', 'Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT'];
@@ -56,6 +58,8 @@ export default function HospitalDoctors() {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [loadError, setLoadError] = useState(null);
 
+  const { names: specialtyNames, categories: specialtyCategories } = useCategories('specialty', DEFAULT_SPECS.slice(1));
+
   const [availabilityFilter, setAvailabilityFilter] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
   const [expFilter, setExpFilter] = useState('');
@@ -99,7 +103,7 @@ export default function HospitalDoctors() {
       filtered = filtered.filter(d => (d.name || '').toLowerCase().includes(q) || (d.specialization || '').toLowerCase().includes(q));
     }
 
-    if (specFilter !== 'All') filtered = filtered.filter(d => d.specialization === specFilter);
+    if (specFilter !== 'All') filtered = filtered.filter(d => matchesSpecialty(d.specialization, specFilter, specialtyCategories));
     if (availabilityFilter === 'today') filtered = filtered.filter(d => d.available === true && d.next_available_slot?.toLowerCase().includes('today'));
     else if (availabilityFilter === 'tomorrow') filtered = filtered.filter(d => d.available === true && d.next_available_slot?.toLowerCase().includes('tomorrow'));
     else if (availabilityFilter === 'available') filtered = filtered.filter(d => d.available === true);
@@ -137,11 +141,11 @@ export default function HospitalDoctors() {
     else if (sortBy === 'fee') filtered.sort((a, b) => (a.consultation_fees || a.fees || 0) - (b.consultation_fees || b.fees || 0));
 
     setDoctors(filtered);
-  }, [allDoctors, search, specFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy]);
+  }, [allDoctors, search, specFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy, specialtyCategories]);
 
   const specializations = hospital?.specialties?.length
     ? ['All', ...hospital.specialties]
-    : DEFAULT_SPECS;
+    : ['All', ...specialtyNames];
 
   const activeFilterCount = [
     specFilter !== 'All', !!availabilityFilter, !!genderFilter, !!expFilter,
@@ -206,7 +210,7 @@ export default function HospitalDoctors() {
               const Icon = theme.icon;
               const count = isAll
                 ? doctors.length
-                : doctors.filter(d => d.specialization === s).length;
+                : doctors.filter(d => matchesSpecialty(d.specialization, s, specialtyCategories)).length;
               return (
                 <button
                   key={s}

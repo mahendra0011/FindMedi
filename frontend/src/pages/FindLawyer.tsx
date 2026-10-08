@@ -111,7 +111,13 @@ export default function FindLawyer() {
   const [lawyers, setLawyers] = useState<any[]>([]);
   const [allLawyers, setAllLawyers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState(() => {
+    const p = new URLSearchParams(window.location.search || window.location.hash.split('?')[1] || '').get('category');
+    const all = DEFAULT_LAWYER_CATEGORIES;
+    if (!p) return 'All';
+    const match = all.find(c => c.toLowerCase() === p.toLowerCase());
+    return match || 'All';
+  });
   const [cityFilter, setCityFilter] = useState<string>(() => {
     return (
       new URLSearchParams(window.location.search || window.location.hash.split('?')[1] || '').get('city') ||

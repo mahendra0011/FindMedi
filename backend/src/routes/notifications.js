@@ -8,7 +8,7 @@ import { paginatedResults } from '../utils/pagination.js';
 import { createNotification } from '../services/notificationService.js';
 import NotificationPreference from '../models/NotificationPreference.js';
 import NotificationAudit from '../models/NotificationAudit.js';
-import { loadPreference } from '../services/notificationPreferences.js';
+import { loadPreference, applyDiscreetCopy } from '../services/notificationPreferences.js';
 import { applyProviderEvent, receiptsFor } from '../services/notificationDelivery.js';
 
 const router = express.Router();
@@ -78,7 +78,16 @@ router.get('/', protect, authorize('notifications:read', 'notifications:read:own
       return res.status(403).json({ message: 'Refusing to list notifications without a user scope' });
     }
     const result = await paginatedResults(Notification, { userId: effectiveUserId }, { page, limit });
-    res.json(result);
+    // 6.md §2.15: the list is a PREVIEW surface, so for a user with discreet
+    // mode on (and only for that user - a staff member listing someone else's
+    // rows reads the OWNER's preference, not their own) each row arrives with
+    // neutral copy. Critical rows pass through untouched: a neutralised SOS
+    // preview is an SOS nobody reacts to.
+    const pref = await loadPreference(effectiveUserId);
+    res.json({
+      ...result,
+      data: (result.data || []).map((row) => applyDiscreetCopy(row, pref)),
+    });
   } catch (err) {
     if (err.status === 403) return res.status(403).json({ message: err.message });
     next(err);
@@ -146,7 +155,7 @@ router.get('/preferences', protect, async (req, res) => {
 
 router.put('/preferences', protect, async (req, res) => {
   try {
-    const { channels, marketingOptIn, mutedTypes, quietHours } = req.body || {};
+    const { channels, marketingOptIn, mutedTypes, quietHours, discreetMode } = req.body || {};
 
     // Validate rather than trust: quiet-hours minutes out of range would produce
     // a window that silently never matches, and a channel key that is not a real
@@ -173,12 +182,20 @@ router.put('/preferences', protect, async (req, res) => {
     if (mutedTypes !== undefined && !Array.isArray(mutedTypes)) {
       return res.status(400).json({ message: 'mutedTypes must be an array' });
     }
+    // 6.md §2.15: the flag was modelled (NotificationPreference.discreetMode)
+    // but no writer accepted it, so it could never be turned on. It is a
+    // display preference, not a mute - a non-boolean here is a bug, not a
+    // coercion opportunity.
+    if (discreetMode !== undefined && typeof discreetMode !== 'boolean') {
+      return res.status(400).json({ message: 'discreetMode must be a boolean' });
+    }
 
     const update = {};
     if (channels) update.channels = channels;
     if (marketingOptIn !== undefined) update.marketingOptIn = marketingOptIn;
     if (mutedTypes !== undefined) update.mutedTypes = mutedTypes;
     if (quietHours) update.quietHours = quietHours;
+    if (discreetMode !== undefined) update.discreetMode = discreetMode;
 
     const saved = await NotificationPreference.findOneAndUpdate(
       { userId: String(req.user._id) },
@@ -191,6 +208,7 @@ router.put('/preferences', protect, async (req, res) => {
       marketingOptIn: saved.marketingOptIn,
       mutedTypes: saved.mutedTypes,
       quietHours: saved.quietHours,
+      discreetMode: saved.discreetMode === true,
     });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -259,7 +277,9 @@ router.put('/:id/read', protect, authorize('notifications:read', 'notifications:
     if (!notification) return res.status(404).json({ message: 'Not found' });
     notification.read = true;
     await notification.save();
-    res.json(notification);
+    // The ack carries the whole row, so it is a preview surface too - the
+    // client may render straight from this response.
+    res.json(applyDiscreetCopy(notification, await loadPreference(effectiveUserId)));
   } catch (err) {
     if (err.status === 403) return res.status(403).json({ message: err.message });
     res.status(500).json({ message: err.message });

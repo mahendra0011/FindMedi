@@ -61,17 +61,17 @@ export default function BuyMedicine() {
   }, []);
 
   // Quick filters
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('q') || new URLSearchParams(window.location.search).get('search') || '');
   const [openNow, setOpenNow] = useState(false);
   const [filter24x7, setFilter24x7] = useState(false);
-  const [homeDelivery, setHomeDelivery] = useState(false);
-  const [genericOnly, setGenericOnly] = useState(false);
+  const [homeDelivery, setHomeDelivery] = useState(() => Boolean(new URLSearchParams(window.location.search).get('delivery')));
+  const [genericOnly, setGenericOnly] = useState(() => Boolean(new URLSearchParams(window.location.search).get('generic')));
   const [quickRating, setQuickRating] = useState(0);
   const [sortBy, setSortBy] = useState('');
 
   // Advanced filter panel
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [storeType, setStoreType] = useState('');
+  const [storeType, setStoreType] = useState(() => new URLSearchParams(window.location.search).get('type') || '');
   const [locality, setLocality] = useState('');
   const [deliveryTimeRange, setDeliveryTimeRange] = useState(null);
   const [deliveryChargeFilter, setDeliveryChargeFilter] = useState('');

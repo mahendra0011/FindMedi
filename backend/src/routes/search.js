@@ -1,12 +1,47 @@
 import express from 'express';
 import { protect } from '../middleware/auth.js';
+import { publicSearchLimiter } from '../middleware/rateLimit.js';
 import { searchProviders, searchDrugs, searchEhr, isOpenSearchConfigured } from '../services/opensearchIndexer.js';
+import { toSearchCard } from '../utils/searchDto.js';
 import logger from '../config/logger.js';
 import mongoose from 'mongoose';
 import { assertEhrSearchAccess } from '../services/ehrSearchAccess.js';
 import { sendServerError } from '../utils/safeError.js';
 
 const router = express.Router();
+
+// ─── GET /api/search?q=&type=&city=&lat=&lng= — public directory search ──────
+// 10.md 4.1 (anonymous, cacheable, DTO-only). Same engine as the authenticated
+// route below; what makes it public-safe is toSearchCard — an allowlist, since
+// the OpenSearch path spreads index documents verbatim and nobody is logged in
+// to vouch for what a future indexed field contains.
+// authz: public
+router.get('/', publicSearchLimiter, async (req, res) => {
+  try {
+    const { q, type, vertical, city, lat, lng, lon, radiusKm, size } = req.query;
+    const lonValue = lng != null ? lng : lon;
+    const out = await searchProviders({
+      q,
+      vertical: vertical ?? type,
+      city,
+      lat: lat != null ? Number(lat) : undefined,
+      lon: lonValue != null ? Number(lonValue) : undefined,
+      radiusKm: radiusKm != null ? Number(radiusKm) : undefined,
+      size: Math.min(Number(size) || 20, 50),
+    });
+    res.set('Cache-Control', 'public, max-age=60');
+    res.removeHeader('Pragma');
+    res.json({
+      success: true,
+      engine: isOpenSearchConfigured() ? 'opensearch' : 'mongo',
+      source: out.source,
+      results: (out.results ?? []).map(toSearchCard),
+    });
+  } catch (err) {
+    logger.error(`Public search error: ${err.message}`);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 // ─── GET /api/search/providers?q=&vertical=&city=&lat=&lon=&radiusKm= ───────
 // Spec 15: typo-tolerant provider discovery (OpenSearch when configured,
@@ -22,7 +57,9 @@ router.get('/providers', protect, async (req, res) => {
       radiusKm: radiusKm != null ? Number(radiusKm) : 15,
       size: Math.min(Number(size) || 20, 50),
     });
-    res.json({ success: true, engine: isOpenSearchConfigured() ? 'opensearch' : 'mongo', ...out });
+    // Same allowlist as the public route above: one definition, two callers,
+    // so the authenticated surface can never drift wider than the anonymous one.
+    res.json({ success: true, engine: isOpenSearchConfigured() ? 'opensearch' : 'mongo', ...out, results: (out.results ?? []).map(toSearchCard) });
   } catch (err) {
     logger.error(`Provider search error: ${err.message}`);
     res.status(500).json({ success: false, message: err.message });

@@ -101,7 +101,12 @@ export default function BookAssistant() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState(() => {
+    const p = searchParams.get('category');
+    if (!p) return 'All';
+    const match = DEFAULT_ASSISTANT_CATEGORIES.find(c => c.toLowerCase() === p.toLowerCase());
+    return match || 'All';
+  });
   const [cityFilter, setCityFilter] = useState<string>(() => {
     return (
       searchParams.get('city') ||

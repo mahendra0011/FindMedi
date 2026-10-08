@@ -4,7 +4,16 @@ const vehicleSchema = new mongoose.Schema({
   riderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
   type: {
     type: String,
-    enum: ['bike', 'auto', 'e_rickshaw', 'car', 'van'],
+    // subcatogary.md C23 + A1: the join-wizard `vehicle_type` options in
+    // lib/providerTypeCatalog.js (wheelchair_stretcher_van, ambulance_bls/als/
+    // nicu) must be storable on the vehicle row too, otherwise an approved
+    // application cannot be turned into a Vehicle. `bus`/`mini_truck` are the
+    // rest of the §23 list. Additive only.
+    enum: [
+      'bike', 'auto', 'e_rickshaw', 'car', 'van',
+      'wheelchair_stretcher_van', 'ambulance_bls', 'ambulance_als',
+      'ambulance_nicu', 'bus', 'mini_truck',
+    ],
     required: true,
     index: true,
   },

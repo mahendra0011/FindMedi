@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import { useCategories } from '@/hooks/useCategories';
 
-const specializations = ['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT'];
+const FALLBACK_SPECIALIZATIONS = ['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT'];
 
 export default function AdminDoctors() {
   const [doctors, setDoctors] = useState([]);
@@ -15,6 +16,7 @@ export default function AdminDoctors() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ name: '', specialization: 'Cardiology', experience: '', phone: '', email: '', qualifications: '', available: true });
+  const { names: specializations } = useCategories('specialty', FALLBACK_SPECIALIZATIONS);
 
   const loadDoctors = useCallback(async () => {
     setLoading(true);
@@ -154,7 +156,7 @@ export default function AdminDoctors() {
               <div><label className="text-sm font-medium text-foreground mb-1.5 block">Specialization</label>
                 <select value={form.specialization} onChange={e => setForm({ ...form, specialization: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm">
-                  {specializations.map(s => <option key={s} value={s}>{s}</option>)}
+                  {specializations.map((s: string) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div><label className="text-sm font-medium text-foreground mb-1.5 block">Experience</label>

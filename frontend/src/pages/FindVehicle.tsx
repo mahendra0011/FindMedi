@@ -27,8 +27,11 @@ export default function FindVehicle() {
   // Booking Form State
   const [pickup, setPickup] = useState<LocationPoint | null>(null);
   const [drop, setDrop] = useState<LocationPoint | null>(null);
-  const [vehicleType, setVehicleType] = useState<string>('car');
-  const [isEmergency, setIsEmergency] = useState<boolean>(false);
+  const [vehicleType, setVehicleType] = useState<string>(() => {
+    const p = new URLSearchParams(window.location.search).get('type');
+    return ['bike', 'auto', 'e_rickshaw', 'car', 'van', 'ambulance'].includes(p || '') ? (p as string) : 'car';
+  });
+  const [isEmergency, setIsEmergency] = useState<boolean>(() => Boolean(new URLSearchParams(window.location.search).get('emergency')));
 
   // Estimates State
   const [estimates, setEstimates] = useState<Record<string, any>>({});

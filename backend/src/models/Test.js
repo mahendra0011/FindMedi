@@ -1,8 +1,17 @@
 import mongoose from 'mongoose';
 
+const toCategoryCode = (raw) => {
+  const s = String(raw ?? '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return s ? `TEST.${s}` : '';
+};
+
 const testSchema = new mongoose.Schema({
   name: { type: String, required: true },
   category: { type: String, required: true },
+  // subcatogary.md A1 #4 / D1.4 — canonical Category code alongside free-text
+  // `category` (kept required so old rows/clients keep working). Auto-filled
+  // from `category` when blank; never overwrites an explicitly set code.
+  categoryCode: { type: String, default: '', index: true },
   department: { type: String, default: 'Pathology' },
   price: { type: Number, required: true },
   mrp: { type: Number, default: 0 },
@@ -36,11 +45,26 @@ const testSchema = new mongoose.Schema({
   mode: { type: String, default: '' },
   certifiedPhlebotomist: { type: Boolean, default: false },
   certifiedSonographer: { type: Boolean, default: false },
-  sampleType: { type: String, default: '' },
+  sampleType: {
+    type: String,
+    // subcatogary.md §79: free-text → enum. '' = unspecified (catalog rows
+    // predate the enum); canonicalize at the zod boundary — the model only
+    // stores catalog spellings.
+    enum: ['Blood', 'Serum', 'Plasma', 'Urine', 'Stool', 'Sputum', 'Swab', 'CSF', 'Tissue', 'Semen', 'Body Fluid', 'Saliva', ''],
+    default: '',
+    set: (v) => (typeof v === 'string' ? v.trim() : v),
+  },
   equipmentType: { type: String, default: '' },
   scanType: { type: String, default: '' },
 
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
+
+testSchema.pre('save', function (next) {
+  try {
+    if (!this.categoryCode && this.category) this.categoryCode = toCategoryCode(this.category);
+  } catch { /* best-effort only */ }
+  next();
+});
 
 export default mongoose.model('Test', testSchema);

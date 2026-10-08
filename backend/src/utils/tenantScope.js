@@ -19,6 +19,14 @@ export const TENANT_STAFF_ROLES = [
   'pharmacy_owner', 'pharmacist', 'pharmacy_staff',
   'accountant', 'receptionist', 'helper', 'technician', 'security',
   'dietitian', 'physiotherapist', 'lab_receptionist',
+  // 7.md 3: facility-inside roles get tenant treatment (their hospitalId /
+  // facilityId scopes them). Marketplace roles (vendors, instructors,
+  // organizers, hosts, reviewers) stay OUT — they carry no tenant scope and
+  // must fail closed, not inherit a facility they were never assigned.
+  'dentist', 'dental_clinic_admin', 'optician', 'optical_shop_owner',
+  'phlebotomist', 'home_nursing_admin', 'tpa_agent',
+  'blood_bank_admin', 'dialysis_admin', 'fertility_admin', 'maternity_admin',
+  'rehab_admin', 'govt_facility_staff',
 ];
 
 export const isTenantStaff = (user) => TENANT_STAFF_ROLES.includes(user?.role);

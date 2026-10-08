@@ -13,6 +13,10 @@ import { generateTransactionId } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 import { mirrorPayment } from '../lib/pgDualWrite.js';
 import logger from '../config/logger.js';
+// A5 (5.md §15): a payment booked against an appointment is priced by the
+// server — the client amount is only a checksum against the doctor's listed fee.
+import Appointment from '../models/Appointment.js';
+import { resolveAuthoritativeAmount, assertAmountMatches } from '../services/pricingService.js';
 
 const router = express.Router();
 
@@ -83,6 +87,29 @@ router.post('/', protect, paymentLimiter, (req, res, next) => {
     if (req.user.role !== 'superadmin' && (!req.user.hospitalId || String(patient.hospitalId || '') !== String(req.user.hospitalId))) {
       return res.status(403).json({ message: 'Patient is outside your hospital scope' });
     }
+    // A5 (5.md §15): PAY-B-01 extended to the staff capture path. When the
+    // payment is linked to an appointment the authoritative price is the
+    // doctor's listed fee; `amount` may CONFIRM it, never SET it. The linkage
+    // used to be dropped entirely (no referenceId), so even a correct check
+    // could not later be reconciled against the booking.
+    const referenceId = req.body.appointment_id || req.body.bill_id || undefined;
+    if (req.body.appointment_id && (!req.body.serviceType || req.body.serviceType === 'appointment')) {
+      const appointment = await Appointment.findById(req.body.appointment_id);
+      if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+      const authoritative = await resolveAuthoritativeAmount({ serviceType: 'appointment', appointment });
+      if (!authoritative.ok) {
+        return res.status(400).json({ message: authoritative.message, code: 'NO_SERVER_PRICE' });
+      }
+      const match = assertAmountMatches(authoritative.amount, req.body.amount);
+      if (!match.ok) {
+        return res.status(409).json({
+          message: match.message,
+          code: 'PRICE_MISMATCH',
+          authoritative: match.authoritative,
+          received: match.received,
+        });
+      }
+    }
     const payment = await Payment.create({
       patient_name: patient.name,
       amount: req.body.amount,
@@ -92,6 +119,7 @@ router.post('/', protect, paymentLimiter, (req, res, next) => {
       serviceType: req.body.serviceType,
       patient_id: requestedPatient,
       transaction_id,
+      referenceId,
       // Server-owned state — the client can no longer mark it completed.
       status: 'pending',
       hospitalId: req.user.hospitalId || undefined,
@@ -158,9 +186,18 @@ router.put('/:id/refund', protect, paymentLimiter, requireStepUp('refunds:issue'
         code: 'REFUND_PROVIDER_UNAVAILABLE',
       });
     }
-    const refund_amount = req.body.refund_amount || 0;
+    // A5: an omitted `refund_amount` means "the rest of it" — the admin's
+    // default action on a refund screen is a full refund, and forcing the
+    // client to compute `amount - already_refunded` invited arithmetic errors
+    // that the positive check happily accepted. Explicit amounts keep their
+    // old meaning.
     const payment = await Payment.findById(req.params.id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
+    const remaining = Math.round(((Number(payment.amount) || 0) - (Number(payment.refund_amount) || 0)) * 100) / 100;
+    const refund_amount = req.body.refund_amount !== undefined ? req.body.refund_amount : remaining;
+    if (refund_amount <= 0) {
+      return res.status(400).json({ message: 'Payment is already fully refunded', code: 'ALREADY_REFUNDED' });
+    }
     if (refund_amount > payment.amount) {
       return res.status(400).json({ message: `Refund amount (${refund_amount}) cannot exceed original payment amount (${payment.amount})` });
     }

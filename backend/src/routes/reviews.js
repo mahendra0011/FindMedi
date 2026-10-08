@@ -1,6 +1,8 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { z } from 'zod';
 import Review from '../models/Review.js';
+import Appointment from '../models/Appointment.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { validate, createReviewSchema } from '../utils/validate.js';
 import { paginatedResults } from '../utils/pagination.js';
@@ -8,6 +10,8 @@ import { auditLog } from '../middleware/audit.js';
 import { reviewWriteLimiter } from '../middleware/rateLimit.js';
 import { sendServerError } from '../utils/safeError.js';
 import { applyTenantScope } from '../utils/tenantScope.js';
+import { analyzeContent } from '../lib/moderationRules.js';
+import { ensureModerationItem } from '../lib/moderationActions.js';
 import logger from '../config/logger.js';
 
 const replySchema = z.object({ reply: z.string().min(1, 'Reply text is required').max(2000) });
@@ -33,6 +37,11 @@ router.get('/', async (req, res) => {
     if (req.query.doctorId) filter.doctorId = req.query.doctorId;
     if (req.query.hospitalId) filter.hospitalId = req.query.hospitalId;
     if (req.query.minRating) filter.rating = { $gte: Number(req.query.minRating) || 1 };
+    // 8.md §5: actioned content stops being served IMMEDIATELY — the queue's
+    // hide/shadow_hide/remove is enforced here, not by a re-index job.
+    // `$nin` also matches rows without the field (pre-moderation), so old
+    // reviews keep serving.
+    filter.moderationStatus = { $nin: ['hidden', 'removed', 'shadow_hidden'] };
 
     // REV-B-01 (d): the list is public BY DESIGN (it is the reputation
     // catalogue), but it is paginated and capped — an unbounded public find({})
@@ -77,6 +86,22 @@ router.post('/', protect, authorize('reviews:write', 'reviews:write:own'), revie
       });
     }
 
+    // 8.md §5 "verified-visit gate": the badge is SERVER-owned — a completed
+    // appointment with this doctor, looked up by ids from the session. A client
+    // claiming a verified visit changes nothing. Posting without one is still
+    // allowed (the fake-review lane of §6 catches bursts via the queue), it is
+    // simply not marked.
+    let isVerifiedVisit = false;
+    if (mongoose.isValidObjectId(doctorId)) {
+      try {
+        isVerifiedVisit = Boolean(await Appointment.exists({
+          patientId, doctorId, status: 'Completed',
+        }));
+      } catch {
+        isVerifiedVisit = false;
+      }
+    }
+
     const review = await Review.create({
       doctorId,
       doctorName: req.body.doctorName,
@@ -88,12 +113,38 @@ router.post('/', protect, authorize('reviews:write', 'reviews:write:own'), revie
       comment: req.body.comment || '',
       date: req.body.date,
       hospitalId: req.user.hospitalId || undefined,
+      isVerifiedVisit,
     });
+
+    // 8.md §5 auto-filters: abuse / PII / medical-claim / crisis text goes into
+    // the moderation queue BEFORE the review is ever served publicly. Fail-soft
+    // on purpose: a queue outage must not stop honest reviews, and the row is
+    // still auditable from the review itself.
+    try {
+      const analysis = analyzeContent(review.comment, { targetType: 'review' });
+      if (analysis.flagged) {
+        await ensureModerationItem({
+          targetType: 'review',
+          targetId: review._id,
+          category: analysis.categories[0],
+          reason: analysis.findings.map((f) => `${f.category}:${f.label}`).join(', ').slice(0, 1000),
+          severity: analysis.severity,
+          source: 'auto_filter',
+          subjectUserId: patientId,
+          subjectProviderId: null,
+          note: analysis.findings.map((f) => `${f.category} sample ${f.sample}`).join('; ').slice(0, 500),
+        });
+        await Review.updateOne({ _id: review._id }, { $set: { flagged: true, flagReason: 'auto_filter' } });
+      }
+    } catch (flagErr) {
+      logger.warn(`review auto-flag failed: ${flagErr.message}`);
+    }
 
     await auditLog('create_review', req.user._id, {
       reviewId: review._id,
       doctorId,
       rating: review.rating,
+      isVerifiedVisit,
       ip: req.ip,
       userAgent: req.get('user-agent'),
     });

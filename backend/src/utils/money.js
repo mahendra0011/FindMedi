@@ -46,6 +46,11 @@ export function toPaise(value) {
   return Math.round(n * 100);
 }
 
+/** Inverse of `toPaise`: an integer-paisa count back to rupees at 2dp. */
+export function fromPaise(paise) {
+  return Math.round(Number(paise) || 0) / 100;
+}
+
 /**
  * Mongoose plugin: round the named fields at write time.
  *

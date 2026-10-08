@@ -23,7 +23,8 @@
     "missing:inventory": "node scripts/missing-feature-inventory.mjs",
     "docs:dictionary": "node scripts/gen-data-dictionary.mjs",
     "docs:dictionary:check": "node scripts/gen-data-dictionary.mjs --check",
-    "retention:gaps": "node scripts/check-retention-gaps.mjs"
+    "retention:gaps": "node scripts/check-retention-gaps.mjs",
+    "migrate:category-taxonomy": "node scripts/migrate-category-taxonomy.mjs"
   },
   "dependencies": {
     "@bull-board/api": "^6.11.0",

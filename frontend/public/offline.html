@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d9488" />
+  <title>FindMedi — Offline</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 2rem 1.25rem; color: #134e4a; background: #f0fdfa; }
+    main { max-width: 28rem; margin: 0 auto; text-align: center; }
+    h1 { font-size: 1.4rem; }
+    p { color: #334155; }
+    .sos { display: block; margin: 0.75rem 0; padding: 1rem; border-radius: 0.75rem; font-size: 1.25rem; font-weight: 700; text-decoration: none; color: #fff; background: #dc2626; }
+    .sos.ambulance { background: #0d9488; }
+    .retry { display: inline-block; margin-top: 1rem; padding: 0.75rem 1.5rem; border-radius: 0.75rem; text-decoration: none; color: #0d9488; border: 2px solid #0d9488; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>You are offline</h1>
+    <p>FindMedi needs the internet to load. Your health data stays on your device — nothing was sent.</p>
+    <p><strong>In an emergency, call now (works without internet):</strong></p>
+    <a class="sos" href="tel:112">Call 112 — National Emergency</a>
+    <a class="sos ambulance" href="tel:108">Call 108 — Ambulance</a>
+    <a class="retry" href="/">Try again</a>
+  </main>
+</body>
+</html>

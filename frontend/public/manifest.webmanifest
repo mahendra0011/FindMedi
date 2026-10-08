@@ -1,0 +1,47 @@
+{
+  "name": "FindMedi — Care near you",
+  "short_name": "FindMedi",
+  "description": "Book doctors, order medicines, and reach emergency help.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0d9488",
+  "lang": "en",
+  "categories": ["medical", "health", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Book a doctor",
+      "short_name": "Book",
+      "url": "/book",
+      "icons": [{ "src": "/icon.png", "sizes": "512x512" }]
+    },
+    {
+      "name": "Emergency SOS",
+      "short_name": "SOS",
+      "url": "/sos",
+      "icons": [{ "src": "/icon.png", "sizes": "512x512" }]
+    },
+    {
+      "name": "My health records",
+      "short_name": "Records",
+      "url": "/records",
+      "icons": [{ "src": "/icon.png", "sizes": "512x512" }]
+    }
+  ]
+}

@@ -1,5 +1,15 @@
 import mongoose from 'mongoose';
 import { generate16DigitId } from '../utils/idGenerator.js';
+import { SERVICE_MODES } from '../lib/providerTypes.js';
+
+// A1 #10 (rolesmd/subcatogary.md) — `home` duplicated `home_visit` and
+// `voice`/`call` duplicated `audio`. The canonical list is SERVICE_MODES
+// (lib/providerTypes.js). The legacy spellings stay in the enum so documents
+// written before the normalisation still validate: an enum removal would fail
+// every stored row, and `offline` is still the key Appointment.appointmentMode,
+// appointmentFees.offline and the clinic UI read. `home`/`voice`/`call` are
+// rewritten onto `home_visit`/`audio` by scripts/migrate-enum-normalization.mjs.
+const LEGACY_APPOINTMENT_MODES = ['offline', 'home', 'voice', 'call'];
 
 const hospitalSchema = new mongoose.Schema({
   hospitalId: { type: String, unique: true, sparse: true, index: true },
@@ -34,9 +44,9 @@ const hospitalSchema = new mongoose.Schema({
   emergency24x7: { type: Boolean, default: false },           // 24/7 Emergency badge
   emergencySupport: { type: Boolean, default: false },        // Emergency Support provided
   refundOnMissedOrCancelled: { type: Boolean, default: true },// Support refund when missed/cancelled by patient
-  appointmentModes: {                                         // Provided appointment modes: chat, video, offline, home_visit, audio
+  appointmentModes: {                                         // Canonical modes from SERVICE_MODES (+ legacy aliases)
     type: [String],
-    enum: ['chat', 'video', 'offline', 'home_visit', 'home', 'audio', 'voice', 'call'],
+    enum: [...SERVICE_MODES, ...LEGACY_APPOINTMENT_MODES],
     default: ['chat', 'video', 'offline', 'home_visit', 'audio'],
   },
   appointmentFees: {

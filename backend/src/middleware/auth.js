@@ -3,6 +3,7 @@
 // under JWT_KEYS) and accepts a refresh token as an access token.
 // verifyAccessToken closes both.
 import { verifyAccessToken } from '../utils/jwtKeys.js';
+import { MANDATORY_TWO_FACTOR_ROLES } from '../config/permissions.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import Patient from '../models/Patient.js';
@@ -33,12 +34,19 @@ const isPasswordResetExempt = (req) => {
 // enrols, protect() lets it reach ONLY the enrolment paths (plus the same
 // logout/me/change-password basics as AUTH-F-06) so the client can always
 // complete enrolment and never deadlocks itself. Exact paths, never prefixes.
-const TWO_FACTOR_REQUIRED_ROLES = new Set(
-  String(process.env.TWO_FACTOR_REQUIRED_ROLES || '')
+//
+// 8.md 13 / 7.md 8: the ops roles (kyc_reviewer, finance_admin, ...) carry
+// platform-wide reach, so THEIR requirement is code-level — MANDATORY_TWO_FACTOR_ROLES
+// from the permission config is unioned in, and the env adds more (superadmin,
+// hospital_admin) on top. An unset env must never mean "the ops console has no
+// second factor".
+const TWO_FACTOR_REQUIRED_ROLES = new Set([
+  ...MANDATORY_TWO_FACTOR_ROLES,
+  ...String(process.env.TWO_FACTOR_REQUIRED_ROLES || '')
     .split(',')
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
-);
+]);
 const TWO_FACTOR_ENROL_EXEMPT_PATHS = new Set([
   '/api/auth/2fa/setup',
   '/api/auth/2fa/verify',

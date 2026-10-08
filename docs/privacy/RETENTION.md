@@ -44,12 +44,17 @@ prevent.
 ## Known gaps
 
 - **Unmapped PII collections are explicitly tracked.** The generated
-  [`data-dictionary.md`](../data-dictionary.md) currently lists 17 collections
+  [`data-dictionary.md`](../data-dictionary.md) currently lists 27 collections
   whose retention class still needs a policy decision. They are pinned in
   `backend/scripts/retention-gap-baseline.json`; `npm run retention:gaps` fails
   if a code change introduces a new unclassified PII collection or if a tracked
   collection changes without deliberate review. This is a regression guard,
   not a retention period or evidence that existing records have been purged.
+  The 2026-10-07 additions — `memberships`, `mealsubscriptions`,
+  `policyacceptances` (FLOW-D + e-sign rows) — are consent-adjacent commercial
+  records: they may belong on the consent clock or the payment clock, and the
+  choice changes the period, so they wait for a policy owner rather than
+  inheriting a neighbouring class by proximity.
 - **Do not add a TTL based on the baseline alone.** Chat, support, safety and
   clinical-adjacent records may be subject to care, consent, dispute or legal
   hold requirements. A policy owner must assign their class and resolve legal

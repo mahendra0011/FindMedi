@@ -1,7 +1,7 @@
 import express from 'express';
 import Test from '../models/Test.js';
 import { protect } from '../middleware/auth.js';
-import { validate, createTestSchema } from '../utils/validate.js';
+import { validate, createTestSchema, canonicalSampleType } from '../utils/validate.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const router = express.Router();
@@ -80,6 +80,10 @@ router.put('/:id', protect, async (req, res) => {
       'reportUrl', 'isActive', 'prescriptionReq', 'isAbnormal', 'preparation',
       'method', 'normalRanges', 'unit', 'turnaroundTime', 'testCode',
     ]);
+    // subcatogary.md §79: the model enum is the last guard (runValidators),
+    // but coercing here keeps staff-typed 'blood' working on updates the same
+    // way the zod boundary does on create/register.
+    if (body.sampleType !== undefined) body.sampleType = canonicalSampleType(body.sampleType);
     if (body.price && body.mrp) body.discount = Math.round((1 - body.price / body.mrp) * 100);
     const updated = await Test.findByIdAndUpdate(req.params.id, body, { new: true, runValidators: true });
     res.json(updated);

@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateUtils';
+import { useCategories } from '@/hooks/useCategories';
 
 const STATUSES = ['All','Confirmed','Cancelled','Completed'];
-const DEPARTMENTS = ['Cardiology','Neurology','Orthopedics','Pediatrics','Dermatology','Oncology'];
+const FALLBACK_DEPARTMENTS = ['Cardiology','Neurology','Orthopedics','Pediatrics','Dermatology','Oncology'];
 const empty = { patient:'', doctor:'', department:'Cardiology', date:'', time:'', status:'Confirmed', notes:'' };
 
 const statusColors = {
@@ -30,6 +31,7 @@ export default function Appointments() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(empty);
+  const { names: DEPARTMENTS } = useCategories('specialty', FALLBACK_DEPARTMENTS);
 
   const { data: raw = [], isLoading } = useQuery({
     queryKey: ['appointments', statusFilter],
@@ -167,7 +169,7 @@ export default function Appointments() {
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Department</label>
                   <select value={form.department} onChange={e=>set('department',e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                    {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
+                    {DEPARTMENTS.map((d: string) => <option key={d}>{d}</option>)}
                   </select>
                 </div>
                 <div><label className="text-sm font-medium mb-1.5 block">Date</label><Input type="date" value={form.date} onChange={e=>set('date',e.target.value)} required /></div>

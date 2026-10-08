@@ -5,6 +5,7 @@ import Appointment from '../models/Appointment.js';
 import Bed from '../models/Bed.js';
 import Notification from '../models/Notification.js';
 import Doctor from '../models/Doctor.js';
+import Service from '../models/Service.js';
 import User from '../models/User.js';
 import Hospital from '../models/Hospital.js';
 import Patient from '../models/Patient.js';
@@ -21,9 +22,16 @@ import { onSlotFreed } from '../services/waitlistService.js';
 import { sendServerError } from '../utils/safeError.js';
 import { generateTokenNumber } from '../utils/idGenerator.js';
 import Payment from '../models/Payment.js';
-import { getISTDateString } from '../utils/dateUtils.js';
+import { getISTDateString, slotStartAt } from '../utils/dateUtils.js';
 import { emitAppointmentUpdate } from '../services/socketService.js';
 import { loyaltyService } from '../services/loyaltyService.js';
+// A5 (5.md §2.1/§2.4): one status table + the cancellation tier arithmetic,
+// asserted here before any write, and the single refund issuer used after.
+import { assertAppointmentTransition, computeCancellation } from '../lib/appointmentLifecycle.js';
+import { issueRefund } from '../services/refundService.js';
+// A5 (5.md §15): the server owns the price. The walk-in fee comes from the
+// doctor's listed consultation fee, never from the request body.
+import { resolveAuthoritativeAmount } from '../services/pricingService.js';
 import {
   lockAppointmentSlot,
   releaseAppointmentSlot,
@@ -512,7 +520,7 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
   let walkInSlotReserved = null;
   let walkInSlotKey = null;
   try {
-    const { patient, doctorId, doctor, department, date, time, type, symptoms, priority, fees, notes } = req.body;
+    const { patient, doctorId, doctor, department, date, time, type, symptoms, priority, notes } = req.body;
 
     // 1. Patient register — pehle se same phone/email ka patient ho to reuse karo
     //    (timeout → client retry karne par duplicate patient na bane)
@@ -582,6 +590,21 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
       }
     }
 
+    // A5 (5.md §15: server-side price, no client price): the walk-in fee is
+    // resolved from the doctor's listed consultation fee through the same
+    // pricingService the checkout path uses. The body's `fees` is stripped by
+    // the schema and ignored here — a modified client could otherwise book a
+    // ₹1 walk-in and the row would say the consultation cost ₹1. A doctor with
+    // no configured fee records 0 (walk-in is staff-recorded, not captured here).
+    let serverFees = 0;
+    if (targetDoctorId) {
+      const authoritative = await resolveAuthoritativeAmount({
+        serviceType: 'appointment',
+        appointment: { doctorId: targetDoctorId },
+      });
+      if (authoritative.ok) serverFees = authoritative.amount;
+    }
+
     // 2b. Duplicate-booking guard (idempotency) — same patient + doctor + slot
     //     agla request pehle hi ban chuka ho to naya banaane ki bajaye wahi return karo
     if (targetDoctorId && p) {
@@ -649,7 +672,7 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
       symptoms: symptoms || '',
       notes: notes || '',
       priority: priority || 'Normal',
-      fees: fees || 0,
+      fees: serverFees,
       estimatedWaitTime,
       hospitalId,
       status: 'Confirmed',
@@ -689,6 +712,27 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), authori
       if (doctorDoc && doctorDoc.hospitalId) {
         hospitalId = doctorDoc.hospitalId;
       }
+    }
+
+    // A3-part-2: provider-service attribution. The slot the patient picked on
+    // the provider page carries its service; the booking stores the link so
+    // provider dashboards, bills and follow-ups can attribute it. A service
+    // with an assigned practitioner must match the booked doctor, otherwise
+    // the booking could launder one doctor's availability into another's
+    // catalog entry. Unassigned services (lab panels, facility offerings)
+    // ride along with any doctor.
+    let serviceId = null;
+    let providerId = null;
+    if (req.body.serviceId) {
+      const svc = await Service.findById(req.body.serviceId).lean();
+      if (!svc || !svc.isActive) {
+        return res.status(400).json({ message: 'Service is not available' });
+      }
+      if (svc.practitionerId && doctorId && String(svc.practitionerId) !== String(doctorId)) {
+        return res.status(400).json({ message: 'Service does not belong to this doctor' });
+      }
+      serviceId = svc._id;
+      providerId = svc.providerId || null;
     }
     
     if (patientId && date && time) {
@@ -746,6 +790,8 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), authori
         priority: priority || 'Normal',
         estimatedWaitTime,
         hospitalId: hospitalId || undefined,
+        serviceId: serviceId || undefined,
+        providerId: providerId || undefined,
         status: 'Pending'
       });
       
@@ -928,7 +974,25 @@ router.put('/:id', protect, authorize('appointments:write', 'appointments:write:
     }
     
     const oldStatus = appointment.status;
-    
+
+    // A5 (5.md §2.1): every status change is checked against the shared table
+    // BEFORE anything else runs. The old path wrote `req.body.status` straight
+    // through, so a client could move a Completed consult back to Confirmed —
+    // and the zod schema's legacy `Rescheduled` value reached the model enum
+    // and failed there instead of being refused as the illegal move it is.
+    if (status && status !== oldStatus) {
+      try {
+        assertAppointmentTransition(oldStatus, status);
+      } catch (err) {
+        return res.status(err.status || 409).json({
+          message: err.message,
+          code: err.code || 'ILLEGAL_STATE_TRANSITION',
+          from: oldStatus,
+          to: status,
+        });
+      }
+    }
+
     // Verify payment before confirming (Bug 2)
     if (status === 'Confirmed' && oldStatus === 'Pending') {
       const Payment = (await import('../models/Payment.js')).default;
@@ -946,6 +1010,38 @@ router.put('/:id', protect, authorize('appointments:write', 'appointments:write:
 
     if (status === 'Completed' && oldStatus !== 'Completed') {
       updates.consultationEndTime = new Date();
+    }
+
+    // A5 (5.md §2.4): the cancellation decision (tier, refund owed, fee kept)
+    // is computed BEFORE the row is committed so all of it lands in one write.
+    // The plan is recomputed on a RETRY — status Cancelled even when the row
+    // already says so — because the first attempt may have cancelled the row
+    // without moving money; the refund itself is issued after the commit and is
+    // idempotent on its key, so re-running this is safe.
+    let cancelPlan = null;
+    if (status === 'Cancelled') {
+      // A non-patient canceller is acting for the provider (5.md §2.4: the
+      // provider column of the tier table is always a full refund).
+      const cancelledBy = req.user.role === 'patient' ? 'patient' : 'provider';
+      const payment = await Payment.findOne({
+        serviceType: 'appointment',
+        referenceId: String(appointment._id),
+        status: { $in: ['completed', 'partially_refunded'] },
+      });
+      cancelPlan = computeCancellation({
+        startAt: slotStartAt(appointment.date, appointment.time),
+        now: new Date(),
+        cancelledBy,
+        paidAmount: payment ? Number(payment.amount) || 0 : 0,
+      });
+      cancelPlan.payment = payment || null;
+      if (oldStatus !== 'Cancelled') {
+        updates.cancelledBy = cancelPlan.cancelledBy;
+        updates.cancelledAt = new Date();
+        updates.cancellationTier = cancelPlan.tier;
+        updates.cancellationFee = cancelPlan.feeAmount;
+        updates.refundAmount = cancelPlan.refundAmount;
+      }
     }
 
     // Reschedule me naya date/time doctor ke liye already taken ho sakta hai —
@@ -1076,15 +1172,34 @@ router.put('/:id', protect, authorize('appointments:write', 'appointments:write:
          await createNotification(updated.doctorId._id.toString(), 'Appointment Update', `Appointment with ${updated.patient} status changed to ${status}`, 'appointment');
        }
      }
-     // LOYAL-M-02: a cancelled booking gives its points back. Fail-soft and
-     // idempotent (reversePoints no-ops unless an earn exists for this id).
-     if (status === 'Cancelled' && oldStatus !== 'Cancelled') {
-       const loyaltyPid = updated.patientId?._id || updated.patientId;
-       if (loyaltyPid) {
-         void loyaltyService.reversePoints(loyaltyPid, 'appointment_completed', updated._id)
-           .catch((revErr) => logger.warn(`appointment loyalty reversal failed: ${revErr.message}`));
-       }
-     }
+      // LOYAL-M-02: a cancelled booking gives its points back. Fail-soft and
+      // idempotent (reversePoints no-ops unless an earn exists for this id).
+      if (status === 'Cancelled' && oldStatus !== 'Cancelled') {
+        const loyaltyPid = updated.patientId?._id || updated.patientId;
+        if (loyaltyPid) {
+          void loyaltyService.reversePoints(loyaltyPid, 'appointment_completed', updated._id)
+            .catch((revErr) => logger.warn(`appointment loyalty reversal failed: ${revErr.message}`));
+        }
+      }
+      // A5 (5.md §2.4, §14: refunds auto on provider cancel): the money goes
+      // back AFTER the state change — a gateway failure must never un-cancel
+      // the booking. `refundAmount` on the row records what the POLICY is owed;
+      // the payment's `refund_amount` records what was actually issued, so a
+      // refusal leaves the gap visible for ops instead of silently lost.
+      if (cancelPlan?.payment && cancelPlan.refundAmount > 0) {
+        const outcome = await issueRefund({
+          paymentId: cancelPlan.payment._id,
+          amount: cancelPlan.refundAmount,
+          originalAmount: cancelPlan.payment.amount,
+          reason: `Appointment ${appointment._id} cancelled by ${cancelPlan.cancelledBy} (${cancelPlan.tier}, ${cancelPlan.refundPercent}% refund per policy)`,
+          reasonCode: cancelPlan.cancelledBy === 'provider' ? 'provider_cancelled' : 'appointment_cancelled',
+          requestedBy: req.user._id || req.user.id || null,
+          idempotencyKey: `appt-cancel:${appointment._id}:${cancelPlan.payment._id}`,
+        });
+        if (!outcome.ok) {
+          logger.warn(`A5: appointment ${appointment._id} cancelled but refund not issued (${outcome.reason})`);
+        }
+      }
      await auditLog('update_appointment', req.user._id, { recordId: updated._id, ip: req.ip, userAgent: req.get('user-agent') });
      await emitAppointmentUpdate(updated);
       

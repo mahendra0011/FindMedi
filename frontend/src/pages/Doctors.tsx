@@ -4,8 +4,9 @@ import { Search, Plus, Star, Clock, Phone, Mail, X, Stethoscope } from 'lucide-r
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { useCategories } from '@/hooks/useCategories';
 
-const SPECIALIZATIONS = ['Cardiology','Neurology','Orthopedics','Pediatrics','Dermatology','Oncology','General Surgery','Psychiatry'];
+const FALLBACK_SPECIALIZATIONS = ['Cardiology','Neurology','Orthopedics','Pediatrics','Dermatology','Oncology','General Surgery','Psychiatry'];
 
 const empty = { name:'', specialization:'Cardiology', experience:'', rating:4.5, phone:'', email:'', available:true, initials:'', department:'' };
 
@@ -15,6 +16,7 @@ export default function Doctors() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(empty);
+  const { names: SPECIALIZATIONS } = useCategories('specialty', FALLBACK_SPECIALIZATIONS);
 
   const { data: doctors = [], isLoading } = useQuery({
     queryKey: ['doctors', search, typeFilter],
@@ -127,7 +129,7 @@ export default function Doctors() {
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Specialization</label>
                   <select value={form.specialization} onChange={e => set('specialization',e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                    {SPECIALIZATIONS.map(s => <option key={s}>{s}</option>)}
+                    {SPECIALIZATIONS.map((s: string) => <option key={s}>{s}</option>)}
                   </select>
                 </div>
                 <div><label className="text-sm font-medium mb-1.5 block">Experience</label><Input value={form.experience} onChange={e => set('experience',e.target.value)} placeholder="e.g. 5 years" required /></div>

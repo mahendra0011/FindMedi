@@ -13,6 +13,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import IntakeFormStep from './IntakeFormStep';
 import { userFacingError } from '@/lib/errorCopy';
+import { isSensitiveCategory, neutralText, SLOT_HOLD_SECONDS, formatHoldCountdown } from '@/lib/discreet';
 
 export default function BookingModal({
   open,
@@ -66,6 +67,15 @@ export default function BookingModal({
   const [familyMembers, setFamilyMembers] = useState([]);
   const [fetchingFamily, setFetchingFamily] = useState(false);
   const [otherPatient, setOtherPatient] = useState({ name: '', gender: 'Male', phone: '', age: '', bloodGroup: '' });
+  // Guardian consent: required when booking for a family member / other person
+  // (minor or dependent). Recorded as a checkbox confirmation sent with payment.
+  const [guardianConsent, setGuardianConsent] = useState(false);
+  // Discreet mode: neutral copy when the category is sensitive (mental health,
+  // sexual/reproductive, de-addiction, IVF) or the user toggles it on.
+  const [discreetMode, setDiscreetMode] = useState(false);
+  // Slot-hold countdown stub: a held slot is released after SLOT_HOLD_SECONDS.
+  // The server lock is authoritative; this is the visible countdown only.
+  const [slotHoldLeft, setSlotHoldLeft] = useState<number | null>(null);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -104,6 +114,8 @@ export default function BookingModal({
       });
       setBookingFor('self');
       setSelectedFamilyMember(null);
+      setGuardianConsent(false);
+      setSlotHoldLeft(null);
       setSelectedPackageId('single');
       setPackageInfoId(null);
       setOtherPatient({ name: '', gender: 'Male', phone: '', age: '', bloodGroup: '' });
@@ -134,6 +146,25 @@ export default function BookingModal({
   }, [open, doctor, facility]);
 
   const currentDoc = selectedDoctor || doctor || null;
+
+  // Discreet: sensitive specializations render neutral copy automatically.
+  const categorySensitive = isSensitiveCategory(currentDoc?.specialization);
+  const discreet = discreetMode || categorySensitive;
+  const discreetTitle = (original: string) =>
+    discreet ? neutralText(original, { category: currentDoc?.specialization, discreet: true, kind: 'appointment' }) : original;
+
+  // Slot-hold countdown stub: (re)start on slot select, clear on change/unmount.
+  useEffect(() => {
+    if (!bookingTime) { setSlotHoldLeft(null); return; }
+    setSlotHoldLeft(SLOT_HOLD_SECONDS);
+    const t = setInterval(() => {
+      setSlotHoldLeft((s) => {
+        if (s == null || s <= 1) { clearInterval(t); return 0; }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [bookingTime]);
 
   const isOnlineMode = ['chat', 'video', 'audio', 'call', 'voice'].includes(appointmentMode);
   const isAutoConfirm = isOnlineMode
@@ -501,6 +532,7 @@ export default function BookingModal({
           familyMemberId: bookingFor === 'family' ? selectedFamilyMember?._id : undefined,
           familyMemberName: bookingFor === 'family' ? selectedFamilyMember?.name : undefined,
           otherPatientDetails: bookingFor === 'other' ? otherPatient : undefined,
+          guardianConsent: bookingFor !== 'self' ? guardianConsent : undefined,
           preConsultationDetails: intakeFormData,
           packageId: selectedPackage?.id || '',
           packageName: selectedPackage?.name || '',
@@ -753,9 +785,15 @@ export default function BookingModal({
                 Book Appointment
               </DialogTitle>
               <DialogDescription>
-                Quick booking for {facility?.name || 'Clinic'} - {currentDoc?.name}
+                {discreetTitle(`Quick booking for ${facility?.name || 'Clinic'} - ${currentDoc?.name}`)}
               </DialogDescription>
             </DialogHeader>
+            {/* Discreet-mode toggle: neutral text for sensitive categories */}
+            <label className="flex items-center gap-2 text-xs text-muted-foreground px-0.5">
+              <input type="checkbox" checked={discreetMode} onChange={(e) => setDiscreetMode(e.target.checked)} className="w-3.5 h-3.5" />
+              Discreet mode (neutral labels &amp; notifications)
+              {categorySensitive && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">auto-on: sensitive category</span>}
+            </label>
             <div className="flex flex-col gap-3 py-2">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
@@ -957,9 +995,9 @@ export default function BookingModal({
                   </div>
                 )}
 
-                {/* Selected slot confirmation pill with full range */}
+                {/* Selected slot confirmation pill with full range + hold countdown stub */}
                 {bookingTime && (
-                  <div className="flex items-center gap-2 text-xs mt-1">
+                  <div className="flex items-center gap-2 text-xs mt-1 flex-wrap">
                     <div className={`px-2 py-1 rounded-md ${isSlotFull(bookingTime) ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
                       {isSlotFull(bookingTime) ? '⚠️ This slot is full' : '✅ Slot Available'}
                     </div>
@@ -970,6 +1008,11 @@ export default function BookingModal({
                       <Button size="sm" variant="outline" className="h-6 px-2 text-xs ml-auto" disabled={waitlistLoading} onClick={handleJoinWaitlist}>
                         {waitlistLoading ? 'Joining…' : 'Join waitlist'}
                       </Button>
+                    )}
+                    {!isSlotFull(bookingTime) && slotHoldLeft != null && (
+                      <div className="px-2 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200 font-medium" title="Slot-hold countdown stub — the server lock is authoritative">
+                        ⏳ Hold {formatHoldCountdown(slotHoldLeft)}
+                      </div>
                     )}
                   </div>
                 )}
@@ -1418,6 +1461,20 @@ export default function BookingModal({
                   </div>
                 )}
               </div>
+              {/* Guardian consent: required when booking for someone else */}
+              {bookingFor !== 'self' && (
+                <label className="flex items-start gap-2 p-3 rounded-xl border border-amber-200 bg-amber-50/50 dark:bg-amber-500/10 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={guardianConsent}
+                    onChange={(e) => setGuardianConsent(e.target.checked)}
+                    className="mt-0.5 w-4 h-4"
+                  />
+                  <span className="text-foreground">
+                    I confirm I am the parent / legal guardian (or have their consent) to book and share health details for this patient.
+                  </span>
+                </label>
+              )}
             </div>
             {/* Package/Mode/Fee ab quick booking (step 0) me hi */}
             <DialogFooter>
@@ -1429,6 +1486,10 @@ export default function BookingModal({
                 }
                 if (bookingFor === 'other' && !otherPatient.name) {
                   toast.error('Please enter the patient name');
+                  return;
+                }
+                if (bookingFor !== 'self' && !guardianConsent) {
+                  toast.error('Please confirm guardian consent to continue');
                   return;
                 }
                 setBookingStep(2);

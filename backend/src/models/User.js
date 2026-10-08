@@ -84,6 +84,25 @@ const userSchema = new mongoose.Schema({
       'mid_level_counselor', 'senior_counselor', // DEPRECATED legacy aliases
       'psychiatrist', 'accountant', 'security', 'technician', 'helper',
       'delivery_boy', 'rider', 'assistant', 'lawyer', 'ambulance',
+      // 7.md 3: specialty-vertical roles. This enum only admits the spelling;
+      // what each role may reach lives in config/permissions.js ROLE_PERMISSIONS
+      // (assertRoleMatrixComplete enforces the pairing), tenant treatment in
+      // utils/tenantScope.js, and patient-list visibility in routes/patients.js.
+      'dentist', 'dental_clinic_admin',
+      'optician', 'optical_shop_owner',
+      'phlebotomist', 'home_nursing_admin',
+      'yoga_instructor', 'yoga_studio_admin', 'gym_owner', 'trainer',
+      'wellness_admin', 'therapist',
+      'equipment_vendor', 'product_vendor',
+      'event_organizer', 'ngo_admin', 'group_host', 'trainer_org',
+      'blood_bank_admin', 'dialysis_admin', 'fertility_admin',
+      'maternity_admin', 'rehab_admin', 'govt_facility_staff',
+      'tpa_agent', 'medical_reviewer',
+      // 8.md 1: ops-console roles. Each one is least-privilege — the matrix in
+      // config/permissions.js (not this enum) decides what they may reach, and
+      // MANDATORY_TWO_FACTOR_ROLES makes 2FA non-optional for all of them.
+      'kyc_reviewer', 'moderator', 'support_agent', 'finance_admin',
+      'catalog_manager', 'compliance_officer', 'content_editor', 'city_manager',
     ],
     default: 'patient',
     index: true,
@@ -177,6 +196,10 @@ const userSchema = new mongoose.Schema({
       twoFactorEnabled: false,
       dataSharing: false,
       profileVisibility: 'care_team',
+      // 6.md §2.15 privacy centre: categories hidden from recents/suggestions.
+      // Defaulted here so a legacy user document (settings written before this
+      // key existed) picks it up on save; routes/privacy read-coerces anyway.
+      hiddenCategories: [],
     }),
   },
 
