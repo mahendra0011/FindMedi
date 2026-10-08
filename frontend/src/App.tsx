@@ -81,6 +81,7 @@ const SABroadcast = lazy(() => import('./pages/superadmin/Broadcast'));
 const SASupportTickets = lazy(() => import('./pages/superadmin/SupportTickets'));
 const SASystemSettings = lazy(() => import('./pages/superadmin/SystemSettings'));
 const SASuperAdminTeam = lazy(() => import('./pages/superadmin/SuperAdminTeam'));
+const SABreakGlassQueue = lazy(() => import('./pages/superadmin/BreakGlassQueue'));
 const SAPromotions = lazy(() => import('./pages/superadmin/Promotions'));
 const SADataExport = lazy(() => import('./pages/superadmin/DataExport'));
 const SACities = lazy(() => import('./pages/superadmin/Cities'));
@@ -788,6 +789,7 @@ const App = () => (
                     <Route path="/superadmin/tickets" element={<RoleRoute allowedRoles={['superadmin', 'support_agent']}><SASupportTickets /></RoleRoute>} />
                     <Route path="/superadmin/settings" element={<RoleRoute allowedRoles={['superadmin']}><SASystemSettings /></RoleRoute>} />
                     <Route path="/superadmin/team" element={<RoleRoute allowedRoles={['superadmin']}><SASuperAdminTeam /></RoleRoute>} />
+                    <Route path="/superadmin/break-glass" element={<RoleRoute allowedRoles={['superadmin', 'dpo', 'clinical_safety', 'support_l2', 'security_admin']}><SABreakGlassQueue /></RoleRoute>} />
                     <Route path="/superadmin/promotions" element={<RoleRoute allowedRoles={['superadmin']}><SAPromotions /></RoleRoute>} />
                     <Route path="/superadmin/loyalty" element={<RoleRoute allowedRoles={['superadmin']}><SALoyaltyRewards /></RoleRoute>} />
                     <Route path="/superadmin/referrals" element={<RoleRoute allowedRoles={['superadmin']}><SAReferralSettings /></RoleRoute>} />

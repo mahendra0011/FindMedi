@@ -5,6 +5,47 @@ import { protect } from '../middleware/auth.js';
 import { validate, createPatientSchema, updatePatientSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { paginatedResults } from '../utils/pagination.js';
+import { requireBreakGlass } from '../middleware/requireBreakGlass.js';
+
+// File 23 §3.3/§4.3: platform operators see MASKED identity by default.
+// Full identity needs a BreakGlassGrant (per-subject, time-boxed, audited).
+const PLATFORM_DIRECTORY_ROLES = new Set([
+  'superadmin', 'platform_admin', 'support_l1', 'support_l2', 'dpo',
+  'security_admin', 'clinical_safety', 'analyst', 'auditor',
+]);
+
+const maskName = (v) => {
+  const parts = String(v || '').split(' ').filter(Boolean);
+  if (!parts.length) return '***';
+  return parts.length > 1 ? `${parts[0]} ${parts[1][0]}***` : `${parts[0][0]}***`;
+};
+const maskPhone = (v) => {
+  const s = String(v || '');
+  return s.length > 4 ? `${s.slice(0, 2)}******${s.slice(-2)}` : '******';
+};
+const maskEmail = (v) => {
+  const s = String(v || '');
+  const at = s.indexOf('@');
+  return at > 0 ? `${s[0]}***${s.slice(at)}` : '***';
+};
+const maskTail4 = (v) => {
+  const s = String(v || '');
+  return s.length > 4 ? `•••${s.slice(-4)}` : '•••';
+};
+const maskPatient = (p) => ({
+  ...(typeof p.toObject === 'function' ? p.toObject() : p),
+  name: maskName(p.name),
+  phone: maskPhone(p.phone),
+  email: maskEmail(p.email),
+  address: '[masked]',
+  uhid: maskTail4(p.uhid),
+});
+
+// Single-subject doc routes: platform roles pass only with a grant.
+const requirePatientGrant = (req, res, next) => {
+  if (PLATFORM_DIRECTORY_ROLES.has(req.user?.role)) return requireBreakGlass('patient')(req, res, next);
+  return next();
+};
 
 const router = express.Router();
 
@@ -35,7 +76,9 @@ const PATIENT_STAFF_ROLES = [
 ];
 
 const canReadPatientList = (req) => {
-  if (req.user.role === 'superadmin') return { ok: true };
+  // File 23 §3.3: platform directory is masked by default (no grant can
+  // cover a whole list — grants are single-subject).
+  if (PLATFORM_DIRECTORY_ROLES.has(req.user.role)) return { ok: true, masked: true };
   if (req.user.role === 'patient') return { ok: true, ownOnly: true };
   if (PATIENT_STAFF_ROLES.includes(req.user.role)) {
     const scope = req.user.hospitalId || req.user.facilityId;
@@ -46,7 +89,9 @@ const canReadPatientList = (req) => {
 
 const canAccessPatientDoc = (req, patient) => {
   if (!patient) return false;
-  if (req.user.role === 'superadmin') return true;
+  // File 23 §5.3: platform roles pass only with an approved grant, attached
+  // as req.breakGlass by requirePatientGrant before this check runs.
+  if (PLATFORM_DIRECTORY_ROLES.has(req.user.role)) return Boolean(req.breakGlass);
   if (req.user.role === 'patient') {
     // The Patient row carries the owning User id in `userId`.
     return Boolean(patient.userId && String(patient.userId) === String(req.user._id || req.user.id));
@@ -83,11 +128,13 @@ router.get('/', protect, async (req, res) => {
     }
     if (status) filter.status = status;
     const result = await paginatedResults(Patient, filter, { page, limit });
+    if (access.masked && Array.isArray(result.data)) result.data = result.data.map(maskPatient);
+    else if (access.masked && Array.isArray(result.results)) result.results = result.results.map(maskPatient);
     res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', protect, requirePatientGrant, async (req, res) => {
   try {
     const p = await Patient.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Patient not found' });
@@ -112,7 +159,7 @@ router.post('/', protect, validate(createPatientSchema), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, validate(updatePatientSchema), async (req, res) => {
+router.put('/:id', protect, requirePatientGrant, validate(updatePatientSchema), async (req, res) => {
   try {
     const p = await Patient.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Patient not found' });
@@ -128,7 +175,7 @@ router.put('/:id', protect, validate(updatePatientSchema), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/:id', protect, async (req, res) => {
+router.delete('/:id', protect, requirePatientGrant, async (req, res) => {
   try {
     const p = await Patient.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Patient not found' });
@@ -142,7 +189,7 @@ router.delete('/:id', protect, async (req, res) => {
 });
 
 // ─── Patient Card Data ───────────────────────────────────────────────────────
-router.get('/:id/card', protect, async (req, res) => {
+router.get('/:id/card', protect, requirePatientGrant, async (req, res) => {
   try {
     const patient = await Patient.findById(req.params.id);
     if (!patient) return res.status(404).json({ message: 'Patient not found' });

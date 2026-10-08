@@ -10,12 +10,12 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1020,
+  "total": 1037,
   "counts": {
     "inherited": 4,
-    "object": 369,
+    "object": 366,
     "public": 62,
-    "role": 526,
+    "role": 546,
     "self": 59
   },
   "byMechanism": {
@@ -24,7 +24,7 @@
     "assertCallParticipant": 2,
     "assertEhrSearchAccess": 1,
     "assertMentalHealthAccess": 11,
-    "authorize": 310,
+    "authorize": 326,
     "authorizeObject": 74,
     "canAccessPatient": 4,
     "canAccessRecord": 4,
@@ -34,12 +34,13 @@
     "platformAdminOnly": 15,
     "requireConversationMember": 18,
     "requireMetricsToken": 1,
-    "requireObjectId": 57,
+    "requireObjectId": 62,
+    "requirePatientGrant": 4,
     "requireReportScope": 2,
     "requireRole": 79,
     "requireSosAccess": 7,
     "requireStaff": 3,
-    "requireStepUp": 12,
+    "requireStepUp": 14,
     "resolvePartner": 6,
     "roleOnly": 5,
     "scopeToHospital": 9,
@@ -100,7 +101,7 @@
         "routes": 1
       }
     ],
-    "unnamedHandlerGuard": 245,
+    "unnamedHandlerGuard": 246,
     "note": "AUTHZ-M-01 is OPEN. The alternatives are not necessarily wrong - several predate authorizeObject and carry domain rules it does not model - but the split was previously invisible, and a route can be guarded twice by two mechanisms whose rules were never reconciled."
   },
   "unrecognised": [],
@@ -506,98 +507,98 @@
     },
     {
       "file": "appointments.js",
-      "line": 163,
+      "line": 177,
       "method": "POST",
       "target": "'/lock-slot'",
       "tag": "object"
     },
     {
       "file": "appointments.js",
-      "line": 199,
+      "line": 213,
       "method": "POST",
       "target": "'/release-slot'",
       "tag": "object"
     },
     {
       "file": "appointments.js",
-      "line": 218,
+      "line": 232,
       "method": "GET",
       "target": "'/booked-slots'",
       "tag": "object"
     },
     {
       "file": "appointments.js",
-      "line": 258,
+      "line": 272,
       "method": "GET",
       "target": "'/my-appointments'",
       "tag": "object"
     },
     {
       "file": "appointments.js",
-      "line": 326,
+      "line": 340,
       "method": "GET",
       "target": "'/history-with-payments'",
       "tag": "object"
     },
     {
       "file": "appointments.js",
-      "line": 415,
+      "line": 429,
       "method": "GET",
       "target": "'/:id'",
       "tag": "object"
     },
     {
       "file": "appointments.js",
-      "line": 516,
+      "line": 530,
       "method": "POST",
       "target": "'/walk-in'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 702,
+      "line": 716,
       "method": "POST",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 822,
+      "line": 836,
       "method": "PUT",
       "target": "'/:id/checkin'",
       "tag": "object"
     },
     {
       "file": "appointments.js",
-      "line": 851,
+      "line": 865,
       "method": "GET",
       "target": "'/queue/:department'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 882,
+      "line": 896,
       "method": "PUT",
       "target": "'/:id/transit'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 925,
+      "line": 939,
       "method": "PUT",
       "target": "'/:id/intake'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 962,
+      "line": 976,
       "method": "PUT",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 1215,
+      "line": 1229,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "role"
@@ -1168,6 +1169,34 @@
       "method": "GET",
       "target": "'/donors/nearby-h3'",
       "tag": "object"
+    },
+    {
+      "file": "breakGlass.js",
+      "line": 26,
+      "method": "POST",
+      "target": "'/'",
+      "tag": "role"
+    },
+    {
+      "file": "breakGlass.js",
+      "line": 50,
+      "method": "GET",
+      "target": "'/'",
+      "tag": "role"
+    },
+    {
+      "file": "breakGlass.js",
+      "line": 65,
+      "method": "POST",
+      "target": "'/:id/decision'",
+      "tag": "role"
+    },
+    {
+      "file": "breakGlass.js",
+      "line": 112,
+      "method": "POST",
+      "target": "'/:id/revoke'",
+      "tag": "role"
     },
     {
       "file": "broadcast.js",
@@ -1811,6 +1840,90 @@
       "line": 358,
       "method": "GET",
       "target": "'/recon'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 73,
+      "method": "GET",
+      "target": "'/command-center'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 98,
+      "method": "GET",
+      "target": "'/leads'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 121,
+      "method": "POST",
+      "target": "'/leads'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 145,
+      "method": "PATCH",
+      "target": "'/leads/:id/stage'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 174,
+      "method": "POST",
+      "target": "'/leads/:id/convert'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 193,
+      "method": "GET",
+      "target": "'/partners'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 208,
+      "method": "POST",
+      "target": "'/partners'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 227,
+      "method": "GET",
+      "target": "'/tasks'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 241,
+      "method": "POST",
+      "target": "'/tasks'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 258,
+      "method": "PATCH",
+      "target": "'/tasks/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 279,
+      "method": "GET",
+      "target": "'/activities'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 293,
+      "method": "POST",
+      "target": "'/activities'",
       "tag": "role"
     },
     {
@@ -4391,119 +4504,126 @@
     },
     {
       "file": "mentalhealth.js",
-      "line": 193,
+      "line": 196,
+      "method": "GET",
+      "target": "'/referrals/stats'",
+      "tag": "object"
+    },
+    {
+      "file": "mentalhealth.js",
+      "line": 219,
       "method": "GET",
       "target": "'/referrals'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 223,
+      "line": 262,
       "method": "PUT",
       "target": "'/referrals/:id/assessment'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 280,
+      "line": 319,
       "method": "POST",
       "target": "'/referrals/:id/session'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 323,
+      "line": 362,
       "method": "PUT",
       "target": "'/referrals/:id/medication'",
       "tag": "role"
     },
     {
       "file": "mentalhealth.js",
-      "line": 345,
+      "line": 384,
       "method": "POST",
       "target": "'/referrals/:id/family'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 375,
+      "line": 414,
       "method": "POST",
       "target": "'/referrals/:id/consent'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 422,
+      "line": 461,
       "method": "GET",
       "target": "'/screening/instruments'",
       "tag": "role"
     },
     {
       "file": "mentalhealth.js",
-      "line": 456,
+      "line": 495,
       "method": "POST",
       "target": "'/referrals/:id/screening'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 525,
+      "line": 564,
       "method": "GET",
       "target": "'/referrals/:id/screening/trend'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 550,
+      "line": 589,
       "method": "GET",
       "target": "'/referrals/:id/consent-status'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 583,
+      "line": 622,
       "method": "POST",
       "target": "'/referrals/:id/consent/:consentId/renew'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 631,
+      "line": 670,
       "method": "POST",
       "target": "'/referrals/:id/retention-sweep'",
       "tag": "role"
     },
     {
       "file": "mentalhealth.js",
-      "line": 655,
+      "line": 694,
       "method": "POST",
       "target": "'/referrals/:id/create-billing'",
       "tag": "role"
     },
     {
       "file": "mentalhealth.js",
-      "line": 691,
+      "line": 730,
       "method": "GET",
       "target": "'/stats'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 727,
+      "line": 766,
       "method": "GET",
       "target": "'/crisis/queue'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 783,
+      "line": 822,
       "method": "PUT",
       "target": "'/crisis/:id/acknowledge'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 829,
+      "line": 868,
       "method": "PUT",
       "target": "'/crisis/:id/resolve'",
       "tag": "object"
@@ -5098,45 +5218,45 @@
     },
     {
       "file": "patients.js",
-      "line": 63,
+      "line": 108,
       "method": "GET",
       "target": "'/'",
       "tag": "object"
     },
     {
       "file": "patients.js",
-      "line": 90,
+      "line": 137,
       "method": "GET",
       "target": "'/:id'",
-      "tag": "object"
+      "tag": "role"
     },
     {
       "file": "patients.js",
-      "line": 101,
+      "line": 148,
       "method": "POST",
       "target": "'/'",
       "tag": "object"
     },
     {
       "file": "patients.js",
-      "line": 115,
+      "line": 162,
       "method": "PUT",
       "target": "'/:id'",
-      "tag": "object"
+      "tag": "role"
     },
     {
       "file": "patients.js",
-      "line": 131,
+      "line": 178,
       "method": "DELETE",
       "target": "'/:id'",
-      "tag": "object"
+      "tag": "role"
     },
     {
       "file": "patients.js",
-      "line": 145,
+      "line": 192,
       "method": "GET",
       "target": "'/:id/card'",
-      "tag": "object"
+      "tag": "role"
     },
     {
       "file": "payments.js",
@@ -5910,42 +6030,42 @@
     },
     {
       "file": "records.js",
-      "line": 401,
+      "line": 403,
       "method": "GET",
       "target": "'/:id/prescription-pdf'",
       "tag": "role"
     },
     {
       "file": "records.js",
-      "line": 446,
+      "line": 448,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "records.js",
-      "line": 471,
+      "line": 473,
       "method": "POST",
       "target": "'/consent-request'",
       "tag": "object"
     },
     {
       "file": "records.js",
-      "line": 535,
+      "line": 537,
       "method": "POST",
       "target": "'/consent-response'",
       "tag": "object"
     },
     {
       "file": "records.js",
-      "line": 595,
+      "line": 597,
       "method": "POST",
       "target": "'/consent-revoke'",
       "tag": "object"
     },
     {
       "file": "records.js",
-      "line": 612,
+      "line": 614,
       "method": "GET",
       "target": "'/consents'",
       "tag": "object"

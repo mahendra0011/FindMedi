@@ -84,6 +84,9 @@ export const USER_ROLE_OPTIONS = [
   // it cannot lock anyone out.
   'kyc_reviewer', 'moderator', 'support_agent', 'finance_admin',
   'catalog_manager', 'compliance_officer', 'content_editor', 'city_manager',
+  // File 23 §2 scoped platform roles (login hint only; signup stays restricted).
+  'platform_admin', 'support_l1', 'support_l2', 'dpo',
+  'security_admin', 'clinical_safety', 'analyst', 'auditor',
 ];
 export const phoneSchema = z.string().min(10, 'Phone must be at least 10 digits').max(15).optional();
 export const positiveNumber = z.number().positive('Must be a positive number');

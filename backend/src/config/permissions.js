@@ -65,6 +65,10 @@ export const CANONICAL_ROLES = [
   'physiotherapist', 'counsellor', 'psychiatrist', 'accountant', 'security',
   'technician', 'helper', 'delivery_boy', 'rider', 'assistant', 'lawyer',
   'ambulance',
+  // File 23 §2: scoped platform roles (god-mode split). Least-privilege sets
+  // in ROLE_PERMISSIONS below; none carries clinical PHI permissions.
+  'platform_admin', 'support_l1', 'support_l2', 'dpo',
+  'security_admin', 'clinical_safety', 'analyst', 'auditor',
   // 8.md 1 / 7.md 4: the ops console carries NO "god mode". Each console
   // section gets an account that can reach its own queue and nothing else, so
   // a stolen kyc_reviewer session cannot rewrite commission config or read the
@@ -100,6 +104,9 @@ export const CANONICAL_ROLES = [
 export const MANDATORY_TWO_FACTOR_ROLES = [
   'kyc_reviewer', 'moderator', 'support_agent', 'finance_admin',
   'catalog_manager', 'compliance_officer', 'content_editor', 'city_manager',
+  // File 23 §6: every platform-wide admin role — 2FA is a property of the role.
+  'platform_admin', 'support_l1', 'support_l2', 'dpo',
+  'security_admin', 'clinical_safety', 'analyst', 'auditor',
 ];
 
 /** The whole ops-console cast, for gates and tests that want all of them. */
@@ -148,11 +155,12 @@ export const ROLE_PERMISSIONS = {
   // licence/registry tracker. Erasure EXECUTION stays superadmin (four hands).
   compliance_officer: [
     'audit:read', 'dsr:read', 'dsr:approve', 'licenses:read', 'licenses:write',
+    'breakglass:read',
   ],
   // 7.md 3.21 / 8.md 11: versioned platform content (ToS, privacy, policies).
   content_editor: ['content:read', 'content:write'],
   // 8.md 4: city + service-city launch/pause (delete stays superadmin).
-  city_manager: ['cities:read', 'cities:write', 'service-cities:read', 'service-cities:write'],
+  city_manager: ['cities:read', 'cities:write', 'service-cities:read', 'service-cities:write', 'crm:read', 'crm:write'],
   hospital_admin: [
     'hospital:manage', 'staff:manage', 'beds:manage', 'departments:manage',
     'records:read', 'records:write', 'billing:read', 'billing:write',
@@ -339,6 +347,42 @@ export const ROLE_PERMISSIONS = {
     'chat:read', 'chat:write', 'notifications:read',
   ],
   medical_reviewer: ['content:read', 'content:write', 'notifications:read'],
+  // ── File 23 §2 scoped platform roles (god-mode split) ───────────────────
+  // None carries clinical PHI permissions (records:read, patients:read,
+  // mentalhealth/chat reads). PHI reads go through BreakGlassGrant even for
+  // these roles; `breakglass:write` = request, `breakglass:approve` = decide
+  // (a different person; two approvers for mental-health/legal subjects).
+  // Platform config (categories/cities/commission) — no PHI, no secrets.
+  platform_admin: [
+    'categories:read', 'categories:write',
+    'cities:read', 'cities:write', 'service-cities:read', 'service-cities:write',
+    'commission:read', 'content:read', 'notifications:read',
+    'crm:read', 'crm:write',
+  ],
+  // Support L1: masked metadata only (booking/order status, timelines).
+  support_l1: ['support:read', 'support:write', 'notifications:read'],
+  // Support L2: disputes + consent-scoped sessions + request break-glass.
+  support_l2: [
+    'support:read', 'support:write', 'support:manage',
+    'chat:read', 'chat:write', 'notifications:read',
+    'breakglass:read', 'breakglass:write',
+  ],
+  // DPO: privacy queue + break-glass review. No clinical reads by default.
+  dpo: [
+    'audit:read', 'dsr:read', 'dsr:approve', 'licenses:read',
+    'breakglass:read', 'breakglass:approve', 'notifications:read',
+  ],
+  // Security admin: sessions, alerts, access reviews. No clinical data.
+  security_admin: ['audit:read', 'breakglass:read', 'notifications:read'],
+  // Clinical safety: incidents + crisis; reads via break-glass only.
+  clinical_safety: [
+    'support:read', 'chat:read', 'notifications:read',
+    'breakglass:read', 'breakglass:write',
+  ],
+  // Analyst: aggregated product metrics only (k-anonymous dashboards).
+  analyst: ['reports:read', 'notifications:read', 'crm:read'],
+  // Auditor: read-only audit + configs.
+  auditor: ['audit:read'],
 };
 
 export function roleHasPermission(role, permission) {

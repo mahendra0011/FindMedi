@@ -711,9 +711,27 @@ export const api = {
   mergeCategories:        (body)    => request('/categories/merge', { method:'POST', body: JSON.stringify(body) }),
 
   getLicenses:            (p={})    => request('/licenses?' + new URLSearchParams(p)),
-  updateLicense:          (id,b)    => request(`/licenses/${id}`, { method:'PUT', body: JSON.stringify(b) }),
+  updateLicense:         (id,b)    => request(`/licenses/${id}`, { method:'PUT', body: JSON.stringify(b) }),
   getExpiringLicenses:    ()        => request('/licenses/expiring'),
   getLicenseStats:        ()        => request('/licenses/stats'),
+
+  // File 23 §4.2 break-glass queue (step-up enforced server-side)
+  getBreakGlass:          (p={})    => request('/admin/break-glass?' + new URLSearchParams(p)),
+  requestBreakGlass:      (body)    => request('/admin/break-glass', { method:'POST', body: JSON.stringify(body) }),
+  decideBreakGlass:       (id,b)    => request(`/admin/break-glass/${id}/decision`, { method:'POST', body: JSON.stringify(b) }),
+  revokeBreakGlass:       (id)      => request(`/admin/break-glass/${id}/revoke`, { method:'POST' }),
+
+  // File 24 supply/partnership CRM
+  getCommandCenter:       (p={})    => request('/crm/command-center?' + new URLSearchParams(p)),
+  getCrmLeads:           (p={})    => request('/crm/leads?' + new URLSearchParams(p)),
+  createCrmLead:         (body)    => request('/crm/leads', { method:'POST', body: JSON.stringify(body) }),
+  moveCrmLead:           (id,b)    => request(`/crm/leads/${id}/stage`, { method:'PATCH', body: JSON.stringify(b) }),
+  convertCrmLead:        (id,b)    => request(`/crm/leads/${id}/convert`, { method:'POST', body: JSON.stringify(b) }),
+  getCrmPartners:        (p={})    => request('/crm/partners?' + new URLSearchParams(p)),
+  createCrmPartner:      (body)    => request('/crm/partners', { method:'POST', body: JSON.stringify(body) }),
+  getCrmTasks:           (p={})    => request('/crm/tasks?' + new URLSearchParams(p)),
+  createCrmTask:         (body)    => request('/crm/tasks', { method:'POST', body: JSON.stringify(body) }),
+  updateCrmTask:         (id,b)    => request(`/crm/tasks/${id}`, { method:'PATCH', body: JSON.stringify(b) }),
 
   getAnnouncements:       (p={})    => request('/announcements?' + new URLSearchParams(p)),
   createAnnouncement:     (body)    => request('/announcements', { method:'POST', body: JSON.stringify(body) }),

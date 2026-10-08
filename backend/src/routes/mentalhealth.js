@@ -190,11 +190,47 @@ router.post('/referrals', protect, validate(createMentalHealthReferralSchema), v
   } catch (err) { sendServerError(res, err, 'Could not create the referral'); }
 });
 
+// File 23 §3.3: referral LISTS carry patient identity — platform roles
+// (incl. superadmin) pass only with an approved break-glass grant.
+// Aggregates live on GET /referrals/stats (no identities, k-anonymous).
+router.get('/referrals/stats', protect, async (req, res) => {
+  try {
+    const allowed = ['superadmin', 'platform_admin', 'dpo', 'clinical_safety', 'analyst', 'support_l2'];
+    if (!allowed.includes(req.user.role)
+      && !MENTAL_HEALTH_CLINICAL_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const match = {};
+    if (MENTAL_HEALTH_CLINICAL_ROLES.includes(req.user.role)) {
+      const tenantId = req.user.hospitalId || req.user.facilityId;
+      if (!tenantId) return res.status(403).json({ message: 'Facility scope required' });
+      match.hospitalId = tenantId;
+    }
+    const [byStatus, total] = await Promise.all([
+      MentalHealth.aggregate([{ $match: match }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
+      MentalHealth.countDocuments(match),
+    ]);
+    // k-anonymity: suppress small cells so individuals can't be inferred.
+    const safe = byStatus.map((s) => ({ status: s._id, count: s.count >= 10 ? s.count : 0 }));
+    return res.json({ total, byStatus: safe });
+  } catch (err) { sendServerError(res, err, 'Could not load referral stats'); }
+});
+
 router.get('/referrals', protect, async (req, res) => {
   try {
     const { status, search } = req.query;
     let filter;
     if (req.user.role === 'superadmin') {
+      const { default: BreakGlassGrant } = await import('../models/BreakGlassGrant.js');
+      const grant = await BreakGlassGrant.findOne({
+        requesterId: req.user._id || req.user.id,
+        status: 'approved',
+        expiresAt: { $gt: new Date() },
+      });
+      if (!grant) {
+        return res.status(403).json({ message: 'Break-glass approval required', code: 'BREAK_GLASS_REQUIRED' });
+      }
+      req.breakGlass = grant;
       filter = {};
     } else if (req.user.role === 'patient') {
       filter = { patientId: req.user._id };
@@ -215,7 +251,10 @@ router.get('/referrals', protect, async (req, res) => {
         .sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
       MentalHealth.countDocuments(filter),
     ]);
-    await auditLog('view_mental_health_referrals', req.user._id, { count: referrals.length, page });
+    await auditLog('view_mental_health_referrals', req.user._id, {
+      count: referrals.length, page,
+      ...(req.breakGlass ? { grantId: String(req.breakGlass._id), reasonCode: req.breakGlass.reasonCode } : {}),
+    });
     res.json({ referrals, page, limit, total, totalPages: Math.ceil(total / limit) });
   } catch (err) { sendServerError(res, err, 'Could not load referrals'); }
 });

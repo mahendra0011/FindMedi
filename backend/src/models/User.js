@@ -103,6 +103,10 @@ const userSchema = new mongoose.Schema({
       // MANDATORY_TWO_FACTOR_ROLES makes 2FA non-optional for all of them.
       'kyc_reviewer', 'moderator', 'support_agent', 'finance_admin',
       'catalog_manager', 'compliance_officer', 'content_editor', 'city_manager',
+      // File 23 §2: scoped platform roles (god-mode split). No PHI by
+      // default — clinical reads need a BreakGlassGrant even for these.
+      'platform_admin', 'support_l1', 'support_l2', 'dpo',
+      'security_admin', 'clinical_safety', 'analyst', 'auditor',
     ],
     default: 'patient',
     index: true,

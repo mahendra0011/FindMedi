@@ -1,5 +1,23 @@
 import { roleHasPermission, canonicalRole, rolesEquivalent, CANONICAL_ROLES } from '../config/permissions.js';
 import logger from '../config/logger.js';
+import BreakGlassGrant from '../models/BreakGlassGrant.js';
+import { auditLog } from './audit.js';
+
+// File 23 §5.1: PHI-class permissions. Platform roles (below) hold NO default
+// access to these — every pass needs an approved BreakGlassGrant for the
+// exact subject. Clinical/facility roles (doctor, nurse, dental_clinic_admin,
+// …) are EXCLUDED: they work tenant-scoped through object-level handlers.
+const PHI_PERMISSIONS = new Set(['records:read', 'records:write', 'patients:read', 'patients:write']);
+const BREAK_GLASS_ROLES = new Set([
+  'superadmin', 'platform_admin', 'support_l1', 'support_l2', 'dpo',
+  'security_admin', 'clinical_safety', 'analyst', 'auditor',
+]);
+
+const breakGlassSubjectOf = (req) => {
+  const raw = req.params?.id || req.params?.patientId || req.params?.recordId
+    || req.query?.patientId || req.query?.subjectId || req.body?.patientId;
+  return raw ? String(raw) : null;
+};
 
 // MISS-AUTHZ-001 / AUTHZ-002: single declarative authorization gate.
 // Usage: router.put('/:id', protect, authorize('records:write'), handler)
@@ -12,8 +30,17 @@ export const authorize = (...permissions) => {
     if (!req.user) {
       return res.status(401).json({ message: 'Not authorized' });
     }
-    if (req.user.role === 'superadmin') return next();
-    if (required.some((p) => roleHasPermission(req.user.role, p))) return next();
+    if (req.user.role === 'superadmin') {
+      // Owner keeps non-PHI platform powers; clinical reads need a grant.
+      if (!required.some((p) => PHI_PERMISSIONS.has(p))) return next();
+      return breakGlassGate(req, res, next);
+    }
+    if (required.some((p) => roleHasPermission(req.user.role, p))) {
+      if (required.some((p) => PHI_PERMISSIONS.has(p)) && BREAK_GLASS_ROLES.has(canonicalRole(req.user.role))) {
+        return breakGlassGate(req, res, next);
+      }
+      return next();
+    }
     // AUTHZ-B-03: the body used to be `{ required, role }`, which handed an
     // attacker holding ANY low-privilege account an exact map of the RBAC surface
     // (every permission string + their own role) — enough to plan an escalation or
@@ -27,6 +54,41 @@ export const authorize = (...permissions) => {
     return res.status(403).json({ message: 'Insufficient permissions' });
   };
 };
+
+// File 23 §5.1: async break-glass gate for PHI-class permissions. Passes only
+// with an APPROVED, unexpired grant for the exact subject; every pass is
+// audited as `phi_access`. List routes (no subject id) are denied —
+// aggregates live on dedicated stats endpoints instead.
+async function breakGlassGate(req, res, next) {
+  try {
+    const subjectId = breakGlassSubjectOf(req);
+    if (!subjectId) {
+      return res.status(403).json({ message: 'Break-glass approval required', code: 'BREAK_GLASS_REQUIRED' });
+    }
+    const grant = await BreakGlassGrant.findOne({
+      requesterId: req.user._id || req.user.id,
+      'subject.id': subjectId,
+      status: 'approved',
+      expiresAt: { $gt: new Date() },
+    });
+    if (!grant) {
+      await auditLog('breakglass_denied', req.user?._id, {
+        route: req.originalUrl, subjectId, ip: req.ip,
+      }).catch(() => {});
+      return res.status(403).json({ message: 'Break-glass approval required', code: 'BREAK_GLASS_REQUIRED' });
+    }
+    grant.accessLog.push({ ts: new Date(), route: req.originalUrl, objectId: subjectId });
+    await grant.save().catch(() => {});
+    await auditLog('phi_access', req.user?._id, {
+      grantId: String(grant._id), route: req.originalUrl, subjectId,
+      reasonCode: grant.reasonCode, ticketId: grant.ticketId, ip: req.ip,
+    }).catch(() => {});
+    req.breakGlass = grant;
+    return next();
+  } catch (err) {
+    return next(err);
+  }
+}
 
 // AUTHZ-M-01 migration helper: every canonical role holding ANY of the given
 // permissions. Computed from the SAME matrix `authorize()` enforces, so a

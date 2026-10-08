@@ -11,16 +11,36 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
+// File 23 §2/§8: scoped admin-team view — every platform role, not just god-mode.
+const ADMIN_ROLES = [
+  'superadmin', 'platform_admin', 'kyc_reviewer', 'moderator', 'support_agent',
+  'support_l1', 'support_l2', 'finance_admin', 'catalog_manager',
+  'compliance_officer', 'content_editor', 'city_manager', 'dpo',
+  'security_admin', 'clinical_safety', 'analyst', 'auditor',
+];
+
 export default function SuperAdminTeam() {
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
 
   const load = async () => {
     setLoading(true);
     try {
-      const res = await api.getUsers({ role: 'superadmin', limit: 100 });
-      setAdmins(res?.users || res?.data || res || []);
+      const lists = await Promise.all(ADMIN_ROLES.map(async (role) => {
+        try {
+          const res = await api.getUsers({ role, limit: 100 });
+          return res?.users || res?.data || (Array.isArray(res) ? res : []);
+        } catch { return []; }
+      }));
+      const seen = new Set();
+      setAdmins(lists.flat().filter((u) => {
+        const id = u.id || u._id;
+        if (!id || seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      }));
     } catch { toast.error('Failed to load team'); }
     setLoading(false);
   };
@@ -45,8 +65,9 @@ export default function SuperAdminTeam() {
   };
 
   const filtered = admins.filter(a =>
-    !search || a.name?.toLowerCase().includes(search.toLowerCase()) ||
-    a.email?.toLowerCase().includes(search.toLowerCase())
+    (roleFilter === 'all' || a.role === roleFilter) &&
+    (!search || a.name?.toLowerCase().includes(search.toLowerCase()) ||
+    a.email?.toLowerCase().includes(search.toLowerCase()))
   );
 
   if (loading) return <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
@@ -64,9 +85,20 @@ export default function SuperAdminTeam() {
         </Badge>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Search admins..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative max-w-sm flex-1 min-w-[220px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="Search admins..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <select
+          aria-label="Filter by role"
+          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          value={roleFilter}
+          onChange={e => setRoleFilter(e.target.value)}
+        >
+          <option value="all">All roles</option>
+          {ADMIN_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

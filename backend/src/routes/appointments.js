@@ -150,6 +150,20 @@ router.get('/', protect, authorize('appointments:read', 'appointments:read:own')
       console.error('Failed to attach payment info to paginated appointments:', e);
     }
 
+    // File 23 §3.3: platform-wide list is metadata-only without a grant —
+    // strip clinical notes + populated patient PII for platform roles.
+    if (req.user.role === 'superadmin' && !req.breakGlass && Array.isArray(result.data)) {
+      const STRIP = new Set(['reason', 'symptoms', 'notes', 'clinicalNotes', 'diagnosis']);
+      result.data = result.data.map((row) => {
+        const o = typeof row.toObject === 'function' ? row.toObject() : { ...row };
+        for (const k of STRIP) delete o[k];
+        if (o.patientId && typeof o.patientId === 'object') {
+          o.patientId = { _id: o.patientId._id || o.patientId.id };
+        }
+        return o;
+      });
+    }
+
     res.json(result);
   } catch (err) { sendServerError(res, err, 'Request failed'); }
 });

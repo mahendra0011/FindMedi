@@ -56,11 +56,14 @@ const EXPECTED = {
   catalog_manager: [
     'categories:read', 'categories:write', 'provider-types:read', 'provider-types:write',
   ],
+  // File 23: compliance reviews break-glass usage (read-only queue view).
   compliance_officer: [
     'audit:read', 'dsr:read', 'dsr:approve', 'licenses:read', 'licenses:write',
+    'breakglass:read',
   ],
   content_editor: ['content:read', 'content:write'],
-  city_manager: ['cities:read', 'cities:write', 'service-cities:read', 'service-cities:write'],
+  // File 24: city managers run the supply pipeline in their city.
+  city_manager: ['cities:read', 'cities:write', 'service-cities:read', 'service-cities:write', 'crm:read', 'crm:write'],
 };
 
 describe('8.md 1 · the ops roles are first-class rows in the canonical matrix', () => {

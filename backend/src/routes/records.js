@@ -378,7 +378,9 @@ const recordAuthorBelongsToCaller = (req, record) => {
 
 const canAccessRecordDoc = (req, record) => {
   if (!record) return false;
-  if (req.user.role === 'superadmin') return true;
+  // File 23 §3.3/§5.3: no default superadmin reads. The authorize() PHI gate
+  // attaches req.breakGlass after verifying an approved grant for the subject.
+  if (req.user.role === 'superadmin') return Boolean(req.breakGlass);
 
   if (req.user.role === 'patient') {
     return Boolean(record.patientId && record.patientId.toString() === String(req.user._id || req.user.id));

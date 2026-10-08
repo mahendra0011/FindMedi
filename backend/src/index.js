@@ -607,6 +607,8 @@ import patientPortalRoutes from './routes/patient.js';
 import patientVaccinationRoutes from './routes/vaccinations.js';
 import patientDsrRoutes from './routes/dsr.js';
 import adminDsrRoutes from './routes/adminDsr.js';
+import breakGlassRoutes from './routes/breakGlass.js';
+import crmRoutes from './routes/crm.js';
 import mealSubscriptionRoutes from './routes/mealSubscriptions.js';
 import membershipRoutes from './routes/memberships.js';
 import patientEventRoutes from './routes/patientEvents.js';
@@ -816,6 +818,11 @@ app.use('/api/patient/rentals', rentalRoutes);
 // queue behind dsr:read/dsr:approve (compliance_officer), separate from the
 // self-service half above so neither surface inherits the other's gate.
 app.use('/api/admin/dsr', adminDsrRoutes);
+// File 23 §4.2: break-glass queue (request/decide/revoke) behind
+// breakglass:read/write/approve — DPO, clinical safety, support L2.
+app.use('/api/admin/break-glass', breakGlassRoutes);
+// File 24: supply/partnership CRM (crm:read/write) + command center.
+app.use('/api/crm', crmRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/ops-health', opsHealthRoutes);
 app.use('/api/tenant-quotas', tenantQuotaRoutes);
