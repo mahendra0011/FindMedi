@@ -70,3 +70,55 @@ export const toFhirDocumentReference = (record, patientRef) => ({
   subject: { reference: patientRef },
   date: iso(record.createdAt),
 });
+
+// File 22 P2-28: second resource wave. Coding is advisory text unless the
+// caller supplies a validated system+code (see lib/clinicalCodes.js);
+// mappers never invent codes.
+export const toFhirCondition = (diagnosis, patientRef, extra = {}) => ({
+  resourceType: 'Condition',
+  id: String(extra.id || `${Date.now()}`),
+  clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-clinical', code: extra.resolved ? 'resolved' : 'active' }] },
+  code: extra.code && extra.system
+    ? { coding: [{ system: extra.system, code: extra.code }], text: diagnosis }
+    : { text: diagnosis },
+  subject: { reference: patientRef },
+  recordedDate: iso(extra.at),
+});
+
+export const toFhirAllergyIntolerance = (allergy, patientRef, idx = 0) => ({
+  resourceType: 'AllergyIntolerance',
+  id: `${patientRef.split('/')[1] || 'x'}-allergy-${idx}`,
+  clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', code: 'active' }] },
+  code: { text: allergy?.allergen || allergy?.name || String(allergy || '') },
+  patient: { reference: patientRef },
+});
+
+export const toFhirProcedure = (surgery, patientRef) => ({
+  resourceType: 'Procedure',
+  id: String(surgery._id),
+  status: surgery.status === 'Completed' ? 'completed' : 'in-progress',
+  code: { text: surgery.surgeryName || surgery.procedure || 'Procedure' },
+  subject: { reference: patientRef },
+  performedDateTime: iso(surgery.scheduledDate || surgery.createdAt),
+  performer: surgery.doctorName ? [{ actor: { display: surgery.doctorName } }] : [],
+});
+
+export const toFhirCoverage = (policy, patientRef) => ({
+  resourceType: 'Coverage',
+  id: String(policy._id),
+  status: 'active',
+  beneficiary: { reference: patientRef },
+  payor: [{ display: policy.insurer || policy.tpa || 'Insurer' }],
+  class: policy.memberIds ? [{ value: policy.memberIds }] : [],
+  period: { start: iso(policy.validFrom), end: iso(policy.validTo) },
+});
+
+export const toFhirClaim = (claim, patientRef) => ({
+  resourceType: 'Claim',
+  id: String(claim._id),
+  status: claim.status === 'Settled' ? 'active' : 'cancelled',
+  use: 'claim',
+  patient: { reference: patientRef },
+  created: iso(claim.createdAt),
+  total: { value: Number(claim.settledAmount || 0), currency: 'INR' },
+});

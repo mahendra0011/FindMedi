@@ -401,4 +401,101 @@ router.get('/:qrToken', publicScanLimiter, async (req, res) => {
     sendServerError(res, err, 'Could not read this health card');
   }
 });
+
+// File 22 P2-28: ABDM-style consent lifecycle (HIP request → grant/deny →
+// consent-gated HIU fetch). Gateway exchange needs live ABDM credentials;
+// the lifecycle + gating below is fully local and is what every fetch obeys.
+router.post('/consents', protect, authorize('staff:manage'), async (req, res) => {
+  try {
+    const { default: AbdmConsent } = await import('../models/AbdmConsent.js');
+    const { patientId, abhaAddress, hipId, hiuId, purpose, dateFrom, dateTo, dataEraseAt } = req.body || {};
+    if (!patientId || !dateFrom || !dateTo) {
+      return res.status(400).json({ message: 'patientId + dateFrom + dateTo required' });
+    }
+    if (new Date(dateFrom) >= new Date(dateTo)) {
+      return res.status(400).json({ message: 'dateFrom must precede dateTo' });
+    }
+    const row = await AbdmConsent.create({
+      hospitalId: req.user.hospitalId || undefined, patientId,
+      abhaAddress: abhaAddress || '', hipId: hipId || '', hiuId: hiuId || '',
+      purpose: purpose || 'CAREMGT', dateFrom: new Date(dateFrom), dateTo: new Date(dateTo),
+      dataEraseAt: dataEraseAt ? new Date(dataEraseAt) : null, createdBy: req.user._id,
+    });
+    await auditLog('abdm_consent_requested', req.user._id, { consentId: row._id, ip: req.ip });
+    return res.status(201).json({ id: String(row._id), status: row.status });
+  } catch (err) {
+    logger.error(`ABDM consent error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/consents', protect, async (req, res) => {
+  try {
+    const { default: AbdmConsent } = await import('../models/AbdmConsent.js');
+    const filter = {};
+    if (req.user.role === 'patient') filter.patientId = req.user._id;
+    else if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.query.status) filter.status = req.query.status;
+    const rows = await AbdmConsent.find(filter).sort({ createdAt: -1 }).limit(200).lean();
+    return res.json({ consents: rows });
+  } catch (err) {
+    logger.error(`ABDM consents error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Patient (or their account) grants/denies/revokes their own consent.
+router.post('/consents/:id/decision', protect, async (req, res) => {
+  try {
+    const { default: AbdmConsent } = await import('../models/AbdmConsent.js');
+    const { decision } = req.body || {};
+    if (!['Granted', 'Denied', 'Revoked'].includes(decision)) {
+      return res.status(400).json({ message: 'decision must be Granted|Denied|Revoked' });
+    }
+    const row = await AbdmConsent.findById(req.params.id);
+    if (!row) return res.status(404).json({ message: 'Not found' });
+    if (req.user.role === 'patient' && String(row.patientId) !== String(req.user._id)) {
+      return res.status(403).json({ message: 'Not your consent' });
+    }
+    if (!['Requested', 'Granted'].includes(row.status) && decision !== 'Revoked') {
+      return res.status(409).json({ message: `Consent is ${row.status}` });
+    }
+    row.status = decision;
+    if (decision === 'Granted') row.grantedAt = new Date();
+    await row.save();
+    await auditLog('abdm_consent_decision', req.user._id, { consentId: row._id, decision, ip: req.ip });
+    return res.json({ id: String(row._id), status: row.status });
+  } catch (err) {
+    logger.error(`ABDM decision error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Consent-gated HIU fetch: records + lab orders inside the date window,
+// denied/expired/out-of-window consent yields nothing (never an error leak).
+router.get('/consents/:id/fetch', protect, async (req, res) => {
+  try {
+    const { default: AbdmConsent } = await import('../models/AbdmConsent.js');
+    const row = await AbdmConsent.findById(req.params.id).lean();
+    if (!row) return res.status(404).json({ message: 'Not found' });
+    if (row.status !== 'Granted' || new Date() > new Date(row.dateTo)) {
+      return res.status(403).json({ message: 'No active consent for this fetch', code: 'CONSENT_REQUIRED' });
+    }
+    if (req.user.role === 'patient' && String(row.patientId) !== String(req.user._id)) {
+      return res.status(403).json({ message: 'Not your consent' });
+    }
+    const { default: Record } = await import('../models/Record.js');
+    const { default: LabOrder } = await import('../models/LabOrder.js');
+    const window = { createdAt: { $gte: new Date(row.dateFrom), $lte: new Date(row.dateTo) } };
+    const [records, labs] = await Promise.all([
+      Record.find({ patientId: row.patientId, ...window }).select('type diagnosis createdAt').limit(100).lean().catch(() => []),
+      LabOrder.find({ patientId: row.patientId, ...window }).select('orderId status createdAt').limit(100).lean().catch(() => []),
+    ]);
+    await auditLog('abdm_fetch', req.user._id, { consentId: row._id, records: records.length, ip: req.ip });
+    return res.json({ consent: String(row._id), purpose: row.purpose, records, labs });
+  } catch (err) {
+    logger.error(`ABDM fetch error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
 export default router;

@@ -9,7 +9,10 @@ import { apiKeyAuth } from '../middleware/apiKeyAuth.js';
 import {
   toFhirPatient, toFhirEncounter, toFhirObservation,
   toFhirDiagnosticReport, toFhirMedicationRequest, toFhirDocumentReference,
+  toFhirCondition, toFhirAllergyIntolerance, toFhirProcedure,
+  toFhirCoverage, toFhirClaim,
 } from '../lib/fhirMapper.js';
+import { validateCode } from '../lib/clinicalCodes.js';
 
 // File 09 §7.2: FHIR R4 read endpoints. Dual auth: human session (protect)
 // OR service account (x-api-key). Tenant-scoped; callers only ever see rows
@@ -108,7 +111,107 @@ router.get('/metadata', async (req, res) => res.json({
   status: 'active',
   fhirVersion: '4.0.1',
   format: ['json'],
-  rest: [{ mode: 'server', resource: ['Patient', 'Encounter', 'Observation', 'DiagnosticReport', 'MedicationRequest'].map((type) => ({ type, interaction: [{ code: 'read' }, { code: 'search-type' }] })) }],
+  rest: [{ mode: 'server', resource: ['Patient', 'Encounter', 'Observation', 'DiagnosticReport', 'MedicationRequest', 'DocumentReference', 'Condition', 'AllergyIntolerance', 'Procedure', 'Coverage', 'Claim'].map((type) => ({ type, interaction: [{ code: 'read' }, { code: 'search-type' }] })) }],
 }));
+
+// File 22 P2-28: second resource wave (all tenant-checked like the first).
+// GET /fhir/DocumentReference?patient=:id
+router.get('/DocumentReference', async (req, res) => {
+  try {
+    const { patient } = req.query;
+    if (!patient) return res.status(400).json({ message: 'patient required' });
+    const { default: Record } = await import('../models/Record.js');
+    const recs = await Record.find({ patientId: patient }).select('type hospitalId createdAt').limit(50).lean();
+    if (recs[0] && !tenantMatch(req, recs[0].hospitalId)) return res.status(403).json({ message: 'Access denied' });
+    const out = recs.map((r) => toFhirDocumentReference(r, patientRefOf(patient)));
+    return res.json({ resourceType: 'Bundle', type: 'searchset', total: out.length, entry: out.map((o) => ({ resource: o })) });
+  } catch (err) { return res.status(500).json({ message: err.message }); }
+});
+
+// GET /fhir/Condition?patient=:id (diagnoses from records + admissions)
+router.get('/Condition', async (req, res) => {
+  try {
+    const { patient } = req.query;
+    if (!patient) return res.status(400).json({ message: 'patient required' });
+    const { default: Record } = await import('../models/Record.js');
+    const { default: Admission } = await import('../models/Admission.js');
+    const [recs, adms] = await Promise.all([
+      Record.find({ patientId: patient }).select('diagnosis hospitalId createdAt').limit(50).lean().catch(() => []),
+      Admission.find({ patientId: patient }).select('primaryDiagnosis hospitalId createdAt').limit(50).lean().catch(() => []),
+    ]);
+    const first = recs[0] || adms[0];
+    if (first && !tenantMatch(req, first.hospitalId)) return res.status(403).json({ message: 'Access denied' });
+    const out = [
+      ...recs.filter((r) => r.diagnosis).map((r, i) => toFhirCondition(r.diagnosis, patientRefOf(patient), { id: r._id, at: r.createdAt })),
+      ...adms.filter((a) => a.primaryDiagnosis).map((a) => toFhirCondition(a.primaryDiagnosis, patientRefOf(patient), { id: a._id, at: a.createdAt })),
+    ];
+    return res.json({ resourceType: 'Bundle', type: 'searchset', total: out.length, entry: out.map((o) => ({ resource: o })) });
+  } catch (err) { return res.status(500).json({ message: err.message }); }
+});
+
+// GET /fhir/AllergyIntolerance?patient=:id
+router.get('/AllergyIntolerance', async (req, res) => {
+  try {
+    const { patient } = req.query;
+    if (!patient) return res.status(400).json({ message: 'patient required' });
+    const u = await User.findById(patient).select('allergies hospitalId').lean();
+    if (!u) return res.status(404).json({ message: 'Not found' });
+    if (!tenantMatch(req, u.hospitalId)) return res.status(403).json({ message: 'Access denied' });
+    const list = Array.isArray(u.allergies) ? u.allergies : [];
+    const out = list.map((a, i) => toFhirAllergyIntolerance(a, patientRefOf(patient), i));
+    return res.json({ resourceType: 'Bundle', type: 'searchset', total: out.length, entry: out.map((o) => ({ resource: o })) });
+  } catch (err) { return res.status(500).json({ message: err.message }); }
+});
+
+// GET /fhir/Procedure?patient=:id (OT surgeries)
+router.get('/Procedure', async (req, res) => {
+  try {
+    const { patient } = req.query;
+    if (!patient) return res.status(400).json({ message: 'patient required' });
+    const { default: OperationTheatre } = await import('../models/OperationTheatre.js');
+    const rows = await OperationTheatre.find({ patientId: patient }).limit(50).lean().catch(() => []);
+    if (rows[0] && !tenantMatch(req, rows[0].hospitalId)) return res.status(403).json({ message: 'Access denied' });
+    const out = rows.map((s) => toFhirProcedure(s, patientRefOf(patient)));
+    return res.json({ resourceType: 'Bundle', type: 'searchset', total: out.length, entry: out.map((o) => ({ resource: o })) });
+  } catch (err) { return res.status(500).json({ message: err.message }); }
+});
+
+// GET /fhir/Coverage?patient=:id (insurance policies)
+router.get('/Coverage', async (req, res) => {
+  try {
+    const { patient } = req.query;
+    if (!patient) return res.status(400).json({ message: 'patient required' });
+    const { default: InsurancePolicy } = await import('../models/InsurancePolicy.js').catch(() => ({ default: null }));
+    if (!InsurancePolicy) return res.json({ resourceType: 'Bundle', type: 'searchset', total: 0, entry: [] });
+    const rows = await InsurancePolicy.find({ patientId: patient }).limit(20).lean().catch(() => []);
+    if (rows[0] && !tenantMatch(req, rows[0].hospitalId)) return res.status(403).json({ message: 'Access denied' });
+    const out = rows.map((p) => toFhirCoverage(p, patientRefOf(patient)));
+    return res.json({ resourceType: 'Bundle', type: 'searchset', total: out.length, entry: out.map((o) => ({ resource: o })) });
+  } catch (err) { return res.status(500).json({ message: err.message }); }
+});
+
+// GET /fhir/Claim?patient=:id (TPA claims)
+router.get('/Claim', async (req, res) => {
+  try {
+    const { patient } = req.query;
+    if (!patient) return res.status(400).json({ message: 'patient required' });
+    const { default: Claim } = await import('../models/Claim.js');
+    const rows = await Claim.find({ patientId: patient }).limit(50).lean().catch(() => []);
+    if (rows[0] && !tenantMatch(req, rows[0].hospitalId)) return res.status(403).json({ message: 'Access denied' });
+    const out = rows.map((c) => toFhirClaim(c, patientRefOf(patient)));
+    return res.json({ resourceType: 'Bundle', type: 'searchset', total: out.length, entry: out.map((o) => ({ resource: o })) });
+  } catch (err) { return res.status(500).json({ message: err.message }); }
+});
+
+// File 22 P2-28: code validation (LOINC/SNOMED/ICD-10 curated sets).
+// Named /validate (not FHIR's $validate) because Express treats `$` as a
+// route anchor and can never match it literally.
+router.get('/CodeSystem/validate', async (req, res) => {
+  try {
+    const { system, code } = req.query;
+    if (!system || !code) return res.status(400).json({ message: 'system + code required' });
+    return res.json({ system, code, ...validateCode(system, code) });
+  } catch (err) { return res.status(500).json({ message: err.message }); }
+});
 
 export default router;
