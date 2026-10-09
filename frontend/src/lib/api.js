@@ -292,6 +292,26 @@ export async function downloadAuditExport(params = {}) {
   }
 }
 
+/** File 22 P1-16: GSTR CSV download (auth via apiClient interceptors). */
+export async function downloadGstr(month) {
+  try {
+    const response = await apiClient.get(`/finance/gstr?month=${encodeURIComponent(month)}`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gstr-${month}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    throw new Error(error.message || 'Unable to export GSTR');
+  }
+}
+
 export async function downloadPaymentInvoice(txnId, filename = 'invoice.pdf') {
   try {
     const response = await apiClient.get(`/transactions/${txnId}/invoice`, {
@@ -1273,6 +1293,13 @@ export const api = {
   createContract:         (body)    => request('/enterprise/contracts', { method: 'POST', body: JSON.stringify(body) }),
   vendorScorecards:       (p={})    => request('/enterprise/vendors/scorecards' + qs(p)),
   computeScorecard:       (sid, period) => request(`/enterprise/vendors/${sid}/scorecards/compute`, { method: 'POST', body: JSON.stringify({ period }) }),
+  // ── File 22 P1-16: accounts ──
+  coa:                    ()        => request('/finance/accounts'),
+  seedCoa:                ()        => request('/finance/accounts/seed', { method: 'POST' }),
+  vendorBills:            (p={})    => request('/finance/vendor-bills' + qs(p)),
+  createVendorBill:       (body)    => request('/finance/vendor-bills', { method: 'POST', body: JSON.stringify(body) }),
+  postVendorBill:         (id)      => request(`/finance/vendor-bills/${id}/post`, { method: 'POST' }),
+  bankBook:               (p={})    => request('/finance/bank-books' + qs(p)),
 
   // ── File 17: report studio, KPIs, AI ──
   studioCatalogue:        ()        => request('/report-studio/catalogue'),

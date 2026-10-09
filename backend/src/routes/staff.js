@@ -474,4 +474,48 @@ router.post('/payslips/:id/release', protect, authorize('staff:manage'), adminOn
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// File 22 P1-17: staff loans/advances + recovery (recovered flows into payslip).
+router.get('/loans', protect, authorize('staff:manage'), async (req, res) => {
+  try {
+    const { default: LoanAdvance } = await import('../models/LoanAdvance.js');
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.query.staffId) filter.staffId = req.query.staffId;
+    if (req.query.status) filter.status = req.query.status;
+    const rows = await LoanAdvance.find(filter).sort({ createdAt: -1 }).limit(300).lean();
+    return res.json({ loans: rows });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/loans', protect, authorize('staff:manage'), adminOnly, async (req, res) => {
+  try {
+    const { default: LoanAdvance } = await import('../models/LoanAdvance.js');
+    const { staffId, kind, principal, emi } = req.body || {};
+    if (!staffId || !['Loan', 'Advance'].includes(kind) || !(Number(principal) > 0)) {
+      return res.status(400).json({ message: 'staffId + kind(Loan|Advance) + principal>0 required' });
+    }
+    const row = await LoanAdvance.create({
+      hospitalId: req.user.hospitalId || undefined, staffId, kind,
+      principal: Number(principal), emi: Number(emi) || 0, createdBy: req.user._id,
+    });
+    return res.status(201).json({ id: String(row._id) });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.post('/loans/:id/recover', protect, authorize('staff:manage'), adminOnly, async (req, res) => {
+  try {
+    const { default: LoanAdvance } = await import('../models/LoanAdvance.js');
+    const { auditLog } = await import('../middleware/audit.js');
+    const row = await LoanAdvance.findById(req.params.id);
+    if (!row || row.status !== 'Open') return res.status(404).json({ message: 'Open loan/advance not found' });
+    const amount = Number(req.body?.amount) || Number(row.emi) || 0;
+    if (!(amount > 0)) return res.status(400).json({ message: 'amount>0 required' });
+    row.recovered = +((Number(row.recovered) || 0) + amount).toFixed(2);
+    if (row.recovered + 0.009 >= Number(row.principal)) row.status = 'Closed';
+    await row.save();
+    await auditLog('loan_recovered', req.user._id, { loanId: row._id, amount, ip: req.ip });
+    return res.json({ id: String(row._id), recovered: row.recovered, status: row.status });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 export default router;

@@ -444,4 +444,158 @@ router.post('/payouts/:id/state', authorize('billing:write'), requireStepUp('pay
   }
 });
 
+// File 22 P1-16: chart of accounts (+ seed).
+router.get('/accounts', authorize('billing:read'), async (req, res) => {
+  try {
+    const { default: Account } = await import('../models/Account.js');
+    const rows = await Account.find({ ...tenantFilter(req), active: true }).sort({ code: 1 }).limit(500).lean();
+    return res.json({ accounts: rows });
+  } catch (err) {
+    logger.error(`CoA error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/accounts/seed', authorize('billing:write'), async (req, res) => {
+  try {
+    const { default: Account, COA_SEED } = await import('../models/Account.js');
+    let created = 0;
+    for (const [code, name, group, gstApplicable] of COA_SEED) {
+      // eslint-disable-next-line no-await-in-loop
+      const r = await Account.findOneAndUpdate(
+        { hospitalId: req.user.hospitalId, code },
+        { $setOnInsert: { name, group, gstApplicable, createdBy: actorId(req) } },
+        { upsert: true, new: true },
+      );
+      if (r) created += 1;
+    }
+    const count = await Account.countDocuments({ ...tenantFilter(req) });
+    return res.status(201).json({ accounts: count });
+  } catch (err) {
+    logger.error(`CoA seed error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// File 22 P1-16: AP vendor bills (3-way match) + post to ledger.
+router.get('/vendor-bills', authorize('billing:read'), async (req, res) => {
+  try {
+    const { default: VendorBill } = await import('../models/VendorBill.js');
+    const rows = await VendorBill.find(tenantFilter(req)).sort({ createdAt: -1 }).limit(300).lean();
+    return res.json({ bills: rows });
+  } catch (err) {
+    logger.error(`Vendor bills error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+function matchBill(lines) {
+  let subTotal = 0;
+  let gstTotal = 0;
+  let status = 'Matched';
+  for (const l of lines) {
+    const qty = Math.min(Number(l.poQty) || 0, Number(l.grnQty) || 0, Number(l.billQty) || 0);
+    if (qty <= 0) { status = 'Unmatched'; continue; }
+    if (Number(l.billQty) > Math.min(Number(l.poQty) || 0, Number(l.grnQty) || 0)) status = 'Excess';
+    else if (Number(l.billQty) < Math.min(Number(l.poQty) || 0, Number(l.grnQty) || 0)) status = status === 'Matched' ? 'Short' : status;
+    const line = qty * (Number(l.rate) || 0);
+    subTotal += line;
+    gstTotal += line * (Number(l.gstRate) || 0) / 100;
+  }
+  subTotal = +subTotal.toFixed(2);
+  gstTotal = +gstTotal.toFixed(2);
+  return { subTotal, gstTotal, grandTotal: +(subTotal + gstTotal).toFixed(2), matchStatus: status };
+}
+
+router.post('/vendor-bills', authorize('billing:write'), async (req, res) => {
+  try {
+    const { default: VendorBill } = await import('../models/VendorBill.js');
+    const { supplierId, billNo, billDate, purchaseOrderId, lines } = req.body || {};
+    if (!supplierId || !billNo || !Array.isArray(lines) || !lines.length) {
+      return res.status(400).json({ message: 'supplierId + billNo + lines[] required' });
+    }
+    const m = matchBill(lines);
+    const row = await VendorBill.create({
+      ...tenantFilter(req), supplierId, billNo, billDate: billDate || new Date(),
+      purchaseOrderId: purchaseOrderId || null, lines, ...m, createdBy: actorId(req),
+    });
+    await auditLog('vendor_bill_created', actorId(req), { billId: row._id, match: m.matchStatus, ip: req.ip });
+    return res.status(201).json({ id: String(row._id), ...m });
+  } catch (err) {
+    if (err?.code === 11000) return res.status(409).json({ message: 'Vendor bill number already booked' });
+    logger.error(`Vendor bill error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/vendor-bills/:id/post', authorize('billing:write'), requireStepUp('payouts:add'), async (req, res) => {
+  try {
+    const { default: VendorBill } = await import('../models/VendorBill.js');
+    const { default: LedgerEntry } = await import('../models/LedgerEntry.js');
+    const row = await VendorBill.findById(req.params.id);
+    if (!row || row.status !== 'Draft') return res.status(404).json({ message: 'Draft vendor bill not found' });
+    if (row.matchStatus === 'Unmatched') {
+      return res.status(409).json({ message: '3-way match failed — nothing accrues', code: 'MATCH_FAILED' });
+    }
+    row.status = 'Posted';
+    await row.save();
+    await LedgerEntry.insertMany([
+      { hospitalId: row.hospitalId, accountId: '4100', debit: row.subTotal, refModel: 'VendorBill', refId: row._id, narration: `Vendor bill ${row.billNo}`, createdBy: actorId(req) },
+      { hospitalId: row.hospitalId, accountId: '2200', debit: 0, credit: row.gstTotal, refModel: 'VendorBill', refId: row._id, narration: `GST on ${row.billNo}`, createdBy: actorId(req) },
+      { hospitalId: row.hospitalId, accountId: '2000', debit: 0, credit: row.grandTotal, refModel: 'VendorBill', refId: row._id, narration: `Payable ${row.billNo}`, createdBy: actorId(req) },
+    ]);
+    await auditLog('vendor_bill_posted', actorId(req), { billId: row._id, ip: req.ip });
+    return res.json({ id: String(row._id), status: row.status });
+  } catch (err) {
+    logger.error(`Vendor bill post error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// File 22 P1-16: GSTR-1-ish B2B export (billed invoices with GSTIN, one CSV).
+router.get('/gstr', authorize('billing:read'), async (req, res) => {
+  try {
+    const { month } = req.query;
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ message: 'month YYYY-MM required' });
+    const rows = await Billing.find({
+      ...tenantFilter(req), date: { $gte: `${month}-01`, $lte: `${month}-31` },
+      gstin: { $ne: '' },
+    }).select('invoiceId date gstin taxableAmount tax amount patient').sort({ date: 1 }).limit(2000).lean();
+    const head = 'invoice_no,date,gstin,patient,taxable_value,tax_amount,total';
+    const lines = rows.map((b) => [
+      b.invoiceId, b.date, b.gstin, JSON.stringify(b.patient || ''),
+      b.taxableAmount || 0, b.tax || 0, b.amount || 0,
+    ].join(','));
+    res.set('Content-Type', 'text/csv');
+    res.set('Content-Disposition', `attachment; filename="gstr-${month}.csv"`);
+    return res.send([head, ...lines].join('\n'));
+  } catch (err) {
+    logger.error(`GSTR error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// File 22 P1-16: bank-wise book (ledger lines for an account code).
+router.get('/bank-books', authorize('billing:read'), async (req, res) => {
+  try {
+    const { default: LedgerEntry } = await import('../models/LedgerEntry.js');
+    const { accountId, from, to } = req.query;
+    const filter = { ...tenantFilter(req) };
+    if (accountId) filter.accountId = accountId;
+    else filter.accountId = { $in: ['1000', '1010'] };
+    if (from || to) {
+      filter.date = {};
+      if (from) filter.date.$gte = new Date(from);
+      if (to) filter.date.$lte = new Date(to);
+    }
+    const rows = await LedgerEntry.find(filter).sort({ date: -1 }).limit(500).lean();
+    const debit = rows.reduce((s, r) => s + (Number(r.debit) || 0), 0);
+    const credit = rows.reduce((s, r) => s + (Number(r.credit) || 0), 0);
+    return res.json({ lines: rows, debit, credit, balance: debit - credit });
+  } catch (err) {
+    logger.error(`Bank book error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
