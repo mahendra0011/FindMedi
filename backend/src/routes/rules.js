@@ -3,7 +3,6 @@ import nodeCrypto from 'crypto';
 import Rule from '../models/Rule.js';
 import RuleFiring from '../models/RuleFiring.js';
 import WorkTask from '../models/WorkTask.js';
-import DashboardAlert from '../models/DashboardAlert.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { DATASETS, datasetNames } from '../lib/datasets.js';
@@ -53,6 +52,53 @@ router.post('/rules', authorize('staff:manage'), async (req, res) => {
   }
 });
 
+// File 22 P0-10: seed the dataset-migratable clinical rules (idempotent by
+// key). Manual triggers (code-blue/lab-panic/MTP buttons) are NOT dataset
+// rules — they flow through raiseAlert() with the same rule keys instead.
+router.post('/rules/seed-clinical', authorize('staff:manage'), async (req, res) => {
+  try {
+    const seeds = [
+      {
+        key: 'lab-critical-values',
+        name: 'Critical lab values → page ordering doctor',
+        dataset: 'lab_critical',
+        groups: [[{ field: 'status', op: '=', value: 'Ordered' }]],
+        actions: { type: 'task', severity: 'critical', roleQueue: 'doctor', priority: 'P0' },
+        cooldownMinutes: 60,
+      },
+      {
+        key: 'unpaid-ar-spike',
+        name: 'Unpaid bills piling up',
+        dataset: 'bills_unpaid',
+        groups: [[{ field: 'status', op: '=', value: 'Overdue' }]],
+        actions: { type: 'alert', severity: 'warning' },
+        cooldownMinutes: 1440,
+      },
+    ];
+    // Placeholder keys so the manual-trigger ledger never dangles: firing
+    // rows reference these when a human presses the button.
+    const placeholders = [
+      { key: 'code-blue', name: 'Code blue (manual trigger)', dataset: 'ops_snapshot', groups: [], enabled: false, actions: { type: 'alert', severity: 'critical' } },
+      { key: 'lab-panic', name: 'Lab panic (manual trigger)', dataset: 'ops_snapshot', groups: [], enabled: false, actions: { type: 'alert', severity: 'critical' } },
+      { key: 'mtp', name: 'MTP activation (manual trigger)', dataset: 'ops_snapshot', groups: [], enabled: false, actions: { type: 'alert', severity: 'critical' } },
+    ];
+    const created = [];
+    for (const s of [...seeds, ...placeholders]) {
+      const exists = await Rule.findOne({ hospitalId: req.user.hospitalId, key: s.key });
+      if (!exists) {
+        // eslint-disable-next-line no-await-in-loop
+        await Rule.create({ hospitalId: req.user.hospitalId, ...s, createdBy: actorId(req) });
+        created.push(s.key);
+      }
+    }
+    await auditLog('clinical_rules_seeded', actorId(req), { created, ip: req.ip });
+    return res.status(201).json({ created });
+  } catch (err) {
+    logger.error(`Seed clinical rules error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 router.patch('/rules/:id', authorize('staff:manage'), async (req, res) => {
   try {
     const row = await Rule.findByIdAndUpdate(req.params.id,
@@ -91,6 +137,11 @@ async function executeActions(rule, row, hospitalId) {
       hospitalId, title: label.slice(0, 200), detail: `Rule ${rule.key} fired`,
       entityRef, roleQueue: a.roleQueue || '', priority: a.priority || 'P1', tags: ['rule', rule.key],
     });
+    // Tasks for critical rules also raise the realtime alert (same doorway).
+    if (a.severity === 'critical') {
+      const { raiseAlert } = await import('../lib/alerts.js');
+      await raiseAlert({ hospitalId, severity: 'critical', message: label, entityRef, ruleKey: rule.key });
+    }
     return { action: 'task', result: 'created' };
   }
   if (a.type === 'webhook-log') {
@@ -103,10 +154,12 @@ async function executeActions(rule, row, hospitalId) {
     }
     return { action: 'webhook-log', result: 'queued' };
   }
-  await DashboardAlert.create({
-    hospitalId, type: 'other', severity: a.severity || 'warning', entityRef,
-    message: label.slice(0, 500), status: 'open',
-  }).catch(() => {});
+  // File 22 P0-10: all rule alerts go through the single doorway (persist +
+  // `dashboard:alert` socket push, never one without the other).
+  const { raiseAlert } = await import('../lib/alerts.js');
+  await raiseAlert({
+    hospitalId, severity: a.severity || 'warning', message: label, entityRef, ruleKey: rule.key,
+  });
   return { action: 'alert', result: 'raised' };
 }
 

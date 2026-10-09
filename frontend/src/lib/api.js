@@ -1227,6 +1227,7 @@ export const api = {
   ruleDatasets:            ()        => request('/rules/datasets'),
   listRules:               ()        => request('/rules/rules'),
   createRule:              (body)    => request('/rules/rules', { method: 'POST', body: JSON.stringify(body) }),
+  seedClinicalRules:       ()        => request('/rules/rules/seed-clinical', { method: 'POST' }),
   patchRule:               (id, body)=> request(`/rules/rules/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   testRule:                (id)      => request(`/rules/rules/${id}/test`, { method: 'POST' }),
   backtestRule:            (body)    => request('/rules/backtest', { method: 'POST', body: JSON.stringify(body) }),

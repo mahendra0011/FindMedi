@@ -35,8 +35,11 @@ export function startScheduler() {
   tasks.push(cron.schedule('*/15 * * * *', async () => {
     const { sweepRulesTenant } = await import('../routes/rules.js');
     const { detectRcmTenant } = await import('../routes/rcm.js');
+    const { escalateAlertsTenant } = await import('../lib/alerts.js');
     await eachHospital((hid) => sweepRulesTenant(hid), 'rules');
     await eachHospital((hid) => detectRcmTenant(hid), 'rcm');
+    // File 22 P0-10: unacked criticals level up every sweep.
+    await eachHospital((hid) => escalateAlertsTenant(hid, 15), 'escalation');
   }));
   // Hourly: workflow SLA sweep + approval expiry + contract expiry + webhook retries.
   tasks.push(cron.schedule('0 * * * *', async () => {

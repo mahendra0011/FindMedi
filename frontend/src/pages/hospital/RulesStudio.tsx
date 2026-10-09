@@ -59,11 +59,20 @@ export default function RulesStudio() {
     } catch { toast.error('Toggle failed'); }
   };
 
+  const seed = async () => {
+    try {
+      const r: any = await api.seedClinicalRules();
+      toast.success(`Seeded: ${(r?.created || []).join(', ') || 'already present'}`);
+      load();
+    } catch (e: any) { toast.error(e?.message || 'Seed failed'); }
+  };
+
   return (
     <div className="grid gap-4 p-4 lg:grid-cols-[1fr_340px]">
       <Card>
         <CardHeader><CardTitle className="text-sm">Rules ({rules.length})</CardTitle></CardHeader>
         <CardContent className="space-y-2">
+          <Button size="sm" variant="outline" onClick={seed}>Seed clinical rules (lab-critical + triggers)</Button>
           {rules.map((r) => (
             <div key={r._id} className="flex items-center justify-between rounded-md border p-2.5 text-sm">
               <div>

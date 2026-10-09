@@ -25,6 +25,9 @@ const dashboardAlertSchema = new mongoose.Schema({
   },
   message: { type: String, maxlength: 500, default: '' },
   status: { type: String, enum: ['open', 'acked', 'snoozed', 'resolved'], default: 'open', index: true },
+  // File 22 P0-10: escalation ladder state (unacked criticals level up).
+  escalationLevel: { type: Number, default: 0 },
+  escalatedAt: { type: Date, default: null },
   ackedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   ackedAt: { type: Date, default: null },
   snoozeUntil: { type: Date, default: null },

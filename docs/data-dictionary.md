@@ -14,7 +14,7 @@
 ## Summary
 
 - **272 models** across 271 files (0 skipped)
-- **6035 schema fields**, of which **678 classified as PII** in **189 collections**
+- **6037 schema fields**, of which **678 classified as PII** in **189 collections**
 - **6 collections** carry a TTL index
 - **89 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -99,7 +99,7 @@
 | `creditnotes` | CreditNote | 14 | 2 | 3 | — | Payment and ledger entries |
 | `dailymetrics` | DailyMetric | 6 | 0 | 2 | — | No PII fields detected |
 | `dailyrcmmetrics` | DailyRcmMetric | 11 | 0 | 3 | — | No PII fields detected |
-| `dashboardalerts` | DashboardAlert | 14 | 0 | 5 | — | No PII fields detected |
+| `dashboardalerts` | DashboardAlert | 16 | 0 | 5 | — | No PII fields detected |
 | `datasubjectrequests` | DataSubjectRequest | 18 | 1 | 7 | — | Audit logs |
 | `deathrecords` | DeathRecord | 18 | 2 | 1 | — | Clinical records |
 | `delegations` | Delegation | 10 | 0 | 1 | — | No PII fields detected |
@@ -2722,6 +2722,8 @@ source `DashboardAlert.js` · timestamps: yes · virtuals: 0 · retention: n/a �
 | `entityRef.id` | ObjectId |  |  | null |  |  |  |
 | `message` | String |  |  | "" |  |  |  |
 | `status` | String |  |  | "open" | open, acked, snoozed, resolved |  |  |
+| `escalationLevel` | Number |  |  | 0 |  |  |  |
+| `escalatedAt` | Date |  |  | null |  |  |  |
 | `ackedBy` | ObjectId |  |  | null |  | User |  |
 | `ackedAt` | Date |  |  | null |  |  |  |
 | `snoozeUntil` | Date |  |  | null |  |  |  |

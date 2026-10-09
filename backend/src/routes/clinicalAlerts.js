@@ -49,7 +49,16 @@ router.post('/code-blue', protect, authorize('emergency:write'), requireStaff, a
     };
     const io = getIO();
     io?.to(`hospital:${hospitalId}`).emit('clinical:code_blue', payload);
-    const notified = await notifyHospitalAdmins(hospitalId, '🔵 CODE BLUE', `Cardiac arrest — Ward ${ward}, Bed ${bedId} (${patientName}).`);
+    const notified = await notifyHospitalAdmins(hospitalId, '🚨 CODE BLUE', `Cardiac arrest — Ward ${ward}, Bed ${bedId} (${patientName}).`);
+    // File 22 P0-10: manual trigger flows through the alert doorway too
+    // (persisted Action-Center row + dashboard:alert push + rule ledger).
+    const { raiseAlert } = await import('../lib/alerts.js');
+    await raiseAlert({
+      hospitalId, severity: 'critical',
+      message: `CODE BLUE — Ward ${ward}, Bed ${bedId} (${patientName})${note ? `: ${note}` : ''}`,
+      entityRef: { model: 'Emergency', id: null }, ruleKey: 'code-blue',
+      by: req.user._id ?? req.user.id,
+    });
     res.status(201).json({ success: true, ...payload, notifiedAdmins: notified });
   } catch (err) {
     logger.error(`Code blue error: ${err.message}`);
@@ -81,6 +90,14 @@ router.post('/lab-panic', protect, authorize('emergency:write'), requireStaff, a
     if (notification) notifyUser(notification.userId, notification);
     const io = getIO();
     io?.to(`user:${doctorId}`).emit('clinical:lab_panic', payload);
+    // File 22 P0-10: same doorway (persisted + dashboard push + ledger).
+    const { raiseAlert } = await import('../lib/alerts.js');
+    await raiseAlert({
+      hospitalId: req.user.hospitalId, severity: 'critical',
+      message: `LAB PANIC — ${testName}: ${value} for ${patientName}`,
+      entityRef: { model: 'LabOrder', id: null }, ruleKey: 'lab-panic',
+      by: req.user._id ?? req.user.id,
+    });
     res.status(201).json({ success: true, ...payload });
   } catch (err) {
     logger.error(`Lab panic error: ${err.message}`);
@@ -104,6 +121,14 @@ router.post('/mtp', protect, authorize('emergency:write'), requireStaff, async (
     const io = getIO();
     io?.to(`hospital:${hospitalId}`).emit('clinical:mtp', payload);
     const notified = await notifyHospitalAdmins(hospitalId, '🩸 MTP ACTIVATED', `Pack ${payload.units} units ${bloodGroup} — requested by ${requester || 'ER'}.`);
+    // File 22 P0-10: same doorway (persisted + dashboard push + ledger).
+    const { raiseAlert } = await import('../lib/alerts.js');
+    await raiseAlert({
+      hospitalId, severity: 'critical',
+      message: `MTP ACTIVATED — ${payload.units} units ${bloodGroup} (${requester || 'ER'})`,
+      entityRef: { model: 'BloodRequest', id: null }, ruleKey: 'mtp',
+      by: req.user._id ?? req.user.id,
+    });
     res.status(201).json({ success: true, ...payload, notifiedAdmins: notified });
   } catch (err) {
     logger.error(`MTP error: ${err.message}`);

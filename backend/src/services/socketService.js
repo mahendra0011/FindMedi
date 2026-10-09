@@ -51,6 +51,24 @@ export function getIO() {
   return io;
 }
 
+// File 22 P0-10: the Action Center realtime feed. Every raised/escalated
+// alert pushes here (hospital room, same room code-blue uses) so the
+// dashboard never needs to poll for life-safety events.
+export function emitDashboardAlert(hospitalId, alert) {
+  if (!io || !hospitalId || !alert) return false;
+  try {
+    io.to(`hospital:${hospitalId}`).emit('dashboard:alert', {
+      id: alert.id || '', severity: alert.severity || 'warning',
+      message: String(alert.message || '').slice(0, 500),
+      entityRef: alert.entityRef || {}, ruleKey: alert.ruleKey || '',
+      at: new Date().toISOString(),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // CHAT-002: the acting identity is ALWAYS the authenticated socket identity.
 //
 // These handlers used to read the actor from the payload with
