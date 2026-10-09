@@ -88,3 +88,90 @@ export function forecastDemand(dailyCounts) {
   const avg = dailyCounts.reduce((a, b) => a + b, 0) / dailyCounts.length;
   return { forecast: Math.round(avg), basis: `${dailyCounts.length}-point average` };
 }
+
+/** File 22 P2-37: AI OCR — extract structured data from a document image (stub).
+ * In production this would call a vendor API (Google Vision, Azure Form Recognizer, etc.).
+ * The stub simulates common clinical document fields.
+ */
+export function ocrDocument({ docType, rawText }) {
+  const text = rawText || '';
+  const out = {};
+  switch (docType) {
+    case 'lab_result': {
+      // A1c, glucose, crp, etc.
+      const a1c = text.match(/(?:A1c|HbA1c)\s*[:=]\s*([0-9.]+)/i)?.[1];
+      const glucose = text.match(/(?:blood glucose|fasting glucose|pp glucose)\s*[:=]\s*([0-9.]+)/i)?.[1];
+      const crp = text.match(/(?:CRP|c-reaction protein)\s*[:=]\s*([0-9.]+)/i)?.[1];
+      if (a1c) out.a1c = Number(a1c);
+      if (glucose) out.glucose = Number(glucose);
+      if (crp) out.crp = Number(crp);
+      break;
+    }
+    case 'prescription': {
+      const medicine = text.match(/([A-Za-z][A-Za-z .]{2,40})\s*[:]\s*(\d+)\s*(mg|gm|ml|units)?/i);
+      if (medicine) out.medicine = medicine[1].trim(), out.qty = Number(medicine[2]);
+      break;
+    }
+    case 'discharge_summary': {
+      const diagnosis = text.match(/diagnosis[:\s]+([A-Za-z0-9 .,]+)/i)?.[1];
+      const medications = text.match(/medication[:\s]+([A-Za-z0-9 .,;]+)/i)?.[1];
+      if (diagnosis) out.diagnosis = diagnosis.trim();
+      if (medications) out.meds = medications.trim();
+      break;
+    }
+    default: break;
+  }
+  return { ...out, provider: 'stub', docType };
+}
+
+/** File 22 P2-37: Claim-document checker — validates an insurance claim
+ * against expected fields and flags common rejection reasons.
+ */
+export function checkClaim(document) {
+  const issues = [];
+  const required = ['patientName', 'policyNumber', 'diagnosisCodes', 'procedureCodes', 'chargeAmount'];
+  for (const field of required) {
+    if (!document[field]) issues.push(`missing: ${field}`);
+  }
+  if (document.chargeAmount && Number(document.chargeAmount) <= 0) issues.push('chargeAmount must be positive');
+  if (document.diagnosisCodes && !Array.isArray(document.diagnosisCodes)) issues.push('diagnosisCodes must be an array');
+  if (document.procedureCodes && !Array.isArray(document.procedureCodes)) issues.push('procedureCodes must be an array');
+  return { valid: issues.length === 0, issues, provider: 'stub' };
+}
+
+/** File 22 P2-37: FAQ RAG — retrieve the best-matching answer from a local
+ * knowledge-base. In production this would use embeddings + vector search.
+ */
+export function ragAnswer(question, faq = []) {
+  const ql = (question || '').toLowerCase().trim();
+  if (!faq?.length) return { answer: 'No FAQ configured.', score: 0 };
+  // Simple keyword overlap scoring
+  let best = { score: 0, answer: '' };
+  for (const entry of faq) {
+    const kb = (entry.question || '').toLowerCase();
+    const overlap = ql.split(/\s+/).filter(w => kb.includes(w)).length;
+    if (overlap > best.score) {
+      best = { score: overlap, answer: entry.answer || '' };
+    }
+  }
+  if (best.score < 1) best = { answer: 'No matching FAQ entry.', score: 0 };
+  return best;
+}
+
+/** File 22 P2-37: Lab trend narrative — generate a one-sentence narrative
+ * from a series of lab results, for display in the EHR header.
+ */
+export function labTrendNarrative(results = []) {
+  if (!results?.length) return 'No lab results recorded.';
+  // Sort by date ascending
+  const sorted = [...results].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const values = sorted.map(r => ({ val: r.value, date: r.date, test: r.test }));
+  // Very simple trend: compare first vs last numeric value for same test
+  const numeric = values.filter(v => !isNaN(Number(v.val)));
+  if (numeric.length < 2) return 'Lab values recorded but trend not calculable.';
+  const first = Number(numeric[0].val);
+  const last = Number(numeric[numeric.length - 1].val);
+  if (first < last) return `Trending upward: ${numeric[0].test} from ${first} to ${last}`;
+  if (first > last) return `Trending downward: ${numeric[0].test} from ${first} to ${last}`;
+  return `Stable: ${numeric[0].test} at ${first}`;
+}
