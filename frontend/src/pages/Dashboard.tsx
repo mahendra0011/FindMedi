@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 import {
@@ -206,6 +206,8 @@ function OperationsStrip() {
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  // File 22 P0-7: hospital admins land on Dashboard V2 (classic stays one click away).
+  if (user && user.role === 'hospital_admin') return <Navigate to="/dashboard/v2" replace />;
   const settings = useSettings();
   const [apptTab, setApptTab] = useState('pending');
   const queryClient = useQueryClient();

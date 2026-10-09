@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, BedDouble, Users, Wallet, CheckCircle } from 'lucide-react';
+import { AlertTriangle, BedDouble, Users, Wallet, CheckCircle, TrendingUp, TrendingDown, ListVideo, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { api } from '@/lib/api';
 
 /**
@@ -21,6 +22,22 @@ export default function HospitalDashboardV2() {
   const [staff, setStaff] = useState<any>(null);
   const [tpa, setTpa] = useState<any>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // File 22 P0-7: range + compare + live queue + per-user widget prefs.
+  const [range, setRange] = useState('7');
+  const [compare, setCompare] = useState(true);
+  const [overview, setOverview] = useState<any>(null);
+  const [queue, setQueue] = useState<any>(null);
+  const [hidden, setHidden] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('dashv2-hidden') || '[]'); } catch { return []; }
+  });
+
+  const toggleWidget = (k: string) => {
+    setHidden((h) => {
+      const next = h.includes(k) ? h.filter((x) => x !== k) : [...h, k];
+      try { localStorage.setItem('dashv2-hidden', JSON.stringify(next)); } catch { /* noop */ }
+      return next;
+    });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +65,27 @@ export default function HospitalDashboardV2() {
     return () => { cancelled = true; };
   }, []);
 
+  // Overview (range + compare) + live queue, refreshed with range/compare.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const to = new Date().toISOString().slice(0, 10);
+      const from = new Date(Date.now() - (Number(range) - 1) * 86400000).toISOString().slice(0, 10);
+      const [ov, q] = await Promise.all([
+        api.getDashOverview({ from, to, compare: compare ? '1' : '0' }).catch(() => null),
+        api.getDashQueue().catch(() => null),
+      ]);
+      if (cancelled) return;
+      if (ov) setOverview(ov);
+      if (q) setQueue(q);
+    })();
+    const t = setInterval(async () => {
+      const q = await api.getDashQueue().catch(() => null);
+      if (!cancelled && q) setQueue(q);
+    }, 60000);
+    return () => { cancelled = true; clearInterval(t); };
+  }, [range, compare]);
+
   const ack = async (id: string) => {
     try {
       await (api as any).ackDashAlert(id, {});
@@ -64,8 +102,89 @@ export default function HospitalDashboardV2() {
           <h1 className="text-2xl font-heading font-bold">Hospital Overview</h1>
           <p className="text-sm text-muted-foreground">Live ops · money · alerts — one round-trip per section.</p>
         </div>
-        <Link to="/dashboard"><Button variant="outline" size="sm">Classic view</Button></Link>
+        <div className="flex items-center gap-2">
+          <select aria-label="Range" className="h-9 rounded-md border px-2 text-sm" value={range} onChange={(e) => setRange(e.target.value)}>
+            <option value="1">Today</option>
+            <option value="7">7 days</option>
+            <option value="30">30 days</option>
+          </select>
+          <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={compare} onChange={(e) => setCompare(e.target.checked)} /> compare</label>
+          <Link to="/dashboard"><Button variant="outline" size="sm">Classic view</Button></Link>
+        </div>
       </div>
+
+      {/* P0-7: KPI overview with compare deltas + collection sparkline */}
+      {!hidden.includes('kpis') && overview ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center justify-between">
+              Period {overview.from} → {overview.to}
+              <Button size="sm" variant="ghost" onClick={() => toggleWidget('kpis')}><EyeOff size={13} /> hide</Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+              {[
+                { k: 'collected', label: 'Collected', money: true },
+                { k: 'billed', label: 'Billed', money: true },
+                { k: 'appointments', label: 'Appointments', money: false },
+                { k: 'admissions', label: 'Admissions', money: false },
+              ].map(({ k, label, money: isMoney }) => {
+                const v = overview.kpis?.[k];
+                if (!v) return null;
+                const up = (v.deltaPct ?? 0) >= 0;
+                return (
+                  <div key={k} className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">{label}</p>
+                    <p className="text-lg font-bold">{isMoney ? inr(v.value) : (v.value ?? 0).toLocaleString('en-IN')}</p>
+                    {compare && v.deltaPct != null ? (
+                      <p className={`flex items-center gap-1 text-xs font-semibold ${up ? 'text-green-700' : 'text-red-700'}`}>
+                        {up ? <TrendingUp size={13} /> : <TrendingDown size={13} />}{Math.abs(v.deltaPct)}% vs prev
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="h-36">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={overview.spark || []}>
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(d: string) => d.slice(5)} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip formatter={(v: any) => [`₹${Number(v).toLocaleString('en-IN')}`, 'collected']} />
+                  <Area type="monotone" dataKey="paid" stroke="hsl(174,62%,38%)" fill="hsl(174,62%,38%,0.25)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+      {hidden.includes('kpis') ? (
+        <Button size="sm" variant="outline" onClick={() => toggleWidget('kpis')}>Show KPI overview</Button>
+      ) : null}
+
+      {/* P0-7: live OPD queue */}
+      {!hidden.includes('queue') && queue ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center justify-between">
+              <span className="flex items-center gap-2"><ListVideo size={15} /> Live OPD queue ({queue.total}) · longest wait {queue.longestMin}m</span>
+              <Button size="sm" variant="ghost" onClick={() => toggleWidget('queue')}><EyeOff size={13} /> hide</Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {(queue.departments || []).map((d: any) => (
+              <span key={d.dept} className="rounded-md border px-2.5 py-1 text-xs">
+                <b>{d.dept}</b> · {d.waiting} waiting · longest {d.longestMin}m
+              </span>
+            ))}
+            {!(queue.departments || []).length ? <p className="text-sm text-muted-foreground">Queue empty.</p> : null}
+          </CardContent>
+        </Card>
+      ) : null}
+      {hidden.includes('queue') ? (
+        <Button size="sm" variant="outline" onClick={() => toggleWidget('queue')}>Show live queue</Button>
+      ) : null}
 
       {/* Money row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

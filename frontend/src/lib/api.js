@@ -742,6 +742,8 @@ export const api = {
 
   // File 09 §02 dashboard v2 (aggregated, tenant-scoped)
   getOpsTiles:           ()        => request('/dashboard/operations'),
+  getDashOverview:        (p={})    => request('/dashboard/overview' + qs(p)),
+  getDashQueue:           ()        => request('/dashboard/queue'),
   getRevenueSplit:       (p={})    => request('/dashboard/revenue?' + new URLSearchParams(p)),
   getDashAlerts:         (p={})    => request('/dashboard/alerts?' + new URLSearchParams(p)),
   ackDashAlert:          (id,b)    => request(`/dashboard/alerts/${id}/ack`, { method:'PUT', body: JSON.stringify(b) }),

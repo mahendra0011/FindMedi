@@ -270,4 +270,105 @@ router.get('/stats', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// File 22 P0-7: KPI overview with previous-period compare + daily sparkline.
+// ?from=YYYY-MM-DD&to=YYYY-MM-DD&compare=1 (compare defaults on).
+// authz: role (hospital_admin/superadmin, same as /operations).
+router.get('/overview', protect, async (req, res) => {
+  try {
+    if (!['hospital_admin', 'superadmin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    const hf = req.user.hospitalId && req.user.role !== 'superadmin' ? { hospitalId: req.user.hospitalId } : {};
+    const { getISTDateString } = await import('../utils/dateUtils.js');
+    const todayStr = getISTDateString();
+    const from = String(req.query.from || todayStr);
+    const to = String(req.query.to || todayStr);
+    const wantCompare = String(req.query.compare ?? '1') !== '0';
+    const dayMs = 86400000;
+    const spanDays = Math.max(1, Math.round((new Date(to) - new Date(from)) / dayMs) + 1);
+    const prevTo = new Date(new Date(from).getTime() - dayMs).toISOString().slice(0, 10);
+    const prevFrom = new Date(new Date(from).getTime() - spanDays * dayMs).toISOString().slice(0, 10);
+
+    const { default: Admission } = await import('../models/Admission.js');
+    const sumPaid = async (a, b) => {
+      const r = await Billing.aggregate([
+        { $match: { ...hf, date: { $gte: a, $lte: b } } },
+        { $group: { _id: null, paid: { $sum: '$paid' }, billed: { $sum: '$amount' } } },
+      ]);
+      return { paid: r[0]?.paid || 0, billed: r[0]?.billed || 0 };
+    };
+    const countAppts = (a, b) => Appointment.countDocuments({ ...hf, date: { $gte: a, $lte: b } });
+    const countAdm = (a, b) => Admission.countDocuments({ ...hf, createdAt: { $gte: new Date(a), $lte: new Date(`${b}T23:59:59Z`) } });
+
+    const [cur, prev] = await Promise.all([
+      (async () => ({
+        rev: await sumPaid(from, to),
+        appts: await countAppts(from, to),
+        adm: await countAdm(from, to),
+      }))(),
+      wantCompare ? (async () => ({
+        rev: await sumPaid(prevFrom, prevTo),
+        appts: await countAppts(prevFrom, prevTo),
+        adm: await countAdm(prevFrom, prevTo),
+      }))() : null,
+    ]);
+
+    // Daily sparkline for the window (collected per day).
+    const sparkRaw = await Billing.aggregate([
+      { $match: { ...hf, date: { $gte: from, $lte: to } } },
+      { $group: { _id: '$date', paid: { $sum: '$paid' }, n: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+    ]);
+    const sparkMap = Object.fromEntries(sparkRaw.map((r) => [r._id, r]));
+    const spark = [];
+    for (let d = new Date(from); d <= new Date(to); d = new Date(d.getTime() + dayMs)) {
+      const ds = d.toISOString().slice(0, 10);
+      spark.push({ date: ds, paid: sparkMap[ds]?.paid || 0, bills: sparkMap[ds]?.n || 0 });
+    }
+
+    const delta = (c, p) => (p > 0 ? +(((c - p) / p) * 100).toFixed(1) : null);
+    return res.json({
+      from, to, spanDays,
+      kpis: {
+        collected: { value: cur.rev.paid, prev: prev?.rev.paid ?? null, deltaPct: prev ? delta(cur.rev.paid, prev.rev.paid) : null },
+        billed: { value: cur.rev.billed, prev: prev?.rev.billed ?? null, deltaPct: prev ? delta(cur.rev.billed, prev.rev.billed) : null },
+        appointments: { value: cur.appts, prev: prev?.appts ?? null, deltaPct: prev ? delta(cur.appts, prev.appts) : null },
+        admissions: { value: cur.adm, prev: prev?.adm ?? null, deltaPct: prev ? delta(cur.adm, prev.adm) : null },
+      },
+      spark,
+      prevWindow: prev ? { from: prevFrom, to: prevTo } : null,
+    });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// File 22 P0-7: live OPD queue snapshot (today's In-Queue appointments by
+// department + longest waiter). authz: role (queue-reading staff).
+router.get('/queue', protect, async (req, res) => {
+  try {
+    if (!['hospital_admin', 'superadmin', 'doctor', 'nurse', 'receptionist'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    const hf = req.user.hospitalId && req.user.role !== 'superadmin' ? { hospitalId: req.user.hospitalId } : {};
+    const { getISTDateString } = await import('../utils/dateUtils.js');
+    const rows = await Appointment.find({ ...hf, date: getISTDateString(), status: 'In Queue' })
+      .select('department doctor patient tokenNo checkedInAt queuePosition').sort({ checkedInAt: 1 }).limit(200).lean();
+    const now = Date.now();
+    const byDept = {};
+    let longestMin = 0;
+    for (const r of rows) {
+      const d = r.department || 'General';
+      byDept[d] = byDept[d] || { waiting: 0, longestMin: 0 };
+      byDept[d].waiting += 1;
+      const waitMin = r.checkedInAt ? Math.round((now - new Date(r.checkedInAt).getTime()) / 60000) : 0;
+      byDept[d].longestMin = Math.max(byDept[d].longestMin, waitMin);
+      longestMin = Math.max(longestMin, waitMin);
+    }
+    return res.json({
+      total: rows.length, longestMin,
+      departments: Object.entries(byDept).map(([dept, v]) => ({ dept, ...v })),
+      sample: rows.slice(0, 20),
+    });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 export default router;
