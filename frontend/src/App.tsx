@@ -81,6 +81,8 @@ const SABroadcast = lazy(() => import('./pages/superadmin/Broadcast'));
 const SASupportTickets = lazy(() => import('./pages/superadmin/SupportTickets'));
 const SASystemSettings = lazy(() => import('./pages/superadmin/SystemSettings'));
 const SASuperAdminTeam = lazy(() => import('./pages/superadmin/SuperAdminTeam'));
+const FormBuilder = lazy(() => import('./pages/superadmin/FormBuilder'));
+const PrintStudio = lazy(() => import('./pages/superadmin/PrintStudio'));
 const SABreakGlassQueue = lazy(() => import('./pages/superadmin/BreakGlassQueue'));
 const SAPromotions = lazy(() => import('./pages/superadmin/Promotions'));
 const SADataExport = lazy(() => import('./pages/superadmin/DataExport'));
@@ -227,6 +229,8 @@ const DietKitchenSheet = lazy(() => import('./pages/DietKitchenSheet'));
 const MortuaryPage = lazy(() => import('./pages/MortuaryPage'));
 const OncologyPage = lazy(() => import('./pages/OncologyPage'));
 const Kiosk = lazy(() => import('./pages/Kiosk'));
+const FormsFill = lazy(() => import('./pages/FormsFill'));
+const SignDocument = lazy(() => import('./pages/SignDocument'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
 const DoctorEarnings = lazy(() => import('./pages/doctor/DoctorEarnings'));
 const DoctorAnalytics = lazy(() => import('./pages/doctor/DoctorAnalytics'));
@@ -660,6 +664,8 @@ const App = () => (
                     <Route path="/cookies" element={<CookiePolicy />} />
                     <Route path="/display/queue" element={<QueueDisplay />} />
                     <Route path="/kiosk" element={<Kiosk />} />
+                    <Route path="/forms" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'clinic_doctor', 'nurse', 'superadmin']}><FormsFill /></RoleRoute>} />
+                    <Route path="/sign/:kind/:id" element={<RoleRoute allowedRoles={['patient', 'doctor', 'clinic_doctor', 'hospital_admin', 'nurse']}><SignDocument /></RoleRoute>} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   {/* AUTH-F-06: forced rotation landing page for mustResetPassword sessions */}
                   <Route path="/set-password" element={<SetPassword />} />
@@ -818,6 +824,8 @@ const App = () => (
                     <Route path="/superadmin/tickets" element={<RoleRoute allowedRoles={['superadmin', 'support_agent']}><SASupportTickets /></RoleRoute>} />
                     <Route path="/superadmin/settings" element={<RoleRoute allowedRoles={['superadmin']}><SASystemSettings /></RoleRoute>} />
                     <Route path="/superadmin/team" element={<RoleRoute allowedRoles={['superadmin']}><SASuperAdminTeam /></RoleRoute>} />
+                    <Route path="/superadmin/forms" element={<RoleRoute allowedRoles={['superadmin', 'content_editor']}><FormBuilder /></RoleRoute>} />
+                    <Route path="/superadmin/print" element={<RoleRoute allowedRoles={['superadmin', 'content_editor']}><PrintStudio /></RoleRoute>} />
                     <Route path="/superadmin/break-glass" element={<RoleRoute allowedRoles={['superadmin', 'dpo', 'clinical_safety', 'support_l2', 'security_admin']}><SABreakGlassQueue /></RoleRoute>} />
                     <Route path="/superadmin/promotions" element={<RoleRoute allowedRoles={['superadmin']}><SAPromotions /></RoleRoute>} />
                     <Route path="/superadmin/loyalty" element={<RoleRoute allowedRoles={['superadmin']}><SALoyaltyRewards /></RoleRoute>} />

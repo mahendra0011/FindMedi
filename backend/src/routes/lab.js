@@ -26,11 +26,55 @@ import { toCsvNative, toCsvFallback, NATIVE_CSV_AVAILABLE } from '../services/na
 import { getIO, emitDeliveryStatus } from '../services/socketService.js';
 import logger from '../config/logger.js';
 import { sendServerError } from '../utils/safeError.js';
+import { parseHl7, isCriticalFlag } from '../lib/hl7.js';
+import { apiKeyAuth } from '../middleware/apiKeyAuth.js';
 
 // Lab staff jo apne center ke reports manage / courier se bhej sakte hain.
 const LAB_STAFF_ROLES = ['lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist', 'hospital_admin', 'superadmin'];
 // Report courier dispatch ke liye allowed roles (doctors bhi bhej sakte hain).
 const REPORT_DISPATCH_ROLES = [...LAB_STAFF_ROLES, 'doctor', 'clinic_doctor', 'radiologist'];
+
+// File 15/09 Flow E: analyzer ingestion — HL7 v2 ORU^R01 accepted from a
+// service account (x-api-key, e.g. instrument middleware) or lab staff
+// session. Matches OBR orderId → LabOrder, fills OBX values, flags
+// criticals. Malformed input fails closed; every match is audited.
+router.post('/ingest/hl7', async (req, res, next) => {
+  if (req.headers?.['x-api-key']) return apiKeyAuth(req, res, next);
+  return protect(req, res, next);
+}, async (req, res) => {
+  try {
+    if (req.user && !['lab_owner', 'lab_technician', 'pathologist', 'hospital_admin', 'superadmin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Lab ingestion access required' });
+    }
+    const { message } = req.body || {};
+    const parsed = parseHl7(message);
+    if (!parsed.ok) return res.status(400).json({ message: `Rejected: ${parsed.reason}` });
+    const matched = [];
+    const unmatched = [];
+    for (const obr of parsed.orders) {
+      const order = obr.orderId ? await LabOrder.findOne({ orderId: obr.orderId }) : null;
+      if (!order) { unmatched.push(obr.orderId || '(no id)'); continue; }
+      for (const obx of parsed.results) {
+        const test = (order.tests || []).find((t) =>
+          t.testName && (t.testName === obx.name || t.testName === obx.code));
+        if (!test) continue;
+        test.resultValue = obx.value;
+        if (obx.units) test.unit = obx.units;
+        if (obx.range) test.normalRange = obx.range;
+        if (isCriticalFlag(obx.flag)) test.isCritical = true;
+        if (test.status === 'Ordered' || test.status === 'Sample Needed') test.status = 'Completed';
+        matched.push({ orderId: order.orderId, test: test.testName, critical: Boolean(test.isCritical) });
+      }
+      await order.save();
+    }
+    await auditLog('hl7_ingested', req.user?._id || req.serviceAccount?.keyId || null, {
+      matched: matched.length, unmatched, ip: req.ip,
+    }).catch(() => {});
+    return res.json({ matched, unmatched });
+  } catch (err) {
+    return sendServerError(res, err, 'HL7 ingest failed');
+  }
+});
 
 const labRegisterSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), sampleType: sampleTypeSchema.optional() });
 const labCollectSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), rejectionReason: z.string().optional() });
@@ -597,6 +641,56 @@ router.get('/bookings', protect, async (req, res) => {
     res.json({ bookings });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
+
+// File 15/Flow E: analyzer HL7 ORU ingestion. Dual auth (lab roles or
+// service-account key); matches OBR orderId → LabOrder, applies OBX values,
+// flags critical (verify still pathologist-only, SoD intact).
+router.post('/ingest/hl7', async (req, res, next) => {
+  if (req.headers?.['x-api-key']) {
+    const { apiKeyAuth } = await import('../middleware/apiKeyAuth.js');
+    return apiKeyAuth(req, res, () => ingestHl7(req, res));
+  }
+  return protect(req, res, () => ingestHl7(req, res));
+});
+
+async function ingestHl7(req, res) {
+  try {
+    const [{ parseHl7, isCriticalFlag }, { default: LabOrder }] = await Promise.all([
+      import('../lib/hl7.js'), import('../models/LabOrder.js'),
+    ]);
+    if (!req.serviceAccount && !['lab_technician', 'lab_owner', 'hospital_admin', 'superadmin'].includes(req.user?.role)) {
+      return res.status(403).json({ message: 'Lab ingestion access required' });
+    }
+    const parsed = parseHl7(req.body?.message || req.body?.hl7);
+    if (!parsed.ok) return res.status(400).json({ message: `Rejected: ${parsed.reason}` });
+    let applied = 0;
+    let critical = 0;
+    for (const obr of parsed.orders) {
+      if (!obr.orderId) continue;
+      // eslint-disable-next-line no-await-in-loop
+      const order = await LabOrder.findOne({ orderId: obr.orderId });
+      if (!order) continue;
+      for (const t of (order.tests || [])) {
+        const hit = parsed.results.find((r) =>
+          r.name && t.testName && r.name.toLowerCase().includes(t.testName.toLowerCase()));
+        if (!hit) continue;
+        t.resultValue = hit.value;
+        t.unit = hit.units || t.unit;
+        t.normalRange = hit.range || t.normalRange;
+        t.isAbnormal = ['H', 'L', 'HH', 'LL', 'A', 'AA', 'C'].includes(hit.flag);
+        t.isCritical = isCriticalFlag(hit.flag);
+        if (t.isCritical) critical += 1;
+        t.status = 'Completed';
+        applied += 1;
+      }
+      await order.save();
+    }
+    await auditLog('hl7_ingested', req.serviceAccount ? null : req.user?._id, {
+      applied, critical, ip: req.ip,
+    }).catch(() => {});
+    return res.json({ applied, critical });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+}
 
 router.post('/bookings', protect, validate(labBookingSchema), async (req, res) => {
   try {

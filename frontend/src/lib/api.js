@@ -801,6 +801,22 @@ export const api = {
   createCase:             (body)    => request('/cases', { method:'POST', body: JSON.stringify(body) }),
   presentCase:            (id,b)    => request(`/cases/${id}/present`, { method:'PUT', body: JSON.stringify(b || {}) }),
 
+  // File 14 forms + print + signatures + queues
+  getFormTemplates:      (p={})    => request('/forms/templates?' + new URLSearchParams(p)),
+  createFormTemplate:    (body)    => request('/forms/templates', { method:'POST', body: JSON.stringify(body) }),
+  publishFormTemplate:   (id)      => request(`/forms/templates/${id}/publish`, { method:'POST' }),
+  submitFormResponse:    (body)    => request('/forms/responses', { method:'POST', body: JSON.stringify(body) }),
+  getPrintTemplates:     (p={})    => request('/print/templates?' + new URLSearchParams(p)),
+  createPrintTemplate:   (body)    => request('/print/templates', { method:'POST', body: JSON.stringify(body) }),
+  renderPrint:           (body)    => request('/print/render', { method:'POST', body: JSON.stringify(body) }),
+  renderLabel:           (body)    => request('/print/labels/render', { method:'POST', body: JSON.stringify(body) }),
+  signL1:                (body)    => request('/signatures/l1', { method:'POST', body: JSON.stringify(body) }),
+  signL2:                (body)    => request('/signatures/l2', { method:'POST', body: JSON.stringify(body) }),
+  getQueues:             ()        => request('/queues'),
+  createQueue:           (body)    => request('/queues', { method:'POST', body: JSON.stringify(body) }),
+  queueBoard:            (id)      => request(`/queues/${id}/board`),
+  issueDisplayToken:     (body)    => request('/queues/display-tokens', { method:'POST', body: JSON.stringify(body) }),
+
   // File 09 queue display (public, no PHI) + doctor workspace
   getQueueDisplay:       (p={})    => request('/tokens/display?' + new URLSearchParams(p)),
   getReviewInbox:        ()        => request('/orders/review-inbox'),

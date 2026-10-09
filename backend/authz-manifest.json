@@ -10,13 +10,13 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1216,
+  "total": 1218,
   "counts": {
     "any": 1,
     "clinical": 1,
     "inherited": 4,
-    "object": 389,
-    "public": 78,
+    "object": 390,
+    "public": 79,
     "role": 683,
     "self": 60
   },
@@ -112,7 +112,7 @@
         "routes": 1
       }
     ],
-    "unnamedHandlerGuard": 272,
+    "unnamedHandlerGuard": 273,
     "note": "AUTHZ-M-01 is OPEN. The alternatives are not necessarily wrong - several predate authorizeObject and carry domain rules it does not model - but the split was previously invisible, and a route can be guarded twice by two mechanisms whose rules were never reconciled."
   },
   "unrecognised": [],
@@ -4522,203 +4522,217 @@
     },
     {
       "file": "lab.js",
-      "line": 133,
+      "line": 41,
+      "method": "POST",
+      "target": "'/ingest/hl7'",
+      "tag": "object"
+    },
+    {
+      "file": "lab.js",
+      "line": 177,
       "method": "POST",
       "target": "'/orders'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 222,
+      "line": 266,
       "method": "GET",
       "target": "'/orders'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 275,
+      "line": 319,
       "method": "GET",
       "target": "'/orders/:id'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 287,
+      "line": 331,
       "method": "PUT",
       "target": "'/orders/:id/register-sample'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 309,
+      "line": 353,
       "method": "PUT",
       "target": "'/orders/:id/collect-sample'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 332,
+      "line": 376,
       "method": "PUT",
       "target": "'/orders/:id/enter-result'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 377,
+      "line": 421,
       "method": "PUT",
       "target": "'/orders/:id/verify'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 443,
+      "line": 487,
       "method": "PUT",
       "target": "'/orders/:id/deliver-report'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 462,
+      "line": 506,
       "method": "GET",
       "target": "'/stats'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 496,
+      "line": 540,
       "method": "GET",
       "target": "'/outbreak'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 538,
+      "line": 582,
       "method": "GET",
       "target": "'/tests'",
       "tag": "public"
     },
     {
       "file": "lab.js",
-      "line": 558,
+      "line": 602,
       "method": "GET",
       "target": "'/bookings'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 601,
+      "line": 648,
+      "method": "POST",
+      "target": "'/ingest/hl7'",
+      "tag": "public"
+    },
+    {
+      "file": "lab.js",
+      "line": 695,
       "method": "POST",
       "target": "'/bookings'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 639,
+      "line": 733,
       "method": "PUT",
       "target": "'/bookings/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 655,
+      "line": 749,
       "method": "DELETE",
       "target": "'/bookings/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 792,
+      "line": 886,
       "method": "POST",
       "target": "'/bookings/:id/dispatch-report'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 805,
+      "line": 899,
       "method": "GET",
       "target": "'/bookings/:id/dispatch-report'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 834,
+      "line": 928,
       "method": "POST",
       "target": "'/orders/:id/dispatch-report'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 847,
+      "line": 941,
       "method": "GET",
       "target": "'/report-deliveries'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 865,
+      "line": 959,
       "method": "GET",
       "target": "'/equipment'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 875,
+      "line": 969,
       "method": "POST",
       "target": "'/equipment'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 883,
+      "line": 977,
       "method": "PUT",
       "target": "'/equipment/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 899,
+      "line": 993,
       "method": "DELETE",
       "target": "'/equipment/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 913,
+      "line": 1007,
       "method": "GET",
       "target": "'/packages/public'",
       "tag": "public"
     },
     {
       "file": "lab.js",
-      "line": 925,
+      "line": 1019,
       "method": "GET",
       "target": "'/packages'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 935,
+      "line": 1029,
       "method": "POST",
       "target": "'/packages'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 943,
+      "line": 1037,
       "method": "PUT",
       "target": "'/packages/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 959,
+      "line": 1053,
       "method": "DELETE",
       "target": "'/packages/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 979,
+      "line": 1073,
       "method": "GET",
       "target": "'/export'",
       "tag": "role"

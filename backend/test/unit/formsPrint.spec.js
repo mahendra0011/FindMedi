@@ -7,6 +7,7 @@ import { schemaFromTemplate, evalFormula, evalCondition, bandFor } from '../../s
 import { lintTemplate } from '../../src/lib/printEngine.js';
 import { sealDoc, verifySeal } from '../../src/lib/docSeal.js';
 import { PRIORITY_WEIGHT } from '../../src/models/Queue.js';
+import { parseHl7, isCriticalFlag } from '../../src/lib/hl7.js';
 
 const TEMPLATE = {
   definition: {
@@ -60,6 +61,31 @@ describe('print lint + doc seal', () => {
     expect(verifySeal({ digest: s.digest, signature: s.signature, nonce: s.nonce })).toBe(true);
     expect(verifySeal({ digest: 'tampered', signature: s.signature, nonce: s.nonce })).toBe(false);
     expect(verifySeal({ digest: s.digest, signature: s.signature, nonce: 'wrong' })).toBe(false);
+  });
+});
+
+describe('HL7 mini-parser (fail-closed)', () => {
+  const MSG = 'MSH|^~\\&|ANALYZER|LAB|HMS|HOSP|202610090900||ORU^R01|M1|P|2.5\r'
+    + 'PID|||PAT-77||Sharma^Rahul\r'
+    + 'OBR|1|LAB-99||CBC\r'
+    + 'OBX|1|NM|WBC^White cells||13.2|10^9/L|4.0-11.0|HH\r'
+    + 'OBX|2|NM|HGB^Hemoglobin||9.1|g/dL|13-17|L\r';
+
+  it('parses ORU results with order links and flags', () => {
+    const p = parseHl7(MSG);
+    expect(p.ok).toBe(true);
+    expect(p.orders).toEqual([{ setId: '1', orderId: 'LAB-99', test: 'CBC' }]);
+    expect(p.results).toHaveLength(2);
+    expect(p.results[0]).toMatchObject({ code: 'WBC', value: '13.2', flag: 'HH' });
+    expect(isCriticalFlag('HH')).toBe(true);
+    expect(isCriticalFlag('L')).toBe(false);
+    expect(isCriticalFlag('N')).toBe(false);
+  });
+
+  it('rejects non-HL7 and unsupported types', () => {
+    expect(parseHl7('hello').ok).toBe(false);
+    expect(parseHl7(null).ok).toBe(false);
+    expect(parseHl7('MSH|^~\\&|A|B|C|D|E||ADT^A08|X|P|2.5').ok).toBe(true);
   });
 });
 
