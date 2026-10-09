@@ -14,6 +14,12 @@ const testSchema = new mongoose.Schema({
   categoryCode: { type: String, default: '', index: true },
   department: { type: String, default: 'Pathology' },
   price: { type: Number, required: true },
+  // File 22 P1-11: reference + critical limits (copied onto order lines).
+  refLow: { type: Number, default: null },
+  refHigh: { type: Number, default: null },
+  criticalLow: { type: Number, default: null },
+  criticalHigh: { type: Number, default: null },
+  unit: { type: String, default: '' },
   mrp: { type: Number, default: 0 },
   discount: { type: Number, default: 0 },
   reportTime: { type: String, default: '24 hrs' },

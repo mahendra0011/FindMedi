@@ -190,7 +190,7 @@ router.post('/orders', protect, authorize('lab:book', 'lab:book:own'), validate(
 
 const orderId = generateOrderId('LAB');
     const order = await LabOrder.create({
-      orderId, patientId, patientName,
+      orderId, accessionNo: `ACC-${Date.now().toString(36).toUpperCase()}`, patientId, patientName,
       doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,
       hospitalId: req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined,
       tests: tests.map(t => ({
@@ -217,13 +217,22 @@ const orderId = generateOrderId('LAB');
       let billed = 0;
       const names = [];
       for (const t of order.tests) {
+        // File 22 P1-11: copy master refs AND price in one lookup.
         const master = await safeFirst(Test.findOne({
           hospitalId: order.hospitalId, name: t.testName,
-        }).select('price').lean());
+        }).select('price refLow refHigh criticalLow criticalHigh unit').lean());
+        if (master) {
+          t.refLow = master.refLow ?? t.refLow ?? null;
+          t.refHigh = master.refHigh ?? t.refHigh ?? null;
+          t.criticalLow = master.criticalLow ?? null;
+          t.criticalHigh = master.criticalHigh ?? null;
+          if (master.unit && !t.unit) t.unit = master.unit;
+        }
         const price = Number(master?.price || 0);
         billed += price;
         names.push(t.testName);
       }
+      await order.save();
       // One Pending line per order (idempotent on the order ref).
       await postCharge({
         hospitalId: order.hospitalId, patientId: order.patientId,
@@ -424,15 +433,44 @@ router.put('/orders/:id/enter-result', protect, authorizeObject({ model: LabOrde
     test.status = 'Completed';
     test.resultEnteredBy = req.user._id;
     test.resultEnteredAt = new Date();
-    if (normalRange) {
+    // File 22 P1-11: structured H/L/HH/LL flags (master refs first, string
+    // parse as fallback) + delta check against the last verified result.
+    const val = parseFloat(resultValue);
+    const lo = test.refLow ?? null;
+    const hi = test.refHigh ?? null;
+    if (!Number.isNaN(val) && lo != null && hi != null) {
+      test.isAbnormal = val < lo || val > hi;
+      const cLo = test.criticalLow ?? lo * 0.5;
+      const cHi = test.criticalHigh ?? hi * 1.5;
+      test.isCritical = val < cLo || val > cHi;
+      test.flag = val < cLo || (test.criticalLow != null && val < test.criticalLow) ? 'LL'
+        : val > cHi || (test.criticalHigh != null && val > test.criticalHigh) ? 'HH'
+        : val < lo ? 'L' : val > hi ? 'H' : '';
+    } else if (normalRange) {
       const rangeMatch = normalRange.match(/([\d.]+)\s*[-–]\s*([\d.]+)/);
       if (rangeMatch) {
-        const val = parseFloat(resultValue), low = parseFloat(rangeMatch[1]), high = parseFloat(rangeMatch[2]);
+        const low = parseFloat(rangeMatch[1]), high = parseFloat(rangeMatch[2]);
         if (!isNaN(val) && !isNaN(low) && !isNaN(high)) {
           test.isAbnormal = val < low || val > high;
           test.isCritical = val < low * 0.5 || val > high * 1.5;
+          test.flag = val < low ? 'L' : val > high ? 'H' : '';
         }
       }
+    }
+    if (!Number.isNaN(val)) {
+      try {
+        const prev = await LabOrder.findOne({
+          patientId: order.patientId, _id: { $ne: order._id },
+          tests: { $elemMatch: { testName: test.testName, status: { $in: ['Verified', 'Report Delivered'] } } },
+        }).select('tests').sort({ updatedAt: -1 }).lean();
+        const prevTest = (prev?.tests || []).find((t) => t.testName === test.testName && t.resultValue);
+        const prevVal = prevTest ? parseFloat(prevTest.resultValue) : NaN;
+        if (!Number.isNaN(prevVal) && prevVal !== 0) {
+          test.prevValue = String(prevTest.resultValue);
+          test.deltaPct = +(((val - prevVal) / Math.abs(prevVal)) * 100).toFixed(1);
+          test.deltaFlag = Math.abs(test.deltaPct) > 50;
+        }
+      } catch { /* delta lookup must never block result entry */ }
     }
     await order.save();
     await auditLog('enter_lab_result', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
@@ -519,6 +557,187 @@ router.put('/orders/:id/verify', protect, authorizeObject({ model: LabOrder, own
     }
     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// File 22 P1-11: sample reject → recollect cycle (reason + count tracked).
+router.put('/orders/:id/tests/:index/reject', protect, authorize('lab:enter_result'), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const test = order.tests[Number(req.params.index)];
+    if (!test) return res.status(404).json({ message: 'Test not found' });
+    if (!req.body?.reason) return res.status(400).json({ message: 'Reject reason required' });
+    test.status = 'Rejected';
+    test.recollectReason = String(req.body.reason).slice(0, 500);
+    test.recollectCount = Number(test.recollectCount || 0) + 1;
+    await order.save();
+    await auditLog('lab_sample_rejected', req.user._id, { recordId: order._id, reason: test.recollectReason, ip: req.ip });
+    return res.json({ id: String(order._id), status: test.status });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/orders/:id/tests/:index/recollect', protect, authorize('lab:enter_result'), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const test = order.tests[Number(req.params.index)];
+    if (!test || test.status !== 'Rejected') return res.status(409).json({ message: 'Only rejected samples can be recollected' });
+    test.status = 'Sample Needed';
+    test.resultValue = '';
+    test.flag = '';
+    await order.save();
+    await auditLog('lab_sample_recollect', req.user._id, { recordId: order._id, ip: req.ip });
+    return res.json({ id: String(order._id), status: test.status });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// File 22 P1-11: outsourced test hand-off (sent → received).
+router.put('/orders/:id/tests/:index/outsource', protect, authorize('lab:manage'), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const test = order.tests[Number(req.params.index)];
+    if (!test) return res.status(404).json({ message: 'Test not found' });
+    const { lab, received } = req.body || {};
+    test.outsourced = test.outsourced || {};
+    if (lab) {
+      test.outsourced.lab = String(lab).slice(0, 200);
+      test.outsourced.sentAt = new Date();
+    }
+    if (received) test.outsourced.receivedAt = new Date();
+    await order.save();
+    return res.json({ id: String(order._id), outsourced: test.outsourced });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// File 22 P1-11: critical-result call-back log (who was told, when).
+router.post('/orders/:id/callback', protect, authorize('lab:verify'), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const { testName, calledTo, notes } = req.body || {};
+    if (!testName || !calledTo) return res.status(400).json({ message: 'testName + calledTo required' });
+    order.criticalCallbacks.push({
+      testName: String(testName).slice(0, 200), calledTo: String(calledTo).slice(0, 200),
+      calledBy: req.user._id, at: new Date(), notes: String(notes || '').slice(0, 500),
+    });
+    await order.save();
+    await auditLog('lab_callback_logged', req.user._id, { recordId: order._id, testName, ip: req.ip });
+    return res.status(201).json({ id: String(order._id), callbacks: order.criticalCallbacks.length });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// File 22 P1-11: TAT dashboard (STAT 2h / Urgent 6h / Routine 24h).
+router.get('/tat', protect, authorize('lab:read'), async (req, res) => {
+  try {
+    const hf = req.user.hospitalId && req.user.role !== 'superadmin' ? { hospitalId: req.user.hospitalId } : {};
+    const SLA_H = { STAT: 2, Urgent: 6, Routine: 24 };
+    const orders = await LabOrder.find({ ...hf }).select('tests createdAt priority').sort({ createdAt: -1 }).limit(500).lean();
+    const byPriority = {};
+    let breached = 0;
+    for (const o of orders) {
+      for (const t of (o.tests || [])) {
+        const end = t.verifiedAt || t.resultEnteredAt;
+        if (!end) continue;
+        const hrs = (new Date(end) - new Date(o.createdAt)) / 3600000;
+        const p = t.priority || o.priority || 'Routine';
+        const sla = SLA_H[p] || 24;
+        byPriority[p] = byPriority[p] || { n: 0, totalHrs: 0, breached: 0 };
+        byPriority[p].n += 1;
+        byPriority[p].totalHrs += hrs;
+        if (hrs > sla) {
+          byPriority[p].breached += 1;
+          breached += 1;
+        }
+      }
+    }
+    for (const p of Object.keys(byPriority)) {
+      byPriority[p].avgHrs = +(byPriority[p].totalHrs / byPriority[p].n).toFixed(1);
+      delete byPriority[p].totalHrs;
+    }
+    return res.json({ byPriority, breached, slaHours: SLA_H });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// File 22 P1-11: QC runs + Levey-Jennings chart data (last 30 + violations).
+router.post('/qc', protect, authorize('lab:enter_result'), async (req, res) => {
+  try {
+    const { default: QcRun } = await import('../models/QcRun.js');
+    const { analyzer, testName, controlLevel, mean, sd, value } = req.body || {};
+    if (!testName || !(Number(mean) > 0) || !(Number(sd) >= 0) || value == null) {
+      return res.status(400).json({ message: 'testName + mean>0 + sd>=0 + value required' });
+    }
+    const row = await QcRun.create({
+      hospitalId: req.user.hospitalId || undefined, analyzer: analyzer || '',
+      testName, controlLevel: controlLevel || 'L1',
+      mean: Number(mean), sd: Number(sd), value: Number(value), runBy: req.user._id,
+    });
+    return res.status(201).json({ id: String(row._id) });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.get('/qc/chart', protect, authorize('lab:read'), async (req, res) => {
+  try {
+    const { default: QcRun, westgardFlags } = await import('../models/QcRun.js');
+    const { analyzer, testName } = req.query;
+    if (!testName) return res.status(400).json({ message: 'testName required' });
+    const filter = { testName };
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (analyzer) filter.analyzer = analyzer;
+    const rows = await QcRun.find(filter).sort({ at: -1 }).limit(30).lean();
+    const asc = [...rows].reverse();
+    const points = asc.map((r, i) => ({
+      at: r.at, value: r.value, mean: r.mean, sd: r.sd,
+      flags: westgardFlags(r.value, r.mean, r.sd, i > 0 ? asc[i - 1].value : null),
+    }));
+    return res.json({ points, violations: points.filter((p) => p.flags.length).length });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// File 22 P1-11: ASTM ingest (analyzer → results), mirroring the HL7 route.
+router.post('/ingest/astm', async (req, res, next) => {
+  try {
+    if (req.headers?.['x-api-key']) return apiKeyAuth(req, res, next);
+    return protect(req, res, next);
+  } catch (err) { return res.status(500).json({ message: err.message }); }
+}, async (req, res) => {
+  try {
+    const { parseAstmFrame } = await import('../lib/astm.js');
+    const frame = typeof req.body === 'string' ? req.body : req.body?.frame;
+    if (!frame) return res.status(400).json({ message: 'ASTM frame required' });
+    const parsed = parseAstmFrame(frame);
+    let matched = 0;
+    for (const r of parsed.results) {
+      const order = await LabOrder.findOne({
+        $or: [{ accessionNo: r.sampleId }, { orderId: r.sampleId }, { 'tests.sampleId': r.sampleId }],
+      });
+      if (!order) continue;
+      const test = order.tests.find((t) => t.testName === r.testCode || t.sampleId === r.sampleId) || order.tests[0];
+      if (!test || test.status === 'Verified') continue;
+      test.resultValue = r.value;
+      if (r.refRange) test.normalRange = r.refRange;
+      if (r.flag) test.flag = /H/i.test(r.flag) ? 'H' : /L/i.test(r.flag) ? 'L' : test.flag;
+      test.status = 'Completed';
+      test.resultEnteredAt = new Date();
+      // eslint-disable-next-line no-await-in-loop
+      await order.save();
+      matched += 1;
+    }
+    await auditLog('astm_ingest', req.user?._id, { matched, errors: parsed.errors, ip: req.ip });
+    return res.json({ matched, errors: parsed.errors });
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 // ─── Mark Report Delivered ─────────────────────────────────────────────────

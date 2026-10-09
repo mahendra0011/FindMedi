@@ -1312,6 +1312,15 @@ export const api = {
   hubDeleteSub:           (id)      => request(`/hub/webhooks/subs/${id}`, { method: 'DELETE' }),
   hubDeliveries:          (p={})    => request('/hub/webhooks/deliveries' + qs(p)),
 
+  // ── File 22 P1-11: LIS depth ──
+  labReject:               (id, idx, reason) => request(`/lab/orders/${id}/tests/${idx}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
+  labRecollect:            (id, idx) => request(`/lab/orders/${id}/tests/${idx}/recollect`, { method: 'PUT' }),
+  labOutsource:            (id, idx, body) => request(`/lab/orders/${id}/tests/${idx}/outsource`, { method: 'PUT', body: JSON.stringify(body) }),
+  labCallback:             (id, body) => request(`/lab/orders/${id}/callback`, { method: 'POST', body: JSON.stringify(body) }),
+  labTat:                 ()        => request('/lab/tat'),
+  qcCreate:               (body)    => request('/lab/qc', { method: 'POST', body: JSON.stringify(body) }),
+  qcChart:                (p={})    => request('/lab/qc/chart' + qs(p)),
+
   // ── File 22 P0-5/P0-6: safety ledgers + front-office + payroll/payouts ──
   safetyList:              (path, p={}) => request('/safety/' + path + qs(p)),
   safetyCreate:            (path, body) => request('/safety/' + path, { method: 'POST', body: JSON.stringify(body) }),
