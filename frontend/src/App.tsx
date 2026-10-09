@@ -956,7 +956,7 @@ const App = () => (
                     <Route path="/hospital/kpis" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><KpiDashboard /></RoleRoute>} />
                     <Route path="/hospital/calls" element={<RoleRoute allowedRoles={['hospital_admin', 'receptionist', 'superadmin', 'call_center_agent', 'front_desk']}><CallConsole /></RoleRoute>} />
                     <Route path="/hospital/hub" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><HubBoard /></RoleRoute>} />
-                    <Route path="/hospital/safety" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'receptionist', 'superadmin', 'quality_officer', 'pharmacovigilance_officer', 'infection_control_nurse', 'nursing_supervisor', 'matron']}><SafetyDesk /></RoleRoute>} />
+                    <Route path="/hospital/safety" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'receptionist', 'superadmin', 'quality_officer', 'pharmacovigilance_officer', 'infection_control_nurse', 'nursing_supervisor', 'matron', 'front_desk']}><SafetyDesk /></RoleRoute>} />
 
                     {/* Patient routes */}
                     <Route path="/patient/appointments" element={<RoleRoute allowedRoles={['patient']}><PatientAppointments /></RoleRoute>} />

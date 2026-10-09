@@ -1329,6 +1329,10 @@ export const api = {
   enquiries:               (p={})    => request('/frontoffice/enquiries' + qs(p)),
   createEnquiry:           (body)    => request('/frontoffice/enquiries', { method: 'POST', body: JSON.stringify(body) }),
   patchEnquiry:            (id, body)=> request(`/frontoffice/enquiries/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  // ── File 22 P1-12: duplicates + merge + ABHA ──
+  patientDuplicates:       ()        => request('/patients/duplicates'),
+  mergePatients:           (id, duplicateId) => request(`/patients/${id}/merge`, { method: 'POST', body: JSON.stringify({ duplicateId }) }),
+  linkAbha:                (id, abhaAddress) => request(`/patients/${id}/abha`, { method: 'POST', body: JSON.stringify({ abhaAddress }) }),
   payouts:                 (p={})    => request('/finance/payouts' + qs(p)),
   createPayout:            (body)    => request('/finance/payouts', { method: 'POST', body: JSON.stringify(body) }),
   payoutState:             (id, state) => request(`/finance/payouts/${id}/state`, { method: 'POST', body: JSON.stringify({ state }) }),

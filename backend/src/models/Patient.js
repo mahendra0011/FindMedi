@@ -44,6 +44,12 @@ const patientSchema = new mongoose.Schema({
 
   admitted: { type: Date, default: Date.now },
   status: { type: String, enum: ['Active', 'Discharged', 'Critical'], default: 'Active' },
+  // File 22 P1-12: merge + ABHA linkage.
+  mergedInto: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient', default: null, index: true },
+  mergedAt: { type: Date, default: null },
+  mergedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  abhaAddress: { type: String, default: '' },
+  abhaStatus: { type: String, enum: ['', 'Unverified', 'Verified'], default: '' },
   // File 15 §15.3: kiosk self-registration — minimal record the front desk
   // completes later (KYC/consent); reception sees it as provisional.
   provisional: { type: Boolean, default: false, index: true },

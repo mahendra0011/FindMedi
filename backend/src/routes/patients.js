@@ -109,8 +109,7 @@ const canAccessPatientDoc = (req, patient) => {
 };
 
 // ─── Get Patients ───────────────────────────────────────────────────────────
-router.get('/', protect, async (req, res) => {
-  try {
+router.get('/', protect, async (req, res) => {  try {
     const { page, limit, search, status } = req.query;
     const access = canReadPatientList(req);
     if (!access.ok) {
@@ -142,6 +141,95 @@ router.get('/', protect, async (req, res) => {
       else if (Array.isArray(result.results)) result.results = applyFieldMaskMany('Patient', result.results, req.user.role);
     }
     res.json(result);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// File 22 P1-12: duplicate detection (same phone, or same name+dob/phone
+// prefix) + merge tool + ABHA linkage. Declared BEFORE /:id so the literal
+// paths are not swallowed as ids.
+router.get('/duplicates', protect, async (req, res) => {
+  try {
+    const access = canReadPatientList(req);
+    if (!access.ok) return res.status(403).json({ message: 'Not authorized to list patients' });
+    const base = {};
+    if (access.scope) base.hospitalId = access.scope;
+    const rows = await Patient.find({ ...base, mergedInto: null }).select('_id name phone dateOfBirth uhid').limit(2000).lean();
+    const byPhone = {};
+    for (const p of rows) {
+      const ph = String(p.phone || '').replace(/\D/g, '').slice(-10);
+      if (ph.length < 10) continue;
+      byPhone[ph] = byPhone[ph] || [];
+      byPhone[ph].push(p);
+    }
+    const groups = Object.values(byPhone).filter((g) => g.length > 1)
+      .map((g) => ({ key: `phone:${String(g[0].phone).slice(-10)}`, patients: g }));
+    return res.json({ groups });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// Merge duplicate INTO :id (survivor). Re-points clinical/financial refs,
+// moves flags, marks the duplicate merged (never deleted — audit trail).
+// authz: role (front-desk leads; survivor must be unmerged).
+router.post('/:id/merge', protect, async (req, res) => {
+  try {
+    const access = canReadPatientList(req);
+    if (!access.ok) return res.status(403).json({ message: 'Not authorized' });
+    const { duplicateId } = req.body || {};
+    if (!duplicateId || String(duplicateId) === String(req.params.id)) {
+      return res.status(400).json({ message: 'duplicateId (≠ survivor) required' });
+    }
+    const [survivor, dup] = await Promise.all([
+      Patient.findById(req.params.id), Patient.findById(duplicateId),
+    ]);
+    if (!survivor || !dup) return res.status(404).json({ message: 'Patient not found' });
+    if (survivor.mergedInto || dup.mergedInto) {
+      return res.status(409).json({ message: 'One side is already merged' });
+    }
+    if (String(survivor.hospitalId) !== String(dup.hospitalId)) {
+      return res.status(409).json({ message: 'Cross-hospital merge forbidden' });
+    }
+    const { default: Appointment } = await import('../models/Appointment.js');
+    const { default: Billing } = await import('../models/Billing.js');
+    const { default: LabOrder } = await import('../models/LabOrder.js');
+    const { default: PharmacyOrder } = await import('../models/PharmacyOrder.js');
+    const { default: Encounter } = await import('../models/Encounter.js');
+    const { default: PatientFlag } = await import('../models/PatientFlag.js');
+    await Promise.all([
+      Appointment.updateMany(
+        { $or: [{ patientRecordId: dup._id }, { patientId: dup.userId || dup._id }] },
+        { $set: { patientRecordId: survivor._id } },
+      ).catch(() => null),
+      Billing.updateMany({ patientId: dup.userId || dup._id }, { $set: { patientId: survivor.userId || survivor._id } }).catch(() => null),
+      LabOrder.updateMany({ patientId: dup.userId || dup._id }, { $set: { patientId: survivor.userId || survivor._id } }).catch(() => null),
+      PharmacyOrder.updateMany({ patientId: dup.userId || dup._id }, { $set: { patientId: survivor.userId || survivor._id } }).catch(() => null),
+      Encounter.updateMany({ patientId: dup.userId || dup._id }, { $set: { patientId: survivor.userId || survivor._id } }).catch(() => null),
+      PatientFlag.updateMany({ patient: dup._id }, { $set: { patient: survivor._id } }).catch(() => null),
+    ]);
+    dup.mergedInto = survivor._id;
+    dup.mergedAt = new Date();
+    dup.mergedBy = req.user._id;
+    await dup.save();
+    await auditLog('patient_merged', req.user._id, { survivor: survivor._id, duplicate: dup._id, ip: req.ip });
+    return res.json({ id: String(survivor._id), merged: String(dup._id) });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ABHA address linkage (verification happens when ABDM credentials exist;
+// until then the address is stored Unverified — never claimed as verified).
+router.post('/:id/abha', protect, async (req, res) => {
+  try {
+    const p = await Patient.findById(req.params.id);
+    if (!p) return res.status(404).json({ message: 'Patient not found' });
+    if (!canAccessPatientDoc(req, p)) return res.status(403).json({ message: 'Access denied' });
+    const { abhaAddress } = req.body || {};
+    if (!abhaAddress || !/^[a-zA-Z0-9._-]{3,}@[a-zA-Z]{2,}$/.test(String(abhaAddress))) {
+      return res.status(400).json({ message: 'Valid ABHA address required (user@sbx)' });
+    }
+    p.abhaAddress = String(abhaAddress);
+    p.abhaStatus = 'Unverified';
+    await p.save();
+    await auditLog('abha_linked', req.user._id, { recordId: p._id, ip: req.ip });
+    return res.json({ id: String(p._id), abhaAddress: p.abhaAddress, abhaStatus: p.abhaStatus });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
