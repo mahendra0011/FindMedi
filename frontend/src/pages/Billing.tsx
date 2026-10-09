@@ -26,6 +26,8 @@ export default function Billing() {
   // request id; the biller retries the same invoice once it is approved.
   const [approval, setApproval] = useState<{ id: string; roles: string[] } | null>(null);
   const [selectedBill, setSelectedBill] = useState<any | null>(null);
+  // File 22 P1-14: split collection legs.
+  const [legs, setLegs] = useState([{ mode: 'Cash', amount: '', txnRef: '' }]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['billing', search, statusFilter],
@@ -128,6 +130,47 @@ export default function Billing() {
       {/* Table */}
       {/* File 22 P0-2: flag chips for the selected bill's patient */}
       {selectedBill && <PatientBanner patientId={selectedBill.patientId || ''} />}
+      {/* File 22 P1-14: split collection for the selected bill */}
+      {selectedBill && selectedBill.status !== 'Paid' && selectedBill.status !== 'Cancelled' ? (
+        <div className="rounded-xl border p-3 space-y-2">
+          <p className="text-sm font-semibold">Collect — {selectedBill.invoiceId} (balance ₹{Number(selectedBill.balance ?? selectedBill.amount ?? 0).toLocaleString('en-IN')})</p>
+          {legs.map((l, i) => (
+            <div key={i} className="flex gap-2">
+              <select className="h-9 rounded-md border px-2 text-sm" value={l.mode} onChange={(e) => setLegs(legs.map((x, j) => j === i ? { ...x, mode: e.target.value } : x))}>
+                {['Cash', 'Card', 'UPI', 'Cheque', 'Insurance', 'Online', 'Other'].map((m) => <option key={m}>{m}</option>)}
+              </select>
+              <Input className="w-32" type="number" placeholder="Amount" value={l.amount} onChange={(e) => setLegs(legs.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))} />
+              <Input className="w-40" placeholder="Txn ref (optional)" value={l.txnRef} onChange={(e) => setLegs(legs.map((x, j) => j === i ? { ...x, txnRef: e.target.value } : x))} />
+              {legs.length > 1 ? <Button size="sm" variant="ghost" onClick={() => setLegs(legs.filter((_, j) => j !== i))}>×</Button> : null}
+            </div>
+          ))}
+          <div className="flex gap-2">
+            {legs.length < 6 ? <Button size="sm" variant="outline" onClick={() => setLegs([...legs, { mode: 'UPI', amount: '', txnRef: '' }])}>+ leg</Button> : null}
+            <Button size="sm" onClick={async () => {
+              try {
+                await api.collectBill(selectedBill._id, legs.filter((l) => Number(l.amount) > 0).map((l) => ({ mode: l.mode, amount: Number(l.amount), txnRef: l.txnRef })));
+                toast.success('Collection recorded');
+                setLegs([{ mode: 'Cash', amount: '', txnRef: '' }]);
+                setSelectedBill(null);
+                qc.invalidateQueries(['billing']);
+              } catch (err: any) { toast.error(err?.response?.data?.message || 'Collection failed'); }
+            }}>Collect ₹{legs.reduce((s, l) => s + (Number(l.amount) || 0), 0).toLocaleString('en-IN')}</Button>
+            <Button size="sm" variant="outline" onClick={async () => {
+              const reason = window.prompt('Cancel reason:');
+              if (!reason) return;
+              try {
+                await api.cancelBill(selectedBill._id, reason);
+                toast.success('Bill cancelled');
+                setSelectedBill(null);
+                qc.invalidateQueries(['billing']);
+              } catch (err: any) {
+                const d = err?.response?.data;
+                toast.error(d?.code === 'NEEDS_APPROVAL' ? `Paid bill — approval ${d.approvalId} raised for ${d.approverRoles?.join('/')}` : (d?.message || 'Cancel failed'));
+              }
+            }}>Cancel bill</Button>
+          </div>
+        </div>
+      ) : null}
       <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">

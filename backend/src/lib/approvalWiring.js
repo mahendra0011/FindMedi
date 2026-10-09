@@ -11,6 +11,7 @@ export const APPROVAL_DEFAULTS = {
   'credit-note': { amount: 5000, roles: ['hospital_admin'] },
   expense: { amount: 10000, roles: ['hospital_admin'] },
   'purchase-order': { amount: 25000, roles: ['hospital_admin'] },
+  'bill-cancel': { amount: 1, roles: ['hospital_admin'] }, // any paid-bill cancel needs eyes
   'stock-adjust': { qty: 100, roles: ['hospital_admin'] },
   'discharge-waiver': { amount: 1, roles: ['hospital_admin'] }, // any dues waiver needs eyes
 };

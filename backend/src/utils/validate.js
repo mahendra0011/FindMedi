@@ -1621,6 +1621,9 @@ export const createBillingSchema = z.object({
     quantity: z.number().int().positive().optional(),
     category: z.string().optional(),
     discount: nonNegativeNumber.optional(),
+    // File 22 P1-14: GST line data.
+    hsn: z.string().max(12).optional(),
+    gstRate: z.number().min(0).max(28).optional(),
   })).optional(),
   source: z.enum(['manual', 'appointment', 'lab', 'pharmacy', 'ipd', 'ot', 'radiology', 'physio', 'diet']).optional(),
   amount: z.number().nonnegative('Amount must be non-negative'),
@@ -1641,8 +1644,13 @@ export const createBillingSchema = z.object({
   insuranceApprovedAmount: nonNegativeNumber.optional(),
   insuranceStatus: z.enum(['Not Submitted', 'Submitted', 'Approved', 'Rejected', 'Partial']).optional(),
   invoiceId: z.string().optional(),
-  // File 22 P0-1: captured discount approval (consumed once, verified server-side).
+  // File 22 P1-14: captured discount approval (consumed once, verified server-side).
   approvalId: z.string().optional(),
+  // File 22 P1-14: GST identity, series, package cap.
+  gstin: z.string().max(15).optional(),
+  invoiceSeries: z.string().max(12).optional(),
+  packageId: z.string().max(60).optional(),
+  packageCap: nonNegativeNumber.optional(),
 }).strip(); // drop unknown keys (_id, hospitalId, balance, createdAt, ...)
 
 // â”€â”€â”€ Additional Auth Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

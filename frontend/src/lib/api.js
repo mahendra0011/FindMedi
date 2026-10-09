@@ -459,7 +459,10 @@ export const api = {
   deleteRecord:       (id)      => request(`/records/${id}`,        { method:'DELETE' }),
 
   getBilling:         (p={})    => request('/billing?' + new URLSearchParams(p)),
-  createBill:         (body)    => request('/billing',              { method:'POST',   body: JSON.stringify(body) }),
+  createBill:             (body)    => request('/billing',              { method:'POST',   body: JSON.stringify(body) }),
+  collectBill:            (id, legs)=> request(`/billing/${id}/collect`, { method:'POST', body: JSON.stringify({ payments: legs }) }),
+  cancelBill:             (id, reason)=> request(`/billing/${id}/cancel`, { method:'POST', body: JSON.stringify({ reason }) }),
+  doctorFees:             (p={})    => request('/billing/doctor-fees' + qs(p)),
   payBill:            (id,body) => request(`/billing/${id}/pay`,    { method:'POST',   body: JSON.stringify(body) }),
   updateBill:         (id,body) => request(`/billing/${id}`,        { method:'PUT',    body: JSON.stringify(body) }),
   deleteBill:         (id)      => request(`/billing/${id}`,        { method:'DELETE' }),

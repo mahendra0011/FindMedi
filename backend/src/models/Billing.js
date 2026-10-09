@@ -27,6 +27,9 @@ const billingSchema = new mongoose.Schema({
     quantity: { type: Number, default: 1 },
     category: { type: String, default: 'General' },
     discount: { type: Number, default: 0 },
+    // File 22 P1-14: GST line data (HSN + rate snapshot at billing time).
+    hsn: { type: String, default: '' },
+    gstRate: { type: Number, default: 0, min: 0, max: 28 },
   }],
   source: { type: String, enum: ['manual', 'appointment', 'lab', 'pharmacy', 'ipd', 'ot', 'radiology', 'physio', 'diet'], default: 'manual' },
   amount: { type: Number, required: true },
@@ -65,6 +68,22 @@ const billingSchema = new mongoose.Schema({
   shiftId: { type: mongoose.Schema.Types.ObjectId, ref: 'CashShift', default: null },
   // File 22 P0-1: consumed discount approval (ApprovalRequest id, one-time).
   approvalRef: { type: mongoose.Schema.Types.ObjectId, ref: 'ApprovalRequest', default: null },
+  // File 22 P1-14: split payments, GST identity, series, package, cancel audit.
+  payments: [{
+    mode: { type: String, enum: ['Cash', 'Card', 'UPI', 'Cheque', 'Insurance', 'Online', 'Other'], default: 'Cash' },
+    amount: { type: Number, required: true, min: 0 },
+    txnRef: { type: String, default: '' },
+    at: { type: Date, default: Date.now },
+    by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  }],
+  gstin: { type: String, default: '' },
+  invoiceSeries: { type: String, default: '' },
+  packageId: { type: String, default: '' },
+  packageCap: { type: Number, default: 0 },
+  overage: { type: Number, default: 0 },
+  cancelReason: { type: String, default: '' },
+  cancelledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  cancelApprovalRef: { type: mongoose.Schema.Types.ObjectId, ref: 'ApprovalRequest', default: null },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });

@@ -321,12 +321,41 @@ router.post('/', protect, authorize('billing:write'), paymentLimiter, validate(c
         }
       }
     }
-    const invoiceId = req.body.invoiceId || generateInvoiceId();
     const date = req.body.date || getISTDateString();
+    // File 22 P1-14: series numbering (atomic counter per hospital+prefix+FY).
+    let invoiceId = req.body.invoiceId;
+    let seriesUsed = '';
+    if (!invoiceId && req.body.invoiceSeries) {
+      const { default: InvoiceSeries } = await import('../models/InvoiceSeries.js');
+      const now = new Date();
+      const fyStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      const fy = `${String(fyStart).slice(2)}-${String(fyStart + 1).slice(2)}`;
+      const prefix = String(req.body.invoiceSeries).slice(0, 12).toUpperCase();
+      const counter = await InvoiceSeries.findOneAndUpdate(
+        { hospitalId: req.user.hospitalId, prefix, fy },
+        { $inc: { next: 1 } },
+        { upsert: true, new: true },
+      );
+      invoiceId = `${prefix}/${fy}/${String(counter.next - 1).padStart(5, '0')}`;
+      seriesUsed = prefix;
+    }
+    if (!invoiceId) invoiceId = generateInvoiceId();
+    // File 22 P1-14: GST auto-total from line rates (only when client did not
+    // send an explicit tax — never silently overwrite a stated total).
+    const body = { ...req.body };
+    if ((body.tax == null || body.tax === 0) && Array.isArray(body.services) && body.services.some((s) => Number(s.gstRate) > 0)) {
+      body.tax = +body.services.reduce((t, s) => t + (Number(s.price) || 0) * (Number(s.quantity) || 1) * (Number(s.gstRate) || 0) / 100, 0).toFixed(2);
+      body.taxableAmount = body.services.reduce((t, s) => t + (Number(s.price) || 0) * (Number(s.quantity) || 1), 0);
+    }
+    // File 22 P1-14: package overage (amount beyond the package cap).
+    const packageCap = Number(body.packageCap) || 0;
+    const overage = packageCap > 0 ? Math.max(0, (Number(body.amount) || 0) - packageCap) : 0;
     const bill = await Billing.create({
-      ...req.body,
+      ...body,
       approvalRef,
       invoiceId,
+      invoiceSeries: seriesUsed,
+      overage,
       date,
       hospitalId: req.user.hospitalId || undefined,
       facilityId: req.user.facilityId || undefined,
@@ -334,6 +363,36 @@ router.post('/', protect, authorize('billing:write'), paymentLimiter, validate(c
     await auditLog('create_billing', req.user._id, { billId: bill._id, invoiceId, amount: bill.amount });
     void import('../lib/pgDualWrite.js').then((m) => m.mirrorBilling(bill)).catch(() => {});
     res.status(201).json(bill);
+  } catch (err) { next(err); }
+});
+
+// File 22 P1-14: doctor fee master (resolve + upsert). Declared BEFORE
+// GET /:id so the literal path is not swallowed as an invoice id.
+router.get('/doctor-fees', protect, authorize('billing:read'), async (req, res, next) => {
+  try {
+    const { default: DoctorFee } = await import('../models/DoctorFee.js');
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.query.doctorId) filter.doctorId = req.query.doctorId;
+    const rows = await DoctorFee.find({ ...filter, active: true }).sort({ effectiveFrom: -1 }).limit(200).lean();
+    return res.json({ fees: rows });
+  } catch (err) { next(err); }
+});
+
+router.post('/doctor-fees', protect, authorize('billing:write'), async (req, res, next) => {
+  try {
+    const { default: DoctorFee } = await import('../models/DoctorFee.js');
+    const { doctorId, consultFee, followUpFee, emergencyFee, revenueSharePct } = req.body || {};
+    if (!doctorId) return res.status(400).json({ message: 'doctorId required' });
+    const num = (v) => (Number(v) >= 0 ? Number(v) : 0);
+    const row = await DoctorFee.create({
+      hospitalId: req.user.hospitalId || undefined, doctorId,
+      consultFee: num(consultFee), followUpFee: num(followUpFee),
+      emergencyFee: num(emergencyFee), revenueSharePct: Math.min(100, num(revenueSharePct)),
+      createdBy: req.user._id,
+    });
+    await auditLog('doctor_fee_set', req.user._id, { feeId: row._id, doctorId, ip: req.ip });
+    return res.status(201).json({ id: String(row._id) });
   } catch (err) { next(err); }
 });
 
@@ -408,6 +467,95 @@ router.put('/:id', protect, authorize('billing:write'), paymentLimiter, async (r
     await bill.save();
     await auditLog('update_billing', req.user._id, { billId: bill._id, changes: req.body });
     res.json(bill);
+  } catch (err) { next(err); }
+});
+
+// File 22 P1-14: split collection — one call, many modes. Sum must not
+// exceed the outstanding balance; paid/balance/status derive server-side.
+router.post('/:id/collect', protect, authorize('billing:write'), paymentLimiter, async (req, res, next) => {
+  try {
+    const bill = mongoose.Types.ObjectId.isValid(req.params.id)
+      ? await Billing.findById(req.params.id)
+      : await Billing.findOne({ invoiceId: req.params.id });
+    if (!bill) return res.status(404).json({ message: 'Bill not found' });
+    if (!canViewBill(bill, req.user)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    if (bill.status === 'Cancelled') return res.status(409).json({ message: 'Bill is cancelled' });
+    const parts = req.body?.payments;
+    if (!Array.isArray(parts) || !parts.length || parts.length > 6) {
+      return res.status(400).json({ message: 'payments[] (1-6 legs) required' });
+    }
+    const MODES = ['Cash', 'Card', 'UPI', 'Cheque', 'Insurance', 'Online', 'Other'];
+    let total = 0;
+    const legs = [];
+    for (const p of parts) {
+      if (!MODES.includes(p.mode) || !(Number(p.amount) > 0)) {
+        return res.status(400).json({ message: 'Each leg needs a valid mode + amount>0' });
+      }
+      total += Number(p.amount);
+      legs.push({
+        mode: p.mode, amount: Number(p.amount),
+        txnRef: String(p.txnRef || '').slice(0, 60), at: new Date(), by: req.user._id,
+      });
+    }
+    total = +total.toFixed(2);
+    if (total - (bill.balance || 0) > 0.009) {
+      return res.status(422).json({ message: `Collection ₹${total} exceeds balance ₹${bill.balance}`, code: 'OVER_COLLECTION' });
+    }
+    bill.payments.push(...legs);
+    bill.paid = +((bill.paid || 0) + total).toFixed(2);
+    bill.balance = +Math.max(0, (bill.amount || 0) - bill.paid).toFixed(2);
+    bill.status = bill.balance <= 0.009 ? 'Paid' : 'Partial';
+    await bill.save();
+    await auditLog('bill_collected', req.user._id, { billId: bill._id, total, legs: legs.length, ip: req.ip });
+    return res.json({ id: String(bill._id), paid: bill.paid, balance: bill.balance, status: bill.status });
+  } catch (err) { next(err); }
+});
+
+// File 22 P1-14: bill cancellation with reason; paid bills need an approval.
+router.post('/:id/cancel', protect, authorize('billing:write'), paymentLimiter, async (req, res, next) => {
+  try {
+    const bill = mongoose.Types.ObjectId.isValid(req.params.id)
+      ? await Billing.findById(req.params.id)
+      : await Billing.findOne({ invoiceId: req.params.id });
+    if (!bill) return res.status(404).json({ message: 'Bill not found' });
+    if (!canViewBill(bill, req.user)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    if (bill.status === 'Cancelled') return res.status(409).json({ message: 'Already cancelled' });
+    if (!req.body?.reason) return res.status(400).json({ message: 'Cancel reason required' });
+    let cancelApprovalRef = null;
+    if ((bill.paid || 0) > 0) {
+      const { default: ApprovalPolicy } = await import('../models/ApprovalPolicy.js');
+      const { resolveThreshold, safeFirst } = await import('../lib/approvalWiring.js');
+      const policy = await safeFirst(ApprovalPolicy.findOne({
+        hospitalId: bill.hospitalId, key: 'bill-cancel', active: true,
+      }).lean());
+      const { limit, roles } = resolveThreshold(policy, 'bill-cancel');
+      if (Number(bill.paid) >= (limit || 1)) {
+        const { ensureApproval, approvalError } = await import('./approvals.js');
+        try {
+          const approval = await ensureApproval({
+            req, policyKey: 'bill-cancel',
+            entityRef: { model: 'Billing', id: bill._id },
+            title: `Cancel bill ${bill.invoiceId} (paid ₹${bill.paid})`,
+            amount: Number(bill.paid), roles,
+          });
+          cancelApprovalRef = approval._id;
+        } catch (e) {
+          if (approvalError(res, e)) return undefined;
+          throw e;
+        }
+      }
+    }
+    bill.status = 'Cancelled';
+    bill.cancelReason = String(req.body.reason).slice(0, 500);
+    bill.cancelledBy = req.user._id;
+    bill.cancelApprovalRef = cancelApprovalRef;
+    await bill.save();
+    await auditLog('bill_cancelled', req.user._id, { billId: bill._id, reason: bill.cancelReason, ip: req.ip });
+    return res.json({ id: String(bill._id), status: bill.status });
   } catch (err) { next(err); }
 });
 
