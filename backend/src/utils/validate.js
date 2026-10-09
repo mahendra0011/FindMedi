@@ -92,6 +92,24 @@ export const USER_ROLE_OPTIONS = [
   // Doc 12 §3 clinic org roles.
   'clinic_admin', 'clinic_receptionist', 'clinic_nurse',
   'clinic_accountant', 'clinic_pharmacist',
+  // File 22 P0-8 hospital operations roles (login hint only).
+  'front_desk',
+  'billing_executive', 'cashier', 'insurance_desk',
+  'medical_director', 'cmo',
+  'nursing_supervisor', 'matron',
+  'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse',
+  'surgeon', 'anaesthetist',
+  'ot_technician', 'cssd_technician',
+  'store_keeper', 'purchase_officer',
+  'hr_manager',
+  'biomedical_engineer', 'maintenance',
+  'housekeeping_supervisor', 'ward_boy',
+  'dietician_head', 'kitchen_staff',
+  'mortuary_attendant',
+  'medical_records_officer',
+  'quality_officer',
+  'pharmacovigilance_officer',
+  'call_center_agent',
 ];
 export const phoneSchema = z.string().min(10, 'Phone must be at least 10 digits').max(15).optional();
 export const positiveNumber = z.number().positive('Must be a positive number');

@@ -114,6 +114,27 @@ const userSchema = new mongoose.Schema({
       // staff with real logins + RBAC (replacing string-label ClinicStaff).
       'clinic_admin', 'clinic_receptionist', 'clinic_nurse',
       'clinic_accountant', 'clinic_pharmacist',
+      // File 22 P0-8 (docs2/08 §8.2): hospital operations roles. What each
+      // role may reach lives in config/permissions.js ROLE_PERMISSIONS
+      // (assertRoleMatrixComplete enforces the pairing); aliases share
+      // permission families via ROLE_EQUIVALENTS.
+      'front_desk',
+      'billing_executive', 'cashier', 'insurance_desk',
+      'medical_director', 'cmo',
+      'nursing_supervisor', 'matron',
+      'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse',
+      'surgeon', 'anaesthetist',
+      'ot_technician', 'cssd_technician',
+      'store_keeper', 'purchase_officer',
+      'hr_manager',
+      'biomedical_engineer', 'maintenance',
+      'housekeeping_supervisor', 'ward_boy',
+      'dietician_head', 'kitchen_staff',
+      'mortuary_attendant',
+      'medical_records_officer',
+      'quality_officer',
+      'pharmacovigilance_officer',
+      'call_center_agent',
     ],
     default: 'patient',
     index: true,

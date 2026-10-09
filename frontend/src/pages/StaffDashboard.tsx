@@ -113,6 +113,53 @@ const ROLE_CONFIG = {
       { key: 'beds', label: 'Ward Beds', link: '/admin/beds', run: () => api.getBedStats().catch(() => null) },
     ],
   },
+  // File 22 P0-8: nursing family consoles (same ward surface, own titles).
+  ward_nurse: {
+    title: 'Ward Nursing Console',
+    calls: [
+      { key: 'nursing', label: 'Nursing Charts', link: '/nursing', run: () => api.getNursingCharts({ limit: 50 }).catch(() => null) },
+      { key: 'beds', label: 'Bed Occupancy', link: '/hospital/beds', run: () => api.getBedStats().catch(() => null) },
+      { key: 'todayAppts', label: "Today's Appointments", link: '/appointments', run: () => api.getAppointments({ limit: 200 }).catch(() => null) },
+    ],
+  },
+  icu_nurse: {
+    title: 'ICU Nursing Console',
+    calls: [
+      { key: 'nursing', label: 'Nursing Charts', link: '/nursing', run: () => api.getNursingCharts({ limit: 50 }).catch(() => null) },
+      { key: 'beds', label: 'Bed Occupancy', link: '/hospital/beds', run: () => api.getBedStats().catch(() => null) },
+      { key: 'emergency', label: 'ER Queue', link: '/admin/emergency', run: () => api.getEmergencyStats().catch(() => null) },
+    ],
+  },
+  ot_nurse: {
+    title: 'OT Nursing Console',
+    calls: [
+      { key: 'nursing', label: 'Nursing Charts', link: '/nursing', run: () => api.getNursingCharts({ limit: 50 }).catch(() => null) },
+      { key: 'beds', label: 'Bed Occupancy', link: '/hospital/beds', run: () => api.getBedStats().catch(() => null) },
+    ],
+  },
+  infection_control_nurse: {
+    title: 'Infection Control Console',
+    calls: [
+      { key: 'safety', label: 'Incidents', link: '/hospital/safety', run: () => api.safetyList('incidents', {}).catch(() => null) },
+      { key: 'nursing', label: 'Nursing Charts', link: '/nursing', run: () => api.getNursingCharts({ limit: 50 }).catch(() => null) },
+    ],
+  },
+  nursing_supervisor: {
+    title: 'Nursing Supervisor Console',
+    calls: [
+      { key: 'nursing', label: 'Nursing Charts', link: '/nursing', run: () => api.getNursingCharts({ limit: 50 }).catch(() => null) },
+      { key: 'beds', label: 'Bed Occupancy', link: '/hospital/beds', run: () => api.getBedStats().catch(() => null) },
+      { key: 'safety', label: 'Incidents', link: '/hospital/safety', run: () => api.safetyList('incidents', {}).catch(() => null) },
+    ],
+  },
+  matron: {
+    title: 'Matron Console',
+    calls: [
+      { key: 'nursing', label: 'Nursing Charts', link: '/nursing', run: () => api.getNursingCharts({ limit: 50 }).catch(() => null) },
+      { key: 'beds', label: 'Bed Occupancy', link: '/hospital/beds', run: () => api.getBedStats().catch(() => null) },
+      { key: 'safety', label: 'Incidents', link: '/hospital/safety', run: () => api.safetyList('incidents', {}).catch(() => null) },
+    ],
+  },
 };
 
 export default function StaffDashboard() {

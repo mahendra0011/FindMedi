@@ -286,7 +286,9 @@ router.post('/admissions/:id/nursing-notes', protect, clinicalStaffOnly, validat
 
 // F10: doctor-notes was adminOnly — doctors must be able to write them.
 const clinicianOnly = (req, res, next) => {
-  if (!['superadmin', 'hospital_admin', 'doctor', 'clinic_doctor'].includes(req.user?.role)) {
+  // File 22 P0-8: surgeons/anaesthetists/directors are clinicians too.
+  if (!['superadmin', 'hospital_admin', 'doctor', 'clinic_doctor',
+    'surgeon', 'anaesthetist', 'medical_director', 'cmo'].includes(req.user?.role)) {
     return res.status(403).json({ message: 'Clinician access required' });
   }
   return next();

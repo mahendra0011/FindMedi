@@ -33,8 +33,23 @@ export const ROLE_ALIASES = {
 export const ROLE_EQUIVALENTS = {
   counsellor: ['counsellor', 'psychiatrist'],
   psychiatrist: ['counsellor', 'psychiatrist'],
-  doctor: ['doctor', 'clinic_doctor'],
-  clinic_doctor: ['doctor', 'clinic_doctor'],
+  doctor: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist'],
+  clinic_doctor: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist'],
+  surgeon: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist'],
+  anaesthetist: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist'],
+  nurse: ['nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse', 'nursing_supervisor', 'matron'],
+  ward_nurse: ['nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse', 'nursing_supervisor', 'matron'],
+  icu_nurse: ['nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse', 'nursing_supervisor', 'matron'],
+  ot_nurse: ['nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse', 'nursing_supervisor', 'matron'],
+  infection_control_nurse: ['nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse', 'nursing_supervisor', 'matron'],
+  nursing_supervisor: ['nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse', 'nursing_supervisor', 'matron'],
+  matron: ['nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse', 'nursing_supervisor', 'matron'],
+  receptionist: ['receptionist', 'front_desk'],
+  front_desk: ['receptionist', 'front_desk'],
+  medical_director: ['medical_director', 'cmo'],
+  cmo: ['medical_director', 'cmo'],
+  store_keeper: ['store_keeper', 'purchase_officer'],
+  purchase_officer: ['store_keeper', 'purchase_officer'],
 };
 
 export const canonicalRole = (role) => {
@@ -74,6 +89,24 @@ export const CANONICAL_ROLES = [
   // Doc 12 §3: clinic org roles (tenant-scoped clinic staff with real logins).
   'clinic_admin', 'clinic_receptionist', 'clinic_nurse',
   'clinic_accountant', 'clinic_pharmacist',
+  // File 22 P0-8 (docs2/08 §8.2): hospital operations roles.
+  'front_desk',
+  'billing_executive', 'cashier', 'insurance_desk',
+  'medical_director', 'cmo',
+  'nursing_supervisor', 'matron',
+  'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse',
+  'surgeon', 'anaesthetist',
+  'ot_technician', 'cssd_technician',
+  'store_keeper', 'purchase_officer',
+  'hr_manager',
+  'biomedical_engineer', 'maintenance',
+  'housekeeping_supervisor', 'ward_boy',
+  'dietician_head', 'kitchen_staff',
+  'mortuary_attendant',
+  'medical_records_officer',
+  'quality_officer',
+  'pharmacovigilance_officer',
+  'call_center_agent',
   // 8.md 1 / 7.md 4: the ops console carries NO "god mode". Each console
   // section gets an account that can reach its own queue and nothing else, so
   // a stolen kyc_reviewer session cannot rewrite commission config or read the
@@ -420,6 +453,135 @@ export const ROLE_PERMISSIONS = {
   clinic_pharmacist: [
     'pharmacy:read', 'pharmacy:dispense', 'inventory:manage',
     'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  // ── File 22 P0-8 (docs2/08 §8.2/§8.3): hospital operations roles ─────────
+  // Every string below is already enforced by an authorize() call site —
+  // module writes that stay adminOnly (OT/housekeeping/diet) are deliberately
+  // NOT granted here; those roles read their modules until the routes grow
+  // role-aware writes.
+  front_desk: [
+    'appointments:read', 'appointments:write', 'patients:read',
+    'billing:read', 'billing:write', 'chat:read', 'chat:write',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  billing_executive: [
+    'billing:read', 'billing:write', 'patients:read', 'appointments:read',
+    'insurance:read', 'reports:read', 'chat:read', 'chat:write',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  cashier: [
+    'billing:read', 'billing:write', 'patients:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  insurance_desk: [
+    'insurance:read', 'insurance:write', 'billing:read', 'patients:read',
+    'chat:read', 'chat:write', 'notifications:read',
+    'profile:read:own', 'profile:write:own',
+  ],
+  medical_director: [
+    'records:read', 'reports:read', 'audit:read', 'appointments:read',
+    'patients:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  cmo: [
+    'records:read', 'reports:read', 'audit:read', 'appointments:read',
+    'patients:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  nursing_supervisor: [
+    'records:read', 'vitals:write', 'patients:read', 'beds:read',
+    'staff:manage', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  matron: [
+    'records:read', 'vitals:write', 'patients:read', 'beds:read',
+    'staff:manage', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  ward_nurse: [
+    'records:read', 'vitals:write', 'patients:read', 'beds:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  icu_nurse: [
+    'records:read', 'vitals:write', 'patients:read', 'beds:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  ot_nurse: [
+    'records:read', 'vitals:write', 'patients:read', 'beds:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  infection_control_nurse: [
+    'records:read', 'patients:read', 'reports:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  surgeon: [
+    'records:read', 'records:write', 'appointments:read', 'appointments:write',
+    'prescriptions:write', 'patients:read', 'radiology:read',
+    'chat:read', 'chat:write', 'profile:read', 'profile:write',
+    'notifications:read', 'upload:write',
+  ],
+  anaesthetist: [
+    'records:read', 'records:write', 'appointments:read', 'patients:read',
+    'chat:read', 'chat:write', 'profile:read', 'profile:write',
+    'notifications:read', 'upload:write',
+  ],
+  ot_technician: [
+    'beds:read', 'equipment:read', 'records:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  // CSSD sets/cycles run on inventory:manage (cssd.js) — same string the
+  // pharmacist carries; sterilisation writes stay inside that gate.
+  cssd_technician: [
+    'inventory:manage', 'equipment:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  store_keeper: [
+    'inventory:manage', 'reports:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  purchase_officer: [
+    'inventory:manage', 'reports:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  hr_manager: [
+    'staff:manage', 'reports:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  biomedical_engineer: [
+    'equipment:read', 'beds:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  maintenance: [
+    'equipment:read', 'beds:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  housekeeping_supervisor: [
+    'beds:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  ward_boy: [
+    'beds:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  dietician_head: [
+    'diet:read', 'diet:write', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  kitchen_staff: [
+    'diet:read', 'diet:write', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  mortuary_attendant: [
+    'patients:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  medical_records_officer: [
+    'records:read', 'patients:read', 'reports:read', 'dsr:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  quality_officer: [
+    'audit:read', 'reports:read', 'records:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  pharmacovigilance_officer: [
+    'pharmacy:read', 'records:read', 'patients:read', 'reports:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  call_center_agent: [
+    'appointments:read', 'appointments:write', 'patients:read',
+    'chat:read', 'chat:write', 'notifications:read',
+    'profile:read:own', 'profile:write:own',
   ],
 };
 

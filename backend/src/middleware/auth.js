@@ -231,7 +231,10 @@ export const hospitalAdminOnly = (req, res, next) => {
 };
 
 export const clinicalStaffOnly = (req, res, next) => {
-  if (!['superadmin', 'hospital_admin', 'doctor', 'nurse'].includes(req.user?.role)) {
+  // File 22 P0-8: nurse/doctor sub-roles + supervisors work the same wards.
+  if (!['superadmin', 'hospital_admin', 'doctor', 'nurse',
+    'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse',
+    'nursing_supervisor', 'matron', 'surgeon', 'anaesthetist'].includes(req.user?.role)) {
     return res.status(403).json({ message: 'Clinical staff access required' });
   }
   next();

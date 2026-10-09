@@ -11,7 +11,9 @@ const router = express.Router();
 router.use(protect);
 
 const actorId = (req) => req.user._id ?? req.user.id;
-const STAFF = ['hospital_admin', 'superadmin', 'doctor', 'nurse'];
+const STAFF = ['hospital_admin', 'superadmin', 'doctor', 'nurse',
+  // File 22 P0-8: mortuary attendants + nursing supervisors work here too.
+  'mortuary_attendant', 'nursing_supervisor', 'matron'];
 const staffOnly = (req, res, next) => (
   STAFF.includes(req.user?.role) ? next() : res.status(403).json({ message: 'Staff access required' })
 );
