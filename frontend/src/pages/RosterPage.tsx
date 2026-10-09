@@ -13,12 +13,18 @@ export default function RosterPage() {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [rows, setRows] = useState<any[]>([]);
   const [entry, setEntry] = useState({ staffId: '', date: '', shift: 'Morning' });
+  const [swaps, setSwaps] = useState<any[]>([]);
+  const [swap, setSwap] = useState({ fromStaffId: '', toStaffId: '', shiftDate: '', shift: 'Morning' });
 
   const load = async () => {
     try {
       const r: any = await (api as any).getRosters({ month });
       setRows(r?.rosters || []);
     } catch { toast.error('Failed to load roster'); }
+    try {
+      const s: any = await api.shiftSwaps({});
+      setSwaps(s?.swaps || []);
+    } catch { /* swaps optional */ }
   };
   useEffect(() => { load(); }, [month]);
 
@@ -73,6 +79,44 @@ export default function RosterPage() {
               <span className="text-muted-foreground truncate">{e.staffId}</span>
             </div>
           ))}
+        </CardContent>
+      </Card>
+      {/* File 22 P0-6: shift swaps (decider must differ from requester) */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Shift swaps ({swaps.length})</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          <div className="grid sm:grid-cols-5 gap-2">
+            <Input placeholder="From staff ID" value={swap.fromStaffId} onChange={(e) => setSwap({ ...swap, fromStaffId: e.target.value })} />
+            <Input placeholder="To staff ID" value={swap.toStaffId} onChange={(e) => setSwap({ ...swap, toStaffId: e.target.value })} />
+            <Input type="date" value={swap.shiftDate} onChange={(e) => setSwap({ ...swap, shiftDate: e.target.value })} />
+            <select aria-label="Shift" className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={swap.shift} onChange={(e) => setSwap({ ...swap, shift: e.target.value })}>
+              {['Morning', 'Evening', 'Night', 'Rotating'].map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <Button onClick={async () => {
+              try { await api.createSwap(swap); toast.success('Swap requested'); setSwap({ fromStaffId: '', toStaffId: '', shiftDate: '', shift: 'Morning' }); load(); }
+              catch (err: any) { toast.error(err?.response?.data?.message || 'Request failed'); }
+            }}>Request</Button>
+          </div>
+          <div className="space-y-1.5 max-h-64 overflow-auto">
+            {swaps.map((s: any) => (
+              <div key={s._id} className="flex items-center justify-between gap-2 text-xs rounded-md border border-border/40 p-2">
+                <span className="font-mono">{s.shiftDate}</span>
+                <span>{String(s.fromStaffId).slice(-6)} → {String(s.toStaffId).slice(-6)} · {s.shift} · {s.status}</span>
+                {s.status === 'Pending' ? (
+                  <span className="flex gap-1">
+                    <Button size="sm" variant="outline" onClick={async () => {
+                      try { await api.decideSwap(s._id, 'Approved'); toast.success('Approved'); load(); }
+                      catch (err: any) { toast.error(err?.response?.data?.message || 'Approve failed'); }
+                    }}>Approve</Button>
+                    <Button size="sm" variant="ghost" onClick={async () => {
+                      try { await api.decideSwap(s._id, 'Rejected'); toast.success('Rejected'); load(); }
+                      catch { toast.error('Reject failed'); }
+                    }}>Reject</Button>
+                  </span>
+                ) : null}
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -383,4 +383,65 @@ router.post('/shifts/:id/close', authorize('billing:write'), async (req, res) =>
   }
 });
 
+// File 22 P0-6: doctor payout statements (TDS derived by the model hook).
+router.get('/payouts', authorize('billing:read'), async (req, res) => {
+  try {
+    const { default: PayoutStatement } = await import('../models/PayoutStatement.js');
+    const filter = { ...tenantFilter(req) };
+    if (req.query.period) filter.period = req.query.period;
+    if (req.query.doctorId) filter.doctorId = req.query.doctorId;
+    const rows = await PayoutStatement.find(filter).sort({ period: -1 }).limit(300).lean();
+    return res.json({ payouts: rows });
+  } catch (err) {
+    logger.error(`Payouts error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/payouts', authorize('billing:write'), async (req, res) => {
+  try {
+    const { default: PayoutStatement } = await import('../models/PayoutStatement.js');
+    const { doctorId, period, gross, tdsRate, otherDeductions } = req.body || {};
+    if (!doctorId || !period || !/^\d{4}-\d{2}$/.test(period) || !(Number(gross) >= 0)) {
+      return res.status(400).json({ message: 'doctorId + period YYYY-MM + gross>=0 required' });
+    }
+    const row = await PayoutStatement.create({
+      hospitalId: req.user.hospitalId, doctorId, period,
+      gross: Number(gross), tdsRate: Number(tdsRate ?? 10),
+      otherDeductions: Number(otherDeductions) || 0, createdBy: actorId(req),
+    });
+    await auditLog('payout_created', actorId(req), { payoutId: row._id, ip: req.ip });
+    return res.status(201).json({ id: String(row._id), gross: row.gross, tds: row.tds, net: row.net });
+  } catch (err) {
+    if (err?.code === 11000) return res.status(409).json({ message: 'Payout already exists for doctor+period' });
+    logger.error(`Payout create error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/payouts/:id/state', authorize('billing:write'), requireStepUp('payouts:add'), async (req, res) => {
+  try {
+    const { default: PayoutStatement } = await import('../models/PayoutStatement.js');
+    const { state } = req.body || {};
+    if (!['Approved', 'Paid'].includes(state)) return res.status(400).json({ message: 'state must be Approved|Paid' });
+    const row = await PayoutStatement.findById(req.params.id);
+    if (!row || (state === 'Approved' && row.status !== 'Draft') || (state === 'Paid' && row.status !== 'Approved')) {
+      return res.status(404).json({ message: 'Payout not in a changeable state' });
+    }
+    const { isSelfApproval } = await import('../lib/approvalWiring.js');
+    if (isSelfApproval(row.createdBy, actorId(req))) {
+      return res.status(403).json({ message: 'Self-approval forbidden', code: 'SELF_APPROVAL' });
+    }
+    row.status = state;
+    if (state === 'Approved') row.approvedBy = actorId(req);
+    if (state === 'Paid') row.paidAt = new Date();
+    await row.save();
+    await auditLog('payout_state', actorId(req), { payoutId: row._id, state, ip: req.ip });
+    return res.json({ id: String(row._id), status: row.status, net: row.net });
+  } catch (err) {
+    logger.error(`Payout state error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

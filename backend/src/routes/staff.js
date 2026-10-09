@@ -421,4 +421,57 @@ router.get('/overtime', protect, authorize('staff:manage'), async (req, res) => 
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// File 22 P0-6: payslips — net is DERIVED by the model pre-save hook, never
+// accepted from the client. Release needs a different person (SoD).
+router.get('/payslips', protect, authorize('staff:manage'), async (req, res) => {
+  try {
+    const { default: Payslip } = await import('../models/Payslip.js');
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.query.month) filter.month = req.query.month;
+    if (req.query.staffId) filter.staffId = req.query.staffId;
+    const rows = await Payslip.find(filter).sort({ month: -1 }).limit(300).lean();
+    return res.json({ payslips: rows });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/payslips', protect, authorize('staff:manage'), adminOnly, async (req, res) => {
+  try {
+    const { default: Payslip } = await import('../models/Payslip.js');
+    const { staffId, month, earnings, deductions } = req.body || {};
+    if (!staffId || !month || !/^\d{4}-\d{2}$/.test(month)) {
+      return res.status(400).json({ message: 'staffId + month YYYY-MM required' });
+    }
+    const num = (v) => (Number(v) >= 0 ? Number(v) : 0);
+    const clean = (o) => Object.fromEntries(Object.entries(o || {}).map(([k, v]) => [k, num(v)]));
+    const row = await Payslip.create({
+      hospitalId: req.user.hospitalId || undefined, staffId, month,
+      earnings: clean(earnings), deductions: clean(deductions),
+      createdBy: req.user._id,
+    });
+    return res.status(201).json({ id: String(row._id), gross: row.gross, net: row.net });
+  } catch (err) {
+    if (err?.code === 11000) return res.status(409).json({ message: 'Payslip already exists for staff+month' });
+    res.status(400).json({ message: err.message });
+  }
+});
+
+router.post('/payslips/:id/release', protect, authorize('staff:manage'), adminOnly, async (req, res) => {
+  try {
+    const { default: Payslip } = await import('../models/Payslip.js');
+    const { auditLog } = await import('../middleware/audit.js');
+    const row = await Payslip.findById(req.params.id);
+    if (!row || row.status !== 'Draft') return res.status(404).json({ message: 'Draft payslip not found' });
+    const { isSelfApproval } = await import('../lib/approvalWiring.js');
+    if (isSelfApproval(row.createdBy, req.user._id ?? req.user.id)) {
+      return res.status(403).json({ message: 'Self-release forbidden', code: 'SELF_APPROVAL' });
+    }
+    row.status = 'Released';
+    row.releasedBy = req.user._id;
+    await row.save();
+    await auditLog('payslip_released', req.user._id, { payslipId: row._id, ip: req.ip });
+    return res.json({ id: String(row._id), status: row.status, net: row.net });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 export default router;

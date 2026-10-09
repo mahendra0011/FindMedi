@@ -16,6 +16,15 @@ export default function FrontDesk() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState('');
+  const [enquiries, setEnquiries] = useState<any[]>([]);
+  const [enq, setEnq] = useState({ name: '', phone: '', interest: '' });
+
+  const loadEnquiries = async () => {
+    try {
+      const r: any = await api.enquiries({ status: 'Open' });
+      setEnquiries(r?.enquiries || []);
+    } catch { /* optional */ }
+  };
 
   const search = async () => {
     if (!q.trim()) return;
@@ -25,6 +34,7 @@ export default function FrontDesk() {
       setRows(res?.data || res?.patients || []);
     } catch { setRows([]); }
     setLoading(false);
+    loadEnquiries();
   };
 
   return (
@@ -69,6 +79,27 @@ export default function FrontDesk() {
           </Link>
         ))}
       </div>
+      {/* File 22 P0-6: walk-in enquiry log */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Open enquiries ({enquiries.length})</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <Input className="w-40" placeholder="Name" value={enq.name} onChange={(e) => setEnq({ ...enq, name: e.target.value })} />
+            <Input className="w-36" placeholder="Phone" value={enq.phone} onChange={(e) => setEnq({ ...enq, phone: e.target.value })} />
+            <Input className="w-48" placeholder="Interested in…" value={enq.interest} onChange={(e) => setEnq({ ...enq, interest: e.target.value })} />
+            <Button onClick={async () => {
+              try { await api.createEnquiry(enq); setEnq({ name: '', phone: '', interest: '' }); loadEnquiries(); }
+              catch { /* toast? keep silent-fail minimal */ }
+            }}>Log enquiry</Button>
+          </div>
+          {enquiries.slice(0, 8).map((e: any) => (
+            <div key={e._id} className="flex items-center justify-between gap-2 text-sm rounded-lg border border-border/50 p-2">
+              <span><b>{e.name}</b> <span className="text-muted-foreground">· {e.phone} · {e.interest}</span></span>
+              <Button size="sm" variant="outline" onClick={async () => { await api.patchEnquiry(e._id, { status: 'Dropped' }); loadEnquiries(); }}>Drop</Button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }

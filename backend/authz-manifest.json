@@ -10,23 +10,23 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1344,
+  "total": 1359,
   "counts": {
     "any": 1,
     "clinical": 1,
     "inherited": 4,
     "object": 391,
     "public": 81,
-    "role": 806,
+    "role": 821,
     "self": 60
   },
   "byMechanism": {
-    "adminOnly": 99,
+    "adminOnly": 101,
     "assertAssistantBookingAccess": 3,
     "assertCallParticipant": 2,
     "assertEhrSearchAccess": 1,
     "assertMentalHealthAccess": 11,
-    "authorize": 506,
+    "authorize": 521,
     "authorizeObject": 74,
     "canAccessPatient": 4,
     "canAccessRecord": 4,
@@ -47,7 +47,7 @@
     "requireRole": 79,
     "requireSosAccess": 7,
     "requireStaff": 3,
-    "requireStepUp": 27,
+    "requireStepUp": 28,
     "requireTenant": 19,
     "resolvePartner": 6,
     "roleOnly": 5,
@@ -3359,6 +3359,27 @@
       "tag": "role"
     },
     {
+      "file": "enterprise.js",
+      "line": 190,
+      "method": "GET",
+      "target": "'/maintenance'",
+      "tag": "role"
+    },
+    {
+      "file": "enterprise.js",
+      "line": 204,
+      "method": "POST",
+      "target": "'/maintenance'",
+      "tag": "role"
+    },
+    {
+      "file": "enterprise.js",
+      "line": 222,
+      "method": "PATCH",
+      "target": "'/maintenance/:id'",
+      "tag": "role"
+    },
+    {
       "file": "events.js",
       "line": 130,
       "method": "GET",
@@ -3835,6 +3856,27 @@
       "tag": "role"
     },
     {
+      "file": "finance.js",
+      "line": 387,
+      "method": "GET",
+      "target": "'/payouts'",
+      "tag": "role"
+    },
+    {
+      "file": "finance.js",
+      "line": 401,
+      "method": "POST",
+      "target": "'/payouts'",
+      "tag": "role"
+    },
+    {
+      "file": "finance.js",
+      "line": 422,
+      "method": "POST",
+      "target": "'/payouts/:id/state'",
+      "tag": "role"
+    },
+    {
       "file": "forms.js",
       "line": 43,
       "method": "GET",
@@ -3895,6 +3937,27 @@
       "line": 199,
       "method": "GET",
       "target": "'/responses/:id/pdf'",
+      "tag": "role"
+    },
+    {
+      "file": "frontoffice.js",
+      "line": 15,
+      "method": "GET",
+      "target": "'/enquiries'",
+      "tag": "role"
+    },
+    {
+      "file": "frontoffice.js",
+      "line": 27,
+      "method": "POST",
+      "target": "'/enquiries'",
+      "tag": "role"
+    },
+    {
+      "file": "frontoffice.js",
+      "line": 44,
+      "method": "PATCH",
+      "target": "'/enquiries/:id'",
       "tag": "role"
     },
     {
@@ -8280,6 +8343,27 @@
       "tag": "role"
     },
     {
+      "file": "roster.js",
+      "line": 71,
+      "method": "GET",
+      "target": "'/swaps'",
+      "tag": "role"
+    },
+    {
+      "file": "roster.js",
+      "line": 84,
+      "method": "POST",
+      "target": "'/swaps'",
+      "tag": "role"
+    },
+    {
+      "file": "roster.js",
+      "line": 105,
+      "method": "POST",
+      "target": "'/swaps/:id/decide'",
+      "tag": "role"
+    },
+    {
       "file": "routing.js",
       "line": 33,
       "method": "POST",
@@ -8767,6 +8851,27 @@
       "line": 399,
       "method": "GET",
       "target": "'/overtime'",
+      "tag": "role"
+    },
+    {
+      "file": "staff.js",
+      "line": 426,
+      "method": "GET",
+      "target": "'/payslips'",
+      "tag": "role"
+    },
+    {
+      "file": "staff.js",
+      "line": 438,
+      "method": "POST",
+      "target": "'/payslips'",
+      "tag": "role"
+    },
+    {
+      "file": "staff.js",
+      "line": 459,
+      "method": "POST",
+      "target": "'/payslips/:id/release'",
       "tag": "role"
     },
     {

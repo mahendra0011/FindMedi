@@ -186,4 +186,54 @@ router.post('/vendors/:supplierId/scorecards/compute', authorize('billing:write'
   }
 });
 
+// File 22 P0-6: asset maintenance log (PM/calibration/repair) + overdue view.
+router.get('/maintenance', authorize('billing:read'), async (req, res) => {
+  try {
+    const { default: AssetMaintenance } = await import('../models/AssetMaintenance.js');
+    const filter = tenant(req);
+    if (req.query.status) filter.status = req.query.status;
+    if (req.query.overdue === '1') filter.dueDate = { $lt: new Date() };
+    const rows = await AssetMaintenance.find(filter).sort({ dueDate: 1 }).limit(300).lean();
+    return res.json({ maintenance: rows });
+  } catch (err) {
+    logger.error(`Maintenance error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/maintenance', authorize('billing:write'), async (req, res) => {
+  try {
+    const { default: AssetMaintenance } = await import('../models/AssetMaintenance.js');
+    const { assetUnitId, equipmentName, kind, dueDate, vendor, cost } = req.body || {};
+    if (!kind) return res.status(400).json({ message: 'kind required' });
+    const row = await AssetMaintenance.create({
+      ...tenant(req), assetUnitId: assetUnitId || null,
+      equipmentName: String(equipmentName || '').slice(0, 200), kind,
+      dueDate: dueDate || null, vendor: String(vendor || '').slice(0, 200),
+      cost: Number(cost) || 0, createdBy: actorId(req),
+    });
+    return res.status(201).json({ id: String(row._id) });
+  } catch (err) {
+    logger.error(`Maintenance create error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.patch('/maintenance/:id', authorize('billing:write'), async (req, res) => {
+  try {
+    const { default: AssetMaintenance } = await import('../models/AssetMaintenance.js');
+    const allowed = ['dueDate', 'doneDate', 'vendor', 'cost', 'reportUrl', 'status'];
+    const set = Object.fromEntries(Object.entries(req.body || {}).filter(([k]) => allowed.includes(k)));
+    if (set.status === 'Done' && !set.doneDate) set.doneDate = new Date();
+    const row = await AssetMaintenance.findOneAndUpdate(
+      { _id: req.params.id, ...tenant(req) }, { $set: set }, { new: true },
+    );
+    if (!row) return res.status(404).json({ message: 'Not found' });
+    return res.json({ id: String(row._id), status: row.status });
+  } catch (err) {
+    logger.error(`Maintenance patch error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
