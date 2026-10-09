@@ -144,6 +144,17 @@ const userSchema = new mongoose.Schema({
   facilityType: { type: String, enum: ['hospital', 'clinic', 'lab', 'pharmacy', ''], default: '' },
   avatar: { type: String, default: '' },
   phone: { type: String, required: true },
+  // File 22 P2-31: device/IP allow-list, idle-PIN hash, WebAuthn passkeys.
+  allowedIps: [{ type: String, maxlength: 45 }],
+  pinHash: { type: String, default: '' },
+  passkeys: [{
+    credentialID: { type: String, required: true },
+    publicKey: { type: String, required: true },
+    counter: { type: Number, default: 0 },
+    transports: [{ type: String }],
+    name: { type: String, default: '' },
+    createdAt: { type: Date, default: Date.now },
+  }],
   address: { type: String, default: '' },
   uhid: { type: String, unique: true, sparse: true },
   gender: { type: String, enum: ['', 'Male', 'Female', 'Other'], default: '' },

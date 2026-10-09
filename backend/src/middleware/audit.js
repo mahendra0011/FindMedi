@@ -38,6 +38,18 @@ export const auditLog = async (action, userId, details) => {
     // persist (and mirror into OpenSearch) anything — including tokens, OTPs
     // or cookies. Scrub secret-shaped keys before the write; structure kept.
     const safeDetails = scrubAuditDetails(details);
+    // File 22 P2-31: hash-chain link (prev = latest hash, '' when empty).
+    const nodeCrypto = await import('node:crypto');
+    let prevHash = 'GENESIS';
+    try {
+      const last = await AuditLog.findOne().sort({ _id: -1 }).select('hash').lean();
+      if (last?.hash) prevHash = last.hash;
+    } catch { /* first entry or read failure: chain restarts explicitly */ }
+    const canonical = JSON.stringify({
+      prevHash, userId: String(userId || ''), action,
+      details: safeDetails ?? {}, ip: safeDetails?.ip || null,
+    });
+    const hash = nodeCrypto.createHash('sha256').update(canonical).digest('hex');
     const entry = await AuditLog.create({
       userId,
       action,
@@ -45,6 +57,8 @@ export const auditLog = async (action, userId, details) => {
       ip: safeDetails?.ip || null,
       userAgent: safeDetails?.userAgent || null,
       timestamp: new Date(),
+      prevHash,
+      hash,
     });
 
     // Keep the search document flat — Mongo `details` is Mixed and can be

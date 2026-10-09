@@ -758,6 +758,7 @@ export default function Settings() {
               </div>
               <div className="mt-5 space-y-3 max-w-2xl">
                 <TwoFactorSection />
+                <SecuritySection />
               </div>
               <div className="flex flex-wrap gap-3 mt-5">
                 <Button onClick={savePassword} disabled={passwordMut.isPending} className="gap-2">

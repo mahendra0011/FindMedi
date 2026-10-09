@@ -13,10 +13,10 @@
 
 ## Summary
 
-- **288 models** across 287 files (0 skipped)
-- **6302 schema fields**, of which **704 classified as PII** in **201 collections**
+- **290 models** across 289 files (0 skipped)
+- **6343 schema fields**, of which **708 classified as PII** in **203 collections**
 - **6 collections** carry a TTL index
-- **101 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
+- **103 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
 ### PII categories
 
@@ -31,13 +31,14 @@
 | Location | 23 |
 | Image/Biometric | 4 |
 | Device/Network | 7 |
-| Identifier | 172 |
+| Identifier | 174 |
 | Identity | 77 |
 
 ## Collections
 
 | Collection | Model | Fields | PII fields | Indexes | TTL | Retention class |
 |---|---|---|---|---|---|---|
+| `abdmconsents` | AbdmConsent | 15 | 2 | 4 | — | **UNMAPPED — see gaps** |
 | `accessrequests` | AccessRequest | 16 | 0 | 4 | — | No PII fields detected |
 | `accessreviews` | AccessReview | 11 | 0 | 2 | — | No PII fields detected |
 | `accounts` | Account | 11 | 2 | 2 | — | **UNMAPPED — see gaps** |
@@ -60,7 +61,7 @@
 | `assetunits` | AssetUnit | 24 | 2 | 7 | — | **UNMAPPED — see gaps** |
 | `assistantbookings` | AssistantBooking | 82 | 15 | 11 | — | Clinical records |
 | `assistantprofiles` | AssistantProfile | 73 | 13 | 13 | — | Provider KYC documents |
-| `auditlogs` | AuditLog | 9 | 3 | 3 | 31536000s | Audit logs |
+| `auditlogs` | AuditLog | 11 | 3 | 4 | 31536000s | Audit logs |
 | `bankaccounts` | BankAccount | 9 | 1 | 2 | — | **UNMAPPED — see gaps** |
 | `banktxns` | BankTxn | 13 | 0 | 3 | — | No PII fields detected |
 | `beds` | Bed | 19 | 0 | 3 | — | No PII fields detected |
@@ -70,6 +71,7 @@
 | `bloodrequests` | BloodRequest | 35 | 6 | 2 | — | Clinical records |
 | `bloodunits` | BloodUnit | 24 | 1 | 2 | — | Clinical records |
 | `bmwlogs` | BmwLog | 13 | 1 | 3 | — | **UNMAPPED — see gaps** |
+| `breaches` | Breach | 15 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `breakglassgrants` | BreakGlassGrant | 23 | 0 | 6 | — | No PII fields detected |
 | `calllogs` | CallLog | 16 | 0 | 5 | — | No PII fields detected |
 | `callqueues` | CallQueue | 11 | 2 | 2 | — | **UNMAPPED — see gaps** |
@@ -304,7 +306,7 @@
 | `tokens` | Token | 24 | 4 | 3 | — | OTP / setup codes / tokens |
 | `transactionledgers` | TransactionLedger | 20 | 4 | 9 | — | Payment and ledger entries |
 | `triages` | Triage | 46 | 16 | 2 | — | Clinical records |
-| `users` | User | 94 | 26 | 18 | — | **UNMAPPED — see gaps** |
+| `users` | User | 103 | 27 | 18 | — | **UNMAPPED — see gaps** |
 | `vaccinationschedules` | VaccinationSchedule | 17 | 1 | 5 | — | Clinical records |
 | `vehicles` | Vehicle | 20 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `vendorbills` | VendorBill | 21 | 1 | 5 | — | **UNMAPPED — see gaps** |
@@ -332,6 +334,7 @@
 These collections hold personal data that the retention schedule does not
 cover yet — each needs a decision, not a guess:
 
+- `abdmconsents`
 - `accounts`
 - `aisafetyevents`
 - `apikeys`
@@ -341,6 +344,7 @@ cover yet — each needs a decision, not a guess:
 - `assetunits`
 - `bankaccounts`
 - `bmwlogs`
+- `breaches`
 - `callqueues`
 - `campaigns`
 - `capas`
@@ -435,6 +439,37 @@ cover yet — each needs a decision, not a guess:
 - `worktasks`
 
 ## Detail by collection
+
+### `abdmconsents` — AbdmConsent
+
+source `AbdmConsent.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `patientId` | ObjectId | yes |  |  |  | User | Identifier |
+| `abhaAddress` | String |  |  | "" |  |  |  |
+| `hipId` | String |  |  | "" |  |  |  |
+| `hiuId` | String |  |  | "" |  |  |  |
+| `purpose` | String |  |  | "CAREMGT" |  |  |  |
+| `dateFrom` | Date | yes |  |  |  |  |  |
+| `dateTo` | Date | yes |  |  |  |  |  |
+| `dataEraseAt` | Date |  |  | null |  |  |  |
+| `status` | String |  |  | "Requested" | Requested, Granted, Denied, Expired, Revoked |  |  |
+| `grantedAt` | Date |  |  | null |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `patientId:1` |  |
+| `status:1` |  |
+| `hospitalId:1, status:1` |  |
 
 ### `accessrequests` — AccessRequest
 
@@ -1440,6 +1475,8 @@ source `AuditLog.js` · timestamps: yes · virtuals: 0 · retention: 7 years (lo
 | `ip` | String |  |  |  |  |  | Device/Network |
 | `userAgent` | String |  |  |  |  |  | Device/Network |
 | `timestamp` | Date |  |  | [function] |  |  |  |
+| `prevHash` | String |  |  | "GENESIS" |  |  |  |
+| `hash` | String |  |  | "" |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -1450,6 +1487,7 @@ Indexes:
 |---|---|
 | `userId:1` |  |
 | `action:1` |  |
+| `hash:1` |  |
 | `timestamp:1` | TTL 31536000s |
 
 ### `bankaccounts` — BankAccount
@@ -1783,6 +1821,37 @@ Indexes:
 | `hospitalId:1` |  |
 | `date:1` |  |
 | `hospitalId:1, date:1` |  |
+
+### `breaches` — Breach
+
+source `Breach.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `title` | String | yes |  |  |  |  |  |
+| `nature` | String |  |  | "other" | confidentiality, integrity, availability, other |  |  |
+| `scope` | String |  |  | "" |  |  |  |
+| `recordsAffected` | Number |  |  | 0 |  |  |  |
+| `detectedAt` | Date |  |  | [function] |  |  |  |
+| `deadlineAt` | Date |  |  |  |  |  |  |
+| `notifiedAt` | Date |  |  | null |  |  |  |
+| `notifiedTo` | String |  |  | "" |  |  |  |
+| `status` | String |  |  | "Open" | Open, Assessing, Notified, Contained, Closed |  |  |
+| `containment` | String |  |  | "" |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `deadlineAt:1` |  |
+| `status:1` |  |
+| `hospitalId:1, status:1` |  |
 
 ### `breakglassgrants` — BreakGlassGrant
 
@@ -10588,6 +10657,15 @@ source `User.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — 
 | `facilityType` | String |  |  | "" | hospital, clinic, lab, pharmacy, |  |  |
 | `avatar` | String |  |  | "" |  |  | Image/Biometric |
 | `phone` | String | yes |  |  |  |  | Contact |
+| `allowedIps` | Array<Mixed> |  |  |  |  |  |  |
+| `pinHash` | String |  |  | "" |  |  |  |
+| `passkeys` | Array<subdocument> |  |  |  |  |  |  |
+| `passkeys.credentialID` | String | yes |  |  |  |  |  |
+| `passkeys.publicKey` | String | yes |  |  |  |  |  |
+| `passkeys.counter` | Number |  |  | 0 |  |  |  |
+| `passkeys.transports` | Array<Mixed> |  |  |  |  |  |  |
+| `passkeys.name` | String |  |  | "" |  |  | Identity |
+| `passkeys.createdAt` | Date |  |  | [function] |  |  |  |
 | `address` | String |  |  | "" |  |  | Contact |
 | `uhid` | String |  | yes |  |  |  |  |
 | `gender` | String |  |  | "" | , Male, Female, Other |  | Demographic |

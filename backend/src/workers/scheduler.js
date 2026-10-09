@@ -100,6 +100,13 @@ export function startScheduler() {
     } catch (e) {
       logger.warn(`[scheduler:recordings] ${e.message}`);
     }
+    // File 22 P2-31: breach 72h clock watch.
+    try {
+      const { breachDeadlineSweep } = await import('../routes/breach.js');
+      await breachDeadlineSweep();
+    } catch (e) {
+      logger.warn(`[scheduler:breach] ${e.message}`);
+    }
   }));
   // Nightly 01:30: daily metrics + report schedules due.
   tasks.push(cron.schedule('30 1 * * *', async () => {

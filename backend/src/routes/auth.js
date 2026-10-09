@@ -1023,6 +1023,56 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
       return res.status(403).json({ message: 'Your account is pending activation.', inactive: true });
     }
 
+    // File 22 P2-31: device/IP allow-list (post-password 403, so the
+    // restriction itself is never a pre-auth oracle).
+    if (Array.isArray(user.allowedIps) && user.allowedIps.length) {
+      const ip = String(req.ip || '');
+      const ok = user.allowedIps.some((rule) => {
+        const r = String(rule || '').trim();
+        if (!r) return false;
+        if (r.includes('/')) {
+          // Minimal CIDR (/24 + /16) without a dependency.
+          const [base, bits] = r.split('/');
+          const n = Number(bits);
+          if (![16, 24].includes(n)) return false;
+          const quads = (s) => String(s).split('.').map(Number);
+          const b = quads(base);
+          const a = quads(ip);
+          if (b.length !== 4 || a.length !== 4 || b.some(Number.isNaN) || a.some(Number.isNaN)) return false;
+          const keep = n / 8;
+          return b.slice(0, keep).every((v, i) => v === a[i]);
+        }
+        return ip === r;
+      });
+      if (!ok) {
+        await auditLog('login_ip_denied', user._id, { ip, ip: req.ip });
+        return res.status(403).json({ message: 'Sign-in from this network is not allowed for this account', code: 'IP_NOT_ALLOWED' });
+      }
+    }
+
+    // File 22 P2-31: shift-bound login (opt-in roles only; off by default).
+    // SHIFT_LOGIN_ROLES="ward_boy,housekeeping_supervisor" + Staff.shift window.
+    {
+      const shiftRoles = String(process.env.SHIFT_LOGIN_ROLES || '').split(',').map((s) => s.trim()).filter(Boolean);
+      if (shiftRoles.includes(user.role)) {
+        try {
+          const { default: Staff } = await import('../models/Staff.js');
+          const st = await Staff.findOne({ userId: user._id }).select('shift').lean();
+          const windows = { Morning: [6, 14], Evening: [14, 22], Night: [22, 30], Rotating: [0, 24] };
+          const [from, to] = windows[st?.shift] || [0, 24];
+          const hr = new Date(Date.now() + 5.5 * 3600 * 1000).getUTCHours() + new Date(Date.now() + 5.5 * 3600 * 1000).getUTCMinutes() / 60;
+          const inWindow = to <= 24 ? (hr >= from && hr < to) : (hr >= from || hr < to - 24);
+          if (!inWindow) {
+            await auditLog('login_shift_denied', user._id, { shift: st?.shift, ip: req.ip });
+            return res.status(403).json({ message: 'Sign-in is allowed only during your shift window', code: 'SHIFT_LOCKED' });
+          }
+        } catch (e) {
+          if (e?.code === 'SHIFT_LOCKED') throw e;
+          // Staff lookup failure fails OPEN (roster gaps must not lock wards out).
+        }
+      }
+    }
+
     // AUTH-F-06: the old AUTH-010 `mustResetPassword` 403 that lived here is
     // gone. It ran only on this password-login path (google/2FA issued tokens
     // anyway) and - fatally - BEFORE token issuance, so the account could never
@@ -1972,6 +2022,70 @@ router.post('/logout-all', protect, async (req, res) => {
     res.json({ message: 'Signed out of all devices' });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// File 22 P2-31: idle-PIN (device lock screen). 4–8 digits, bcrypt-hashed
+// like passwords; unlock verifies without minting anything new.
+router.post('/pin', protect, async (req, res) => {
+  try {
+    const { pin } = req.body || {};
+    if (!/^\d{4,8}$/.test(String(pin || ''))) {
+      return res.status(400).json({ message: 'PIN must be 4–8 digits' });
+    }
+    const user = await User.findById(req.user._id).select('+pinHash');
+    if (!user) return res.status(404).json({ message: 'Not found' });
+    user.pinHash = await bcrypt.hash(String(pin), 10);
+    await user.save();
+    await auditLog('pin_set', req.user._id, { ip: req.ip });
+    return res.json({ set: true });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/pin/unlock', protect, async (req, res) => {
+  try {
+    const { pin } = req.body || {};
+    const user = await User.findById(req.user._id).select('+pinHash');
+    if (!user?.pinHash) return res.status(409).json({ message: 'No PIN set', code: 'PIN_NOT_SET' });
+    const ok = await bcrypt.compare(String(pin || ''), user.pinHash);
+    if (!ok) {
+      await auditLog('pin_unlock_failed', req.user._id, { ip: req.ip });
+      return res.status(401).json({ message: 'Wrong PIN' });
+    }
+    return res.json({ unlocked: true });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// File 22 P2-31: device/IP allow-list self-service (exact IPs + /24 + /16).
+router.get('/allowed-ips', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('allowedIps').lean();
+    return res.json({ allowedIps: user?.allowedIps || [] });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.put('/allowed-ips', protect, async (req, res) => {
+  try {
+    const list = req.body?.allowedIps;
+    if (!Array.isArray(list) || list.length > 20) {
+      return res.status(400).json({ message: 'allowedIps[] (max 20) required' });
+    }
+    for (const ip of list) {
+      if (!/^(\d{1,3}\.){3}\d{1,3}(\/(16|24))?$/.test(String(ip || '').trim())) {
+        return res.status(400).json({ message: `Bad IP/CIDR: ${ip}` });
+      }
+    }
+    await User.findByIdAndUpdate(req.user._id, { $set: { allowedIps: list.map((s) => String(s).trim()) } });
+    await auditLog('allowed_ips_updated', req.user._id, { count: list.length, ip: req.ip });
+    return res.json({ allowedIps: list });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
   }
 });
 

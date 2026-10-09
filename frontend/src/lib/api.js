@@ -1350,6 +1350,10 @@ export const api = {
   hubCreateSub:           (body)    => request('/hub/webhooks/subs', { method: 'POST', body: JSON.stringify(body) }),
   hubDeleteSub:           (id)      => request(`/hub/webhooks/subs/${id}`, { method: 'DELETE' }),
   hubDeliveries:          (p={})    => request('/hub/webhooks/deliveries' + qs(p)),
+  createPaymentLink:     (body)    => request('/checkout/payment-links', { method: 'POST', body: JSON.stringify(body) }),
+  setPin:                (pin)     => request('/auth/pin', { method: 'POST', body: JSON.stringify({ pin }) }),
+  unlockWithPin:         (pin)     => request('/auth/pin/unlock', { method: 'POST', body: JSON.stringify({ pin }) }),
+  downloadGstr:          (month)   => request('/finance/gstr?month=' + encodeURIComponent(month)),
 
   // ── File 22 P2-35: notification templates ──
   notifyTemplates:         (p={})    => request('/notify/templates' + qs(p)),

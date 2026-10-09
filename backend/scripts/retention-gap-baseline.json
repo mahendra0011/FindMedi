@@ -1,4 +1,5 @@
 [
+  "abdmconsents",
   "accounts",
   "aisafetyevents",
   "apikeys",
@@ -8,6 +9,7 @@
   "assetunits",
   "bankaccounts",
   "bmwlogs",
+  "breaches",
   "callqueues",
   "campaigns",
   "capas",

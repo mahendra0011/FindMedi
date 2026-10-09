@@ -418,6 +418,10 @@ app.use(mongoSanitize());
 // P1-5: HTTP Parameter Pollution â€” the `hpp` package collapses duplicate
 // query/body keys to the last scalar value, running after mongoSanitize.
 app.use(hpp());
+// File 22 P2-31: downtime read-only gate (cached flag, writes 503).
+app.use((req, res, next) => {
+  import('./lib/downtime.js').then((m) => m.downtimeGuard(req, res, next)).catch(() => next());
+});
 
 // XSS protection - recursive sanitization for nested objects (strips all HTML tags/attrs)
 function sanitizeValue(value) {
@@ -696,6 +700,8 @@ import safetyRoutes from './routes/safety.js';
 import frontofficeRoutes from './routes/frontoffice.js';
 import notifyTemplateRoutes from './routes/notifyTemplates.js';
 import qualityRoutes from './routes/quality.js';
+import breachRoutes from './routes/breach.js';
+import webauthnRoutes from './routes/webauthn.js';
 import moderationRoutes from './routes/moderation.js';
 import licenseRoutes from './routes/licenses.js';
 import announcementRoutes from './routes/announcements.js';
@@ -929,6 +935,10 @@ app.use('/api/frontoffice', frontofficeRoutes);
 app.use('/api/notify', notifyTemplateRoutes);
 // File 22 P2-30: quality (NABH/CAPA/PCPNDT/MTP).
 app.use('/api/quality', qualityRoutes);
+// File 22 P2-31: breach register (72h clock).
+app.use('/api/breaches', breachRoutes);
+// File 22 P2-31: WebAuthn passkeys (step-up second factor).
+app.use('/api/webauthn', webauthnRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/ops-health', opsHealthRoutes);
 app.use('/api/tenant-quotas', tenantQuotaRoutes);

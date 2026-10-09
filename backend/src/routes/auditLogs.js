@@ -226,4 +226,40 @@ router.get('/stats', protect, authorize('audit:read'), auditSearchLimiter, async
   }
 });
 
+// File 22 P2-31: hash-chain verification (tamper evidence). Recomputes every
+// link in the window and checks each prevHash resolves to GENESIS or a known
+// hash. Concurrent writers can fork prevHash (two rows, same parent) — forks
+// prove nothing was EDITED, so they verify clean; only recompute mismatches
+// and dangling parents fail.
+router.get('/verify', protect, authorize('audit:read'), auditSearchLimiter, async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 1000, 5000);
+    const rows = await AuditLog.find({}).sort({ _id: -1 }).limit(limit)
+      .select('userId action details ip timestamp prevHash hash').lean();
+    const nodeCrypto = await import('node:crypto');
+    const known = new Set(rows.map((r) => r.hash).filter(Boolean));
+    let checked = 0;
+    const bad = [];
+    for (const r of rows) {
+      const canonical = JSON.stringify({
+        prevHash: r.prevHash, userId: String(r.userId || ''), action: r.action,
+        details: r.details ?? {}, ip: r.ip || null,
+      });
+      const recomputed = nodeCrypto.createHash('sha256').update(canonical).digest('hex');
+      checked += 1;
+      if (recomputed !== r.hash) bad.push({ id: String(r._id), reason: 'hash-mismatch' });
+      else if (r.prevHash !== 'GENESIS' && !known.has(r.prevHash)) {
+        // Parent outside the window is fine only if it exists in the store.
+        const parent = await AuditLog.findOne({ hash: r.prevHash }).select('_id').lean();
+        if (!parent) bad.push({ id: String(r._id), reason: 'dangling-parent' });
+      }
+      if (bad.length >= 20) break;
+    }
+    return res.json({ checked, bad: bad.length, failures: bad });
+  } catch (err) {
+    logger.error(`audit verify error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

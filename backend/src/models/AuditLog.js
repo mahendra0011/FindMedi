@@ -36,6 +36,10 @@ const auditLogSchema = new mongoose.Schema({
     default: Date.now,
     immutable: true,
   },
+  // File 22 P2-31: hash chain (tamper-evidence). hash covers prevHash +
+  // the canonical entry; verify walks the chain (see /api/audit-logs/verify).
+  prevHash: { type: String, default: 'GENESIS', immutable: true },
+  hash: { type: String, default: '', immutable: true, index: true },
 // AUTH-B-05: `bufferCommands: false` — without it a Mongo outage makes every
 // `AuditLog.create()` wait out mongoose' 10 s buffering timeout, so every
 // audited mutation stalls for 10 s (observed in the test logs). Failing fast
