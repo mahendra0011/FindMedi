@@ -7,6 +7,9 @@ const vitalsLogSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
+  // File 22 P1-13: vitals-station entries (staff-recorded for a patient).
+  recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  encounterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Encounter', default: null, index: true },
   patientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Patient',

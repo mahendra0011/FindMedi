@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 const emergencySchema = new mongoose.Schema({
   patientName: { type: String, default: 'Unknown' },
   patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  // File 22 P1-13: temp UHID for unknown/unregistered ER arrivals.
+  tempUhid: { type: String, default: '', index: true },
   age: { type: Number },
   gender: { type: String, enum: ['Male', 'Female', 'Other'] },
   phone: { type: String },

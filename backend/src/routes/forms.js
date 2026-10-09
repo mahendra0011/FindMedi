@@ -54,8 +54,7 @@ router.get('/templates', authorize('staff:manage', 'records:read'), async (req, 
   }
 });
 
-router.post('/templates', authorize('staff:manage'), async (req, res) => {
-  try {
+router.post('/templates', authorize('staff:manage'), async (req, res) => {  try {
     const { key, title, category, definition, scoring, printTemplateId, contexts } = req.body || {};
     if (!key || !title) return res.status(400).json({ message: 'key + title required' });
     const shapeErr = validateTemplateShape(req.body);
@@ -75,8 +74,84 @@ router.post('/templates', authorize('staff:manage'), async (req, res) => {
   }
 });
 
-router.post('/templates/:id/publish', authorize('staff:manage'), requireObjectId, async (req, res) => {
+// File 22 P1-20: NEWS2 / Morse / Braden seed templates (idempotent by key).
+// Options are numeric strings so the sandboxed formula engine can sum them.
+router.post('/templates/seed-scores', authorize('staff:manage'), async (req, res) => {
   try {
+    const sel = (id, label, opts) => ({ id, type: 'select', label, required: true, options: opts });
+    const seeds = [
+      {
+        key: 'news2', title: 'NEWS2 (adult deterioration)', category: 'scores',
+        definition: { sections: [{ id: 's1', title: 'Parameters', fields: [
+          sel('resp', 'Respiratory rate', ['3 — ≤8', '1 — 9–11', '0 — 12–20', '2 — 21–24', '3 — ≥25']),
+          sel('spo2', 'SpO2 scale 1 (%)', ['3 — ≤91', '2 — 92–93', '1 — 94–95', '0 — ≥96']),
+          sel('oxygen', 'Supplemental oxygen', ['0 — No', '2 — Yes']),
+          sel('temp', 'Temperature (°C)', ['3 — ≤35.0', '1 — 35.1–36.0', '0 — 36.1–38.0', '1 — 38.1–39.0', '3 — ≥39.1']),
+          sel('sys', 'Systolic BP', ['3 — ≤90', '2 — 91–100', '1 — 101–110', '0 — 111–219', '3 — ≥220']),
+          sel('hr', 'Heart rate', ['3 — ≤40', '1 — 41–50', '0 — 51–90', '1 — 91–110', '2 — 111–130', '3 — ≥131']),
+          sel('consc', 'Consciousness', ['0 — Alert', '3 — New confusion/agitation']),
+        ] }] },
+        scoring: [{ id: 'news2', formula: 'resp + spo2 + oxygen + temp + sys + hr + consc', bands: [
+          { from: 0, to: 4, label: 'Low', color: 'green' },
+          { from: 5, to: 6, label: 'Medium', color: 'amber' },
+          { from: 7, to: 100, label: 'High', color: 'red' },
+        ] }],
+      },
+      {
+        key: 'morse-fall', title: 'Morse Fall Scale', category: 'scores',
+        definition: { sections: [{ id: 's1', title: 'Risk factors', fields: [
+          sel('hist', 'History of falling (25/0)', ['0 — No', '25 — Yes']),
+          sel('diag', 'Secondary diagnosis (15/0)', ['0 — No', '15 — Yes']),
+          sel('aid', 'Ambulatory aid', ['0 — None/bedrest/nurse', '15 — Crutches/cane/walker', '30 — Furniture']),
+          sel('iv', 'IV / heparin lock (20/0)', ['0 — No', '20 — Yes']),
+          sel('gait', 'Gait', ['0 — Normal/bedrest/immobile', '10 — Weak', '20 — Impaired']),
+          sel('mental', 'Mental status', ['0 — Oriented', '15 — Overestimates/forgets limits']),
+        ] }] },
+        scoring: [{ id: 'morse', formula: 'hist + diag + aid + iv + gait + mental', bands: [
+          { from: 0, to: 24, label: 'No risk', color: 'green' },
+          { from: 25, to: 50, label: 'Low risk', color: 'amber' },
+          { from: 51, to: 200, label: 'High risk', color: 'red' },
+        ] }],
+      },
+      {
+        key: 'braden', title: 'Braden Pressure-Ulcer Risk', category: 'scores',
+        definition: { sections: [{ id: 's1', title: 'Subscales (1–4)', fields: [
+          sel('sensory', 'Sensory perception', ['1 — Completely limited', '2 — Very limited', '3 — Slightly limited', '4 — No impairment']),
+          sel('moist', 'Moisture', ['1 — Constantly moist', '2 — Very moist', '3 — Occasionally moist', '4 — Rarely moist']),
+          sel('activity', 'Activity', ['1 — Bedfast', '2 — Chairfast', '3 — Walks occasionally', '4 — Walks frequently']),
+          sel('mobility', 'Mobility', ['1 — Completely immobile', '2 — Very limited', '3 — Slightly limited', '4 — No limitation']),
+          sel('nutri', 'Nutrition', ['1 — Very poor', '2 — Probably inadequate', '3 — Adequate', '4 — Excellent']),
+          sel('friction', 'Friction & shear', ['1 — Problem', '2 — Potential problem', '3 — No apparent problem']),
+        ] }] },
+        scoring: [{ id: 'braden', formula: 'sensory + moist + activity + mobility + nutri + friction', bands: [
+          { from: 0, to: 9, label: 'Very high risk', color: 'red' },
+          { from: 10, to: 12, label: 'High risk', color: 'red' },
+          { from: 13, to: 14, label: 'Moderate risk', color: 'amber' },
+          { from: 15, to: 18, label: 'Mild risk', color: 'amber' },
+          { from: 19, to: 30, label: 'No risk', color: 'green' },
+        ] }],
+      },
+    ];
+    const created = [];
+    for (const s of seeds) {
+      const exists = await FormTemplate.findOne({ hospitalId: req.user.hospitalId, key: s.key });
+      if (exists) continue;
+      // eslint-disable-next-line no-await-in-loop
+      await FormTemplate.create({
+        hospitalId: req.user.hospitalId, key: s.key, title: s.title,
+        category: s.category, version: 1, status: 'Published',
+        definition: s.definition, scoring: s.scoring, createdBy: actorId(req),
+      });
+      created.push(s.key);
+    }
+    return res.status(201).json({ created });
+  } catch (err) {
+    logger.error(`Seed scores error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/templates/:id/publish', authorize('staff:manage'), requireObjectId, async (req, res) => {  try {
     const row = await FormTemplate.findById(req.params.id);
     if (!row || row.status !== 'Draft') return res.status(404).json({ message: 'Draft template not found' });
     const shapeErr = validateTemplateShape({ definition: row.definition });

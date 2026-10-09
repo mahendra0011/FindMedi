@@ -6,6 +6,10 @@ const prescriptionSchema = new mongoose.Schema({
   patientName: { type: String, required: true },
   doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   doctorName: { type: String, required: true },
+  // File 22 P1-24: prescriber registration snapshot + tele flags.
+  doctorRmp: { type: String, default: '', maxlength: 60 },
+  teleConsult: { type: Boolean, default: false },
+  teleConsentId: { type: mongoose.Schema.Types.ObjectId, ref: 'TeleConsent', default: null },
   appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment' },
   medicines: [{
     medicineId: { type: mongoose.Schema.Types.ObjectId, ref: 'Medicine' },

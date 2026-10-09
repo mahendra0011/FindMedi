@@ -83,6 +83,8 @@ const prescriptionSchema = z.object({
   cdsOverrideReason: z.string().trim().max(1000).optional(),
   clinicalNotes: z.string().trim().max(4000).optional(),
   isEmergency: z.boolean().optional(),
+  // File 22 P1-24: linked visit (tele-compliance checks run when set).
+  appointmentId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
   medicines: z.array(z.object({
     // Field names mirror what the handler reads (m.medicineName, m.route, …).
     medicineId: z.string().min(1).max(100).optional(),
@@ -447,9 +449,40 @@ router.post('/prescriptions', protect, authorize('prescriptions:write'), (req, r
   next();
 }, validate(prescriptionSchema), async (req, res) => {
   try {
-    const { patientId, patientName, medicines, diagnosis, diagnosisIcd, followUpDate, genericPreferred, cdsOverrideReason, clinicalNotes, isEmergency } = req.body;
+    const { patientId, patientName, medicines, diagnosis, diagnosisIcd, followUpDate, genericPreferred, cdsOverrideReason, clinicalNotes, isEmergency, appointmentId } = req.body;
     if (!patientId || !medicines?.length) {
       return res.status(400).json({ message: 'Patient and at least one medicine required' });
+    }
+    // File 22 P1-24: prescriber RMP snapshot + tele-consult compliance.
+    const { default: Doctor } = await import('../models/Doctor.js');
+    const { checkTeleRx, isTeleMode } = await import('../lib/teleRx.js');
+    const { safeFirst } = await import('../lib/approvalWiring.js');
+    const docProfile = await safeFirst(Doctor.findOne({
+      $or: [{ userId: req.user.doctorProfileId || req.user._id }, { _id: req.user.doctorProfileId || req.user._id }],
+    }).select('councilRegNo councilName').lean());
+    const doctorRmp = docProfile?.councilRegNo
+      ? `${docProfile.councilRegNo}${docProfile.councilName ? ` (${docProfile.councilName})` : ''}` : '';
+    let teleConsult = false;
+    let teleConsentId = null;
+    if (appointmentId) {
+      const { default: Appointment } = await import('../models/Appointment.js');
+      const appt = await safeFirst(Appointment.findById(appointmentId).select('appointmentMode').lean());
+      if (appt && isTeleMode(appt.appointmentMode)) {
+        teleConsult = true;
+        const hits = checkTeleRx(medicines);
+        if (hits.length) {
+          return res.status(409).json({
+            message: 'Prohibited on tele-consult: in-person visit required',
+            code: 'TELE_RX_PROHIBITED', hits,
+          });
+        }
+        const { default: TeleConsent } = await import('../models/TeleConsent.js');
+        const consent = await safeFirst(TeleConsent.findOne({ appointmentId, patientId }).lean());
+        if (!consent) {
+          return res.status(409).json({ message: 'Tele-consult consent required before e-prescription', code: 'TELE_CONSENT_REQUIRED' });
+        }
+        teleConsentId = consent._id;
+      }
     }
     // Doc 11 §7 acceptance 3: CDSS hard-stop — a critical allergy match
     // blocks signing unless an override reason is recorded (audited below).
@@ -487,6 +520,7 @@ const prescriptionId = generatePrescriptionId();
     const prescription = await Prescription.create({
       prescriptionId, patientId, patientName,
       doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,
+      doctorRmp, teleConsult, teleConsentId,
       hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined,
       medicines: medicines.map(m => ({
         medicineId: m.medicineId, medicineName: m.medicineName,

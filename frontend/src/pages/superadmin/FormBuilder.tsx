@@ -41,6 +41,12 @@ export default function FormBuilder() {
   const sel = fields.find((f) => f.id === selId) || null;
 
   const add = (type: string) => setFields((p) => [...p, { id: nid(type), type, label: type, required: false, options: type === 'select' || type === 'radio' ? ['Option 1', 'Option 2'] : [] }]);
+  const seedScores = async () => {
+    try {
+      const r: any = await api.seedScoreForms();
+      toast.success(`Score forms: ${(r?.created || []).join(', ') || 'already present'}`);
+    } catch { toast.error('Seed failed'); }
+  };
   const patch = (patchObj: any) => setFields((p) => p.map((f) => (f.id === selId ? { ...f, ...patchObj } : f)));
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
@@ -79,6 +85,7 @@ export default function FormBuilder() {
         <Button variant="outline" onClick={() => setPreview(!preview)}>{preview ? 'Edit' : 'Preview'}</Button>
         <Button variant="outline" onClick={() => save(false)}>Save</Button>
         <Button onClick={() => save(true)}>Publish</Button>
+        <Button variant="secondary" onClick={seedScores}>Seed NEWS2/Morse/Braden</Button>
       </div>
 
       {preview ? (

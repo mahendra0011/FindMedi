@@ -8,8 +8,7 @@ import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 import logger from '../config/logger.js';
 import { sendServerError } from '../utils/safeError.js';
 
-const bloodIssueSchema = z.object({ unitIds: z.array(z.string()).optional() });
-const bloodTransfuseSchema = z.object({ endTime: z.string().max(50).optional(), vitals: vitalsShape.optional() });
+const bloodIssueSchema = z.object({ unitIds: z.array(z.string()).optional() });const bloodTransfuseSchema = z.object({ endTime: z.string().max(50).optional(), vitals: vitalsShape.optional() });
 const bloodStartTransfusionSchema = z.object({ startTime: z.string().optional(), nurseName: z.string().optional(), preBp: z.string().optional(), prePulse: z.number().optional(), preTemp: z.number().optional() });
 const bloodReactionSchema = z.object({ reactionType: z.string().optional(), severity: z.string().optional(), symptoms: z.string().optional(), actionTaken: z.string().optional(), stopped: z.boolean().optional() });
 const bloodCrossmatchSchema = z.object({ unitIds: z.array(z.string()).optional(), crossMatchResult: z.string().optional(), technician: z.string().optional(), patientGroup: z.string().optional(), donorUnitId: z.string().optional() });
@@ -326,6 +325,49 @@ router.get('/donors/nearby-h3', protect, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// File 22 P1-21: donor eligibility screening (auto-deferral rules + log).
+router.get('/screenings', protect, async (req, res) => {
+  try {
+    const { default: DonorScreening } = await import('../models/DonorScreening.js');
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const rows = await DonorScreening.find(filter).sort({ createdAt: -1 }).limit(300).lean();
+    return res.json({ screenings: rows });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/screenings', protect, adminOnly, async (req, res) => {
+  try {
+    const { default: DonorScreening } = await import('../models/DonorScreening.js');
+    const { donorName, phone, bloodGroup, age, weightKg, hb, bp, lastDonationAt, questionnaire } = req.body || {};
+    if (!donorName || !bloodGroup) return res.status(400).json({ message: 'donorName + bloodGroup required' });
+    // Auto-deferral: underweight / anaemic / underage / donated < 90 days ago.
+    const reasons = [];
+    if (age != null && Number(age) < 18) reasons.push('under 18');
+    if (weightKg != null && Number(weightKg) < 45) reasons.push('weight < 45kg');
+    if (hb != null && Number(hb) < 12.5) reasons.push('Hb < 12.5');
+    if (lastDonationAt) {
+      const days = (Date.now() - new Date(lastDonationAt).getTime()) / 86400000;
+      if (days < 90) reasons.push(`last donation ${Math.floor(days)}d ago (< 90d)`);
+    }
+    const row = await DonorScreening.create({
+      hospitalId: req.user.hospitalId || undefined, donorName, phone: phone || '',
+      bloodGroup, age: age ?? null, weightKg: weightKg ?? null, hb: hb ?? null,
+      bp: bp || '', lastDonationAt: lastDonationAt || null,
+      questionnaire: questionnaire || {},
+      eligible: reasons.length === 0,
+      deferralReason: reasons.join('; ').slice(0, 500),
+      deferredTill: reasons.length ? new Date(Date.now() + 90 * 86400 * 1000) : null,
+      screenedBy: req.user._id,
+    });
+    return res.status(201).json({ id: String(row._id), eligible: row.eligible, deferralReason: row.deferralReason });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
   }
 });
 

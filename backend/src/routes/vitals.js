@@ -282,6 +282,36 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
+// File 22 P1-13: OPD vitals station — staff record vitals FOR a patient
+// (userId = patient user, recordedBy = staff). Reuses the same flag engine.
+router.post('/station', protect, async (req, res) => {
+  try {
+    const allowed = ['hospital_admin', 'superadmin', 'doctor', 'nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'receptionist', 'front_desk'];
+    if (!allowed.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Vitals station access required' });
+    }
+    const { patientUserId, vitalType, values, note, encounterId } = req.body || {};
+    if (!patientUserId || !vitalType || !values) {
+      return res.status(400).json({ message: 'patientUserId + vitalType + values required' });
+    }
+    const flag = computeVitalFlag(vitalType, values);
+    const log = await VitalsLog.create({
+      userId: patientUserId, vitalType, values, note: String(note || '').trim(),
+      recordedBy: req.user._id ?? req.user.id, encounterId: encounterId || null, flag,
+    });
+    if (['high', 'low', 'fever', 'critical'].includes(flag)) {
+      await Notification.create({
+        userId: String(patientUserId), type: 'reminder',
+        title: `Vitals Warning: ${vitalType.toUpperCase()} is ${flag}`,
+        message: 'Recorded at the OPD vitals station — outside normal range.',
+      }).catch((e) => logger.warn('Notification create warning:', e.message));
+    }
+    return res.status(201).json({ id: String(log._id), flag });
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to log station vital' });
+  }
+});
+
 // ── PUT /api/vitals/:id ──────────────────────────────────────────────────────
 router.put('/:id', protect, async (req, res) => {
   try {

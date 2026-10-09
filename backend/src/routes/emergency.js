@@ -60,6 +60,8 @@ router.post('/', protect, validate(createEmergencySchema), async (req, res) => {
     const emergency = await Emergency.create({
       patientName: patientName || 'Unknown',
       patientId,
+      // File 22 P1-13: unidentified arrivals get a temp UHID at triage.
+      tempUhid: patientId ? '' : `TMP-${Date.now().toString(36).toUpperCase()}`,
       age,
       gender,
       phone,
@@ -270,8 +272,7 @@ router.post('/:id/transfer-to-ipd', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ message: 'Already transferred' });
     }
 
-    // Generate admission ID
-    const admissionId = generateAdmissionId();
+    // Generate admission ID    const admissionId = generateAdmissionId();
 
     // Find appropriate bed based on severity
     const bed = await Bed.findOne({
@@ -385,6 +386,34 @@ router.post('/beds/transfer/:id', protect, async (req, res) => {
 
     res.json({ fromBed, toBed });
   } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// File 22 P1-13: ER → MLC registration (prefills from the emergency;
+// the MLC desk completes police/intimation fields in /api/safety/mlc).
+router.post('/:id/mlc', protect, adminOnly, async (req, res) => {
+  try {
+    const emergency = await Emergency.findById(req.params.id);
+    if (!emergency) return res.status(404).json({ message: 'Emergency case not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && emergency.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const { default: MlcCase } = await import('../models/MlcCase.js');
+    const { auditLog } = await import('../middleware/audit.js');
+    const mlcNo = `MLC-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}`;
+    const row = await MlcCase.create({
+      hospitalId: emergency.hospitalId,
+      encounterId: emergency.encounterId || null,
+      patientId: emergency.patientId || null,
+      mlcNo,
+      injuryType: req.body?.injuryType || emergency.condition || '',
+      history: String(req.body?.history || '').slice(0, 4000),
+      createdBy: req.user._id,
+    });
+    await auditLog('er_mlc_registered', req.user._id, { emergencyId: emergency._id, mlcId: row._id, ip: req.ip });
+    return res.status(201).json({ id: String(row._id), mlcNo });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
 });
 
 export default router;

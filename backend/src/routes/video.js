@@ -51,4 +51,29 @@ router.get('/status', protect, async (req, res) => {
   res.json({ success: true, livekit: isLiveKitConfigured(), url: LIVEKIT_URL || null });
 });
 
+// File 22 P1-24: tele-consult consent log (required before a video Rx).
+router.post('/consent', protect, async (req, res) => {
+  try {
+    const { appointmentId, doctorId, mode } = req.body || {};
+    const { default: TeleConsent } = await import('../models/TeleConsent.js');
+    const { auditLog } = await import('../middleware/audit.js');
+    const row = await TeleConsent.findOneAndUpdate(
+      { appointmentId: appointmentId || null, patientId: req.user._id },
+      {
+        $set: {
+          hospitalId: req.user.hospitalId || undefined,
+          doctorId: doctorId || null, mode: mode || 'video',
+          consentedAt: new Date(), createdBy: req.user._id,
+        },
+      },
+      { upsert: true, new: true },
+    );
+    await auditLog('tele_consent', req.user._id, { consentId: row._id, appointmentId, ip: req.ip });
+    return res.status(201).json({ id: String(row._id), consentedAt: row.consentedAt });
+  } catch (err) {
+    logger.error(`Tele consent error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

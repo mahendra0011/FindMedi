@@ -133,21 +133,41 @@ export function bandFor(bands, value) {
   return (bands || []).find((b) => value >= b.from && value <= b.to) || null;
 }
 
+/**
+ * Coerce select/radio answers to their leading score ("3 — ≤8" → 3) so
+ * readable scored options work in formulas. Pure numbers pass through;
+ * non-numeric answers stay out of scope (formula refuses instead of guessing).
+ */
+export function scoreValues(template, values) {
+  const out = { ...(values || {}) };
+  const sections = template?.definition?.sections || [];
+  for (const sec of sections) {
+    for (const f of (sec.fields || [])) {
+      if ((f.type === 'select' || f.type === 'radio') && typeof out[f.id] === 'string') {
+        const m = out[f.id].match(/^\s*(-?\d+(\.\d+)?)\b/);
+        if (m) out[f.id] = Number(m[1]);
+      }
+    }
+  }
+  return out;
+}
+
 /** Compute all calculated/score fields for a values object. */
 export function computeTemplate(template, values) {
+  const scoped = scoreValues(template, values);
   const computed = {};
   const sections = template?.definition?.sections || [];
   for (const sec of sections) {
     for (const f of (sec.fields || [])) {
       if ((f.type === 'calculated' || f.type === 'score') && f.formula) {
-        const v = evalFormula(f.formula, { ...values, ...computed });
+        const v = evalFormula(f.formula, { ...scoped, ...computed });
         if (v !== null) computed[f.id] = +v.toFixed(2);
       }
     }
   }
   const scores = {};
   for (const s of (template?.scoring || [])) {
-    const v = evalFormula(s.formula, { ...values, ...computed });
+    const v = evalFormula(s.formula, { ...scoped, ...computed });
     if (v !== null) {
       const band = bandFor(s.bands, v);
       scores[s.id] = { value: +v.toFixed(2), band: band ? band.label : null, color: band ? band.color : null };

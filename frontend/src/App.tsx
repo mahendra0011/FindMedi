@@ -124,6 +124,7 @@ const KpiDashboard = lazy(() => import('./pages/hospital/KpiDashboard'));
 const CallConsole = lazy(() => import('./pages/hospital/CallConsole'));
 const HubBoard = lazy(() => import('./pages/hospital/HubBoard'));
 const SafetyDesk = lazy(() => import('./pages/hospital/SafetyDesk'));
+const VitalsStation = lazy(() => import('./pages/hospital/VitalsStation'));
 const GlobalSearch = lazy(() => import('./components/GlobalSearch'));
 const HealthcarePage = lazy(() => import('./pages/HealthcarePage'));
 const HospitalDirectory = lazy(() => import('./pages/HospitalDirectory'));
@@ -957,6 +958,7 @@ const App = () => (
                     <Route path="/hospital/calls" element={<RoleRoute allowedRoles={['hospital_admin', 'receptionist', 'superadmin', 'call_center_agent', 'front_desk']}><CallConsole /></RoleRoute>} />
                     <Route path="/hospital/hub" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><HubBoard /></RoleRoute>} />
                     <Route path="/hospital/safety" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'receptionist', 'superadmin', 'quality_officer', 'pharmacovigilance_officer', 'infection_control_nurse', 'nursing_supervisor', 'matron', 'front_desk']}><SafetyDesk /></RoleRoute>} />
+                    <Route path="/hospital/vitals" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'receptionist', 'superadmin', 'front_desk', 'ward_nurse', 'icu_nurse', 'ot_nurse']}><VitalsStation /></RoleRoute>} />
 
                     {/* Patient routes */}
                     <Route path="/patient/appointments" element={<RoleRoute allowedRoles={['patient']}><PatientAppointments /></RoleRoute>} />

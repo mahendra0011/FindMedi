@@ -13,10 +13,10 @@
 
 ## Summary
 
-- **280 models** across 279 files (0 skipped)
-- **6193 schema fields**, of which **688 classified as PII** in **195 collections**
+- **282 models** across 281 files (0 skipped)
+- **6225 schema fields**, of which **694 classified as PII** in **197 collections**
 - **6 collections** carry a TTL index
-- **95 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
+- **97 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
 ### PII categories
 
@@ -24,14 +24,14 @@
 |---|---|
 | Credential | 4 |
 | Government ID | 1 |
-| Contact | 31 |
+| Contact | 32 |
 | Financial | 13 |
 | Health | 29 |
-| Demographic | 14 |
+| Demographic | 15 |
 | Location | 23 |
 | Image/Biometric | 4 |
 | Device/Network | 7 |
-| Identifier | 167 |
+| Identifier | 168 |
 | Identity | 74 |
 
 ## Collections
@@ -120,7 +120,8 @@
 | `dndentries` | DndEntry | 8 | 2 | 3 | — | **UNMAPPED — see gaps** |
 | `doctorfees` | DoctorFee | 12 | 2 | 3 | — | **UNMAPPED — see gaps** |
 | `doctors` | Doctor | 117 | 11 | 15 | — | Provider KYC documents |
-| `emergencies` | Emergency | 20 | 7 | 2 | — | Ride and SOS location traces |
+| `donorscreenings` | DonorScreening | 17 | 3 | 2 | — | **UNMAPPED — see gaps** |
+| `emergencies` | Emergency | 21 | 7 | 3 | — | Ride and SOS location traces |
 | `emergencydoctorrequests` | EmergencyDoctorRequest | 75 | 21 | 6 | — | Ride and SOS location traces |
 | `emergencyrequests` | EmergencyRequest | 62 | 17 | 4 | — | Ride and SOS location traces |
 | `encounters` | Encounter | 24 | 2 | 8 | — | Clinical records |
@@ -221,7 +222,7 @@
 | `practitionerprofiles` | PractitionerProfile | 31 | 5 | 6 | — | Provider KYC documents |
 | `preauthrequests` | PreAuthRequest | 25 | 3 | 4 | — | Clinical records |
 | `preferredpharmacies` | PreferredPharmacy | 7 | 1 | 2 | — | **UNMAPPED — see gaps** |
-| `prescriptions` | Prescription | 47 | 7 | 3 | — | Clinical records |
+| `prescriptions` | Prescription | 50 | 7 | 3 | — | Clinical records |
 | `printlogs` | PrintLog | 13 | 0 | 3 | — | No PII fields detected |
 | `printtemplates` | PrintTemplate | 17 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `products` | Product | 30 | 0 | 6 | — | No PII fields detected |
@@ -290,6 +291,7 @@
 | `systemsettings` | SystemSetting | 7 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `tasks` | Task | 17 | 2 | 5 | — | **UNMAPPED — see gaps** |
 | `teammembers` | TeamMember | 18 | 1 | 4 | — | **UNMAPPED — see gaps** |
+| `teleconsents` | TeleConsent | 10 | 3 | 4 | — | **UNMAPPED — see gaps** |
 | `tenantgrants` | TenantGrant | 20 | 0 | 6 | — | No PII fields detected |
 | `territories` | Territory | 11 | 1 | 2 | — | **UNMAPPED — see gaps** |
 | `tests` | Test | 45 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
@@ -303,7 +305,7 @@
 | `vendorscorecards` | VendorScorecard | 10 | 0 | 3 | — | No PII fields detected |
 | `visitorpasses` | VisitorPass | 16 | 3 | 3 | — | **UNMAPPED — see gaps** |
 | `visits` | Visit | 16 | 6 | 3 | — | **UNMAPPED — see gaps** |
-| `vitalslogs` | VitalsLog | 23 | 3 | 6 | — | Clinical records |
+| `vitalslogs` | VitalsLog | 24 | 3 | 7 | — | Clinical records |
 | `vitalsreminders` | VitalsReminder | 13 | 1 | 1 | — | Clinical records |
 | `waitlistentries` | WaitlistEntry | 17 | 4 | 4 | — | **UNMAPPED — see gaps** |
 | `walletguards` | WalletGuard | 16 | 1 | 1 | — | Payment and ledger entries |
@@ -349,6 +351,7 @@ cover yet — each needs a decision, not a guess:
 - `dialysiswaterqualities`
 - `dndentries`
 - `doctorfees`
+- `donorscreenings`
 - `enquiries`
 - `eventregistrations`
 - `events`
@@ -404,6 +407,7 @@ cover yet — each needs a decision, not a guess:
 - `supporttickets`
 - `tasks`
 - `teammembers`
+- `teleconsents`
 - `territories`
 - `users`
 - `vendorbills`
@@ -3577,6 +3581,37 @@ Indexes:
 | `isEmergencyDutyActive:1, emergencySupport:1` |  |
 | `createdAt:-1` |  |
 
+### `donorscreenings` — DonorScreening
+
+source `DonorScreening.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Contact, Demographic
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `donorName` | String | yes |  |  |  |  |  |
+| `phone` | String |  |  | "" |  |  | Contact |
+| `bloodGroup` | String | yes |  |  | A+, A-, B+, B-, AB+, AB-, O+, O- |  | Demographic |
+| `age` | Number |  |  | null |  |  | Demographic |
+| `weightKg` | Number |  |  | null |  |  |  |
+| `hb` | Number |  |  | null |  |  |  |
+| `bp` | String |  |  | "" |  |  |  |
+| `lastDonationAt` | Date |  |  | null |  |  |  |
+| `questionnaire` | Mixed |  |  | [function] |  |  |  |
+| `eligible` | Boolean |  |  | true |  |  |  |
+| `deferralReason` | String |  |  | "" |  |  |  |
+| `deferredTill` | Date |  |  | null |  |  |  |
+| `screenedBy` | ObjectId |  |  | null |  | User |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `hospitalId:1, phone:1` |  |
+
 ### `emergencies` — Emergency
 
 source `Emergency.js` · timestamps: yes · virtuals: 0 · retention: Trip duration + 30 days (dispute window) (docs/privacy/RETENTION.md) · PII: Contact, Demographic, Health, Identifier, Identity
@@ -3585,6 +3620,7 @@ source `Emergency.js` · timestamps: yes · virtuals: 0 · retention: Trip durat
 |---|---|---|---|---|---|---|---|
 | `patientName` | String |  |  | "Unknown" |  |  | Identity |
 | `patientId` | ObjectId |  |  |  |  | User | Identifier |
+| `tempUhid` | String |  |  | "" |  |  |  |
 | `age` | Number |  |  |  |  |  | Demographic |
 | `gender` | String |  |  |  | Male, Female, Other |  | Demographic |
 | `phone` | String |  |  |  |  |  | Contact |
@@ -3608,6 +3644,7 @@ Indexes:
 
 | Keys | Flags |
 |---|---|
+| `tempUhid:1` |  |
 | `hospitalId:1` |  |
 | `encounterId:1` |  |
 
@@ -7608,6 +7645,9 @@ source `Prescription.js` · timestamps: yes · virtuals: 0 · retention: Statuto
 | `patientName` | String | yes |  |  |  |  | Identity |
 | `doctorId` | ObjectId | yes |  |  |  | User | Identifier |
 | `doctorName` | String | yes |  |  |  |  | Identity |
+| `doctorRmp` | String |  |  | "" |  |  |  |
+| `teleConsult` | Boolean |  |  | false |  |  |  |
+| `teleConsentId` | ObjectId |  |  | null |  | TeleConsent |  |
 | `appointmentId` | ObjectId |  |  | null |  | Appointment |  |
 | `medicines` | Array<subdocument> |  |  |  |  |  |  |
 | `medicines.medicineId` | ObjectId |  |  |  |  | Medicine |  |
@@ -10070,6 +10110,32 @@ Indexes:
 | `status:1` |  |
 | `roleTemplate:1, status:1` |  |
 
+### `teleconsents` — TeleConsent
+
+source `TeleConsent.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `patientId` | ObjectId | yes |  |  |  | User | Identifier |
+| `doctorId` | ObjectId |  |  | null |  | User | Identifier |
+| `appointmentId` | ObjectId |  |  | null |  | Appointment |  |
+| `mode` | String |  |  | "video" | video, audio, chat |  |  |
+| `consentedAt` | Date |  |  | [function] |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `patientId:1` |  |
+| `appointmentId:1` |  |
+| `appointmentId:1, patientId:1` |  |
+
 ### `tenantgrants` — TenantGrant
 
 source `TenantGrant.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
@@ -10658,6 +10724,8 @@ source `VitalsLog.js` · timestamps: yes · virtuals: 0 · retention: Statutory 
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|
 | `userId` | ObjectId | yes |  |  |  | User | Identifier |
+| `recordedBy` | ObjectId |  |  | null |  | User |  |
+| `encounterId` | ObjectId |  |  | null |  | Encounter |  |
 | `patientId` | ObjectId |  |  | null |  | Patient | Identifier |
 | `carePlanId` | ObjectId |  |  | null |  | ChronicCarePlan |  |
 | `vitalType` | String | yes |  |  | bp, blood_sugar, weight, temperature, pulse, spo2 |  |  |
@@ -10672,7 +10740,6 @@ source `VitalsLog.js` · timestamps: yes · virtuals: 0 · retention: Statutory 
 | `values.spo2` | Number |  |  | null |  |  | Health |
 | `bookingKind` | String |  |  | null | assistant, appointment, ipd, null |  |  |
 | `bookingId` | ObjectId |  |  | null |  |  |  |
-| `recordedBy` | ObjectId |  |  | null |  | User |  |
 | `note` | String |  |  | "" |  |  |  |
 | `recordedAt` | Date |  |  | [function] |  |  |  |
 | `isBackdated` | Boolean |  |  | false |  |  |  |
@@ -10686,6 +10753,7 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `userId:1` |  |
+| `encounterId:1` |  |
 | `carePlanId:1` |  |
 | `vitalType:1` |  |
 | `bookingId:1` |  |

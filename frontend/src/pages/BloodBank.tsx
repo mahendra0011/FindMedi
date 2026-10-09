@@ -16,6 +16,8 @@ const bbApi = {
   completeTransfusion: (id, b) => api.completeTransfusion(id, b),
   reportReaction: (id, b) => api.reportReaction(id, b),
   getStats: () => api.getBloodBankStats(),
+  getScreenings: () => api.donorScreenings({}),
+  createScreening: (b) => api.createDonorScreening(b),
 };
 
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -44,12 +46,16 @@ export default function BloodBank() {
   const [reactionData, setReactionData] = useState({ reactionType: 'Fever', severity: 'Mild', symptoms: '', actionTaken: '', stopped: false });
   const [newUnit, setNewUnit] = useState({ bloodGroup: 'O+', donorName: '', donationDate: '', expiryDate: '', volume: 450, components: ['Whole Blood'], hiv: 'Negative', hbsag: 'Negative', hcv: 'Negative', malaria: 'Negative', vdrl: 'Negative' });
   const [newReq, setNewReq] = useState({ patientName: '', patientId: '', bloodGroup: 'O+', unitsRequired: 1, reason: '', priority: 'Routine' });
+  // File 22 P1-21: donor screening form.
+  const [screen, setScreen] = useState({ donorName: '', phone: '', bloodGroup: 'O+', age: '', weightKg: '', hb: '', lastDonationAt: '' });
 
   const { data: unitsData } = useQuery({ queryKey: ['blood-units', search], queryFn: () => bbApi.getUnits({ search }) });
   const { data: reqsData } = useQuery({ queryKey: ['blood-requests', search], queryFn: () => bbApi.getRequests({ search }) });
   const { data: stats } = useQuery({ queryKey: ['blood-stats'], queryFn: bbApi.getStats });
+  const { data: screenData } = useQuery({ queryKey: ['donor-screenings'], queryFn: bbApi.getScreenings });
   const units = unitsData?.units || [];
   const requests = reqsData?.requests || [];
+  const screenings = (screenData as any)?.screenings || [];
 
   const addUnitMut = useMutation({ mutationFn: bbApi.addUnit, onSuccess: () => { qc.invalidateQueries(['blood-units']); setShowAdd(false); } });
   const createReqMut = useMutation({ mutationFn: bbApi.createRequest, onSuccess: () => { qc.invalidateQueries(['blood-requests']); setShowAdd(false); } });
@@ -58,6 +64,7 @@ export default function BloodBank() {
   const startTransMut = useMutation({ mutationFn: ({ id, ...b }) => bbApi.startTransfusion(id, b), onSuccess: () => { qc.invalidateQueries(['blood-requests']); setShowTransfusion(null); } });
   const completeTransMut = useMutation({ mutationFn: ({ id, ...b }) => bbApi.completeTransfusion(id, b), onSuccess: () => qc.invalidateQueries(['blood-requests']) });
   const reactionMut = useMutation({ mutationFn: ({ id, ...b }) => bbApi.reportReaction(id, b), onSuccess: () => { qc.invalidateQueries(['blood-requests']); setShowReaction(null); } });
+  const screenMut = useMutation({ mutationFn: bbApi.createScreening, onSuccess: (r: any) => { qc.invalidateQueries(['donor-screenings']); setScreen({ donorName: '', phone: '', bloodGroup: 'O+', age: '', weightKg: '', hb: '', lastDonationAt: '' }); } });
 
   const getCompatibleUnits = (bloodGroup) => {
     const compatible = compatibleDonors[bloodGroup] || [];
@@ -89,10 +96,10 @@ export default function BloodBank() {
       </div>
 
       <div className="flex gap-2 mb-6 border-b pb-3">
-        {['inventory', 'requests'].map(t => (
+        {['inventory', 'requests', 'donors'].map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
-            {t === 'inventory' ? 'Blood Inventory' : 'Requests & Transfusions'}
+            {t === 'inventory' ? 'Blood Inventory' : t === 'requests' ? 'Requests & Transfusions' : 'Donor Screening'}
           </button>
         ))}
       </div>
@@ -223,6 +230,47 @@ export default function BloodBank() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* File 22 P1-21: donor screening tab */}
+      {tab === 'donors' && (
+        <div className="grid lg:grid-cols-[320px_1fr] gap-4">
+          <div className="bg-card rounded-xl border p-4 space-y-2">
+            <h3 className="font-semibold text-sm">Screen donor</h3>
+            <Input placeholder="Donor name" value={screen.donorName} onChange={(e) => setScreen({ ...screen, donorName: e.target.value })} />
+            <div className="grid grid-cols-2 gap-2">
+              <Input placeholder="Phone" value={screen.phone} onChange={(e) => setScreen({ ...screen, phone: e.target.value })} />
+              <select aria-label="Blood group" className="h-10 rounded-md border px-2 text-sm" value={screen.bloodGroup} onChange={(e) => setScreen({ ...screen, bloodGroup: e.target.value })}>
+                {bloodGroups.map((g) => <option key={g}>{g}</option>)}
+              </select>
+              <Input placeholder="Age" value={screen.age} onChange={(e) => setScreen({ ...screen, age: e.target.value })} />
+              <Input placeholder="Weight kg" value={screen.weightKg} onChange={(e) => setScreen({ ...screen, weightKg: e.target.value })} />
+              <Input placeholder="Hb" value={screen.hb} onChange={(e) => setScreen({ ...screen, hb: e.target.value })} />
+              <Input type="date" aria-label="Last donation" value={screen.lastDonationAt} onChange={(e) => setScreen({ ...screen, lastDonationAt: e.target.value })} />
+            </div>
+            <Button className="w-full" disabled={!screen.donorName} onClick={() => screenMut.mutate({
+              ...screen,
+              age: screen.age ? Number(screen.age) : undefined,
+              weightKg: screen.weightKg ? Number(screen.weightKg) : undefined,
+              hb: screen.hb ? Number(screen.hb) : undefined,
+              lastDonationAt: screen.lastDonationAt || undefined,
+            })}>Screen</Button>
+            {(screenMut.data as any)?.eligible === false ? (
+              <p className="text-sm text-destructive">Deferred: {(screenMut.data as any)?.deferralReason}</p>
+            ) : null}
+          </div>
+          <div className="space-y-2 max-h-[560px] overflow-auto">
+            {screenings.map((s: any) => (
+              <div key={s._id} className="flex items-center justify-between rounded-xl border p-3 text-sm">
+                <span><b>{s.donorName}</b> · {s.bloodGroup} · {s.phone}</span>
+                {s.eligible
+                  ? <span className="text-xs font-bold text-success">ELIGIBLE</span>
+                  : <span className="text-xs font-bold text-destructive" title={s.deferralReason}>DEFERRED</span>}
+              </div>
+            ))}
+            {screenings.length === 0 ? <p className="text-sm text-muted-foreground">No screenings yet.</p> : null}
+          </div>
         </div>
       )}
 

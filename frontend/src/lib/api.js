@@ -833,8 +833,14 @@ export const api = {
   // File 14 forms + print + signatures + queues
   getFormTemplates:      (p={})    => request('/forms/templates?' + new URLSearchParams(p)),
   createFormTemplate:    (body)    => request('/forms/templates', { method:'POST', body: JSON.stringify(body) }),
+  seedScoreForms:        ()        => request('/forms/templates/seed-scores', { method:'POST' }),
   publishFormTemplate:   (id)      => request(`/forms/templates/${id}/publish`, { method:'POST' }),
   submitFormResponse:    (body)    => request('/forms/responses', { method:'POST', body: JSON.stringify(body) }),
+  // ── File 22 P1-20: clinical score seeds ──
+  seedScoreForms:        ()        => request('/forms/templates/seed-scores', { method:'POST' }),
+  // ── File 22 P1-21: donor screening ──
+  donorScreenings:       (p={})    => request('/bloodbank/screenings' + qs(p)),
+  createDonorScreening:  (body)    => request('/bloodbank/screenings', { method: 'POST', body: JSON.stringify(body) }),
   getPrintTemplates:     (p={})    => request('/print/templates?' + new URLSearchParams(p)),
   createPrintTemplate:   (body)    => request('/print/templates', { method:'POST', body: JSON.stringify(body) }),
   renderPrint:           (body)    => request('/print/render', { method:'POST', body: JSON.stringify(body) }),
