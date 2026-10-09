@@ -1339,6 +1339,13 @@ export const api = {
   hubDeleteSub:           (id)      => request(`/hub/webhooks/subs/${id}`, { method: 'DELETE' }),
   hubDeliveries:          (p={})    => request('/hub/webhooks/deliveries' + qs(p)),
 
+  // ── File 22 P1-15: TPA depth ──
+  tpaRoomRent:            (id, body)  => request(`/tpa/claims/${id}/room-rent`, { method: 'POST', body: JSON.stringify(body) }),
+  tpaQuery:               (id, body)  => request(`/tpa/claims/${id}/query`, { method: 'POST', body: JSON.stringify(body) }),
+  tpaAppeal:              (id, grounds) => request(`/tpa/claims/${id}/appeal`, { method: 'POST', body: JSON.stringify({ grounds }) }),
+  pmjayList:              (p={})    => request('/tpa/pmjay' + qs(p)),
+  pmjayUpsert:            (body)    => request('/tpa/pmjay', { method: 'POST', body: JSON.stringify(body) }),
+
   // ── File 22 P1-11: LIS depth ──
   labReject:               (id, idx, reason) => request(`/lab/orders/${id}/tests/${idx}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
   labRecollect:            (id, idx) => request(`/lab/orders/${id}/tests/${idx}/recollect`, { method: 'PUT' }),

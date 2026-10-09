@@ -25,6 +25,13 @@ const claimSchema = new mongoose.Schema({
   utr: { type: String, default: '' },
   tds: { type: Number, default: 0 },
   shortSettlement: [{ reason: { type: String }, amount: { type: Number } }],
+  // File 22 P1-15: proportionate deductions (room-rent cap etc.).
+  deductions: [{
+    kind: { type: String, default: '' },
+    amount: { type: Number, default: 0 },
+    notes: { type: String, default: '', maxlength: 500 },
+    at: { type: Date, default: Date.now },
+  }],
   appealOf: { type: mongoose.Schema.Types.ObjectId, ref: 'Claim', default: null },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
