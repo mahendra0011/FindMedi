@@ -7,6 +7,9 @@ const operationSchema = new mongoose.Schema({
   doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   doctorName: { type: String, required: true },
   surgeryName: { type: String, required: true },
+  // File 22 P0-4: episode linkage so OT charges roll into IPD bills.
+  encounterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Encounter', default: null, index: true },
+  admissionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admission', default: null, index: true },
   surgeryType: { type: String, enum: ['Elective', 'Emergency', 'Urgent'], default: 'Elective' },
   anaesthesiaType: { type: String, enum: ['General', 'Spinal', 'Epidural', 'Local', 'Sedation', 'Not Required'], default: 'General' },
   assistants: [{ type: String }],

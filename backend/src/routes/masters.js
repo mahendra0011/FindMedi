@@ -88,8 +88,15 @@ router.post('/reason-codes', authorize('staff:manage'), async (req, res) => {
 // ─── Patient flags ──────────────────────────────────────────────────────────
 router.get('/patient-flags/:patientId', authorize('staff:view'), async (req, res) => {
   try {
+    // File 22 P0-2: accept a Patient id OR a User id (admissions, bills and
+    // lab orders carry the User id). Same resolution as patientHardStop.
+    const ids = [req.params.patientId];
+    const { safeFirst } = await import('../lib/approvalWiring.js');
+    const { default: Patient } = await import('../models/Patient.js');
+    const linked = await safeFirst(Patient.findOne({ userId: req.params.patientId }).select('_id').lean());
+    if (linked) ids.push(String(linked._id));
     const rows = await PatientFlag.find({
-      ...tenant(req), patient: req.params.patientId, active: true,
+      ...tenant(req), patient: { $in: ids }, active: true,
     }).sort({ severity: -1 }).lean();
     return res.json({ flags: rows });
   } catch (err) {
@@ -131,15 +138,16 @@ router.post('/patient-flags/:id/clear', authorize('staff:manage'), async (req, r
 export async function patientHardStop(hospitalId, patientOrUserId) {
   if (!patientOrUserId) return null;
   const { default: Patient } = await import('../models/Patient.js');
-  const direct = await PatientFlag.findOne({
+  const { safeFirst } = await import('../lib/approvalWiring.js');
+  const direct = await safeFirst(PatientFlag.findOne({
     hospitalId, patient: patientOrUserId, kind: { $in: ['blacklisted', 'deceased'] }, active: true,
-  }).lean().catch(() => null);
+  }).lean());
   if (direct) return direct.kind;
-  const linked = await Patient.findOne({ userId: patientOrUserId }).select('_id').lean().catch(() => null);
+  const linked = await safeFirst(Patient.findOne({ userId: patientOrUserId }).select('_id').lean());
   if (!linked) return null;
-  const hit = await PatientFlag.findOne({
+  const hit = await safeFirst(PatientFlag.findOne({
     hospitalId, patient: linked._id, kind: { $in: ['blacklisted', 'deceased'] }, active: true,
-  }).lean();
+  }).lean());
   return hit ? hit.kind : null;
 }
 

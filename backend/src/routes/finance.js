@@ -105,19 +105,83 @@ router.post('/credit-notes', authorize('billing:write'), requireStepUp('refunds:
     }
     const bill = await Billing.findById(billId);
     if (!bill) return res.status(404).json({ message: 'Bill not found' });
+    // File 22 P0-1: above-threshold credit notes are HELD (Issued) until an
+    // approval is consumed; small ones apply immediately as before.
+    const { default: ApprovalPolicy } = await import('../models/ApprovalPolicy.js');
+    const { resolveThreshold } = await import('../lib/approvalWiring.js');
+    const { safeFirst } = await import('../lib/approvalWiring.js');
+    const policy = await safeFirst(ApprovalPolicy.findOne({
+      hospitalId: req.user.hospitalId, key: 'credit-note', active: true,
+    }).lean());
+    const { limit, roles } = resolveThreshold(policy, 'credit-note');
+    const needsHold = Number(amount) >= limit;
+    let approvalRef = null;
+    if (needsHold) {
+      const { ensureApproval, approvalError } = await import('./approvals.js');
+      try {
+        const approval = await ensureApproval({
+          req, policyKey: 'credit-note',
+          entityRef: { model: 'Billing', id: bill._id },
+          title: `Credit note ₹${amount} on bill ${bill.invoiceId}`,
+          amount: Number(amount), roles,
+        });
+        approvalRef = approval._id;
+      } catch (e) {
+        if (approvalError(res, e)) return undefined;
+        throw e;
+      }
+    }
     const note = await CreditNote.create({
       hospitalId: bill.hospitalId, billId: bill._id, patientId: bill.patientId,
       kind: kind === 'Debit' ? 'Debit' : 'Credit', amount: Number(amount),
-      reason: String(reason).slice(0, 500), approvedBy: actorId(req),
-      status: 'Applied', appliedAt: new Date(), createdBy: actorId(req),
+      reason: String(reason).slice(0, 500), approvedBy: needsHold ? null : actorId(req),
+      status: needsHold ? 'Issued' : 'Applied', appliedAt: needsHold ? null : new Date(),
+      createdBy: actorId(req),
     });
-    const delta = note.kind === 'Credit' ? -note.amount : note.amount;
-    bill.balance = Math.max(0, (bill.balance || 0) + delta);
-    await bill.save();
-    await auditLog('credit_note_issued', actorId(req), { noteId: note._id, billId, amount, ip: req.ip });
-    return res.status(201).json({ id: String(note._id), balance: bill.balance });
+    if (!needsHold) {
+      const delta = note.kind === 'Credit' ? -note.amount : note.amount;
+      bill.balance = Math.max(0, (bill.balance || 0) + delta);
+      await bill.save();
+    }
+    await auditLog('credit_note_issued', actorId(req), { noteId: note._id, billId, amount, held: needsHold, ip: req.ip });
+    return res.status(201).json({ id: String(note._id), balance: bill.balance, held: needsHold, approvalRef });
   } catch (err) {
     logger.error(`Finance credit-note error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Apply a HELD credit note once its approval is consumed.
+router.post('/credit-notes/:id/apply', authorize('billing:write'), requireStepUp('refunds:issue'), async (req, res) => {
+  try {
+    const { default: CreditNote } = await import('../models/CreditNote.js');
+    const note = await CreditNote.findById(req.params.id);
+    if (!note || note.status !== 'Issued') return res.status(404).json({ message: 'Held credit note not found' });
+    const { consumeApproval, approvalError } = await import('./approvals.js');
+    try {
+      await consumeApproval({
+        hospitalId: req.user.hospitalId, approvalId: req.body?.approvalId,
+        policyKey: 'credit-note', minAmount: note.amount,
+        consumedFor: `credit-note:${note._id}`, consumedBy: actorId(req),
+      });
+    } catch (e) {
+      if (approvalError(res, e)) return undefined;
+      throw e;
+    }
+    const bill = await Billing.findById(note.billId);
+    if (bill) {
+      const delta = note.kind === 'Credit' ? -note.amount : note.amount;
+      bill.balance = Math.max(0, (bill.balance || 0) + delta);
+      await bill.save();
+    }
+    note.status = 'Applied';
+    note.appliedAt = new Date();
+    note.approvedBy = actorId(req);
+    await note.save();
+    await auditLog('credit_note_applied', actorId(req), { noteId: note._id, ip: req.ip });
+    return res.json({ id: String(note._id), status: note.status, balance: bill ? bill.balance : null });
+  } catch (err) {
+    logger.error(`Finance credit-note apply error: ${err.message}`);
     return res.status(500).json({ message: err.message });
   }
 });
@@ -177,6 +241,32 @@ router.post('/expenses/:id/approve', authorize('billing:write'), requireStepUp('
     const { default: LedgerEntry } = await import('../models/LedgerEntry.js');
     const e = await Expense.findById(req.params.id);
     if (!e || e.status !== 'Pending') return res.status(404).json({ message: 'Pending expense not found' });
+    // File 22 P0-1: SoD — the claimant can never approve their own expense.
+    const { isSelfApproval } = await import('../lib/approvalWiring.js');
+    if (isSelfApproval(e.createdBy, actorId(req))) {
+      await auditLog('expense_self_attempt', actorId(req), { expenseId: e._id, ip: req.ip });
+      return res.status(403).json({ message: 'Self-approval forbidden: a different approver must approve', code: 'SELF_APPROVAL' });
+    }
+    // File 22 P0-1: above-threshold expenses need a consumed approval.
+    const { default: ApprovalPolicy } = await import('../models/ApprovalPolicy.js');
+    const { resolveThreshold, safeFirst } = await import('../lib/approvalWiring.js');
+    const policy = await safeFirst(ApprovalPolicy.findOne({
+      hospitalId: e.hospitalId, key: 'expense', active: true,
+    }).lean());
+    const { limit, roles } = resolveThreshold(policy, 'expense');
+    if (Number(e.amount) >= limit) {
+      const { ensureApproval, approvalError } = await import('./approvals.js');
+      try {
+        await ensureApproval({
+          req, policyKey: 'expense',
+          entityRef: { model: 'Expense', id: e._id },
+          title: `Expense ₹${e.amount} (${e.category})`, amount: Number(e.amount), roles,
+        });
+      } catch (err2) {
+        if (approvalError(res, err2)) return undefined;
+        throw err2;
+      }
+    }
     e.status = 'Approved';
     e.approvedBy = actorId(req);
     await e.save();

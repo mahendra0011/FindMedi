@@ -4,6 +4,7 @@ import { Search, Bed, Plus, Clock, CheckCircle, AlertCircle, X, User, Building2,
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import PatientBanner from '@/components/clinical/PatientBanner';
 
 const ipdApi = {
   getBeds: (p = {}) => api.dispatch(() => Promise.resolve({ beds: [] }), '/ipd/beds?' + new URLSearchParams(p)),
@@ -76,6 +77,8 @@ export default function IPD() {
     if (!adm) return null;
     return (
       <div className="px-4 pb-4 border-t pt-3 space-y-4">
+        {/* File 22 P0-2: flags (allergy/isolation/MLC/blacklisted/deceased) */}
+        <PatientBanner patientId={adm.patientId || ''} />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div><span className="text-muted-foreground">Admission ID</span><p className="font-medium">{adm.admissionId}</p></div>
           <div><span className="text-muted-foreground">Patient</span><p className="font-medium">{adm.patientName}</p></div>

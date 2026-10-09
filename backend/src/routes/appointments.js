@@ -720,13 +720,6 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), authori
     const patientName = req.user.name;
     const patientId = req.user._id;
 
-    // File 13 §13.6: blacklisted/deceased patients cannot book.
-    try {
-      const { patientHardStop } = await import('./masters.js');
-      const stop = await patientHardStop(hospitalId, patientId);
-      if (stop) return res.status(422).json({ message: `Booking blocked: patient is ${stop}`, code: 'PATIENT_HARD_STOP' });
-    } catch { /* flag lookup must never break booking on infra errors */ }
-    
     let hospitalId = null;
     if (doctorId) {
       const doctorDoc = await Doctor.findById(doctorId);
@@ -734,6 +727,15 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), authori
         hospitalId = doctorDoc.hospitalId;
       }
     }
+
+    // File 13 §13.6 + File 22 P0-2: blacklisted/deceased patients cannot
+    // book. Runs AFTER hospitalId resolves — before this fix the guard read
+    // a null tenant and never fired (dead check).
+    try {
+      const { patientHardStop } = await import('./masters.js');
+      const stop = await patientHardStop(hospitalId, patientId);
+      if (stop) return res.status(409).json({ message: `Booking blocked: patient is ${stop}`, code: 'PATIENT_HARD_STOP' });
+    } catch { /* flag lookup must never break booking on infra errors */ }
 
     // A3-part-2: provider-service attribution. The slot the patient picked on
     // the provider page carries its service; the booking stores the link so
@@ -851,6 +853,21 @@ router.put('/:id/checkin', protect, async (req, res) => {
     
     appointment.status = 'In Queue';
     appointment.checkedInAt = new Date();
+
+    // File 22 P0-3: check-in opens the OPD Encounter (idempotent per appointment).
+    try {
+      const { ensureEncounter } = await import('../lib/encounter.js');
+      const enc = await ensureEncounter({
+        hospitalId: appointment.hospitalId || req.user.hospitalId || null,
+        patientId: appointment.patientId || null,
+        type: appointment.appointmentMode === 'video' ? 'TELE' : 'OPD',
+        appointmentId: appointment._id, departmentId: appointment.department || '',
+        doctorId: appointment.doctorId || null, createdBy: req.user._id ?? req.user.id,
+      });
+      appointment.encounterId = enc._id;
+    } catch (e) {
+      logger.warn(`check-in encounter auto-create failed: ${e.message}`);
+    }
     
     const queueCount = await Appointment.countDocuments({
       department: appointment.department,

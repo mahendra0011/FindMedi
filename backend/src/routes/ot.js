@@ -31,6 +31,17 @@ router.post('/surgeries', protect, adminOnly, validate(createSurgerySchema), asy
       otNumber: otNumber || '', scheduledDate,
       createdBy: req.user._id,
     });
+    // File 22 P0-4: link the admitted stay so op-note charges roll into the bill.
+    try {
+      const { openAdmissionFor } = await import('../lib/charges.js');
+      const { safeFirst } = await import('../lib/approvalWiring.js');
+      const stay = await safeFirst(openAdmissionFor(surgery.hospitalId, patientId));
+      if (stay) {
+        surgery.admissionId = stay._id;
+        if (stay.encounterId) surgery.encounterId = stay.encounterId;
+        await surgery.save();
+      }
+    } catch { /* linkage must never break scheduling */ }
     res.status(201).json(surgery);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -230,6 +241,19 @@ router.put('/surgeries/:id/op-note', protect, async (req, res) => {
       ...(s.implants || []).map((i) => ({ description: `Implant: ${i.name}`, qty: 1, unitPrice: i.price || 0 })),
       ...(s.consumables || []).map((c) => ({ description: `Consumable: ${c.name}`, qty: c.qty || 1, unitPrice: c.price || 0 })),
     ].filter((l) => l.unitPrice > 0);
+    // File 22 P0-4: team fees ride the same op-note (idempotent per surgery:
+    // re-saving the note must not re-bill the team).
+    const teamTotal = Number(s.teamFees?.surgeon || 0) + Number(s.teamFees?.assistant || 0) + Number(s.teamFees?.anaesthetist || 0);
+    if (teamTotal > 0) {
+      const { postCharge } = await import('../lib/charges.js');
+      await postCharge({
+        hospitalId: s.hospitalId, patientId: s.patientId,
+        encounterId: s.encounterId || null, admissionId: s.admissionId || null,
+        source: 'procedure', sourceRef: { model: 'OperationTheatre', id: s._id },
+        description: `OT team fees (${s.procedure ? String(s.procedure).slice(0, 80) : 'procedure'})`,
+        qty: 1, unitPrice: teamTotal, postedBy: req.user._id,
+      }).catch(() => null);
+    }
     if (lines.length) {
       await ChargeItem.insertMany(lines.map((l) => ({
         patientId: s.patientId, hospitalId: s.hospitalId,

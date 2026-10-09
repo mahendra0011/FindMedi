@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api, downloadInvoicePdf } from '@/lib/api';
 import { toast } from 'sonner';
+import PatientBanner from '@/components/clinical/PatientBanner';
 
 const statusCls = {
   Paid:    'bg-success/10 text-success',
@@ -13,7 +14,7 @@ const statusCls = {
   Partial: 'bg-info/10 text-info',
 };
 const STATUSES = ['All','Paid','Pending','Overdue','Partial'];
-const empty = { patient:'', doctor:'', service:'', amount:'', paid:'0', status:'Pending', date:'', dueDate:'' };
+const empty = { patient:'', doctor:'', service:'', amount:'', discount:'', paid:'0', status:'Pending', date:'', dueDate:'' };
 
 export default function Billing() {
   const qc = useQueryClient();
@@ -21,6 +22,10 @@ export default function Billing() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(empty);
+  // File 22 P0-1: over-policy discount approval — server returns 409 with the
+  // request id; the biller retries the same invoice once it is approved.
+  const [approval, setApproval] = useState<{ id: string; roles: string[] } | null>(null);
+  const [selectedBill, setSelectedBill] = useState<any | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['billing', search, statusFilter],
@@ -29,12 +34,30 @@ export default function Billing() {
   });
   const { bills, summary } = data || { bills:[], summary:{total:0,paid:0} };
 
-  const createMut = useMutation({ mutationFn: api.createBill, onSuccess: () => { qc.invalidateQueries(['billing']); setModal(false); setForm(empty); } });
+  const createMut = useMutation({
+    mutationFn: api.createBill,
+    onSuccess: () => { qc.invalidateQueries(['billing']); setModal(false); setForm(empty); setApproval(null); },
+    onError: (err: any) => {
+      const data = err?.response?.data;
+      if (data?.code === 'NEEDS_APPROVAL' && data?.approvalId) {
+        setApproval({ id: data.approvalId, roles: data.approverRoles || [] });
+        toast.warning(`Discount needs approval (${(data.approverRoles || []).join('/')}). Request ${data.approvalId} raised — submit again once approved.`);
+      } else {
+        toast.error(data?.message || err?.message || 'Could not create invoice');
+      }
+    },
+  });
   const deleteMut = useMutation({ mutationFn: api.deleteBill, onSuccess: () => qc.invalidateQueries(['billing']) });
   const markPaidMut = useMutation({ mutationFn: ({ id, amount }) => api.updateBill(id, { status:'Paid', paid: amount }), onSuccess: () => qc.invalidateQueries(['billing']) });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const submit = (e) => { e.preventDefault(); createMut.mutate({ ...form, amount: Number(form.amount), paid: Number(form.paid) }); };
+  const submit = (e) => {
+    e.preventDefault();
+    createMut.mutate({
+      ...form, amount: Number(form.amount), discount: Number(form.discount) || 0, paid: Number(form.paid),
+      ...(approval ? { approvalId: approval.id } : {}),
+    });
+  };
   const downloadInvoice = async (bill) => {
     try {
       await downloadInvoicePdf(bill._id, `${bill.invoiceId || 'invoice'}.pdf`);
@@ -103,6 +126,8 @@ export default function Billing() {
       </div>
 
       {/* Table */}
+      {/* File 22 P0-2: flag chips for the selected bill's patient */}
+      {selectedBill && <PatientBanner patientId={selectedBill.patientId || ''} />}
       <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -119,7 +144,8 @@ export default function Billing() {
               ) : bills.length === 0 ? (
                 <tr><td colSpan={9} className="text-center py-16 text-muted-foreground">No invoices found</td></tr>
               ) : bills.map(b => (
-                <tr key={b._id} className="hover:bg-muted/30 transition-colors group">
+                <tr key={b._id} onClick={() => setSelectedBill(selectedBill?._id === b._id ? null : b)}
+                  className={`hover:bg-muted/30 transition-colors group cursor-pointer ${selectedBill?._id === b._id ? 'bg-muted/40' : ''}`}>
                   <td className="px-4 py-3 text-xs font-mono text-muted-foreground">{b.invoiceId}</td>
                   <td className="px-4 py-3 text-sm font-medium text-card-foreground">{b.patient}</td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{b.doctor}</td>
@@ -169,6 +195,7 @@ export default function Billing() {
                 <div><label className="text-sm font-medium mb-1.5 block">Doctor</label><Input value={form.doctor} onChange={e=>set('doctor',e.target.value)} placeholder="Dr. Name" required /></div>
                 <div className="col-span-2"><label className="text-sm font-medium mb-1.5 block">Service</label><Input value={form.service} onChange={e=>set('service',e.target.value)} placeholder="e.g. Cardiology Consultation" required /></div>
                 <div><label className="text-sm font-medium mb-1.5 block">Amount (Rs)</label><Input type="number" value={form.amount} onChange={e=>set('amount',e.target.value)} placeholder="500" required /></div>
+                <div><label className="text-sm font-medium mb-1.5 block">Discount (Rs)</label><Input type="number" value={form.discount} onChange={e=>set('discount',e.target.value)} placeholder="0" /></div>
                 <div><label className="text-sm font-medium mb-1.5 block">Amount Paid (Rs)</label><Input type="number" value={form.paid} onChange={e=>set('paid',e.target.value)} placeholder="0" /></div>
                 <div><label className="text-sm font-medium mb-1.5 block">Invoice Date</label><Input type="date" value={form.date} onChange={e=>set('date',e.target.value)} required /></div>
                 <div><label className="text-sm font-medium mb-1.5 block">Due Date</label><Input type="date" value={form.dueDate} onChange={e=>set('dueDate',e.target.value)} /></div>
@@ -179,6 +206,14 @@ export default function Billing() {
                   </select>
                 </div>
               </div>
+              {approval && (
+                <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+                  Approval <span className="font-mono font-semibold">{approval.id}</span> pending
+                  {approval.roles.length ? <> ({approval.roles.join('/')})</> : null} —{' '}
+                  <a href="/hospital/approvals" className="underline">open approvals</a>, then submit again.
+                  <button type="button" className="ml-2 underline" onClick={() => setApproval(null)}>clear</button>
+                </div>
+              )}
               {createMut.error && <p className="text-sm text-destructive">{createMut.error.message}</p>}
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => setModal(false)}>Cancel</Button>

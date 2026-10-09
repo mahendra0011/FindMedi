@@ -7,6 +7,7 @@ import { protect, adminOnly, clinicalStaffOnly, authorize } from '../middleware/
 import { validate, createAdmissionSchema } from '../utils/validate.js';
 import { generateAdmissionId, generate16DigitId } from '../utils/idGenerator.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
+import logger from '../config/logger.js';
 
 const ipdBedSchema = z.object({
   bedNumber: z.string().trim().min(1).max(40).optional(),
@@ -127,6 +128,19 @@ router.post('/admissions', protect, adminOnly, validate(createAdmissionSchema), 
       bedData.admissionId = admission._id;
       bedData.occupiedSince = new Date();
       await bedData.save();
+    }
+
+    // File 22 P0-3: admission opens an IPD Encounter (idempotent per admission).
+    try {
+      const { ensureEncounter } = await import('../lib/encounter.js');
+      const enc = await ensureEncounter({
+        hospitalId: req.user.hospitalId, patientId: patientId || null, type: 'IPD',
+        admissionId: admission._id, createdBy: req.user._id ?? req.user.id,
+      });
+      admission.encounterId = enc._id;
+      await admission.save();
+    } catch (e) {
+      logger.warn(`IPD encounter auto-create failed: ${e.message}`);
     }
 
     res.status(201).json(admission);
@@ -481,8 +495,12 @@ router.post('/admissions/:id/discharge/finalize', protect, adminOnly, async (req
     if (!flow || flow.state !== 'BillingClear') {
       return res.status(409).json({ message: `Discharge must reach BillingClear first (now: ${flow?.state || 'none'})` });
     }
+    // File 22 P0-4: roll up admission charges AND encounter-linked charges
+    // (lab/radiology/OT posted against the visit encounter, not the stay).
+    const chargeOr = [{ admissionId: admission._id }];
+    if (admission.encounterId) chargeOr.push({ encounterId: admission.encounterId });
     const [charges, deposits] = await Promise.all([
-      ChargeItem.find({ admissionId: admission._id, status: 'Pending' }),
+      ChargeItem.find({ $or: chargeOr, status: 'Pending' }),
       IpdDeposit.find({ admissionId: admission._id }),
     ]);
     const total = +charges.reduce((s, c) => s + (c.amount || 0), 0).toFixed(2);
@@ -492,6 +510,30 @@ router.post('/admissions/:id/discharge/finalize', protect, adminOnly, async (req
     const waiver = Number(req.body?.waiverAmount || 0);
     if (balance - waiver > 0.009) {
       return res.status(409).json({ message: `Outstanding balance ₹${balance}: collect, adjust deposit, or pass waiverAmount`, balance });
+    }
+    // File 22 P0-1: ANY dues waiver needs a consumed approval — a client
+    // number alone must never zero a balance.
+    let waiverApprovalRef = null;
+    if (waiver > 0.009) {
+      const { default: ApprovalPolicy } = await import('../models/ApprovalPolicy.js');
+      const { resolveThreshold, safeFirst } = await import('../lib/approvalWiring.js');
+      const policy = await safeFirst(ApprovalPolicy.findOne({
+        hospitalId: admission.hospitalId, key: 'discharge-waiver', active: true,
+      }).lean());
+      const { roles } = resolveThreshold(policy, 'discharge-waiver');
+      const { ensureApproval, approvalError } = await import('./approvals.js');
+      try {
+        const approval = await ensureApproval({
+          req, policyKey: 'discharge-waiver',
+          entityRef: { model: 'Admission', id: admission._id },
+          title: `Waive ₹${waiver} on discharge ${admission.admissionId}`,
+          amount: waiver, roles,
+        });
+        waiverApprovalRef = approval._id;
+      } catch (e) {
+        if (approvalError(res, e)) return undefined;
+        throw e;
+      }
     }
     const bill = await Billing.create({
       invoiceId: `INV-${Date.now().toString(36).toUpperCase()}`,

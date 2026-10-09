@@ -151,6 +151,20 @@ const ticketTransition = async (req, res, from, to, extra = {}) => {
   if (!q || !queueScope(req, q)) return res.status(403).json({ message: 'Access denied' });
   Object.assign(t, extra, { status: to });
   await t.save();
+  // File 22 P0-3: visit start opens the OPD Encounter (idempotent per ticket).
+  if (to === 'InService' && t.patientId && !t.encounterId) {
+    try {
+      const { ensureEncounter } = await import('../lib/encounter.js');
+      const enc = await ensureEncounter({
+        hospitalId: q.hospitalId, patientId: t.patientId, type: 'OPD',
+        createdBy: req.user._id ?? req.user.id,
+      });
+      t.encounterId = enc._id;
+      await t.save();
+    } catch (e) {
+      logger.warn(`ticket encounter auto-create failed: ${e.message}`);
+    }
+  }
   await emitQueue(String(t.queueId), 'queue:updated', { queueId: String(t.queueId) });
   return res.json({ id: String(t._id), status: t.status });
 };

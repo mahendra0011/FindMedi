@@ -41,6 +41,10 @@ const appointmentSchema = new mongoose.Schema({
   // a User id (the bug that made walk-in appointments invisible to their own
   // patient and un-cancellable by them).
   patientRecordId: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient', index: true },
+  // File 22 P0-3: visit linkage — set at check-in (encounter auto-created),
+  // prescription attached when the consult signs one.
+  encounterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Encounter', default: null, index: true },
+  prescriptionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Prescription', default: null },
   // PAY-B-08: explicit checkout hold expiry. The stale-cleanup job used to infer
   // "abandoned" from `createdAt` alone, which raced an in-flight payment webhook
   // and could delete an appointment whose payment was about to settle.

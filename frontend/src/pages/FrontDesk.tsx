@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
+import PatientBanner from '@/components/clinical/PatientBanner';
 
 /**
  * File 09 §5.1 — front-desk stub: quick patient search (UHID/phone/name),
@@ -14,6 +15,7 @@ export default function FrontDesk() {
   const [q, setQ] = useState('');
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedId, setSelectedId] = useState('');
 
   const search = async () => {
     if (!q.trim()) return;
@@ -39,11 +41,14 @@ export default function FrontDesk() {
             <Button onClick={search} disabled={loading}>Search</Button>
           </div>
           {rows.map((p: any) => (
-            <div key={p._id || p.id} className="text-sm rounded-lg border border-border/50 p-2.5">
+            <div key={p._id || p.id} onClick={() => setSelectedId(p._id || p.id || '')}
+              className={`text-sm rounded-lg border p-2.5 cursor-pointer ${selectedId === (p._id || p.id) ? 'border-primary' : 'border-border/50'}`}>
               <span className="font-medium">{p.name}</span>
               <span className="text-muted-foreground"> · {p.uhid || p.phone || ''}</span>
             </div>
           ))}
+          {/* File 22 P0-2: flag chips for the selected patient */}
+          {selectedId && <PatientBanner patientId={selectedId} />}
           {q && !loading && rows.length === 0 && <p className="text-sm text-muted-foreground">No match — register as new patient.</p>}
         </CardContent>
       </Card>

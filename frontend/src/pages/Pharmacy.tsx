@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
+import PatientBanner from '@/components/clinical/PatientBanner';
 
 const pharmApi = {
   getMedicines: (p = {}) => api.dispatch(() => Promise.resolve({ medicines: [] }), '/pharmacy/medicines?' + new URLSearchParams(p)),
@@ -54,6 +55,7 @@ export default function Pharmacy() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [selectedRxId, setSelectedRxId] = useState(null);
   const [toast, setToast] = useState(null);
   const [stockModal, setStockModal] = useState(null);
   const [stockQty, setStockQty] = useState('');
@@ -502,7 +504,7 @@ showToast('Failed to export billing', 'error');
               <div className="space-y-4">
                 {prescriptions.map(rx => (
                   <div key={rx._id} className="bg-card rounded-xl border p-4">
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start justify-between mb-3 cursor-pointer" onClick={() => setSelectedRxId(selectedRxId === rx._id ? null : rx._id)}>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-semibold text-foreground">{rx.prescriptionId}</span>
@@ -513,6 +515,8 @@ showToast('Failed to export billing', 'error');
                       </div>
                       <span className="text-xs text-muted-foreground"><Clock className="w-3 h-3 inline mr-1" />{new Date(rx.createdAt).toLocaleDateString()}</span>
                     </div>
+                    {/* File 22 P0-2: flag chips for the selected prescription's patient */}
+                    {selectedRxId === rx._id && <div className="mb-2"><PatientBanner patientId={rx.patientId || ''} /></div>}
                     <div className="space-y-2">
                       {(rx.medicines || []).map((m, i) => (
                         <div key={i} className="flex items-center justify-between bg-muted/30 rounded-lg p-2">

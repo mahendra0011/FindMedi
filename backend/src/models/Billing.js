@@ -63,6 +63,8 @@ const billingSchema = new mongoose.Schema({
   },
   counterId: { type: mongoose.Schema.Types.ObjectId, ref: 'CashCounter', default: null },
   shiftId: { type: mongoose.Schema.Types.ObjectId, ref: 'CashShift', default: null },
+  // File 22 P0-1: consumed discount approval (ApprovalRequest id, one-time).
+  approvalRef: { type: mongoose.Schema.Types.ObjectId, ref: 'ApprovalRequest', default: null },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });

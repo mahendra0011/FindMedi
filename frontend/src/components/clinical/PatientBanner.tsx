@@ -21,7 +21,7 @@ const KIND_STYLE: Record<string, string> = {
 export default function PatientBanner({ patientId }: { patientId: string }) {
   const [flags, setFlags] = useState<any[]>([]);
   useEffect(() => {
-    if (!patientId) return;
+    if (!patientId || String(patientId).trim().length < 8) { setFlags([]); return; }
     api.patientFlags(patientId).then((r: any) => setFlags(r?.flags || [])).catch(() => {});
   }, [patientId]);
   if (!flags.length) return null;

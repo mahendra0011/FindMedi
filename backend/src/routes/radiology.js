@@ -29,6 +29,34 @@ router.post('/orders', protect, adminOnly, validate(createRadiologyOrderSchema),
       modality, bodyPart, clinicalHistory: clinicalHistory || '',
       priority: priority || 'Routine', createdBy: req.user._id,
     });
+    // File 22 P0-4: post one Pending charge (ServicePrice RAD-<MODALITY>;
+    // no tariff → ₹0 line, never an invented amount). Idempotent per order.
+    try {
+      const { default: ServicePrice } = await import('../models/ServicePrice.js');
+      const { postCharge, openAdmissionFor } = await import('../lib/charges.js');
+      const { safeFirst } = await import('../lib/approvalWiring.js');
+      const stay = await safeFirst(openAdmissionFor(order.hospitalId, order.patientId));
+      if (stay) {
+        order.admissionId = stay._id;
+        await order.save();
+      }
+      const code = `RAD-${String(modality).toUpperCase().replace(/[^A-Z0-9]+/g, '-')}`;
+      const tariff = await safeFirst(ServicePrice.findOne({
+        hospitalId: order.hospitalId, code, active: true,
+      }).lean());
+      const cash = (tariff?.prices || []).find((p) => (p.payerClass || 'cash') === 'cash');
+      await postCharge({
+        hospitalId: order.hospitalId, patientId: order.patientId,
+        encounterId: order.encounterId, admissionId: stay?._id || null,
+        source: 'radiology', sourceRef: { model: 'Radiology', id: order._id },
+        serviceCode: code, description: `${modality} — ${bodyPart}`,
+        qty: 1, unitPrice: Number(cash?.amount || 0),
+        postedBy: req.user._id ?? req.user.id,
+      }).catch(() => null);
+    } catch (e) {
+      const { default: radLogger } = await import('../config/logger.js');
+      radLogger.warn(`radiology charge posting failed: ${e.message}`);
+    }
     // Notify radiology staff
     const staff = await User.find({ role: { $in: ['radiologist', 'hospital_admin'] }, status: 'active' }).select('_id');
     await Notification.insertMany(staff.map(s => ({

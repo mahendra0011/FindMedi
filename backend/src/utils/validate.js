@@ -398,6 +398,8 @@ export const createPatientSchema = z.object({
   bloodGroup: z.string().optional(),
   address: z.string().optional(),
   doctor: z.string().optional(),
+  // File 22 P0-2: linked login identity (hard-stop check needs it post-strip).
+  userId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
 });
 
 export const updatePatientSchema = z.object({
@@ -1621,6 +1623,8 @@ export const createBillingSchema = z.object({
   insuranceApprovedAmount: nonNegativeNumber.optional(),
   insuranceStatus: z.enum(['Not Submitted', 'Submitted', 'Approved', 'Rejected', 'Partial']).optional(),
   invoiceId: z.string().optional(),
+  // File 22 P0-1: captured discount approval (consumed once, verified server-side).
+  approvalId: z.string().optional(),
 }).strip(); // drop unknown keys (_id, hospitalId, balance, createdAt, ...)
 
 // â”€â”€â”€ Additional Auth Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

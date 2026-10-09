@@ -68,6 +68,19 @@ router.post('/', protect, validate(createEmergencySchema), async (req, res) => {
       status: 'Pending',
       hospitalId: req.user.hospitalId || undefined,
     });
+
+    // File 22 P0-3: ER arrival opens an Encounter (idempotent per emergency).
+    try {
+      const { ensureEncounter } = await import('../lib/encounter.js');
+      const enc = await ensureEncounter({
+        hospitalId: req.user.hospitalId, patientId: patientId || null, type: 'ER',
+        emergencyId: emergency._id, createdBy: req.user._id ?? req.user.id,
+      });
+      emergency.encounterId = enc._id;
+      await emergency.save();
+    } catch (e) {
+      logger.warn(`ER encounter auto-create failed: ${e.message}`);
+    }
     
     // AUTHZ: this fanned out to EVERY hospital_admin on the platform.
     //

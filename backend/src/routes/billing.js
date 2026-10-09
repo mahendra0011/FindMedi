@@ -293,12 +293,39 @@ router.post('/', protect, authorize('billing:write'), paymentLimiter, validate(c
     if (req.body.patientId) {
       const { patientHardStop } = await import('./masters.js');
       const stop = await patientHardStop(req.user.hospitalId, req.body.patientId).catch(() => null);
-      if (stop) return res.status(422).json({ message: `Billing blocked: patient is ${stop}`, code: 'PATIENT_HARD_STOP' });
+      if (stop) return res.status(409).json({ message: `Billing blocked: patient is ${stop}`, code: 'PATIENT_HARD_STOP' });
+    }
+    // File 22 P0-1: over-policy discounts need a consumed approval.
+    const { discountPct, overDiscountPolicy, approverRolesFor, safeFirst } = await import('../lib/approvalWiring.js');
+    const pct = discountPct(req.body || {});
+    let approvalRef = null;
+    if (pct > 0) {
+      const { default: DiscountPolicy } = await import('../models/DiscountPolicy.js');
+      const policy = await safeFirst(DiscountPolicy.findOne({
+        hospitalId: req.user.hospitalId, role: req.user.role, active: true,
+      }).lean());
+      if (overDiscountPolicy(pct, policy, req.user.role)) {
+        const { ensureApproval, approvalError } = await import('./approvals.js');
+        try {
+          const approval = await ensureApproval({
+            req, policyKey: 'billing-discount',
+            entityRef: { model: 'Billing', id: null },
+            title: `Discount ${pct.toFixed(1)}% on ₹${Number(req.body.amount) || 0}`,
+            amount: Number(req.body.amount) || 0,
+            roles: approverRolesFor(policy, 'billing-discount'),
+          });
+          approvalRef = approval._id;
+        } catch (e) {
+          if (approvalError(res, e)) return undefined;
+          throw e;
+        }
+      }
     }
     const invoiceId = req.body.invoiceId || generateInvoiceId();
     const date = req.body.date || getISTDateString();
     const bill = await Billing.create({
       ...req.body,
+      approvalRef,
       invoiceId,
       date,
       hospitalId: req.user.hospitalId || undefined,
@@ -348,7 +375,36 @@ router.put('/:id', protect, authorize('billing:write'), paymentLimiter, async (r
 
     // AUTH-030: allowlisted fields only — identity/tenant linkage and status immutable here.
     const { pickBody } = await import('../utils/pick.js');
-    Object.assign(bill, pickBody(req.body, ['patient', 'doctor', 'service', 'services', 'source', 'amount', 'subTotal', 'discount', 'tax', 'taxRate', 'taxableAmount', 'paid', 'balance', 'date', 'dueDate', 'paymentMethod', 'transactionId', 'insuranceClaimId', 'insuranceApprovedAmount', 'insuranceStatus']));
+    const patch = pickBody(req.body, ['patient', 'doctor', 'service', 'services', 'source', 'amount', 'subTotal', 'discount', 'tax', 'taxRate', 'taxableAmount', 'paid', 'balance', 'date', 'dueDate', 'paymentMethod', 'transactionId', 'insuranceClaimId', 'insuranceApprovedAmount', 'insuranceStatus']);
+    // File 22 P0-1: discount top-ups re-check the policy (bill + patch merged).
+    if (patch.discount != null) {
+      const { discountPct, overDiscountPolicy, approverRolesFor, safeFirst } = await import('../lib/approvalWiring.js');
+      const merged = { amount: bill.amount, subTotal: bill.subTotal, discount: bill.discount, ...patch };
+      const pct = discountPct(merged);
+      if (pct > discountPct({ amount: bill.amount, subTotal: bill.subTotal, discount: bill.discount })) {
+        const { default: DiscountPolicy } = await import('../models/DiscountPolicy.js');
+        const policy = await safeFirst(DiscountPolicy.findOne({
+          hospitalId: req.user.hospitalId, role: req.user.role, active: true,
+        }).lean());
+        if (overDiscountPolicy(pct, policy, req.user.role)) {
+          const { ensureApproval, approvalError } = await import('./approvals.js');
+          try {
+            const approval = await ensureApproval({
+              req, policyKey: 'billing-discount',
+              entityRef: { model: 'Billing', id: bill._id },
+              title: `Discount top-up to ${pct.toFixed(1)}% on bill ${bill.invoiceId}`,
+              amount: Number(merged.amount) || 0,
+              roles: approverRolesFor(policy, 'billing-discount'),
+            });
+            patch.approvalRef = approval._id;
+          } catch (e) {
+            if (approvalError(res, e)) return undefined;
+            throw e;
+          }
+        }
+      }
+    }
+    Object.assign(bill, patch);
     await bill.save();
     await auditLog('update_billing', req.user._id, { billId: bill._id, changes: req.body });
     res.json(bill);

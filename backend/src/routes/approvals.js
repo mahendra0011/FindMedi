@@ -116,6 +116,13 @@ router.post('/requests/:id/decide', authorize('staff:manage'), async (req, res) 
     }
     const row = await ApprovalRequest.findById(req.params.id);
     if (!row || row.status !== 'pending') return res.status(404).json({ message: 'Pending request not found' });
+    // File 22 P0-1: self-approval block — the requester can NEVER decide
+    // their own request, even via delegation or dual roles.
+    const { isSelfApproval } = await import('../lib/approvalWiring.js');
+    if (isSelfApproval(row.requestedBy, actorId(req))) {
+      await auditLog('approval_self_attempt', actorId(req), { requestId: row._id, ip: req.ip });
+      return res.status(403).json({ message: 'Self-approval forbidden: a different approver must decide', code: 'SELF_APPROVAL' });
+    }
     const next = (row.steps || []).find((s) => s.status === 'pending');
     if (!next) return res.status(409).json({ message: 'No pending steps' });
     // Delegate may act on behalf of the role.
@@ -186,3 +193,87 @@ router.post('/sweep', authorize('staff:manage'), async (req, res) => {
 });
 
 export default router;
+
+/** Shared 409/422 mapping for ensureApproval/consumeApproval errors. */
+export function approvalError(res, err, fallback = 'Approval check failed') {
+  if (err?.code === 'NEEDS_APPROVAL') {
+    return res.status(409).json({
+      message: err.message, code: err.code,
+      approvalId: err.approvalId, approverRoles: err.approverRoles,
+    });
+  }
+  if (err?.code && String(err.code).startsWith('APPROVAL_')) {
+    return res.status(422).json({ message: err.message, code: err.code });
+  }
+  return null;
+}
+
+/**
+ * File 22 P0-1: consume a captured approval exactly once. Returns the
+ * request when it is approved, unconsumed, same-hospital, same-policy and
+ * covers minAmount — else throws with a machine-readable code.
+ */
+export async function consumeApproval({ hospitalId, approvalId, policyKey, minAmount, consumedFor, consumedBy }) {
+  const row = await ApprovalRequest.findById(approvalId);
+  if (!row) {
+    const e = new Error('Approval not found');
+    e.code = 'APPROVAL_MISSING';
+    throw e;
+  }
+  if (hospitalId && row.hospitalId && String(row.hospitalId) !== String(hospitalId)) {
+    const e = new Error('Approval belongs to another hospital');
+    e.code = 'APPROVAL_TENANT';
+    throw e;
+  }
+  if (row.policyKey !== policyKey) {
+    const e = new Error(`Approval is for ${row.policyKey}, not ${policyKey}`);
+    e.code = 'APPROVAL_POLICY';
+    throw e;
+  }
+  if (row.status !== 'approved') {
+    const e = new Error(`Approval is ${row.status}`);
+    e.code = 'APPROVAL_NOT_APPROVED';
+    throw e;
+  }
+  if (row.consumedAt) {
+    const e = new Error('Approval already used');
+    e.code = 'APPROVAL_REPLAY';
+    throw e;
+  }
+  if (minAmount != null && Number(row.amount || 0) + 0.009 < Number(minAmount)) {
+    const e = new Error('Approval covers a smaller amount');
+    e.code = 'APPROVAL_AMOUNT';
+    throw e;
+  }
+  row.consumedAt = new Date();
+  row.consumedBy = consumedBy || null;
+  row.consumedFor = String(consumedFor || '').slice(0, 120);
+  await row.save();
+  return row;
+}
+
+/**
+ * Ensure an over-threshold action is approved: verifies a captured
+ * approvalId when given, else auto-creates the request and throws
+ * NEEDS_APPROVAL carrying the new request id + approver roles.
+ */
+export async function ensureApproval({ req, policyKey, entityRef, title, amount, roles }) {
+  if (req.body?.approvalId) {
+    return consumeApproval({
+      hospitalId: req.user.hospitalId, approvalId: req.body.approvalId,
+      policyKey, minAmount: amount, consumedFor: title, consumedBy: actorId(req),
+    });
+  }
+  const created = await ApprovalRequest.create({
+    hospitalId: req.user.hospitalId, policyKey,
+    entityRef: entityRef || {}, title: String(title || '').slice(0, 200),
+    amount: Number(amount) || 0, requiredRoles: roles || ['hospital_admin'],
+    steps: (roles || ['hospital_admin']).map((role, i) => ({ step: i, role })),
+    requestedBy: actorId(req), dueAt: new Date(Date.now() + 48 * 3600 * 1000),
+  });
+  const e = new Error(`Requires approval (${(roles || ['hospital_admin']).join('/')})`);
+  e.code = 'NEEDS_APPROVAL';
+  e.approvalId = String(created._id);
+  e.approverRoles = roles || ['hospital_admin'];
+  throw e;
+}

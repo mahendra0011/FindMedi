@@ -21,6 +21,8 @@ const emergencySchema = new mongoose.Schema({
     doctorName: { type: String }
   }],
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
+  // File 22 P0-3: ER arrival auto-opens an Encounter (set by POST /emergency).
+  encounterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Encounter', default: null, index: true },
   createdAt: { type: Date, default: Date.now },
   responseTime: { type: Number }, // in minutes
 }, { timestamps: true });

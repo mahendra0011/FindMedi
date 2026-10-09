@@ -845,6 +845,27 @@ router.put('/prescriptions/:id/dispense', protect, authorize('pharmacy:dispense'
       med.dispensedAt = new Date();
       med.dispensedBy = req.user.name;
       prescription.status = result.status;
+      // File 22 P0-4: true-up the ₹0 placeholder charge with the selling price.
+      // If no placeholder exists (direct dispense, no PharmacyOrder), post
+      // the line fresh — idempotent on the prescription+medicine.
+      try {
+        const { trueUpCharge, postCharge } = await import('../lib/charges.js');
+        const trued = await trueUpCharge({
+          hospitalId: prescription.hospitalId, source: 'pharmacy',
+          sourceRef: {}, description: med.medicineName, patientId: prescription.patientId,
+          unitPrice: Number(medicineDoc?.sellingPrice || 0), qty: Number(med.quantity) || 1,
+        });
+        if (!trued) {
+          await postCharge({
+            hospitalId: prescription.hospitalId, patientId: prescription.patientId,
+            encounterId: prescription.encounterId || null,
+            source: 'pharmacy', sourceRef: { model: 'Prescription', id: prescription._id },
+            description: `${med.medicineName} (dispense)`,
+            qty: Number(med.quantity) || 1, unitPrice: Number(medicineDoc?.sellingPrice || 0),
+            postedBy: req.user._id ?? req.user.id,
+          });
+        }
+      } catch { /* pricing must never break dispensing */ }
     } else {
       // Legacy/manual line with no inventory link: preserve prescription state,
       // but do not fabricate a stock event for an unknown medicine record.

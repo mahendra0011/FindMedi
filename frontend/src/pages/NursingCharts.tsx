@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import PatientBanner from '@/components/clinical/PatientBanner';
 
 const CHART_TABS = [
   { key: 'Vitals', label: 'Vitals', icon: Heart },
@@ -95,6 +96,8 @@ export default function NursingCharts() {
             <DialogHeader><DialogTitle>New {tab} Entry</DialogTitle><DialogDescription className="sr-only">Enter details for a new {tab} chart entry</DialogDescription></DialogHeader>
             <div className="space-y-3 py-2">
               <Input value={newEntry.patientId} onChange={e => setNewEntry(p => ({ ...p, patientId: e.target.value }))} placeholder="Patient ID" />
+              {/* File 22 P0-2: flag chips as soon as a patient id is typed */}
+              <PatientBanner patientId={newEntry.patientId || ''} />
               <Input value={newEntry.patientName} onChange={e => setNewEntry(p => ({ ...p, patientName: e.target.value }))} placeholder="Patient Name" />
               <Input value={newEntry.admissionId} onChange={e => setNewEntry(p => ({ ...p, admissionId: e.target.value }))} placeholder="Admission ID" />
               <select value={newEntry.shift} onChange={e => setNewEntry(p => ({ ...p, shift: e.target.value }))}

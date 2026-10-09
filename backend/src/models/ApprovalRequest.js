@@ -17,6 +17,11 @@ const approvalRequestSchema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'approved', 'rejected', 'expired'], default: 'pending', index: true },
   requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   dueAt: { type: Date, default: null },
+  // File 22 P0-1: one-time consumption — an approval applies to exactly one
+  // action, so a captured approvalId cannot be replayed on a second bill.
+  consumedAt: { type: Date, default: null },
+  consumedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  consumedFor: { type: String, default: '' },
 }, { timestamps: true });
 
 export default mongoose.models.ApprovalRequest || mongoose.model('ApprovalRequest', approvalRequestSchema);

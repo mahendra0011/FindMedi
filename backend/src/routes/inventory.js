@@ -73,6 +73,30 @@ router.put('/items/:id/stock', protect, adminOnly, validate(stockUpdateSchema), 
     if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
+    // File 22 P0-1: large manual adjustments need a consumed approval —
+    // silent stock edits are how shrinkage hides.
+    if (type === 'adjust' || Math.abs(Number(quantity) || 0) >= 100) {
+      const { default: ApprovalPolicy } = await import('../models/ApprovalPolicy.js');
+      const { resolveThreshold, safeFirst } = await import('../lib/approvalWiring.js');
+      const policy = await safeFirst(ApprovalPolicy.findOne({
+        hospitalId: item.hospitalId, key: 'stock-adjust', active: true,
+      }).lean());
+      const { limit, roles } = resolveThreshold(policy, 'stock-adjust');
+      if (Math.abs(Number(quantity) || 0) >= limit || type === 'adjust') {
+        const { ensureApproval, approvalError } = await import('./approvals.js');
+        try {
+          await ensureApproval({
+            req, policyKey: 'stock-adjust',
+            entityRef: { model: 'Inventory', id: item._id },
+            title: `Stock ${type} ${quantity} × ${item.itemName || item._id}`,
+            amount: Math.abs(Number(quantity) || 0), roles,
+          });
+        } catch (e) {
+          if (approvalError(res, e)) return undefined;
+          throw e;
+        }
+      }
+    }
       
 if (type === 'add') item.currentStock += quantity;
     else if (type === 'deduct') item.currentStock = Math.max(0, item.currentStock - quantity);
@@ -254,6 +278,29 @@ router.put('/purchase-orders/:id/status', protect, adminOnly, validate(poStatusS
     if (String(status || '').toLowerCase() === 'approved'
       && po.createdBy && String(po.createdBy) === String(req.user._id || req.user.id)) {
       return res.status(403).json({ message: 'Separation of duties: a purchase order must be approved by someone other than its creator' });
+    }
+    // File 22 P0-1: above-threshold POs need a consumed approval (SoD alone
+    // only says WHO, this says the AMOUNT was reviewed).
+    if (String(status || '').toLowerCase() === 'approved') {
+      const { default: ApprovalPolicy } = await import('../models/ApprovalPolicy.js');
+      const { resolveThreshold, safeFirst } = await import('../lib/approvalWiring.js');
+      const policy = await safeFirst(ApprovalPolicy.findOne({
+        hospitalId: po.hospitalId, key: 'purchase-order', active: true,
+      }).lean());
+      const { limit, roles } = resolveThreshold(policy, 'purchase-order');
+      if (Number(po.grandTotal || 0) >= limit) {
+        const { ensureApproval, approvalError } = await import('./approvals.js');
+        try {
+          await ensureApproval({
+            req, policyKey: 'purchase-order',
+            entityRef: { model: 'PurchaseOrder', id: po._id },
+            title: `PO ${po.poNumber} ₹${po.grandTotal}`, amount: Number(po.grandTotal), roles,
+          });
+        } catch (e) {
+          if (approvalError(res, e)) return undefined;
+          throw e;
+        }
+      }
     }
     po.status = status;
     if (approvedBy) po.approvedBy = req.user._id;

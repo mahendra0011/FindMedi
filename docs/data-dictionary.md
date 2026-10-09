@@ -14,7 +14,7 @@
 ## Summary
 
 - **267 models** across 266 files (0 skipped)
-- **5949 schema fields**, of which **670 classified as PII** in **184 collections**
+- **5960 schema fields**, of which **670 classified as PII** in **184 collections**
 - **6 collections** carry a TTL index
 - **84 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -51,10 +51,10 @@
 | `announcements` | Announcement | 9 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `antenatalrecords` | AntenatalRecord | 28 | 3 | 4 | — | Clinical records |
 | `apikeys` | ApiKey | 13 | 2 | 5 | — | **UNMAPPED — see gaps** |
-| `appointments` | Appointment | 84 | 11 | 13 | — | Clinical records |
+| `appointments` | Appointment | 86 | 11 | 14 | — | Clinical records |
 | `appointmentseries` | AppointmentSeries | 24 | 4 | 3 | — | **UNMAPPED — see gaps** |
 | `approvalpolicies` | ApprovalPolicy | 14 | 1 | 3 | — | **UNMAPPED — see gaps** |
-| `approvalrequests` | ApprovalRequest | 20 | 0 | 2 | — | No PII fields detected |
+| `approvalrequests` | ApprovalRequest | 23 | 0 | 2 | — | No PII fields detected |
 | `assetunits` | AssetUnit | 24 | 2 | 7 | — | **UNMAPPED — see gaps** |
 | `assistantbookings` | AssistantBooking | 82 | 15 | 11 | — | Clinical records |
 | `assistantprofiles` | AssistantProfile | 73 | 13 | 13 | — | Provider KYC documents |
@@ -63,7 +63,7 @@
 | `banktxns` | BankTxn | 13 | 0 | 3 | — | No PII fields detected |
 | `beds` | Bed | 19 | 0 | 3 | — | No PII fields detected |
 | `bedtransfers` | BedTransfer | 13 | 1 | 3 | — | Clinical records |
-| `billings` | Billing | 45 | 3 | 5 | — | Payment and ledger entries |
+| `billings` | Billing | 46 | 3 | 5 | — | Payment and ledger entries |
 | `birthrecords` | BirthRecord | 12 | 0 | 1 | — | No PII fields detected |
 | `bloodrequests` | BloodRequest | 35 | 6 | 2 | — | Clinical records |
 | `bloodunits` | BloodUnit | 24 | 1 | 2 | — | Clinical records |
@@ -116,7 +116,7 @@
 | `discountpolicies` | DiscountPolicy | 10 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `disputes` | Dispute | 36 | 1 | 4 | — | Payment and ledger entries |
 | `doctors` | Doctor | 117 | 11 | 15 | — | Provider KYC documents |
-| `emergencies` | Emergency | 19 | 7 | 1 | — | Ride and SOS location traces |
+| `emergencies` | Emergency | 20 | 7 | 2 | — | Ride and SOS location traces |
 | `emergencydoctorrequests` | EmergencyDoctorRequest | 75 | 21 | 6 | — | Ride and SOS location traces |
 | `emergencyrequests` | EmergencyRequest | 62 | 17 | 4 | — | Ride and SOS location traces |
 | `encounters` | Encounter | 24 | 2 | 8 | — | Clinical records |
@@ -155,7 +155,7 @@
 | `ipddeposits` | IpdDeposit | 15 | 2 | 4 | — | Payment and ledger entries |
 | `kpidefinitions` | KpiDefinition | 9 | 1 | 1 | — | **UNMAPPED — see gaps** |
 | `labbookings` | LabBooking | 33 | 3 | 4 | — | Clinical records |
-| `laborders` | LabOrder | 44 | 7 | 5 | — | Clinical records |
+| `laborders` | LabOrder | 45 | 7 | 6 | — | Clinical records |
 | `labourrecords` | LabourRecord | 19 | 2 | 3 | — | Clinical records |
 | `lawyerbookings` | LawyerBooking | 88 | 19 | 14 | — | **UNMAPPED — see gaps** |
 | `lawyerprofiles` | LawyerProfile | 87 | 12 | 14 | — | Provider KYC documents |
@@ -183,7 +183,7 @@
 | `notificationtemplates` | NotificationTemplate | 12 | 0 | 3 | — | No PII fields detected |
 | `nursingcharts` | NursingChart | 34 | 12 | 1 | — | Clinical records |
 | `objectives` | Objective | 15 | 1 | 3 | — | **UNMAPPED — see gaps** |
-| `operationtheatres` | OperationTheatre | 75 | 9 | 2 | — | Clinical records |
+| `operationtheatres` | OperationTheatre | 77 | 9 | 4 | — | Clinical records |
 | `opticaljobcards` | OpticalJobCard | 19 | 2 | 4 | — | **UNMAPPED — see gaps** |
 | `orders` | Order | 20 | 1 | 7 | — | Clinical records |
 | `otps` | OTP | 12 | 3 | 6 | 3600s | OTP / setup codes / tokens |
@@ -225,7 +225,7 @@
 | `queues` | Queue | 18 | 0 | 5 | — | Operational config (organization/catalog record — not personal data) |
 | `queuetickets` | QueueTicket | 21 | 2 | 5 | — | Clinical records |
 | `quotes` | Quote | 48 | 7 | 8 | — | **UNMAPPED — see gaps** |
-| `radiologies` | Radiology | 27 | 5 | 4 | — | Clinical records |
+| `radiologies` | Radiology | 28 | 5 | 5 | — | Clinical records |
 | `rcmevents` | RcmEvent | 10 | 0 | 3 | — | No PII fields detected |
 | `rcmgaps` | RcmGap | 11 | 0 | 3 | — | No PII fields detected |
 | `reasoncodes` | ReasonCode | 9 | 0 | 3 | — | No PII fields detected |
@@ -888,6 +888,8 @@ source `Appointment.js` · timestamps: yes · virtuals: 0 · retention: Statutor
 | `time` | String | yes |  |  |  |  |  |
 | `status` | String |  |  | "Pending" | Pending, Confirmed, Cancelled, Completed, In Queue, Serving, Missed |  |  |
 | `patientRecordId` | ObjectId |  |  |  |  | Patient |  |
+| `encounterId` | ObjectId |  |  | null |  | Encounter |  |
+| `prescriptionId` | ObjectId |  |  | null |  | Prescription |  |
 | `checkoutExpiresAt` | Date |  |  | null |  |  |  |
 | `cancellationReason` | String |  |  | "" |  |  |  |
 | `cancelledAt` | Date |  |  |  |  |  |  |
@@ -969,6 +971,7 @@ Indexes:
 | `tokenNumber:1` | unique, sparse |
 | `uhid:1` |  |
 | `patientRecordId:1` |  |
+| `encounterId:1` |  |
 | `checkoutExpiresAt:1` |  |
 | `seriesId:1` |  |
 | `hospitalId:1` |  |
@@ -1071,6 +1074,9 @@ source `ApprovalRequest.js` · timestamps: yes · virtuals: 0 · retention: n/a 
 | `status` | String |  |  | "pending" | pending, approved, rejected, expired |  |  |
 | `requestedBy` | ObjectId |  |  |  |  | User |  |
 | `dueAt` | Date |  |  | null |  |  |  |
+| `consumedAt` | Date |  |  | null |  |  |  |
+| `consumedBy` | ObjectId |  |  | null |  | User |  |
+| `consumedFor` | String |  |  | "" |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -1513,6 +1519,7 @@ source `Billing.js` · timestamps: yes · virtuals: 0 · retention: 8 years (sta
 | `payerSplit.corporate` | Number |  |  | 0 |  |  |  |
 | `counterId` | ObjectId |  |  | null |  | CashCounter |  |
 | `shiftId` | ObjectId |  |  | null |  | CashShift |  |
+| `approvalRef` | ObjectId |  |  | null |  | ApprovalRequest |  |
 | `createdAt` | Date |  |  | [function] |  |  |  |
 | `updatedAt` | Date |  |  | [function] |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -3431,6 +3438,7 @@ source `Emergency.js` · timestamps: yes · virtuals: 0 · retention: Trip durat
 | `notes.timestamp` | Date |  |  | [function] |  |  |  |
 | `notes.doctorName` | String |  |  |  |  |  | Identity |
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `encounterId` | ObjectId |  |  | null |  | Encounter |  |
 | `createdAt` | Date |  |  | [function] |  |  |  |
 | `responseTime` | Number |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
@@ -3441,6 +3449,7 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `hospitalId:1` |  |
+| `encounterId:1` |  |
 
 ### `emergencydoctorrequests` — EmergencyDoctorRequest
 
@@ -4992,6 +5001,7 @@ source `LabOrder.js` · timestamps: yes · virtuals: 0 · retention: Statutory p
 | `facilityId` | ObjectId |  |  |  |  | Facility |  |
 | `createdBy` | ObjectId |  |  |  |  | User | Identifier |
 | `encounterId` | ObjectId |  |  | null |  | Encounter |  |
+| `admissionId` | ObjectId |  |  | null |  | Admission |  |
 | `prescriptionId` | ObjectId |  |  | null |  | Prescription |  |
 | `appointmentId` | ObjectId |  |  | null |  | Appointment |  |
 | `reviewedBy` | ObjectId |  |  | null |  | User |  |
@@ -5008,6 +5018,7 @@ Indexes:
 | `hospitalId:1` |  |
 | `facilityId:1` |  |
 | `encounterId:1` |  |
+| `admissionId:1` |  |
 | `prescriptionId:1` |  |
 
 ### `labourrecords` — LabourRecord
@@ -6175,6 +6186,8 @@ source `OperationTheatre.js` · timestamps: yes · virtuals: 0 · retention: Sta
 | `doctorId` | ObjectId | yes |  |  |  | User | Identifier |
 | `doctorName` | String | yes |  |  |  |  | Identity |
 | `surgeryName` | String | yes |  |  |  |  |  |
+| `encounterId` | ObjectId |  |  | null |  | Encounter |  |
+| `admissionId` | ObjectId |  |  | null |  | Admission |  |
 | `surgeryType` | String |  |  | "Elective" | Elective, Emergency, Urgent |  |  |
 | `anaesthesiaType` | String |  |  | "General" | General, Spinal, Epidural, Local, Sedation, Not Required |  |  |
 | `assistants` | Array<Mixed> |  |  |  |  |  |  |
@@ -6250,6 +6263,8 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `otId:1` | unique |
+| `encounterId:1` |  |
+| `admissionId:1` |  |
 | `hospitalId:1` |  |
 
 ### `opticaljobcards` — OpticalJobCard
@@ -7923,6 +7938,7 @@ source `Radiology.js` · timestamps: yes · virtuals: 0 · retention: Statutory 
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
 | `createdBy` | ObjectId |  |  |  |  | User | Identifier |
 | `encounterId` | ObjectId |  |  | null |  | Encounter |  |
+| `admissionId` | ObjectId |  |  | null |  | Admission |  |
 | `prescriptionId` | ObjectId |  |  | null |  | Prescription |  |
 | `createdAt` | Date |  |  | [function] |  |  |  |
 | `updatedAt` | Date |  |  | [function] |  |  |  |
@@ -7935,6 +7951,7 @@ Indexes:
 | `orderId:1` | unique |
 | `hospitalId:1` |  |
 | `encounterId:1` |  |
+| `admissionId:1` |  |
 | `prescriptionId:1` |  |
 
 ### `rcmevents` — RcmEvent

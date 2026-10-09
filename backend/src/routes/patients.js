@@ -164,6 +164,15 @@ router.post('/', protect, validate(createPatientSchema), async (req, res) => {
     if (!targetHospitalId && req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'No hospital scope for this account' });
     }
+    // File 22 P0-2: re-registering a blacklisted/deceased identity is blocked.
+    // (Brand-new identities have no flags yet, so only linked re-registrations
+    // can trip this — checked before the row exists.)
+    if (req.body.userId) {
+      const { patientHardStop } = await import('./masters.js');
+      const { safeFirst } = await import('../lib/approvalWiring.js');
+      const stop = await safeFirst(patientHardStop(targetHospitalId, req.body.userId));
+      if (stop) return res.status(409).json({ message: `Registration blocked: patient is ${stop}`, code: 'PATIENT_HARD_STOP' });
+    }
     const p = await Patient.create({ ...req.body, hospitalId: targetHospitalId });
     await auditLog('create_patient', req.user._id, { recordId: p._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(p);

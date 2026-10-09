@@ -690,6 +690,7 @@ import reportStudioRoutes from './routes/reportStudio.js';
 import insightRoutes from './routes/insights.js';
 import contactCenterRoutes from './routes/contactCenter.js';
 import hubRoutes from './routes/hub.js';
+import safetyRoutes from './routes/safety.js';
 import moderationRoutes from './routes/moderation.js';
 import licenseRoutes from './routes/licenses.js';
 import announcementRoutes from './routes/announcements.js';
@@ -915,6 +916,8 @@ app.use('/api/insights', insightRoutes);
 // File 18: contact center + integration hub + outbound webhooks.
 app.use('/api/contact-center', contactCenterRoutes);
 app.use('/api/hub', hubRoutes);
+// File 22 P0-5: safety/quality/compliance ledgers.
+app.use('/api/safety', safetyRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/ops-health', opsHealthRoutes);
 app.use('/api/tenant-quotas', tenantQuotaRoutes);

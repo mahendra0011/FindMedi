@@ -201,6 +201,44 @@ const orderId = generateOrderId('LAB');
     });
 
     await auditLog('create_lab_order', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
+
+    // File 22 P0-4: post one Pending charge per test (Test-master price;
+    // unpriced tests post ₹0 lines, never invented amounts). Idempotent per
+    // order so retries cannot double-bill.
+    try {
+      const { default: Test } = await import('../models/Test.js');
+      const { postCharge, openAdmissionFor } = await import('../lib/charges.js');
+      const { safeFirst } = await import('../lib/approvalWiring.js');
+      const stay = await safeFirst(openAdmissionFor(order.hospitalId, order.patientId));
+      if (stay) {
+        order.admissionId = stay._id;
+        await order.save();
+      }
+      let billed = 0;
+      const names = [];
+      for (const t of order.tests) {
+        const master = await safeFirst(Test.findOne({
+          hospitalId: order.hospitalId, name: t.testName,
+        }).select('price').lean());
+        const price = Number(master?.price || 0);
+        billed += price;
+        names.push(t.testName);
+      }
+      // One Pending line per order (idempotent on the order ref).
+      await postCharge({
+        hospitalId: order.hospitalId, patientId: order.patientId,
+        encounterId: order.encounterId, admissionId: stay?._id || null,
+        source: 'lab', sourceRef: { model: 'LabOrder', id: order._id },
+        description: `Lab: ${names.slice(0, 5).join(', ')}${names.length > 5 ? ` +${names.length - 5} more` : ''}`,
+        qty: order.tests.length, unitPrice: order.tests.length ? billed / order.tests.length : 0,
+        postedBy: req.user._id ?? req.user.id,
+      }).catch(() => null);
+      order.billAmount = billed;
+      await order.save();
+    } catch (e) {
+      const { default: labLogger } = await import('../config/logger.js');
+      labLogger.warn(`lab charge posting failed: ${e.message}`);
+    }
     const labStaff = await User.find({ role: { $in: ['lab_receptionist', 'lab_technician', 'hospital_admin'] }, status: 'active' }).select('_id');
     await Notification.insertMany(labStaff.map(staff => ({
       title: 'New Lab Order', message: `Dr. ${req.user.name} ordered ${tests.length} test(s) for ${patientName}`,
