@@ -74,6 +74,79 @@ router.post('/l2', requireStepUp('records:amend'), async (req, res) => {
   }
 });
 
+// File 22 P2-34: OTP-based e-sign for patients/relatives (no app login needed).
+// OTP is generated, "sent" (logged in dev), and verified before the seal is
+// written. Guardian flow: relative signs on behalf of patient with a reason.
+const otpStore = new Map(); // key -> { code, expires, meta }
+
+router.post('/otp/request', protect, async (req, res) => {
+  try {
+    const { target, docKind, docId, language } = req.body || {};
+    if (!target || !docId) return res.status(400).json({ message: 'target + docId required' });
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const key = `${req.user._id}:${docId}`;
+    otpStore.set(key, { code, expires: Date.now() + 10 * 60000, target, docKind, language });
+    // In production: send via SMS/email gateway. Here we log for dev/testing.
+    logger.info(`[esign-otp] ${code} for ${target} doc ${docId}`);
+    return res.json({ sent: true, hint: 'OTP valid 10 min (dev: check server logs)' });
+  } catch (err) {
+    logger.error(`OTP request error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/otp/verify', protect, async (req, res) => {
+  try {
+    const { docId, code, guardianFor, guardianReason } = req.body || {};
+    const key = `${req.user._id}:${docId}`;
+    const row = otpStore.get(key);
+    if (!row || row.expires < Date.now()) return res.status(401).json({ message: 'OTP expired' });
+    if (row.code !== String(code)) return res.status(401).json({ message: 'Wrong OTP' });
+    otpStore.delete(key);
+    const seal = sealDoc(row.docKind || 'consent', String(docId), Buffer.from(`${docId}:${code}`));
+    const doc = await SignatureEvent.create({
+      hospitalId: req.user.hospitalId,
+      docRef: { kind: row.docKind || 'consent', id: docId },
+      level: 'L1',
+      signerRole: guardianFor ? 'relative' : 'patient',
+      signerId: guardianFor ? null : req.user._id,
+      signerName: guardianFor || req.user.name || '',
+      language: row.language || 'en',
+      guardianFor: guardianFor || '',
+      guardianReason: guardianReason || '',
+      digest: seal.digest, signature: seal.signature, nonceHash: seal.nonceHash,
+      ip: req.ip,
+    });
+    await auditLog('doc_signed_otp', req.user._id, { eventId: doc._id, docId, ip: req.ip });
+    return res.status(201).json({ id: String(doc._id), nonce: seal.nonce });
+  } catch (err) {
+    logger.error(`OTP verify error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// File 22 P2-34: Hindi consent templates (server-side, versioned).
+router.get('/templates/consent/:lang', protect, async (req, res) => {
+  try {
+    const lang = req.params.lang === 'hi' ? 'hi' : 'en';
+    const templates = {
+      en: {
+        treatment: 'I consent to the proposed treatment and understand the risks explained.',
+        procedure: 'I agree to undergo the procedure as described by the doctor.',
+        dataSharing: 'I permit my health data to be shared for treatment purposes.',
+      },
+      hi: {
+        treatment: 'मैं प्रस्तावित उपचार की सहमति देता/देती हूँ और बताए गए जोखिमों को समझता/समझती हूँ।',
+        procedure: 'मैं डॉक्टर द्वारा बताए अनुसार प्रक्रिया करने की सहमति देता/देती हूँ।',
+        dataSharing: 'मैं उपचार के लिए अपने स्वास्थ्य डेटा को साझा करने की अनुमति देता/देती हूँ।',
+      },
+    };
+    return res.json({ lang, templates: templates[lang] });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 router.get('/doc/:kind/:id', async (req, res) => {
   try {
     const rows = await SignatureEvent.find({ 'docRef.kind': req.params.kind, 'docRef.id': req.params.id })
