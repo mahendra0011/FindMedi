@@ -10,14 +10,14 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1416,
+  "total": 1434,
   "counts": {
     "any": 1,
     "clinical": 1,
     "inherited": 4,
     "object": 398,
     "public": 85,
-    "role": 867,
+    "role": 885,
     "self": 60
   },
   "byMechanism": {
@@ -26,7 +26,7 @@
     "assertCallParticipant": 2,
     "assertEhrSearchAccess": 1,
     "assertMentalHealthAccess": 11,
-    "authorize": 558,
+    "authorize": 576,
     "authorizeObject": 74,
     "canAccessPatient": 5,
     "canAccessRecord": 4,
@@ -4599,42 +4599,42 @@
     },
     {
       "file": "insights.js",
-      "line": 104,
+      "line": 137,
       "method": "GET",
       "target": "'/metrics/daily'",
       "tag": "role"
     },
     {
       "file": "insights.js",
-      "line": 145,
+      "line": 189,
       "method": "POST",
       "target": "'/metrics/daily/compute'",
       "tag": "role"
     },
     {
       "file": "insights.js",
-      "line": 157,
+      "line": 201,
       "method": "POST",
       "target": "'/ai/discharge-draft'",
       "tag": "role"
     },
     {
       "file": "insights.js",
-      "line": 170,
+      "line": 214,
       "method": "POST",
       "target": "'/ai/noshow-score'",
       "tag": "role"
     },
     {
       "file": "insights.js",
-      "line": 184,
+      "line": 228,
       "method": "POST",
       "target": "'/ai/forecast'",
       "tag": "role"
     },
     {
       "file": "insights.js",
-      "line": 194,
+      "line": 238,
       "method": "GET",
       "target": "'/ai/invocations'",
       "tag": "role"
@@ -6369,6 +6369,34 @@
       "tag": "role"
     },
     {
+      "file": "notifyTemplates.js",
+      "line": 17,
+      "method": "GET",
+      "target": "'/templates'",
+      "tag": "role"
+    },
+    {
+      "file": "notifyTemplates.js",
+      "line": 29,
+      "method": "POST",
+      "target": "'/templates'",
+      "tag": "role"
+    },
+    {
+      "file": "notifyTemplates.js",
+      "line": 62,
+      "method": "PATCH",
+      "target": "'/templates/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "notifyTemplates.js",
+      "line": 87,
+      "method": "POST",
+      "target": "'/templates/:id/preview'",
+      "tag": "role"
+    },
+    {
       "file": "nursing.js",
       "line": 16,
       "method": "GET",
@@ -7615,6 +7643,90 @@
       "tag": "role"
     },
     {
+      "file": "quality.js",
+      "line": 22,
+      "method": "GET",
+      "target": "'/chapters'",
+      "tag": "role"
+    },
+    {
+      "file": "quality.js",
+      "line": 32,
+      "method": "POST",
+      "target": "'/chapters/seed'",
+      "tag": "role"
+    },
+    {
+      "file": "quality.js",
+      "line": 50,
+      "method": "POST",
+      "target": "'/assessments'",
+      "tag": "role"
+    },
+    {
+      "file": "quality.js",
+      "line": 79,
+      "method": "GET",
+      "target": "'/assessments'",
+      "tag": "role"
+    },
+    {
+      "file": "quality.js",
+      "line": 93,
+      "method": "GET",
+      "target": "'/assessments/:id/auto'",
+      "tag": "role"
+    },
+    {
+      "file": "quality.js",
+      "line": 104,
+      "method": "GET",
+      "target": "'/capa'",
+      "tag": "role"
+    },
+    {
+      "file": "quality.js",
+      "line": 116,
+      "method": "POST",
+      "target": "'/capa'",
+      "tag": "role"
+    },
+    {
+      "file": "quality.js",
+      "line": 134,
+      "method": "PATCH",
+      "target": "'/capa/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "quality.js",
+      "line": 151,
+      "method": "GET",
+      "target": "'/pcpndt'",
+      "tag": "role"
+    },
+    {
+      "file": "quality.js",
+      "line": 161,
+      "method": "POST",
+      "target": "'/pcpndt'",
+      "tag": "role"
+    },
+    {
+      "file": "quality.js",
+      "line": 180,
+      "method": "GET",
+      "target": "'/mtp'",
+      "tag": "role"
+    },
+    {
+      "file": "quality.js",
+      "line": 190,
+      "method": "POST",
+      "target": "'/mtp'",
+      "tag": "role"
+    },
+    {
       "file": "qualityChecklists.js",
       "line": 29,
       "method": "POST",
@@ -8232,56 +8344,70 @@
     },
     {
       "file": "reportStudio.js",
-      "line": 30,
+      "line": 29,
       "method": "GET",
       "target": "'/catalogue'",
       "tag": "role"
     },
     {
       "file": "reportStudio.js",
-      "line": 60,
+      "line": 55,
       "method": "POST",
       "target": "'/:key/run'",
       "tag": "role"
     },
     {
       "file": "reportStudio.js",
-      "line": 85,
+      "line": 83,
+      "method": "POST",
+      "target": "'/:key/run-async'",
+      "tag": "role"
+    },
+    {
+      "file": "reportStudio.js",
+      "line": 113,
+      "method": "GET",
+      "target": "'/runs/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "reportStudio.js",
+      "line": 124,
       "method": "POST",
       "target": "'/:key/export'",
       "tag": "role"
     },
     {
       "file": "reportStudio.js",
-      "line": 120,
+      "line": 169,
       "method": "GET",
       "target": "'/views'",
       "tag": "role"
     },
     {
       "file": "reportStudio.js",
-      "line": 130,
+      "line": 179,
       "method": "POST",
       "target": "'/views'",
       "tag": "role"
     },
     {
       "file": "reportStudio.js",
-      "line": 143,
+      "line": 192,
       "method": "GET",
       "target": "'/schedules'",
       "tag": "role"
     },
     {
       "file": "reportStudio.js",
-      "line": 153,
+      "line": 202,
       "method": "POST",
       "target": "'/schedules'",
       "tag": "role"
     },
     {
       "file": "reportStudio.js",
-      "line": 168,
+      "line": 217,
       "method": "DELETE",
       "target": "'/schedules/:id'",
       "tag": "role"

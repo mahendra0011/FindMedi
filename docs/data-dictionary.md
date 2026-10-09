@@ -13,10 +13,10 @@
 
 ## Summary
 
-- **282 models** across 281 files (0 skipped)
-- **6225 schema fields**, of which **694 classified as PII** in **197 collections**
+- **288 models** across 287 files (0 skipped)
+- **6302 schema fields**, of which **704 classified as PII** in **201 collections**
 - **6 collections** carry a TTL index
-- **97 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
+- **101 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
 ### PII categories
 
@@ -31,8 +31,8 @@
 | Location | 23 |
 | Image/Biometric | 4 |
 | Device/Network | 7 |
-| Identifier | 168 |
-| Identity | 74 |
+| Identifier | 172 |
+| Identity | 77 |
 
 ## Collections
 
@@ -74,6 +74,7 @@
 | `calllogs` | CallLog | 16 | 0 | 5 | — | No PII fields detected |
 | `callqueues` | CallQueue | 11 | 2 | 2 | — | **UNMAPPED — see gaps** |
 | `campaigns` | Campaign | 18 | 1 | 5 | — | **UNMAPPED — see gaps** |
+| `capas` | Capa | 16 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `casepresentations` | CasePresentation | 14 | 0 | 4 | — | No PII fields detected |
 | `cashcounters` | CashCounter | 8 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `cashshifts` | CashShift | 15 | 0 | 4 | — | No PII fields detected |
@@ -184,11 +185,15 @@
 | `mentalhealths` | MentalHealth | 82 | 11 | 4 | — | Mental-health records |
 | `mlccases` | MlcCase | 15 | 2 | 4 | — | Clinical records |
 | `moderationitems` | ModerationItem | 40 | 1 | 13 | — | **UNMAPPED — see gaps** |
+| `mtpregisters` | MtpRegister | 12 | 3 | 1 | — | **UNMAPPED — see gaps** |
+| `nabhassessments` | NabhAssessment | 10 | 0 | 3 | — | No PII fields detected |
+| `nabhchapters` | NabhChapter | 9 | 0 | 1 | — | No PII fields detected |
 | `notificationaudits` | NotificationAudit | 11 | 1 | 6 | — | Audit logs |
 | `notificationdeliveries` | NotificationDelivery | 19 | 1 | 6 | — | Notifications |
 | `notificationpreferences` | NotificationPreference | 15 | 2 | 1 | — | **UNMAPPED — see gaps** |
 | `notifications` | Notification | 15 | 1 | 3 | — | Notifications |
 | `notificationtemplates` | NotificationTemplate | 12 | 0 | 3 | — | No PII fields detected |
+| `notifytemplates` | NotifyTemplate | 14 | 2 | 3 | — | **UNMAPPED — see gaps** |
 | `nursingcharts` | NursingChart | 34 | 12 | 1 | — | Clinical records |
 | `objectives` | Objective | 15 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `operationtheatres` | OperationTheatre | 77 | 9 | 4 | — | Clinical records |
@@ -206,6 +211,7 @@
 | `payouts` | Payout | 20 | 1 | 1 | — | Payment and ledger entries |
 | `payoutstatements` | PayoutStatement | 15 | 2 | 4 | — | **UNMAPPED — see gaps** |
 | `payslips` | Payslip | 21 | 1 | 4 | — | **UNMAPPED — see gaps** |
+| `pcpndtformfs` | PcpndtFormF | 13 | 4 | 1 | — | **UNMAPPED — see gaps** |
 | `pharmacydeliveries` | PharmacyDelivery | 34 | 9 | 5 | — | Clinical records |
 | `pharmacyoffers` | PharmacyOffer | 14 | 0 | 2 | — | No PII fields detected |
 | `pharmacyorders` | PharmacyOrder | 52 | 4 | 7 | — | Clinical records |
@@ -253,7 +259,7 @@
 | `refunds` | Refund | 16 | 1 | 5 | — | Payment and ledger entries |
 | `rentals` | Rental | 39 | 1 | 8 | — | **UNMAPPED — see gaps** |
 | `reportdefinitions` | ReportDefinition | 10 | 1 | 1 | — | **UNMAPPED — see gaps** |
-| `reportruns` | ReportRun | 9 | 0 | 2 | — | No PII fields detected |
+| `reportruns` | ReportRun | 12 | 0 | 3 | — | No PII fields detected |
 | `reports` | Report | 15 | 1 | 2 | — | Clinical records |
 | `reportschedules` | ReportSchedule | 11 | 0 | 1 | — | No PII fields detected |
 | `resourcescopes` | ResourceScope | 9 | 0 | 3 | — | Operational config (organization/catalog record — not personal data) |
@@ -337,6 +343,7 @@ cover yet — each needs a decision, not a guess:
 - `bmwlogs`
 - `callqueues`
 - `campaigns`
+- `capas`
 - `chatconversations`
 - `chatmessages`
 - `chatprivacies`
@@ -374,7 +381,9 @@ cover yet — each needs a decision, not a guess:
 - `mealsubscriptions`
 - `memberships`
 - `moderationitems`
+- `mtpregisters`
 - `notificationpreferences`
+- `notifytemplates`
 - `objectives`
 - `opticaljobcards`
 - `outboundcampaigns`
@@ -382,6 +391,7 @@ cover yet — each needs a decision, not a guess:
 - `patientflags`
 - `payoutstatements`
 - `payslips`
+- `pcpndtformfs`
 - `pmjaypackages`
 - `policyacceptances`
 - `preferredpharmacies`
@@ -1907,6 +1917,37 @@ Indexes:
 | `status:1` |  |
 | `ownerId:1` |  |
 | `city:1, status:1` |  |
+
+### `capas` — Capa
+
+source `Capa.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `source` | String |  |  | "audit" | audit, incident, assessment, complaint, other |  |  |
+| `sourceRef` | String |  |  | "" |  |  |  |
+| `finding` | String | yes |  |  |  |  |  |
+| `rootCause` | String |  |  | "" |  |  |  |
+| `corrective` | String |  |  | "" |  |  |  |
+| `preventive` | String |  |  | "" |  |  |  |
+| `owner` | ObjectId |  |  | null |  | User |  |
+| `dueDate` | Date |  |  | null |  |  |  |
+| `status` | String |  |  | "Open" | Open, InProgress, Verification, Closed |  |  |
+| `effectiveness` | String |  |  | "" |  |  |  |
+| `closedAt` | Date |  |  | null |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `status:1` |  |
+| `hospitalId:1, status:1` |  |
 
 ### `casepresentations` — CasePresentation
 
@@ -6251,6 +6292,78 @@ Indexes:
 | `targetId:1, targetType:1` |  |
 | `assignee:1, status:1` |  |
 
+### `mtpregisters` — MtpRegister
+
+source `MtpRegister.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier, Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `patientId` | ObjectId |  |  | null |  | User | Identifier |
+| `patientName` | String | yes |  |  |  |  | Identity |
+| `gestationalAgeWeeks` | Number | yes |  |  |  |  |  |
+| `indication` | String |  |  | "other" | A, B, C, failure-contraception, other |  |  |
+| `doctorOpinion` | String |  |  | "" |  |  |  |
+| `consentTaken` | Boolean |  |  | false |  |  |  |
+| `procedureDate` | Date |  |  | null |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+
+### `nabhassessments` — NabhAssessment
+
+source `NabhAssessment.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `chapter` | String | yes |  |  |  |  |  |
+| `scores` | Mixed |  |  | [function] |  |  |  |
+| `autoValues` | Mixed |  |  | [function] |  |  |  |
+| `scorePct` | Number |  |  | null |  |  |  |
+| `assessor` | ObjectId |  |  | null |  | User |  |
+| `assessedAt` | Date |  |  | [function] |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `chapter:1` |  |
+| `hospitalId:1, chapter:1` |  |
+
+### `nabhchapters` — NabhChapter
+
+source `NabhChapter.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `code` | String | yes | yes |  |  |  |  |
+| `title` | String | yes |  |  |  |  |  |
+| `objectives` | Array<subdocument> |  |  |  |  |  |  |
+| `objectives.code` | String |  |  | "" |  |  |  |
+| `objectives.label` | String |  |  | "" |  |  |  |
+| `objectives.autoKpi` | String |  |  | "" |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `code:1` | unique |
+
 ### `notificationaudits` — NotificationAudit
 
 source `NotificationAudit.js` · virtuals: 0 · retention: 7 years (longer than the data they describe) (docs/privacy/RETENTION.md) · PII: Identifier
@@ -6401,6 +6514,35 @@ Indexes:
 | `channel:1` |  |
 | `isActive:1` |  |
 | `code:1, locale:1` | unique |
+
+### `notifytemplates` — NotifyTemplate
+
+source `NotifyTemplate.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier, Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `key` | String | yes |  |  |  |  |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `channel` | String | yes |  |  | sms, whatsapp, email, push, inapp |  |  |
+| `variables` | Array<Mixed> |  |  |  |  |  |  |
+| `body` | String | yes |  |  |  |  |  |
+| `subject` | String |  |  | "" |  |  |  |
+| `dltTemplateId` | String |  |  | "" |  |  |  |
+| `dltEntityId` | String |  |  | "" |  |  |  |
+| `active` | Boolean |  |  | true |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `channel:1` |  |
+| `hospitalId:1, key:1, channel:1` | unique |
 
 ### `nursingcharts` — NursingChart
 
@@ -7081,6 +7223,32 @@ Indexes:
 | `staffId:1` |  |
 | `status:1` |  |
 | `hospitalId:1, staffId:1, month:1` | unique |
+
+### `pcpndtformfs` — PcpndtFormF
+
+source `PcpndtFormF.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier, Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `patientId` | ObjectId |  |  | null |  | User | Identifier |
+| `patientName` | String | yes |  |  |  |  | Identity |
+| `husbandName` | String |  |  | "" |  |  |  |
+| `doctorName` | String |  |  | "" |  |  | Identity |
+| `indication` | String |  |  | "" |  |  |  |
+| `gestationalAgeWeeks` | Number |  |  | null |  |  |  |
+| `declarationSigned` | Boolean |  |  | false |  |  |  |
+| `formDate` | Date |  |  | [function] |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
 
 ### `pharmacydeliveries` — PharmacyDelivery
 
@@ -8845,6 +9013,9 @@ source `ReportRun.js` · timestamps: yes · virtuals: 0 · retention: n/a — no
 | `format` | String |  |  | "json" |  |  |  |
 | `rowCount` | Number |  |  | 0 |  |  |  |
 | `ms` | Number |  |  | 0 |  |  |  |
+| `status` | String |  |  | "done" | queued, running, done, failed |  |  |
+| `error` | String |  |  | "" |  |  |  |
+| `result` | Mixed |  |  | null |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -8854,6 +9025,7 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `hospitalId:1` |  |
+| `status:1` |  |
 | `hospitalId:1, createdAt:-1` |  |
 
 ### `reports` — Report

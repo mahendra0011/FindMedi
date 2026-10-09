@@ -695,6 +695,7 @@ import hubRoutes from './routes/hub.js';
 import safetyRoutes from './routes/safety.js';
 import frontofficeRoutes from './routes/frontoffice.js';
 import notifyTemplateRoutes from './routes/notifyTemplates.js';
+import qualityRoutes from './routes/quality.js';
 import moderationRoutes from './routes/moderation.js';
 import licenseRoutes from './routes/licenses.js';
 import announcementRoutes from './routes/announcements.js';
@@ -926,6 +927,8 @@ app.use('/api/safety', safetyRoutes);
 app.use('/api/frontoffice', frontofficeRoutes);
 // File 22 P2-35: notification template registry.
 app.use('/api/notify', notifyTemplateRoutes);
+// File 22 P2-30: quality (NABH/CAPA/PCPNDT/MTP).
+app.use('/api/quality', qualityRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/ops-health', opsHealthRoutes);
 app.use('/api/tenant-quotas', tenantQuotaRoutes);

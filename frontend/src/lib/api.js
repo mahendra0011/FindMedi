@@ -1356,6 +1356,18 @@ export const api = {
   saveNotifyTemplate:     (body)    => request('/notify/templates', { method: 'POST', body: JSON.stringify(body) }),
   previewNotifyTemplate:  (id, values) => request(`/notify/templates/${id}/preview`, { method: 'POST', body: JSON.stringify({ values }) }),
 
+  // ── File 22 P2-30: quality ──
+  nabhChapters:            ()        => request('/quality/chapters'),
+  seedNabh:                ()        => request('/quality/chapters/seed', { method: 'POST' }),
+  nabhAssess:              (body)    => request('/quality/assessments', { method: 'POST', body: JSON.stringify(body) }),
+  nabhAuto:                (id)      => request(`/quality/assessments/${id}/auto`),
+  capaList:                (p={})    => request('/quality/capa' + qs(p)),
+  capaCreate:              (body)    => request('/quality/capa', { method: 'POST', body: JSON.stringify(body) }),
+  capaPatch:               (id, body)=> request(`/quality/capa/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  pcpndtList:              ()        => request('/quality/pcpndt'),
+  mtpList:                 ()        => request('/quality/mtp'),
+  mtpCreate:               (body)    => request('/quality/mtp', { method: 'POST', body: JSON.stringify(body) }),
+
   // ── File 22 P1-15: TPA depth ──
   tpaRoomRent:            (id, body)  => request(`/tpa/claims/${id}/room-rent`, { method: 'POST', body: JSON.stringify(body) }),
   tpaQuery:               (id, body)  => request(`/tpa/claims/${id}/query`, { method: 'POST', body: JSON.stringify(body) }),
