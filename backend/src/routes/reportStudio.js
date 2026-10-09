@@ -6,8 +6,8 @@ import ReportRun from '../models/ReportRun.js';
 import { REPORT_CATALOGUE } from '../models/ReportDefinition.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
-import { DATASETS } from '../lib/datasets.js';
-import { ruleMatches } from '../lib/ruleEngine.js';
+import { runReport } from '../lib/reportRunner.js';
+import { getQueue, isQueuesEnabled, QUEUE_NAMES } from '../lib/queues.js';
 import logger from '../config/logger.js';
 
 // File 17 §17.1: curated catalogue, saved views, whitelisted runs + exports,
@@ -18,7 +18,6 @@ const router = express.Router();
 router.use(protect);
 
 const actorId = (req) => req.user._id ?? req.user.id;
-const MAX_ROWS = 5000;
 
 function catalogueFor(role) {
   return REPORT_CATALOGUE.map((r) => ({
@@ -45,16 +44,12 @@ function checkAccess(reportKey, role) {
   return { ok: true, def };
 }
 
-async function runReport({ hospitalId, reportKey, filters, columns }) {
-  const started = Date.now();
-  const def = REPORT_CATALOGUE.find((r) => r.key === reportKey);
-  if (!def || !DATASETS[def.dataset]) throw new Error('Unknown report/dataset');
-  const rows = await DATASETS[def.dataset].fetch(hospitalId);
-  const rule = { groups: filters?.groups || [] };
-  const filtered = (rule.groups.length ? rows.filter((r) => ruleMatches(rule, r)) : rows).slice(0, MAX_ROWS);
-  const cols = (columns?.length ? columns : DATASETS[def.dataset].fields);
-  const projected = filtered.map((r) => Object.fromEntries(cols.map((c) => [c, r[c] ?? ''])));
-  return { rows: projected, columns: cols, scanned: rows.length, ms: Date.now() - started };
+async function runReportTenant({ req, reportKey, filters, columns }) {
+  const { REPORT_CATALOGUE: catalog } = await import('../models/ReportDefinition.js');
+  return runReport({
+    hospitalId: req.user.hospitalId, reportKey, filters, columns,
+    role: req.user.role, catalog,
+  });
 }
 
 router.post('/:key/run', authorize('staff:view'), async (req, res) => {
@@ -70,7 +65,8 @@ router.post('/:key/run', authorize('staff:view'), async (req, res) => {
         columns = view.columns;
       }
     }
-    const out = await runReport({ hospitalId: req.user.hospitalId, reportKey: req.params.key, filters, columns });
+    // File 22 P2-36: masking is role-aware (accountants see ••••, doctors see clear).
+    const out = await runReportTenant({ req, reportKey: req.params.key, filters, columns });
     await ReportRun.create({
       hospitalId: req.user.hospitalId, reportKey: req.params.key, by: actorId(req),
       format: 'json', rowCount: out.rows.length, ms: out.ms,
@@ -82,34 +78,87 @@ router.post('/:key/run', authorize('staff:view'), async (req, res) => {
   }
 });
 
+// File 22 P2-36: async run — BullMQ when Redis is up, inline otherwise.
+// Poll GET /runs/:id until status done/failed.
+router.post('/:key/run-async', authorize('staff:view'), async (req, res) => {
+  try {
+    const access = checkAccess(req.params.key, req.user.role);
+    if (!access.ok) return res.status(403).json({ message: access.message });
+    const run = await ReportRun.create({
+      hospitalId: req.user.hospitalId, reportKey: req.params.key, by: actorId(req),
+      format: req.body?.format || 'json', status: 'queued',
+    });
+    const payload = {
+      type: 'report', runId: String(run._id), hospitalId: String(req.user.hospitalId),
+      reportKey: req.params.key, filters: req.body?.filters || null,
+      columns: req.body?.columns || null, role: req.user.role,
+    };
+    if (isQueuesEnabled()) {
+      const q = await getQueue(QUEUE_NAMES.exports);
+      if (q) {
+        await q.add('report', payload);
+        return res.status(202).json({ id: String(run._id), status: 'queued' });
+      }
+    }
+    // Fail-soft inline execution (no Redis): same code path, marked inline.
+    const { executeReportJob } = await import('../workers/exportWorker.js');
+    executeReportJob(payload).catch((e) => logger.warn(`inline report run failed: ${e.message}`));
+    return res.status(202).json({ id: String(run._id), status: 'queued', inline: true });
+  } catch (err) {
+    logger.error(`Report async error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/runs/:id', authorize('staff:view'), async (req, res) => {
+  try {
+    const run = await ReportRun.findOne({ _id: req.params.id, hospitalId: req.user.hospitalId }).lean();
+    if (!run) return res.status(404).json({ message: 'Not found' });
+    return res.json({ run });
+  } catch (err) {
+    logger.error(`Report run read error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 router.post('/:key/export', authorize('staff:view'), async (req, res) => {
   try {
     const access = checkAccess(req.params.key, req.user.role);
     if (!access.ok) return res.status(403).json({ message: access.message });
     const format = req.body?.format === 'csv' ? 'csv' : 'xlsx';
-    const out = await runReport({
-      hospitalId: req.user.hospitalId, reportKey: req.params.key,
-      filters: req.body?.filters, columns: req.body?.columns,
+    const out = await runReportTenant({
+      req, reportKey: req.params.key, filters: req.body?.filters, columns: req.body?.columns,
     });
     await ReportRun.create({
       hospitalId: req.user.hospitalId, reportKey: req.params.key, by: actorId(req),
       format, rowCount: out.rows.length, ms: out.ms,
     }).catch(() => {});
     if (format === 'csv') {
-      const head = out.columns.join(',');
-      const lines = out.rows.map((r) => out.columns.map((c) => JSON.stringify(r[c] ?? '')).join(','));
+      // File 22 P2-36: streaming CSV (batched writes, constant memory).
       res.set('Content-Type', 'text/csv');
       res.set('Content-Disposition', `attachment; filename="${req.params.key}.csv"`);
-      return res.send([head, ...lines].join('\n'));
+      res.write(`${out.columns.join(',')}\n`);
+      const BATCH = 500;
+      for (let i = 0; i < out.rows.length; i += BATCH) {
+        const chunk = out.rows.slice(i, i + BATCH)
+          .map((r) => out.columns.map((c) => JSON.stringify(r[c] ?? '')).join(',')).join('\n');
+        res.write(`${chunk}\n`);
+      }
+      return res.end();
     }
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet(req.params.key.slice(0, 28));
-    ws.addRow(out.columns);
-    for (const r of out.rows) ws.addRow(out.columns.map((c) => r[c] ?? ''));
-    const buf = await wb.xlsx.writeBuffer();
+    // Streaming XLSX via workbook writer (no full-buffer materialization).
     res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.set('Content-Disposition', `attachment; filename="${req.params.key}.xlsx"`);
-    return res.send(Buffer.from(buf));
+    const options = { stream: res, useStyles: false, useSharedStrings: true };
+    const wb = new ExcelJS.stream.xlsx.WorkbookWriter(options);
+    const ws = wb.addWorksheet(req.params.key.slice(0, 28));
+    ws.addRow(out.columns).commit();
+    for (const r of out.rows) {
+      ws.addRow(out.columns.map((c) => r[c] ?? '')).commit();
+    }
+    await ws.commit();
+    await wb.commit();
+    return undefined;
   } catch (err) {
     logger.error(`Report export error: ${err.message}`);
     return res.status(500).json({ message: err.message });
@@ -177,9 +226,10 @@ router.delete('/schedules/:id', authorize('staff:manage'), async (req, res) => {
 
 // Scheduler hook: run one due schedule (also used by workers/scheduler.js).
 export async function runScheduleOnce(schedule) {
+  const { REPORT_CATALOGUE } = await import('../models/ReportDefinition.js');
   const out = await runReport({
     hospitalId: schedule.hospitalId, reportKey: schedule.reportKey,
-    filters: null, columns: null,
+    filters: null, columns: null, role: 'hospital_admin', catalog: REPORT_CATALOGUE,
   });
   await ReportRun.create({
     hospitalId: schedule.hospitalId, reportKey: schedule.reportKey,
@@ -190,5 +240,5 @@ export async function runScheduleOnce(schedule) {
   return { rows: out.rows.length };
 }
 
-export { runReport };
+export { runReport } from '../lib/reportRunner.js';
 export default router;

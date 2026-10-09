@@ -21,6 +21,15 @@ export const KPI_CATALOGUE = [
   { key: 'ot_utilization', name: 'OT utilization %', category: 'ops', unit: 'percent' },
   { key: 'readmit_30', name: '30-day readmission %', category: 'clinical', unit: 'percent' },
   { key: 'recall_conversion', name: 'Recall conversion %', category: 'growth', unit: 'percent' },
+  // File 22 P2-36: second wave (all derived live in insights.js compute).
+  { key: 'avg_bill_value', name: 'Average bill value (₹)', category: 'finance', unit: 'rupees' },
+  { key: 'noshow_pct', name: 'Appointment no-show %', category: 'ops', unit: 'percent' },
+  { key: 'cancel_pct', name: 'Appointment cancellation %', category: 'ops', unit: 'percent' },
+  { key: 'discharge_before_noon_pct', name: 'Discharge before noon %', category: 'ops', unit: 'percent' },
+  { key: 'rx_verify_backlog', name: 'Prescriptions awaiting verification', category: 'clinical', unit: 'count' },
+  { key: 'pharmacy_pending_count', name: 'Active prescriptions (pharmacy load)', category: 'ops', unit: 'count' },
+  { key: 'lab_verify_backlog', name: 'Lab orders under verification', category: 'clinical', unit: 'count' },
+  { key: 'ot_completed_30d', name: 'OT cases completed (30d)', category: 'ops', unit: 'count' },
 ];
 
 export default mongoose.models.KpiDefinition || mongoose.model('KpiDefinition', kpiDefinitionSchema);

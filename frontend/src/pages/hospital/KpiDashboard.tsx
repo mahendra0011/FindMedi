@@ -16,6 +16,10 @@ const KPI_LABELS: Record<string, string> = {
   denial_rate: 'Denial %', opd_wait_p50: 'OPD wait p50', left_without_seen: 'LWBS %',
   lab_tat_breach: 'Lab TAT breach %', ot_utilization: 'OT utilization %',
   readmit_30: '30-day readmit %', recall_conversion: 'Recall conversion %',
+  avg_bill_value: 'Avg bill (₹)', noshow_pct: 'No-show %', cancel_pct: 'Cancelled %',
+  discharge_before_noon_pct: 'Discharge by noon %', rx_verify_backlog: 'Rx verify backlog',
+  pharmacy_pending_count: 'Pharmacy load', lab_verify_backlog: 'Lab verify backlog',
+  ot_completed_30d: 'OT done (30d)',
 };
 
 export default function KpiDashboard() {

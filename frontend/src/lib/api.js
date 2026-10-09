@@ -1310,6 +1310,8 @@ export const api = {
   // ── File 17: report studio, KPIs, AI ──
   studioCatalogue:        ()        => request('/report-studio/catalogue'),
   runStudioReport:        (key, body) => request(`/report-studio/${key}/run`, { method: 'POST', body: JSON.stringify(body || {}) }),
+  runStudioAsync:         (key, body) => request(`/report-studio/${key}/run-async`, { method: 'POST', body: JSON.stringify(body || {}) }),
+  studioRunStatus:        (id)      => request(`/report-studio/runs/${id}`),
   studioViews:            ()        => request('/report-studio/views'),
   createStudioView:       (body)    => request('/report-studio/views', { method: 'POST', body: JSON.stringify(body) }),
   studioSchedules:        ()        => request('/report-studio/schedules'),

@@ -34,6 +34,30 @@ export default function ReportStudioPage() {
     } catch (e: any) { toast.error(e?.message || 'Run failed'); }
   };
 
+  // File 22 P2-36: async run with polling (queued → done/failed).
+  const [asyncId, setAsyncId] = useState('');
+  const [asyncState, setAsyncState] = useState('');
+  const runAsync = async () => {
+    try {
+      const r: any = await api.runStudioAsync(key, {});
+      setAsyncId(r?.id || '');
+      setAsyncState('queued');
+      toast.success('Queued — polling for completion');
+      for (let i = 0; i < 20; i += 1) {
+        await new Promise((t) => setTimeout(t, 1500));
+        const s: any = await api.studioRunStatus(r.id);
+        setAsyncState(s?.run?.status || '');
+        if (['done', 'failed'].includes(s?.run?.status)) {
+          if (s?.run?.status === 'done') {
+            setOut({ rows: s.run.result?.rows || [], columns: s.run.result?.columns || [], scanned: s.run.rowCount, ms: s.run.ms });
+            toast.success(`Done: ${s.run.rowCount} rows`);
+          } else toast.error(s?.run?.error || 'Run failed');
+          break;
+        }
+      }
+    } catch (e: any) { toast.error(e?.message || 'Queue failed'); }
+  };
+
   const saveView = async () => {
     const name = window.prompt('View name:');
     if (!name) return;
@@ -74,8 +98,9 @@ export default function ReportStudioPage() {
           </CardContent></Card>
       </div>
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2 text-sm">{key}
+        <CardHeader>        <CardTitle className="flex items-center gap-2 text-sm">{key}
           <Button size="sm" onClick={run}>Run</Button>
+          <Button size="sm" variant="outline" onClick={runAsync}>Run async{asyncState ? ` (${asyncState})` : ''}</Button>
           <Button size="sm" variant="outline" onClick={saveView}><Save size={14} /> Save view</Button>
           <span className="text-xs font-normal text-muted-foreground">{out ? `${out.rows?.length} rows (scanned ${out.scanned}, ${out.ms}ms)` : ''}</span>
         </CardTitle></CardHeader>

@@ -39,7 +39,7 @@ router.get('/kpis/compute', authorize('staff:view'), async (req, res) => {
       }
     } catch { /* seeding must never break compute */ }
     const [
-      Bed, AdmissionM, BillingM, ClaimM, AppointmentM, LabOrderM,
+      Bed, AdmissionM, BillingM, ClaimM, AppointmentM, LabOrderM, PrescriptionM, OtM,
     ] = await Promise.all([
       import('../models/Bed.js').then((m) => m.default),
       import('../models/Admission.js').then((m) => m.default),
@@ -47,6 +47,8 @@ router.get('/kpis/compute', authorize('staff:view'), async (req, res) => {
       import('../models/Claim.js').then((m) => m.default).catch(() => null),
       import('../models/Appointment.js').then((m) => m.default).catch(() => null),
       import('../models/LabOrder.js').then((m) => m.default).catch(() => null),
+      import('../models/Prescription.js').then((m) => m.default).catch(() => null),
+      import('../models/OperationTheatre.js').then((m) => m.default).catch(() => null),
     ]);
     const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : null);
     const out = {};
@@ -93,6 +95,37 @@ router.get('/kpis/compute', authorize('staff:view'), async (req, res) => {
     out.ot_utilization = null; // needs slot master — explicit null
     out.readmit_30 = null; // needs longitudinal linkage — explicit null
     out.recall_conversion = null; // RecallLog tracks sends, not bookings — explicit null
+    // File 22 P2-36: second KPI wave (all derived, nulls stay explicit).
+    out.avg_bill_value = bills.length ? Math.round(billed / bills.length) : null;
+    if (AppointmentM) {
+      const { safeFirst } = await import('../lib/approvalWiring.js');
+      const all = await safeFirst(AppointmentM.find({ hospitalId }).select('status').limit(2000).lean()) || [];
+      const missed = all.filter((a) => a.status === 'Missed').length;
+      const done = all.filter((a) => ['Completed', 'Missed'].includes(a.status)).length;
+      const cancelled = all.filter((a) => a.status === 'Cancelled').length;
+      out.noshow_pct = pct(missed, done);
+      out.cancel_pct = pct(cancelled, all.length);
+    } else { out.noshow_pct = null; out.cancel_pct = null; }
+    const disch = await AdmissionM.find({ hospitalId, status: 'Discharged' })
+      .select('dischargedAt').sort({ dischargedAt: -1 }).limit(200).lean().catch(() => []);
+    const withTime = disch.filter((d) => d.dischargedAt);
+    out.discharge_before_noon_pct = withTime.length
+      ? pct(withTime.filter((d) => new Date(d.dischargedAt).getHours() < 12).length, withTime.length) : null;
+    if (PrescriptionM) {
+      const [rxPending, rxActive] = await Promise.all([
+        PrescriptionM.countDocuments({ hospitalId, verificationStatus: 'pending' }).catch(() => 0),
+        PrescriptionM.countDocuments({ hospitalId, status: 'Active' }).catch(() => 0),
+      ]);
+      out.rx_verify_backlog = rxPending;
+      out.pharmacy_pending_count = rxActive;
+    } else { out.rx_verify_backlog = null; out.pharmacy_pending_count = null; }
+    if (LabOrderM) {
+      out.lab_verify_backlog = await LabOrderM.countDocuments({ hospitalId, status: 'Under Verification' }).catch(() => 0);
+    } else out.lab_verify_backlog = null;
+    if (OtM) {
+      const monthAgo = new Date(Date.now() - 30 * 86400 * 1000);
+      out.ot_completed_30d = await OtM.countDocuments({ hospitalId, status: 'Completed', createdAt: { $gte: monthAgo } }).catch(() => 0);
+    } else out.ot_completed_30d = null;
     return res.json({ kpis: out });
   } catch (err) {
     logger.error(`KPI compute error: ${err.message}`);
@@ -124,11 +157,22 @@ export async function computeDailyMetricsTenant(hospitalId, day) {
   const admissions = await Admission.countDocuments({
     hospitalId, createdAt: { $gte: from, $lte: to },
   }).catch(() => 0);
+  // File 22 P2-36: scheduler KPI snapshot rides the same nightly row.
+  const { default: AppointmentM } = await import('../models/Appointment.js').catch(() => ({ default: null }));
+  let appointments = 0;
+  let noshows = 0;
+  if (AppointmentM) {
+    const rows = await safeFirst(AppointmentM.find({ hospitalId, createdAt: { $gte: from, $lte: to } }).select('status').lean()) || [];
+    appointments = rows.length;
+    noshows = rows.filter((r) => r.status === 'Missed').length;
+  }
   const metrics = {
     billed: bills.reduce((a, b) => a + Number(b.amount || 0), 0),
     collected: bills.reduce((a, b) => a + Number(b.paid || 0), 0),
     bills: bills.length,
     admissions,
+    appointments,
+    noshows,
   };
   await DailyMetric.findOneAndUpdate(
     { hospitalId, day: dayStr }, { $set: { metrics } }, { upsert: true },

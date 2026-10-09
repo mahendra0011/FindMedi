@@ -8,6 +8,11 @@ const reportRunSchema = new mongoose.Schema({
   format: { type: String, default: 'json' },
   rowCount: { type: Number, default: 0 },
   ms: { type: Number, default: 0 },
+  // File 22 P2-36: async runs (queued → running → done/failed) with the
+  // result embedded (capped) so small reports never need a file round-trip.
+  status: { type: String, enum: ['queued', 'running', 'done', 'failed'], default: 'done', index: true },
+  error: { type: String, default: '' },
+  result: { type: mongoose.Schema.Types.Mixed, default: null },
 }, { timestamps: true });
 
 reportRunSchema.index({ hospitalId: 1, createdAt: -1 });

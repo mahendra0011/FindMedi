@@ -13,7 +13,29 @@ const MAX_EXPORT_ROWS = 20000;
 
 let worker = null;
 
-async function processExport(type, { from, to }, UnrecoverableError) {
+async function processExport(type, { from, to }, UnrecoverableError, jobData) {
+  if (type === 'report') {
+    // File 22 P2-36: async studio run (needs the full job payload).
+    const { runId, hospitalId, reportKey, filters, columns, role } = jobData || {};
+    if (!runId) throw new UnrecoverableError('report job missing runId');
+    const { default: ReportRun } = await import('../models/ReportRun.js');
+    const { REPORT_CATALOGUE } = await import('../models/ReportDefinition.js');
+    const { runReport } = await import('../lib/reportRunner.js');
+    await ReportRun.findByIdAndUpdate(runId, { $set: { status: 'running' } });
+    try {
+      const out = await runReport({ hospitalId, reportKey, filters, columns, role, catalog: REPORT_CATALOGUE });
+      await ReportRun.findByIdAndUpdate(runId, {
+        $set: {
+          status: 'done', rowCount: out.rows.length, ms: out.ms,
+          result: { columns: out.columns, rows: out.rows.slice(0, 500), truncated: out.rows.length > 500 },
+        },
+      });
+      return { filename: `${reportKey}.json`, rows: out.rows.length, fields: out.columns };
+    } catch (e) {
+      await ReportRun.findByIdAndUpdate(runId, { $set: { status: 'failed', error: String(e.message || e).slice(0, 500) } });
+      throw e;
+    }
+  }
   const [{ default: User }, { default: Billing }, { default: Appointment },
     { default: Hospital }, { default: AuditLog }] = await Promise.all([
     import('../models/User.js'),
@@ -97,6 +119,10 @@ export async function startExportWorker() {
       async (job) => {
         const { type, from, to } = job.data || {};
         if (!type) throw new UnrecoverableError('export job missing type');
+        if (type === 'report') {
+          // Report jobs return the ledger shape (no CSV base64 needed).
+          return processExport(type, {}, UnrecoverableError, job.data);
+        }
         const { filename, rows, fields } = await processExport(type, { from, to }, UnrecoverableError);
         const csv = toCsvFallback(rows, fields);
         return { filename, base64: Buffer.from(csv, 'utf8').toString('base64') };
@@ -116,8 +142,16 @@ export async function startExportWorker() {
   }
 }
 
-export async function stopExportWorker() {
-  if (!worker) return;
+/**
+ * File 22 P2-36: inline report execution (no-Redis fail-soft path).
+ * Same code as the worker, minus BullMQ — errors land in the ledger.
+ */
+export async function executeReportJob(payload) {
+  class InlineUnrecoverable extends Error {}
+  return processExport('report', {}, InlineUnrecoverable, payload);
+}
+
+export async function stopExportWorker() {  if (!worker) return;
   try { await worker.close(); } catch {}
   worker = null;
 }
