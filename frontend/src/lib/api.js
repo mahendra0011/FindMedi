@@ -1351,6 +1351,11 @@ export const api = {
   hubDeleteSub:           (id)      => request(`/hub/webhooks/subs/${id}`, { method: 'DELETE' }),
   hubDeliveries:          (p={})    => request('/hub/webhooks/deliveries' + qs(p)),
 
+  // ── File 22 P2-35: notification templates ──
+  notifyTemplates:         (p={})    => request('/notify/templates' + qs(p)),
+  saveNotifyTemplate:     (body)    => request('/notify/templates', { method: 'POST', body: JSON.stringify(body) }),
+  previewNotifyTemplate:  (id, values) => request(`/notify/templates/${id}/preview`, { method: 'POST', body: JSON.stringify({ values }) }),
+
   // ── File 22 P1-15: TPA depth ──
   tpaRoomRent:            (id, body)  => request(`/tpa/claims/${id}/room-rent`, { method: 'POST', body: JSON.stringify(body) }),
   tpaQuery:               (id, body)  => request(`/tpa/claims/${id}/query`, { method: 'POST', body: JSON.stringify(body) }),

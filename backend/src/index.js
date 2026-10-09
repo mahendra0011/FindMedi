@@ -694,6 +694,7 @@ import contactCenterRoutes from './routes/contactCenter.js';
 import hubRoutes from './routes/hub.js';
 import safetyRoutes from './routes/safety.js';
 import frontofficeRoutes from './routes/frontoffice.js';
+import notifyTemplateRoutes from './routes/notifyTemplates.js';
 import moderationRoutes from './routes/moderation.js';
 import licenseRoutes from './routes/licenses.js';
 import announcementRoutes from './routes/announcements.js';
@@ -923,6 +924,8 @@ app.use('/api/hub', hubRoutes);
 app.use('/api/safety', safetyRoutes);
 // File 22 P0-6: front-office enquiries.
 app.use('/api/frontoffice', frontofficeRoutes);
+// File 22 P2-35: notification template registry.
+app.use('/api/notify', notifyTemplateRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/ops-health', opsHealthRoutes);
 app.use('/api/tenant-quotas', tenantQuotaRoutes);
