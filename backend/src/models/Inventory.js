@@ -35,6 +35,8 @@ const inventorySchema = new mongoose.Schema({
   location: { type: String }, // store location/rack
   expiryDate: { type: Date },
   batchNumber: { type: String },
+  // File 22 P1-18: VED criticality for ABC-VED (ABC derives from consumption).
+  ved: { type: String, enum: ['Vital', 'Essential', 'Desirable'], default: 'Essential' },
   transactionHistory: [{
     type: { type: String, enum: ['Purchase', 'Issue', 'Return', 'Adjustment'] },
     quantity: Number,

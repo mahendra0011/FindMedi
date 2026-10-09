@@ -209,6 +209,34 @@ router.post('/purchase-orders', protect, adminOnly, validate(createPurchaseOrder
     const taxAmount = (taxableAmount * (taxRate || 0)) / 100;
     const grandTotal = taxableAmount + taxAmount;
 
+    // File 22 P1-18: rate-contract check — warn on over-rate lines, block
+    // only when the contract enforces its ceiling.
+    const warnings = [];
+    try {
+      const { default: Contract } = await import('../models/Contract.js');
+      const { safeFirst } = await import('../lib/approvalWiring.js');
+      const contracts = await safeFirst(Contract.find({
+        hospitalId: req.user.hospitalId || undefined, kind: 'rate', status: 'active',
+        $or: [{ supplierId: supplierId || null }, { counterparty: supplierName || '' }],
+      }).select('lines enforceMax counterparty').limit(5).lean()) || [];
+      const rateOf = (name) => {
+        for (const c of contracts || []) {
+          const line = (c.lines || []).find((l) => String(l.item || '').toLowerCase() === String(name || '').toLowerCase());
+          if (line) return { rate: Number(line.rate) || 0, enforce: Boolean(c.enforceMax), contract: c.counterparty };
+        }
+        return null;
+      };
+      for (const item of items) {
+        const rc = rateOf(item.itemName || item.name);
+        if (rc && Number(item.unitPrice) > rc.rate) {
+          warnings.push({ item: item.itemName || item.name, poRate: item.unitPrice, contractRate: rc.rate, contract: rc.contract, enforced: rc.enforce });
+          if (rc.enforce) {
+            return res.status(409).json({ message: `Rate above contract ceiling for ${item.itemName || item.name}`, code: 'RATE_CONTRACT_BLOCK', warnings });
+          }
+        }
+      }
+    } catch { /* rate check must never break PO creation */ }
+
     const po = await PurchaseOrder.create({
       poNumber,
       supplierId,
@@ -229,7 +257,7 @@ router.post('/purchase-orders', protect, adminOnly, validate(createPurchaseOrder
     });
     await auditLog('create_purchase_order', req.user._id, { recordId: po._id, ip: req.ip, userAgent: req.get('user-agent') });
 
-    res.status(201).json(po);
+    res.status(201).json({ ...po.toObject(), rateWarnings: warnings });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 

@@ -76,14 +76,16 @@ router.get('/kpis/compute', authorize('staff:view'), async (req, res) => {
       out.denial_rate = pct(denied, total);
     } else out.denial_rate = null;
     if (AppointmentM) {
-      const appts = await AppointmentM.find({ hospitalId, status: { $in: ['Completed', 'Missed'] } })
-        .select('status').limit(500).lean().catch(() => []);
+      const { safeFirst } = await import('../lib/approvalWiring.js');
+      const appts = await safeFirst(AppointmentM.find({ hospitalId, status: { $in: ['Completed', 'Missed'] } })
+        .select('status').limit(500).lean()) || [];
       const seen = appts.filter((a) => a.status === 'Completed').length;
       out.left_without_seen = pct(appts.length - seen, appts.length);
     } else out.left_without_seen = null;
     out.opd_wait_p50 = null; // needs wait-time capture (tokens) — explicit null, not faked
     if (LabOrderM) {
-      const labs = await LabOrderM.find({ hospitalId }).select('createdAt verifiedAt').limit(500).lean().catch(() => []);
+      const { safeFirst } = await import('../lib/approvalWiring.js');
+      const labs = await safeFirst(LabOrderM.find({ hospitalId }).select('createdAt verifiedAt').limit(500).lean()) || [];
       const breached = labs.filter((l) => l.createdAt && l.verifiedAt
         && (new Date(l.verifiedAt) - new Date(l.createdAt)) > 24 * 3600 * 1000).length;
       out.lab_tat_breach = pct(breached, labs.length);
@@ -113,11 +115,12 @@ router.get('/metrics/daily', authorize('staff:view'), async (req, res) => {
 export async function computeDailyMetricsTenant(hospitalId, day) {
   const { default: Billing } = await import('../models/Billing.js');
   const { default: Admission } = await import('../models/Admission.js');
+  const { safeFirst } = await import('../lib/approvalWiring.js');
   const dayStr = day || new Date().toISOString().slice(0, 10);
   const from = new Date(`${dayStr}T00:00:00Z`);
   const to = new Date(`${dayStr}T23:59:59Z`);
-  const bills = await Billing.find({ hospitalId, createdAt: { $gte: from, $lte: to } })
-    .select('amount paid').lean().catch(() => []);
+  const bills = await safeFirst(Billing.find({ hospitalId, createdAt: { $gte: from, $lte: to } })
+    .select('amount paid').lean()) || [];
   const admissions = await Admission.countDocuments({
     hospitalId, createdAt: { $gte: from, $lte: to },
   }).catch(() => 0);

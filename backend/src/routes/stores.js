@@ -159,4 +159,107 @@ router.get('/stock', authorize('inventory:manage'), async (req, res) => {
   }
 });
 
+// File 22 P1-18: physical count audit — diffs apply directly when small,
+// else route through the stock-adjust approval (never silent).
+router.post('/stock-audit', authorize('inventory:manage'), async (req, res) => {
+  try {
+    const { default: Inventory } = await import('../models/Inventory.js');
+    const items = req.body?.items;
+    if (!Array.isArray(items) || !items.length || items.length > 500) {
+      return res.status(400).json({ message: 'items[] (1-500) required' });
+    }
+    const { default: ApprovalPolicy } = await import('../models/ApprovalPolicy.js');
+    const { resolveThreshold, safeFirst } = await import('../lib/approvalWiring.js');
+    const policy = await safeFirst(ApprovalPolicy.findOne({
+      hospitalId: req.user.hospitalId, key: 'stock-adjust', active: true,
+    }).lean());
+    const { limit, roles } = resolveThreshold(policy, 'stock-adjust');
+    const applied = [];
+    const held = [];
+    for (const it of items) {
+      const row = await Inventory.findOne({ _id: it.itemId, ...tenantFilter(req) });
+      if (!row) continue;
+      const diff = Number(it.counted) - Number(row.currentStock || 0);
+      if (diff === 0) continue;
+      if (Math.abs(diff) >= limit) {
+        // eslint-disable-next-line no-await-in-loop
+        const { ensureApproval, approvalError } = await import('./approvals.js');
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await ensureApproval({
+            req: { ...req, body: { ...req.body } }, policyKey: 'stock-adjust',
+            entityRef: { model: 'Inventory', id: row._id },
+            title: `Stock audit adjust ${diff > 0 ? '+' : ''}${diff} × ${row.itemName}`,
+            amount: Math.abs(diff), roles,
+          });
+        } catch (e) {
+          held.push({ itemId: String(row._id), diff, approvalId: e.approvalId || null });
+          continue;
+        }
+      }
+      row.currentStock = Number(it.counted);
+      row.transactionHistory.push({
+        type: 'Adjustment', quantity: diff, reference: `AUDIT-${new Date().toISOString().slice(0, 10)}`,
+        doneBy: req.user.name,
+      });
+      // eslint-disable-next-line no-await-in-loop
+      await row.save();
+      applied.push({ itemId: String(row._id), diff });
+    }
+    await auditLog('stock_audit', actorId(req), { applied: applied.length, held: held.length, ip: req.ip });
+    return res.json({ applied, held });
+  } catch (err) {
+    logger.error(`Stock audit error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// File 22 P1-18: ABC-VED (ABC from Issue consumption value; VED from flag).
+router.get('/abc-ved', authorize('inventory:manage'), async (req, res) => {
+  try {
+    const { default: Inventory } = await import('../models/Inventory.js');
+    const rows = await Inventory.find({ ...tenantFilter(req), isActive: true })
+      .select('itemName category unitPrice currentStock ved').limit(1000).lean();
+    const valued = rows.map((r) => {
+      const consumed = (r.transactionHistory || []).filter((t) => t.type === 'Issue')
+        .reduce((s, t) => s + (Number(t.quantity) || 0), 0);
+      return { ...r, consumedValue: consumed * (Number(r.unitPrice) || 0) };
+    }).sort((a, b) => b.consumedValue - a.consumedValue);
+    const total = valued.reduce((s, r) => s + r.consumedValue, 0) || 1;
+    let run = 0;
+    const out = valued.map((r) => {
+      run += r.consumedValue;
+      const share = run / total;
+      return {
+        itemId: String(r._id), itemName: r.itemName, category: r.category,
+        consumedValue: Math.round(r.consumedValue), abc: share <= 0.8 ? 'A' : share <= 0.95 ? 'B' : 'C',
+        ved: r.ved || 'Essential', currentStock: r.currentStock,
+      };
+    });
+    return res.json({ items: out.slice(0, 500), total: Math.round(total) });
+  } catch (err) {
+    logger.error(`ABC-VED error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// File 22 P1-18: low-stock + near-expiry watch (also feed rule datasets).
+router.get('/alerts', authorize('inventory:manage'), async (req, res) => {
+  try {
+    const { default: Inventory } = await import('../models/Inventory.js');
+    const days = Number(req.query.expiryDays) || 90;
+    const base = { ...tenantFilter(req), isActive: true };
+    const [low, expiring] = await Promise.all([
+      Inventory.find({ ...base, $expr: { $lte: ['$currentStock', '$minStockLevel'] } })
+        .select('itemName currentStock minStockLevel unit').limit(200).lean(),
+      Inventory.find({ ...base, expiryDate: { $lte: new Date(Date.now() + days * 86400 * 1000) } })
+        .select('itemName expiryDate batchNumber currentStock').sort({ expiryDate: 1 }).limit(200).lean(),
+    ]);
+    return res.json({ lowStock: low, nearExpiry: expiring });
+  } catch (err) {
+    logger.error(`Inventory alerts error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

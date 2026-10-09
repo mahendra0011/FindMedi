@@ -158,12 +158,13 @@ router.get('/all', protect, async (req, res) => {
       bill: ['bills'], pt: ['patients'], rx: ['pharmacy'], bed: ['beds'],
       staff: ['staff'], ticket: ['tasks'], appt: ['appointments'],
     }[prefix]?.includes(key);
+    const { safeFirst } = await import('../lib/approvalWiring.js');
 
     const tasks = [];
     if (want('patients') && ['doctor', 'nurse', 'receptionist', 'hospital_admin', 'clinic_admin', 'superadmin'].includes(req.user.role)) {
       tasks.push((async () => {
         const { default: Patient } = await import('../models/Patient.js');
-        const rows = await Patient.find({ name: rx }).select('name phone gender dob').limit(5).lean().catch(() => []);
+        const rows = await safeFirst(Patient.find({ name: rx }).select('name phone gender dob').limit(5).lean()) || [];
         groups.push({ key: 'patients', label: 'Patients', items: rows.map((p) => ({ id: String(p._id), title: p.name, sub: p.phone || '' })) });
       })());
     }
@@ -172,7 +173,7 @@ router.get('/all', protect, async (req, res) => {
         const { default: Billing } = await import('../models/Billing.js');
         const or = [{ invoiceId: rx }];
         if (ID_LIKE.test(text)) or.push({ _id: text });
-        const rows = await Billing.find({ hospitalId, $or: or }).select('invoiceId amount status').limit(5).lean().catch(() => []);
+        const rows = await safeFirst(Billing.find({ hospitalId, $or: or }).select('invoiceId amount status').limit(5).lean()) || [];
         groups.push({ key: 'bills', label: 'Bills', items: rows.map((b) => ({ id: String(b._id), title: b.invoiceId, sub: `${b.amount} · ${b.status}` })) });
       })());
     }
@@ -180,35 +181,35 @@ router.get('/all', protect, async (req, res) => {
       tasks.push((async () => {
         const { default: Appointment } = await import('../models/Appointment.js');
         const or = [{ tokenNo: rx }];
-        const rows = await Appointment.find({ hospitalId, $or: or }).select('tokenNo status date').limit(5).lean().catch(() => []);
+        const rows = await safeFirst(Appointment.find({ hospitalId, $or: or }).select('tokenNo status date').limit(5).lean()) || [];
         groups.push({ key: 'appointments', label: 'Appointments', items: rows.map((a) => ({ id: String(a._id), title: `Token ${a.tokenNo}`, sub: a.status || '' })) });
       })());
     }
     if (want('beds')) {
       tasks.push((async () => {
         const { default: Bed } = await import('../models/Bed.js');
-        const rows = await Bed.find({ hospitalId, bedNumber: rx }).select('bedNumber status wardId').limit(5).lean().catch(() => []);
+        const rows = await safeFirst(Bed.find({ hospitalId, bedNumber: rx }).select('bedNumber status wardId').limit(5).lean()) || [];
         groups.push({ key: 'beds', label: 'Beds', items: rows.map((b) => ({ id: String(b._id), title: `Bed ${b.bedNumber}`, sub: b.status || '' })) });
       })());
     }
     if (want('staff')) {
       tasks.push((async () => {
         const { default: Staff } = await import('../models/Staff.js');
-        const rows = await Staff.find({ hospitalId, $or: [{ name: rx }, { employeeId: rx }] }).select('name employeeId role status').limit(5).lean().catch(() => []);
+        const rows = await safeFirst(Staff.find({ hospitalId, $or: [{ name: rx }, { employeeId: rx }] }).select('name employeeId role status').limit(5).lean()) || [];
         groups.push({ key: 'staff', label: 'Staff', items: rows.map((s) => ({ id: String(s._id), title: s.name, sub: s.employeeId || s.role || '' })) });
       })());
     }
     if (want('pharmacy')) {
       tasks.push((async () => {
         const { default: Medicine } = await import('../models/Medicine.js');
-        const rows = await Medicine.find({ name: rx }).select('name strength mrp').limit(5).lean().catch(() => []);
+        const rows = await safeFirst(Medicine.find({ name: rx }).select('name strength mrp').limit(5).lean()) || [];
         groups.push({ key: 'pharmacy', label: 'Medicines', items: rows.map((m) => ({ id: String(m._id), title: m.name, sub: m.strength || '' })) });
       })());
     }
     if (want('tasks')) {
       tasks.push((async () => {
         const { default: WorkTask } = await import('../models/WorkTask.js');
-        const rows = await WorkTask.find({ hospitalId, title: rx }).select('title status priority').limit(5).lean().catch(() => []);
+        const rows = await safeFirst(WorkTask.find({ hospitalId, title: rx }).select('title status priority').limit(5).lean()) || [];
         groups.push({ key: 'tasks', label: 'Tasks', items: rows.map((t) => ({ id: String(t._id), title: t.title, sub: `${t.status} · ${t.priority}` })) });
       })());
     }

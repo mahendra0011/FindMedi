@@ -219,8 +219,7 @@ router.post('/maintenance', authorize('billing:write'), async (req, res) => {
   }
 });
 
-router.patch('/maintenance/:id', authorize('billing:write'), async (req, res) => {
-  try {
+router.patch('/maintenance/:id', authorize('billing:write'), async (req, res) => {  try {
     const { default: AssetMaintenance } = await import('../models/AssetMaintenance.js');
     const allowed = ['dueDate', 'doneDate', 'vendor', 'cost', 'reportUrl', 'status'];
     const set = Object.fromEntries(Object.entries(req.body || {}).filter(([k]) => allowed.includes(k)));
@@ -232,6 +231,70 @@ router.patch('/maintenance/:id', authorize('billing:write'), async (req, res) =>
     return res.json({ id: String(row._id), status: row.status });
   } catch (err) {
     logger.error(`Maintenance patch error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// File 22 P1-19: equipment register (AMC/warranty/calibration/criticality)
+// + due watch. Contract linkage (contractId) ties AMC to /contracts.
+router.get('/equipment', authorize('billing:read'), async (req, res) => {
+  try {
+    const { default: Equipment } = await import('../models/Equipment.js');
+    const filter = tenant(req);
+    if (req.query.status) filter.status = req.query.status;
+    const rows = await Equipment.find(filter).sort({ name: 1 }).limit(500).lean();
+    return res.json({ equipment: rows });
+  } catch (err) {
+    logger.error(`Equipment error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/equipment', authorize('billing:write'), async (req, res) => {
+  try {
+    const { default: Equipment } = await import('../models/Equipment.js');
+    const allowed = ['name', 'type', 'model', 'serialNumber', 'manufacturer', 'installationDate',
+      'location', 'notes', 'warrantyTill', 'amcVendor', 'contractId', 'calibrationDue',
+      'nextPmDue', 'criticality', 'status'];
+    const body = Object.fromEntries(Object.entries(req.body || {}).filter(([k]) => allowed.includes(k)));
+    if (!body.name || !body.type) return res.status(400).json({ message: 'name + type required' });
+    const row = await Equipment.create({ ...body, hospitalId: req.user.hospitalId, createdBy: actorId(req) });
+    await auditLog('equipment_created', actorId(req), { equipmentId: row._id, ip: req.ip });
+    return res.status(201).json({ id: String(row._id) });
+  } catch (err) {
+    logger.error(`Equipment create error: ${err.message}`);
+    return res.status(400).json({ message: err.message });
+  }
+});
+
+router.patch('/equipment/:id', authorize('billing:write'), async (req, res) => {
+  try {
+    const { default: Equipment } = await import('../models/Equipment.js');
+    const allowed = ['location', 'notes', 'status', 'warrantyTill', 'amcVendor', 'contractId',
+      'calibrationDue', 'nextPmDue', 'criticality', 'lastMaintenanceDate'];
+    const set = Object.fromEntries(Object.entries(req.body || {}).filter(([k]) => allowed.includes(k)));
+    const row = await Equipment.findOneAndUpdate({ _id: req.params.id, ...tenant(req) }, { $set: set }, { new: true });
+    if (!row) return res.status(404).json({ message: 'Not found' });
+    return res.json({ id: String(row._id) });
+  } catch (err) {
+    logger.error(`Equipment patch error: ${err.message}`);
+    return res.status(400).json({ message: err.message });
+  }
+});
+
+// Due watch: calibration/PM/warranty expiries in the next N days.
+router.get('/equipment/due', authorize('billing:read'), async (req, res) => {
+  try {
+    const { default: Equipment } = await import('../models/Equipment.js');
+    const days = Number(req.query.days) || 30;
+    const cutoff = new Date(Date.now() + days * 86400 * 1000);
+    const rows = await Equipment.find({
+      ...tenant(req),
+      $or: [{ calibrationDue: { $lte: cutoff } }, { nextPmDue: { $lte: cutoff } }, { warrantyTill: { $lte: cutoff } }],
+    }).select('name type calibrationDue nextPmDue warrantyTill criticality status').sort({ calibrationDue: 1 }).limit(200).lean();
+    return res.json({ due: rows });
+  } catch (err) {
+    logger.error(`Equipment due error: ${err.message}`);
     return res.status(500).json({ message: err.message });
   }
 });

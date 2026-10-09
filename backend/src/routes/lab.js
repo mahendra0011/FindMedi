@@ -283,7 +283,8 @@ async function resolveLabOrderSubject(req, bodyPatientId, res) {
 
   const targetFacilityOf = async (doc) => doc?.facilityId || doc?.hospitalId || null;
 
-  const target = await Patient.findById(bodyPatientId).select('hospitalId facilityId userId').lean().catch(() => null);
+  const { safeFirst } = await import('../lib/approvalWiring.js');
+  const target = await safeFirst(Patient.findById(bodyPatientId).select('hospitalId facilityId userId').lean());
   if (target) {
     const targetFacility = await targetFacilityOf(target);
     if (!targetFacility || String(targetFacility) !== String(callerFacility)) {
@@ -1040,7 +1041,8 @@ async function createReportDeliveryTask({ req, res, booking, order }) {
   if (!dropAddress) {
     const patientId = isBooking ? booking.patientId : order.patientId;
     if (patientId) {
-      const patientUser = await User.findById(patientId).select('address city state pincode').lean().catch(() => null);
+      const { safeFirst } = await import('../lib/approvalWiring.js');
+      const patientUser = await safeFirst(User.findById(patientId).select('address city state pincode').lean());
       if (patientUser) {
         dropAddress = [patientUser.address, patientUser.city, patientUser.state, patientUser.pincode]
           .filter(Boolean)

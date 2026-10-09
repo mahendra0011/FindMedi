@@ -32,6 +32,13 @@ const equipmentSchema = new mongoose.Schema({
   location: { type: String },
   notes: { type: String },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
+  // File 22 P1-19: AMC/warranty/calibration/criticality + contract linkage.
+  warrantyTill: { type: Date, default: null },
+  amcVendor: { type: String, default: '' },
+  contractId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contract', default: null, index: true },
+  calibrationDue: { type: Date, default: null },
+  nextPmDue: { type: Date, default: null },
+  criticality: { type: String, enum: ['Low', 'Medium', 'High', 'LifeSupport'], default: 'Medium' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });

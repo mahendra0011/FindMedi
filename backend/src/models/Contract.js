@@ -12,6 +12,11 @@ const contractSchema = new mongoose.Schema({
   terms: { type: String, default: '', maxlength: 2000 },
   documentUrl: { type: String, default: '' },
   status: { type: String, enum: ['active', 'expired', 'terminated'], default: 'active', index: true },
+  // File 22 P1-18/19: rate lines + hard enforcement + asset linkage.
+  lines: [{ item: { type: String, default: '' }, rate: { type: Number, default: 0, min: 0 } }],
+  enforceMax: { type: Boolean, default: false },
+  assetUnitId: { type: mongoose.Schema.Types.ObjectId, ref: 'AssetUnit', default: null },
+  equipmentName: { type: String, default: '' },
 }, { timestamps: true });
 
 export default mongoose.models.Contract || mongoose.model('Contract', contractSchema);
