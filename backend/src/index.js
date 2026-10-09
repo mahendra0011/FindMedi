@@ -389,6 +389,8 @@ app.use(cookieParser());
 // the RAW body survives for HMAC verification (express.json() would otherwise
 // consume it, making every signature check fail).
 app.use('/api/webhooks', express.raw({ type: 'application/json', limit: '1mb' }), webhookRoutes);
+// File 16 §16.2: gateway webhooks need the same raw-body treatment for HMAC.
+app.use('/api/checkout/webhooks', express.raw({ type: 'application/json', limit: '1mb' }));
 
 // CHAT-M-02: /api/chat/upload receives base64-encoded files up to 25MB (~34MB
 // of base64 text), which the global 1mb JSON cap silently rejected with 413 —
@@ -676,6 +678,18 @@ import onboardingMetricsRoutes from './routes/onboardingMetrics.js';
 import quoteRoutes from './routes/quotes.js';
 import eventRoutes from './routes/events.js';
 import rentalRoutes from './routes/rentals.js';
+import workflowRoutes from './routes/workflows.js';
+import approvalRoutes from './routes/approvals.js';
+import rulesRoutes from './routes/rules.js';
+import masterRoutes from './routes/masters.js';
+import rcmRoutes from './routes/rcm.js';
+import checkoutRoutes from './routes/checkout.js';
+import reconRoutes from './routes/recon.js';
+import enterpriseRoutes from './routes/enterprise.js';
+import reportStudioRoutes from './routes/reportStudio.js';
+import insightRoutes from './routes/insights.js';
+import contactCenterRoutes from './routes/contactCenter.js';
+import hubRoutes from './routes/hub.js';
 import moderationRoutes from './routes/moderation.js';
 import licenseRoutes from './routes/licenses.js';
 import announcementRoutes from './routes/announcements.js';
@@ -885,6 +899,22 @@ app.use('/api/kiosk', kioskRoutes);
 app.use('/api/cssd', cssdRoutes);
 // File 09 §04: EMR templates + CDSS check + ICU flowsheet.
 app.use('/api/clinical', clinicalRoutes);
+// File 13 §13.1/§13.2/§13.3+§13.5/§13.6: workflows, approvals, rules+tasks, masters+flags.
+app.use('/api/workflows', workflowRoutes);
+app.use('/api/approvals', approvalRoutes);
+app.use('/api/rules', rulesRoutes);
+app.use('/api/masters', masterRoutes);
+// File 16: RCM tracker, gateway checkout, bank recon, enterprise ledgers.
+app.use('/api/rcm', rcmRoutes);
+app.use('/api/checkout', checkoutRoutes);
+app.use('/api/recon', reconRoutes);
+app.use('/api/enterprise', enterpriseRoutes);
+// File 17: report studio (whitelisted datasets) + KPIs/metrics/AI.
+app.use('/api/report-studio', reportStudioRoutes);
+app.use('/api/insights', insightRoutes);
+// File 18: contact center + integration hub + outbound webhooks.
+app.use('/api/contact-center', contactCenterRoutes);
+app.use('/api/hub', hubRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/ops-health', opsHealthRoutes);
 app.use('/api/tenant-quotas', tenantQuotaRoutes);

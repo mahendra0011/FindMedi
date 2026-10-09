@@ -15,4 +15,4 @@ const reportSchema = new mongoose.Schema({
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
 }, { timestamps: true });
 
-export default mongoose.model('Report', reportSchema);
+export default mongoose.models.Report || mongoose.model('Report', reportSchema);

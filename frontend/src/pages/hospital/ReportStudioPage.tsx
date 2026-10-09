@@ -1,0 +1,99 @@
+import { useEffect, useState } from 'react';
+import { FileBarChart, Save, CalendarClock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from '@/components/ui/sonner';
+import { api } from '@/lib/api';
+
+/** File 17 §17.1: report studio — catalogue, whitelisted runs, views, schedules. */
+export default function ReportStudioPage() {
+  const [catalogue, setCatalogue] = useState<any[]>([]);
+  const [key, setKey] = useState('unpaid-bills');
+  const [out, setOut] = useState<any | null>(null);
+  const [views, setViews] = useState<any[]>([]);
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [sched, setSched] = useState({ cron: '0 8 * * *', recipients: '' });
+
+  const load = async () => {
+    try {
+      const [c, v, s]: any[] = await Promise.all([api.studioCatalogue(), api.studioViews(), api.studioSchedules()]);
+      setCatalogue(c?.reports || []);
+      setViews(v?.views || []);
+      setSchedules(s?.schedules || []);
+      const first = (c?.reports || []).find((r: any) => r.allowed);
+      if (first) setKey(first.key);
+    } catch { toast.error('Failed to load studio'); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const run = async () => {
+    try {
+      const r: any = await api.runStudioReport(key, {});
+      setOut(r);
+    } catch (e: any) { toast.error(e?.message || 'Run failed'); }
+  };
+
+  const saveView = async () => {
+    const name = window.prompt('View name:');
+    if (!name) return;
+    try {
+      await api.createStudioView({ reportKey: key, name, filters: {}, columns: out?.columns || [] });
+      toast.success('View saved');
+      load();
+    } catch { toast.error('Save failed'); }
+  };
+
+  const schedule = async () => {
+    try {
+      await api.createStudioSchedule({ reportKey: key, cron: sched.cron, recipients: sched.recipients.split(',').map((s) => s.trim()).filter(Boolean) });
+      toast.success('Scheduled');
+      load();
+    } catch (e: any) { toast.error(e?.message || 'Schedule failed (bad cron?)'); }
+  };
+
+  return (
+    <div className="grid gap-4 p-4 lg:grid-cols-[300px_1fr]">
+      <div className="space-y-3">
+        <Card><CardHeader><CardTitle className="flex items-center gap-1 text-sm"><FileBarChart size={14} /> Catalogue</CardTitle></CardHeader>
+          <CardContent className="space-y-1">
+            {catalogue.map((r) => (
+              <button key={r.key} disabled={!r.allowed} onClick={() => { setKey(r.key); setOut(null); }}
+                className={`w-full rounded-md border px-2 py-1.5 text-left text-xs ${key === r.key ? 'border-primary' : ''} ${r.allowed ? 'hover:bg-muted' : 'opacity-40'}`}>
+                <span className="font-semibold">{r.name}</span> <span className="text-muted-foreground">· {r.category}</span>
+              </button>
+            ))}
+          </CardContent></Card>
+        <Card><CardHeader><CardTitle className="flex items-center gap-1 text-sm"><CalendarClock size={14} /> Schedules ({schedules.length})</CardTitle></CardHeader>
+          <CardContent className="space-y-1">
+            {schedules.map((s) => <p key={s._id} className="rounded border px-2 py-1 font-mono text-[11px]">{s.reportKey} · {s.cron}</p>)}
+            <div className="flex gap-1 border-t pt-2">
+              <Input className="h-8 font-mono text-xs" value={sched.cron} onChange={(e) => setSched({ ...sched, cron: e.target.value })} />
+              <Button size="sm" onClick={schedule}>Schedule</Button>
+            </div>
+          </CardContent></Card>
+      </div>
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2 text-sm">{key}
+          <Button size="sm" onClick={run}>Run</Button>
+          <Button size="sm" variant="outline" onClick={saveView}><Save size={14} /> Save view</Button>
+          <span className="text-xs font-normal text-muted-foreground">{out ? `${out.rows?.length} rows (scanned ${out.scanned}, ${out.ms}ms)` : ''}</span>
+        </CardTitle></CardHeader>
+        <CardContent>
+          {out ? (
+            <div className="max-h-[560px] overflow-auto rounded-md border">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-muted"><tr>{out.columns?.map((c: string) => <th key={c} className="p-1.5 text-left">{c}</th>)}</tr></thead>
+                <tbody>
+                  {out.rows?.slice(0, 200).map((r: any, i: number) => (
+                    <tr key={i} className="border-t">{out.columns?.map((c: string) => <td key={c} className="max-w-48 truncate p-1.5">{String(r[c] ?? '')}</td>)}</tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <p className="text-sm text-muted-foreground">Pick a report and Run. Views ({views.length}) reuse saved columns.</p>}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

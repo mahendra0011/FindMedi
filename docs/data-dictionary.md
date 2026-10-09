@@ -13,26 +13,26 @@
 
 ## Summary
 
-- **227 models** across 226 files (0 skipped)
-- **5460 schema fields**, of which **645 classified as PII** in **165 collections**
+- **267 models** across 266 files (0 skipped)
+- **5949 schema fields**, of which **670 classified as PII** in **184 collections**
 - **6 collections** carry a TTL index
-- **65 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
+- **84 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
 ### PII categories
 
 | Category | Collections containing it |
 |---|---|
-| Credential | 3 |
+| Credential | 4 |
 | Government ID | 1 |
-| Contact | 27 |
-| Financial | 10 |
+| Contact | 29 |
+| Financial | 12 |
 | Health | 29 |
 | Demographic | 14 |
 | Location | 23 |
 | Image/Biometric | 4 |
 | Device/Network | 7 |
-| Identifier | 149 |
-| Identity | 59 |
+| Identifier | 157 |
+| Identity | 71 |
 
 ## Collections
 
@@ -43,6 +43,8 @@
 | `activities` | Activity | 11 | 0 | 4 | — | No PII fields detected |
 | `admissions` | Admission | 96 | 22 | 3 | — | Clinical records |
 | `adrreports` | AdrReport | 13 | 1 | 2 | — | Clinical records |
+| `agentsessions` | AgentSession | 8 | 0 | 2 | — | No PII fields detected |
+| `aiinvocations` | AiInvocation | 13 | 0 | 3 | — | No PII fields detected |
 | `aisafetyevents` | AiSafetyEvent | 12 | 1 | 2 | — | **UNMAPPED — see gaps** |
 | `ambulances` | Ambulance | 35 | 5 | 8 | — | Ride and SOS location traces |
 | `ambulancesetupcodes` | AmbulanceSetupCode | 9 | 2 | 3 | 0s | OTP / setup codes / tokens |
@@ -51,11 +53,15 @@
 | `apikeys` | ApiKey | 13 | 2 | 5 | — | **UNMAPPED — see gaps** |
 | `appointments` | Appointment | 84 | 11 | 13 | — | Clinical records |
 | `appointmentseries` | AppointmentSeries | 24 | 4 | 3 | — | **UNMAPPED — see gaps** |
+| `approvalpolicies` | ApprovalPolicy | 14 | 1 | 3 | — | **UNMAPPED — see gaps** |
+| `approvalrequests` | ApprovalRequest | 20 | 0 | 2 | — | No PII fields detected |
 | `assetunits` | AssetUnit | 24 | 2 | 7 | — | **UNMAPPED — see gaps** |
 | `assistantbookings` | AssistantBooking | 82 | 15 | 11 | — | Clinical records |
 | `assistantprofiles` | AssistantProfile | 73 | 13 | 13 | — | Provider KYC documents |
 | `auditlogs` | AuditLog | 9 | 3 | 3 | 31536000s | Audit logs |
-| `beds` | Bed | 15 | 0 | 2 | — | No PII fields detected |
+| `bankaccounts` | BankAccount | 9 | 1 | 2 | — | **UNMAPPED — see gaps** |
+| `banktxns` | BankTxn | 13 | 0 | 3 | — | No PII fields detected |
+| `beds` | Bed | 19 | 0 | 3 | — | No PII fields detected |
 | `bedtransfers` | BedTransfer | 13 | 1 | 3 | — | Clinical records |
 | `billings` | Billing | 45 | 3 | 5 | — | Payment and ledger entries |
 | `birthrecords` | BirthRecord | 12 | 0 | 1 | — | No PII fields detected |
@@ -64,6 +70,7 @@
 | `bmwlogs` | BmwLog | 13 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `breakglassgrants` | BreakGlassGrant | 23 | 0 | 6 | — | No PII fields detected |
 | `calllogs` | CallLog | 16 | 0 | 5 | — | No PII fields detected |
+| `callqueues` | CallQueue | 10 | 2 | 2 | — | **UNMAPPED — see gaps** |
 | `campaigns` | Campaign | 18 | 1 | 5 | — | **UNMAPPED — see gaps** |
 | `casepresentations` | CasePresentation | 14 | 0 | 4 | — | No PII fields detected |
 | `cashcounters` | CashCounter | 8 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
@@ -78,17 +85,23 @@
 | `chemoprotocols` | ChemoProtocol | 16 | 3 | 2 | — | Clinical records |
 | `chroniccareplans` | ChronicCarePlan | 22 | 4 | 2 | — | Clinical records |
 | `cities` | City | 9 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
-| `claims` | Claim | 24 | 2 | 4 | — | Clinical records |
+| `claims` | Claim | 25 | 2 | 5 | — | Clinical records |
 | `clinicprofiles` | ClinicProfile | 21 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `cmecredits` | CMECredit | 9 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `commissionconfigs` | CommissionConfig | 13 | 1 | 1 | — | Payment and ledger entries |
 | `consentforms` | ConsentForm | 17 | 2 | 5 | — | ABDM consent records |
 | `consentrecords` | ConsentRecord | 14 | 2 | 4 | — | ABDM consent records |
+| `contracts` | Contract | 13 | 0 | 4 | — | No PII fields detected |
+| `corporateemployees` | CorporateEmployee | 8 | 1 | 2 | — | **UNMAPPED — see gaps** |
+| `corporates` | Corporate | 10 | 2 | 1 | — | **UNMAPPED — see gaps** |
 | `credentials` | Credential | 12 | 0 | 4 | — | No PII fields detected |
 | `creditnotes` | CreditNote | 14 | 2 | 3 | — | Payment and ledger entries |
+| `dailymetrics` | DailyMetric | 6 | 0 | 2 | — | No PII fields detected |
+| `dailyrcmmetrics` | DailyRcmMetric | 11 | 0 | 3 | — | No PII fields detected |
 | `dashboardalerts` | DashboardAlert | 14 | 0 | 5 | — | No PII fields detected |
 | `datasubjectrequests` | DataSubjectRequest | 18 | 1 | 7 | — | Audit logs |
 | `deathrecords` | DeathRecord | 18 | 2 | 1 | — | Clinical records |
+| `delegations` | Delegation | 10 | 0 | 1 | — | No PII fields detected |
 | `deletionrequests` | DeletionRequest | 27 | 1 | 2 | — | Audit logs |
 | `deliverypartners` | DeliveryPartner | 44 | 16 | 3 | — | Provider KYC documents |
 | `demopayments` | DemoPayment | 19 | 5 | 17 | — | Payment and ledger entries |
@@ -123,6 +136,7 @@
 | `healthpackages` | HealthPackage | 17 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `hospitals` | Hospital | 52 | 0 | 6 | — | Operational config (organization/catalog record — not personal data) |
 | `housekeepings` | Housekeeping | 15 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
+| `hubintegrations` | HubIntegration | 10 | 0 | 3 | — | No PII fields detected |
 | `iamassignments` | IamAssignment | 18 | 1 | 6 | — | **UNMAPPED — see gaps** |
 | `iamgroups` | IamGroup | 9 | 2 | 2 | — | **UNMAPPED — see gaps** |
 | `iampolicies` | IamPolicy | 15 | 3 | 3 | — | **UNMAPPED — see gaps** |
@@ -135,8 +149,11 @@
 | `insurances` | Insurance | 42 | 5 | 2 | — | Payment and ledger entries |
 | `insurers` | Insurer | 12 | 2 | 3 | — | **UNMAPPED — see gaps** |
 | `integrationconfigs` | IntegrationConfig | 18 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
+| `integrationmessages` | IntegrationMessage | 10 | 0 | 5 | — | No PII fields detected |
+| `interactions` | Interaction | 16 | 2 | 5 | — | **UNMAPPED — see gaps** |
 | `inventories` | Inventory | 23 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `ipddeposits` | IpdDeposit | 15 | 2 | 4 | — | Payment and ledger entries |
+| `kpidefinitions` | KpiDefinition | 9 | 1 | 1 | — | **UNMAPPED — see gaps** |
 | `labbookings` | LabBooking | 33 | 3 | 4 | — | Clinical records |
 | `laborders` | LabOrder | 44 | 7 | 5 | — | Clinical records |
 | `labourrecords` | LabourRecord | 19 | 2 | 3 | — | Clinical records |
@@ -146,9 +163,11 @@
 | `leaverequests` | LeaveRequest | 15 | 2 | 1 | — | **UNMAPPED — see gaps** |
 | `ledgerentries` | LedgerEntry | 12 | 1 | 4 | — | Payment and ledger entries |
 | `licenses` | License | 17 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
+| `locations` | Location | 9 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `loginevents` | LoginEvent | 10 | 3 | 4 | 15552000s | Audit logs |
 | `loyaltyearnrules` | LoyaltyEarnRule | 6 | 0 | 2 | — | No PII fields detected |
 | `loyaltyledgers` | LoyaltyLedger | 9 | 1 | 4 | — | Payment and ledger entries |
+| `mappingprofiles` | MappingProfile | 8 | 0 | 2 | — | No PII fields detected |
 | `mealsubscriptions` | MealSubscription | 23 | 3 | 5 | — | **UNMAPPED — see gaps** |
 | `medicinedoselogs` | MedicineDoseLog | 11 | 1 | 4 | — | Clinical records |
 | `medicinereminders` | MedicineReminder | 20 | 2 | 1 | — | Clinical records |
@@ -168,12 +187,14 @@
 | `opticaljobcards` | OpticalJobCard | 19 | 2 | 4 | — | **UNMAPPED — see gaps** |
 | `orders` | Order | 20 | 1 | 7 | — | Clinical records |
 | `otps` | OTP | 12 | 3 | 6 | 3600s | OTP / setup codes / tokens |
+| `outboundcampaigns` | OutboundCampaign | 14 | 2 | 2 | — | **UNMAPPED — see gaps** |
 | `outboxevents` | OutboxEvent | 15 | 0 | 9 | — | No PII fields detected |
 | `partners` | Partner | 23 | 2 | 6 | — | **UNMAPPED — see gaps** |
 | `patientaddresses` | PatientAddress | 11 | 4 | 1 | — | Clinical records |
+| `patientflags` | PatientFlag | 10 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `patientmovements` | PatientMovement | 23 | 1 | 6 | — | Clinical records |
 | `patients` | Patient | 37 | 10 | 8 | — | Clinical records |
-| `payments` | Payment | 20 | 2 | 3 | — | Payment and ledger entries |
+| `payments` | Payment | 31 | 2 | 4 | — | Payment and ledger entries |
 | `payouts` | Payout | 20 | 1 | 1 | — | Payment and ledger entries |
 | `pharmacydeliveries` | PharmacyDelivery | 34 | 9 | 5 | — | Clinical records |
 | `pharmacyoffers` | PharmacyOffer | 14 | 0 | 2 | — | No PII fields detected |
@@ -205,8 +226,13 @@
 | `queuetickets` | QueueTicket | 21 | 2 | 5 | — | Clinical records |
 | `quotes` | Quote | 48 | 7 | 8 | — | **UNMAPPED — see gaps** |
 | `radiologies` | Radiology | 27 | 5 | 4 | — | Clinical records |
+| `rcmevents` | RcmEvent | 10 | 0 | 3 | — | No PII fields detected |
+| `rcmgaps` | RcmGap | 11 | 0 | 3 | — | No PII fields detected |
+| `reasoncodes` | ReasonCode | 9 | 0 | 3 | — | No PII fields detected |
 | `recalllogs` | RecallLog | 11 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `recallrules` | RecallRule | 11 | 1 | 4 | — | **UNMAPPED — see gaps** |
+| `reconmatches` | ReconMatch | 10 | 0 | 1 | — | No PII fields detected |
+| `reconrules` | ReconRule | 8 | 1 | 1 | — | **UNMAPPED — see gaps** |
 | `records` | Record | 38 | 12 | 3 | — | Clinical records |
 | `recordversions` | RecordVersion | 16 | 2 | 3 | — | Clinical records |
 | `referrals` | Referral | 14 | 0 | 5 | — | No PII fields detected |
@@ -214,7 +240,10 @@
 | `refreshtokens` | RefreshToken | 13 | 3 | 5 | 0s | OTP / setup codes / tokens |
 | `refunds` | Refund | 16 | 1 | 5 | — | Payment and ledger entries |
 | `rentals` | Rental | 39 | 1 | 8 | — | **UNMAPPED — see gaps** |
+| `reportdefinitions` | ReportDefinition | 10 | 1 | 1 | — | **UNMAPPED — see gaps** |
+| `reportruns` | ReportRun | 9 | 0 | 2 | — | No PII fields detected |
 | `reports` | Report | 15 | 1 | 2 | — | Clinical records |
+| `reportschedules` | ReportSchedule | 11 | 0 | 1 | — | No PII fields detected |
 | `resourcescopes` | ResourceScope | 9 | 0 | 3 | — | Operational config (organization/catalog record — not personal data) |
 | `reviews` | Review | 19 | 4 | 6 | — | **UNMAPPED — see gaps** |
 | `rewardcatalogitems` | RewardCatalogItem | 15 | 0 | 2 | — | No PII fields detected |
@@ -224,8 +253,11 @@
 | `ridetrackings` | RideTracking | 10 | 3 | 3 | — | Ride and SOS location traces |
 | `roomtariffs` | RoomTariff | 13 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `rosters` | Roster | 14 | 1 | 4 | — | **UNMAPPED — see gaps** |
+| `rulefirings` | RuleFiring | 10 | 0 | 4 | — | No PII fields detected |
+| `rules` | Rule | 13 | 2 | 4 | — | **UNMAPPED — see gaps** |
 | `rxtemplates` | RxTemplate | 16 | 3 | 3 | — | **UNMAPPED — see gaps** |
 | `savedfavorites` | SavedFavorite | 8 | 1 | 2 | — | **UNMAPPED — see gaps** |
+| `savedviews` | SavedView | 9 | 1 | 1 | — | **UNMAPPED — see gaps** |
 | `schedulechangerequests` | ScheduleChangeRequest | 35 | 2 | 1 | — | **UNMAPPED — see gaps** |
 | `secondopinionrequests` | SecondOpinionRequest | 14 | 3 | 6 | — | **UNMAPPED — see gaps** |
 | `servicecities` | ServiceCity | 8 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
@@ -235,12 +267,13 @@
 | `signatureevents` | SignatureEvent | 20 | 1 | 3 | — | Clinical records |
 | `sosvehiclesettings` | SOSVehicleSettings | 8 | 0 | 0 | — | No PII fields detected |
 | `staffs` | Staff | 40 | 6 | 2 | — | Provider KYC documents |
+| `statementimports` | StatementImport | 11 | 0 | 1 | — | No PII fields detected |
 | `sterilisationcycles` | SterilisationCycle | 15 | 0 | 4 | — | No PII fields detected |
 | `sterilisationlogs` | SterilisationLog | 13 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `stockledgers` | StockLedger | 12 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `stores` | Store | 9 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `strikes` | Strike | 25 | 2 | 8 | — | **UNMAPPED — see gaps** |
-| `suppliers` | Supplier | 18 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
+| `suppliers` | Supplier | 29 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `supporttickets` | SupportTicket | 26 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `systemsettings` | SystemSetting | 7 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `tasks` | Task | 17 | 2 | 5 | — | **UNMAPPED — see gaps** |
@@ -254,6 +287,7 @@
 | `users` | User | 94 | 26 | 18 | — | **UNMAPPED — see gaps** |
 | `vaccinationschedules` | VaccinationSchedule | 17 | 1 | 5 | — | Clinical records |
 | `vehicles` | Vehicle | 20 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
+| `vendorscorecards` | VendorScorecard | 10 | 0 | 3 | — | No PII fields detected |
 | `visitorpasses` | VisitorPass | 16 | 3 | 3 | — | **UNMAPPED — see gaps** |
 | `visits` | Visit | 16 | 6 | 3 | — | **UNMAPPED — see gaps** |
 | `vitalslogs` | VitalsLog | 23 | 3 | 6 | — | Clinical records |
@@ -261,10 +295,16 @@
 | `waitlistentries` | WaitlistEntry | 17 | 4 | 4 | — | **UNMAPPED — see gaps** |
 | `walletguards` | WalletGuard | 16 | 1 | 1 | — | Payment and ledger entries |
 | `wardrounds` | WardRound | 13 | 2 | 3 | — | Clinical records |
+| `wardtypes` | WardType | 8 | 1 | 1 | — | **UNMAPPED — see gaps** |
+| `webhookdeliveries` | WebhookDelivery | 11 | 0 | 4 | — | No PII fields detected |
+| `webhooksubscriptions` | WebhookSubscription | 8 | 1 | 1 | — | **UNMAPPED — see gaps** |
 | `wellnesslogs` | WellnessLog | 7 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `wellnessprofiles` | WellnessProfile | 6 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `womenshealthlogs` | WomensHealthLog | 7 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `womenshealthprofiles` | WomensHealthProfile | 7 | 1 | 3 | — | **UNMAPPED — see gaps** |
+| `workflowdefinitions` | WorkflowDefinition | 29 | 2 | 4 | — | **UNMAPPED — see gaps** |
+| `workflowinstances` | WorkflowInstance | 25 | 1 | 4 | — | **UNMAPPED — see gaps** |
+| `worktasks` | WorkTask | 19 | 1 | 4 | — | **UNMAPPED — see gaps** |
 
 ## Retention gaps (PII present, no class in RETENTION.md)
 
@@ -274,14 +314,19 @@ cover yet — each needs a decision, not a guess:
 - `aisafetyevents`
 - `apikeys`
 - `appointmentseries`
+- `approvalpolicies`
 - `assetunits`
+- `bankaccounts`
 - `bmwlogs`
+- `callqueues`
 - `campaigns`
 - `chatconversations`
 - `chatmessages`
 - `chatprivacies`
 - `chatreports`
 - `cmecredits`
+- `corporateemployees`
+- `corporates`
 - `dentalcharts`
 - `dentallabworks`
 - `dentaltreatmentplans`
@@ -298,16 +343,21 @@ cover yet — each needs a decision, not a guess:
 - `iamroles`
 - `insurancepolicies`
 - `insurers`
+- `interactions`
+- `kpidefinitions`
 - `lawyerbookings`
 - `leads`
 - `leaverequests`
+- `locations`
 - `mealsubscriptions`
 - `memberships`
 - `moderationitems`
 - `notificationpreferences`
 - `objectives`
 - `opticaljobcards`
+- `outboundcampaigns`
 - `partners`
+- `patientflags`
 - `policyacceptances`
 - `preferredpharmacies`
 - `pushsubscriptions`
@@ -315,11 +365,15 @@ cover yet — each needs a decision, not a guess:
 - `quotes`
 - `recalllogs`
 - `recallrules`
+- `reconrules`
 - `rentals`
+- `reportdefinitions`
 - `reviews`
 - `rosters`
+- `rules`
 - `rxtemplates`
 - `savedfavorites`
+- `savedviews`
 - `schedulechangerequests`
 - `secondopinionrequests`
 - `sterilisationlogs`
@@ -332,10 +386,15 @@ cover yet — each needs a decision, not a guess:
 - `visitorpasses`
 - `visits`
 - `waitlistentries`
+- `wardtypes`
+- `webhooksubscriptions`
 - `wellnesslogs`
 - `wellnessprofiles`
 - `womenshealthlogs`
 - `womenshealthprofiles`
+- `workflowdefinitions`
+- `workflowinstances`
+- `worktasks`
 
 ## Detail by collection
 
@@ -560,6 +619,56 @@ Indexes:
 |---|---|
 | `hospitalId:1` |  |
 | `status:1` |  |
+
+### `agentsessions` — AgentSession
+
+source `AgentSession.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `agent` | ObjectId | yes |  |  |  | User |  |
+| `status` | String |  |  | "offline" | available, on-call, wrap-up, break, offline |  |  |
+| `loginAt` | Date |  |  | [function] |  |  |  |
+| `logoutAt` | Date |  |  | null |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `agent:1` |  |
+
+### `aiinvocations` — AiInvocation
+
+source `AiInvocation.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `feature` | String | yes |  |  |  |  |  |
+| `provider` | String |  |  | "stub" |  |  |  |
+| `redacted` | Boolean |  |  | true |  |  |  |
+| `tokensIn` | Number |  |  | 0 |  |  |  |
+| `tokensOut` | Number |  |  | 0 |  |  |  |
+| `ms` | Number |  |  | 0 |  |  |  |
+| `ok` | Boolean |  |  | true |  |  |  |
+| `error` | String |  |  | "" |  |  |  |
+| `by` | ObjectId |  |  | null |  | User |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `feature:1` |  |
+| `hospitalId:1, feature:1` |  |
 
 ### `aisafetyevents` — AiSafetyEvent
 
@@ -910,6 +1019,69 @@ Indexes:
 | `patientId:1, createdAt:-1` |  |
 | `doctorId:1, startDate:1` |  |
 
+### `approvalpolicies` — ApprovalPolicy
+
+source `ApprovalPolicy.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `key` | String | yes |  |  |  |  |  |
+| `name` | String |  |  | "" |  |  | Identity |
+| `scope.model` | String |  |  | "" |  |  |  |
+| `scope.amountField` | String |  |  | "total" |  |  |  |
+| `tiers` | Array<subdocument> |  |  |  |  |  |  |
+| `tiers.min` | Number |  |  | 0 |  |  |  |
+| `tiers.roles` | Array<Mixed> |  |  |  |  |  |  |
+| `tiers.steps` | Number |  |  | 1 |  |  |  |
+| `excludedRoles` | Array<Mixed> |  |  |  |  |  |  |
+| `active` | Boolean |  |  | true |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `key:1` |  |
+| `hospitalId:1, key:1` |  |
+
+### `approvalrequests` — ApprovalRequest
+
+source `ApprovalRequest.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `policyKey` | String | yes |  |  |  |  |  |
+| `entityRef.model` | String |  |  | "" |  |  |  |
+| `entityRef.id` | ObjectId |  |  | null |  |  |  |
+| `title` | String |  |  | "" |  |  |  |
+| `amount` | Number |  |  | 0 |  |  |  |
+| `requiredRoles` | Array<Mixed> |  |  |  |  |  |  |
+| `steps` | Array<subdocument> |  |  |  |  |  |  |
+| `steps.step` | Number |  |  |  |  |  |  |
+| `steps.role` | String |  |  |  |  |  |  |
+| `steps.status` | String |  |  | "pending" | pending, approved, rejected, skipped |  |  |
+| `steps.by` | ObjectId |  |  | null |  | User |  |
+| `steps.at` | Date |  |  | null |  |  |  |
+| `steps.comment` | String |  |  | "" |  |  |  |
+| `status` | String |  |  | "pending" | pending, approved, rejected, expired |  |  |
+| `requestedBy` | ObjectId |  |  |  |  | User |  |
+| `dueAt` | Date |  |  | null |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `status:1` |  |
+
 ### `assetunits` — AssetUnit
 
 source `AssetUnit.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Health, Location
@@ -1180,16 +1352,71 @@ Indexes:
 | `action:1` |  |
 | `timestamp:1` | TTL 31536000s |
 
+### `bankaccounts` — BankAccount
+
+source `BankAccount.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Financial
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `bankName` | String | yes |  |  |  |  |  |
+| `accountNo` | String | yes |  |  |  |  |  |
+| `ifsc` | String |  |  | "" |  |  | Financial |
+| `kind` | String |  |  | "current" | current, savings, escrow, od |  |  |
+| `active` | Boolean |  |  | true |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `hospitalId:1, accountNo:1` | unique |
+
+### `banktxns` — BankTxn
+
+source `BankTxn.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `importId` | ObjectId |  |  |  |  | StatementImport |  |
+| `bankAccountId` | ObjectId |  |  |  |  | BankAccount |  |
+| `date` | Date | yes |  |  |  |  |  |
+| `narration` | String |  |  | "" |  |  |  |
+| `utr` | String |  |  | "" |  |  |  |
+| `debit` | Number |  |  | 0 |  |  |  |
+| `credit` | Number |  |  | 0 |  |  |  |
+| `balance` | Number |  |  | null |  |  |  |
+| `matchId` | ObjectId |  |  | null |  | ReconMatch |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `importId:1` |  |
+| `utr:1` |  |
+
 ### `beds` — Bed
 
 source `Bed.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
 
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|
-| `bedNumber` | String | yes | yes |  |  |  |  |
+| `bedNumber` | String | yes |  |  |  |  |  |
 | `ward` | String | yes |  |  | General, Semi-Private, Private, ICU, NICU, PICU, Emergency |  |  |
 | `bedType` | String | yes |  |  | General, Semi-Private, Private, Deluxe/Suite, ICU, NICU, PICU, HDU, Isolation, Day-Care, Dialysis Chair |  |  |
 | `status` | String |  |  | "Available" | Available, Occupied, Under Cleaning, Maintenance |  |  |
+| `srcStatus` | String |  |  | "manual" | admit, discharge, transfer, cleaning, maintenance, available, manual |  |  |
+| `oxygenPoint` | Boolean |  |  | false |  |  |  |
+| `locationId` | ObjectId |  |  | null |  | Location |  |
+| `wardTypeId` | ObjectId |  |  | null |  | WardType |  |
 | `currentPatientId` | ObjectId |  |  |  |  | User |  |
 | `currentPatientName` | String |  |  |  |  |  |  |
 | `admissionId` | ObjectId |  |  |  |  | Admission |  |
@@ -1206,8 +1433,9 @@ Indexes:
 
 | Keys | Flags |
 |---|---|
-| `bedNumber:1` | unique |
+| `locationId:1` |  |
 | `hospitalId:1` |  |
+| `hospitalId:1, bedNumber:1` | unique |
 
 ### `bedtransfers` — BedTransfer
 
@@ -1512,6 +1740,30 @@ Indexes:
 | `status:1` |  |
 | `caller:1, createdAt:-1` |  |
 | `receiver:1, createdAt:-1` |  |
+
+### `callqueues` — CallQueue
+
+source `CallQueue.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Contact, Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `phone` | String | yes |  |  |  |  | Contact |
+| `patientId` | ObjectId |  |  | null |  | User | Identifier |
+| `priority` | String |  |  | "normal" | normal, vip, callback |  |  |
+| `status` | String |  |  | "waiting" | waiting, assigned, done, missed |  |  |
+| `assignedAgent` | ObjectId |  |  | null |  | User |  |
+| `externalId` | String |  |  | "" |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `status:1` |  |
 
 ### `campaigns` — Campaign
 
@@ -2053,6 +2305,7 @@ source `Claim.js` · timestamps: yes · virtuals: 0 · retention: Statutory peri
 | `patientId` | ObjectId |  |  |  |  | User | Identifier |
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
 | `insurerId` | ObjectId |  |  |  |  | Insurer |  |
+| `corporateId` | ObjectId |  |  | null |  | Corporate |  |
 | `documents` | Array<Mixed> |  |  |  |  |  |  |
 | `submittedAt` | Date |  |  | null |  |  |  |
 | `status` | String |  |  | "NotSubmitted" | NotSubmitted, Submitted, Approved, Partial, Rejected, Settled, Appealed |  |  |
@@ -2078,6 +2331,7 @@ Indexes:
 |---|---|
 | `admissionId:1` |  |
 | `hospitalId:1` |  |
+| `corporateId:1` |  |
 | `status:1` |  |
 | `hospitalId:1, status:1` |  |
 
@@ -2230,6 +2484,80 @@ Indexes:
 | `doctorId:1` |  |
 | `status:1` |  |
 
+### `contracts` — Contract
+
+source `Contract.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `kind` | String | yes |  |  | rate, amc, service, lease |  |  |
+| `counterparty` | String |  |  | "" |  |  |  |
+| `supplierId` | ObjectId |  |  | null |  | Supplier |  |
+| `value` | Number |  |  | 0 |  |  |  |
+| `startDate` | Date | yes |  |  |  |  |  |
+| `endDate` | Date | yes |  |  |  |  |  |
+| `terms` | String |  |  | "" |  |  |  |
+| `documentUrl` | String |  |  | "" |  |  |  |
+| `status` | String |  |  | "active" | active, expired, terminated |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `kind:1` |  |
+| `endDate:1` |  |
+| `status:1` |  |
+
+### `corporateemployees` — CorporateEmployee
+
+source `CorporateEmployee.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `corporateId` | ObjectId | yes |  |  |  | Corporate |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `employeeId` | String |  |  | "" |  |  |  |
+| `active` | Boolean |  |  | true |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `corporateId:1` |  |
+
+### `corporates` — Corporate
+
+source `Corporate.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Financial, Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `gstin` | String |  |  | "" |  |  | Financial |
+| `creditLimit` | Number |  |  | 0 |  |  |  |
+| `creditUsed` | Number |  |  | 0 |  |  |  |
+| `billingCycle` | String |  |  | "monthly" | weekly, fortnightly, monthly |  |  |
+| `active` | Boolean |  |  | true |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+
 ### `credentials` — Credential
 
 source `Credential.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
@@ -2286,6 +2614,52 @@ Indexes:
 | `hospitalId:1` |  |
 | `billId:1` |  |
 | `status:1` |  |
+
+### `dailymetrics` — DailyMetric
+
+source `DailyMetric.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `day` | String | yes |  |  |  |  |  |
+| `metrics` | Mixed |  |  | [function] |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `hospitalId:1, day:1` | unique |
+
+### `dailyrcmmetrics` — DailyRcmMetric
+
+source `DailyRcmMetric.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `day` | String | yes |  |  |  |  |  |
+| `firstPassRate` | Number |  |  | null |  |  |  |
+| `denialRate` | Number |  |  | null |  |  |  |
+| `avgDaysToPayment` | Number |  |  | null |  |  |  |
+| `arDays` | Number |  |  | null |  |  |  |
+| `collected` | Number |  |  | 0 |  |  |  |
+| `billed` | Number |  |  | 0 |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `day:1` |  |
+| `hospitalId:1, day:1` | unique |
 
 ### `dashboardalerts` — DashboardAlert
 
@@ -2376,6 +2750,29 @@ source `DeathRecord.js` · timestamps: yes · virtuals: 0 · retention: Statutor
 | `releasedToId` | String |  |  | "" |  |  |  |
 | `releasedAt` | Date |  |  | null |  |  |  |
 | `certificateNo` | String |  |  | "" |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+
+### `delegations` — Delegation
+
+source `Delegation.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `fromUser` | ObjectId | yes |  |  |  | User |  |
+| `toUser` | ObjectId | yes |  |  |  | User |  |
+| `scope` | String |  |  | "all" |  |  |  |
+| `from` | Date | yes |  |  |  |  |  |
+| `to` | Date | yes |  |  |  |  |  |
+| `active` | Boolean |  |  | true |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -3947,6 +4344,31 @@ Indexes:
 | `taskId:1` | unique |
 | `hospitalId:1` |  |
 
+### `hubintegrations` — HubIntegration
+
+source `HubIntegration.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `key` | String | yes |  |  |  |  |  |
+| `kind` | String | yes |  |  | lis, pacs, telephony, sms, email, payment, insurance, other |  |  |
+| `transport` | String |  |  | "rest" | rest, hl7, mqtt, serial, file |  |  |
+| `status` | String |  |  | "disabled" | connected, degraded, down, disabled |  |  |
+| `lastSeenAt` | Date |  |  | null |  |  |  |
+| `config` | Mixed |  |  | [function] |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `status:1` |  |
+| `hospitalId:1, key:1` | unique |
+
 ### `iamassignments` — IamAssignment
 
 source `IamAssignment.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Health
@@ -4328,6 +4750,66 @@ Indexes:
 | `provider:1` | unique |
 | `category:1, provider:1` |  |
 
+### `integrationmessages` — IntegrationMessage
+
+source `IntegrationMessage.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `direction` | String | yes |  |  | in, out |  |  |
+| `integrationKey` | String | yes |  |  |  |  |  |
+| `kind` | String |  |  | "" |  |  |  |
+| `payload` | Mixed |  |  | [function] |  |  |  |
+| `status` | String |  |  | "received" | received, queued, processed, failed, dead |  |  |
+| `error` | String |  |  | "" |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `direction:1` |  |
+| `integrationKey:1` |  |
+| `status:1` |  |
+| `hospitalId:1, status:1` |  |
+
+### `interactions` — Interaction
+
+source `Interaction.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Contact, Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `channel` | String | yes |  |  | call, sms, whatsapp, email, walkin |  |  |
+| `direction` | String |  |  | "in" | in, out |  |  |
+| `phone` | String |  |  | "" |  |  | Contact |
+| `patientId` | ObjectId |  |  | null |  | User | Identifier |
+| `agent` | ObjectId |  |  | null |  | User |  |
+| `disposition` | String |  |  | "" |  |  |  |
+| `notes` | String |  |  | "" |  |  |  |
+| `durationSec` | Number |  |  | 0 |  |  |  |
+| `recordingUrl` | String |  |  | "" |  |  |  |
+| `createdTicket` | ObjectId |  |  | null |  | WorkTask |  |
+| `externalId` | String |  |  | "" |  |  |  |
+| `at` | Date |  |  | [function] |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `channel:1` |  |
+| `phone:1` |  |
+| `externalId:1` |  |
+| `hospitalId:1, channel:1, at:-1` |  |
+
 ### `inventories` — Inventory
 
 source `Inventory.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data in this collection
@@ -4395,6 +4877,28 @@ Indexes:
 | `patientId:1` |  |
 | `hospitalId:1` |  |
 | `admissionId:1, createdAt:1` |  |
+
+### `kpidefinitions` — KpiDefinition
+
+source `KpiDefinition.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `key` | String | yes | yes |  |  |  |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `category` | String |  |  | "ops" |  |  |  |
+| `unit` | String |  |  | "number" |  |  |  |
+| `target` | Mixed |  |  | null |  |  |  |
+| `roles` | Array<Mixed> |  |  |  |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `key:1` | unique |
 
 ### `labbookings` — LabBooking
 
@@ -4910,6 +5414,30 @@ Indexes:
 | `status:1, expiryDate:1` |  |
 | `facilityId:1, status:1` |  |
 
+### `locations` — Location
+
+source `Location.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `kind` | String | yes |  |  | campus, block, floor, wing, room |  |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `code` | String |  |  | "" |  |  |  |
+| `parentId` | ObjectId |  |  | null |  | Location |  |
+| `active` | Boolean |  |  | true |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `parentId:1` |  |
+| `hospitalId:1, parentId:1` |  |
+
 ### `loginevents` — LoginEvent
 
 source `LoginEvent.js` · timestamps: yes · virtuals: 0 · retention: 7 years (longer than the data they describe) (docs/privacy/RETENTION.md) · PII: Device/Network, Identifier
@@ -4980,6 +5508,28 @@ Indexes:
 | `userId:1, createdAt:-1` |  |
 | `type:1` |  |
 | `userId:1, reason:1, refId:1` | unique, partial |
+
+### `mappingprofiles` — MappingProfile
+
+source `MappingProfile.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `integrationKey` | String | yes |  |  |  |  |  |
+| `domain` | String | yes |  |  |  |  |  |
+| `mappings` | Mixed |  |  | [function] |  |  |  |
+| `updatedBy` | ObjectId |  |  |  |  | User |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `hospitalId:1, integrationKey:1, domain:1` | unique |
 
 ### `mealsubscriptions` — MealSubscription
 
@@ -5806,6 +6356,34 @@ Indexes:
 | `email:1, used:1, expiresAt:1` |  |
 | `createdAt:1` | TTL 3600s |
 
+### `outboundcampaigns` — OutboundCampaign
+
+source `OutboundCampaign.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier, Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `channel` | String |  |  | "sms" | sms, whatsapp, call |  |  |
+| `template` | String |  |  | "" |  |  |  |
+| `audience` | Mixed |  |  | [function] |  |  |  |
+| `consentChecked` | Boolean |  |  | false |  |  |  |
+| `status` | String |  |  | "draft" | draft, running, paused, done |  |  |
+| `stats.queued` | Number |  |  | 0 |  |  |  |
+| `stats.sent` | Number |  |  | 0 |  |  |  |
+| `stats.failed` | Number |  |  | 0 |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `status:1` |  |
+
 ### `outboxevents` — OutboxEvent
 
 source `OutboxEvent.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
@@ -5906,6 +6484,31 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `patientId:1` |  |
+
+### `patientflags` — PatientFlag
+
+source `PatientFlag.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `patient` | ObjectId | yes |  |  |  | Patient |  |
+| `kind` | String | yes |  |  | allergy, vip, fall-risk, isolation, difficult-vein, blacklisted, deceased, mlc, other |  |  |
+| `severity` | String |  |  | "warning" | info, warning, critical |  |  |
+| `note` | String |  |  | "" |  |  |  |
+| `active` | Boolean |  |  | true |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `patient:1` |  |
+| `hospitalId:1, patient:1, active:1` |  |
 
 ### `patientmovements` — PatientMovement
 
@@ -6022,6 +6625,17 @@ source `Payment.js` · timestamps: yes · virtuals: 5 · retention: 8 years (sta
 | `referenceId` | String |  |  | "" |  |  |  |
 | `description` | String |  |  | "" |  |  |  |
 | `provider` | String |  |  | "" |  |  |  |
+| `gateway` | String |  |  | "mock" |  |  |  |
+| `gatewayOrderId` | String |  |  | "" |  |  |  |
+| `gatewayPaymentId` | String |  |  | "" |  |  |  |
+| `gatewaySignature` | String |  |  | "" |  |  |  |
+| `attempts` | Array<subdocument> |  |  |  |  |  |  |
+| `attempts.at` | Date |  |  | [function] |  |  |  |
+| `attempts.gateway` | String |  |  | "" |  |  |  |
+| `attempts.event` | String |  |  | "" |  |  |  |
+| `attempts.payload` | Mixed |  |  |  |  |  |  |
+| `refundedAt` | Date |  |  | null |  |  |  |
+| `settledAt` | Date |  |  | null |  |  |  |
 | `lineItems` | Array<subdocument> |  |  |  |  |  |  |
 | `lineItems.name` | String |  |  |  |  |  | Identity |
 | `lineItems.price` | Number |  |  |  |  |  |  |
@@ -6036,6 +6650,7 @@ Indexes:
 
 | Keys | Flags |
 |---|---|
+| `gatewayOrderId:1` |  |
 | `hospitalId:1` |  |
 | `transaction_id:1` | unique, sparse |
 | `referenceId:1, status:1` | unique, partial |
@@ -7322,6 +7937,81 @@ Indexes:
 | `encounterId:1` |  |
 | `prescriptionId:1` |  |
 
+### `rcmevents` — RcmEvent
+
+source `RcmEvent.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `stage` | String | yes |  |  | scheduled, checked_in, authorized, serviced, coded, billed, claimed, paid, denied, appealed, written_off |  |  |
+| `entityRef.model` | String |  |  | "" |  |  |  |
+| `entityRef.id` | ObjectId |  |  | null |  |  |  |
+| `amount` | Number |  |  | 0 |  |  |  |
+| `meta` | Mixed |  |  | [function] |  |  |  |
+| `at` | Date |  |  | [function] |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `stage:1` |  |
+| `hospitalId:1, stage:1, at:-1` |  |
+
+### `rcmgaps` — RcmGap
+
+source `RcmGap.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `kind` | String | yes |  |  | auth_pending, uncoded, unbilled, unclaimed, denial_open, ar_90, writeoff_review, settlement_pending |  |  |
+| `entityRef.model` | String |  |  | "" |  |  |  |
+| `entityRef.id` | ObjectId |  |  | null |  |  |  |
+| `amount` | Number |  |  | 0 |  |  |  |
+| `openedAt` | Date |  |  | [function] |  |  |  |
+| `closedAt` | Date |  |  | null |  |  |  |
+| `ownerRole` | String |  |  | "" |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `kind:1` |  |
+| `hospitalId:1, closedAt:1` |  |
+
+### `reasoncodes` — ReasonCode
+
+source `ReasonCode.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `module` | String | yes |  |  |  |  |  |
+| `code` | String | yes |  |  |  |  |  |
+| `label` | String |  |  | "" |  |  |  |
+| `requiresNote` | Boolean |  |  | false |  |  |  |
+| `active` | Boolean |  |  | true |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `module:1` |  |
+| `hospitalId:1, module:1, code:1` | unique |
+
 ### `recalllogs` — RecallLog
 
 source `RecallLog.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier
@@ -7374,6 +8064,50 @@ Indexes:
 | `facilityId:1` |  |
 | `kind:1` |  |
 | `hospitalId:1, kind:1` |  |
+
+### `reconmatches` — ReconMatch
+
+source `ReconMatch.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `bankTxnId` | ObjectId | yes |  |  |  | BankTxn |  |
+| `targetModel` | String | yes |  |  |  |  |  |
+| `targetId` | ObjectId | yes |  |  |  |  |  |
+| `mode` | String |  |  | "auto" | auto, manual |  |  |
+| `confidence` | Number |  |  | 0 |  |  |  |
+| `matchedBy` | ObjectId |  |  | null |  | User |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+
+### `reconrules` — ReconRule
+
+source `ReconRule.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `pattern` | String |  |  | "" |  |  |  |
+| `targetModel` | String |  |  | "Payment" |  |  |  |
+| `active` | Boolean |  |  | true |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
 
 ### `records` — Record
 
@@ -7629,6 +8363,52 @@ Indexes:
 | `vendorId:1, status:1` |  |
 | `assetUnitId:1, status:1` |  |
 
+### `reportdefinitions` — ReportDefinition
+
+source `ReportDefinition.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `key` | String | yes | yes |  |  |  |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `category` | String |  |  | "ops" |  |  |  |
+| `dataset` | String | yes |  |  |  |  |  |
+| `defaultFilters` | Mixed |  |  | [function] |  |  |  |
+| `defaultColumns` | Array<Mixed> |  |  |  |  |  |  |
+| `roles` | Array<Mixed> |  |  |  |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `key:1` | unique |
+
+### `reportruns` — ReportRun
+
+source `ReportRun.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `reportKey` | String | yes |  |  |  |  |  |
+| `by` | ObjectId |  |  | null |  | User |  |
+| `format` | String |  |  | "json" |  |  |  |
+| `rowCount` | Number |  |  | 0 |  |  |  |
+| `ms` | Number |  |  | 0 |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `hospitalId:1, createdAt:-1` |  |
+
 ### `reports` — Report
 
 source `Report.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Identifier
@@ -7656,6 +8436,30 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `reportId:1` | unique |
+| `hospitalId:1` |  |
+
+### `reportschedules` — ReportSchedule
+
+source `ReportSchedule.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `reportKey` | String | yes |  |  |  |  |  |
+| `cron` | String | yes |  |  |  |  |  |
+| `format` | String |  |  | "xlsx" | csv, xlsx |  |  |
+| `recipients` | Array<Mixed> |  |  |  |  |  |  |
+| `savedViewId` | ObjectId |  |  | null |  | SavedView |  |
+| `active` | Boolean |  |  | true |  |  |  |
+| `lastRunAt` | Date |  |  | null |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
 | `hospitalId:1` |  |
 
 ### `resourcescopes` — ResourceScope
@@ -8023,6 +8827,61 @@ Indexes:
 | `status:1` |  |
 | `hospitalId:1, month:1` |  |
 
+### `rulefirings` — RuleFiring
+
+source `RuleFiring.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `ruleId` | ObjectId |  |  |  |  | Rule |  |
+| `dedupHash` | String | yes |  |  |  |  |  |
+| `entityRef.model` | String |  |  | "" |  |  |  |
+| `entityRef.id` | ObjectId |  |  | null |  |  |  |
+| `status` | String |  |  | "fired" | fired, suppressed, ack |  |  |
+| `firedAt` | Date |  |  | [function] |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `ruleId:1` |  |
+| `dedupHash:1` |  |
+| `ruleId:1, dedupHash:1` |  |
+
+### `rules` — Rule
+
+source `Rule.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier, Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `key` | String | yes |  |  |  |  |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `dataset` | String | yes |  |  |  |  |  |
+| `enabled` | Boolean |  |  | true |  |  |  |
+| `groups` | Array<Mixed> |  |  | [] |  |  |  |
+| `cooldownMinutes` | Number |  |  | 1440 |  |  |  |
+| `actions` | Mixed |  |  | [function] |  |  |  |
+| `schedule` | String |  |  | "15m" |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `key:1` |  |
+| `dataset:1` |  |
+| `hospitalId:1, key:1` | unique |
+
 ### `rxtemplates` — RxTemplate
 
 source `RxTemplate.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Health, Identifier, Identity
@@ -8075,6 +8934,28 @@ Indexes:
 |---|---|
 | `patientId:1` |  |
 | `patientId:1, refType:1, refId:1` | unique |
+
+### `savedviews` — SavedView
+
+source `SavedView.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `reportKey` | String | yes |  |  |  |  |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `filters` | Mixed |  |  | [function] |  |  |  |
+| `columns` | Array<Mixed> |  |  |  |  |  |  |
+| `owner` | ObjectId |  |  |  |  | User |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
 
 ### `schedulechangerequests` — ScheduleChangeRequest
 
@@ -8402,6 +9283,30 @@ Indexes:
 | `employeeId:1` | unique |
 | `hospitalId:1` |  |
 
+### `statementimports` — StatementImport
+
+source `StatementImport.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `bankAccountId` | ObjectId | yes |  |  |  | BankAccount |  |
+| `fileName` | String |  |  | "" |  |  |  |
+| `periodFrom` | Date |  |  | null |  |  |  |
+| `periodTo` | Date |  |  | null |  |  |  |
+| `rowCount` | Number |  |  | 0 |  |  |  |
+| `status` | String |  |  | "parsed" | parsed, matched, closed |  |  |
+| `uploadedBy` | ObjectId |  |  |  |  | User |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+
 ### `sterilisationcycles` — SterilisationCycle
 
 source `SterilisationCycle.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
@@ -8574,6 +9479,17 @@ source `Supplier.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `category` | String |  |  | "General" | Medical Supplies, Pharmaceuticals, Surgical Instruments, Equipment, General, Reagents, Implants, Linen, Medical Gases, Food, IT, OT Consumables |  |  |
 | `items` | Array<Mixed> |  |  |  |  |  |  |
 | `rating` | Number |  |  |  |  |  |  |
+| `pan` | String |  |  | "" |  |  |  |
+| `bankName` | String |  |  | "" |  |  |  |
+| `bankAccount` | String |  |  | "" |  |  |  |
+| `ifsc` | String |  |  | "" |  |  |  |
+| `msmeNo` | String |  |  | "" |  |  |  |
+| `documents` | Array<subdocument> |  |  |  |  |  |  |
+| `documents.name` | String |  |  | "" |  |  |  |
+| `documents.url` | String |  |  | "" |  |  |  |
+| `documents.uploadedAt` | Date |  |  | [function] |  |  |  |
+| `onTimePct` | Number |  |  | null |  |  |  |
+| `qualityPct` | Number |  |  | null |  |  |  |
 | `leadTime` | Number |  |  | 7 |  |  |  |
 | `paymentTerms` | String |  |  | "Net 30" |  |  |  |
 | `isActive` | Boolean |  |  | true |  |  |  |
@@ -9171,6 +10087,31 @@ Indexes:
 | `rcNumber:1` | unique |
 | `isDocumentVerified:1` |  |
 
+### `vendorscorecards` — VendorScorecard
+
+source `VendorScorecard.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `supplierId` | ObjectId | yes |  |  |  | Supplier |  |
+| `period` | String | yes |  |  |  |  |  |
+| `onTimePct` | Number |  |  | null |  |  |  |
+| `qualityPct` | Number |  |  | null |  |  |  |
+| `fillRatePct` | Number |  |  | null |  |  |  |
+| `score` | Number |  |  | null |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `supplierId:1` |  |
+| `supplierId:1, period:1` | unique |
+
 ### `visitorpasses` — VisitorPass
 
 source `VisitorPass.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Contact, Identifier, Image/Biometric
@@ -9390,6 +10331,75 @@ Indexes:
 | `hospitalId:1` |  |
 | `admissionId:1, roundAt:-1` |  |
 
+### `wardtypes` — WardType
+
+source `WardType.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `code` | String |  |  | "" |  |  |  |
+| `defaultRate` | Number |  |  | 0 |  |  |  |
+| `active` | Boolean |  |  | true |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+
+### `webhookdeliveries` — WebhookDelivery
+
+source `WebhookDelivery.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `subId` | ObjectId |  |  |  |  | WebhookSubscription |  |
+| `event` | String | yes |  |  |  |  |  |
+| `payload` | Mixed |  |  | [function] |  |  |  |
+| `status` | String |  |  | "pending" | pending, delivered, failed |  |  |
+| `attempts` | Number |  |  | 0 |  |  |  |
+| `nextRetryAt` | Date |  |  | null |  |  |  |
+| `lastError` | String |  |  | "" |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `subId:1` |  |
+| `status:1` |  |
+| `status:1, nextRetryAt:1` |  |
+
+### `webhooksubscriptions` — WebhookSubscription
+
+source `WebhookSubscription.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Credential
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `url` | String | yes |  |  |  |  |  |
+| `events` | Array<Mixed> |  |  |  |  |  |  |
+| `secret` | String | yes |  |  |  |  | Credential |
+| `active` | Boolean |  |  | true |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+
 ### `wellnesslogs` — WellnessLog
 
 source `WellnessLog.js` · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier
@@ -9478,3 +10488,124 @@ Indexes:
 | `userId:1` |  |
 | `familyMemberId:1` |  |
 | `userId:1, familyMemberId:1` |  |
+
+### `workflowdefinitions` — WorkflowDefinition
+
+source `WorkflowDefinition.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier, Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `key` | String | yes |  |  |  |  |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `entityModel` | String |  |  | "" |  |  |  |
+| `version` | Number |  |  | 1 |  |  |  |
+| `status` | String |  |  | "Draft" | Draft, Published, Archived |  |  |
+| `states` | Array<subdocument> |  |  | [] |  |  |  |
+| `states.id` | String | yes |  |  |  |  |  |
+| `states.label` | String |  |  | "" |  |  |  |
+| `states.type` | String |  |  | "task" | start, task, parallel, join, end |  |  |
+| `states.slaMinutes` | Number |  |  | 0 |  |  |  |
+| `states.onEnter` | Array<subdocument> |  |  | [] |  |  |  |
+| `states.onEnter.kind` | String | yes |  |  | task, notify, charge, webhook, event |  |  |
+| `states.onEnter.params` | Mixed |  |  | [function] |  |  |  |
+| `states.onExit` | Array<subdocument> |  |  | [] |  |  |  |
+| `states.onExit.kind` | String | yes |  |  | task, notify, charge, webhook, event |  |  |
+| `states.onExit.params` | Mixed |  |  | [function] |  |  |  |
+| `transitions` | Array<subdocument> |  |  | [] |  |  |  |
+| `transitions.id` | String |  |  | "" |  |  |  |
+| `transitions.from` | String | yes |  |  |  |  |  |
+| `transitions.to` | String | yes |  |  |  |  |  |
+| `transitions.event` | String | yes |  |  |  |  |  |
+| `transitions.guard.roles` | Array<Mixed> |  |  |  |  |  |  |
+| `transitions.guard.permissions` | Array<Mixed> |  |  |  |  |  |  |
+| `transitions.label` | String |  |  | "" |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `key:1` |  |
+| `status:1` |  |
+| `hospitalId:1, key:1, version:-1` |  |
+
+### `workflowinstances` — WorkflowInstance
+
+source `WorkflowInstance.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `defKey` | String | yes |  |  |  |  |  |
+| `defVersion` | Number | yes |  |  |  |  |  |
+| `entityRef.model` | String |  |  | "" |  |  |  |
+| `entityRef.id` | ObjectId |  |  | null |  |  |  |
+| `state` | String |  |  | "" |  |  |  |
+| `activeStates` | Array<Mixed> |  |  |  |  |  |  |
+| `history` | Array<subdocument> |  |  |  |  |  |  |
+| `history.from` | String |  |  |  |  |  |  |
+| `history.to` | String |  |  |  |  |  |  |
+| `history.event` | String |  |  |  |  |  |  |
+| `history.by` | ObjectId |  |  | null |  | User |  |
+| `history.at` | Date |  |  | [function] |  |  |  |
+| `history.note` | String |  |  | "" |  |  |  |
+| `timers` | Array<subdocument> |  |  |  |  |  |  |
+| `timers.state` | String |  |  |  |  |  |  |
+| `timers.dueAt` | Date |  |  |  |  |  |  |
+| `timers.escalatedAt` | Date |  |  | null |  |  |  |
+| `status` | String |  |  | "Active" | Active, Done, Cancelled |  |  |
+| `cancelReason` | String |  |  | "" |  |  |  |
+| `version` | Number |  |  | 0 |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `defKey:1` |  |
+| `status:1` |  |
+| `hospitalId:1, status:1` |  |
+
+### `worktasks` — WorkTask
+
+source `WorkTask.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `title` | String | yes |  |  |  |  |  |
+| `detail` | String |  |  | "" |  |  |  |
+| `entityRef.model` | String |  |  | "" |  |  |  |
+| `entityRef.id` | ObjectId |  |  | null |  |  |  |
+| `assignee` | ObjectId |  |  | null |  | User |  |
+| `roleQueue` | String |  |  | "" |  |  |  |
+| `priority` | String |  |  | "P2" | P0, P1, P2, P3 |  |  |
+| `status` | String |  |  | "Open" | Open, InProgress, Blocked, Done, Cancelled |  |  |
+| `dueAt` | Date |  |  | null |  |  |  |
+| `tags` | Array<Mixed> |  |  |  |  |  |  |
+| `activity` | Array<subdocument> |  |  |  |  |  |  |
+| `activity.by` | ObjectId |  |  | null |  | User |  |
+| `activity.at` | Date |  |  | [function] |  |  |  |
+| `activity.text` | String |  |  | "" |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `priority:1` |  |
+| `status:1` |  |
+| `hospitalId:1, status:1` |  |

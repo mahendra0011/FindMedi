@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import PatientBanner from '@/components/clinical/PatientBanner';
 
 /**
  * Doc 11 §4 — EMR workspace: patient banner (allergies red), timeline,
@@ -43,6 +44,7 @@ export default function EmrWorkspace() {
   return (
     <div className="space-y-4">
       {/* Patient banner */}
+      <PatientBanner patientId={p._id || p.id || ''} />
       <Card className="border-l-4 border-l-primary">
         <CardContent className="p-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           <span className="text-lg font-bold">{p.name}</span>

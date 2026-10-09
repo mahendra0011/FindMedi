@@ -25,6 +25,15 @@ const supplierSchema = new mongoose.Schema({
   },
   items: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Inventory' }],
   rating: { type: Number, min: 1, max: 5 },
+  // File 16 §16.6: vendor 360 — statutory + banking + score inputs.
+  pan: { type: String, default: '' },
+  bankName: { type: String, default: '' },
+  bankAccount: { type: String, default: '' },
+  ifsc: { type: String, default: '' },
+  msmeNo: { type: String, default: '' },
+  documents: [{ name: { type: String, default: '' }, url: { type: String, default: '' }, uploadedAt: { type: Date, default: Date.now } }],
+  onTimePct: { type: Number, default: null },
+  qualityPct: { type: Number, default: null },
   leadTime: { type: Number, default: 7 }, // days
   paymentTerms: { type: String, default: 'Net 30' },
   isActive: { type: Boolean, default: true },

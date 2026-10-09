@@ -134,6 +134,13 @@ router.get('/', protect, async (req, res) => {
     const result = await paginatedResults(Patient, filter, { page, limit });
     if (access.masked && Array.isArray(result.data)) result.data = result.data.map(maskPatient);
     else if (access.masked && Array.isArray(result.results)) result.results = result.results.map(maskPatient);
+    else {
+      // File 13 §13.6: field-level mask for phone/email when the role is
+      // outside the clinical allowlist (e.g. accountant, pharmacist).
+      const { applyFieldMaskMany } = await import('../lib/fieldMask.js');
+      if (Array.isArray(result.data)) result.data = applyFieldMaskMany('Patient', result.data, req.user.role);
+      else if (Array.isArray(result.results)) result.results = applyFieldMaskMany('Patient', result.results, req.user.role);
+    }
     res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

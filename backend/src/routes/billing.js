@@ -289,6 +289,12 @@ router.get('/', protect, authorize('billing:read'), async (req, res, next) => {
 // can no longer be injected; the tenant is always the caller's own.
 router.post('/', protect, authorize('billing:write'), paymentLimiter, validate(createBillingSchema), async (req, res, next) => {
   try {
+    // File 13 §13.6: blacklisted/deceased patients are a hard stop at billing.
+    if (req.body.patientId) {
+      const { patientHardStop } = await import('./masters.js');
+      const stop = await patientHardStop(req.user.hospitalId, req.body.patientId).catch(() => null);
+      if (stop) return res.status(422).json({ message: `Billing blocked: patient is ${stop}`, code: 'PATIENT_HARD_STOP' });
+    }
     const invoiceId = req.body.invoiceId || generateInvoiceId();
     const date = req.body.date || getISTDateString();
     const bill = await Billing.create({

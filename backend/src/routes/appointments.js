@@ -719,6 +719,13 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), authori
     
     const patientName = req.user.name;
     const patientId = req.user._id;
+
+    // File 13 §13.6: blacklisted/deceased patients cannot book.
+    try {
+      const { patientHardStop } = await import('./masters.js');
+      const stop = await patientHardStop(hospitalId, patientId);
+      if (stop) return res.status(422).json({ message: `Booking blocked: patient is ${stop}`, code: 'PATIENT_HARD_STOP' });
+    } catch { /* flag lookup must never break booking on infra errors */ }
     
     let hospitalId = null;
     if (doctorId) {

@@ -74,7 +74,7 @@ export default function Kiosk() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-6 select-none">
+    <div className="min-h-screen bg-slate-950 text-white p-6 select-none" data-motion-ignore>
       <div className="max-w-xl mx-auto">
         <div className="flex items-center justify-between text-xs text-slate-400">
           <span>FindMedi Kiosk</span>

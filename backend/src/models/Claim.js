@@ -11,6 +11,8 @@ const claimSchema = new mongoose.Schema({
   patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   insurerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Insurer' },
+  // File 16 §16.4: corporate billing link (additive; older claims stay null).
+  corporateId: { type: mongoose.Schema.Types.ObjectId, ref: 'Corporate', default: null, index: true },
   documents: [{ type: String }],
   submittedAt: { type: Date, default: null },
   status: {

@@ -61,7 +61,7 @@ export default function QueueDisplay() {
   const nowServing = tokens.filter((t) => t.status === 'Called' || t.status === 'In Consultation');
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-6">
+    <div className="min-h-screen bg-slate-950 text-white p-6" data-motion-ignore>
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold mr-auto">Now Serving{department ? ` — ${department}` : ''}</h1>

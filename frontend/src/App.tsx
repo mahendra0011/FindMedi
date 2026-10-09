@@ -110,6 +110,20 @@ const OtBoard = lazy(() => import('./pages/OtBoard'));
 const LabOps = lazy(() => import('./pages/LabOps'));
 const PayrollPage = lazy(() => import('./pages/PayrollPage'));
 const CssdPage = lazy(() => import('./pages/CssdPage'));
+const WorkflowStudio = lazy(() => import('./pages/hospital/WorkflowStudio'));
+const ApprovalsInbox = lazy(() => import('./pages/hospital/ApprovalsInbox'));
+const RulesStudio = lazy(() => import('./pages/hospital/RulesStudio'));
+const TaskBoard = lazy(() => import('./pages/hospital/TaskBoard'));
+const BedBoard = lazy(() => import('./pages/hospital/BedBoard'));
+const OpsMasters = lazy(() => import('./pages/hospital/OpsMasters'));
+const RcmDashboard = lazy(() => import('./pages/hospital/RcmDashboard'));
+const ReconWorkbench = lazy(() => import('./pages/hospital/ReconWorkbench'));
+const EnterpriseHub = lazy(() => import('./pages/hospital/EnterpriseHub'));
+const ReportStudioPage = lazy(() => import('./pages/hospital/ReportStudioPage'));
+const KpiDashboard = lazy(() => import('./pages/hospital/KpiDashboard'));
+const CallConsole = lazy(() => import('./pages/hospital/CallConsole'));
+const HubBoard = lazy(() => import('./pages/hospital/HubBoard'));
+const GlobalSearch = lazy(() => import('./components/GlobalSearch'));
 const HealthcarePage = lazy(() => import('./pages/HealthcarePage'));
 const HospitalDirectory = lazy(() => import('./pages/HospitalDirectory'));
 const HospitalProfile = lazy(() => import('./pages/HospitalProfile'));
@@ -643,6 +657,7 @@ const App = () => (
             <Sonner />
             <EmergencyFlowController />
             <ReminderAlarmHost />
+            <GlobalSearch />
             <LenisScroll>
               <AppMotion>
                 <Suspense fallback={loadingFallback}>
@@ -904,6 +919,20 @@ const App = () => (
                     <Route path="/hr/payroll" element={<RoleRoute allowedRoles={['hospital_admin', 'accountant']}><PayrollPage /></RoleRoute>} />
                     <Route path="/cssd" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><CssdPage /></RoleRoute>} />
                     <Route path="/doctor-consultation" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><DoctorConsultation /></RoleRoute>} />
+                    {/* Files 13–19: platform engines, finance, MIS, contact, hub */}
+                    <Route path="/hospital/workflows" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><WorkflowStudio /></RoleRoute>} />
+                    <Route path="/hospital/approvals" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'accountant', 'superadmin']}><ApprovalsInbox /></RoleRoute>} />
+                    <Route path="/hospital/rules" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><RulesStudio /></RoleRoute>} />
+                    <Route path="/hospital/tasks" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'receptionist', 'accountant', 'superadmin']}><TaskBoard /></RoleRoute>} />
+                    <Route path="/hospital/beds" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'receptionist', 'superadmin']}><BedBoard /></RoleRoute>} />
+                    <Route path="/hospital/masters" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><OpsMasters /></RoleRoute>} />
+                    <Route path="/hospital/rcm" element={<RoleRoute allowedRoles={['hospital_admin', 'accountant', 'superadmin']}><RcmDashboard /></RoleRoute>} />
+                    <Route path="/hospital/recon" element={<RoleRoute allowedRoles={['hospital_admin', 'accountant', 'superadmin']}><ReconWorkbench /></RoleRoute>} />
+                    <Route path="/hospital/enterprise" element={<RoleRoute allowedRoles={['hospital_admin', 'accountant', 'superadmin']}><EnterpriseHub /></RoleRoute>} />
+                    <Route path="/hospital/reports" element={<RoleRoute allowedRoles={['hospital_admin', 'accountant', 'doctor', 'superadmin']}><ReportStudioPage /></RoleRoute>} />
+                    <Route path="/hospital/kpis" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><KpiDashboard /></RoleRoute>} />
+                    <Route path="/hospital/calls" element={<RoleRoute allowedRoles={['hospital_admin', 'receptionist', 'superadmin']}><CallConsole /></RoleRoute>} />
+                    <Route path="/hospital/hub" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><HubBoard /></RoleRoute>} />
 
                     {/* Patient routes */}
                     <Route path="/patient/appointments" element={<RoleRoute allowedRoles={['patient']}><PatientAppointments /></RoleRoute>} />

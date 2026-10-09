@@ -13,6 +13,17 @@ const paymentSchema = new mongoose.Schema({
   referenceId: { type: String, default: '' },
   description: { type: String, default: '' },
   provider: { type: String, default: '' },
+  // File 16 §16.2: gateway abstraction — provider-agnostic attempt ledger.
+  gateway: { type: String, default: 'mock' },
+  gatewayOrderId: { type: String, default: '', index: true },
+  gatewayPaymentId: { type: String, default: '' },
+  gatewaySignature: { type: String, default: '' },
+  attempts: [{
+    at: { type: Date, default: Date.now }, gateway: { type: String, default: '' },
+    event: { type: String, default: '' }, payload: { type: mongoose.Schema.Types.Mixed },
+  }],
+  refundedAt: { type: Date, default: null },
+  settledAt: { type: Date, default: null },
   lineItems: [{ name: String, price: Number, qty: Number }],
   refund_amount: { alias: 'refundAmount', type: Number, default: 0 },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },

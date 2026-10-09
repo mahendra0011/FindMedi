@@ -1313,3 +1313,51 @@ html[data-chat-contrast='high'] .chat-row-enter > div > div {
     pointer-events: none;
   }
 }
+
+/* ── File 19: semantic status tokens (single source of truth) ─────────────
+   Components use these — never hard-coded hex — so one theme change
+   repaints every status pill, bed tile and SLA ring together. */
+:root {
+  --status-ok: 152 60% 42%;
+  --status-warn: 38 92% 50%;
+  --status-bad: 0 72% 51%;
+  --status-info: 210 80% 55%;
+  --status-neutral: 210 12% 50%;
+}
+.dark {
+  /* File 19 dark fix: raised lightness so statuses stay legible on dark */
+  --success: 152 60% 52%;
+  --warning: 38 92% 58%;
+  --destructive: 0 72% 58%;
+  --status-ok: 152 60% 52%;
+  --status-warn: 38 92% 58%;
+  --status-bad: 0 72% 58%;
+  --status-info: 210 80% 65%;
+}
+
+/* ── File 19: density modes (ops tables breathe on wall screens) ────────── */
+:root[data-density='compact'] {
+  --pad-card: 0.5rem;
+  --text-row: 0.75rem;
+  --gap-stack: 0.375rem;
+}
+:root[data-density='comfortable'], :root:not([data-density]) {
+  --pad-card: 1rem;
+  --text-row: 0.875rem;
+  --gap-stack: 0.75rem;
+}
+.density-card { padding: var(--pad-card); }
+.density-row { font-size: var(--text-row); }
+
+/* ── File 19: shared skeleton shimmer for every widget ──────────────────── */
+@keyframes ops-shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.ops-skeleton {
+  background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--accent)) 50%, hsl(var(--muted)) 75%);
+  background-size: 800px 100%;
+  animation: ops-shimmer 1.4s linear infinite;
+  border-radius: 0.375rem;
+  min-height: 1rem;
+}
