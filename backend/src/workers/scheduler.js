@@ -72,6 +72,24 @@ export function startScheduler() {
     } catch (e) {
       logger.warn(`[scheduler:webhooks] ${e.message}`);
     }
+    // File 22 P0-9: gateway settlement reconcile (no-op without credentials).
+    try {
+      const { reconcileGatewayTenant } = await import('../routes/checkout.js');
+      const { default: Hospital } = await import('../models/Hospital.js');
+      const hospitals = await Hospital.find({}).select('_id').limit(500).lean();
+      for (const h of hospitals) {
+        for (const gw of ['razorpay', 'cashfree']) {
+          try {
+            // eslint-disable-next-line no-await-in-loop
+            await reconcileGatewayTenant(h._id, gw);
+          } catch (e) {
+            logger.warn(`[scheduler:reconcile] ${h._id}/${gw}: ${e.message}`);
+          }
+        }
+      }
+    } catch (e) {
+      logger.warn(`[scheduler:reconcile] ${e.message}`);
+    }
   }));
   // Nightly 01:30: daily metrics + report schedules due.
   tasks.push(cron.schedule('30 1 * * *', async () => {

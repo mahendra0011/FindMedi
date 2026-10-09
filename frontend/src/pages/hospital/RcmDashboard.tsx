@@ -13,6 +13,7 @@ export default function RcmDashboard() {
   const [gaps, setGaps] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any[]>([]);
   const [kind, setKind] = useState('');
+  const [reconOut, setReconOut] = useState<any | null>(null);
 
   const load = async () => {
     try {
@@ -49,8 +50,23 @@ export default function RcmDashboard() {
         <h1 className="flex items-center gap-2 text-lg font-bold"><IndianRupee size={18} /> Revenue cycle</h1>
         <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-800">₹<CountUp value={atRisk} /> at risk</span>
         <div className="flex-1" />
+        <Button size="sm" variant="outline" onClick={async () => {
+          try {
+            const r: any = await api.checkoutReconcile('razorpay');
+            const c: any = await api.checkoutReconcile('cashfree');
+            setReconOut({ razorpay: r, cashfree: c });
+            toast.success(`Reconciled: ${(r?.settled || 0) + (c?.settled || 0)} settled`);
+          } catch (e: any) { toast.error(e?.message || 'Reconcile failed'); }
+        }}>Reconcile gateways</Button>
         <Button size="sm" onClick={detect}><Radar size={14} /> Run detectors</Button>
       </div>
+      {reconOut ? (
+        <p className="text-xs text-muted-foreground">
+          razorpay: {reconOut.razorpay?.checked ?? 0} checked / {reconOut.razorpay?.settled ?? 0} settled
+          {reconOut.razorpay?.skipped ? ` (${reconOut.razorpay.skipped})` : ''} · cashfree: {reconOut.cashfree?.checked ?? 0} checked / {reconOut.cashfree?.settled ?? 0} settled
+          {reconOut.cashfree?.skipped ? ` (${reconOut.cashfree.skipped})` : ''}
+        </p>
+      ) : null}
       <div className="grid gap-2 md:grid-cols-4">
         {stages.map((s) => (
           <Card key={s._id}><CardContent className="p-3">

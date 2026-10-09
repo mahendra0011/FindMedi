@@ -3,7 +3,7 @@
  * signing pure-logic tests. No DB, no network.
  */
 import nodeCrypto from 'crypto';
-import { MockGateway, RazorpayGateway } from '../../src/lib/gateways.js';
+import { MockGateway, RazorpayGateway, CashfreeGateway, gatewayFor } from '../../src/lib/gateways.js';
 import { redactPhi, noShowScore, forecastDemand } from '../../src/lib/aiGateway.js';
 
 describe('MockGateway', () => {
@@ -23,7 +23,8 @@ describe('MockGateway', () => {
 describe('RazorpayGateway', () => {
   test('refuses live orders without credentials', async () => {
     const gw = new RazorpayGateway({ keyId: '', keySecret: '' });
-    await expect(gw.createOrder()).rejects.toMatchObject({ code: 'GATEWAY_NOT_CONFIGURED' });
+    await expect(gw.createOrder({ amount: 100 })).rejects.toMatchObject({ code: 'GATEWAY_NOT_CONFIGURED' });
+    await expect(gw.refund('pay_1', 100)).rejects.toMatchObject({ code: 'GATEWAY_NOT_CONFIGURED' });
   });
   test('verifies signatures with timing-safe compare', () => {
     const gw = new RazorpayGateway({ keyId: 'k', keySecret: 's3cret' });
@@ -41,6 +42,25 @@ describe('RazorpayGateway', () => {
     });
     expect(e.amount).toBe(500);
     expect(e.gatewayPaymentId).toBe('pay_1');
+  });
+});
+
+describe('CashfreeGateway', () => {
+  test('refuses live calls without credentials', async () => {
+    const gw = new CashfreeGateway({ appId: '', secretKey: '' });
+    await expect(gw.createOrder({ amount: 100 })).rejects.toMatchObject({ code: 'GATEWAY_NOT_CONFIGURED' });
+  });
+  test('verifies base64 HMAC signatures', () => {
+    const gw = new CashfreeGateway({ appId: 'a', secretKey: 's3cret' });
+    const body = Buffer.from('{"x":1}');
+    const sig = nodeCrypto.createHmac('sha256', 's3cret').update(body).digest('base64');
+    expect(gw.verifyWebhookSignature(body, sig)).toBe(true);
+    expect(gw.verifyWebhookSignature(body, 'bogus')).toBe(false);
+  });
+  test('gatewayFor resolves all three providers', () => {
+    expect(gatewayFor('razorpay').name).toBe('razorpay');
+    expect(gatewayFor('cashfree').name).toBe('cashfree');
+    expect(gatewayFor('nope').name).toBe('mock');
   });
 });
 
