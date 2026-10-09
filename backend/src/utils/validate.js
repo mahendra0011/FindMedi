@@ -87,6 +87,11 @@ export const USER_ROLE_OPTIONS = [
   // File 23 §2 scoped platform roles (login hint only; signup stays restricted).
   'platform_admin', 'support_l1', 'support_l2', 'dpo',
   'security_admin', 'clinical_safety', 'analyst', 'auditor',
+  // File 09 §8.2 front-desk.
+  'receptionist',
+  // Doc 12 §3 clinic org roles.
+  'clinic_admin', 'clinic_receptionist', 'clinic_nurse',
+  'clinic_accountant', 'clinic_pharmacist',
 ];
 export const phoneSchema = z.string().min(10, 'Phone must be at least 10 digits').max(15).optional();
 export const positiveNumber = z.number().positive('Must be a positive number');

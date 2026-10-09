@@ -69,6 +69,11 @@ export const CANONICAL_ROLES = [
   // in ROLE_PERMISSIONS below; none carries clinical PHI permissions.
   'platform_admin', 'support_l1', 'support_l2', 'dpo',
   'security_admin', 'clinical_safety', 'analyst', 'auditor',
+  // File 09 §8.2: hospital front-desk (tenant-scoped, no clinical reads).
+  'receptionist',
+  // Doc 12 §3: clinic org roles (tenant-scoped clinic staff with real logins).
+  'clinic_admin', 'clinic_receptionist', 'clinic_nurse',
+  'clinic_accountant', 'clinic_pharmacist',
   // 8.md 1 / 7.md 4: the ops console carries NO "god mode". Each console
   // section gets an account that can reach its own queue and nothing else, so
   // a stolen kyc_reviewer session cannot rewrite commission config or read the
@@ -383,6 +388,39 @@ export const ROLE_PERMISSIONS = {
   analyst: ['reports:read', 'notifications:read', 'crm:read'],
   // Auditor: read-only audit + configs.
   auditor: ['audit:read'],
+  // ── File 09 §8.2 front-desk ──────────────────────────────────────────
+  // Registration + tokens + OPD counter billing. Demographics read (search)
+  // scoped by tenant handlers; clinical modules stay unreachable.
+  receptionist: [
+    'appointments:read', 'appointments:write', 'patients:read',
+    'billing:read', 'billing:write', 'chat:read', 'chat:write',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  // ── Doc 12 §3 clinic org (tenant-scoped clinic staff) ────────────────
+  clinic_admin: [
+    'appointments:read', 'appointments:write', 'patients:read',
+    'records:read', 'billing:read', 'billing:write', 'staff:manage',
+    'inventory:manage', 'chat:read', 'chat:write', 'notifications:read',
+    'profile:read:own', 'profile:write:own',
+  ],
+  clinic_receptionist: [
+    'appointments:read', 'appointments:write', 'patients:read',
+    'billing:read', 'billing:write', 'chat:read', 'chat:write',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  clinic_nurse: [
+    'appointments:read', 'patients:read', 'records:read', 'vitals:write',
+    'chat:read', 'chat:write', 'notifications:read',
+    'profile:read:own', 'profile:write:own',
+  ],
+  clinic_accountant: [
+    'billing:read', 'billing:write', 'commission:read', 'reports:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  clinic_pharmacist: [
+    'pharmacy:read', 'pharmacy:dispense', 'inventory:manage',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
 };
 
 export function roleHasPermission(role, permission) {

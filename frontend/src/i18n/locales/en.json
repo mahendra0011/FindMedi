@@ -31,5 +31,7 @@
   "emergency.call_108": "Call 108 (ambulance)",
   "consent.analytics": "Help improve FindMedi with anonymous usage stats",
   "consent.accept": "Accept",
-  "consent.decline": "Decline"
+  "consent.decline": "Decline",
+  "nav.opdRegistration": "OPD Registration",
+  "nav.analyticsReports": "Analytics Reports"
 }

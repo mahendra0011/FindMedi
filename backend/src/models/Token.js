@@ -11,7 +11,7 @@ const tokenSchema = new mongoose.Schema({
   appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment' },
   type: { type: String, enum: ['OPD', 'IPD', 'Emergency', 'Lab', 'Pharmacy', 'Radiology'], default: 'OPD' },
   priority: { type: String, enum: ['Normal', 'Urgent', 'Emergency'], default: 'Normal' },
-  status: { type: String, enum: ['Waiting', 'Called', 'In Consultation', 'Completed', 'Skipped', 'Cancelled'], default: 'Waiting' },
+  status: { type: String, enum: ['Waiting', 'Called', 'In Consultation', 'Completed', 'Skipped', 'Cancelled', 'NoShow'], default: 'Waiting' },
   queuePosition: { type: Number },
   estimatedWaitTime: { type: Number }, // minutes
   checkedInAt: { type: Date },

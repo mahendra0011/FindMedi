@@ -45,6 +45,13 @@ const labOrderSchema = new mongoose.Schema({
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   facilityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Facility', index: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  // File 09 §9.1/F5: consult/order lineage (optional, backfilled by script).
+  encounterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Encounter', default: null, index: true },
+  prescriptionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Prescription', default: null, index: true },
+  appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment', default: null },
+  // Doc 11 §4: ordering-doctor review ack (verify stays pathologist-only).
+  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  reviewedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });

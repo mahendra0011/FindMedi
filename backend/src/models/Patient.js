@@ -44,6 +44,9 @@ const patientSchema = new mongoose.Schema({
 
   admitted: { type: Date, default: Date.now },
   status: { type: String, enum: ['Active', 'Discharged', 'Critical'], default: 'Active' },
+  // File 15 §15.3: kiosk self-registration — minimal record the front desk
+  // completes later (KYC/consent); reception sees it as provisional.
+  provisional: { type: Boolean, default: false, index: true },
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 

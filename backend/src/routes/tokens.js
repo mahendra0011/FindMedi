@@ -10,8 +10,49 @@ const tokenSkipSchema = z.object({ reason: z.string().optional() });
 
 const router = express.Router();
 
+// File 09 §9.4: token desk = admin + front-desk + clinicians (call-next,
+// call, start, complete). Public display stays on the separate endpoint below.
+const tokenDeskOnly = (req, res, next) => {
+  if (!['superadmin', 'hospital_admin', 'receptionist', 'doctor', 'clinic_doctor', 'nurse'].includes(req.user?.role)) {
+    return res.status(403).json({ message: 'Token desk access required' });
+  }
+  return next();
+};
+
+const emitQueueUpdate = async (token) => {
+  try {
+    const { getIO } = await import('../services/socketService.js');
+    const io = getIO();
+    const room = `queue:${token.hospitalId || 'global'}:${token.department || 'all'}`;
+    io?.to(room)?.emit('queue:update', {
+      tokenNumber: token.tokenNumber, status: token.status,
+      department: token.department, roomNumber: token.roomNumber,
+      doctorId: token.doctorId, calledAt: token.calledAt,
+    });
+  } catch { /* realtime is best-effort */ }
+};
+
+// Public read-only display screen (TV mode): token numbers + status ONLY,
+// no patient names/phones — safe without auth (file 09 §9.4).
+router.get('/display', async (req, res) => {
+  try {
+    const { department, doctorId, hospitalId, limit } = req.query;
+    const filter = { status: { $in: ['Waiting', 'Called', 'In Consultation'] } };
+    if (department) filter.department = department;
+    if (doctorId) filter.doctorId = doctorId;
+    if (hospitalId && OBJECT_ID.test(String(hospitalId))) filter.hospitalId = hospitalId;
+    const rows = await Token.find(filter)
+      .select('tokenNumber status department roomNumber calledAt priority createdAt')
+      .sort({ priority: -1, queuePosition: 1 })
+      .limit(Math.min(50, Number(limit) || 20))
+      .lean();
+    res.json({ tokens: rows });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+const OBJECT_ID = /^[0-9a-f]{24}$/i;
+
 // Generate token with auto-increment
-router.post('/generate', protect, adminOnly, validate(createTokenSchema), async (req, res) => {
+router.post('/generate', protect, tokenDeskOnly, validate(createTokenSchema), async (req, res) => {
   try {
     const { patientId, patientName, uhid, doctorId, doctorName, department, appointmentId, type, priority } = req.body;
     if (!patientId || !patientName || !department) {
@@ -113,7 +154,7 @@ router.get('/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id/call', protect, adminOnly, async (req, res) => {
+router.put('/:id/call', protect, tokenDeskOnly, async (req, res) => {
   try {
     const token = await Token.findById(req.params.id);
     if (!token) return res.status(404).json({ message: 'Token not found' });
@@ -123,7 +164,8 @@ router.put('/:id/call', protect, adminOnly, async (req, res) => {
     token.status = 'Called';
     token.calledAt = new Date();
     await token.save();
-    
+    void emitQueueUpdate(token);
+
     // Notify patient
     await Notification.create({
       title: 'Token Called',
@@ -136,21 +178,22 @@ router.put('/:id/call', protect, adminOnly, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/start-consultation', protect, adminOnly, async (req, res) => {
+router.put('/:id/start-consultation', protect, tokenDeskOnly, async (req, res) => {
   try {
     const token = await Token.findById(req.params.id);
     if (!token) return res.status(404).json({ message: 'Token not found' });
     if (req.user.hospitalId && req.user.role !== 'superadmin' && token.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    token.status = 'Called';
-    token.calledAt = new Date();
+    token.status = 'In Consultation';
+    token.consultationStartTime = new Date();
     await token.save();
+    void emitQueueUpdate(token);
     res.json(token);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/complete', protect, adminOnly, async (req, res) => {
+router.put('/:id/complete', protect, tokenDeskOnly, async (req, res) => {
   try {
     const token = await Token.findById(req.params.id);
     if (!token) return res.status(404).json({ message: 'Token not found' });
@@ -169,12 +212,58 @@ router.put('/:id/complete', protect, adminOnly, async (req, res) => {
     if (token.appointmentId) {
       await Appointment.findByIdAndUpdate(token.appointmentId, { status: 'Completed', consultationEndTime: new Date() });
     }
+    void emitQueueUpdate(token);
 
     res.json(token);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/skip', protect, adminOnly, validate(tokenSkipSchema), async (req, res) => {
+// Call next: highest priority, lowest queue position among Waiting (file 09 §9.4).
+router.post('/call-next', protect, tokenDeskOnly, async (req, res) => {
+  try {
+    const { department, doctorId } = req.body || {};
+    const filter = { status: 'Waiting' };
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (department) filter.department = department;
+    if (doctorId) filter.doctorId = doctorId;
+    const priorityRank = { Emergency: 0, Urgent: 1, Normal: 2 };
+    const candidates = await Token.find(filter).sort({ queuePosition: 1 }).limit(50);
+    candidates.sort((a, b) => (priorityRank[a.priority] ?? 2) - (priorityRank[b.priority] ?? 2));
+    const next = candidates[0];
+    if (!next) return res.status(404).json({ message: 'No waiting tokens' });
+    next.status = 'Called';
+    next.calledAt = new Date();
+    await next.save();
+    void emitQueueUpdate(next);
+    await Notification.create({
+      title: 'Token Called',
+      message: `Token ${next.tokenNumber} is now being called. Please proceed to ${next.department}`,
+      type: 'token',
+      userId: next.patientId,
+    }).catch(() => {});
+    res.json(next);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/:id/no-show', protect, tokenDeskOnly, async (req, res) => {
+  try {
+    const token = await Token.findById(req.params.id);
+    if (!token) return res.status(404).json({ message: 'Token not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && token.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    token.status = 'NoShow';
+    token.completedAt = new Date();
+    await token.save();
+    void emitQueueUpdate(token);
+    if (token.appointmentId) {
+      await Appointment.findByIdAndUpdate(token.appointmentId, { status: 'No Show' });
+    }
+    res.json(token);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/:id/skip', protect, tokenDeskOnly, validate(tokenSkipSchema), async (req, res) => {
   try {
     const { reason } = req.body;
     const token = await Token.findById(req.params.id);
@@ -192,7 +281,7 @@ router.put('/:id/skip', protect, adminOnly, validate(tokenSkipSchema), async (re
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/recall', protect, adminOnly, async (req, res) => {
+router.put('/:id/recall', protect, tokenDeskOnly, async (req, res) => {
   try {
     const token = await Token.findById(req.params.id);
     if (!token) return res.status(404).json({ message: 'Token not found' });
@@ -202,6 +291,7 @@ router.put('/:id/recall', protect, adminOnly, async (req, res) => {
     token.status = 'Called';
     token.calledAt = new Date();
     await token.save();
+    void emitQueueUpdate(token);
     res.json(token);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

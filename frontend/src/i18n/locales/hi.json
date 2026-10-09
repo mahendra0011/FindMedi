@@ -31,5 +31,7 @@
   "emergency.call_108": "108 पर कॉल करें (एम्बुलेंस)",
   "consent.analytics": "अज्ञात उपयोग आँकड़ों से फाइंडमेडी को बेहतर बनाने में मदद करें",
   "consent.accept": "स्वीकार करें",
-  "consent.decline": "मना करें"
+  "consent.decline": "मना करें",
+  "nav.opdRegistration": "OPD पंजीकरण",
+  "nav.analyticsReports": "एनालिटिक्स रिपोर्ट"
 }

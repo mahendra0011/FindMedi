@@ -36,4 +36,33 @@ const notificationTemplateSchema = new mongoose.Schema({
 
 notificationTemplateSchema.index({ code: 1, locale: 1 }, { unique: true });
 
+// File 14 §14.3: variable lint — bodies may only reference DECLARED
+// variables ([Name] convention). Unknown variables block the save so a
+// typo can never ship as a literal "[amount]" to a patient.
+export const extractTemplateVars = (text) => {
+  const out = new Set();
+  const re = /\[([A-Za-z][A-Za-z0-9_ ]{0,59})\]/g;
+  let m;
+  while ((m = re.exec(String(text || ''))) !== null) out.add(m[1].trim());
+  return [...out];
+};
+
+notificationTemplateSchema.pre('save', function (next) {
+  try {
+    const declared = new Set((this.variables || []).map((v) => String(v).trim()));
+    const used = new Set([
+      ...extractTemplateVars(this.subject),
+      ...extractTemplateVars(this.body),
+      ...extractTemplateVars(this.discreetVariant),
+    ]);
+    const unknown = [...used].filter((v) => !declared.has(v));
+    if (unknown.length) {
+      return next(new Error(`Unknown template variables: ${unknown.join(', ')} — declare them in variables[] first`));
+    }
+  } catch (e) {
+    return next(e);
+  }
+  next();
+});
+
 export default mongoose.models.NotificationTemplate || mongoose.model('NotificationTemplate', notificationTemplateSchema);

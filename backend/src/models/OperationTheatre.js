@@ -55,6 +55,31 @@ const operationSchema = new mongoose.Schema({
   },
   recoveryNotes: { type: String },
   recoveryVitals: [{ time: Date, bp: String, hr: Number, spO2: Number, consciousness: String }],
+  // File 09 §9.2/04.6: PAC + WHO surgical safety checklist + op-note extras.
+  // Implants/consumables auto-charge to the encounter on op-note save.
+  pac: {
+    asaGrade: { type: String, enum: ['', 'I', 'II', 'III', 'IV', 'V', 'VI'], default: '' },
+    npoConfirmed: { type: Boolean, default: false },
+    fitness: { type: String, enum: ['', 'Fit', 'Unfit', 'HighRisk'], default: '' },
+    notes: { type: String, default: '' },
+    by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    at: { type: Date, default: null },
+  },
+  whoChecklist: {
+    signIn: { type: Boolean, default: false },
+    timeOut: { type: Boolean, default: false },
+    signOut: { type: Boolean, default: false },
+    by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    at: { type: Date, default: null },
+  },
+  anaesthesiaRecord: { type: String, default: '' },
+  implants: [{ name: { type: String }, serial: { type: String, default: '' }, price: { type: Number, default: 0 } }],
+  consumables: [{ name: { type: String }, qty: { type: Number, default: 1 }, price: { type: Number, default: 0 } }],
+  teamFees: {
+    surgeon: { type: Number, default: 0 },
+    assistant: { type: Number, default: 0 },
+    anaesthetist: { type: Number, default: 0 },
+  },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },

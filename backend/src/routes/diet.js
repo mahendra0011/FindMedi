@@ -21,6 +21,21 @@ const dietBillingSchema = z.object({ amount: z.number().finite().optional(), des
 
 const router = express.Router();
 
+// File 09 §06.6: kitchen production sheet — today's active orders grouped
+// by ward × diet type (census → production quantities).
+router.get('/kitchen/sheet', protect, async (req, res) => {
+  try {
+    const filter = { status: 'Active' };
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const rows = await DietOrder.aggregate([
+      { $match: filter },
+      { $group: { _id: { ward: '$ward', dietType: '$dietType' }, count: { $sum: 1 } } },
+      { $sort: { '_id.ward': 1, '_id.dietType': 1 } },
+    ]);
+    return res.json({ sheet: rows, total: rows.reduce((s, r) => s + r.count, 0) });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.post('/orders', protect, adminOnly, validate(createDietOrderSchema), async (req, res) => {
   try {
     const { patientId, patientName, admissionId, ward, bedNumber, dietType, mealTimes, instructions, allergies } = req.body;

@@ -4,6 +4,13 @@ import { generate16DigitId } from '../utils/idGenerator.js';
 const clinicProfileSchema = new mongoose.Schema({
   clinicId: { type: String, unique: true, sparse: true, index: true },
   doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', required: true, unique: true, index: true },
+  // Doc 12: module toggles gating service lists and detail sections.
+  modules: {
+    dental: { type: Boolean, default: false },
+    eye: { type: Boolean, default: false },
+    ayush: { type: Boolean, default: false },
+    physio: { type: Boolean, default: false },
+  },
   clinic_name: { alias: 'clinicName', type: String, default: '' },
   clinic_address: { alias: 'clinicAddress', type: String, default: '' },
   clinic_category: { alias: 'clinicCategory', type: String, default: '' },

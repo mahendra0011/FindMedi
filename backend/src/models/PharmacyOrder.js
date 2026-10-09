@@ -61,6 +61,10 @@ const pharmacyOrderSchema = new mongoose.Schema({
  refundAmount: { type: Number, default: 0 },
  refundReason: { type: String, default: '' },
  refundDate: { type: Date },
+  // File 09 §9.1/F5: consult/order lineage (optional, backfilled by script).
+  encounterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Encounter', default: null, index: true },
+  prescriptionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Prescription', default: null, index: true },
+  appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment', default: null },
 }, { timestamps: true });
 
 export default mongoose.model('PharmacyOrder', pharmacyOrderSchema);

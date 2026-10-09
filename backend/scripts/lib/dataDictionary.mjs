@@ -77,7 +77,7 @@ export const PII_CATEGORIES = [
  * does not claim its address is a patient's address), and they classify as
  * operational config with no retention clock.
  */
-export const ORG_MODEL_RE = /^(Announcement|Category|City|ClinicProfile|Department|Equipment|Facility|FeaturedListing|HealthPackage|Hospital|Housekeeping|IntegrationConfig|Inventory|License|Medicine|PlatformCoupon|PlatformContent|PurchaseOrder|ServiceCity|Supplier|SystemSetting|Test|Vehicle)$/;
+export const ORG_MODEL_RE = /^(Announcement|Category|City|ClinicProfile|Department|Equipment|Facility|FeaturedListing|HealthPackage|Hospital|Housekeeping|IntegrationConfig|Inventory|License|Medicine|PlatformCoupon|PlatformContent|PurchaseOrder|ServiceCity|Supplier|SystemSetting|Test|Vehicle|ServicePrice|DiscountPolicy|RoomTariff|CashCounter|ResourceScope|Store|Indent|GRN|StockLedger|InstrumentSet|PrintTemplate|Queue|FormTemplate)$/;
 
 export const isOrgModel = (modelName) => ORG_MODEL_RE.test(String(modelName || ''));
 
@@ -130,7 +130,7 @@ export const RETENTION_RULES = [
   // was honoured — same reason DeletionRequest sits here: the proof must
   // outlive the data it describes.
   [/^(AuditLog|LoginEvent|NotificationAudit|DeletionRequest|DataSubjectRequest)$/, 'Audit logs', '7 years (longer than the data they describe)'],
-    [/^(TransactionLedger|Payment|DemoPayment|Refund|Payout|CommissionConfig|Billing|LoyaltyLedger|LoyaltyEarnRule|RewardCatalogItem|RewardRedemption|WalletGuard|Dispute|Insurance|PlatformCouponRedemption|PlatformCouponUserUsage)$/, 'Payment and ledger entries', '8 years (statutory accounting)'],
+    [/^(TransactionLedger|Payment|DemoPayment|Refund|Payout|CommissionConfig|Billing|LoyaltyLedger|LoyaltyEarnRule|RewardCatalogItem|RewardRedemption|WalletGuard|Dispute|Insurance|PlatformCouponRedemption|PlatformCouponUserUsage|IpdDeposit|CreditNote|Expense|LedgerEntry)$/, 'Payment and ledger entries', '8 years (statutory accounting)'],
   [/^(Notification|NotificationDelivery)$/, 'Notifications', '90 days'],
   [/^(OTP|RefreshToken|AmbulanceSetupCode|Token)$/, 'OTP / setup codes / tokens', '15–60 minutes (TTL index) — tokens until logout or expiry'],
   [/^(RideBooking|RideTracking|Emergency|EmergencyRequest|EmergencyDoctorRequest|Ambulance)$/, 'Ride and SOS location traces', 'Trip duration + 30 days (dispute window)'],
@@ -144,7 +144,7 @@ export const RETENTION_RULES = [
   // Clinical: dispensing (Pharmacy*), blood bank, physio and OT episodes are
   // health records about a patient, even though RETENTION.md's examples are
   // appointments/prescriptions/labs.
-  [/^(Patient|PatientAddress|Appointment|Prescription|Record|RecordVersion|Report|LabOrder|LabBooking|Admission|VitalsLog|VitalsReminder|Triage|NursingChart|Radiology|DietOrder|ChronicCarePlan|MedicineDoseLog|MedicineReminder|Referral|FamilyMember|Physiotherapy|OperationTheatre|BloodRequest|BloodUnit|PharmacyOrder|PharmacyReturn|PharmacyDelivery|AssistantBooking|VaccinationSchedule)$/, 'Clinical records', 'Statutory period for the jurisdiction, minimum 3 years'],
+  [/^(Patient|PatientAddress|Appointment|Prescription|Record|RecordVersion|Report|LabOrder|LabBooking|Admission|VitalsLog|VitalsReminder|Triage|NursingChart|Radiology|DietOrder|ChronicCarePlan|MedicineDoseLog|MedicineReminder|Referral|FamilyMember|Physiotherapy|OperationTheatre|BloodRequest|BloodUnit|PharmacyOrder|PharmacyReturn|PharmacyDelivery|AssistantBooking|VaccinationSchedule|Encounter|ChargeItem|BedTransfer|DischargeWorkflow|WardRound|AdrReport|Incident|MlcCase|DeathRecord|PreAuthRequest|Claim|Order|ShiftHandover|AntenatalRecord|LabourRecord|IcuFlowsheet|ChemoProtocol|ChemoCycle|FormResponse|QueueTicket|PatientMovement|SignatureEvent)$/, 'Clinical records', 'Statutory period for the jurisdiction, minimum 3 years'],
 ];
 
 export const OPERATIONAL_ORG_CLASS = {

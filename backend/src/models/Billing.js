@@ -51,6 +51,18 @@ const billingSchema = new mongoose.Schema({
   insuranceStatus: { type: String, enum: ['Not Submitted', 'Submitted', 'Approved', 'Rejected', 'Partial'], default: 'Not Submitted' },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   facilityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Facility', index: true },
+  // File 09 §9.1: episode billing (optional). billType + payerSplit + deposits
+  // power interim/final bills, TPA splits and counter settlement.
+  encounterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Encounter', default: null, index: true },
+  admissionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admission', default: null, index: true },
+  billType: { type: String, enum: ['Interim', 'Final', 'Pharmacy', 'Package', 'Other'], default: 'Other' },
+  payerSplit: {
+    patient: { type: Number, default: 0 },
+    insurer: { type: Number, default: 0 },
+    corporate: { type: Number, default: 0 },
+  },
+  counterId: { type: mongoose.Schema.Types.ObjectId, ref: 'CashCounter', default: null },
+  shiftId: { type: mongoose.Schema.Types.ObjectId, ref: 'CashShift', default: null },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });

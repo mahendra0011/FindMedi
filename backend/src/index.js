@@ -610,6 +610,26 @@ import adminDsrRoutes from './routes/adminDsr.js';
 import breakGlassRoutes from './routes/breakGlass.js';
 import crmRoutes from './routes/crm.js';
 import iamRoutes from './routes/iam.js';
+import financeRoutes from './routes/finance.js';
+import tpaRoutes from './routes/tpa.js';
+import orderRoutes from './routes/orders.js';
+import storeRoutes from './routes/stores.js';
+import fhirRoutes from './routes/fhir.js';
+import rosterRoutes from './routes/roster.js';
+import maternityRoutes from './routes/maternity.js';
+import doctorDashRoutes from './routes/doctor.js';
+import caseRoutes from './routes/casePresentations.js';
+import mortuaryRoutes from './routes/mortuary.js';
+import oncologyRoutes from './routes/oncology.js';
+import formRoutes from './routes/forms.js';
+import signatureRoutes from './routes/signatures.js';
+import verifyRoutes from './routes/verify.js';
+import queueRoutes from './routes/queues.js';
+import kioskRoutes from './routes/kiosk.js';
+import printRoutes from './routes/print.js';
+import recallRoutes from './routes/recall.js';
+import cssdRoutes from './routes/cssd.js';
+import clinicalRoutes from './routes/clinical.js';
 import mealSubscriptionRoutes from './routes/mealSubscriptions.js';
 import membershipRoutes from './routes/memberships.js';
 import patientEventRoutes from './routes/patientEvents.js';
@@ -826,6 +846,45 @@ app.use('/api/admin/break-glass', breakGlassRoutes);
 app.use('/api/crm', crmRoutes);
 // File 25: tenant Access Control Center (staff:manage gate inside).
 app.use('/api/iam', iamRoutes);
+// File 09 §9.5: tariff/discount/credit-notes/cash-counter finance surface.
+app.use('/api/finance', financeRoutes);
+// File 09 §9.6: TPA desk (insurers, pre-auth, claims, pipeline).
+app.use('/api/tpa', tpaRoutes);
+// File 09 §9.3 / doc 11 §4: CPOE orders + doctor review inbox/rounds/OT.
+app.use('/api/orders', orderRoutes);
+// File 09 §9.7: multi-store indent/issue/receive + GRN + stock ledger.
+app.use('/api/stores', storeRoutes);
+// File 09 §7.2: FHIR R4 read export (dual auth: session or x-api-key).
+app.use('/api/fhir', fhirRoutes);
+// File 09 §9.8: duty roster (draft → published).
+app.use('/api/roster', rosterRoutes);
+// File 09 §04.7: maternity (antenatal, labour, delivery → birth record).
+app.use('/api/maternity', maternityRoutes);
+// Doc 11 §5 P0: single-call doctor dashboard aggregate + tasks.
+app.use('/api/doctor', doctorDashRoutes);
+// Doc 11 P2: tumour-board / M&M / teaching cases.
+app.use('/api/cases', caseRoutes);
+// File 09 §06.7: mortuary receive/release.
+app.use('/api/mortuary', mortuaryRoutes);
+// File 09 §04.9: oncology protocols + cycles.
+app.use('/api/oncology', oncologyRoutes);
+// File 14 §14.1: versioned form templates + pinned responses.
+app.use('/api/forms', formRoutes);
+// File 14 §14.2 + §14.4: print pipeline + labels + scan checkpoints.
+app.use('/api/print', printRoutes);
+// File 14 §14.5: e-signatures (auth) + public doc verify (no login).
+app.use('/api/signatures', signatureRoutes);
+app.use('/api/verify', verifyRoutes);
+// Doc 12 §6: recall engine (rules, derived dues, deduped sends).
+app.use('/api/recalls', recallRoutes);
+// File 15: unified queue engine + signed display + movement.
+app.use('/api/queues', queueRoutes);
+// File 15 §15.3: kiosk self check-in (public, rate-limited + bot-gated).
+app.use('/api/kiosk', kioskRoutes);
+// File 09 §9.7/06.4: CSSD set master + sterilisation cycles.
+app.use('/api/cssd', cssdRoutes);
+// File 09 §04: EMR templates + CDSS check + ICU flowsheet.
+app.use('/api/clinical', clinicalRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/ops-health', opsHealthRoutes);
 app.use('/api/tenant-quotas', tenantQuotaRoutes);

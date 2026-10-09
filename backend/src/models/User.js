@@ -107,6 +107,13 @@ const userSchema = new mongoose.Schema({
       // default — clinical reads need a BreakGlassGrant even for these.
       'platform_admin', 'support_l1', 'support_l2', 'dpo',
       'security_admin', 'clinical_safety', 'analyst', 'auditor',
+      // File 09 §8.2/Phase 0: hospital front-desk (registration, tokens,
+      // OPD billing counter). Tenant-scoped, no clinical reads.
+      'receptionist',
+      // Doc 12 §3: clinic org roles — owner (admin) + practitioner-adjacent
+      // staff with real logins + RBAC (replacing string-label ClinicStaff).
+      'clinic_admin', 'clinic_receptionist', 'clinic_nurse',
+      'clinic_accountant', 'clinic_pharmacist',
     ],
     default: 'patient',
     index: true,

@@ -8,6 +8,7 @@ const recordSchema = new mongoose.Schema({
   appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment' },
   date: { type: String, required: true },
   diagnosis: { type: String, default: '' },
+  diagnosisIcd: { type: String, maxlength: 20, default: '' },
   prescription: { type: String, default: '' },
   // subcatogary.md C19 — the 7 originals plus the record types §19 asks for.
   // `set` below normalises display spellings ("Lab Report") to snake_case, so
@@ -63,6 +64,8 @@ const recordSchema = new mongoose.Schema({
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   data: { type: Object, default: {} },
   attachments: [{ type: String }],
+  // File 09 §9.1: episode link (optional, backfilled by script).
+  encounterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Encounter', default: null, index: true },
   // File 25 §8: sensitivity labels. `restricted` (mental health, HIV/STD,
   // sexual/reproductive health, substance use, abuse/MLC) needs
   // reason-for-access + audit; `vip`/`minor` are manual flags with the same

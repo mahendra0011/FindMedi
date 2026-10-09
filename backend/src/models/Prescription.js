@@ -21,6 +21,16 @@ const prescriptionSchema = new mongoose.Schema({
     dispensedBy: { type: String },
   }],
   diagnosis: { type: String },
+  // Doc 11 §5 P0: structured diagnosis code, follow-up plan, generic
+  // preference, and hard-stop override (CDSS critical + reason recorded).
+  diagnosisIcd: { type: String, maxlength: 20, default: '' },
+  followUpDate: { type: Date, default: null },
+  genericPreferred: { type: Boolean, default: false },
+  cdsOverride: {
+    reason: { type: String, maxlength: 1000, default: '' },
+    at: { type: Date, default: null },
+    by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  },
   clinicalNotes: { type: String },
    status: { type: String, enum: ['Active', 'Dispensed', 'Partially Dispensed', 'Cancelled'], default: 'Active' },
    verificationStatus: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
@@ -47,6 +57,9 @@ const prescriptionSchema = new mongoose.Schema({
   revokedAt: Date,
   cancelledAt: Date,
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  // File 09 §9.1: episode-of-care links (migration-safe, optional).
+  encounterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Encounter', default: null, index: true },
+  appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment', default: null },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });

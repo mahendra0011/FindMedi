@@ -181,6 +181,67 @@ router.post('/surgeries/:id/instruments', protect, validate(otInstrumentsSchema)
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
+// File 09 §9.2/04.6: PAC + WHO surgical safety checklist + op note.
+// Implants/consumables auto-post Pending ChargeItems to the encounter.
+router.put('/surgeries/:id/pac', protect, async (req, res) => {
+  try {
+    const { asaGrade, npoConfirmed, fitness, notes } = req.body || {};
+    const s = await OperationTheatre.findById(req.params.id);
+    if (!s) return res.status(404).json({ message: 'Surgery not found' });
+    s.pac = {
+      asaGrade: asaGrade || '', npoConfirmed: Boolean(npoConfirmed),
+      fitness: fitness || '', notes: String(notes || '').slice(0, 2000),
+      by: req.user._id, at: new Date(),
+    };
+    await s.save();
+    res.json({ id: String(s._id), pac: s.pac });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/surgeries/:id/who-checklist', protect, async (req, res) => {
+  try {
+    const { signIn, timeOut, signOut } = req.body || {};
+    const s = await OperationTheatre.findById(req.params.id);
+    if (!s) return res.status(404).json({ message: 'Surgery not found' });
+    s.whoChecklist = {
+      signIn: Boolean(signIn), timeOut: Boolean(timeOut), signOut: Boolean(signOut),
+      by: req.user._id, at: new Date(),
+    };
+    await s.save();
+    res.json({ id: String(s._id), whoChecklist: s.whoChecklist });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/surgeries/:id/op-note', protect, async (req, res) => {
+  try {
+    const { findings, procedure, anaesthesiaRecord, implants, consumables, teamFees } = req.body || {};
+    const s = await OperationTheatre.findById(req.params.id);
+    if (!s) return res.status(404).json({ message: 'Surgery not found' });
+    if (findings !== undefined) s.findings = String(findings).slice(0, 4000);
+    if (procedure !== undefined) s.procedure = String(procedure).slice(0, 4000);
+    if (anaesthesiaRecord !== undefined) s.anaesthesiaRecord = String(anaesthesiaRecord).slice(0, 4000);
+    if (Array.isArray(implants)) s.implants = implants.slice(0, 50);
+    if (Array.isArray(consumables)) s.consumables = consumables.slice(0, 100);
+    if (teamFees) s.teamFees = teamFees;
+    await s.save();
+    // Auto-charge implants + consumables to the encounter/admission account.
+    const { default: ChargeItem } = await import('../models/ChargeItem.js');
+    const lines = [
+      ...(s.implants || []).map((i) => ({ description: `Implant: ${i.name}`, qty: 1, unitPrice: i.price || 0 })),
+      ...(s.consumables || []).map((c) => ({ description: `Consumable: ${c.name}`, qty: c.qty || 1, unitPrice: c.price || 0 })),
+    ].filter((l) => l.unitPrice > 0);
+    if (lines.length) {
+      await ChargeItem.insertMany(lines.map((l) => ({
+        patientId: s.patientId, hospitalId: s.hospitalId,
+        source: 'ot', sourceRef: { model: 'OperationTheatre', id: s._id },
+        description: l.description, qty: l.qty, unitPrice: l.unitPrice,
+        amount: l.qty * l.unitPrice, postedBy: req.user._id,
+      })));
+    }
+    res.json({ id: String(s._id), chargedLines: lines.length });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
 router.get('/stats', protect, async (req, res) => {
   try {
     const hFilter = {};

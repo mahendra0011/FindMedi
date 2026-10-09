@@ -8,6 +8,8 @@ const doctorSchema = new mongoose.Schema({
   name: { type: String, required: true },
   specialization: { type: String, required: true },
   specialtyCode: { type: String, default: '', index: true },
+  // Doc 11: duty toggle (On duty / On call / Off) shown on the dashboard.
+  dutyStatus: { type: String, enum: ['On duty', 'On call', 'Off'], default: 'On duty' },
   // R0 taxonomy (subcatogary.md A1 #2 / D1 step 1): canonical sub-specialty
   // codes alongside the free-text `specialization`, which stays required so
   // old documents and old clients keep working.
@@ -51,6 +53,9 @@ const doctorSchema = new mongoose.Schema({
   // §8 doctor settings master (persisted from DoctorProfile UI).
   settings: {
     emergencyOnCall: { type: Boolean, default: false },
+    // Doc 12 C14: Emergency Flying Squad is opt-in (command bar + statutory
+    // modal only render when true).
+    flyingSquadOptIn: { type: Boolean, default: false },
     refundGuarantee: { type: String, enum: ['auto-refund', 'manual-review', 'no-refund'], default: 'auto-refund' },
     videoFee: { type: Number, default: 0, min: 0 },
     inPersonFee: { type: Number, default: 0, min: 0 },

@@ -24,6 +24,8 @@ const notificationSchema = new mongoose.Schema({
       'reminder', 'payment', 'appointment', 'records', 'system', 'ride',
       'assistant', 'lawyer', 'lab', 'sos', 'billing', 'emergency',
       'prescription', 'radiology', 'token',
+      // Doc 12 §6: recall reminders (follow-up/vaccination dues).
+      'recall',
     ],
     default: 'system',
   },

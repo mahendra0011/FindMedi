@@ -73,6 +73,10 @@ const PATIENT_STAFF_ROLES = [
   'dentist', 'dental_clinic_admin', 'optician', 'phlebotomist',
   'home_nursing_admin', 'dialysis_admin', 'fertility_admin', 'maternity_admin',
   'rehab_admin', 'govt_facility_staff',
+  // File 09 §8.2: front-desk patient search (tenant-scoped by the check below).
+  'receptionist',
+  // Doc 12 §3: clinic front-desk + nurse need the same directory search.
+  'clinic_receptionist', 'clinic_nurse',
 ];
 
 const canReadPatientList = (req) => {

@@ -100,6 +100,14 @@ const GrievanceRedressal = lazy(() => import('./pages/GrievanceRedressal'));
 const TelemedicineConsent = lazy(() => import('./pages/TelemedicineConsent'));
 const PatientRights = lazy(() => import('./pages/PatientRights'));
 const CookiePolicy = lazy(() => import('./pages/CookiePolicy'));
+const QueueDisplay = lazy(() => import('./pages/QueueDisplay'));
+const DischargeDesk = lazy(() => import('./pages/DischargeDesk'));
+const TpaDesk = lazy(() => import('./pages/TpaDesk'));
+const RosterPage = lazy(() => import('./pages/RosterPage'));
+const OtBoard = lazy(() => import('./pages/OtBoard'));
+const LabOps = lazy(() => import('./pages/LabOps'));
+const PayrollPage = lazy(() => import('./pages/PayrollPage'));
+const CssdPage = lazy(() => import('./pages/CssdPage'));
 const HealthcarePage = lazy(() => import('./pages/HealthcarePage'));
 const HospitalDirectory = lazy(() => import('./pages/HospitalDirectory'));
 const HospitalProfile = lazy(() => import('./pages/HospitalProfile'));
@@ -208,6 +216,18 @@ const DoctorPatients = lazy(() => import('./pages/doctor/DoctorPatients'));
 const DoctorConsultations = lazy(() => import('./pages/doctor/DoctorConsultations'));
 const DoctorReviews = lazy(() => import('./pages/doctor/DoctorReviews'));
 const DoctorTestResults = lazy(() => import('./pages/doctor/DoctorTestResults'));
+const ResultsInbox = lazy(() => import('./pages/doctor/ResultsInbox'));
+const DoctorQueue = lazy(() => import('./pages/doctor/DoctorQueue'));
+const ReferralsInbox = lazy(() => import('./pages/doctor/ReferralsInbox'));
+const EmrWorkspace = lazy(() => import('./pages/doctor/EmrWorkspace'));
+const EarningsStatement = lazy(() => import('./pages/doctor/EarningsStatement'));
+const CaseBoard = lazy(() => import('./pages/doctor/CaseBoard'));
+const IcuChart = lazy(() => import('./pages/IcuChart'));
+const DietKitchenSheet = lazy(() => import('./pages/DietKitchenSheet'));
+const MortuaryPage = lazy(() => import('./pages/MortuaryPage'));
+const OncologyPage = lazy(() => import('./pages/OncologyPage'));
+const Kiosk = lazy(() => import('./pages/Kiosk'));
+const CommandPalette = lazy(() => import('./components/CommandPalette'));
 const DoctorEarnings = lazy(() => import('./pages/doctor/DoctorEarnings'));
 const DoctorAnalytics = lazy(() => import('./pages/doctor/DoctorAnalytics'));
 const DoctorRefunds = lazy(() => import('./pages/doctor/DoctorRefunds'));
@@ -229,6 +249,7 @@ const AIChatPage = lazy(() => import('./pages/AIChatPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 
 const ClinicDashboard = lazy(() => import('./pages/clinic/ClinicDashboard'));
+const ClinicOverview = lazy(() => import('./pages/clinic/ClinicOverview'));
 const ClinicAppointments = lazy(() => import('./pages/clinic/ClinicAppointments'));
 const ClinicSchedule = lazy(() => import('./pages/clinic/ClinicSchedule'));
 const ClinicFees = lazy(() => import('./pages/clinic/ClinicFees'));
@@ -250,6 +271,8 @@ const ClinicPlatformSettings = lazy(() => import('./pages/clinic/ClinicPlatformS
 const DeliveryDashboard = lazy(() => import('./pages/delivery/DeliveryDashboard'));
 const StaffDashboardPage = lazy(() => import('./pages/StaffDashboard'));
 const AccessControl = lazy(() => import('./pages/AccessControl'));
+const FrontDesk = lazy(() => import('./pages/FrontDesk'));
+const HospitalDashboardV2 = lazy(() => import('./pages/HospitalDashboardV2'));
 const DeliveryOrders = lazy(() => import('./pages/delivery/DeliveryOrders'));
 const DeliveryHistory = lazy(() => import('./pages/delivery/DeliveryHistory'));
 const DeliveryEarnings = lazy(() => import('./pages/delivery/DeliveryEarnings'));
@@ -444,10 +467,13 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
 }
 
 function DashboardShell() {
+  const { user } = useAuth();
+  const paletteRoles = ['doctor', 'clinic_doctor', 'hospital_admin'];
   return (
     <ProtectedRoute>
       <DashboardLayout>
         <Outlet />
+        {paletteRoles.includes(user?.role ?? '') && <CommandPalette />}
       </DashboardLayout>
     </ProtectedRoute>
   );
@@ -632,6 +658,8 @@ const App = () => (
                     <Route path="/telemedicine-consent" element={<TelemedicineConsent />} />
                     <Route path="/patient-rights" element={<PatientRights />} />
                     <Route path="/cookies" element={<CookiePolicy />} />
+                    <Route path="/display/queue" element={<QueueDisplay />} />
+                    <Route path="/kiosk" element={<Kiosk />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   {/* AUTH-F-06: forced rotation landing page for mustResetPassword sessions */}
                   <Route path="/set-password" element={<SetPassword />} />
@@ -855,9 +883,18 @@ const App = () => (
                     <Route path="/access-control" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><AccessControl /></RoleRoute>} />
                     <Route path="/inventory" element={<RoleRoute allowedRoles={['hospital_admin']}><Inventory /></RoleRoute>} />
                     <Route path="/housekeeping" element={<RoleRoute allowedRoles={['hospital_admin']}><Housekeeping /></RoleRoute>} />
-                    <Route path="/opd-token" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><OPDToken /></RoleRoute>} />
+                    <Route path="/opd-token" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'receptionist']}><OPDToken /></RoleRoute>} />
                     <Route path="/opd-registration" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><OPDRegistration /></RoleRoute>} />
-                    <Route path="/patient-registration" element={<RoleRoute allowedRoles={['hospital_admin', 'nurse']}><PatientRegistration /></RoleRoute>} />
+                    <Route path="/patient-registration" element={<RoleRoute allowedRoles={['hospital_admin', 'nurse', 'receptionist']}><PatientRegistration /></RoleRoute>} />
+                    <Route path="/frontdesk" element={<RoleRoute allowedRoles={['hospital_admin', 'receptionist']}><FrontDesk /></RoleRoute>} />
+                    <Route path="/dashboard/v2" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><HospitalDashboardV2 /></RoleRoute>} />
+                    <Route path="/ipd/discharges" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor']}><DischargeDesk /></RoleRoute>} />
+                    <Route path="/insurance/desk" element={<RoleRoute allowedRoles={['hospital_admin', 'tpa_agent', 'accountant']}><TpaDesk /></RoleRoute>} />
+                    <Route path="/hr/roster" element={<RoleRoute allowedRoles={['hospital_admin']}><RosterPage /></RoleRoute>} />
+                    <Route path="/ot/board" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor']}><OtBoard /></RoleRoute>} />
+                    <Route path="/lab/ops" element={<RoleRoute allowedRoles={['hospital_admin', 'lab_owner', 'lab_technician', 'pathologist', 'doctor']}><LabOps /></RoleRoute>} />
+                    <Route path="/hr/payroll" element={<RoleRoute allowedRoles={['hospital_admin', 'accountant']}><PayrollPage /></RoleRoute>} />
+                    <Route path="/cssd" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><CssdPage /></RoleRoute>} />
                     <Route path="/doctor-consultation" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><DoctorConsultation /></RoleRoute>} />
 
                     {/* Patient routes */}
@@ -927,6 +964,16 @@ const App = () => (
                     <Route path="/doctor/refunds" element={<RoleRoute allowedRoles={['doctor']}><DoctorRefunds /></RoleRoute>} />
                     <Route path="/doctor/schedule" element={<RoleRoute allowedRoles={['doctor']}><DoctorScheduleEdit /></RoleRoute>} />
                     <Route path="/doctor/test-results" element={<RoleRoute allowedRoles={['doctor']}><DoctorTestResults /></RoleRoute>} />
+                    <Route path="/doctor/results" element={<RoleRoute allowedRoles={['doctor', 'clinic_doctor']}><ResultsInbox /></RoleRoute>} />
+                    <Route path="/doctor/queue" element={<RoleRoute allowedRoles={['doctor', 'clinic_doctor']}><DoctorQueue /></RoleRoute>} />
+                    <Route path="/doctor/referrals" element={<RoleRoute allowedRoles={['doctor', 'clinic_doctor']}><ReferralsInbox /></RoleRoute>} />
+                    <Route path="/doctor/workspace/:encounterId" element={<RoleRoute allowedRoles={['doctor', 'clinic_doctor']}><EmrWorkspace /></RoleRoute>} />
+                    <Route path="/doctor/earnings/statement" element={<RoleRoute allowedRoles={['doctor', 'clinic_doctor']}><EarningsStatement /></RoleRoute>} />
+                    <Route path="/doctor/cases" element={<RoleRoute allowedRoles={['doctor', 'clinic_doctor', 'hospital_admin']}><CaseBoard /></RoleRoute>} />
+                    <Route path="/icu/chart" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><IcuChart /></RoleRoute>} />
+                    <Route path="/diet/sheet" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><DietKitchenSheet /></RoleRoute>} />
+                    <Route path="/mortuary" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><MortuaryPage /></RoleRoute>} />
+                    <Route path="/oncology" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><OncologyPage /></RoleRoute>} />
                     <Route path="/doctor/emergency" element={<RoleRoute allowedRoles={['doctor']}><DoctorEmergency /></RoleRoute>} />
                     <Route path="/doctor/prescriptions" element={<RoleRoute allowedRoles={['doctor']}><DoctorPrescriptions /></RoleRoute>} />
                     <Route path="/doctor/leave-requests" element={<RoleRoute allowedRoles={['doctor']}><DoctorLeaveRequests /></RoleRoute>} />
@@ -979,6 +1026,7 @@ const App = () => (
 
                     {/* Clinic Doctor routes */}
                     <Route path="/clinic/dashboard" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicDashboard /></RoleRoute>} />
+                    <Route path="/clinic/overview" element={<RoleRoute allowedRoles={['clinic_doctor', 'hospital_admin']}><ClinicOverview /></RoleRoute>} />
                     <Route path="/clinic/appointments/approve" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
                     <Route path="/clinic/appointments/upcoming" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
                     <Route path="/clinic/appointments/history" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />

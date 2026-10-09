@@ -77,6 +77,10 @@ const prescriptionSchema = z.object({
   patientId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
   patientName: z.string().trim().max(200).optional(),
   diagnosis: z.string().trim().max(2000).optional(),
+  diagnosisIcd: z.string().trim().max(20).optional(),
+  followUpDate: z.string().optional(),
+  genericPreferred: z.boolean().optional(),
+  cdsOverrideReason: z.string().trim().max(1000).optional(),
   clinicalNotes: z.string().trim().max(4000).optional(),
   isEmergency: z.boolean().optional(),
   medicines: z.array(z.object({
@@ -443,9 +447,41 @@ router.post('/prescriptions', protect, authorize('prescriptions:write'), (req, r
   next();
 }, validate(prescriptionSchema), async (req, res) => {
   try {
-    const { patientId, patientName, medicines, diagnosis, clinicalNotes, isEmergency } = req.body;
+    const { patientId, patientName, medicines, diagnosis, diagnosisIcd, followUpDate, genericPreferred, cdsOverrideReason, clinicalNotes, isEmergency } = req.body;
     if (!patientId || !medicines?.length) {
       return res.status(400).json({ message: 'Patient and at least one medicine required' });
+    }
+    // Doc 11 §7 acceptance 3: CDSS hard-stop — a critical allergy match
+    // blocks signing unless an override reason is recorded (audited below).
+    {
+      const norm = (s) => String(s || '').trim().toLowerCase();
+      const names = medicines.map((m) => m.medicineName).filter(Boolean);
+      const [patient, catalog] = await Promise.all([
+        User.findById(patientId).select('allergies').lean(),
+        Medicine.find({ $or: [{ name: { $in: names } }, { genericName: { $in: names } }] }).select('name genericName').lean(),
+      ]);
+      const known = new Set(catalog.flatMap((c) => [norm(c.name), norm(c.genericName)]));
+      const allergies = ((patient && patient.allergies) || []).map((a) => norm(a.allergen || a)).filter(Boolean);
+      const critical = [];
+      const seen = new Set();
+      for (const n of names) {
+        const key = norm(n);
+        if (seen.has(key)) { critical.push({ type: 'duplicate_therapy', drug: n }); continue; }
+        seen.add(key);
+        if (!known.has(key)) continue;
+        for (const al of allergies) {
+          if (al && (key.includes(al) || al.includes(key))) critical.push({ type: 'allergy', drug: n, allergen: al });
+        }
+      }
+      if (critical.length && !cdsOverrideReason) {
+        return res.status(409).json({ message: 'CDSS hard-stop: resolve or record an override reason', code: 'CDS_HARD_STOP', alerts: critical });
+      }
+      if (critical.length && cdsOverrideReason) {
+        await auditLog('cds_override', req.user._id, {
+          patientId, drugs: names, alerts: critical,
+          reason: String(cdsOverrideReason).slice(0, 1000), ip: req.ip,
+        });
+      }
     }
 const prescriptionId = generatePrescriptionId();
     const prescription = await Prescription.create({
@@ -458,7 +494,12 @@ const prescriptionId = generatePrescriptionId();
         route: m.route || 'Oral', instructions: m.instructions || '',
         quantity: m.quantity, isDispensed: false,
       })),
-      diagnosis: diagnosis || '', clinicalNotes: clinicalNotes || '',
+      diagnosis: diagnosis || '', diagnosisIcd: diagnosisIcd || '',
+      followUpDate: followUpDate || null, genericPreferred: genericPreferred || false,
+      cdsOverride: cdsOverrideReason
+        ? { reason: String(cdsOverrideReason).slice(0, 1000), at: new Date(), by: req.user._id }
+        : undefined,
+      clinicalNotes: clinicalNotes || '',
       isEmergency: isEmergency || false, createdBy: req.user._id,
     });
 
@@ -501,6 +542,77 @@ const prescriptionId = generatePrescriptionId();
       type: 'pharmacy', userId: p._id.toString(),
     })));
     res.status(201).json({ ...prescription.toObject(), verifyToken });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// ─── Prescription → Orders (file 09 §9.3/F5: consult-to-order lineage) ──────
+// Only the prescribing clinician (or same-tenant doctor) may convert their
+// prescription into linked lab/pharmacy orders. Both carry prescriptionId +
+// encounterId and post Pending ChargeItems (final bill rolls them up).
+router.post('/prescriptions/:id/send-to-lab', protect, authorize('prescriptions:write'), async (req, res) => {
+  try {
+    const prescription = await Prescription.findById(req.params.id);
+    if (!prescription) return res.status(404).json({ message: 'Prescription not found' });
+    const { tests, priority, encounterId } = req.body || {};
+    if (!Array.isArray(tests) || !tests.length) {
+      return res.status(400).json({ message: 'tests[] required' });
+    }
+    const { default: LabOrder } = await import('../models/LabOrder.js');
+    const { default: ChargeItem } = await import('../models/ChargeItem.js');
+    const { generateOrderId } = await import('../utils/idGenerator.js');
+    const order = await LabOrder.create({
+      orderId: generateOrderId('LAB'), patientId: prescription.patientId, patientName: prescription.patientName,
+      doctorId: prescription.doctorId, doctorName: prescription.doctorName,
+      hospitalId: prescription.hospitalId || undefined, facilityId: prescription.facilityId || undefined,
+      tests: tests.map((t) => ({
+        testName: t.testName, category: t.category || 'Blood',
+        priority: t.priority || priority || 'Routine', status: 'Ordered', price: t.price || 0,
+      })),
+      clinicalNotes: prescription.clinicalNotes || '', priority: priority || 'Routine',
+      createdBy: req.user._id,
+      encounterId: encounterId || prescription.encounterId || undefined,
+      prescriptionId: prescription._id, appointmentId: prescription.appointmentId || undefined,
+    });
+    const items = (order.tests || []).map((t) => ({
+      encounterId: order.encounterId, patientId: order.patientId, hospitalId: order.hospitalId,
+      source: 'lab', sourceRef: { model: 'LabOrder', id: order._id },
+      description: t.testName, qty: 1, unitPrice: t.price || 0,
+      amount: t.price || 0, postedBy: req.user._id,
+    }));
+    if (items.length) await ChargeItem.insertMany(items);
+    await auditLog('prescription_to_lab', req.user._id, { prescriptionId: prescription._id, orderId: order._id, ip: req.ip });
+    res.status(201).json(order);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.post('/prescriptions/:id/send-to-pharmacy', protect, authorize('prescriptions:write'), async (req, res) => {
+  try {
+    const prescription = await Prescription.findById(req.params.id);
+    if (!prescription) return res.status(404).json({ message: 'Prescription not found' });
+    const { encounterId, deliveryAddress, phone } = req.body || {};
+    const { default: PharmacyOrder } = await import('../models/PharmacyOrder.js');
+    const { default: ChargeItem } = await import('../models/ChargeItem.js');
+    const items = (prescription.medicines || []).map((m) => ({
+      medicineName: m.medicineName, qty: m.quantity || 1, price: 0,
+    }));
+    if (!items.length) return res.status(400).json({ message: 'Prescription has no medicines' });
+    const order = await PharmacyOrder.create({
+      orderId: `PHARM-${Date.now().toString(36).toUpperCase()}`,
+      patientId: prescription.patientId, patientName: prescription.patientName,
+      phone: phone || '', deliveryAddress: deliveryAddress || '',
+      items, total: 0, prescriptionStatus: 'verified',
+      hospitalId: prescription.hospitalId || undefined, facilityId: prescription.facilityId || undefined,
+      createdBy: req.user._id,
+      encounterId: encounterId || prescription.encounterId || undefined,
+      prescriptionId: prescription._id, appointmentId: prescription.appointmentId || undefined,
+    });
+    await ChargeItem.insertMany(items.map((i) => ({
+      encounterId: order.encounterId, patientId: order.patientId, hospitalId: order.hospitalId,
+      source: 'pharmacy', sourceRef: { model: 'PharmacyOrder', id: order._id },
+      description: i.medicineName, qty: i.qty, unitPrice: 0, amount: 0, postedBy: req.user._id,
+    })));
+    await auditLog('prescription_to_pharmacy', req.user._id, { prescriptionId: prescription._id, orderId: order._id, ip: req.ip });
+    res.status(201).json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 

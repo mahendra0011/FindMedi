@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const admissionSchema = new mongoose.Schema({
   admissionId: { type: String, required: true, unique: true },
+  encounterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Encounter', default: null, index: true },
   patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   patientName: { type: String, required: true },
   bedId: { type: mongoose.Schema.Types.ObjectId, ref: 'Bed' },
