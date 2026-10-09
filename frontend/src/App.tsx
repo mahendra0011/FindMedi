@@ -288,6 +288,12 @@ const ClinicAnalytics = lazy(() => import('./pages/clinic/ClinicAnalytics'));
 const ClinicReviews = lazy(() => import('./pages/clinic/ClinicReviews'));
 const ClinicStaff = lazy(() => import('./pages/clinic/ClinicStaff'));
 const ClinicInventory = lazy(() => import('./pages/clinic/ClinicInventory'));
+const ClinicPackages = lazy(() => import('./pages/clinic/ClinicPackages'));
+const ClinicBranches = lazy(() => import('./pages/clinic/ClinicBranches'));
+const GrowthCharts = lazy(() => import('./pages/paed/GrowthCharts'));
+const VaccinationAlerts = lazy(() => import('./pages/paed/VaccinationAlerts'));
+const Partogram = lazy(() => import('./pages/paed/Partogram'));
+const NewbornScreening = lazy(() => import('./pages/paed/NewbornScreening'));
 const ClinicNotifications = lazy(() => import('./pages/clinic/ClinicNotifications'));
 const ClinicPlatformSettings = lazy(() => import('./pages/clinic/ClinicPlatformSettings'));
 
@@ -1119,6 +1125,12 @@ const CLINIC_ROLES = ['clinic_doctor', 'clinic_admin', 'clinic_receptionist', 'c
 <Route path="/clinic/platform-settings" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicPlatformSettings /></RoleRoute>} />
                     <Route path="/clinic/staff" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicStaff /></RoleRoute>} />
                     <Route path="/clinic/inventory" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicInventory /></RoleRoute>} />
+                    <Route path="/clinic/packages" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicPackages /></RoleRoute>} />
+                    <Route path="/clinic/branches" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicBranches /></RoleRoute>} />
+                    <Route path="/paed/growth-charts" element={<RoleRoute allowedRoles={CLINIC_ROLES}><GrowthCharts /></RoleRoute>} />
+                    <Route path="/paed/vaccination-alerts" element={<RoleRoute allowedRoles={CLINIC_ROLES}><VaccinationAlerts /></RoleRoute>} />
+                    <Route path="/paed/partogram" element={<RoleRoute allowedRoles={CLINIC_ROLES}><Partogram /></RoleRoute>} />
+                    <Route path="/paed/newborn-screening" element={<RoleRoute allowedRoles={CLINIC_ROLES}><NewbornScreening /></RoleRoute>} />
 <Route path="/clinic/notifications" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicNotifications /></RoleRoute>} />
 <Route path="/clinic/test-requests" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicTestRequests /></RoleRoute>} />
 <Route path="/clinic/payment-history" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicPaymentHistory /></RoleRoute>} />

@@ -13,8 +13,8 @@
 
 ## Summary
 
-- **290 models** across 289 files (0 skipped)
-- **6343 schema fields**, of which **708 classified as PII** in **203 collections**
+- **296 models** across 295 files (0 skipped)
+- **6441 schema fields**, of which **722 classified as PII** in **209 collections**
 - **6 collections** carry a TTL index
 - **103 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -24,15 +24,15 @@
 |---|---|
 | Credential | 4 |
 | Government ID | 1 |
-| Contact | 32 |
+| Contact | 33 |
 | Financial | 13 |
-| Health | 29 |
+| Health | 30 |
 | Demographic | 15 |
 | Location | 23 |
 | Image/Biometric | 4 |
 | Device/Network | 7 |
-| Identifier | 174 |
-| Identity | 77 |
+| Identifier | 179 |
+| Identity | 80 |
 
 ## Collections
 
@@ -91,6 +91,8 @@
 | `chroniccareplans` | ChronicCarePlan | 22 | 4 | 2 | — | Clinical records |
 | `cities` | City | 9 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `claims` | Claim | 30 | 2 | 5 | — | Clinical records |
+| `clinicbranches` | ClinicBranch | 10 | 3 | 0 | — | Clinical records |
+| `clinicpackages` | ClinicPackage | 14 | 2 | 0 | — | Clinical records |
 | `clinicprofiles` | ClinicProfile | 21 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `cmecredits` | CMECredit | 9 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `commissionconfigs` | CommissionConfig | 13 | 1 | 1 | — | Payment and ledger entries |
@@ -142,6 +144,7 @@
 | `formresponses` | FormResponse | 19 | 3 | 6 | — | Clinical records |
 | `formtemplates` | FormTemplate | 38 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `grns` | GRN | 19 | 0 | 3 | — | Operational config (organization/catalog record — not personal data) |
+| `growthcharts` | GrowthChart | 17 | 3 | 0 | — | Clinical records |
 | `healthpackages` | HealthPackage | 17 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `hospitals` | Hospital | 52 | 0 | 6 | — | Operational config (organization/catalog record — not personal data) |
 | `housekeepings` | Housekeeping | 15 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
@@ -190,6 +193,7 @@
 | `mtpregisters` | MtpRegister | 12 | 3 | 1 | — | **UNMAPPED — see gaps** |
 | `nabhassessments` | NabhAssessment | 10 | 0 | 3 | — | No PII fields detected |
 | `nabhchapters` | NabhChapter | 9 | 0 | 1 | — | No PII fields detected |
+| `newbornscreenings` | NewbornScreening | 16 | 3 | 1 | — | Clinical records |
 | `notificationaudits` | NotificationAudit | 11 | 1 | 6 | — | Audit logs |
 | `notificationdeliveries` | NotificationDelivery | 19 | 1 | 6 | — | Notifications |
 | `notificationpreferences` | NotificationPreference | 15 | 2 | 1 | — | **UNMAPPED — see gaps** |
@@ -205,6 +209,7 @@
 | `outboundcampaigns` | OutboundCampaign | 14 | 2 | 2 | — | **UNMAPPED — see gaps** |
 | `outboxevents` | OutboxEvent | 15 | 0 | 9 | — | No PII fields detected |
 | `partners` | Partner | 23 | 2 | 6 | — | **UNMAPPED — see gaps** |
+| `partograms` | Partogram | 29 | 2 | 0 | — | Clinical records |
 | `patientaddresses` | PatientAddress | 11 | 4 | 1 | — | Clinical records |
 | `patientflags` | PatientFlag | 10 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `patientmovements` | PatientMovement | 23 | 1 | 6 | — | Clinical records |
@@ -307,6 +312,7 @@
 | `transactionledgers` | TransactionLedger | 20 | 4 | 9 | — | Payment and ledger entries |
 | `triages` | Triage | 46 | 16 | 2 | — | Clinical records |
 | `users` | User | 103 | 27 | 18 | — | **UNMAPPED — see gaps** |
+| `vaccinationalerts` | VaccinationAlert | 12 | 1 | 1 | — | Clinical records |
 | `vaccinationschedules` | VaccinationSchedule | 17 | 1 | 5 | — | Clinical records |
 | `vehicles` | Vehicle | 20 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `vendorbills` | VendorBill | 21 | 1 | 5 | — | **UNMAPPED — see gaps** |
@@ -2558,6 +2564,48 @@ Indexes:
 | `status:1` |  |
 | `hospitalId:1, status:1` |  |
 
+### `clinicbranches` — ClinicBranch
+
+source `ClinicBranch.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Contact, Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId | yes |  |  |  | Facility |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `address` | String |  |  |  |  |  | Contact |
+| `city` | String |  |  |  |  |  |  |
+| `phone` | String |  |  |  |  |  | Contact |
+| `manager` | ObjectId |  |  |  |  | User |  |
+| `active` | Boolean |  |  | true |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+_No indexes beyond the default `_id`._
+
+### `clinicpackages` — ClinicPackage
+
+source `ClinicPackage.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Identifier, Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId | yes |  |  |  | Facility |  |
+| `branchId` | String |  |  |  |  |  |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `category` | String |  |  |  |  |  |  |
+| `description` | String |  |  |  |  |  |  |
+| `price` | Number | yes |  |  |  |  |  |
+| `mrp` | Number |  |  |  |  |  |  |
+| `includedServices` | Array<Mixed> |  |  |  |  |  |  |
+| `validDays` | Number |  |  |  |  |  |  |
+| `active` | Boolean |  |  | true |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+_No indexes beyond the default `_id`._
+
 ### `clinicprofiles` — ClinicProfile
 
 source `ClinicProfile.js` · timestamps: yes · virtuals: 11 · retention: n/a — no personal data in this collection
@@ -4566,6 +4614,32 @@ Indexes:
 | `qcStatus:1` |  |
 | `hospitalId:1, qcStatus:1` |  |
 
+### `growthcharts` — GrowthChart
+
+source `GrowthChart.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Health, Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId | yes |  |  |  | Facility |  |
+| `patientId` | ObjectId | yes |  |  |  | Patient | Identifier |
+| `sex` | String | yes |  |  | male, female |  |  |
+| `birthDate` | Date | yes |  |  |  |  |  |
+| `points` | Array<subdocument> |  |  |  |  |  |  |
+| `points.date` | Date | yes |  |  |  |  |  |
+| `points.weightKg` | Number |  |  |  |  |  |  |
+| `points.heightCm` | Number |  |  |  |  |  |  |
+| `points.headCircCm` | Number |  |  |  |  |  |  |
+| `points.bmi` | Number |  |  |  |  |  | Health |
+| `points.percentileWt` | Number |  |  |  |  |  |  |
+| `points.percentileHt` | Number |  |  |  |  |  |  |
+| `points.percentileBmi` | Number |  |  |  |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+_No indexes beyond the default `_id`._
+
 ### `healthpackages` — HealthPackage
 
 source `HealthPackage.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data in this collection
@@ -6433,6 +6507,35 @@ Indexes:
 |---|---|
 | `code:1` | unique |
 
+### `newbornscreenings` — NewbornScreening
+
+source `NewbornScreening.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Identifier, Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId | yes |  |  |  | Facility |  |
+| `patientId` | ObjectId | yes |  |  |  | Patient | Identifier |
+| `birthDate` | Date | yes |  |  |  |  |  |
+| `screeningDate` | Date |  |  |  |  |  |  |
+| `tests` | Array<subdocument> |  |  |  |  |  |  |
+| `tests.name` | String |  |  |  |  |  | Identity |
+| `tests.result` | String |  |  |  |  |  |  |
+| `tests.normal` | Boolean |  |  |  |  |  |  |
+| `tests.flagged` | Boolean |  |  |  |  |  |  |
+| `tests.notes` | String |  |  |  |  |  |  |
+| `status` | String |  |  | "pending" | pending, done, flagged, referred |  |  |
+| `referredTo` | String |  |  |  |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `patientId:1, status:1` |  |
+
 ### `notificationaudits` — NotificationAudit
 
 source `NotificationAudit.js` · virtuals: 0 · retention: 7 years (longer than the data they describe) (docs/privacy/RETENTION.md) · PII: Identifier
@@ -6991,6 +7094,44 @@ Indexes:
 | `stage:1` |  |
 | `ownerId:1` |  |
 | `ownerId:1, stage:1` |  |
+
+### `partograms` — Partogram
+
+source `Partogram.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId | yes |  |  |  | Facility |  |
+| `patientId` | ObjectId | yes |  |  |  | Patient | Identifier |
+| `admissionId` | ObjectId |  |  |  |  | Admission |  |
+| `labourOnset` | Date |  |  |  |  |  |  |
+| `membraneRupture` | Date |  |  |  |  |  |  |
+| `deliveryTime` | Date |  |  |  |  |  |  |
+| `deliveryMode` | String |  |  |  | vaginal, instrumental, caesarean, unknown |  |  |
+| `babyWeightKg` | Number |  |  |  |  |  |  |
+| `babyApgar1` | Number |  |  |  |  |  |  |
+| `babyApgar5` | Number |  |  |  |  |  |  |
+| `babySex` | String |  |  |  | male, female, unknown |  |  |
+| `points` | Array<subdocument> |  |  |  |  |  |  |
+| `points.time` | Date | yes |  |  |  |  |  |
+| `points.cervixCm` | Number |  |  |  |  |  |  |
+| `points.descent` | Number |  |  |  |  |  |  |
+| `points.contractionsPer10Min` | Number |  |  |  |  |  |  |
+| `points.fetalHeartRate` | Number |  |  |  |  |  |  |
+| `points.maternalPulse` | Number |  |  |  |  |  |  |
+| `points.maternalBpSystolic` | Number |  |  |  |  |  |  |
+| `points.maternalBpDiastolic` | Number |  |  |  |  |  |  |
+| `points.tempC` | Number |  |  |  |  |  |  |
+| `points.urineProtein` | String |  |  |  |  |  |  |
+| `points.urineAcetone` | String |  |  |  |  |  |  |
+| `points.oxytocinDrops` | Number |  |  |  |  |  |  |
+| `points.fluidsGiven` | String |  |  |  |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+_No indexes beyond the default `_id`._
 
 ### `patientaddresses` — PatientAddress
 
@@ -10771,6 +10912,31 @@ Indexes:
 | `referral.code:1` | unique, sparse |
 | `healthIdCard.qrToken:1` | unique, sparse |
 | `healthIdCard.abhaNumber:1` |  |
+
+### `vaccinationalerts` — VaccinationAlert
+
+source `VaccinationAlert.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId | yes |  |  |  | Facility |  |
+| `patientId` | ObjectId | yes |  |  |  | Patient | Identifier |
+| `vaccineName` | String | yes |  |  |  |  |  |
+| `doseNumber` | Number | yes |  |  |  |  |  |
+| `dueDate` | Date | yes |  |  |  |  |  |
+| `administeredDate` | Date |  |  |  |  |  |  |
+| `administeredBy` | ObjectId |  |  |  |  | User |  |
+| `status` | String |  |  | "pending" | pending, administered, overdue, skipped |  |  |
+| `notes` | String |  |  |  |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `patientId:1, status:1, dueDate:1` |  |
 
 ### `vaccinationschedules` — VaccinationSchedule
 

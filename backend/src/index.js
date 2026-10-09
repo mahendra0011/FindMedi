@@ -748,6 +748,13 @@ import instantDispatchRoutes from './routes/instantDispatch.js';
 import mindsupportRoutes, { attachMindRealtime } from './routes/mindsupport.js';
 import routingRoutes from './routes/routing.js';
 import webhookRoutes from './routes/webhook.js';
+// File 22 P2-39/40: clinic packages, branches, growth charts, vaccination, partogram, newborn screening
+import clinicPackageRoutes from './routes/clinicBranches.js';
+import clinicBranchRoutes from './routes/clinicBranches.js';
+import growthChartRoutes from './routes/growthCharts.js';
+import vaccinationAlertRoutes from './routes/vaccinationAlerts.js';
+import partogramRoutes from './routes/partograms.js';
+import newbornScreeningRoutes from './routes/newbornScreening.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -1055,6 +1062,13 @@ app.use('/api/vitals-reminders', (req, res, next) => {
 });
 app.use('/api/care-plans', carePlanRoutes);
 app.use('/api/routing', routingRoutes);
+// File 22 P2-39/40: clinic packages/branches + paediatric clinical tools
+app.use('/api/clinic-packages', clinicPackageRoutes);
+app.use('/api/clinic-branches', clinicBranchRoutes);
+app.use('/api/growth-charts', growthChartRoutes);
+app.use('/api/vaccinations', vaccinationAlertRoutes);
+app.use('/api/partograms', partogramRoutes);
+app.use('/api/newborn-screening', newbornScreeningRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);
