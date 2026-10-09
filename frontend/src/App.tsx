@@ -287,6 +287,7 @@ const ClinicEarnings = lazy(() => import('./pages/clinic/ClinicEarnings'));
 const ClinicAnalytics = lazy(() => import('./pages/clinic/ClinicAnalytics'));
 const ClinicReviews = lazy(() => import('./pages/clinic/ClinicReviews'));
 const ClinicStaff = lazy(() => import('./pages/clinic/ClinicStaff'));
+const ClinicInventory = lazy(() => import('./pages/clinic/ClinicInventory'));
 const ClinicNotifications = lazy(() => import('./pages/clinic/ClinicNotifications'));
 const ClinicPlatformSettings = lazy(() => import('./pages/clinic/ClinicPlatformSettings'));
 
@@ -1092,38 +1093,37 @@ const App = () => (
                     <Route path="/psychiatrist/profile" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorProfile /></RoleRoute>} />
 
                     {/* Clinic Doctor routes */}
-                    <Route path="/clinic/dashboard" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicDashboard /></RoleRoute>} />
-                    <Route path="/clinic/overview" element={<RoleRoute allowedRoles={['clinic_doctor', 'hospital_admin']}><ClinicOverview /></RoleRoute>} />
-                    <Route path="/clinic/appointments/approve" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
-                    <Route path="/clinic/appointments/upcoming" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
-                    <Route path="/clinic/appointments/history" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
-                    <Route path="/clinic/appointments/approved" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
-                    <Route path="/clinic/appointments" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
-                    <Route path="/clinic/online-appointments" element={<RoleRoute allowedRoles={['clinic_doctor']}><DoctorOnlineAppointments /></RoleRoute>} />
-                    <Route path="/clinic/home-visit" element={<RoleRoute allowedRoles={['clinic_doctor']}><DoctorInPersonAppointments /></RoleRoute>} />
-                    <Route path="/clinic/in-person" element={<RoleRoute allowedRoles={['clinic_doctor']}><DoctorInPersonAppointments /></RoleRoute>} />
-                    <Route path="/clinic/chat" element={<RoleRoute allowedRoles={['clinic_doctor']}><ChatPage /></RoleRoute>} />
-                    <Route path="/clinic/calls" element={<RoleRoute allowedRoles={['clinic_doctor']}><DoctorCalls /></RoleRoute>} />
-                    <Route path="/clinic/call/:appointmentId" element={<RoleRoute allowedRoles={['clinic_doctor']}><DoctorCallRoom /></RoleRoute>} />
-                    <Route path="/clinic/video-calls" element={<RoleRoute allowedRoles={['clinic_doctor']}><DoctorVideoCalls /></RoleRoute>} />
-                    <Route path="/clinic/video-call/:appointmentId" element={<RoleRoute allowedRoles={['clinic_doctor']}><DoctorVideoCallRoom /></RoleRoute>} />
-                    <Route path="/clinic/schedule" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicSchedule /></RoleRoute>} />
-                    <Route path="/clinic/fees" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicFees /></RoleRoute>} />
-                    <Route path="/clinic/patients" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicPatients /></RoleRoute>} />
-                    <Route path="/clinic/prescriptions" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicPrescriptions /></RoleRoute>} />
-                    <Route path="/clinic/tests" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicTests /></RoleRoute>} />
-                    <Route path="/clinic/consultations" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicConsultations /></RoleRoute>} />
-                    <Route path="/clinic/management" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicManagement /></RoleRoute>} />
-                    <Route path="/clinic/billing" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicBilling /></RoleRoute>} />
-                    <Route path="/clinic/earnings" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicEarnings /></RoleRoute>} />
-                    <Route path="/clinic/reviews" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicReviews /></RoleRoute>} />
-                    <Route path="/clinic/settings" element={<RoleRoute allowedRoles={['clinic_doctor']}><AdminClinicSettings /></RoleRoute>} />
-                    <Route path="/clinic/platform-settings" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicPlatformSettings /></RoleRoute>} />
-                    <Route path="/clinic/staff" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicStaff /></RoleRoute>} />
-                     <Route path="/clinic/notifications" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicNotifications /></RoleRoute>} />
-                     <Route path="/clinic/test-requests" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicTestRequests /></RoleRoute>} />
-                     <Route path="/clinic/payment-history" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicPaymentHistory /></RoleRoute>} />
-                     <Route path="/clinic/analytics" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAnalytics /></RoleRoute>} />
+const CLINIC_ROLES = ['clinic_doctor', 'clinic_admin', 'clinic_receptionist', 'clinic_nurse', 'clinic_accountant', 'clinic_pharmacist'];
+// File 22 P2-39: all clinic org roles can reach the clinic console; each page
+// still gates its own actions (e.g. only clinic_doctor writes prescriptions).
+<Route path="/clinic/dashboard" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicDashboard /></RoleRoute>} />
+<Route path="/clinic/overview" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicOverview /></RoleRoute>} />
+<Route path="/clinic/appointments/approve" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicAppointments /></RoleRoute>} />
+<Route path="/clinic/appointments/upcoming" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicAppointments /></RoleRoute>} />
+<Route path="/clinic/appointments/history" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicAppointments /></RoleRoute>} />
+<Route path="/clinic/appointments" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicAppointments /></RoleRoute>} />
+<Route path="/clinic/online-appointments" element={<RoleRoute allowedRoles={CLINIC_ROLES}><DoctorOnlineAppointments /></RoleRoute>} />
+<Route path="/clinic/home-visit" element={<RoleRoute allowedRoles={CLINIC_ROLES}><DoctorInPersonAppointments /></RoleRoute>} />
+<Route path="/clinic/in-person" element={<RoleRoute allowedRoles={CLINIC_ROLES}><DoctorInPersonAppointments /></RoleRoute>} />
+<Route path="/clinic/schedule" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicSchedule /></RoleRoute>} />
+<Route path="/clinic/fees" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicFees /></RoleRoute>} />
+<Route path="/clinic/patients" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicPatients /></RoleRoute>} />
+<Route path="/clinic/prescriptions" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicPrescriptions /></RoleRoute>} />
+<Route path="/clinic/tests" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicTests /></RoleRoute>} />
+<Route path="/clinic/consultations" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicConsultations /></RoleRoute>} />
+<Route path="/clinic/management" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicManagement /></RoleRoute>} />
+<Route path="/clinic/billing" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicBilling /></RoleRoute>} />
+<Route path="/clinic/earnings" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicEarnings /></RoleRoute>} />
+<Route path="/clinic/reviews" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicReviews /></RoleRoute>} />
+<Route path="/clinic/settings" element={<RoleRoute allowedRoles={CLINIC_ROLES}><AdminClinicSettings /></RoleRoute>} />
+<Route path="/clinic/platform-settings" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicPlatformSettings /></RoleRoute>} />
+                    <Route path="/clinic/staff" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicStaff /></RoleRoute>} />
+                    <Route path="/clinic/inventory" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicInventory /></RoleRoute>} />
+<Route path="/clinic/notifications" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicNotifications /></RoleRoute>} />
+<Route path="/clinic/test-requests" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicTestRequests /></RoleRoute>} />
+<Route path="/clinic/payment-history" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicPaymentHistory /></RoleRoute>} />
+<Route path="/clinic/analytics" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicAnalytics /></RoleRoute>} />
+<Route path="/clinic/inventory" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicInventory /></RoleRoute>} />
 
                     {/* Delivery Partner routes */}
                     <Route path="/delivery/dashboard" element={<Navigate to="/dashboard" replace />} />
