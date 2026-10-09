@@ -107,8 +107,29 @@ export async function mapExternalCode(hospitalId, integrationKey, domain, extern
 }
 
 // ─── Outbound webhook subscriptions ─────────────────────────────────────────
-function signPayload(secret, body) {
-  return nodeCrypto.createHmac('sha256', secret).update(body).digest('hex');
+// File 22 P1-26: signed deliveries with timestamp + replay protection.
+// Signature = HMAC-SHA256(secret, "<unix-seconds>.<body>"), sent as
+// X-Findmedi-Signature with X-Findmedi-Timestamp. Receivers reject bodies
+// older than 5 minutes or with a seen (sub, timestamp) pair — replays of a
+// captured payload fail the freshness check even with a valid signature.
+function signPayload(secret, timestamp, body) {
+  return nodeCrypto.createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
+}
+
+/**
+ * File 22 P1-26: receiver-side verification contract (timestamp freshness +
+ * constant-time compare). Exported for unit tests AND for any future inbound
+ * receiver — one definition, every checker.
+ */
+export function verifyWebhookPayload(secret, timestamp, body, signature, toleranceSec = 300) {
+  if (!secret || !signature) return { ok: false, reason: 'missing' };
+  const ts = Number(timestamp);
+  if (!ts || Math.abs(Date.now() / 1000 - ts) > toleranceSec) return { ok: false, reason: 'stale' };
+  const expected = signPayload(secret, String(timestamp), body);
+  const a = Buffer.from(expected);
+  const b = Buffer.from(String(signature));
+  if (a.length !== b.length) return { ok: false, reason: 'mismatch' };
+  return nodeCrypto.timingSafeEqual(a, b) ? { ok: true } : { ok: false, reason: 'mismatch' };
 }
 
 export async function deliverWebhook(delivery) {
@@ -119,15 +140,20 @@ export async function deliverWebhook(delivery) {
     await delivery.save();
     return delivery;
   }
-  const body = JSON.stringify({ event: delivery.event, payload: delivery.payload });
-  const signature = signPayload(sub.secret, body);
+  const timestamp = Math.floor(Date.now() / 1000);
+  const body = JSON.stringify({ event: delivery.event, payload: delivery.payload, sentAt: timestamp });
+  const signature = signPayload(sub.secret, timestamp, body);
   delivery.attempts += 1;
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 8000);
     const resp = await fetch(sub.url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Findmedi-Signature': signature },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Findmedi-Signature': signature,
+        'X-Findmedi-Timestamp': String(timestamp),
+      },
       body, signal: ctrl.signal,
     });
     clearTimeout(timer);
@@ -139,8 +165,11 @@ export async function deliverWebhook(delivery) {
     if (delivery.attempts >= 5) {
       delivery.status = 'failed';
     } else {
+      // Exponential backoff with jitter: 5m, 20m, 45m, 80m (±20%).
+      const baseMin = 5 * delivery.attempts * delivery.attempts;
+      const jitter = baseMin * (0.8 + Math.random() * 0.4);
       delivery.status = 'pending';
-      delivery.nextRetryAt = new Date(Date.now() + delivery.attempts * 5 * 60000);
+      delivery.nextRetryAt = new Date(Date.now() + jitter * 60000);
     }
   }
   await delivery.save();

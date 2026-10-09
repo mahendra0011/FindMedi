@@ -9,6 +9,9 @@ const callQueueSchema = new mongoose.Schema({
   status: { type: String, enum: ['waiting', 'assigned', 'done', 'missed'], default: 'waiting', index: true },
   assignedAgent: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   externalId: { type: String, default: '' },
+  // File 22 P1-27: DND-scrubbed callers never auto-dial; after-hours rings
+  // wait as callbacks.
+  dndHit: { type: Boolean, default: false },
 }, { timestamps: true });
 
 export default mongoose.models.CallQueue || mongoose.model('CallQueue', callQueueSchema);

@@ -115,9 +115,9 @@ export async function mountApp(name, models = {}, options = {}) {
   // below, so it wins).
   jest.unstable_mockModule('../../src/models/User.js', () => ({
     default: {
-      findById: () => ({
-        select: () => Promise.resolve({ _id: '64b0000000000000000ee', twoFactorEnabled: false }),
-      }),
+      // Chainable like a real mongoose query (select/lean) AND thenable, so
+      // routes can use production-shaped chains without每条 spec restubbing.
+      findById: () => query({ _id: '64b0000000000000000ee', twoFactorEnabled: false }),
     },
     // P2-11: routes/auth.js imports this named helper (history checks).
     passwordMatchesHash: async () => ({ ok: false, legacy: false }),
@@ -174,6 +174,10 @@ export const query = (value) => {
     select: () => q, populate: () => q, sort: () => q, limit: () => q,
     skip: () => q, lean: () => q, exec: () => q,
     then: (resolve) => Promise.resolve(value).then(resolve),
+    // Real queries are fully thenable (including .catch); without this,
+    // production-shaped `find().lean().catch(fallback)` chains throw
+    // TypeError under the harness instead of degrading.
+    catch: (fn) => Promise.resolve(value).catch(fn),
   };
   return q;
 };

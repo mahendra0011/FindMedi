@@ -93,6 +93,13 @@ export function startScheduler() {
     } catch (e) {
       logger.warn(`[scheduler:reconcile] ${e.message}`);
     }
+    // File 22 P1-27: call-recording retention purge.
+    try {
+      const { purgeOldRecordings } = await import('../routes/contactCenter.js');
+      await purgeOldRecordings();
+    } catch (e) {
+      logger.warn(`[scheduler:recordings] ${e.message}`);
+    }
   }));
   // Nightly 01:30: daily metrics + report schedules due.
   tasks.push(cron.schedule('30 1 * * *', async () => {

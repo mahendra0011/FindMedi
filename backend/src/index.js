@@ -391,6 +391,8 @@ app.use(cookieParser());
 app.use('/api/webhooks', express.raw({ type: 'application/json', limit: '1mb' }), webhookRoutes);
 // File 16 §16.2: gateway webhooks need the same raw-body treatment for HMAC.
 app.use('/api/checkout/webhooks', express.raw({ type: 'application/json', limit: '1mb' }));
+// File 22 P1-27: telephony provider webhooks are HMAC'd over raw bytes too.
+app.use('/api/contact-center/telephony/webhook', express.raw({ type: 'application/json', limit: '1mb' }));
 
 // CHAT-M-02: /api/chat/upload receives base64-encoded files up to 25MB (~34MB
 // of base64 text), which the global 1mb JSON cap silently rejected with 413 —

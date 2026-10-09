@@ -13,10 +13,10 @@
 
 ## Summary
 
-- **278 models** across 277 files (0 skipped)
-- **6157 schema fields**, of which **685 classified as PII** in **193 collections**
+- **280 models** across 279 files (0 skipped)
+- **6193 schema fields**, of which **688 classified as PII** in **195 collections**
 - **6 collections** carry a TTL index
-- **93 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
+- **95 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
 ### PII categories
 
@@ -24,15 +24,15 @@
 |---|---|
 | Credential | 4 |
 | Government ID | 1 |
-| Contact | 30 |
+| Contact | 31 |
 | Financial | 13 |
 | Health | 29 |
 | Demographic | 14 |
 | Location | 23 |
 | Image/Biometric | 4 |
 | Device/Network | 7 |
-| Identifier | 166 |
-| Identity | 73 |
+| Identifier | 167 |
+| Identity | 74 |
 
 ## Collections
 
@@ -72,7 +72,7 @@
 | `bmwlogs` | BmwLog | 13 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `breakglassgrants` | BreakGlassGrant | 23 | 0 | 6 | — | No PII fields detected |
 | `calllogs` | CallLog | 16 | 0 | 5 | — | No PII fields detected |
-| `callqueues` | CallQueue | 10 | 2 | 2 | — | **UNMAPPED — see gaps** |
+| `callqueues` | CallQueue | 11 | 2 | 2 | — | **UNMAPPED — see gaps** |
 | `campaigns` | Campaign | 18 | 1 | 5 | — | **UNMAPPED — see gaps** |
 | `casepresentations` | CasePresentation | 14 | 0 | 4 | — | No PII fields detected |
 | `cashcounters` | CashCounter | 8 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
@@ -87,13 +87,13 @@
 | `chemoprotocols` | ChemoProtocol | 16 | 3 | 2 | — | Clinical records |
 | `chroniccareplans` | ChronicCarePlan | 22 | 4 | 2 | — | Clinical records |
 | `cities` | City | 9 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
-| `claims` | Claim | 25 | 2 | 5 | — | Clinical records |
+| `claims` | Claim | 30 | 2 | 5 | — | Clinical records |
 | `clinicprofiles` | ClinicProfile | 21 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `cmecredits` | CMECredit | 9 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `commissionconfigs` | CommissionConfig | 13 | 1 | 1 | — | Payment and ledger entries |
 | `consentforms` | ConsentForm | 17 | 2 | 5 | — | ABDM consent records |
 | `consentrecords` | ConsentRecord | 14 | 2 | 4 | — | ABDM consent records |
-| `contracts` | Contract | 13 | 0 | 4 | — | No PII fields detected |
+| `contracts` | Contract | 19 | 0 | 4 | — | No PII fields detected |
 | `corporateemployees` | CorporateEmployee | 8 | 1 | 2 | — | **UNMAPPED — see gaps** |
 | `corporates` | Corporate | 10 | 2 | 1 | — | **UNMAPPED — see gaps** |
 | `credentials` | Credential | 12 | 0 | 4 | — | No PII fields detected |
@@ -117,6 +117,7 @@
 | `dischargeworkflows` | DischargeWorkflow | 31 | 2 | 4 | — | Clinical records |
 | `discountpolicies` | DiscountPolicy | 10 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `disputes` | Dispute | 36 | 1 | 4 | — | Payment and ledger entries |
+| `dndentries` | DndEntry | 8 | 2 | 3 | — | **UNMAPPED — see gaps** |
 | `doctorfees` | DoctorFee | 12 | 2 | 3 | — | **UNMAPPED — see gaps** |
 | `doctors` | Doctor | 117 | 11 | 15 | — | Provider KYC documents |
 | `emergencies` | Emergency | 20 | 7 | 2 | — | Ride and SOS location traces |
@@ -124,7 +125,7 @@
 | `emergencyrequests` | EmergencyRequest | 62 | 17 | 4 | — | Ride and SOS location traces |
 | `encounters` | Encounter | 24 | 2 | 8 | — | Clinical records |
 | `enquiries` | Enquiry | 13 | 3 | 4 | — | **UNMAPPED — see gaps** |
-| `equipment` | Equipment | 16 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
+| `equipment` | Equipment | 22 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `eventregistrations` | EventRegistration | 17 | 2 | 5 | — | **UNMAPPED — see gaps** |
 | `events` | Event | 44 | 4 | 8 | — | **UNMAPPED — see gaps** |
 | `expenses` | Expense | 15 | 1 | 4 | — | Payment and ledger entries |
@@ -154,8 +155,8 @@
 | `insurers` | Insurer | 12 | 2 | 3 | — | **UNMAPPED — see gaps** |
 | `integrationconfigs` | IntegrationConfig | 18 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `integrationmessages` | IntegrationMessage | 10 | 0 | 5 | — | No PII fields detected |
-| `interactions` | Interaction | 16 | 2 | 5 | — | **UNMAPPED — see gaps** |
-| `inventories` | Inventory | 23 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
+| `interactions` | Interaction | 18 | 2 | 5 | — | **UNMAPPED — see gaps** |
+| `inventories` | Inventory | 24 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `invoiceseries` | InvoiceSeries | 7 | 0 | 2 | — | No PII fields detected |
 | `ipddeposits` | IpdDeposit | 15 | 2 | 4 | — | Payment and ledger entries |
 | `kpidefinitions` | KpiDefinition | 9 | 1 | 1 | — | **UNMAPPED — see gaps** |
@@ -215,6 +216,7 @@
 | `platformcouponredemptions` | PlatformCouponRedemption | 8 | 1 | 4 | — | Payment and ledger entries |
 | `platformcoupons` | PlatformCoupon | 17 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `platformcouponuserusages` | PlatformCouponUserUsage | 6 | 1 | 1 | — | Payment and ledger entries |
+| `pmjaypackages` | PmjayPackage | 7 | 1 | 1 | — | **UNMAPPED — see gaps** |
 | `policyacceptances` | PolicyAcceptance | 12 | 4 | 4 | — | **UNMAPPED — see gaps** |
 | `practitionerprofiles` | PractitionerProfile | 31 | 5 | 6 | — | Provider KYC documents |
 | `preauthrequests` | PreAuthRequest | 25 | 3 | 4 | — | Clinical records |
@@ -345,6 +347,7 @@ cover yet — each needs a decision, not a guess:
 - `dentaltreatmentplans`
 - `dialysissessions`
 - `dialysiswaterqualities`
+- `dndentries`
 - `doctorfees`
 - `enquiries`
 - `eventregistrations`
@@ -376,6 +379,7 @@ cover yet — each needs a decision, not a guess:
 - `patientflags`
 - `payoutstatements`
 - `payslips`
+- `pmjaypackages`
 - `policyacceptances`
 - `preferredpharmacies`
 - `pushsubscriptions`
@@ -1853,6 +1857,7 @@ source `CallQueue.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED
 | `status` | String |  |  | "waiting" | waiting, assigned, done, missed |  |  |
 | `assignedAgent` | ObjectId |  |  | null |  | User |  |
 | `externalId` | String |  |  | "" |  |  |  |
+| `dndHit` | Boolean |  |  | false |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -2418,6 +2423,11 @@ source `Claim.js` · timestamps: yes · virtuals: 0 · retention: Statutory peri
 | `shortSettlement` | Array<subdocument> |  |  |  |  |  |  |
 | `shortSettlement.reason` | String |  |  |  |  |  |  |
 | `shortSettlement.amount` | Number |  |  |  |  |  |  |
+| `deductions` | Array<subdocument> |  |  |  |  |  |  |
+| `deductions.kind` | String |  |  | "" |  |  |  |
+| `deductions.amount` | Number |  |  | 0 |  |  |  |
+| `deductions.notes` | String |  |  | "" |  |  |  |
+| `deductions.at` | Date |  |  | [function] |  |  |  |
 | `appealOf` | ObjectId |  |  | null |  | Claim |  |
 | `createdBy` | ObjectId |  |  |  |  | User | Identifier |
 | `createdAt` | Date |  |  |  |  |  |  |
@@ -2599,6 +2609,12 @@ source `Contract.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `terms` | String |  |  | "" |  |  |  |
 | `documentUrl` | String |  |  | "" |  |  |  |
 | `status` | String |  |  | "active" | active, expired, terminated |  |  |
+| `lines` | Array<subdocument> |  |  |  |  |  |  |
+| `lines.item` | String |  |  | "" |  |  |  |
+| `lines.rate` | Number |  |  | 0 |  |  |  |
+| `enforceMax` | Boolean |  |  | false |  |  |  |
+| `assetUnitId` | ObjectId |  |  | null |  | AssetUnit |  |
+| `equipmentName` | String |  |  | "" |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -3367,6 +3383,29 @@ Indexes:
 | `status:1, createdAt:-1` |  |
 | `raisedBy:1, createdAt:-1` |  |
 
+### `dndentries` — DndEntry
+
+source `DndEntry.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Contact, Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `phone` | String | yes |  |  |  |  | Contact |
+| `channel` | String |  |  | "all" | call, sms, whatsapp, all |  |  |
+| `reason` | String |  |  | "" |  |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `phone:1` |  |
+| `hospitalId:1, phone:1` | unique |
+
 ### `doctorfees` — DoctorFee
 
 source `DoctorFee.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier
@@ -3835,6 +3874,12 @@ source `Equipment.js` · timestamps: yes · virtuals: 0 · retention: n/a — no
 | `location` | String |  |  |  |  |  |  |
 | `notes` | String |  |  |  |  |  |  |
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `warrantyTill` | Date |  |  | null |  |  |  |
+| `amcVendor` | String |  |  | "" |  |  |  |
+| `contractId` | ObjectId |  |  | null |  | Contract |  |
+| `calibrationDue` | Date |  |  | null |  |  |  |
+| `nextPmDue` | Date |  |  | null |  |  |  |
+| `criticality` | String |  |  | "Medium" | Low, Medium, High, LifeSupport |  |  |
 | `createdAt` | Date |  |  | [function] |  |  |  |
 | `updatedAt` | Date |  |  | [function] |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -3844,6 +3889,7 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `hospitalId:1` |  |
+| `contractId:1` |  |
 
 ### `eventregistrations` — EventRegistration
 
@@ -4954,6 +5000,8 @@ source `Interaction.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPP
 | `recordingUrl` | String |  |  | "" |  |  |  |
 | `createdTicket` | ObjectId |  |  | null |  | WorkTask |  |
 | `externalId` | String |  |  | "" |  |  |  |
+| `dndHit` | Boolean |  |  | false |  |  |  |
+| `afterHours` | Boolean |  |  | false |  |  |  |
 | `at` | Date |  |  | [function] |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
@@ -4987,6 +5035,7 @@ source `Inventory.js` · timestamps: yes · virtuals: 0 · retention: n/a — no
 | `location` | String |  |  |  |  |  |  |
 | `expiryDate` | Date |  |  |  |  |  |  |
 | `batchNumber` | String |  |  |  |  |  |  |
+| `ved` | String |  |  | "Essential" | Vital, Essential, Desirable |  |  |
 | `transactionHistory` | Array<subdocument> |  |  |  |  |  |  |
 | `transactionHistory.type` | String |  |  |  | Purchase, Issue, Return, Adjustment |  |  |
 | `transactionHistory.quantity` | Number |  |  |  |  |  |  |
@@ -7388,6 +7437,26 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `couponCode:1, userId:1` | unique |
+
+### `pmjaypackages` — PmjayPackage
+
+source `PmjayPackage.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `code` | String | yes | yes |  |  |  |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `rate` | Number | yes |  |  |  |  |  |
+| `active` | Boolean |  |  | true |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `code:1` | unique |
 
 ### `policyacceptances` — PolicyAcceptance
 

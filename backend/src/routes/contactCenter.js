@@ -17,22 +17,55 @@ const router = express.Router();
 const actorId = (req) => req.user._id ?? req.user.id;
 const tenant = (req) => ({ hospitalId: req.user.hospitalId });
 
-// Provider webhook (Exotel-style): shared secret in header, raw-ish JSON.
+// Provider webhook (Exotel-style).
+// File 22 P1-27: HMAC-SHA256 over the RAW body (x-provider-signature) with
+// x-provider-timestamp (300s tolerance) — replays of a captured payload die
+// on freshness. Legacy exact-secret header still accepted with a warn log
+// (migration path, not the steady state).
 router.post('/telephony/webhook', async (req, res) => {
   try {
-    const secret = req.get('x-provider-secret') || '';
-    if (!process.env.TELEPHONY_WEBHOOK_SECRET || secret !== process.env.TELEPHONY_WEBHOOK_SECRET) {
-      return res.status(401).json({ message: 'Bad secret' });
+    const configured = process.env.TELEPHONY_WEBHOOK_SECRET || '';
+    if (!configured) return res.status(503).json({ message: 'Telephony receiver not configured' });
+    const raw = req.body instanceof Buffer ? req.body : Buffer.from(JSON.stringify(req.body || {}));
+    const sig = req.get('x-provider-signature') || '';
+    const ts = Number(req.get('x-provider-timestamp') || 0);
+    let authed = false;
+    if (sig) {
+      const { default: nodeCrypto } = await import('node:crypto');
+      const expected = nodeCrypto.createHmac('sha256', configured).update(raw).digest('hex');
+      const a = Buffer.from(expected);
+      const b = Buffer.from(String(sig));
+      const fresh = ts > 0 && Math.abs(Date.now() / 1000 - ts) <= 300;
+      authed = a.length === b.length && nodeCrypto.timingSafeEqual(a, b) && fresh;
+      if (sig && !fresh) return res.status(401).json({ message: 'Stale timestamp', code: 'STALE_TIMESTAMP' });
+    } else {
+      // Legacy fallback: exact secret match (no replay protection — migrate).
+      authed = req.get('x-provider-secret') === configured;
+      if (authed) logger.warn('[telephony] legacy secret auth used — migrate provider to HMAC');
     }
-    const { hospitalId, phone, externalId, event, durationSec, recordingUrl } = req.body || {};
+    if (!authed) return res.status(401).json({ message: 'Bad signature' });
+    const payload = req.body instanceof Buffer ? JSON.parse(raw.toString() || '{}') : (req.body || {});
+    const { hospitalId, phone, externalId, event, durationSec, recordingUrl } = payload;
     if (!hospitalId || !phone) return res.status(400).json({ message: 'hospitalId + phone required' });
+    const { default: DndEntry } = await import('../models/DndEntry.js');
+    const { safeFirst } = await import('../lib/approvalWiring.js');
+    const dnd = await safeFirst(DndEntry.findOne({ hospitalId, phone: String(phone) }).lean());
+    // Calling hours 09:00–21:00 IST (env-overridable); after-hours rings
+    // become callbacks instead of live queue entries.
+    const startH = Number(process.env.CALLING_HOURS_START ?? 9);
+    const endH = Number(process.env.CALLING_HOURS_END ?? 21);
+    const istH = Number(new Date(Date.now() + 5.5 * 3600 * 1000).getUTCHours());
+    const afterHours = istH < startH || istH >= endH;
     if (event === 'ring') {
-      await CallQueue.create({ hospitalId, phone, externalId: externalId || '' });
+      await CallQueue.create({
+        hospitalId, phone, externalId: externalId || '',
+        priority: afterHours ? 'callback' : 'normal', dndHit: Boolean(dnd),
+      });
     } else {
       await Interaction.create({
         hospitalId, channel: 'call', direction: 'in', phone,
         durationSec: Number(durationSec) || 0, recordingUrl: recordingUrl || '',
-        externalId: externalId || '',
+        externalId: externalId || '', dndHit: Boolean(dnd), afterHours,
       });
       if (event === 'missed') {
         await CallQueue.findOneAndUpdate(
@@ -41,7 +74,7 @@ router.post('/telephony/webhook', async (req, res) => {
         );
       }
     }
-    return res.json({ ok: true });
+    return res.json({ ok: true, dnd: Boolean(dnd), afterHours });
   } catch (err) {
     logger.error(`Telephony webhook error: ${err.message}`);
     return res.status(500).json({ message: err.message });
@@ -49,6 +82,101 @@ router.post('/telephony/webhook', async (req, res) => {
 });
 
 router.use(protect);
+
+// ─── DND registry ───────────────────────────────────────────────────────────
+router.get('/dnd', authorize('staff:view'), async (req, res) => {
+  try {
+    const { default: DndEntry } = await import('../models/DndEntry.js');
+    const filter = tenant(req);
+    if (req.query.phone) filter.phone = String(req.query.phone);
+    const rows = await DndEntry.find(filter).sort({ createdAt: -1 }).limit(300).lean();
+    return res.json({ dnd: rows });
+  } catch (err) {
+    logger.error(`DND list error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/dnd', authorize('staff:view'), async (req, res) => {
+  try {
+    const { default: DndEntry } = await import('../models/DndEntry.js');
+    const { phone, channel, reason } = req.body || {};
+    if (!phone) return res.status(400).json({ message: 'phone required' });
+    const row = await DndEntry.findOneAndUpdate(
+      { hospitalId: req.user.hospitalId, phone: String(phone) },
+      {
+        $set: {
+          channel: channel || 'all', reason: String(reason || '').slice(0, 200),
+          createdBy: actorId(req),
+        },
+      },
+      { upsert: true, new: true },
+    );
+    await auditLog('dnd_added', actorId(req), { phone, ip: req.ip });
+    return res.status(201).json({ id: String(row._id) });
+  } catch (err) {
+    logger.error(`DND add error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.delete('/dnd/:id', authorize('staff:view'), async (req, res) => {
+  try {
+    const { default: DndEntry } = await import('../models/DndEntry.js');
+    await DndEntry.findOneAndDelete({ _id: req.params.id, ...tenant(req) });
+    return res.json({ deleted: true });
+  } catch (err) {
+    logger.error(`DND delete error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Screen-pop: incoming-call lookup (identity + dues + flags) ────────────
+router.get('/screen-pop', authorize('staff:view'), async (req, res) => {
+  try {
+    const { phone } = req.query;
+    if (!phone) return res.status(400).json({ message: 'phone required' });
+    const digits = String(phone).replace(/\D/g, '').slice(-10);
+    const { default: Patient } = await import('../models/Patient.js');
+    const { default: Billing } = await import('../models/Billing.js');
+    const { safeFirst } = await import('../lib/approvalWiring.js');
+    const patient = await safeFirst(Patient.findOne({
+      ...tenant(req), phone: { $regex: `${digits}$` },
+    }).select('name phone uhid').lean());
+    let dues = 0;
+    let flags = [];
+    if (patient) {
+      const bills = await safeFirst(Billing.find({ hospitalId: req.user.hospitalId, patientId: patient.userId || patient._id })
+        .select('balance').limit(50).lean()) || [];
+      dues = bills.reduce((s, b) => s + (Number(b.balance) || 0), 0);
+      const { default: PatientFlag } = await import('../models/PatientFlag.js');
+      flags = await safeFirst(PatientFlag.find({ hospitalId: req.user.hospitalId, patient: patient._id, active: true })
+        .select('kind severity').lean()) || [];
+    }
+    const { default: DndEntry } = await import('../models/DndEntry.js');
+    const dnd = await safeFirst(DndEntry.findOne({ hospitalId: req.user.hospitalId, phone: String(phone) }).lean());
+    return res.json({ patient, dues, flags, dnd: Boolean(dnd) });
+  } catch (err) {
+    logger.error(`Screen-pop error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Scheduler hook: purge recordings older than retention (default 90 days).
+export async function purgeOldRecordings() {
+  let days = 90;
+  try {
+    const { default: SystemSetting } = await import('../models/SystemSetting.js');
+    const row = await SystemSetting.findOne({ key: 'callcenter.recordingRetentionDays' }).lean();
+    if (row) days = Number(row.value) || 90;
+  } catch { /* default stands */ }
+  const cutoff = new Date(Date.now() - days * 86400 * 1000);
+  const out = await Interaction.updateMany(
+    { recordingUrl: { $ne: '' }, createdAt: { $lte: cutoff } },
+    { $set: { recordingUrl: '' } },
+  );
+  return { purged: out.modifiedCount || 0, days };
+}
 
 router.get('/interactions', authorize('staff:view'), async (req, res) => {
   try {

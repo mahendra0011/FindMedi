@@ -14,17 +14,24 @@ export default function CallConsole() {
   const [queue, setQueue] = useState<any[]>([]);
   const [calls, setCalls] = useState<any[]>([]);
   const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [dnd, setDnd] = useState<any[]>([]);
+  const [dndPhone, setDndPhone] = useState('');
+  const [popPhone, setPopPhone] = useState('');
+  const [pop, setPop] = useState<any | null>(null);
   const [presence, setPresence] = useState('available');
   const [dispose, setDispose] = useState({ id: '', disposition: 'callback', notes: '' });
   const [camp, setCamp] = useState({ name: '', channel: 'sms', template: '', consentChecked: false });
 
   const load = async () => {
     try {
-      const [w, q, c, m]: any[] = await Promise.all([api.ccWallboard(), api.ccQueue(), api.ccInteractions({}), api.ccCampaigns()]);
+      const [w, q, c, m, d]: any[] = await Promise.all([
+        api.ccWallboard(), api.ccQueue(), api.ccInteractions({}), api.ccCampaigns(), api.ccDnd({}),
+      ]);
       setWall(w || {});
       setQueue(q?.queue || []);
       setCalls(c?.interactions || []);
       setCampaigns(m?.campaigns || []);
+      setDnd(d?.dnd || []);
     } catch { toast.error('Failed to load console'); }
   };
   useEffect(() => { load(); }, []);
@@ -100,8 +107,7 @@ export default function CallConsole() {
             ))}
             {queue.length === 0 ? <EmptyState title="Queue empty" /> : null}
           </CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-sm">Disposition</CardTitle></CardHeader>
-          <CardContent>
+        <Card><CardHeader><CardTitle className="text-sm">Disposition</CardTitle></CardHeader>          <CardContent>
             <form onSubmit={saveDisposition} className="space-y-1.5">
               <Input className="h-8 text-xs" placeholder="interaction id" value={dispose.id} onChange={(e) => setDispose({ ...dispose, id: e.target.value })} required />
               <div className="flex gap-1">
@@ -115,6 +121,42 @@ export default function CallConsole() {
             <div className="mt-2 max-h-40 space-y-1 overflow-auto">
               {calls.slice(0, 20).map((c) => (
                 <p key={c._id} className="rounded border px-2 py-1 font-mono text-[11px]">{c._id} · {c.channel}/{c.direction} · {c.phone} · {c.disposition || '—'}</p>
+              ))}
+            </div>
+          </CardContent></Card>
+      </div>
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Card><CardHeader><CardTitle className="text-sm">Screen-pop lookup</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex gap-1">
+              <Input className="h-8 text-xs" placeholder="incoming phone…" value={popPhone} onChange={(e) => setPopPhone(e.target.value)} />
+              <Button size="sm" onClick={async () => {
+                try { setPop(await api.ccScreenPop(popPhone)); }
+                catch { toast.error('Lookup failed'); }
+              }}>Pop</Button>
+            </div>
+            {pop ? (
+              <div className="rounded border p-2 text-xs">
+                <p><b>{pop.patient?.name || 'Unknown caller'}</b> {pop.patient?.uhid ? `· ${pop.patient.uhid}` : ''}</p>
+                <p>Dues ₹{(pop.dues || 0).toLocaleString('en-IN')} · Flags: {(pop.flags || []).map((f: any) => f.kind).join(', ') || '—'} · DND: {pop.dnd ? 'YES — do not call back' : 'no'}</p>
+              </div>
+            ) : null}
+          </CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-sm">DND registry ({dnd.length})</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex gap-1">
+              <Input className="h-8 text-xs" placeholder="phone" value={dndPhone} onChange={(e) => setDndPhone(e.target.value)} />
+              <Button size="sm" onClick={async () => {
+                try { await api.ccAddDnd({ phone: dndPhone }); setDndPhone(''); load(); }
+                catch { toast.error('Add failed'); }
+              }}>Add</Button>
+            </div>
+            <div className="max-h-28 space-y-1 overflow-auto">
+              {dnd.slice(0, 20).map((d: any) => (
+                <p key={d._id} className="flex items-center justify-between rounded border px-2 py-1 font-mono text-[11px]">
+                  <span>{d.phone} · {d.channel}</span>
+                  <button className="underline" onClick={() => api.ccRemoveDnd(d._id).then(load)}>remove</button>
+                </p>
               ))}
             </div>
           </CardContent></Card>

@@ -18,6 +18,9 @@ const interactionSchema = new mongoose.Schema({
   recordingUrl: { type: String, default: '' },
   createdTicket: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkTask', default: null },
   externalId: { type: String, default: '', index: true },
+  // File 22 P1-27: DND scrub hit, after-hours flag, recording retention.
+  dndHit: { type: Boolean, default: false },
+  afterHours: { type: Boolean, default: false },
   at: { type: Date, default: Date.now },
 }, { timestamps: true });
 
