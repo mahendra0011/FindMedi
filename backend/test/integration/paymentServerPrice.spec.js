@@ -94,6 +94,7 @@ const { as } = await mountApp('payments', {
       }),
     },
   }),
+  '../../src/models/ApprovalPolicy.js': () => ({ default: { findOne: () => query(null) } }),
 });
 
 const STAFF = { _id: 'adm-1', id: 'adm-1', role: 'hospital_admin', hospitalId: 'H1' };

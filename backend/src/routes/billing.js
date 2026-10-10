@@ -562,9 +562,32 @@ router.post('/:id/cancel', protect, authorize('billing:write'), paymentLimiter, 
 // DELETE /api/billing/:id
 router.delete('/:id', protect, authorize('billing:write'), paymentLimiter, async (req, res, next) => {
   try {
-    const bill = await Billing.findByIdAndDelete(req.params.id);
+    const bill = await Billing.findById(req.params.id);
     if (!bill) return res.status(404).json({ message: 'Bill not found' });
-    await auditLog('delete_billing', req.user._id, { billId: req.params.id });
+    if ((bill.paid || 0) > 0) {
+      const { default: ApprovalPolicy } = await import('../models/ApprovalPolicy.js');
+      const { resolveThreshold, safeFirst } = await import('../lib/approvalWiring.js');
+      const policy = await safeFirst(ApprovalPolicy.findOne({
+        hospitalId: bill.hospitalId, key: 'bill-cancel', active: true,
+      }).lean());
+      const { limit, roles } = resolveThreshold(policy, 'bill-cancel');
+      if (Number(bill.paid) >= (limit || 1)) {
+        const { ensureApproval, approvalError } = await import('./approvals.js');
+        try {
+          await ensureApproval({
+            req, policyKey: 'bill-cancel',
+            entityRef: { model: 'Billing', id: bill._id },
+            title: `Delete bill ${bill.invoiceId} (paid ₹${bill.paid})`,
+            amount: Number(bill.paid), roles,
+          });
+        } catch (e) {
+          if (approvalError(res, e)) return undefined;
+          throw e;
+        }
+      }
+    }
+    await Billing.deleteOne({ _id: bill._id });
+    await auditLog('delete_billing', req.user._id, { billId: req.params.id, paid: bill.paid || 0 });
     res.json({ success: true, message: 'Bill deleted' });
   } catch (err) { next(err); }
 });
@@ -609,10 +632,15 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
     if (!serviceType || !method) {
       return res.status(400).json({ message: 'serviceType and method are required' });
     }
-    // No provider adapter is currently connected to this route. Refuse to mint
-    // a fake completed payment in production; a signed provider settlement path
-    // must be installed before real customer money/fulfilment can be enabled.
-    if (process.env.NODE_ENV === 'production') {
+    // File 22 P0-9: when a live gateway provider is configured the pay path
+    // creates a REAL gateway order and returns its params — the payment only
+    // settles through a verified webhook. Without provider keys production
+    // stays fail-closed instead of minting a fake completed payment.
+    const { gatewayFor } = await import('../lib/gateways.js');
+    const requestedGateway = String(req.body.gateway || '').trim().toLowerCase();
+    const checkoutGateway = gatewayFor(requestedGateway || 'razorpay');
+    const liveGateway = checkoutGateway.name !== 'mock' && checkoutGateway.configured ? checkoutGateway : null;
+    if (!liveGateway && process.env.NODE_ENV === 'production') {
       return res.status(503).json({
         message: 'Online payments are temporarily unavailable until a payment provider is configured.',
         code: 'PAYMENT_PROVIDER_UNAVAILABLE',
@@ -979,6 +1007,81 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
       quantity: Number(item.qty) || 1,
       category: 'General',
     }));
+
+    if (liveGateway) {
+      let gatewayOrder;
+      try {
+        gatewayOrder = await liveGateway.createOrder({
+          amount,
+          receipt: bill_id,
+          customer: {
+            id: req.user._id.toString(),
+            name: req.user.name || '',
+            email: req.user.email || undefined,
+            phone: req.user.phone || undefined,
+          },
+        });
+      } catch (gwErr) {
+        if (paymentSession) {
+          await paymentSession.abortTransaction().catch(() => {});
+          paymentSession.endSession();
+          paymentSession = null;
+        }
+        return res.status(422).json({ message: gwErr.message, code: gwErr.code || 'GATEWAY_ERROR' });
+      }
+      const [gatewayPayment] = await Payment.create([{
+        transaction_id, invoice_id,
+        patient_id: req.user._id.toString(),
+        patient_name: req.user.name || 'Patient',
+        amount, method, status: 'pending',
+        serviceType, referenceId: referenceId || '',
+        description: description || `${serviceType} payment`,
+        provider: provider || '',
+        lineItems: lineItems || [],
+        gateway: liveGateway.name,
+        gatewayOrderId: String(gatewayOrder.gatewayOrderId || ''),
+        hospitalId: req.user.hospitalId || undefined,
+      }]);
+      if (paymentSession) {
+        if (appliedCoupon) {
+          await recordCouponRedemption({
+            code: appliedCoupon.code,
+            userId: req.user._id,
+            discountPaise: appliedCoupon.discountPaise,
+            orderRef: referenceId || invoice_id,
+            perUserLimit: appliedCoupon.coupon.perUserLimit,
+            session: paymentSession,
+          });
+        }
+        await paymentSession.commitTransaction();
+        paymentSession.endSession();
+        paymentSession = null;
+      }
+      try {
+        await auditLog('create_payment', req.user._id, {
+          transaction_id, amount, serviceType, referenceId, gateway: liveGateway.name,
+        });
+      } catch (auditErr) {
+        console.error('Failed to create audit log:', auditErr.message);
+      }
+      return res.status(201).json({
+        success: true,
+        requiresGatewayPayment: true,
+        gateway: liveGateway.name,
+        gatewayOrderId: gatewayOrder.gatewayOrderId,
+        gatewaySessionId: gatewayOrder.sessionId || null,
+        gatewayUrl: gatewayOrder.url || null,
+        gatewayParams: gatewayOrder.params || null,
+        transaction_id,
+        invoice_id,
+        payment: gatewayPayment,
+        appointment: createdAppointment,
+        appointmentStatus: createdAppointment?.status || null,
+        ...(appliedCoupon
+          ? { couponApplied: { code: appliedCoupon.code, discount: fromPaise(appliedCoupon.discountPaise) } }
+          : {}),
+      });
+    }
 
     let payment;
 

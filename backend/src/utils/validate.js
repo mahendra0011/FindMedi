@@ -1099,6 +1099,7 @@ export const createLabOrderSchema = z.object({
   })).min(1, 'At least one test required'),
   clinicalNotes: z.string().optional(),
   priority: z.string().optional(),
+  encounterId: objectIdSchema.optional(),
 });
 
 // â”€â”€â”€ Medicine Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1612,6 +1613,7 @@ export const createBillingSchema = z.object({
   doctorId: z.string().optional(),
   appointmentId: z.string().optional(),
   admissionId: z.string().optional(),
+  encounterId: objectIdSchema.optional(),
   service: z.string().trim().min(1, 'Service is required'),
   services: z.array(z.object({
     id: z.string().optional(),

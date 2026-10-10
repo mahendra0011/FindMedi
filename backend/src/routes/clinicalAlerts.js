@@ -57,6 +57,7 @@ router.post('/code-blue', protect, authorize('emergency:write'), requireStaff, a
       hospitalId, severity: 'critical',
       message: `CODE BLUE — Ward ${ward}, Bed ${bedId} (${patientName})${note ? `: ${note}` : ''}`,
       entityRef: { model: 'Emergency', id: null }, ruleKey: 'code-blue',
+      code: payload.alertId,
       by: req.user._id ?? req.user.id,
     });
     res.status(201).json({ success: true, ...payload, notifiedAdmins: notified });
@@ -96,6 +97,7 @@ router.post('/lab-panic', protect, authorize('emergency:write'), requireStaff, a
       hospitalId: req.user.hospitalId, severity: 'critical',
       message: `LAB PANIC — ${testName}: ${value} for ${patientName}`,
       entityRef: { model: 'LabOrder', id: null }, ruleKey: 'lab-panic',
+      code: payload.alertId,
       by: req.user._id ?? req.user.id,
     });
     res.status(201).json({ success: true, ...payload });
@@ -127,12 +129,50 @@ router.post('/mtp', protect, authorize('emergency:write'), requireStaff, async (
       hospitalId, severity: 'critical',
       message: `MTP ACTIVATED — ${payload.units} units ${bloodGroup} (${requester || 'ER'})`,
       entityRef: { model: 'BloodRequest', id: null }, ruleKey: 'mtp',
+      code: payload.alertId,
       by: req.user._id ?? req.user.id,
     });
     res.status(201).json({ success: true, ...payload, notifiedAdmins: notified });
   } catch (err) {
     logger.error(`MTP error: ${err.message}`);
     res.status(500).json({ message: err.message });
+  }
+});
+
+const CLINICAL_ALERT_CODE_RE = /^(CB|LP|MTP)-[0-9A-Z]{1,32}$/;
+
+router.post('/:code/ack', protect, authorize('emergency:write'), requireStaff, async (req, res) => {
+  try {
+    const code = String(req.params.code || '').trim().toUpperCase();
+    if (!CLINICAL_ALERT_CODE_RE.test(code)) {
+      return res.status(400).json({ message: 'Invalid clinical alert code' });
+    }
+    if (req.user.role !== 'superadmin' && !req.user.hospitalId) {
+      return res.status(403).json({ message: 'Hospital context required' });
+    }
+    const { default: DashboardAlert } = await import('../models/DashboardAlert.js');
+    const filter = { code, status: 'open' };
+    if (req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const alert = await DashboardAlert.findOne(filter);
+    if (!alert) return res.status(404).json({ message: 'Alert not found' });
+    alert.status = 'acked';
+    alert.ackedBy = req.user._id ?? req.user.id;
+    alert.ackedAt = new Date();
+    await alert.save();
+    const ack = {
+      alertId: code,
+      id: String(alert._id),
+      hospitalId: alert.hospitalId ? String(alert.hospitalId) : '',
+      by: String(alert.ackedBy),
+      at: alert.ackedAt.toISOString(),
+      action: String(req.body?.action || 'ack'),
+    };
+    const io = getIO();
+    io?.to(`hospital:${alert.hospitalId}`).emit('clinical:ack', ack);
+    return res.json({ success: true, ...ack, alert });
+  } catch (err) {
+    logger.error(`Clinical alert ack error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
   }
 });
 

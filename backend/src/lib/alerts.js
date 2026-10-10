@@ -4,17 +4,18 @@
  * DashboardAlert row AND a `dashboard:alert` socket push — the Action Center
  * and the realtime feed can never disagree.
  */
-export async function raiseAlert({ hospitalId, severity = 'warning', message, entityRef = {}, ruleKey = '', by = null }) {
+export async function raiseAlert({ hospitalId, severity = 'warning', message, entityRef = {}, ruleKey = '', by = null, code = '' }) {
   const { default: DashboardAlert } = await import('../models/DashboardAlert.js');
   const row = await DashboardAlert.create({
     hospitalId, type: 'other', severity, entityRef,
     message: String(message || '').slice(0, 500), status: 'open',
+    code: String(code || ''),
   }).catch(() => null);
   try {
     const { emitDashboardAlert } = await import('../services/socketService.js');
     emitDashboardAlert(hospitalId, {
       id: String(row?._id || ''), severity, message: String(message || '').slice(0, 500),
-      entityRef, ruleKey,
+      entityRef, ruleKey, code: String(code || ''),
     });
   } catch { /* socket must never break alert persistence */ }
   // Trace manual/rule firings in the rule ledger when a rule key is present.

@@ -34,48 +34,6 @@ const LAB_STAFF_ROLES = ['lab_owner', 'lab_receptionist', 'lab_technician', 'pat
 // Report courier dispatch ke liye allowed roles (doctors bhi bhej sakte hain).
 const REPORT_DISPATCH_ROLES = [...LAB_STAFF_ROLES, 'doctor', 'clinic_doctor', 'radiologist'];
 
-// File 15/09 Flow E: analyzer ingestion — HL7 v2 ORU^R01 accepted from a
-// service account (x-api-key, e.g. instrument middleware) or lab staff
-// session. Matches OBR orderId → LabOrder, fills OBX values, flags
-// criticals. Malformed input fails closed; every match is audited.
-router.post('/ingest/hl7', async (req, res, next) => {
-  if (req.headers?.['x-api-key']) return apiKeyAuth(req, res, next);
-  return protect(req, res, next);
-}, async (req, res) => {
-  try {
-    if (req.user && !['lab_owner', 'lab_technician', 'pathologist', 'hospital_admin', 'superadmin'].includes(req.user.role)) {
-      return res.status(403).json({ message: 'Lab ingestion access required' });
-    }
-    const { message } = req.body || {};
-    const parsed = parseHl7(message);
-    if (!parsed.ok) return res.status(400).json({ message: `Rejected: ${parsed.reason}` });
-    const matched = [];
-    const unmatched = [];
-    for (const obr of parsed.orders) {
-      const order = obr.orderId ? await LabOrder.findOne({ orderId: obr.orderId }) : null;
-      if (!order) { unmatched.push(obr.orderId || '(no id)'); continue; }
-      for (const obx of parsed.results) {
-        const test = (order.tests || []).find((t) =>
-          t.testName && (t.testName === obx.name || t.testName === obx.code));
-        if (!test) continue;
-        test.resultValue = obx.value;
-        if (obx.units) test.unit = obx.units;
-        if (obx.range) test.normalRange = obx.range;
-        if (isCriticalFlag(obx.flag)) test.isCritical = true;
-        if (test.status === 'Ordered' || test.status === 'Sample Needed') test.status = 'Completed';
-        matched.push({ orderId: order.orderId, test: test.testName, critical: Boolean(test.isCritical) });
-      }
-      await order.save();
-    }
-    await auditLog('hl7_ingested', req.user?._id || req.serviceAccount?.keyId || null, {
-      matched: matched.length, unmatched, ip: req.ip,
-    }).catch(() => {});
-    return res.json({ matched, unmatched });
-  } catch (err) {
-    return sendServerError(res, err, 'HL7 ingest failed');
-  }
-});
-
 const labRegisterSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), sampleType: sampleTypeSchema.optional() });
 const labCollectSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), rejectionReason: z.string().optional() });
 const labEnterResultSchema = z.object({ testIndex: z.number().int().nonnegative(), resultValue: z.string().min(1), normalRange: z.string().optional(), unit: z.string().optional() });
@@ -176,7 +134,7 @@ const router = express.Router();
 // ─── Doctor: Create Lab Order ──────────────────────────────────────────────
 router.post('/orders', protect, authorize('lab:book', 'lab:book:own'), validate(createLabOrderSchema), async (req, res) => {
   try {
-    const { patientId: bodyPatientId, patientName, tests, clinicalNotes, priority } = req.body;
+    const { patientId: bodyPatientId, patientName, tests, clinicalNotes, priority, encounterId } = req.body;
     if (!tests?.length) {
       return res.status(400).json({ message: 'At least one test is required' });
     }
@@ -193,6 +151,7 @@ const orderId = generateOrderId('LAB');
       orderId, accessionNo: `ACC-${Date.now().toString(36).toUpperCase()}`, patientId, patientName,
       doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,
       hospitalId: req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined,
+      encounterId: encounterId || undefined,
       tests: tests.map(t => ({
         testName: t.testName, category: t.category || 'Blood',
         priority: t.priority || priority || 'Routine', status: 'Ordered',

@@ -85,6 +85,7 @@ const prescriptionSchema = z.object({
   isEmergency: z.boolean().optional(),
   // File 22 P1-24: linked visit (tele-compliance checks run when set).
   appointmentId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
+  encounterId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
   medicines: z.array(z.object({
     // Field names mirror what the handler reads (m.medicineName, m.route, …).
     medicineId: z.string().min(1).max(100).optional(),
@@ -449,7 +450,7 @@ router.post('/prescriptions', protect, authorize('prescriptions:write'), (req, r
   next();
 }, validate(prescriptionSchema), async (req, res) => {
   try {
-    const { patientId, patientName, medicines, diagnosis, diagnosisIcd, followUpDate, genericPreferred, cdsOverrideReason, clinicalNotes, isEmergency, appointmentId } = req.body;
+    const { patientId, patientName, medicines, diagnosis, diagnosisIcd, followUpDate, genericPreferred, cdsOverrideReason, clinicalNotes, isEmergency, appointmentId, encounterId } = req.body;
     if (!patientId || !medicines?.length) {
       return res.status(400).json({ message: 'Patient and at least one medicine required' });
     }
@@ -464,9 +465,11 @@ router.post('/prescriptions', protect, authorize('prescriptions:write'), (req, r
       ? `${docProfile.councilRegNo}${docProfile.councilName ? ` (${docProfile.councilName})` : ''}` : '';
     let teleConsult = false;
     let teleConsentId = null;
+    let linkedEncounterId = encounterId || null;
     if (appointmentId) {
       const { default: Appointment } = await import('../models/Appointment.js');
-      const appt = await safeFirst(Appointment.findById(appointmentId).select('appointmentMode').lean());
+      const appt = await safeFirst(Appointment.findById(appointmentId).select('appointmentMode encounterId').lean());
+      if (appt && !linkedEncounterId && appt.encounterId) linkedEncounterId = appt.encounterId;
       if (appt && isTeleMode(appt.appointmentMode)) {
         teleConsult = true;
         const hits = checkTeleRx(medicines);
@@ -521,6 +524,8 @@ const prescriptionId = generatePrescriptionId();
       prescriptionId, patientId, patientName,
       doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,
       doctorRmp, teleConsult, teleConsentId,
+      appointmentId: appointmentId || undefined,
+      encounterId: linkedEncounterId || undefined,
       hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined,
       medicines: medicines.map(m => ({
         medicineId: m.medicineId, medicineName: m.medicineName,
@@ -536,6 +541,15 @@ const prescriptionId = generatePrescriptionId();
       clinicalNotes: clinicalNotes || '',
       isEmergency: isEmergency || false, createdBy: req.user._id,
     });
+
+    if (appointmentId) {
+      try {
+        const { backfillAppointmentPrescription } = await import('../lib/encounter.js');
+        await backfillAppointmentPrescription(appointmentId, prescription._id);
+      } catch (e) {
+        logger.warn(`prescription appointment back-fill failed: ${e.message}`);
+      }
+    }
 
     // REC-M-05: seal the clinical content before it is ever exposed. The token
     // goes into the printed QR; `integrity` makes later tampering detectable.

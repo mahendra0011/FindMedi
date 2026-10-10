@@ -588,7 +588,9 @@ router.post('/admissions/:id/bills/interim', protect, authorize('billing:write')
     const [{ default: ChargeItem }, { default: Billing }] = await Promise.all([
       import('../models/ChargeItem.js'), import('../models/Billing.js'),
     ]);
-    const charges = await ChargeItem.find({ admissionId: admission._id, status: 'Pending' });
+    const chargeOr = [{ admissionId: admission._id }];
+    if (admission.encounterId) chargeOr.push({ encounterId: admission.encounterId });
+    const charges = await ChargeItem.find({ $or: chargeOr, status: 'Pending' });
     if (!charges.length) return res.status(409).json({ message: 'No pending charges' });
     const total = +charges.reduce((s, c) => s + (c.amount || 0), 0).toFixed(2);
     const bill = await Billing.create({

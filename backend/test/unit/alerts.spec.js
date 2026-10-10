@@ -42,6 +42,23 @@ describe('raiseAlert', () => {
     const row = await raiseAlert({ hospitalId: 'h1', message: 'x' });
     expect(row._id).toBe('al2');
   });
+
+  test('a clinical alert code is persisted AND pushed so it can be acknowledged', async () => {
+    dashboardCreate.mockReset().mockResolvedValue({ _id: 'al3' });
+    emitDashboardAlert.mockReset().mockReturnValue(true);
+    ruleFindOne.mockReset().mockResolvedValue(null);
+    await raiseAlert({ hospitalId: 'h1', severity: 'critical', message: 'CODE BLUE', ruleKey: '', code: 'CB-1ABC2' });
+    expect(dashboardCreate.mock.calls[0][0]).toMatchObject({ code: 'CB-1ABC2', status: 'open' });
+    expect(emitDashboardAlert).toHaveBeenCalledWith('h1', expect.objectContaining({ code: 'CB-1ABC2' }));
+  });
+
+  test('alerts raised without a code store an empty code, not undefined', async () => {
+    dashboardCreate.mockReset().mockResolvedValue({ _id: 'al4' });
+    emitDashboardAlert.mockReset().mockReturnValue(true);
+    ruleFindOne.mockReset().mockResolvedValue(null);
+    await raiseAlert({ hospitalId: 'h1', message: 'y' });
+    expect(dashboardCreate.mock.calls[0][0]).toMatchObject({ code: '' });
+  });
 });
 
 describe('escalateAlertsTenant', () => {

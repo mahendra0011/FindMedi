@@ -200,8 +200,8 @@ export const ROLE_PERMISSIONS = {
   // 8.md 4: city + service-city launch/pause (delete stays superadmin).
   city_manager: ['cities:read', 'cities:write', 'service-cities:read', 'service-cities:write', 'crm:read', 'crm:write'],
   hospital_admin: [
-    'hospital:manage', 'staff:manage', 'beds:manage', 'departments:manage',
-    'records:read', 'records:write', 'billing:read', 'billing:write',
+    'hospital:manage', 'staff:manage', 'staff:view', 'beds:manage', 'departments:manage',
+    'records:read', 'records:write', 'records:amend', 'billing:read', 'billing:write',
     'pharmacy:manage', 'pharmacy:read', 'pharmacy:dispense',
     'lab:manage', 'lab:read', 'lab:book', 'lab:enter_result', 'lab:verify',
     'reports:read', 'notifications:send', 'notifications:read',
@@ -427,12 +427,12 @@ export const ROLE_PERMISSIONS = {
   receptionist: [
     'appointments:read', 'appointments:write', 'patients:read',
     'billing:read', 'billing:write', 'chat:read', 'chat:write',
-    'notifications:read', 'profile:read:own', 'profile:write:own',
+    'notifications:read', 'profile:read:own', 'profile:write:own', 'staff:view',
   ],
   // ── Doc 12 §3 clinic org (tenant-scoped clinic staff) ────────────────
   clinic_admin: [
     'appointments:read', 'appointments:write', 'patients:read',
-    'records:read', 'billing:read', 'billing:write', 'staff:manage',
+    'records:read', 'billing:read', 'billing:write', 'staff:manage', 'staff:view',
     'inventory:manage', 'chat:read', 'chat:write', 'notifications:read',
     'profile:read:own', 'profile:write:own',
   ],
@@ -462,7 +462,7 @@ export const ROLE_PERMISSIONS = {
   front_desk: [
     'appointments:read', 'appointments:write', 'patients:read',
     'billing:read', 'billing:write', 'chat:read', 'chat:write',
-    'notifications:read', 'profile:read:own', 'profile:write:own',
+    'notifications:read', 'profile:read:own', 'profile:write:own', 'staff:view',
   ],
   billing_executive: [
     'billing:read', 'billing:write', 'patients:read', 'appointments:read',
@@ -488,11 +488,11 @@ export const ROLE_PERMISSIONS = {
   ],
   nursing_supervisor: [
     'records:read', 'vitals:write', 'patients:read', 'beds:read',
-    'staff:manage', 'notifications:read', 'profile:read:own', 'profile:write:own',
+    'staff:manage', 'staff:view', 'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   matron: [
     'records:read', 'vitals:write', 'patients:read', 'beds:read',
-    'staff:manage', 'notifications:read', 'profile:read:own', 'profile:write:own',
+    'staff:manage', 'staff:view', 'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   ward_nurse: [
     'records:read', 'vitals:write', 'patients:read', 'beds:read',
@@ -507,7 +507,7 @@ export const ROLE_PERMISSIONS = {
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   infection_control_nurse: [
-    'records:read', 'patients:read', 'reports:read',
+    'records:read', 'patients:read', 'reports:read', 'staff:view',
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   surgeon: [
@@ -540,7 +540,7 @@ export const ROLE_PERMISSIONS = {
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   hr_manager: [
-    'staff:manage', 'reports:read',
+    'staff:manage', 'staff:view', 'reports:read',
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   biomedical_engineer: [
@@ -567,11 +567,11 @@ export const ROLE_PERMISSIONS = {
     'patients:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   medical_records_officer: [
-    'records:read', 'patients:read', 'reports:read', 'dsr:read',
+    'records:read', 'patients:read', 'reports:read', 'dsr:read', 'staff:view',
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   quality_officer: [
-    'audit:read', 'reports:read', 'records:read',
+    'audit:read', 'reports:read', 'records:read', 'staff:view',
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   pharmacovigilance_officer: [
@@ -580,7 +580,7 @@ export const ROLE_PERMISSIONS = {
   ],
   call_center_agent: [
     'appointments:read', 'appointments:write', 'patients:read',
-    'chat:read', 'chat:write', 'notifications:read',
+    'chat:read', 'chat:write', 'notifications:read', 'staff:view',
     'profile:read:own', 'profile:write:own',
   ],
 };

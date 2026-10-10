@@ -32,6 +32,7 @@ const paymentSchema = new mongoose.Schema({
 paymentSchema.index({ transaction_id: 1 }, { unique: true, sparse: true });
 // Partial index me $ne supported nahi hai ($not me compile hota hai) — $gt: '' use karo.
 paymentSchema.index({ referenceId: 1, status: 1 }, { unique: true, partialFilterExpression: { status: 'completed', referenceId: { $type: 'string', $gt: '' } } });
+paymentSchema.index({ gatewayPaymentId: 1 }, { unique: true, partialFilterExpression: { gatewayPaymentId: { $type: 'string', $gt: '' } } });
 
 // PAY-M-06: round at write time. `createPaymentSchema` only checks the number
 // is positive, so without this a client-supplied 19.999999999 is stored as-is

@@ -236,7 +236,6 @@ router.put('/surgeries/:id/op-note', protect, async (req, res) => {
     if (teamFees) s.teamFees = teamFees;
     await s.save();
     // Auto-charge implants + consumables to the encounter/admission account.
-    const { default: ChargeItem } = await import('../models/ChargeItem.js');
     const lines = [
       ...(s.implants || []).map((i) => ({ description: `Implant: ${i.name}`, qty: 1, unitPrice: i.price || 0 })),
       ...(s.consumables || []).map((c) => ({ description: `Consumable: ${c.name}`, qty: c.qty || 1, unitPrice: c.price || 0 })),
@@ -244,8 +243,8 @@ router.put('/surgeries/:id/op-note', protect, async (req, res) => {
     // File 22 P0-4: team fees ride the same op-note (idempotent per surgery:
     // re-saving the note must not re-bill the team).
     const teamTotal = Number(s.teamFees?.surgeon || 0) + Number(s.teamFees?.assistant || 0) + Number(s.teamFees?.anaesthetist || 0);
+    const { postCharge } = await import('../lib/charges.js');
     if (teamTotal > 0) {
-      const { postCharge } = await import('../lib/charges.js');
       await postCharge({
         hospitalId: s.hospitalId, patientId: s.patientId,
         encounterId: s.encounterId || null, admissionId: s.admissionId || null,
@@ -254,15 +253,18 @@ router.put('/surgeries/:id/op-note', protect, async (req, res) => {
         qty: 1, unitPrice: teamTotal, postedBy: req.user._id,
       }).catch(() => null);
     }
-    if (lines.length) {
-      await ChargeItem.insertMany(lines.map((l) => ({
-        patientId: s.patientId, hospitalId: s.hospitalId,
+    let postedLines = 0;
+    for (const l of lines) {
+      const { deduped } = await postCharge({
+        hospitalId: s.hospitalId, patientId: s.patientId,
+        encounterId: s.encounterId || null, admissionId: s.admissionId || null,
         source: 'ot', sourceRef: { model: 'OperationTheatre', id: s._id },
         description: l.description, qty: l.qty, unitPrice: l.unitPrice,
-        amount: l.qty * l.unitPrice, postedBy: req.user._id,
-      })));
+        postedBy: req.user._id,
+      }).catch(() => ({ deduped: true }));
+      if (!deduped) postedLines += 1;
     }
-    res.json({ id: String(s._id), chargedLines: lines.length });
+    res.json({ id: String(s._id), chargedLines: postedLines });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 

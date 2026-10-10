@@ -14,7 +14,7 @@
 ## Summary
 
 - **304 models** across 299 files (0 skipped)
-- **6593 schema fields**, of which **730 classified as PII** in **215 collections**
+- **6594 schema fields**, of which **730 classified as PII** in **215 collections**
 - **6 collections** carry a TTL index
 - **103 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -108,7 +108,7 @@
 | `creditnotes` | CreditNote | 14 | 2 | 3 | — | Payment and ledger entries |
 | `dailymetrics` | DailyMetric | 6 | 0 | 2 | — | No PII fields detected |
 | `dailyrcmmetrics` | DailyRcmMetric | 11 | 0 | 3 | — | No PII fields detected |
-| `dashboardalerts` | DashboardAlert | 16 | 0 | 5 | — | No PII fields detected |
+| `dashboardalerts` | DashboardAlert | 17 | 0 | 6 | — | No PII fields detected |
 | `datasubjectrequests` | DataSubjectRequest | 18 | 1 | 7 | — | Audit logs |
 | `deathrecords` | DeathRecord | 18 | 2 | 1 | — | Clinical records |
 | `delegations` | Delegation | 10 | 0 | 1 | — | No PII fields detected |
@@ -222,7 +222,7 @@
 | `patientflags` | PatientFlag | 10 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `patientmovements` | PatientMovement | 23 | 1 | 6 | — | Clinical records |
 | `patients` | Patient | 42 | 10 | 9 | — | Clinical records |
-| `payments` | Payment | 31 | 2 | 4 | — | Payment and ledger entries |
+| `payments` | Payment | 31 | 2 | 5 | — | Payment and ledger entries |
 | `payouts` | Payout | 20 | 1 | 1 | — | Payment and ledger entries |
 | `payoutstatements` | PayoutStatement | 15 | 2 | 4 | — | **UNMAPPED — see gaps** |
 | `payslips` | Payslip | 21 | 1 | 4 | — | **UNMAPPED — see gaps** |
@@ -3055,6 +3055,7 @@ source `DashboardAlert.js` · timestamps: yes · virtuals: 0 · retention: n/a �
 | `entityRef.model` | String |  |  | "" |  |  |  |
 | `entityRef.id` | ObjectId |  |  | null |  |  |  |
 | `message` | String |  |  | "" |  |  |  |
+| `code` | String |  |  | "" |  |  |  |
 | `status` | String |  |  | "open" | open, acked, snoozed, resolved |  |  |
 | `escalationLevel` | Number |  |  | 0 |  |  |  |
 | `escalatedAt` | Date |  |  | null |  |  |  |
@@ -3073,6 +3074,7 @@ Indexes:
 | `hospitalId:1` |  |
 | `type:1` |  |
 | `severity:1` |  |
+| `code:1` |  |
 | `status:1` |  |
 | `hospitalId:1, status:1, severity:-1` |  |
 
@@ -7611,6 +7613,7 @@ Indexes:
 | `hospitalId:1` |  |
 | `transaction_id:1` | unique, sparse |
 | `referenceId:1, status:1` | unique, partial |
+| `gatewayPaymentId:1` | unique, partial |
 
 ### `payouts` — Payout
 

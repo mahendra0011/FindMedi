@@ -6,12 +6,17 @@ import { jest } from '@jest/globals';
 
 const findOne = jest.fn();
 const create = jest.fn();
+const apptFindByIdAndUpdate = jest.fn();
 
 jest.unstable_mockModule('../../src/models/Encounter.js', () => ({
   default: { findOne, create },
 }));
 
-const { ensureEncounter } = await import('../../src/lib/encounter.js');
+jest.unstable_mockModule('../../src/models/Appointment.js', () => ({
+  default: { findByIdAndUpdate: (...a) => apptFindByIdAndUpdate(...a) },
+}));
+
+const { ensureEncounter, backfillAppointmentPrescription } = await import('../../src/lib/encounter.js');
 
 describe('ensureEncounter', () => {
   test('reuses the open same-appointment encounter', async () => {
@@ -40,5 +45,21 @@ describe('ensureEncounter', () => {
     await ensureEncounter({ hospitalId: 'h1', patientId: 'p1' });
     expect(findOne).not.toHaveBeenCalled();
     expect(create).toHaveBeenCalled();
+  });
+});
+
+describe('backfillAppointmentPrescription', () => {
+  test('writes prescriptionId onto the appointment', async () => {
+    apptFindByIdAndUpdate.mockReset().mockResolvedValue({ _id: 'a1', prescriptionId: 'rx1' });
+    const row = await backfillAppointmentPrescription('a1', 'rx1');
+    expect(row.prescriptionId).toBe('rx1');
+    expect(apptFindByIdAndUpdate).toHaveBeenCalledWith('a1', { $set: { prescriptionId: 'rx1' } });
+  });
+
+  test('no-ops without an appointment or prescription id', async () => {
+    apptFindByIdAndUpdate.mockReset();
+    expect(await backfillAppointmentPrescription(null, 'rx1')).toBeNull();
+    expect(await backfillAppointmentPrescription('a1', null)).toBeNull();
+    expect(apptFindByIdAndUpdate).not.toHaveBeenCalled();
   });
 });

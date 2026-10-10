@@ -27,3 +27,9 @@ export async function ensureEncounter({
   });
   return enc;
 }
+
+export async function backfillAppointmentPrescription(appointmentId, prescriptionId) {
+  if (!appointmentId || !prescriptionId) return null;
+  const { default: Appointment } = await import('../models/Appointment.js');
+  return Appointment.findByIdAndUpdate(appointmentId, { $set: { prescriptionId } });
+}

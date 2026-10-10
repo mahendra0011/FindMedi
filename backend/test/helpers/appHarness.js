@@ -79,6 +79,10 @@ export async function mountApp(name, models = {}, options = {}) {
     (req.user && ['hospital_admin', 'superadmin'].includes(req.user.role))
       ? next()
       : res.status(403).json({ message: 'Admin access required' });
+  authStub.clinicalStaffOnly = (req, res, next) =>
+    (req.user && ['superadmin', 'hospital_admin', 'doctor', 'nurse'].includes(req.user.role))
+      ? next()
+      : res.status(403).json({ message: 'Clinical staff access required' });
   authStub.superadminOnly = (req, res, next) =>
     (req.user?.role === 'superadmin')
       ? next()

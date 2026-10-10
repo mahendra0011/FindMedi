@@ -61,6 +61,7 @@ export function emitDashboardAlert(hospitalId, alert) {
       id: alert.id || '', severity: alert.severity || 'warning',
       message: String(alert.message || '').slice(0, 500),
       entityRef: alert.entityRef || {}, ruleKey: alert.ruleKey || '',
+      code: alert.code || '',
       at: new Date().toISOString(),
     });
     return true;
@@ -421,6 +422,41 @@ export function attachEmergencySocketHandlers(socket, namespace) {
 }
 
 
+const HOSPITAL_ROOM_RE = /^hospital:([A-Za-z0-9_-]{1,64})$/;
+
+export function attachHospitalSocketHandlers(socket) {
+  socket.on('join_room', async (payload) => {
+    const room = typeof payload === 'string' ? payload : payload?.room;
+    if (typeof room !== 'string') return;
+    const match = HOSPITAL_ROOM_RE.exec(room);
+    if (!match) return;
+    const hospitalId = match[1];
+    const { userId, role } = socketIdentity(socket);
+    if (!userId) {
+      socket.emit('error:room', { room: 'hospital', id: hospitalId, message: 'Not authorized' });
+      return;
+    }
+    if (role !== 'superadmin') {
+      let caller;
+      try {
+        caller = await User.findById(userId).select('hospitalId').lean();
+      } catch (err) {
+        logger.warn(`hospital room join lookup failed user=${userId}: ${err.message}`);
+      }
+      if (!caller?.hospitalId || String(caller.hospitalId) !== hospitalId) {
+        logger.warn(`hospital room join denied user=${userId} hospital=${hospitalId}`);
+        socket.emit('error:room', { room: 'hospital', id: hospitalId, message: 'Not authorized' });
+        return;
+      }
+    }
+    socket.join(`hospital:${hospitalId}`);
+  });
+  socket.on('leave_room', (payload) => {
+    const room = typeof payload === 'string' ? payload : payload?.room;
+    if (typeof room === 'string' && HOSPITAL_ROOM_RE.test(room)) socket.leave(room);
+  });
+}
+
 const getAllowedSocketOrigins = () => {
   const envOrigins = [
     ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : []),
@@ -648,6 +684,8 @@ export async function initSocket(server) {
 
     // ─── Emergency SOS Events ──────────────────────────────────────────
     attachEmergencySocketHandlers(socket, io);
+
+    attachHospitalSocketHandlers(socket);
 
     // Chat Events
     // CHAT-B-01: joining used to be `socket.join('chat:'+id)` on a client-supplied

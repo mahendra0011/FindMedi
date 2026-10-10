@@ -12,6 +12,7 @@ import { paginatedResults } from '../utils/pagination.js';
 import { generateTransactionId } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 import { mirrorPayment } from '../lib/pgDualWrite.js';
+import { gatewayFor } from '../lib/gateways.js';
 import logger from '../config/logger.js';
 // A5 (5.md §15): a payment booked against an appointment is priced by the
 // server — the client amount is only a checksum against the doctor's listed fee.
@@ -19,6 +20,9 @@ import Appointment from '../models/Appointment.js';
 import { resolveAuthoritativeAmount, assertAmountMatches } from '../services/pricingService.js';
 
 const router = express.Router();
+
+const LIVE_GATEWAYS = ['razorpay', 'cashfree', 'payu', 'phonepe'];
+const liveGatewayConfigured = () => LIVE_GATEWAYS.some((name) => Boolean(gatewayFor(name).configured));
 
 // GET /api/payments — paginated list.
 // Previously returned EVERY matching document (`Payment.find(filter).sort()`
@@ -154,10 +158,10 @@ router.put('/:id', protect, paymentLimiter, adminOnly, validate(updatePaymentSch
         return res.status(403).json({ message: 'Access denied' });
       }
     }
-    // Refund.settleRefund only updates our local state machine; there is no
-    // provider adapter to move money. Keep production payment records unchanged
-    // until a verified provider refund result can be reconciled.
-    if (process.env.NODE_ENV === 'production') {
+    // Refund.settleRefund only updates our local state machine. A live gateway
+    // provider adapter is the only way money actually moves, so production
+    // stays fail-closed until one is configured.
+    if (process.env.NODE_ENV === 'production' && !liveGatewayConfigured()) {
       return res.status(503).json({
         message: 'Online refunds are temporarily unavailable until a payment provider is configured.',
         code: 'REFUND_PROVIDER_UNAVAILABLE',
@@ -177,10 +181,10 @@ router.put('/:id', protect, paymentLimiter, adminOnly, validate(updatePaymentSch
 // possession, not just a valid session.
 router.put('/:id/refund', protect, paymentLimiter, requireStepUp('refunds:issue'), idempotencyGuard({ prefix: 'refund', failClosed: true }), adminOnly, validate(refundPaymentSchema), async (req, res) => {
   try {
-    // PAY-B-08: fail closed in production — same guard as PUT /:id above.
-    // No provider adapter is connected, so any mutation here would record a
-    // refund locally without moving money. Refuse before any read or write.
-    if (process.env.NODE_ENV === 'production') {
+    // PAY-B-08: fail closed in production when no provider adapter is
+    // configured — refuse before any read or write. With a live gateway the
+    // refund below moves real money through the adapter.
+    if (process.env.NODE_ENV === 'production' && !liveGatewayConfigured()) {
       return res.status(503).json({
         message: 'Online refunds are temporarily unavailable until a payment provider is configured.',
         code: 'REFUND_PROVIDER_UNAVAILABLE',
@@ -213,22 +217,43 @@ router.put('/:id/refund', protect, paymentLimiter, requireStepUp('refunds:issue'
     // double-click re-ran the handler and issued TWO refunds, and a partial refund
     // reported the terminal `refunded` status. Both are now refused.
     const idemKey = req.header('Idempotency-Key') || `refund:${payment._id}:${refund_amount}`;
-    // File 22 P0-left: refunds over threshold need approval. Small refunds
-    // (<= Rs 5000) go through without one to keep the counter fast.
+    // File 22 P0-left + P0-1: refunds over the hospital's refund policy
+    // threshold need an approval. Thresholds/roles come from the active
+    // ApprovalPolicy, else the shared 'refund' defaults.
     const { ensureApproval, approvalError } = await import('./approvals.js');
-    if (refund_amount > 5000) {
+    const { resolveThreshold, safeFirst } = await import('../lib/approvalWiring.js');
+    const { default: ApprovalPolicy } = await import('../models/ApprovalPolicy.js');
+    const refundPolicy = await safeFirst(ApprovalPolicy.findOne({
+      hospitalId: payment.hospitalId, key: 'refund', active: true,
+    }).lean());
+    const { limit: refundLimit, roles: refundRoles } = resolveThreshold(refundPolicy, 'refund');
+    if (refund_amount >= (refundLimit || 0)) {
       try {
         await ensureApproval({
           req, policyKey: 'refund',
           entityRef: { model: 'Payment', id: payment._id },
           title: `Refund ${refund_amount} for payment ${payment._id}`,
           amount: refund_amount,
-          roles: ['hospital_admin', 'finance_manager'],
+          roles: refundRoles,
         });
       } catch (apErr) {
         const handled = approvalError(res, apErr, 'Refund requires approval');
         if (handled) return handled;
         throw apErr;
+      }
+    }
+    const payGateway = payment.gateway && payment.gateway !== 'mock' ? gatewayFor(payment.gateway) : null;
+    let providerRefund = null;
+    if (payGateway && payGateway.configured && typeof payGateway.refund === 'function'
+      && (payment.gatewayPaymentId || payment.gatewayOrderId)) {
+      try {
+        providerRefund = await payGateway.refund({
+          gatewayPaymentId: payment.gatewayPaymentId || '',
+          gatewayOrderId: payment.gatewayOrderId || '',
+          amount: refund_amount,
+        });
+      } catch (gwErr) {
+        return res.status(422).json({ message: `Provider refund failed: ${gwErr.message}`, code: gwErr.code || 'GATEWAY_ERROR' });
       }
     }
     const { default: Refund } = await import('../models/Refund.js');

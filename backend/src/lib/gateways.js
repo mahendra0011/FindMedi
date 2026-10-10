@@ -19,7 +19,7 @@ export class MockGateway {
     };
   }
 
-  async refund() {
+  async refund(_params = {}) {
     return { status: 'refunded', provider: 'mock' };
   }
 
@@ -77,7 +77,7 @@ export class RazorpayGateway {
     return { gatewayOrderId: order.id, amount: Number(amount), currency, status: order.status };
   }
 
-  async refund(gatewayPaymentId, amount) {
+  async refund({ gatewayPaymentId, amount } = {}) {
     this.requireConfigured();
     const client = await razorpayClient(this.keyId, this.keySecret);
     const body = {};
@@ -185,9 +185,17 @@ export class CashfreeGateway {
     return { gatewayOrderId: o.order_id, amount: Number(amount), currency, status: o.order_status || 'created', sessionId: o.payment_session_id };
   }
 
-  async refund(gatewayOrderId, amount) {
+  async refund({ gatewayPaymentId, gatewayOrderId, amount } = {}) {
     this.requireConfigured();
-    const resp = await fetch(`${this.baseUrl()}/orders/${gatewayOrderId}/refunds`, {
+    const target = gatewayPaymentId
+      ? `payments/${gatewayPaymentId}/refunds`
+      : `orders/${gatewayOrderId}/refunds`;
+    if (!gatewayPaymentId && !gatewayOrderId) {
+      const err = new Error('Cashfree refund needs a gatewayPaymentId or gatewayOrderId');
+      err.code = 'GATEWAY_ERROR';
+      throw err;
+    }
+    const resp = await fetch(`${this.baseUrl()}/${target}`, {
       method: 'POST',
       headers: this.headers(),
       body: JSON.stringify({ refund_amount: Number(amount), refund_id: `rf_${Date.now()}` }),

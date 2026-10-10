@@ -61,6 +61,17 @@ export function startScheduler() {
           await inst.save();
         }
       }
+      const escalationThreshold = new Date(now.getTime() - 0.75 * 48 * 3600 * 1000);
+      await ApprovalRequest.updateMany(
+        {
+          hospitalId: hid, status: 'pending', escalatedAt: null,
+          createdAt: { $lte: escalationThreshold }, dueAt: { $gt: now },
+        },
+        {
+          $set: { escalatedAt: now, escalationLevel: 1 },
+          $push: { requiredRoles: 'hospital_admin' },
+        },
+      );
       await ApprovalRequest.updateMany(
         { hospitalId: hid, status: 'pending', dueAt: { $lte: now } },
         { $set: { status: 'expired' } },
@@ -81,7 +92,7 @@ export function startScheduler() {
       const { default: Hospital } = await import('../models/Hospital.js');
       const hospitals = await Hospital.find({}).select('_id').limit(500).lean();
       for (const h of hospitals) {
-        for (const gw of ['razorpay', 'cashfree']) {
+        for (const gw of ['razorpay', 'cashfree', 'payu', 'phonepe']) {
           try {
             // eslint-disable-next-line no-await-in-loop
             await reconcileGatewayTenant(h._id, gw);

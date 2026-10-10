@@ -91,12 +91,32 @@ router.post('/:id/refund', protect, authorize('billing:write'), async (req, res)
     if (!row || row.status !== 'completed') return res.status(404).json({ message: 'Completed payment not found' });
     const amount = Number(req.body?.amount) || row.amount;
     if (amount > row.amount) return res.status(400).json({ message: 'Refund exceeds captured amount' });
+    const { ensureApproval, approvalError } = await import('./approvals.js');
+    const { resolveThreshold, safeFirst } = await import('../lib/approvalWiring.js');
+    const { default: ApprovalPolicy } = await import('../models/ApprovalPolicy.js');
+    const refundPolicy = await safeFirst(ApprovalPolicy.findOne({
+      hospitalId: row.hospitalId, key: 'refund', active: true,
+    }).lean());
+    const { limit, roles } = resolveThreshold(refundPolicy, 'refund');
+    if (amount >= (limit || 0)) {
+      try {
+        await ensureApproval({
+          req, policyKey: 'refund',
+          entityRef: { model: 'Payment', id: row._id },
+          title: `Refund ₹${amount} for payment ${row._id}`,
+          amount, roles,
+        });
+      } catch (apErr) {
+        if (approvalError(res, apErr, 'Refund requires approval')) return undefined;
+        throw apErr;
+      }
+    }
     // File 22 P0-9: refund through the provider when live (mock records locally).
     const gw = gatewayFor(row.gateway);
     let providerRefund = null;
     if (gw.name !== 'mock' && row.gatewayPaymentId) {
       try {
-        providerRefund = await gw.refund(row.gatewayPaymentId, amount);
+        providerRefund = await gw.refund({ gatewayPaymentId: row.gatewayPaymentId, gatewayOrderId: row.gatewayOrderId, amount });
       } catch (e) {
         return res.status(422).json({ message: `Provider refund failed: ${e.message}`, code: e.code || 'GATEWAY_ERROR' });
       }

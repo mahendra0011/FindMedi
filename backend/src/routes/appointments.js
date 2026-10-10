@@ -604,6 +604,13 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
       }
     }
 
+    try {
+      const { patientHardStop } = await import('./masters.js');
+      const stop = await patientHardStop(hospitalId || null, canonicalPatientId);
+      if (process.env.DEBUG_WALKIN) console.log('HARDSTOP RESULT', { hospitalId, canonicalPatientId, stop });
+      if (stop) return res.status(409).json({ message: `Booking blocked: patient is ${stop}`, code: 'PATIENT_HARD_STOP' });
+    } catch (e) { if (process.env.DEBUG_WALKIN) console.log('HARDSTOP ERR', e.stack); }
+
     // A5 (5.md §15: server-side price, no client price): the walk-in fee is
     // resolved from the doctor's listed consultation fee through the same
     // pricingService the checkout path uses. The body's `fees` is stripped by
@@ -709,6 +716,7 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
       await releaseAppointmentSlot(walkInSlotKey.doctorId, walkInSlotKey.date, walkInSlotKey.time, req.user._id)
         .catch(() => {});
     }
+    if (process.env.DEBUG_WALKIN) console.log(err.stack);
     res.status(400).json({ message: err.message });
   }
 });
