@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import ClinicalLockingAlert from '@/components/emergency/ClinicalLockingAlert';
@@ -194,37 +195,35 @@ export default function EmergencyWarRoom() {
       {filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No active emergencies{severity !== 'All' ? ` with severity ${severity}` : ''}. Board is clear.</div>
       ) : (
+        // `key={now}` forces a fresh render every 30s so the SLA clocks tick;
+        // the severity chips above already narrowed this list.
         <div className="overflow-x-auto rounded-xl border" key={now}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-muted/50 border-b">
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Patient</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Condition</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Severity</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Status</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">SLA clock</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((e) => {
-                const mins = ageMin(e.createdAt);
-                const bad = e.status === 'Pending' && mins >= SLA_TARGET_MIN;
-                return (
-                  <tr key={e._id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="px-4 py-3 font-medium">{e.patientName || 'Unknown'}{e.phone ? <span className="block text-xs text-muted-foreground">{e.phone}</span> : null}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground max-w-xs truncate">{e.condition}</td>
-                    <td className="px-4 py-3"><Badge variant={e.severity === 'Critical' ? 'destructive' : 'outline'}>{e.severity}</Badge></td>
-                    <td className="px-4 py-3 text-xs">{e.status}{e.assignedDoctorName ? ` · ${e.assignedDoctorName}` : ''}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 text-xs font-mono font-bold ${bad ? 'text-destructive' : 'text-foreground'}`}>
-                        <Clock className="w-3.5 h-3.5" />{mins}m{bad ? ' · BREACH' : ''}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <DataGrid
+            columns={[
+              { key: 'patientName', label: 'Patient', render: (v, e) => <span className="font-medium">{v || 'Unknown'}{e.phone ? <span className="block text-xs text-muted-foreground">{e.phone}</span> : null}</span> },
+              { key: 'condition', label: 'Condition', render: (v) => <span className="text-xs text-muted-foreground max-w-xs truncate block">{v}</span> },
+              { key: 'severity', label: 'Severity', render: (v) => <Badge variant={v === 'Critical' ? 'destructive' : 'outline'}>{v}</Badge> },
+              { key: 'status', label: 'Status', render: (v, e) => <span className="text-xs">{v}{e.assignedDoctorName ? ` · ${e.assignedDoctorName}` : ''}</span> },
+              {
+                key: '_sla', label: 'SLA clock', sortable: false,
+                render: (_v, e) => {
+                  const mins = ageMin(e.createdAt);
+                  const bad = e.status === 'Pending' && mins >= SLA_TARGET_MIN;
+                  return (
+                    <span className={`inline-flex items-center gap-1 text-xs font-mono font-bold ${bad ? 'text-destructive' : 'text-foreground'}`}>
+                      <Clock className="w-3.5 h-3.5" />{mins}m{bad ? ' · BREACH' : ''}
+                    </span>
+                  );
+                },
+              },
+            ]}
+            rows={filtered}
+            rowKey="_id"
+            empty="Board is clear."
+            showSearch={false}
+            manualPagination
+            rowClassName={(e) => (e.status === 'Pending' && ageMin(e.createdAt) >= SLA_TARGET_MIN ? 'bg-destructive/5' : '')}
+          />
         </div>
       )}
 

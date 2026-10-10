@@ -17,6 +17,7 @@ import {
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
+import { DataGrid } from '../../components/ui/System';
 import { api } from '../../lib/api';
 
 export default function AdminAssistants() {
@@ -212,70 +213,46 @@ export default function AdminAssistants() {
               <Input
                 type="text"
                 placeholder="Search assistant by name or email..."
+                aria-label="Search assistants"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="max-w-xs text-xs h-9"
               />
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-semibold">
-                    <th className="py-3 px-3">Name & Contact</th>
-                    <th className="py-3 px-3">Hospitals</th>
-                    <th className="py-3 px-3">Experience</th>
-                    <th className="py-3 px-3">Rate</th>
-                    <th className="py-3 px-3">Status</th>
-                    <th className="py-3 px-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {allAssistants.map((a) => (
-                    <tr key={a._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                      <td className="py-3 px-3">
-                        <div className="font-bold text-slate-900 dark:text-slate-100">{a.userId?.name}</div>
-                        <div className="text-[10px] text-slate-400">{a.userId?.email}</div>
-                      </td>
-                      <td className="py-3 px-3">{(a.hospitalsCovered || []).slice(0, 2).join(', ')}</td>
-                      <td className="py-3 px-3">{a.experienceYears || 1} yrs</td>
-                      <td className="py-3 px-3 font-bold text-teal-600">₹{a.pricePerHour}/hr</td>
-                      <td className="py-3 px-3">
-                        <Badge
-                          variant={a.assistantStatus === 'active' ? 'default' : 'secondary'}
-                          className="text-[10px]"
-                        >
-                          {a.assistantStatus}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-3 text-right">
-                        {a.assistantStatus === 'active' ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleSuspend(a._id, true)}
-                            className="text-xs text-rose-600 hover:text-rose-700 h-7"
-                          >
-                            Suspend
-                          </Button>
-                        ) : a.assistantStatus === 'suspended' ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleSuspend(a._id, false)}
-                            className="text-xs text-emerald-600 hover:text-emerald-700 h-7"
-                          >
-                            Reinstate
-                          </Button>
-                        ) : null}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {/* Search already hit the API (getAdminAssistants({search})). */}
+            <DataGrid
+              columns={[
+                {
+                  key: 'name', label: 'Name & Contact', sortable: false,
+                  render: (_v, a) => (
+                    <>
+                      <div className="font-bold text-slate-900 dark:text-slate-100">{a.userId?.name}</div>
+                      <div className="text-[10px] text-slate-400">{a.userId?.email}</div>
+                    </>
+                  ),
+                },
+                { key: 'hospitalsCovered', label: 'Hospitals', sortable: false, render: (v) => (v || []).slice(0, 2).join(', ') },
+                { key: 'experienceYears', label: 'Experience', sortable: false, render: (v) => `${v || 1} yrs` },
+                { key: 'pricePerHour', label: 'Rate', sortable: false, render: (v) => <span className="font-bold text-teal-600">₹{v}/hr</span> },
+                { key: 'assistantStatus', label: 'Status', sortable: false, render: (v) => <Badge variant={v === 'active' ? 'default' : 'secondary'} className="text-[10px]">{v}</Badge> },
+                {
+                  key: '_actions', label: 'Action', sortable: false,
+                  render: (_v, a) => (
+                    a.assistantStatus === 'active' ? (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => handleSuspend(a._id, true)} className="text-xs text-rose-600 hover:text-rose-700 h-7">Suspend</Button>
+                    ) : a.assistantStatus === 'suspended' ? (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => handleSuspend(a._id, false)} className="text-xs text-emerald-600 hover:text-emerald-700 h-7">Reinstate</Button>
+                    ) : null
+                  ),
+                },
+              ]}
+              rows={allAssistants}
+              rowKey="_id"
+              empty="No assistants found"
+              showSearch={false}
+              manualPagination
+            />
           </div>
         )}
 
@@ -286,36 +263,21 @@ export default function AdminAssistants() {
               Live & Historical Assistant Shifts ({bookings.length})
             </h3>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-semibold">
-                    <th className="py-3 px-3">Shift #</th>
-                    <th className="py-3 px-3">Patient</th>
-                    <th className="py-3 px-3">Assistant</th>
-                    <th className="py-3 px-3">Hospital</th>
-                    <th className="py-3 px-3">Fee</th>
-                    <th className="py-3 px-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {bookings.map((b) => (
-                    <tr key={b._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                      <td className="py-3 px-3 font-mono font-bold">
-                        #{b.bookingNumber || String(b._id).slice(-6).toUpperCase()}
-                      </td>
-                      <td className="py-3 px-3">{b.patientId?.name || 'Patient'}</td>
-                      <td className="py-3 px-3">{b.assistantId?.name || 'Unassigned'}</td>
-                      <td className="py-3 px-3">{b.hospital}</td>
-                      <td className="py-3 px-3 font-bold text-teal-600">₹{b.cost?.total || 0}</td>
-                      <td className="py-3 px-3">
-                        <Badge className="text-[10px]">{b.status?.replace('_', ' ').toUpperCase()}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataGrid
+              columns={[
+                { key: 'bookingNumber', label: 'Shift #', sortable: false, render: (v, b) => <span className="font-mono font-bold">#{v || String(b._id).slice(-6).toUpperCase()}</span> },
+                { key: 'patientId', label: 'Patient', sortable: false, render: (v) => v?.name || 'Patient' },
+                { key: 'assistantId', label: 'Assistant', sortable: false, render: (v) => v?.name || 'Unassigned' },
+                { key: 'hospital', label: 'Hospital', sortable: false },
+                { key: 'cost', label: 'Fee', sortable: false, render: (v) => <span className="font-bold text-teal-600">₹{v?.total || 0}</span> },
+                { key: 'status', label: 'Status', sortable: false, render: (v) => <Badge className="text-[10px]">{v?.replace('_', ' ').toUpperCase()}</Badge> },
+              ]}
+              rows={bookings}
+              rowKey="_id"
+              empty="No assistant shifts yet"
+              showSearch={false}
+              manualPagination
+            />
           </div>
         )}
 

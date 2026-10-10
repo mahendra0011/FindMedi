@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -260,146 +261,88 @@ export default function AdminVehicleRides() {
       {/* TAB 2: ALL DRIVERS */}
       {activeTab === 'riders' && (
         <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-muted/40 border-b border-border/80 text-muted-foreground uppercase text-[10px]">
-                <tr>
-                  <th className="py-3 px-4">Driver</th>
-                  <th className="py-3 px-4">Vehicle</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Online</th>
-                  <th className="py-3 px-4">Rating</th>
-                  <th className="py-3 px-4">Total Earned</th>
-                  <th className="py-3 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {allRiders.map((r) => {
-                  const isActive = r.riderStatus === 'active';
-                  return (
-                    <tr key={r._id} className="hover:bg-muted/30">
-                      <td className="py-3.5 px-4 font-medium text-foreground">
-                        {r.userId?.name || 'Driver'}
-                        <div className="text-[10px] text-muted-foreground">{r.userId?.phone}</div>
-                      </td>
-                      <td className="py-3.5 px-4 capitalize">
-                        {r.vehicleId?.type?.replace('_', ' ')} · {r.vehicleId?.rcNumber}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <Badge variant={isActive ? 'default' : 'secondary'} className="text-[10px]">
-                          {r.riderStatus}
-                        </Badge>
-                      </td>
-                      <td className="py-3.5 px-4 font-mono font-bold">
-                        {r.isOnline ? (
-                          <span className="text-emerald-600">Online</span>
-                        ) : (
-                          <span className="text-muted-foreground">Offline</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4">⭐ {r.rating?.avg || '5.0'}</td>
-                      <td className="py-3.5 px-4 font-bold text-emerald-600">
-                        ₹{r.totalEarnings || 0}
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSuspendToggle(r._id, isActive)}
-                          className="text-[11px] h-7 rounded-lg"
-                        >
-                          {isActive ? 'Suspend' : 'Activate'}
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataGrid
+            columns={[
+              {
+                key: 'driver', label: 'Driver', sortable: false,
+                render: (_v, r) => (
+                  <>
+                    <span className="font-medium text-foreground">{r.userId?.name || 'Driver'}</span>
+                    <div className="text-[10px] text-muted-foreground">{r.userId?.phone}</div>
+                  </>
+                ),
+              },
+              { key: 'vehicle', label: 'Vehicle', sortable: false, render: (_v, r) => <span className="capitalize">{r.vehicleId?.type?.replace('_', ' ')} · {r.vehicleId?.rcNumber}</span> },
+              { key: 'riderStatus', label: 'Status', sortable: false, render: (v) => <Badge variant={v === 'active' ? 'default' : 'secondary'} className="text-[10px]">{v}</Badge> },
+              { key: 'isOnline', label: 'Online', sortable: false, render: (v) => <span className={`font-mono font-bold ${v ? 'text-emerald-600' : 'text-muted-foreground'}`}>{v ? 'Online' : 'Offline'}</span> },
+              { key: 'rating', label: 'Rating', sortable: false, render: (v) => <>⭐ {v?.avg || '5.0'}</> },
+              { key: 'totalEarnings', label: 'Total Earned', sortable: false, render: (v) => <span className="font-bold text-emerald-600">₹{v || 0}</span> },
+              {
+                key: '_actions', label: 'Action', sortable: false,
+                render: (_v, r) => (
+                  <Button variant="outline" size="sm" onClick={() => handleSuspendToggle(r._id, r.riderStatus === 'active')} className="text-[11px] h-7 rounded-lg">
+                    {r.riderStatus === 'active' ? 'Suspend' : 'Activate'}
+                  </Button>
+                ),
+              },
+            ]}
+            rows={allRiders}
+            rowKey="_id"
+            empty="No drivers registered yet"
+            showSearch={false}
+            manualPagination
+          />
         </div>
       )}
 
       {/* TAB 3: REGISTERED VEHICLES */}
       {activeTab === 'vehicles' && (
         <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-muted/40 border-b border-border/80 text-muted-foreground uppercase text-[10px]">
-                <tr>
-                  <th className="py-3 px-4">RC Number</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Brand & Model</th>
-                  <th className="py-3 px-4">Fuel</th>
-                  <th className="py-3 px-4">Capacity</th>
-                  <th className="py-3 px-4">Doc Verified</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {allVehicles.map((v) => (
-                  <tr key={v._id} className="hover:bg-muted/30">
-                    <td className="py-3.5 px-4 font-mono font-bold text-primary">
-                      {v.rcNumber}
-                    </td>
-                    <td className="py-3.5 px-4 capitalize">{v.type?.replace('_', ' ')}</td>
-                    <td className="py-3.5 px-4 font-medium text-foreground">
-                      {v.brand} {v.model}
-                    </td>
-                    <td className="py-3.5 px-4">{v.fuelType || 'Petrol'}</td>
-                    <td className="py-3.5 px-4">{v.capacity || 4} seats</td>
-                    <td className="py-3.5 px-4">
-                      <Badge variant={v.isDocumentVerified ? 'default' : 'secondary'}>
-                        {v.isDocumentVerified ? 'Verified' : 'Pending'}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataGrid
+            columns={[
+              { key: 'rcNumber', label: 'RC Number', sortable: false, render: (v) => <span className="font-mono font-bold text-primary">{v}</span> },
+              { key: 'type', label: 'Type', sortable: false, render: (v) => <span className="capitalize">{v?.replace('_', ' ')}</span> },
+              { key: 'brand', label: 'Brand & Model', sortable: false, render: (_v, v) => <span className="font-medium text-foreground">{v.brand} {v.model}</span> },
+              { key: 'fuelType', label: 'Fuel', sortable: false, render: (v) => v || 'Petrol' },
+              { key: 'capacity', label: 'Capacity', sortable: false, render: (v) => `${v || 4} seats` },
+              { key: 'isDocumentVerified', label: 'Doc Verified', sortable: false, render: (v) => <Badge variant={v ? 'default' : 'secondary'}>{v ? 'Verified' : 'Pending'}</Badge> },
+            ]}
+            rows={allVehicles}
+            rowKey="_id"
+            empty="No vehicles registered yet"
+            showSearch={false}
+            manualPagination
+          />
         </div>
       )}
 
       {/* TAB 4: RIDES OVERSIGHT */}
       {activeTab === 'rides' && (
         <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-muted/40 border-b border-border/80 text-muted-foreground uppercase text-[10px]">
-                <tr>
-                  <th className="py-3 px-4">Booking #</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Vehicle</th>
-                  <th className="py-3 px-4">Passenger</th>
-                  <th className="py-3 px-4">Driver</th>
-                  <th className="py-3 px-4">Total Fare</th>
-                  <th className="py-3 px-4">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {allRides.map((r) => (
-                  <tr key={r._id} className="hover:bg-muted/30">
-                    <td className="py-3.5 px-4 font-mono font-bold">{r.bookingNumber}</td>
-                    <td className="py-3.5 px-4 font-mono text-muted-foreground">
-                      {new Date(r.createdAt).toLocaleDateString('en-IN')}
-                    </td>
-                    <td className="py-3.5 px-4 capitalize">
-                      {r.vehicleType?.replace('_', ' ')}
-                      {r.isEmergency && <span className="text-[9px] font-bold text-red-600 ml-1">EMERGENCY</span>}
-                    </td>
-                    <td className="py-3.5 px-4">{r.userId?.name || 'Customer'}</td>
-                    <td className="py-3.5 px-4">{r.riderId?.name || '—'}</td>
-                    <td className="py-3.5 px-4 font-bold">₹{r.fare?.total || 0}</td>
-                    <td className="py-3.5 px-4">
-                      <Badge variant={r.status === 'completed' ? 'default' : 'secondary'}>
-                        {r.status?.replace(/_/g, ' ')}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataGrid
+            columns={[
+              { key: 'bookingNumber', label: 'Booking #', sortable: false, render: (v) => <span className="font-mono font-bold">{v}</span> },
+              { key: 'createdAt', label: 'Date', sortable: false, render: (v) => <span className="font-mono text-muted-foreground">{v ? new Date(v).toLocaleDateString('en-IN') : '—'}</span> },
+              {
+                key: 'vehicleType', label: 'Vehicle', sortable: false,
+                render: (v, r) => (
+                  <>
+                    <span className="capitalize">{v?.replace('_', ' ')}</span>
+                    {r.isEmergency && <span className="text-[9px] font-bold text-red-600 ml-1">EMERGENCY</span>}
+                  </>
+                ),
+              },
+              { key: 'passenger', label: 'Passenger', sortable: false, render: (_v, r) => r.userId?.name || 'Customer' },
+              { key: 'riderId', label: 'Driver', sortable: false, render: (v) => v?.name || '—' },
+              { key: 'fare', label: 'Total Fare', sortable: false, render: (v) => <span className="font-bold">₹{v?.total || 0}</span> },
+              { key: 'status', label: 'Status', sortable: false, render: (v) => <Badge variant={v === 'completed' ? 'default' : 'secondary'}>{v?.replace(/_/g, ' ')}</Badge> },
+            ]}
+            rows={allRides}
+            rowKey="_id"
+            empty="No rides recorded yet"
+            showSearch={false}
+            manualPagination
+          />
         </div>
       )}
 

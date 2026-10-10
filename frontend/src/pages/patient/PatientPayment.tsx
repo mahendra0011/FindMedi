@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { CreditCard, IndianRupee, CheckCircle, Clock, AlertCircle, History, Smartphone, Landmark, Wallet, Download, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DataGrid } from '@/components/ui/System';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
@@ -127,40 +128,18 @@ export default function PatientPayment() {
           <div className="text-center py-12 text-muted-foreground">No payment history</div>
         ) : (
           <div className="bg-card rounded-2xl border border-border/60 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/60">
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Transaction</th>
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Invoice</th>
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Amount</th>
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Method</th>
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map(pay => {
-                    const PayIcon = methodIcons[pay.method] || CreditCard;
-                    return (
-                    <tr key={pay._id} className="border-b border-border/30 hover:bg-muted/30">
-                      <td className="px-4 py-3 text-sm font-mono">{pay.transaction_id || pay.transactionId || pay._id?.slice(-8)}</td>
-                      <td className="px-4 py-3 text-sm">
-                        <span className="flex items-center gap-1">
-                          <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-                          {pay.invoice_id || pay.invoiceId || '-'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold">₹{(pay.amount || 0).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-sm flex items-center gap-1"><PayIcon className="w-3.5 h-3.5" /> {pay.method}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[pay.status] || 'bg-muted text-muted-foreground'}`}>{pay.status}</span>
-                      </td>
-                    </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <DataGrid
+              columns={[
+                { key: 'transaction_id', label: 'Transaction', render: (v, pay) => <span className="text-sm font-mono">{v || pay.transactionId || pay._id?.slice(-8)}</span> },
+                { key: 'invoice_id', label: 'Invoice', render: (v, pay) => <span className="flex items-center gap-1 text-sm"><FileText className="w-3.5 h-3.5 text-muted-foreground" />{v || pay.invoiceId || '-'}</span> },
+                { key: 'amount', label: 'Amount', render: (v) => <span className="text-sm font-semibold">₹{(v || 0).toLocaleString()}</span> },
+                { key: 'method', label: 'Method', render: (v) => { const PayIcon = methodIcons[v] || CreditCard; return <span className="flex items-center gap-1 text-sm"><PayIcon className="w-3.5 h-3.5" /> {v}</span>; } },
+                { key: 'status', label: 'Status', render: (v) => <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[v] || 'bg-muted text-muted-foreground'}`}>{v}</span> },
+              ]}
+              rows={payments}
+              rowKey="_id"
+              empty="No payment history"
+            />
           </div>
         )}
       </div>
