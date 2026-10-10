@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DataGrid } from '@/components/ui/System';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import {
@@ -319,6 +320,111 @@ export default function PatientVitals() {
   const latestWeight = readings.find(r => r.vitalType === 'weight');
   const latestTemp = readings.find(r => r.vitalType === 'temperature');
 
+  const vitalsRows = readings.map((r, i) => {
+    let readingStr = '';
+    if (r.vitalType === 'bp') readingStr = `${r.values?.systolic}/${r.values?.diastolic} mmHg`;
+    else if (r.vitalType === 'blood_sugar') readingStr = `${r.values?.sugarValue} mg/dL`;
+    else if (r.vitalType === 'weight') readingStr = `${r.values?.weightKg} kg`;
+    else if (r.vitalType === 'temperature') readingStr = `${r.values?.tempValue}°${r.values?.tempUnit || 'F'}`;
+    return { ...r, reading: readingStr, _id: r._id || r.id || `row-${i}` };
+  });
+
+  const vitalsColumns = [
+    {
+      key: 'recordedAt',
+      label: 'Date & Time',
+      render: (value, r) => (
+        <span className="text-xs font-medium">
+          {new Date(value).toLocaleString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+          {r.isBackdated && (
+            <span className="ml-1.5 text-[10px] rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
+              Backdated
+            </span>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: 'vitalType',
+      label: 'Vital Type',
+      render: (value) => (
+        <span className="text-xs capitalize font-medium text-foreground">
+          {String(value ?? '').replace('_', ' ')}
+        </span>
+      ),
+    },
+    {
+      key: 'reading',
+      label: 'Reading',
+      render: (value) => <span className="font-bold text-foreground">{value}</span>,
+    },
+    {
+      key: 'note',
+      label: 'Context / Note',
+      render: (value, r) => (
+        <span className="text-xs text-muted-foreground">
+          {r.values?.sugarContext && (
+            <span className="font-semibold capitalize text-foreground mr-1">
+              [{r.values.sugarContext}]
+            </span>
+          )}
+          {value || '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'flag',
+      label: 'Status',
+      render: (value) => (
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${
+          value === 'normal'
+            ? 'bg-emerald-500/10 text-emerald-600'
+            : value === 'fever'
+            ? 'bg-red-500/10 text-red-600'
+            : 'bg-amber-500/10 text-amber-600'
+        }`}>
+          {value}
+        </span>
+      ),
+    },
+    {
+      key: '_actions',
+      label: 'Actions',
+      sortable: false,
+      render: (_value, r) => (
+        <div className="text-right">
+          {r.canEdit ? (
+            <div className="flex items-center justify-end gap-1">
+              <button
+                onClick={() => openEditModal(r)}
+                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                title="Edit reading (within 24 hours)"
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => handleDeleteLog(r._id)}
+                className="rounded p-1 text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
+                title="Delete reading"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <span className="text-[11px] text-muted-foreground/60 italic" title="Locked after 24h">
+              Finalized
+            </span>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Full Screen Alarm Modal */}
@@ -551,104 +657,14 @@ export default function PatientVitals() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border/60 text-xs uppercase text-muted-foreground bg-muted/20">
-              <tr>
-                <th className="py-3 px-4 font-semibold">Date & Time</th>
-                <th className="py-3 px-4 font-semibold">Vital Type</th>
-                <th className="py-3 px-4 font-semibold">Reading</th>
-                <th className="py-3 px-4 font-semibold">Context / Note</th>
-                <th className="py-3 px-4 font-semibold">Status</th>
-                <th className="py-3 px-4 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {readings.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground text-xs">
-                    No vitals entries logged yet.
-                  </td>
-                </tr>
-              ) : (
-                readings.map((r) => {
-                  let readingStr = '';
-                  if (r.vitalType === 'bp') readingStr = `${r.values?.systolic}/${r.values?.diastolic} mmHg`;
-                  else if (r.vitalType === 'blood_sugar') readingStr = `${r.values?.sugarValue} mg/dL`;
-                  else if (r.vitalType === 'weight') readingStr = `${r.values?.weightKg} kg`;
-                  else if (r.vitalType === 'temperature') readingStr = `${r.values?.tempValue}°${r.values?.tempUnit || 'F'}`;
-
-                  return (
-                    <tr key={r._id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3 px-4 text-xs font-medium">
-                        {new Date(r.recordedAt).toLocaleString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                        {r.isBackdated && (
-                          <span className="ml-1.5 text-[10px] rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
-                            Backdated
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-xs capitalize font-medium text-foreground">
-                        {r.vitalType.replace('_', ' ')}
-                      </td>
-                      <td className="py-3 px-4 font-bold text-foreground">
-                        {readingStr}
-                      </td>
-                      <td className="py-3 px-4 text-xs text-muted-foreground">
-                        {r.values?.sugarContext && (
-                          <span className="font-semibold capitalize text-foreground mr-1">
-                            [{r.values.sugarContext}]
-                          </span>
-                        )}
-                        {r.note || '—'}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${
-                          r.flag === 'normal'
-                            ? 'bg-emerald-500/10 text-emerald-600'
-                            : r.flag === 'fever'
-                            ? 'bg-red-500/10 text-red-600'
-                            : 'bg-amber-500/10 text-amber-600'
-                        }`}>
-                          {r.flag}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        {r.canEdit ? (
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => openEditModal(r)}
-                              className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                              title="Edit reading (within 24 hours)"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteLog(r._id)}
-                              className="rounded p-1 text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
-                              title="Delete reading"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-muted-foreground/60 italic" title="Locked after 24h">
-                            Finalized
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataGrid
+          columns={vitalsColumns}
+          rows={vitalsRows}
+          rowKey="_id"
+          empty="No vitals entries logged yet."
+          manualPagination
+          rowClassName={() => 'border-border/40 hover:bg-muted/30 transition-colors'}
+        />
       </div>
 
       {/* Vitals Reminders Sub-section */}

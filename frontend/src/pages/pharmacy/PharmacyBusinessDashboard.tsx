@@ -12,6 +12,7 @@ import { api } from '@/lib/api';
 import StatCard from '@/components/StatCard';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
 import { Switch } from '@/components/ui/switch';
+import { DataGrid } from '@/components/ui/System';
 
 const statusColors = {
   Completed: 'bg-success/10 text-success',
@@ -91,6 +92,52 @@ export default function PharmacyBusinessDashboard() {
     : orderTab === 'processing' ? processingOrders
     : orderTab === 'today' ? todayOrders
     : completedOrders;
+
+  const orderRows = displayedOrders.slice(0, 5).map((order, i) => ({
+    ...order,
+    _id: order._id || order.id || `row-${i}`,
+    orderId: order.orderId || order._id?.slice(-6),
+    customer: order.patientName || order.customer || '—',
+    total: order.total || order.amount || 0,
+  }));
+
+  const orderColumns = [
+    {
+      key: 'orderId',
+      label: 'Order',
+      render: (v) => <span className="font-medium text-card-foreground">{v}</span>,
+    },
+    {
+      key: 'customer',
+      label: 'Customer',
+      render: (v, order) => (
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center text-xs font-bold text-accent-foreground">
+            {(order.patientName || '?').charAt(0)}
+          </div>
+          <span className="text-muted-foreground">{v}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'total',
+      label: 'Total',
+      render: (v) => (
+        <div className="text-right font-medium text-card-foreground">₹{(v || 0).toLocaleString()}</div>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (v) => (
+        <div className="text-right">
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[v] || 'bg-muted text-muted-foreground'}`}>
+            {v || 'Pending'}
+          </span>
+        </div>
+      ),
+    },
+  ];
 
   if (loading) {
     return (
@@ -317,50 +364,14 @@ export default function PharmacyBusinessDashboard() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-2 text-muted-foreground font-medium">Order</th>
-                  <th className="text-left py-3 px-2 text-muted-foreground font-medium">Customer</th>
-                  <th className="text-right py-3 px-2 text-muted-foreground font-medium">Total</th>
-                  <th className="text-right py-3 px-2 text-muted-foreground font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayedOrders.slice(0, 5).map((order, i) => (
-                  <motion.tr
-                    key={order._id || i}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
-                  >
-                    <td className="py-3 px-2">
-                      <span className="font-medium text-card-foreground">{order.orderId || order._id?.slice(-6)}</span>
-                    </td>
-                    <td className="py-3 px-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center text-xs font-bold text-accent-foreground">
-                          {(order.patientName || '?').charAt(0)}
-                        </div>
-                        <span className="text-muted-foreground">{order.patientName || order.customer || '—'}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-2 text-right font-medium text-card-foreground">₹{(order.total || order.amount || 0).toLocaleString()}</td>
-                    <td className="py-3 px-2 text-right">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[order.status] || 'bg-muted text-muted-foreground'}`}>
-                        {order.status || 'Pending'}
-                      </span>
-                    </td>
-                  </motion.tr>
-                ))}
-                {displayedOrders.length === 0 && (
-                  <tr><td colSpan={4} className="py-8 text-center text-muted-foreground text-sm">No {orderTab} orders found</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataGrid
+            columns={orderColumns}
+            rows={orderRows}
+            rowKey="_id"
+            empty={`No ${orderTab} orders found`}
+            manualPagination
+            rowClassName={() => 'border-border hover:bg-muted/30 transition-colors'}
+          />
 
           <div className="mt-4 pt-3 border-t border-border flex justify-end">
             <Link to="/pharmacy-business/orders" className="text-xs text-primary hover:underline flex items-center gap-1">

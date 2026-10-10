@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -117,6 +118,15 @@ const RELATED_TECHS = [
 
 const DAY_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const DAY_LABELS = { sunday: 'Sunday', monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday' };
+
+type ScheduleRow = {
+  day: string;
+  status: string;
+  timing: string;
+  shift: string;
+  active: boolean;
+  isToday: boolean;
+};
 
 function renderStars(rating, size = 'w-4 h-4') {
   return [1, 2, 3, 4, 5].map(s => (
@@ -270,6 +280,20 @@ export default function TechnicianDetail() {
 
   const avgRating = tech.rating || 0;
   const reviewCount = tech.reviewsCount || 0;
+
+  const scheduleRows: ScheduleRow[] = DAY_ORDER.map(day => {
+    const slot = tech.schedule.find((s: { day: string; timing: string; shift: string }) => s.day.toLowerCase() === day);
+    const active = !!slot && slot.timing !== 'Off';
+    const isToday = new Date().toLocaleDateString('en', { weekday: 'long' }).toLowerCase() === day;
+    return {
+      day: DAY_LABELS[day as keyof typeof DAY_LABELS],
+      status: active ? 'Open' : 'Closed',
+      timing: active ? (slot?.timing || '9:00 AM – 5:00 PM') : '—',
+      shift: active ? (slot?.shift || '—') : '—',
+      active,
+      isToday,
+    };
+  });
 
   return (
     <motion.div initial="hidden" animate="show" className="bg-background min-h-screen">
@@ -607,58 +631,47 @@ export default function TechnicianDetail() {
                     Weekly Schedule
                   </h2>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border/60">
-                          <th className="text-left py-3 px-4 font-semibold text-foreground">Day</th>
-                          <th className="text-left py-3 px-4 font-semibold text-foreground">Status</th>
-                          <th className="text-left py-3 px-4 font-semibold text-foreground">Timings</th>
-                          <th className="text-left py-3 px-4 font-semibold text-foreground">Shift</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {DAY_ORDER.map(day => {
-                          const slot = tech.schedule.find(s => s.day.toLowerCase() === day);
-                          const active = slot && slot.timing !== 'Off';
-                          const label = DAY_LABELS[day];
-                          const isToday = new Date().toLocaleDateString('en', { weekday: 'long' }).toLowerCase() === day;
-                          return (
-                            <tr key={day} className={cn(
-                              'border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors',
-                              isToday && 'bg-primary/5'
-                            )}>
-                              <td className="py-3 px-4">
-                                <div className="flex items-center gap-2">
-                                  <div className={cn('w-2 h-2 rounded-full', active ? 'bg-emerald-500' : 'bg-muted-foreground/30')} />
-                                  <span className={cn('font-medium', isToday ? 'text-primary' : 'text-foreground')}>
-                                    {label}
-                                    {isToday && <span className="ml-2 text-xs text-primary font-semibold">(Today)</span>}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4">
-                                <span className={cn(
-                                  'text-xs font-semibold px-2.5 py-1 rounded-full',
-                                  active
-                                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                    : 'bg-muted text-muted-foreground'
-                                )}>
-                                  {active ? 'Open' : 'Closed'}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-muted-foreground">
-                                {active ? (slot?.timing || '9:00 AM – 5:00 PM') : '—'}
-                              </td>
-                              <td className="py-3 px-4 text-muted-foreground">
-                                {active ? (slot?.shift || '—') : '—'}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  <DataGrid
+                    columns={[
+                      {
+                        key: 'day',
+                        label: 'Day',
+                        render: (value: string, row: ScheduleRow) => (
+                          <div className="flex items-center gap-2">
+                            <div className={cn('w-2 h-2 rounded-full', row.active ? 'bg-emerald-500' : 'bg-muted-foreground/30')} />
+                            <span className={cn('font-medium', row.isToday ? 'text-primary' : 'text-foreground')}>
+                              {value}
+                              {row.isToday && <span className="ml-2 text-xs text-primary font-semibold">(Today)</span>}
+                            </span>
+                          </div>
+                        ),
+                      },
+                      {
+                        key: 'status',
+                        label: 'Status',
+                        render: (value: string, row: ScheduleRow) => (
+                          <span className={cn(
+                            'text-xs font-semibold px-2.5 py-1 rounded-full',
+                            row.active
+                              ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
+                              : 'bg-muted text-muted-foreground'
+                          )}>
+                            {value}
+                          </span>
+                        ),
+                      },
+                      { key: 'timing', label: 'Timings', render: (value: string) => <span className="text-muted-foreground">{value}</span> },
+                      { key: 'shift', label: 'Shift', render: (value: string) => <span className="text-muted-foreground">{value}</span> },
+                    ] as never[]}
+                    rows={scheduleRows}
+                    rowKey="day"
+                    onRowClick={undefined}
+                    manualPagination
+                    rowClassName={(row: ScheduleRow) => cn(
+                      'border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors',
+                      row.isToday && 'bg-primary/5'
+                    )}
+                  />
                 </CardContent>
               </Card>
             </motion.div>

@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { DataGrid } from '@/components/ui/System';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
 } from '@/components/ui/dialog';
@@ -183,6 +184,148 @@ export default function DoctorVideoCalls() {
     const q = contactSearch.toLowerCase();
     return contacts.filter((c) => c.name?.toLowerCase().includes(q) || c.phone?.includes(q));
   }, [contacts, contactSearch]);
+
+  const callRows = filteredCalls.map((call, i) => {
+    const isOutgoing = String(call.caller?._id) === String(user?._id);
+    const peer = isOutgoing ? call.receiver : call.caller;
+    const isMissed = call.status === 'missed';
+    return {
+      ...call,
+      _id: call._id || call.id || `row-${i}`,
+      peer,
+      isOutgoing,
+      isMissed,
+      direction: isMissed ? 'Missed Video Call' : isOutgoing ? 'Outgoing Video' : 'Incoming Video',
+      peerName: peer?.name || (isPatient ? 'Doctor' : 'Patient'),
+    };
+  });
+
+  const callColumns = [
+    {
+      key: 'peerName',
+      label: 'Patient / Participant',
+      render: (_v, call) => (
+        <div className="flex items-center gap-3 text-xs">
+          {call.peer?.avatar ? (
+            <img
+              src={call.peer.avatar}
+              alt={call.peer.name}
+              className="w-9 h-9 rounded-full object-cover border border-border"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-600 to-teal-700 text-white flex items-center justify-center font-bold text-xs">
+              {getInitials(call.peer?.name)}
+            </div>
+          )}
+          <div>
+            <div className="font-semibold text-foreground text-sm flex items-center gap-2">
+              {call.peerName}
+              <span className="text-[10px] bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 px-1.5 py-0.2 rounded font-mono">
+                1080p
+              </span>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              {call.peer?.specialization || call.peer?.phone || 'No phone'}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'direction',
+      label: 'Call Type',
+      render: (_v, call) => (
+        <div className="flex items-center gap-1.5 font-medium text-xs">
+          {call.isMissed ? (
+            <span className="text-rose-500 flex items-center gap-1">
+              <XCircle className="w-3.5 h-3.5" /> Missed Video Call
+            </span>
+          ) : call.isOutgoing ? (
+            <span className="text-teal-600 dark:text-teal-400 flex items-center gap-1">
+              <ArrowUpRight className="w-3.5 h-3.5" /> Outgoing Video
+            </span>
+          ) : (
+            <span className="text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
+              <ArrowDownLeft className="w-3.5 h-3.5" /> Incoming Video
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'duration',
+      label: 'Duration',
+      render: (v) => <span className="text-xs font-mono font-medium text-foreground">{formatDuration(v)}</span>,
+    },
+    {
+      key: 'createdAt',
+      label: 'Date & Time',
+      render: (v) => (
+        <div className="text-xs text-muted-foreground">
+          <div>{new Date(v).toLocaleDateString()}</div>
+          <div className="text-[11px]">
+            {new Date(v).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (v) => (
+        <Badge
+          variant="outline"
+          className={`capitalize text-[11px] font-semibold px-2 py-0.5 ${
+            v === 'completed'
+              ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
+              : v === 'missed'
+              ? 'bg-rose-500/10 text-rose-500 border-rose-500/30'
+              : 'bg-muted text-muted-foreground'
+          }`}
+        >
+          {v}
+        </Badge>
+      ),
+    },
+    {
+      key: '_actions',
+      label: 'Actions',
+      sortable: false,
+      render: (_v, call) => (
+        <div className="flex items-center justify-end gap-1.5 text-xs">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleOpenChat(call.peer?._id)}
+            className="h-8 px-2.5 gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted"
+            title="Open Chat"
+          >
+            <MessageCircle className="w-3.5 h-3.5" /> Chat
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => initiateVideoCall(call.peer, call.appointmentId?._id)}
+            disabled={callState !== 'idle'}
+            className="h-8 px-2.5 gap-1.5 text-xs text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10 border-cyan-500/30"
+          >
+            <Video className="w-3.5 h-3.5" /> Video Call
+          </Button>
+
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => handleDeleteCall(call._id)}
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            title="Delete log"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6 pb-12">
@@ -367,145 +510,15 @@ export default function DoctorVideoCalls() {
             </Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-muted/40 border-b border-border/60 text-muted-foreground font-semibold">
-                <tr>
-                  <th className="py-3.5 px-4">Patient / Participant</th>
-                  <th className="py-3.5 px-4">Call Type</th>
-                  <th className="py-3.5 px-4">Duration</th>
-                  <th className="py-3.5 px-4">Date & Time</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {filteredCalls.map((call) => {
-                  const isOutgoing = String(call.caller?._id) === String(user?._id);
-                  const peer = isOutgoing ? call.receiver : call.caller;
-                  const isMissed = call.status === 'missed';
-
-                  return (
-                    <tr key={call._id} className="hover:bg-muted/30 transition-colors">
-                      {/* Patient Info */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          {peer?.avatar ? (
-                            <img
-                              src={peer.avatar}
-                              alt={peer.name}
-                              className="w-9 h-9 rounded-full object-cover border border-border"
-                            />
-                          ) : (
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-600 to-teal-700 text-white flex items-center justify-center font-bold text-xs">
-                              {getInitials(peer?.name)}
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-semibold text-foreground text-sm flex items-center gap-2">
-                              {peer?.name || (isPatient ? 'Doctor' : 'Patient')}
-                              <span className="text-[10px] bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 px-1.5 py-0.2 rounded font-mono">
-                                1080p
-                              </span>
-                            </div>
-                            <div className="text-[11px] text-muted-foreground">
-                              {peer?.specialization || peer?.phone || 'No phone'}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Direction */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1.5 font-medium">
-                          {isMissed ? (
-                            <span className="text-rose-500 flex items-center gap-1">
-                              <XCircle className="w-3.5 h-3.5" /> Missed Video Call
-                            </span>
-                          ) : isOutgoing ? (
-                            <span className="text-teal-600 dark:text-teal-400 flex items-center gap-1">
-                              <ArrowUpRight className="w-3.5 h-3.5" /> Outgoing Video
-                            </span>
-                          ) : (
-                            <span className="text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
-                              <ArrowDownLeft className="w-3.5 h-3.5" /> Incoming Video
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Duration */}
-                      <td className="py-3.5 px-4 font-mono font-medium text-foreground">
-                        {formatDuration(call.duration)}
-                      </td>
-
-                      {/* Date & Time */}
-                      <td className="py-3.5 px-4 text-muted-foreground">
-                        <div>{new Date(call.createdAt).toLocaleDateString()}</div>
-                        <div className="text-[11px]">
-                          {new Date(call.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-3.5 px-4">
-                        <Badge
-                          variant="outline"
-                          className={`capitalize text-[11px] font-semibold px-2 py-0.5 ${
-                            call.status === 'completed'
-                              ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
-                              : call.status === 'missed'
-                              ? 'bg-rose-500/10 text-rose-500 border-rose-500/30'
-                              : 'bg-muted text-muted-foreground'
-                          }`}
-                        >
-                          {call.status}
-                        </Badge>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Chat Shortcut */}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleOpenChat(peer?._id)}
-                            className="h-8 px-2.5 gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted"
-                            title="Open Chat"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" /> Chat
-                          </Button>
-
-                          {/* Call Back via Video */}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => initiateVideoCall(peer, call.appointmentId?._id)}
-                            disabled={callState !== 'idle'}
-                            className="h-8 px-2.5 gap-1.5 text-xs text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10 border-cyan-500/30"
-                          >
-                            <Video className="w-3.5 h-3.5" /> Video Call
-                          </Button>
-
-                          {/* Delete Log */}
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleDeleteCall(call._id)}
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                            title="Delete log"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataGrid
+            columns={callColumns}
+            rows={callRows}
+            rowKey="_id"
+            empty="No video calls recorded"
+            showSearch={false}
+            manualPagination
+            rowClassName={() => 'border-border/40 hover:bg-muted/30 transition-colors'}
+          />
         )}
       </div>
 

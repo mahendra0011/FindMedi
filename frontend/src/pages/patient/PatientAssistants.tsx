@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { DataGrid } from '../../components/ui/System';
 import { api } from '../../lib/api';
 
 export default function PatientAssistants() {
@@ -217,75 +218,107 @@ export default function PatientAssistants() {
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 uppercase font-semibold">
-                    <th className="py-3 px-4">Booking #</th>
-                    <th className="py-3 px-4">Date & Time</th>
-                    <th className="py-3 px-4">Assistant</th>
-                    <th className="py-3 px-4">Hospital</th>
-                    <th className="py-3 px-4">Services</th>
-                    <th className="py-3 px-4">Cost</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {bookings.map((b) => (
-                    <tr key={b._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                      <td className="py-3.5 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">
-                        #{b.bookingNumber || String(b._id).slice(-6).toUpperCase()}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div>{new Date(b.scheduledDate || b.createdAt).toLocaleDateString()}</div>
-                        <div className="text-[10px] text-slate-400">{b.startTime || '10:00 AM'}</div>
-                      </td>
-                      <td className="py-3.5 px-4 font-medium text-slate-900 dark:text-slate-100">
-                        {b.assistantId?.name || (b.isUrgent ? 'Urgent Broadcast' : 'Pending')}
-                      </td>
-                      <td className="py-3.5 px-4 font-medium">{b.hospital}</td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex flex-wrap gap-1 max-w-xs">
-                          {(b.serviceCategories || []).slice(0, 2).map((c: string) => (
-                            <Badge key={c} variant="secondary" className="text-[9px] px-1 py-0">
-                              {c.replace('_', ' ')}
-                            </Badge>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 font-bold text-teal-700 dark:text-teal-400">
-                        ₹{b.cost?.total || 0}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <Badge
-                          className={`text-[10px] ${
-                            b.status === 'completed'
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                              : b.status === 'in_progress'
-                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                              : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
-                          }`}
-                        >
-                          {b.status.replace('_', ' ').toUpperCase()}
+            <DataGrid
+              columns={[
+                {
+                  key: 'bookingNumber',
+                  label: 'Booking #',
+                  render: (v, b) => (
+                    <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                      #{v || String(b._id).slice(-6).toUpperCase()}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'scheduledDate',
+                  label: 'Date & Time',
+                  render: (v, b) => (
+                    <>
+                      <div>{new Date(v || b.createdAt).toLocaleDateString()}</div>
+                      <div className="text-[10px] text-slate-400">{b.startTime || '10:00 AM'}</div>
+                    </>
+                  ),
+                },
+                {
+                  key: 'assistantId',
+                  label: 'Assistant',
+                  sortable: false,
+                  render: (v, b) => (
+                    <span className="font-medium text-slate-900 dark:text-slate-100">
+                      {v?.name || (b.isUrgent ? 'Urgent Broadcast' : 'Pending')}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'hospital',
+                  label: 'Hospital',
+                  render: (v) => <span className="font-medium">{v}</span>,
+                },
+                {
+                  key: 'serviceCategories',
+                  label: 'Services',
+                  sortable: false,
+                  render: (v) => (
+                    <div className="flex flex-wrap gap-1 max-w-xs">
+                      {(v || []).slice(0, 2).map((c: string) => (
+                        <Badge key={c} variant="secondary" className="text-[9px] px-1 py-0">
+                          {c.replace('_', ' ')}
                         </Badge>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedBooking(b)}
-                          className="h-8 text-xs gap-1"
-                        >
-                          <Eye className="w-3.5 h-3.5" /> Details
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      ))}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'cost',
+                  label: 'Cost',
+                  sortable: false,
+                  render: (v) => (
+                    <span className="font-bold text-teal-700 dark:text-teal-400">₹{v?.total || 0}</span>
+                  ),
+                },
+                {
+                  key: 'status',
+                  label: 'Status',
+                  render: (v) => (
+                    <Badge
+                      className={`text-[10px] ${
+                        v === 'completed'
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                          : v === 'in_progress'
+                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                          : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
+                      }`}
+                    >
+                      {v.replace('_', ' ').toUpperCase()}
+                    </Badge>
+                  ),
+                },
+                {
+                  key: '_actions',
+                  label: 'Action',
+                  sortable: false,
+                  render: (_v, b) => (
+                    <div className="text-right">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedBooking(b)}
+                        className="h-8 text-xs gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Details
+                      </Button>
+                    </div>
+                  ),
+                },
+              ]}
+              rows={bookings.map((x, i) => ({ ...x, _id: x._id || x.id || `row-${i}` }))}
+              rowKey="_id"
+              empty="No assistant bookings found."
+              showSearch={false}
+              manualPagination
+              rowClassName={() => 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30'}
+            />
           )}
         </div>
 

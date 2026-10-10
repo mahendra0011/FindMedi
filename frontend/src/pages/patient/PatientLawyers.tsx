@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { DataGrid } from '../../components/ui/System';
 import { InstantSearchingScreen, InstantNoRespondersScreen, InstantAssignedScreen } from '../../components/instant';
 import { api } from '../../lib/api';
 
@@ -507,82 +508,111 @@ export default function PatientLawyers() {
                 No consultations found matching current filter.
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-slate-100 dark:border-slate-800 text-slate-400 uppercase tracking-wider">
-                    <tr>
-                      <th className="pb-3 font-semibold">Booking ID / Date</th>
-                      <th className="pb-3 font-semibold">Advocate</th>
-                      <th className="pb-3 font-semibold">Category</th>
-                      <th className="pb-3 font-semibold">Mode</th>
-                      <th className="pb-3 font-semibold">Fee</th>
-                      <th className="pb-3 font-semibold">Status</th>
-                      <th className="pb-3 font-semibold text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {bookings.map((b) => (
-                      <tr key={b._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                        <td className="py-3.5">
-                          <div className="font-bold text-slate-900 dark:text-slate-100 font-mono">
-                            {b.bookingNumber || b._id.slice(-6)}
-                          </div>
-                          <div className="text-[11px] text-slate-400">
-                            {new Date(b.scheduledDate || b.createdAt).toLocaleDateString()}
-                          </div>
-                        </td>
-                        <td className="py-3.5 font-bold text-slate-900 dark:text-slate-100">
-                          Adv. {b.lawyerId?.userId?.name || 'Advocate'}
-                        </td>
-                        <td className="py-3.5 capitalize text-slate-600 dark:text-slate-400">
-                          {b.category?.replace(/_/g, ' ')}
-                        </td>
-                        <td className="py-3.5 capitalize text-slate-600 dark:text-slate-400">
-                          {b.consultationMode?.replace('_', ' ')}
-                        </td>
-                        <td className="py-3.5 font-bold text-slate-900 dark:text-slate-100">
-                          ₹{b.fee}
-                        </td>
-                        <td className="py-3.5">
-                          <Badge
-                            className={
-                              b.status === 'completed'
-                                ? 'bg-emerald-600 text-white'
-                                : b.status === 'confirmed'
-                                ? 'bg-slate-900 text-white'
-                                : b.status === 'in_progress'
-                                ? 'bg-amber-600 text-white animate-pulse'
-                                : 'bg-slate-500 text-white'
-                            }
-                          >
-                            {b.status.replace(/_/g, ' ')}
-                          </Badge>
-                        </td>
-                        <td className="py-3.5 text-right space-x-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate(`/find-lawyer?bookingId=${b._id}`)}
-                            className="h-7 text-xs rounded-lg"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDownloadReceipt(b._id, b.bookingNumber)}
-                            className="h-7 text-xs rounded-lg text-slate-900 dark:text-slate-100 hover:text-white"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataGrid
+                columns={[
+                  {
+                    key: 'bookingNumber',
+                    label: 'Booking ID / Date',
+                    render: (v, b) => (
+                      <>
+                        <div className="font-bold text-slate-900 dark:text-slate-100 font-mono">
+                          {v || b._id.slice(-6)}
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          {new Date(b.scheduledDate || b.createdAt).toLocaleDateString()}
+                        </div>
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'lawyerId',
+                    label: 'Advocate',
+                    sortable: false,
+                    render: (v) => (
+                      <span className="font-bold text-slate-900 dark:text-slate-100">
+                        Adv. {v?.userId?.name || 'Advocate'}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'category',
+                    label: 'Category',
+                    render: (v) => (
+                      <span className="capitalize text-slate-600 dark:text-slate-400">
+                        {v?.replace(/_/g, ' ')}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'consultationMode',
+                    label: 'Mode',
+                    render: (v) => (
+                      <span className="capitalize text-slate-600 dark:text-slate-400">
+                        {v?.replace('_', ' ')}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'fee',
+                    label: 'Fee',
+                    render: (v) => (
+                      <span className="font-bold text-slate-900 dark:text-slate-100">₹{v}</span>
+                    ),
+                  },
+                  {
+                    key: 'status',
+                    label: 'Status',
+                    render: (v) => (
+                      <Badge
+                        className={
+                          v === 'completed'
+                            ? 'bg-emerald-600 text-white'
+                            : v === 'confirmed'
+                            ? 'bg-slate-900 text-white'
+                            : v === 'in_progress'
+                            ? 'bg-amber-600 text-white animate-pulse'
+                            : 'bg-slate-500 text-white'
+                        }
+                      >
+                        {v?.replace(/_/g, ' ')}
+                      </Badge>
+                    ),
+                  },
+                  {
+                    key: '_actions',
+                    label: 'Actions',
+                    sortable: false,
+                    render: (_v, b) => (
+                      <div className="text-right space-x-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/find-lawyer?bookingId=${b._id}`)}
+                          className="h-7 text-xs rounded-lg"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownloadReceipt(b._id, b.bookingNumber)}
+                          className="h-7 text-xs rounded-lg text-slate-900 dark:text-slate-100 hover:text-white"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ),
+                  },
+                ]}
+                rows={bookings.map((x, i) => ({ ...x, _id: x._id || x.id || `row-${i}` }))}
+                rowKey="_id"
+                empty="No consultations found matching current filter."
+                showSearch={false}
+                manualPagination
+                rowClassName={() => 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30'}
+              />
             )}
           </div>
         )}

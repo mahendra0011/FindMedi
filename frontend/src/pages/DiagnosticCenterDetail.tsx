@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { DataGrid } from '@/components/ui/System';
 import { cn } from '@/lib/utils';
 import { api, resolveFileUrl } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
@@ -448,6 +449,48 @@ export default function DiagnosticCenterDetail() {
     if (pkgSort === 'name') return a.name.localeCompare(b.name);
     return (b.popular ? 1 : 0) - (a.popular ? 1 : 0);
   });
+
+  const scheduleRows = DAY_ORDER.map(day => {
+    const slot = clinic.timing?.[day];
+    const active = slot && slot !== 'Closed';
+    return {
+      _id: day,
+      label: DAY_LABELS[day],
+      status: active ? 'Open' : 'Closed',
+      timings: active ? slot : '—',
+      active,
+      isToday: new Date().toLocaleDateString('en', { weekday: 'long' }).toLowerCase() === day,
+    };
+  });
+
+  const scheduleColumns = [
+    {
+      key: 'label',
+      label: 'Day',
+      render: (v, r) => (
+        <div className="flex items-center gap-2">
+          <div className={cn('w-2 h-2 rounded-full', r.active ? 'bg-emerald-500' : 'bg-muted-foreground/30')} />
+          <span className={cn('font-medium', r.isToday ? 'text-primary' : 'text-foreground')}>
+            {v}
+            {r.isToday && <span className="ml-2 text-xs text-primary font-semibold">(Today)</span>}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (v, r) => (
+        <span className={cn(
+          'text-xs font-semibold px-2.5 py-1 rounded-full',
+          r.active
+            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
+            : 'bg-muted text-muted-foreground'
+        )}>{v}</span>
+      ),
+    },
+    { key: 'timings', label: 'Timings', render: (v) => <span className="text-muted-foreground">{v}</span> },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/20 to-background pb-32">
@@ -959,54 +1002,14 @@ export default function DiagnosticCenterDetail() {
                 <CardContent className="p-6">
                   <SectionTitle icon={CalendarDays} label="Weekly Schedule" />
                   {clinic.timing ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-border/60">
-                            <th className="text-left py-3 px-4 font-semibold text-foreground">Day</th>
-                            <th className="text-left py-3 px-4 font-semibold text-foreground">Status</th>
-                            <th className="text-left py-3 px-4 font-semibold text-foreground">Timings</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {DAY_ORDER.map(day => {
-                            const slot = clinic.timing?.[day];
-                            const active = slot && slot !== 'Closed';
-                            const label = DAY_LABELS[day];
-                            const isToday = new Date().toLocaleDateString('en', { weekday: 'long' }).toLowerCase() === day;
-                            return (
-                              <tr key={day} className={cn(
-                                'border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors',
-                                isToday && 'bg-primary/5'
-                              )}>
-                                <td className="py-3 px-4">
-                                  <div className="flex items-center gap-2">
-                                    <div className={cn('w-2 h-2 rounded-full', active ? 'bg-emerald-500' : 'bg-muted-foreground/30')} />
-                                    <span className={cn('font-medium', isToday ? 'text-primary' : 'text-foreground')}>
-                                      {label}
-                                      {isToday && <span className="ml-2 text-xs text-primary font-semibold">(Today)</span>}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-4">
-                                  <span className={cn(
-                                    'text-xs font-semibold px-2.5 py-1 rounded-full',
-                                    active
-                                      ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                      : 'bg-muted text-muted-foreground'
-                                  )}>
-                                    {active ? 'Open' : 'Closed'}
-                                  </span>
-                                </td>
-                                <td className="py-3 px-4 text-muted-foreground">
-                                  {active ? slot : '—'}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                    <DataGrid
+                      columns={scheduleColumns}
+                      rows={scheduleRows}
+                      rowKey="_id"
+                      showSearch={false}
+                      manualPagination
+                      rowClassName={(r) => cn('hover:bg-muted/20 transition-colors', r.isToday && 'bg-primary/5')}
+                    />
                   ) : (
                     <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-muted/30 border border-border/60 text-sm text-muted-foreground">
                       <Clock className="w-4 h-4 text-primary shrink-0" />

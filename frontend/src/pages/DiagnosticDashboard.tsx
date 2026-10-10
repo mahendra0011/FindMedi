@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 
@@ -204,6 +205,35 @@ export default function DiagnosticDashboard() {
       </div>
     </div>
   );
+
+  const billingGridRows = filteredBills.length === 0
+    ? bookings.map((b, i) => ({
+      _id: b._id || b.id || `row-${i}`,
+      invoice: b.bookingId,
+      patient: b.patientName,
+      tests: (b.tests || []).length,
+      amount: b.totalAmount || 0,
+      status: b.paymentStatus,
+      date: b.bookingDate?.split('T')[0],
+    }))
+    : bills.map((b, i) => ({
+      _id: b._id || b.id || `row-${i}`,
+      invoice: b.invoiceId || b._id,
+      patient: b.patientName,
+      tests: (b.tests || []).length,
+      amount: b.totalAmount || 0,
+      status: b.paymentStatus,
+      date: b.date || b.bookingDate?.split('T')[0],
+    }));
+
+  const billingColumns = [
+    { key: 'invoice', label: 'Invoice', render: (v) => <span className="font-medium">{v}</span> },
+    { key: 'patient', label: 'Patient' },
+    { key: 'tests', label: 'Tests' },
+    { key: 'amount', label: 'Amount', render: (v) => <span className="block text-right font-medium">₹{(v || 0).toLocaleString()}</span> },
+    { key: 'status', label: 'Payment', render: (v) => <span className="block text-center"><StatusBadge status={v} /></span> },
+    { key: 'date', label: 'Date', render: (v) => <span className="block text-right text-muted-foreground">{v}</span> },
+  ];
 
 
 
@@ -630,32 +660,15 @@ export default function DiagnosticDashboard() {
                 ))}
                 <Button size="sm" variant="outline" onClick={exportBillingCsv}><Download className="w-4 h-4 mr-1" /> Export</Button>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead><tr className="border-b text-muted-foreground"><th className="text-left py-3 px-2 font-medium">Invoice</th><th className="text-left py-3 px-2 font-medium">Patient</th><th className="text-left py-3 px-2 font-medium">Tests</th><th className="text-right py-3 px-2 font-medium">Amount</th><th className="text-center py-3 px-2 font-medium">Payment</th><th className="text-right py-3 px-2 font-medium">Date</th></tr></thead>
-                  <tbody>
-                    {filteredBills.length === 0 ? bookings.map(b => (
-                      <tr key={b._id} className="border-b hover:bg-muted/50">
-                        <td className="py-3 px-2 font-medium">{b.bookingId}</td>
-                        <td className="py-3 px-2">{b.patientName}</td>
-                        <td className="py-3 px-2">{(b.tests || []).length}</td>
-                        <td className="py-3 px-2 text-right font-medium">₹{b.totalAmount?.toLocaleString() || 0}</td>
-                        <td className="py-3 px-2 text-center"><StatusBadge status={b.paymentStatus} /></td>
-                        <td className="py-3 px-2 text-right text-muted-foreground">{b.bookingDate?.split('T')[0]}</td>
-                      </tr>
-                    )) : bills.map(b => (
-                      <tr key={b._id} className="border-b hover:bg-muted/50">
-                        <td className="py-3 px-2 font-medium">{b.invoiceId || b._id}</td>
-                        <td className="py-3 px-2">{b.patientName}</td>
-                        <td className="py-3 px-2">{(b.tests || []).length}</td>
-                        <td className="py-3 px-2 text-right font-medium">₹{b.totalAmount?.toLocaleString() || 0}</td>
-                        <td className="py-3 px-2 text-center"><StatusBadge status={b.paymentStatus} /></td>
-                        <td className="py-3 px-2 text-right text-muted-foreground">{b.date || b.bookingDate?.split('T')[0]}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataGrid
+                columns={billingColumns}
+                rows={billingGridRows}
+                rowKey="_id"
+                empty="No bills"
+                showSearch={false}
+                manualPagination
+                rowClassName={() => 'hover:bg-muted/50'}
+              />
             </>
           )}
 

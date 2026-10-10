@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Search, Plus, UserRound, X, Trash2, Users, Stethoscope, Activity, CalendarDays, Phone, Mail, ChevronRight, Sparkles, HeartPulse, Clock, CheckCircle, AlertTriangle, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 
 const statusConfig = {
@@ -105,7 +106,7 @@ export default function Patients() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search patients..." className="pl-10 h-10 rounded-xl bg-background border-border/50 text-sm"
+          <Input placeholder="Search patients..." aria-label="Search patients" className="pl-10 h-10 rounded-xl bg-background border-border/50 text-sm"
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-1.5 flex-wrap">
@@ -124,88 +125,97 @@ export default function Patients() {
 
       {/* Table */}
       <div className="bg-card rounded-3xl border border-border/50 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border/60 bg-muted/20">
-                {['Patient', 'Age / Gender', 'Diagnosis', 'Doctor', 'Admitted', 'Status', ''].map(h => (
-                  <th key={h} className="text-left text-[10px] font-semibold text-muted-foreground px-5 py-3.5 uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {isLoading ? (
-                [...Array(5)].map((_, i) => (
-                  <tr key={i}>
-                    <td colSpan={7} className="px-5 py-4">
-                      <div className="h-5 bg-muted rounded animate-pulse w-3/4" />
-                    </td>
-                  </tr>
-                ))
-              ) : patients.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-16">
-                    <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
-                      <UserRound className="w-7 h-7 text-muted-foreground/30" />
+        {isLoading ? (
+          <div className="p-5 space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-5 bg-muted rounded animate-pulse w-3/4" />
+            ))}
+          </div>
+        ) : patients.length === 0 ? (
+          <div className="py-16 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
+              <UserRound className="w-7 h-7 text-muted-foreground/30" />
+            </div>
+            <p className="text-sm text-muted-foreground font-medium">No patients found</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              {search ? 'Try a different search term.' : 'Add a patient to get started.'}
+            </p>
+          </div>
+        ) : (
+          <DataGrid
+            columns={[
+              {
+                key: 'name',
+                label: 'Patient',
+                render: (v, p) => (
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold shrink-0 shadow-sm ${
+                      p.status === 'Critical'
+                        ? 'bg-red-500/10 text-red-600'
+                        : p.status === 'Discharged'
+                          ? 'bg-muted/50 text-muted-foreground'
+                          : 'bg-primary/10 text-primary'
+                    }`}>
+                      {v?.charAt(0)}
                     </div>
-                    <p className="text-sm text-muted-foreground font-medium">No patients found</p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">
-                      {search ? 'Try a different search term.' : 'Add a patient to get started.'}
-                    </p>
-                  </td>
-                </tr>
-              ) : patients.map((p, idx) => (
-                <motion.tr key={p._id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.02 }}
-                  className="group hover:bg-muted/20 transition-colors">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold shrink-0 shadow-sm ${
-                        p.status === 'Critical'
-                          ? 'bg-red-500/10 text-red-600'
-                          : p.status === 'Discharged'
-                            ? 'bg-muted/50 text-muted-foreground'
-                            : 'bg-primary/10 text-primary'
-                      }`}>
-                        {p.name?.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-foreground text-sm">{p.name}</p>
-                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
-                          {p.bloodGroup && <span>{p.bloodGroup}</span>}
-                          {p.phone && <><span className="w-1 h-1 rounded-full bg-muted-foreground/30" /><span>{p.phone}</span></>}
-                        </div>
+                    <div>
+                      <p className="font-semibold text-foreground text-sm">{v}</p>
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
+                        {p.bloodGroup && <span>{p.bloodGroup}</span>}
+                        {p.phone && <><span className="w-1 h-1 rounded-full bg-muted-foreground/30" /><span>{p.phone}</span></>}
                       </div>
                     </div>
-                  </td>
-                  <td className="px-5 py-4 text-sm text-muted-foreground">{p.age} / {p.gender}</td>
-                  <td className="px-5 py-4 text-sm text-foreground">{p.disease || '—'}</td>
-                  <td className="px-5 py-4 text-sm text-muted-foreground">{p.doctor || '—'}</td>
-                  <td className="px-5 py-4 text-xs text-muted-foreground">
-                    {p.admitted ? (
+                  </div>
+                ),
+              },
+              { key: 'age', label: 'Age / Gender', render: (v, p) => <span className="text-sm text-muted-foreground">{v} / {p.gender}</span> },
+              { key: 'disease', label: 'Diagnosis', render: (v) => <span className="text-sm text-foreground">{v || '—'}</span> },
+              { key: 'doctor', label: 'Doctor', render: (v) => <span className="text-sm text-muted-foreground">{v || '—'}</span> },
+              {
+                key: 'admitted',
+                label: 'Admitted',
+                render: (v) => (
+                  <span className="text-xs text-muted-foreground">
+                    {v ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted/50 text-[10px]">
                         <CalendarDays className="w-3 h-3" />
-                        {new Date(p.admitted).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {new Date(v).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
                     ) : '—'}
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold border ${
-                      statusConfig[p.status]?.color || 'bg-muted text-muted-foreground border-border/40'
-                    }`}>
-                      {p.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <button onClick={() => { if (confirm('Remove patient?')) deleteMut.mutate(p._id); }}
-                      className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </span>
+                ),
+              },
+              {
+                key: 'status',
+                label: 'Status',
+                render: (v) => (
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold border ${
+                    statusConfig[v]?.color || 'bg-muted text-muted-foreground border-border/40'
+                  }`}>
+                    {v}
+                  </span>
+                ),
+              },
+              {
+                key: '_actions',
+                label: '',
+                sortable: false,
+                render: (_v, p) => (
+                  <button onClick={() => { if (confirm('Remove patient?')) deleteMut.mutate(p._id); }}
+                    className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                ),
+              },
+            ]}
+            rows={patients.map((p: { _id?: string; id?: string }, i: number) => ({ ...p, _id: p._id || p.id || `row-${i}` }))}
+            rowKey="_id"
+            empty="No patients found"
+            showSearch={false}
+            manualPagination
+            rowClassName={() => 'group hover:bg-muted/20 transition-colors'}
+          />
+        )}
       </div>
 
       {/* Add Patient Modal */}

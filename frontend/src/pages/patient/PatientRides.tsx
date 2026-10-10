@@ -23,6 +23,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { DataGrid } from '@/components/ui/System';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import RatingModal from '@/components/vehicle/RatingModal';
@@ -219,6 +220,7 @@ export default function PatientRides() {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by pickup, drop, or driver..."
+            aria-label="Search rides"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 h-10 text-xs rounded-xl"
@@ -278,144 +280,167 @@ export default function PatientRides() {
             </Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-muted/40 border-b border-border/80 text-muted-foreground uppercase text-[10px] tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Date & Time</th>
-                  <th className="py-3 px-4">Vehicle</th>
-                  <th className="py-3 px-4">Route</th>
-                  <th className="py-3 px-4">Driver</th>
-                  <th className="py-3 px-4">Fare</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Rating</th>
-                  <th className="py-3 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {filteredRides.map((ride) => {
-                  const Icon = getVehicleIcon(ride.vehicleType);
-                  const isCompleted = ride.status === 'completed';
-                  const isPaid = ride.payment?.status === 'paid';
-
+          <DataGrid
+            columns={[
+              {
+                key: 'createdAt',
+                label: 'Date & Time',
+                render: (v) => (
+                  <span className="font-mono text-muted-foreground whitespace-nowrap">
+                    {new Date(v).toLocaleString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                ),
+              },
+              {
+                key: 'vehicleType',
+                label: 'Vehicle',
+                render: (v, ride) => {
+                  const Icon = getVehicleIcon(v);
                   return (
-                    <tr key={ride._id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3.5 px-4 font-mono text-muted-foreground whitespace-nowrap">
-                        {new Date(ride.createdAt).toLocaleString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </td>
-
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-foreground capitalize">
-                              {ride.vehicleType?.replace('_', ' ')}
-                            </p>
-                            {ride.isEmergency && (
-                              <span className="text-[9px] font-bold text-red-600">EMERGENCY</span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4 max-w-[200px]">
-                        <p className="truncate text-foreground font-medium">
-                          <span className="text-emerald-600 font-bold mr-1">P:</span>
-                          {ride.pickup?.address}
+                    <div className="flex items-center gap-2 whitespace-nowrap">
+                      <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground capitalize">
+                          {v?.replace('_', ' ')}
                         </p>
-                        <p className="truncate text-muted-foreground mt-0.5">
-                          <span className="text-rose-600 font-bold mr-1">D:</span>
-                          {ride.drop?.address}
-                        </p>
-                      </td>
-
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        {ride.riderId?.name ? (
-                          <div>
-                            <p className="font-medium text-foreground">{ride.riderId.name}</p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {ride.vehicleId?.rcNumber || ''}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
+                        {ride.isEmergency && (
+                          <span className="text-[9px] font-bold text-red-600">EMERGENCY</span>
                         )}
-                      </td>
-
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="font-bold text-foreground">₹{ride.fare?.total || 0}</span>
-                        <div>
-                          <Badge
-                            variant={isPaid ? 'default' : 'secondary'}
-                            className="text-[9px] px-1 py-0"
-                          >
-                            {isPaid ? 'Paid' : 'Pending'}
-                          </Badge>
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <Badge
-                          variant={
-                            isCompleted
-                              ? 'default'
-                              : ride.status.includes('cancelled')
-                              ? 'destructive'
-                              : 'secondary'
-                          }
-                          className="text-[10px]"
-                        >
-                          {ride.status.replace(/_/g, ' ')}
-                        </Badge>
-                      </td>
-
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        {ride.ratingByUser?.stars ? (
-                          <span className="flex items-center gap-1 font-semibold text-amber-600">
-                            <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                            {ride.ratingByUser.stars}
-                          </span>
-                        ) : isCompleted ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setRideToRate(ride);
-                              setRateModalOpen(true);
-                            }}
-                            className="text-xs h-7 text-primary hover:underline p-0"
-                          >
-                            Rate Now
-                          </Button>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedRide(ride)}
-                          className="h-8 rounded-lg text-xs gap-1.5"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          View
-                        </Button>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
+                },
+              },
+              {
+                key: 'pickup',
+                label: 'Route',
+                render: (v, ride) => (
+                  <div className="max-w-[200px]">
+                    <p className="truncate text-foreground font-medium">
+                      <span className="text-emerald-600 font-bold mr-1">P:</span>
+                      {v?.address}
+                    </p>
+                    <p className="truncate text-muted-foreground mt-0.5">
+                      <span className="text-rose-600 font-bold mr-1">D:</span>
+                      {ride.drop?.address}
+                    </p>
+                  </div>
+                ),
+              },
+              {
+                key: 'riderId',
+                label: 'Driver',
+                sortable: false,
+                render: (v, ride) => (
+                  <div className="whitespace-nowrap">
+                    {v?.name ? (
+                      <div>
+                        <p className="font-medium text-foreground">{v.name}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {ride.vehicleId?.rcNumber || ''}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </div>
+                ),
+              },
+              {
+                key: 'fare',
+                label: 'Fare',
+                sortable: false,
+                render: (v, ride) => (
+                  <div className="whitespace-nowrap">
+                    <span className="font-bold text-foreground">₹{v?.total || 0}</span>
+                    <div>
+                      <Badge
+                        variant={ride.payment?.status === 'paid' ? 'default' : 'secondary'}
+                        className="text-[9px] px-1 py-0"
+                      >
+                        {ride.payment?.status === 'paid' ? 'Paid' : 'Pending'}
+                      </Badge>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: 'status',
+                label: 'Status',
+                render: (_v, ride) => (
+                  <Badge
+                    variant={
+                      ride.status === 'completed'
+                        ? 'default'
+                        : ride.status.includes('cancelled')
+                        ? 'destructive'
+                        : 'secondary'
+                    }
+                    className="text-[10px]"
+                  >
+                    {ride.status.replace(/_/g, ' ')}
+                  </Badge>
+                ),
+              },
+              {
+                key: 'ratingByUser',
+                label: 'Rating',
+                sortable: false,
+                render: (v, ride) =>
+                  v?.stars ? (
+                    <span className="flex items-center gap-1 font-semibold text-amber-600">
+                      <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                      {v.stars}
+                    </span>
+                  ) : ride.status === 'completed' ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setRideToRate(ride);
+                        setRateModalOpen(true);
+                      }}
+                      className="text-xs h-7 text-primary hover:underline p-0"
+                    >
+                      Rate Now
+                    </Button>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  ),
+              },
+              {
+                key: '_actions',
+                label: 'Action',
+                sortable: false,
+                render: (_v, ride) => (
+                  <div className="text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedRide(ride)}
+                      className="h-8 rounded-lg text-xs gap-1.5"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      View
+                    </Button>
+                  </div>
+                ),
+              },
+            ]}
+            rows={filteredRides.map((x, i) => ({ ...x, _id: x._id || x.id || `row-${i}` }))}
+            rowKey="_id"
+            empty="No rides found"
+            showSearch={false}
+            manualPagination
+            rowClassName={() => 'hover:bg-muted/30 transition-colors'}
+          />
         )}
       </div>
 

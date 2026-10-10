@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 import PatientBanner from '@/components/clinical/PatientBanner';
@@ -305,6 +306,35 @@ showToast('Failed to export billing', 'error');
     </div>
   );
 
+  const billingGridRows = filteredBills.length === 0
+    ? filteredOrders.map((o, i) => ({
+      _id: o._id || o.id || `row-${i}`,
+      invoice: o.orderId,
+      patient: o.patientName,
+      items: o.items?.length || 0,
+      amount: o.total || 0,
+      status: o.paymentStatus,
+      date: o.orderDate?.split('T')[0],
+    }))
+    : filteredBills.map((b, i) => ({
+      _id: b._id || b.id || `row-${i}`,
+      invoice: b.invoiceId || b._id,
+      patient: b.patientName,
+      items: b.items?.length || 0,
+      amount: b.total || 0,
+      status: b.status,
+      date: b.date || b.orderDate?.split('T')[0],
+    }));
+
+  const billingColumns = [
+    { key: 'invoice', label: 'Invoice', render: (v) => <span className="font-medium">{v}</span> },
+    { key: 'patient', label: 'Patient' },
+    { key: 'items', label: 'Items' },
+    { key: 'amount', label: 'Amount', render: (v) => <span className="block text-right font-medium">₹{(v || 0).toLocaleString()}</span> },
+    { key: 'status', label: 'Status', render: (v) => <span className="block text-center"><StatusBadge status={v} /></span> },
+    { key: 'date', label: 'Date', render: (v) => <span className="block text-right text-muted-foreground">{v}</span> },
+  ];
+
   return (
     <div>
       {toast && (
@@ -581,42 +611,15 @@ showToast('Failed to export billing', 'error');
                 ))}
 <Button size="sm" variant="outline" onClick={exportBillingCsv}><Download className="w-4 h-4 mr-1" /> Export</Button>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-muted-foreground">
-                      <th className="text-left py-3 px-2 font-medium">Invoice</th>
-                      <th className="text-left py-3 px-2 font-medium">Patient</th>
-                      <th className="text-left py-3 px-2 font-medium">Items</th>
-                      <th className="text-right py-3 px-2 font-medium">Amount</th>
-                      <th className="text-center py-3 px-2 font-medium">Status</th>
-                      <th className="text-right py-3 px-2 font-medium">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredBills.map(b => (
-                      <tr key={b._id} className="border-b hover:bg-muted/50">
-                        <td className="py-3 px-2 font-medium">{b.invoiceId || b._id}</td>
-                        <td className="py-3 px-2">{b.patientName}</td>
-                        <td className="py-3 px-2">{b.items?.length || 0}</td>
-                        <td className="py-3 px-2 text-right font-medium">₹{b.total?.toLocaleString() || 0}</td>
-                        <td className="py-3 px-2 text-center"><StatusBadge status={b.status} /></td>
-                        <td className="py-3 px-2 text-right text-muted-foreground">{b.date || b.orderDate?.split('T')[0]}</td>
-                      </tr>
-                    ))}
-                    {filteredBills.length === 0 && filteredOrders.map(o => (
-                      <tr key={o._id} className="border-b hover:bg-muted/50">
-                        <td className="py-3 px-2 font-medium">{o.orderId}</td>
-                        <td className="py-3 px-2">{o.patientName}</td>
-                        <td className="py-3 px-2">{o.items?.length || 0}</td>
-                        <td className="py-3 px-2 text-right font-medium">₹{o.total?.toLocaleString() || 0}</td>
-                        <td className="py-3 px-2 text-center"><StatusBadge status={o.paymentStatus} /></td>
-                        <td className="py-3 px-2 text-right text-muted-foreground">{o.orderDate?.split('T')[0]}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataGrid
+                columns={billingColumns}
+                rows={billingGridRows}
+                rowKey="_id"
+                empty="No bills"
+                showSearch={false}
+                manualPagination
+                rowClassName={() => 'hover:bg-muted/50'}
+              />
             </>
           )}
 
