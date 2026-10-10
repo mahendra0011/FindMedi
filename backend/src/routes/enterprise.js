@@ -219,6 +219,35 @@ router.post('/maintenance', authorize('billing:write'), async (req, res) => {
   }
 });
 
+router.get('/maintenance/:id', authorize('billing:read'), async (req, res) => {
+  try {
+    const { default: AssetMaintenance } = await import('../models/AssetMaintenance.js');
+    const row = await AssetMaintenance.findOne({ _id: req.params.id, ...tenant(req) }).lean();
+    if (!row) return res.status(404).json({ message: 'Not found' });
+    return res.json(row);
+  } catch (err) {
+    logger.error(`Maintenance get error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.delete('/maintenance/:id', authorize('billing:write'), async (req, res) => {
+  try {
+    const { default: AssetMaintenance } = await import('../models/AssetMaintenance.js');
+    const row = await AssetMaintenance.findOne({ _id: req.params.id, ...tenant(req) }).lean();
+    if (!row) return res.status(404).json({ message: 'Not found' });
+    if (row.status === 'Done') {
+      return res.status(409).json({ message: 'Completed maintenance is retained for audit; cancel instead of deleting' });
+    }
+    await AssetMaintenance.deleteOne({ _id: row._id, ...tenant(req) });
+    await auditLog('maintenance_deleted', actorId(req), { maintenanceId: row._id, ip: req.ip });
+    return res.json({ id: String(row._id), deleted: true });
+  } catch (err) {
+    logger.error(`Maintenance delete error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 router.patch('/maintenance/:id', authorize('billing:write'), async (req, res) => {  try {
     const { default: AssetMaintenance } = await import('../models/AssetMaintenance.js');
     const allowed = ['dueDate', 'doneDate', 'vendor', 'cost', 'reportUrl', 'status'];

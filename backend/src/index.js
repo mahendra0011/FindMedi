@@ -698,6 +698,7 @@ import contactCenterRoutes from './routes/contactCenter.js';
 import hubRoutes from './routes/hub.js';
 import safetyRoutes from './routes/safety.js';
 import frontofficeRoutes from './routes/frontoffice.js';
+import payoutStatementRoutes from './routes/payoutStatements.js';
 import notifyTemplateRoutes from './routes/notifyTemplates.js';
 import qualityRoutes from './routes/quality.js';
 import breachRoutes from './routes/breach.js';
@@ -942,6 +943,8 @@ app.use('/api/hub', hubRoutes);
 app.use('/api/safety', safetyRoutes);
 // File 22 P0-6: front-office enquiries.
 app.use('/api/frontoffice', frontofficeRoutes);
+// File 22 P0-6: doctor payout statements (full CRUD + approve/pay).
+app.use('/api/payout-statements', payoutStatementRoutes);
 // File 22 P2-35: notification template registry.
 app.use('/api/notify', notifyTemplateRoutes);
 // File 22 P2-30: quality (NABH/CAPA/PCPNDT/MTP).

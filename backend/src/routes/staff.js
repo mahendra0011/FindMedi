@@ -456,11 +456,46 @@ router.post('/payslips', protect, authorize('staff:manage'), adminOnly, async (r
   }
 });
 
+// authz: self — an employee reads only the slips of their OWN Staff record
+// (resolved from the session userId, never from a client-supplied staffId).
+router.get('/payslips/mine', protect, async (req, res) => {
+  try {
+    if (denyIfTenantless(req, res)) return;
+    const { default: Payslip } = await import('../models/Payslip.js');
+    const mine = await Staff.findOne({ userId: req.user._id, ...staffScopeFilter(req) }).lean();
+    if (!mine) return res.json({ payslips: [] });
+    const rows = await Payslip.find({ staffId: mine._id, ...staffScopeFilter(req) }).sort({ month: -1 }).limit(36).lean();
+    return res.json({ payslips: rows });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get('/payslips/:id', protect, authorize('staff:manage'), async (req, res) => {
+  try {
+    const { default: Payslip } = await import('../models/Payslip.js');
+    const row = await Payslip.findOne({ _id: req.params.id, ...staffScopeFilter(req) }).lean();
+    if (!row) return res.status(404).json({ message: 'Payslip not found' });
+    return res.json(row);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.delete('/payslips/:id', protect, authorize('staff:manage'), adminOnly, async (req, res) => {
+  try {
+    const { default: Payslip } = await import('../models/Payslip.js');
+    const { auditLog } = await import('../middleware/audit.js');
+    const row = await Payslip.findOne({ _id: req.params.id, ...staffScopeFilter(req) });
+    if (!row) return res.status(404).json({ message: 'Payslip not found' });
+    if (row.status !== 'Draft') return res.status(409).json({ message: 'Only Draft payslips can be deleted' });
+    await Payslip.deleteOne({ _id: row._id, ...staffScopeFilter(req) });
+    await auditLog('payslip_deleted', req.user._id, { payslipId: row._id, ip: req.ip });
+    return res.json({ id: String(row._id), deleted: true });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.post('/payslips/:id/release', protect, authorize('staff:manage'), adminOnly, async (req, res) => {
   try {
     const { default: Payslip } = await import('../models/Payslip.js');
     const { auditLog } = await import('../middleware/audit.js');
-    const row = await Payslip.findById(req.params.id);
+    const row = await Payslip.findOne({ _id: req.params.id, ...staffScopeFilter(req) });
     if (!row || row.status !== 'Draft') return res.status(404).json({ message: 'Draft payslip not found' });
     const { isSelfApproval } = await import('../lib/approvalWiring.js');
     if (isSelfApproval(row.createdBy, req.user._id ?? req.user.id)) {

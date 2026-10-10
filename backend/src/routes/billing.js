@@ -357,6 +357,9 @@ router.post('/', protect, authorize('billing:write'), paymentLimiter, validate(c
       invoiceSeries: seriesUsed,
       overage,
       date,
+      encounterId: body.encounterId || undefined,
+      appointmentId: body.appointmentId || undefined,
+      admissionId: body.admissionId || undefined,
       hospitalId: req.user.hospitalId || undefined,
       facilityId: req.user.facilityId || undefined,
     });

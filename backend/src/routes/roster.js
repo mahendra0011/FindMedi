@@ -102,12 +102,39 @@ router.post('/swaps', authorize('staff:view'), async (req, res) => {
   }
 });
 
+router.get('/swaps/:id', authorize('staff:view'), async (req, res) => {
+  try {
+    const { default: ShiftSwap } = await import('../models/ShiftSwap.js');
+    const row = await ShiftSwap.findOne({ _id: req.params.id, ...tenantFilter(req) }).lean();
+    if (!row) return res.status(404).json({ message: 'Not found' });
+    return res.json(row);
+  } catch (err) {
+    logger.error(`Swap get error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.delete('/swaps/:id', authorize('staff:manage'), async (req, res) => {
+  try {
+    const { default: ShiftSwap } = await import('../models/ShiftSwap.js');
+    const row = await ShiftSwap.findOne({ _id: req.params.id, ...tenantFilter(req) });
+    if (!row) return res.status(404).json({ message: 'Not found' });
+    if (row.status !== 'Pending') return res.status(409).json({ message: 'Only pending swaps can be withdrawn' });
+    await ShiftSwap.findOneAndDelete({ _id: row._id, ...tenantFilter(req) });
+    await auditLog('shift_swap_withdrawn', actorId(req), { swapId: row._id, ip: req.ip });
+    return res.json({ id: String(row._id), deleted: true });
+  } catch (err) {
+    logger.error(`Swap delete error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 router.post('/swaps/:id/decide', authorize('staff:manage'), async (req, res) => {
   try {
     const { default: ShiftSwap } = await import('../models/ShiftSwap.js');
     const { decision } = req.body || {};
     if (!['Approved', 'Rejected'].includes(decision)) return res.status(400).json({ message: 'decision must be Approved|Rejected' });
-    const row = await ShiftSwap.findById(req.params.id);
+    const row = await ShiftSwap.findOne({ _id: req.params.id, ...tenantFilter(req) });
     if (!row || row.status !== 'Pending') return res.status(404).json({ message: 'Pending swap not found' });
     const { isSelfApproval } = await import('../lib/approvalWiring.js');
     if (isSelfApproval(row.createdBy, actorId(req))) {

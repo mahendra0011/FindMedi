@@ -15,7 +15,7 @@ const visitorPassSchema = new mongoose.Schema({
   photoUrl: { type: String, default: '' },
   relation: { type: String, default: '' },
   validFrom: { type: Date, default: Date.now },
-  validTo: { type: Date, required: true },
+  validTo: { type: Date, default: () => new Date(Date.now() + 24 * 60 * 60 * 1000) },
   status: { type: String, enum: ['Active', 'Expired', 'Revoked'], default: 'Active', index: true },
   issuedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });

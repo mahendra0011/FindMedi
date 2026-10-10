@@ -14,7 +14,7 @@
 ## Summary
 
 - **304 models** across 299 files (0 skipped)
-- **6594 schema fields**, of which **730 classified as PII** in **215 collections**
+- **6599 schema fields**, of which **731 classified as PII** in **215 collections**
 - **6 collections** carry a TTL index
 - **103 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -72,7 +72,7 @@
 | `birthrecords` | BirthRecord | 12 | 0 | 1 | — | No PII fields detected |
 | `bloodrequests` | BloodRequest | 35 | 6 | 2 | — | Clinical records |
 | `bloodunits` | BloodUnit | 24 | 1 | 2 | — | Clinical records |
-| `bmwlogs` | BmwLog | 13 | 1 | 3 | — | **UNMAPPED — see gaps** |
+| `bmwlogs` | BmwLog | 16 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `breaches` | Breach | 15 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `breakglassgrants` | BreakGlassGrant | 23 | 0 | 6 | — | No PII fields detected |
 | `calllogs` | CallLog | 16 | 0 | 5 | — | No PII fields detected |
@@ -104,7 +104,7 @@
 | `contracts` | Contract | 19 | 0 | 4 | — | No PII fields detected |
 | `corporateemployees` | CorporateEmployee | 8 | 1 | 2 | — | **UNMAPPED — see gaps** |
 | `corporates` | Corporate | 10 | 2 | 1 | — | **UNMAPPED — see gaps** |
-| `credentials` | Credential | 12 | 0 | 4 | — | No PII fields detected |
+| `credentials` | Credential | 13 | 0 | 5 | — | No PII fields detected |
 | `creditnotes` | CreditNote | 14 | 2 | 3 | — | Payment and ledger entries |
 | `dailymetrics` | DailyMetric | 6 | 0 | 2 | — | No PII fields detected |
 | `dailyrcmmetrics` | DailyRcmMetric | 11 | 0 | 3 | — | No PII fields detected |
@@ -135,7 +135,7 @@
 | `emergencyrequests` | EmergencyRequest | 62 | 17 | 4 | — | Ride and SOS location traces |
 | `encounters` | Encounter | 24 | 2 | 8 | — | Clinical records |
 | `endoscopyrecords` | EndoscopyRecord | 19 | 1 | 3 | — | Clinical records |
-| `enquiries` | Enquiry | 13 | 3 | 4 | — | **UNMAPPED — see gaps** |
+| `enquiries` | Enquiry | 14 | 4 | 4 | — | **UNMAPPED — see gaps** |
 | `equipment` | Equipment | 22 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `eventregistrations` | EventRegistration | 17 | 2 | 5 | — | **UNMAPPED — see gaps** |
 | `events` | Event | 44 | 4 | 8 | — | **UNMAPPED — see gaps** |
@@ -1886,6 +1886,9 @@ source `BmwLog.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED �
 | `blueKg` | Number |  |  | 0 |  |  |  |
 | `handedTo` | String |  |  | "" |  |  |  |
 | `manifestNo` | String |  |  | "" |  |  |  |
+| `status` | String |  |  | "Active" | Active, Void |  |  |
+| `voidedAt` | Date |  |  | null |  |  |  |
+| `voidedBy` | ObjectId |  |  | null |  | User |  |
 | `createdBy` | ObjectId |  |  |  |  | User | Identifier |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
@@ -1897,6 +1900,7 @@ Indexes:
 |---|---|
 | `hospitalId:1` |  |
 | `date:1` |  |
+| `status:1` |  |
 | `hospitalId:1, date:1` |  |
 
 ### `breaches` — Breach
@@ -2955,6 +2959,7 @@ source `Credential.js` · timestamps: yes · virtuals: 0 · retention: n/a — n
 | `privileges` | Array<Mixed> |  |  |  |  |  |  |
 | `verifiedAt` | Date |  |  | null |  |  |  |
 | `verifiedBy` | ObjectId |  |  | null |  | User |  |
+| `status` | String |  |  | "Active" | Active, Expired, Revoked |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -2966,6 +2971,7 @@ Indexes:
 | `staffId:1` |  |
 | `hospitalId:1` |  |
 | `validTill:1` |  |
+| `status:1` |  |
 | `staffId:1, type:1` |  |
 
 ### `creditnotes` — CreditNote
@@ -4210,6 +4216,7 @@ source `Enquiry.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED �
 | `notes` | String |  |  | "" |  |  |  |
 | `followUpAt` | Date |  |  | null |  |  |  |
 | `status` | String |  |  | "Open" | Open, FollowUp, Converted, Dropped |  |  |
+| `assignedTo` | ObjectId |  |  | null |  | Staff | Identifier |
 | `convertedPatientId` | ObjectId |  |  | null |  | Patient |  |
 | `createdBy` | ObjectId |  |  |  |  | User | Identifier |
 | `createdAt` | Date |  |  |  |  |  |  |
@@ -11370,7 +11377,7 @@ source `VisitorPass.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPP
 | `photoUrl` | String |  |  | "" |  |  | Image/Biometric |
 | `relation` | String |  |  | "" |  |  |  |
 | `validFrom` | Date |  |  | [function] |  |  |  |
-| `validTo` | Date | yes |  |  |  |  |  |
+| `validTo` | Date |  |  | [function] |  |  |  |
 | `status` | String |  |  | "Active" | Active, Expired, Revoked |  |  |
 | `issuedBy` | ObjectId |  |  |  |  | User |  |
 | `createdAt` | Date |  |  |  |  |  |  |

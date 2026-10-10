@@ -97,4 +97,17 @@ describe('P1-14 billing depth', () => {
     const res = await as(biller).post('/doctor-fees').send({ doctorId: '64b0000000000000000000d1', consultFee: 800 });
     expect(res.status).toBe(201);
   });
+
+  test('create persists the validated encounter/admission/appointment links', async () => {
+    const res = await as(biller).post('/').send({
+      patient: 'Ravi', service: 'IPD Final Bill', source: 'ipd', amount: 250,
+      encounterId: '64b000000000000000000e01',
+      admissionId: '64b000000000000000000a01',
+      appointmentId: '64b000000000000000000b01',
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.encounterId).toBe('64b000000000000000000e01');
+    expect(res.body.admissionId).toBe('64b000000000000000000a01');
+    expect(res.body.appointmentId).toBe('64b000000000000000000b01');
+  });
 });

@@ -9,6 +9,8 @@ const dashboardFind = jest.fn();
 const ruleFindOne = jest.fn();
 const firingCreate = jest.fn();
 const emitDashboardAlert = jest.fn();
+const userFind = jest.fn();
+const createNotification = jest.fn();
 
 jest.unstable_mockModule('../../src/models/DashboardAlert.js', () => ({
   default: { create: (...a) => dashboardCreate(...a), find: (...a) => dashboardFind(...a) },
@@ -21,6 +23,12 @@ jest.unstable_mockModule('../../src/models/RuleFiring.js', () => ({
 }));
 jest.unstable_mockModule('../../src/services/socketService.js', () => ({
   emitDashboardAlert: (...a) => emitDashboardAlert(...a),
+}));
+jest.unstable_mockModule('../../src/models/User.js', () => ({
+  default: { find: (...a) => userFind(...a) },
+}));
+jest.unstable_mockModule('../../src/services/notificationService.js', () => ({
+  createNotification: (...a) => createNotification(...a),
 }));
 
 const { raiseAlert, escalateAlertsTenant } = await import('../../src/lib/alerts.js');
@@ -64,6 +72,11 @@ describe('raiseAlert', () => {
 describe('escalateAlertsTenant', () => {
   const findRows = (rows) => dashboardFind.mockReset().mockReturnValue({ limit: () => Promise.resolve(rows) });
 
+  beforeEach(() => {
+    userFind.mockReset().mockReturnValue({ lean: async () => [{ _id: 'u1' }] });
+    createNotification.mockReset().mockResolvedValue({ notification: { _id: 'n1' } });
+  });
+
   test('levels up stale criticals and re-pushes', async () => {
     const row = {
       _id: 'al9', message: 'LAB PANIC', entityRef: {}, escalationLevel: 0,
@@ -73,14 +86,26 @@ describe('escalateAlertsTenant', () => {
     emitDashboardAlert.mockReset().mockReturnValue(true);
     const out = await escalateAlertsTenant('h1', 15);
     expect(out.escalated).toBe(1);
+    expect(out.notified).toBe(1);
     expect(row.escalationLevel).toBe(1);
     expect(row.escalatedAt).not.toBeNull();
     expect(emitDashboardAlert).toHaveBeenCalledWith('h1', expect.objectContaining({ message: expect.stringMatching(/ESCALATED/) }));
+    expect(createNotification).toHaveBeenCalledTimes(1);
+    expect(createNotification).toHaveBeenCalledWith(expect.objectContaining({
+      priority: 'critical',
+      dedupKey: 'alert-escalation:al9:1',
+    }));
+    expect(userFind).toHaveBeenCalledWith(
+      { hospitalId: 'h1', role: { $in: ['hospital_admin', 'superadmin'] } },
+      { _id: 1 },
+    );
   });
 
   test('nothing stale means nothing escalated', async () => {
     findRows([]);
     const out = await escalateAlertsTenant('h1', 15);
     expect(out.escalated).toBe(0);
+    expect(out.notified).toBe(0);
+    expect(createNotification).not.toHaveBeenCalled();
   });
 });

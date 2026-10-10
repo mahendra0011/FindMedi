@@ -18,6 +18,7 @@ const credentialSchema = new mongoose.Schema({
   privileges: [{ type: String, maxlength: 200 }],
   verifiedAt: { type: Date, default: null },
   verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  status: { type: String, enum: ['Active', 'Expired', 'Revoked'], default: 'Active', index: true },
 }, { timestamps: true });
 
 credentialSchema.index({ staffId: 1, type: 1 });

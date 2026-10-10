@@ -10,13 +10,13 @@ import logger from '../config/logger.js';
 let tasks = [];
 
 async function eachHospital(fn, label) {
+  const out = [];
   try {
     const { default: Hospital } = await import('../models/Hospital.js');
     const hospitals = await Hospital.find({}).select('_id').limit(500).lean();
     for (const h of hospitals) {
       try {
-         
-        await fn(h._id);
+        out.push(await fn(h._id));
       } catch (e) {
         logger.warn(`[scheduler:${label}] hospital ${h._id}: ${e.message}`);
       }
@@ -24,6 +24,22 @@ async function eachHospital(fn, label) {
   } catch (e) {
     logger.warn(`[scheduler:${label}] ${e.message}`);
   }
+  return out;
+}
+
+export async function escalateUnackedClinicalAlerts(minutes = 15) {
+  const results = await eachHospital(async (hid) => {
+    const { escalateAlertsTenant } = await import('../lib/alerts.js');
+    return escalateAlertsTenant(hid, minutes);
+  }, 'escalation');
+  return results.reduce(
+    (acc, r) => ({
+      escalated: acc.escalated + Number(r?.escalated || 0),
+      notified: acc.notified + Number(r?.notified || 0),
+      hospitals: acc.hospitals + 1,
+    }),
+    { escalated: 0, notified: 0, hospitals: 0 },
+  );
 }
 
 export function startScheduler() {
@@ -35,11 +51,9 @@ export function startScheduler() {
   tasks.push(cron.schedule('*/15 * * * *', async () => {
     const { sweepRulesTenant } = await import('../routes/rules.js');
     const { detectRcmTenant } = await import('../routes/rcm.js');
-    const { escalateAlertsTenant } = await import('../lib/alerts.js');
     await eachHospital((hid) => sweepRulesTenant(hid), 'rules');
     await eachHospital((hid) => detectRcmTenant(hid), 'rcm');
-    // File 22 P0-10: unacked criticals level up every sweep.
-    await eachHospital((hid) => escalateAlertsTenant(hid, 15), 'escalation');
+    await escalateUnackedClinicalAlerts();
   }));
   // Hourly: workflow SLA sweep + approval expiry + contract expiry + webhook retries.
   tasks.push(cron.schedule('0 * * * *', async () => {
@@ -81,6 +95,7 @@ export function startScheduler() {
         { $set: { status: 'expired' } },
       );
     }, 'hourly');
+    await escalateUnackedClinicalAlerts();
     try {
       await retryDueWebhooks();
     } catch (e) {

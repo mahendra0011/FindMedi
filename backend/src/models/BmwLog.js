@@ -15,6 +15,9 @@ const bmwLogSchema = new mongoose.Schema({
   blueKg: { type: Number, default: 0, min: 0 },
   handedTo: { type: String, default: '' },
   manifestNo: { type: String, default: '' },
+  status: { type: String, enum: ['Active', 'Void'], default: 'Active', index: true },
+  voidedAt: { type: Date, default: null },
+  voidedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 

@@ -10,6 +10,7 @@ const enquirySchema = new mongoose.Schema({
   notes: { type: String, default: '', maxlength: 1000 },
   followUpAt: { type: Date, default: null },
   status: { type: String, enum: ['Open', 'FollowUp', 'Converted', 'Dropped'], default: 'Open', index: true },
+  assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Staff', default: null },
   convertedPatientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient', default: null },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });

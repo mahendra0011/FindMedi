@@ -547,7 +547,7 @@ router.post('/admissions/:id/discharge/finalize', protect, adminOnly, async (req
       billType: 'Final', amount: total, paid: deposited, balance: Math.max(0, balance),
       date: new Date().toISOString().slice(0, 10),
     });
-    await ChargeItem.updateMany({ admissionId: admission._id, status: 'Pending' }, { $set: { status: 'Billed', billId: bill._id } });
+    await ChargeItem.updateMany({ $or: chargeOr, status: 'Pending' }, { $set: { status: 'Billed', billId: bill._id } });
     flow.state = 'Discharged';
     flow.finalBillId = bill._id;
     flow.approvals.push({ stage: 'Discharged', by: req.user._id, at: new Date(), remarks: '' });
@@ -603,7 +603,7 @@ router.post('/admissions/:id/bills/interim', protect, authorize('billing:write')
       billType: 'Interim', amount: total, paid: 0, balance: total,
       date: new Date().toISOString().slice(0, 10),
     });
-    await ChargeItem.updateMany({ admissionId: admission._id, status: 'Pending' }, { $set: { status: 'Billed', billId: bill._id } });
+    await ChargeItem.updateMany({ $or: chargeOr, status: 'Pending' }, { $set: { status: 'Billed', billId: bill._id } });
     res.status(201).json({ id: String(bill._id), amount: total });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

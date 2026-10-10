@@ -33,11 +33,11 @@ const lister = (Model, key, statusField) => async (req, res) => {
   }
 };
 
-const creator = (Model, fields, audit) => async (req, res) => {
+const creator = (Model, fields, audit, rename = {}) => async (req, res) => {
   try {
     const body = {};
     for (const f of fields) {
-      if (req.body[f] !== undefined) body[f] = req.body[f];
+      if (req.body[f] !== undefined) body[rename[f] || f] = req.body[f];
     }
     const row = await Model.create({ ...body, hospitalId: req.user.hospitalId, createdBy: actorId(req) });
     await auditLog(audit, actorId(req), { id: row._id, ip: req.ip });
@@ -48,11 +48,11 @@ const creator = (Model, fields, audit) => async (req, res) => {
   }
 };
 
-const patcher = (Model, fields, audit) => async (req, res) => {
+const patcher = (Model, fields, audit, rename = {}) => async (req, res) => {
   try {
     const set = {};
     for (const f of fields) {
-      if (req.body[f] !== undefined) set[f] = req.body[f];
+      if (req.body[f] !== undefined) set[rename[f] || f] = req.body[f];
     }
     const row = await Model.findOneAndUpdate(
       { _id: req.params.id, ...tenant(req) }, { $set: set }, { new: true },
@@ -66,30 +66,77 @@ const patcher = (Model, fields, audit) => async (req, res) => {
   }
 };
 
+const finder = (Model) => async (req, res) => {
+  try {
+    const row = await Model.findOne({ _id: req.params.id, ...tenant(req) }).lean();
+    if (!row) return res.status(404).json({ message: 'Not found' });
+    return res.json(row);
+  } catch (err) {
+    logger.error(`Safety get error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+const voider = (Model, setFor, audit) => async (req, res) => {
+  try {
+    const row = await Model.findOneAndUpdate(
+      { _id: req.params.id, ...tenant(req) }, { $set: setFor(req) }, { new: true },
+    );
+    if (!row) return res.status(404).json({ message: 'Not found' });
+    await auditLog(audit, actorId(req), { id: row._id, ip: req.ip });
+    return res.json({ id: String(row._id), status: row.status });
+  } catch (err) {
+    logger.error(`Safety void error: ${err.message}`);
+    return res.status(400).json({ message: err.message });
+  }
+};
+
+const remover = (Model, audit) => async (req, res) => {
+  try {
+    const row = await Model.findOneAndDelete({ _id: req.params.id, ...tenant(req) });
+    if (!row) return res.status(404).json({ message: 'Not found' });
+    await auditLog(audit, actorId(req), { id: row._id, ip: req.ip });
+    return res.json({ id: String(row._id), deleted: true });
+  } catch (err) {
+    logger.error(`Safety delete error: ${err.message}`);
+    return res.status(400).json({ message: err.message });
+  }
+};
+
 // ─── Visitor passes ─────────────────────────────────────────────────────────
 router.get('/visitor-passes', protect, authorize('staff:view'), lister(VisitorPass, 'visitorpasses'));
-router.post('/visitor-passes', protect, authorize('staff:manage'), creator(VisitorPass, ['patientId', 'admissionId', 'visitorName', 'phone', 'idType', 'photoUrl', 'relation', 'validFrom', 'validTill'], 'visitor_pass'));
-router.patch('/visitor-passes/:id', protect, authorize('staff:manage'), patcher(VisitorPass, ['validTill', 'status'], 'visitor_pass'));
+router.post('/visitor-passes', protect, authorize('staff:manage'), creator(VisitorPass, ['patientId', 'admissionId', 'visitorName', 'phone', 'idType', 'photoUrl', 'relation', 'validFrom', 'validTill'], 'visitor_pass', { validTill: 'validTo' }));
+router.get('/visitor-passes/:id', protect, authorize('staff:view'), finder(VisitorPass));
+router.patch('/visitor-passes/:id', protect, authorize('staff:manage'), patcher(VisitorPass, ['validTill', 'status'], 'visitor_pass', { validTill: 'validTo' }));
+router.delete('/visitor-passes/:id', protect, authorize('staff:manage'), remover(VisitorPass, 'visitor_pass_deleted'));
 
 // ─── MLC cases ──────────────────────────────────────────────────────────────
 router.get('/mlc', protect, authorize('staff:view'), lister(MlcCase, 'mlccases', 'status'));
 router.post('/mlc', protect, authorize('staff:manage'), creator(MlcCase, ['encounterId', 'patientId', 'mlcNo', 'policeStation', 'injuryType', 'history', 'opinion'], 'mlc_case'));
+router.get('/mlc/:id', protect, authorize('staff:view'), finder(MlcCase));
 router.patch('/mlc/:id', protect, authorize('staff:manage'), patcher(MlcCase, ['policeStation', 'intimationAt', 'injuryType', 'history', 'opinion', 'status'], 'mlc_case'));
+router.delete('/mlc/:id', protect, authorize('staff:manage'), voider(MlcCase, () => ({ status: 'Closed' }), 'mlc_case_voided'));
 
 // ─── Incidents (+RCA) ───────────────────────────────────────────────────────
 router.get('/incidents', protect, authorize('staff:view'), lister(Incident, 'incidents', 'status'));
 router.post('/incidents', protect, authorize('staff:manage'), creator(Incident, ['type', 'severity', 'location', 'involvedPatientId', 'description', 'immediateAction'], 'incident'));
+router.get('/incidents/:id', protect, authorize('staff:view'), finder(Incident));
 router.patch('/incidents/:id', protect, authorize('staff:manage'), patcher(Incident, ['severity', 'immediateAction', 'rca', 'correctiveAction', 'status', 'closedAt'], 'incident'));
+router.delete('/incidents/:id', protect, authorize('staff:manage'), voider(Incident, () => ({ status: 'Closed', closedAt: new Date() }), 'incident_closed'));
 
 // ─── ADR reports ────────────────────────────────────────────────────────────
 router.get('/adr', protect, authorize('staff:view'), lister(AdrReport, 'adrreports', 'status'));
 router.post('/adr', protect, authorize('staff:manage'), creator(AdrReport, ['patientId', 'drug', 'reaction', 'severity', 'outcome', 'causality'], 'adr_report'));
+router.get('/adr/:id', protect, authorize('staff:view'), finder(AdrReport));
 router.patch('/adr/:id', protect, authorize('staff:manage'), patcher(AdrReport, ['outcome', 'causality', 'reportedToPvPI', 'status'], 'adr_report'));
+router.delete('/adr/:id', protect, authorize('staff:manage'), voider(AdrReport, () => ({ status: 'Closed' }), 'adr_report_voided'));
 
 // ─── BMW daily logs ─────────────────────────────────────────────────────────
 router.get('/bmw', protect, authorize('staff:view'), lister(BmwLog, 'bmwlogs'));
 router.post('/bmw', protect, authorize('staff:manage'), creator(BmwLog, ['date', 'wardId', 'yellowKg', 'redKg', 'whiteKg', 'blueKg', 'handedTo', 'manifestNo'], 'bmw_log'));
+router.get('/bmw/:id', protect, authorize('staff:view'), finder(BmwLog));
 router.patch('/bmw/:id', protect, authorize('staff:manage'), patcher(BmwLog, ['yellowKg', 'redKg', 'whiteKg', 'blueKg', 'handedTo', 'manifestNo'], 'bmw_log'));
+router.delete('/bmw/:id', protect, authorize('staff:manage'), voider(BmwLog, (req) => ({ status: 'Void', voidedAt: new Date(), voidedBy: actorId(req) }), 'bmw_log_voided'));
 
 // ─── Staff credentials ──────────────────────────────────────────────────────
 router.get('/credentials', protect, authorize('staff:view'), lister(Credential, 'credentials', 'status'));
@@ -109,5 +156,8 @@ router.get('/credentials/expiring', protect, authorize('staff:view'), async (req
     return res.status(500).json({ message: err.message });
   }
 });
+
+router.get('/credentials/:id', protect, authorize('staff:view'), finder(Credential));
+router.delete('/credentials/:id', protect, authorize('staff:manage'), voider(Credential, () => ({ status: 'Revoked' }), 'credential_revoked'));
 
 export default router;

@@ -10,9 +10,9 @@ import { auditLog } from '../middleware/audit.js';
 import { generateTimestampedId } from '../utils/idGenerator.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
-const stockUpdateSchema = z.object({ quantity: z.number(), type: z.enum(['add', 'deduct', 'adjust']), reference: z.string().optional(), notes: z.string().optional() });
+const stockUpdateSchema = z.object({ quantity: z.number(), type: z.enum(['add', 'deduct', 'adjust']), reference: z.string().optional(), notes: z.string().optional(), approvalId: z.string().optional() });
 const updateSupplierSchema = z.object({}).passthrough();
-const poStatusSchema = z.object({ status: z.string().min(1), approvedBy: z.string().optional() });
+const poStatusSchema = z.object({ status: z.string().min(1), approvedBy: z.string().optional(), approvalId: z.string().optional() });
 const poReceiveSchema = z.object({ receivedNotes: z.string().optional() });
 
 const router = express.Router();
@@ -303,9 +303,13 @@ router.put('/purchase-orders/:id/status', protect, adminOnly, validate(poStatusS
       return res.status(403).json({ message: 'Access denied' });
     }
     // File 25 §8 SoD: creator cannot approve their own purchase order.
+    const { isSelfApproval } = await import('../lib/approvalWiring.js');
     if (String(status || '').toLowerCase() === 'approved'
-      && po.createdBy && String(po.createdBy) === String(req.user._id || req.user.id)) {
-      return res.status(403).json({ message: 'Separation of duties: a purchase order must be approved by someone other than its creator' });
+      && isSelfApproval(po.createdBy, req.user._id || req.user.id)) {
+      return res.status(403).json({
+        message: 'Separation of duties: a purchase order must be approved by someone other than its creator',
+        code: 'SELF_APPROVAL',
+      });
     }
     // File 22 P0-1: above-threshold POs need a consumed approval (SoD alone
     // only says WHO, this says the AMOUNT was reviewed).
