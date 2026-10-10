@@ -5,7 +5,12 @@
  * alerts route through AlertBanner; scanning uses BarcodeScanner;
  * PDF previews use PdfViewer. One component set, every surface.
  */
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import {
+  flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel,
+  getSortedRowModel, useReactTable,
+} from '@tanstack/react-table';
+import { observeElementRect, useVirtualizer } from '@tanstack/react-virtual';
 import { X, ChevronLeft, ChevronRight, Search, AlertTriangle, Camera, Loader2 } from 'lucide-react';
 
 /* ─── AlertBanner ────────────────────────────────────────────────────────── */
@@ -30,42 +35,185 @@ export function AlertBanner({ alerts = [], onAck, onSnooze }) {
 }
 
 /* ─── DataGrid ───────────────────────────────────────────────────────────── */
-export function DataGrid({ columns, rows, rowKey, onRowClick, empty = 'No records', pageSize = 20 }) {
-  const [q, setQ] = useState('');
-  const [page, setPage] = useState(0);
-  const [sort, setSort] = useState(null);
+/**
+ * File 22 P2-38: TanStack Table v8 owns the MODELS (filter / sort / paginate /
+ * row identity) and TanStack Virtual owns the RENDER WINDOW. The public API
+ * stays `{ columns: [{key,label,sortable,render}], rows, rowKey, onRowClick }`
+ * so every call site keeps working — the checklist called for TanStack Table
+ * + Virtual and a hand-rolled equivalent does not buy the same guarantees.
+ *
+ * Above `virtualizeThreshold` rows the pager is replaced by a scroller: only
+ * the visible window plus overscan is in the DOM, so a 50k-row audit log does
+ * not cost 50k <tr>s. Below the threshold behaviour is the classic paged grid
+ * (jsdom cannot measure a scroller, so small grids are what CI exercises).
+ */
+const ROW_HEIGHT = 36;
+// Matches the inline height on the scroller below. Used as the measurement
+// floor when a layout engine reports 0 (jsdom).
+const SCROLLER_HEIGHT = 480;
 
-  const filtered = useMemo(() => {
-    let list = rows || [];
-    if (q.trim()) {
-      const needle = q.toLowerCase();
-      list = list.filter(r => columns.some(c => String(r[c.key] ?? '').toLowerCase().includes(needle)));
+/**
+ * Nulls always sort LAST, in both directions.
+ *
+ * TanStack negates the comparator result for descending sorts, so returning a
+ * plain "null is greater" would flip nulls to the TOP on the second click.
+ * `sortUndefined` cannot help either — it only tests `=== undefined`, and
+ * Mongo/API rows carry `null`. So the comparator closes over the direction.
+ */
+const nullsLastComparator = (desc) => (rowA, rowB, columnId) => {
+  const a = rowA.getValue(columnId);
+  const b = rowB.getValue(columnId);
+  if (a == null && b == null) return 0;
+  if (a == null) return desc ? -1 : 1;
+  if (b == null) return desc ? 1 : -1;
+  return a > b ? 1 : a < b ? -1 : 0;
+};
+
+/**
+ * jsdom reports a 0-height rect for every element, so TanStack Virtual would
+ * cache size 0 for each measured row, collapse the scroll height and unmount
+ * the very rows it needs to measure — a feedback loop to an empty table. Real
+ * browsers take the ResizeObserver/rect value; the estimate is the fallback
+ * only when measurement genuinely returned nothing.
+ */
+const measureElementOrDefault = (element, entry) => {
+  const fromEntry = entry?.borderBoxSize?.[0]?.blockSize;
+  const fromRect = element?.getBoundingClientRect?.().height;
+  return Math.round(fromEntry || fromRect) || ROW_HEIGHT;
+};
+
+/**
+ * jsdom has no layout engine, so it reports 0x0 for the scroller. TanStack
+ * then computes `outerSize === 0`, `calculateRange` returns null and NO rows
+ * render — a 5000-row grid becomes an empty table in tests while working fine
+ * in a browser. Flooring the measurement at the declared height keeps the
+ * virtualiser honest in both environments.
+ */
+const observeElementRectWithFloor = (instance, cb) => {
+  observeElementRect(instance, (rect) => {
+    cb({ width: rect.width || 800, height: rect.height || SCROLLER_HEIGHT });
+  });
+};
+
+export function DataGrid({
+  columns = [],
+  rows,
+  rowKey,
+  onRowClick,
+  empty = 'No records',
+  pageSize = 20,
+  virtualizeThreshold = 100,
+}) {
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [sorting, setSorting] = useState([]);
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize });
+  const parentRef = useRef(null);
+
+  // Keep the pager's pageSize in sync when the prop changes.
+  useEffect(() => {
+    setPagination(p => (p.pageSize === pageSize ? p : { ...p, pageSize, pageIndex: 0 }));
+  }, [pageSize]);
+
+  const tanstackColumns = useMemo(() => columns.map(c => ({
+    id: c.key,
+    accessorFn: (row) => row[c.key],
+    header: c.label,
+    enableSorting: c.sortable !== false,
+    sortingFn: nullsLastComparator(sorting.some(s => s.id === c.key && s.desc)),
+    cell: (info) => (c.render ? c.render(info.getValue(), info.row.original) : String(info.getValue() ?? '')),
+  })), [columns, sorting]);
+
+  // Search spans every declared column, exactly like the hand-rolled filter did.
+  const globalFilterFn = useCallback((row, _columnId, filterValue) => {
+    const needle = String(filterValue ?? '').trim().toLowerCase();
+    if (!needle) return true;
+    return columns.some(c => String(row.getValue(c.key) ?? '').toLowerCase().includes(needle));
+  }, [columns]);
+
+  const table = useReactTable({
+    data: useMemo(() => rows || [], [rows]),
+    columns: tanstackColumns,
+    state: { globalFilter, sorting, pagination },
+    onGlobalFilterChange: setGlobalFilter,
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    getRowId: (row) => (rowKey ? String(row[rowKey]) : JSON.stringify(row)),
+    globalFilterFn,
+    // TanStack's auto sort dir is DESC for numeric columns. Every other list in
+    // this product starts with the first click = ascending, so pin it.
+    sortDescFirst: false,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
+
+  const filteredCount = table.getFilteredRowModel().rows.length;
+  const virtualize = filteredCount > virtualizeThreshold;
+  // A virtual scroller IS the page — paging a scroller double-counts the rows.
+  const pageRows = virtualize ? table.getFilteredRowModel().rows : table.getRowModel().rows;
+
+  const rowVirtualizer = useVirtualizer({
+    count: pageRows.length,
+    estimateSize: () => ROW_HEIGHT,
+    getScrollElement: () => parentRef.current,
+    overscan: 10,
+    measureElement: measureElementOrDefault,
+    observeElementRect: observeElementRectWithFloor,
+    // jsdom reports a zero-size scroller; without this the virtual list is
+    // empty in tests and the component silently renders nothing.
+    initialRect: { width: 800, height: SCROLLER_HEIGHT },
+  });
+  const virtualRows = virtualize ? rowVirtualizer.getVirtualItems() : [];
+
+  const pages = Math.max(1, table.getPageCount());
+  const pageIndex = table.getState().pagination.pageIndex;
+
+  const sortLabel = (header) => {
+    const sorted = header.column.getIsSorted();
+    if (sorted === 'asc') return 'ascending';
+    if (sorted === 'desc') return 'descending';
+    return header.column.getCanSort() ? 'none' : undefined;
+  };
+
+  const renderRow = (row, virtualIndex) => {
+    const r = row.original;
+    return (
+      <tr
+        key={row.id}
+        data-index={virtualIndex}
+        // ARIA requires the ABSOLUTE row number when a table is virtualised,
+        // or a screen reader believes a 50k-row grid has 20 rows.
+        aria-rowindex={virtualize ? virtualIndex + 2 : undefined}
+        ref={virtualize ? (node) => { if (node) rowVirtualizer.measureElement(node); } : undefined}
+        style={virtualize ? { transform: `translateY(${virtualRows[virtualIndex]?.start ?? 0}px)`, position: 'absolute', left: 0, right: 0 } : undefined}
+        onClick={onRowClick ? () => onRowClick(r) : undefined}
+        className={onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-colors' : ''}
+      >
+        {columns.map(c => (
+          <td key={c.key} className="px-3 py-2 text-sm">
+            {c.render ? c.render(r[c.key], r) : String(r[c.key] ?? '')}
+          </td>
+        ))}
+      </tr>
+    );
+  };
+
+  const body = () => {
+    if (virtualize) {
+      return (
+        <>
+          {virtualRows.map((vr) => renderRow(pageRows[vr.index], vr.index))}
+        </>
+      );
     }
-    if (sort) {
-      const { key, dir } = sort;
-      list = [...list].sort((a, b) => {
-        const av = a[key], bv = b[key];
-        if (av == null) return 1;
-        if (bv == null) return -1;
-        return (av > bv ? 1 : av < bv ? -1 : 0) * dir;
-      });
+    if (pageRows.length === 0) {
+      return (
+        <tr><td colSpan={columns.length} className="px-3 py-8 text-center text-sm text-muted-foreground">{empty}</td></tr>
+      );
     }
-    return list;
-  }, [rows, q, sort, columns]);
-
-  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safePage = Math.min(page, pages - 1);
-  const slice = filtered.slice(safePage * pageSize, safePage * pageSize + pageSize);
-
-  const header = (col) => (
-    <th
-      key={col.key}
-      onClick={() => col.sortable !== false && setSort({ key: col.key, dir: sort?.key === col.key && sort.dir === 1 ? -1 : 1 })}
-      className="cursor-pointer select-none px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground"
-    >
-      {col.label}{sort?.key === col.key ? (sort.dir === 1 ? ' ▲' : ' ▼') : ''}
-    </th>
-  );
+    return pageRows.map((row, i) => renderRow(row, i));
+  };
 
   return (
     <div className="space-y-2">
@@ -74,56 +222,75 @@ export function DataGrid({ columns, rows, rowKey, onRowClick, empty = 'No record
         <input
           className="h-9 w-full rounded-md border pl-8 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           placeholder="Filter rows…"
-          value={q}
-          onChange={e => { setQ(e.target.value); setPage(0); }}
+          value={globalFilter}
+          onChange={(e) => { setGlobalFilter(e.target.value); table.setPageIndex(0); }}
           aria-label="Filter table rows"
         />
       </div>
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full">
-          <thead className="bg-muted/40 border-b"><tr>{columns.map(header)}</tr></thead>
-          <tbody className="divide-y">
-            {slice.map(r => (
-              <tr
-                key={rowKey ? r[rowKey] : JSON.stringify(r)}
-                onClick={onRowClick ? () => onRowClick(r) : undefined}
-                className={onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-colors' : ''}
-              >
-                {columns.map(c => (
-                  <td key={c.key} className="px-3 py-2 text-sm">
-                    {c.render ? c.render(r[c.key], r) : String(r[c.key] ?? '')}
-                  </td>
-                ))}
-              </tr>
-            ))}
-            {slice.length === 0 && (
-              <tr><td colSpan={columns.length} className="px-3 py-8 text-center text-sm text-muted-foreground">{empty}</td></tr>
-            )}
+      <div
+        ref={virtualize ? parentRef : undefined}
+        className={`rounded-lg border ${virtualize ? 'overflow-auto' : 'overflow-x-auto'}`}
+        style={virtualize ? { height: SCROLLER_HEIGHT } : undefined}
+      >
+        <table className="w-full" aria-rowcount={virtualize ? filteredCount + 1 : undefined}>
+          <thead className="bg-muted/40 border-b">
+            <tr>
+              {table.getHeaderGroups()[0].headers.map((header) => (
+                <th
+                  key={header.id}
+                  scope="col"
+                  aria-sort={sortLabel(header)}
+                  className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                >
+                  {header.isPlaceholder ? null : (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 rounded focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                      disabled={!header.column.getCanSort()}
+                      onClick={header.column.getToggleSortingHandler()}
+                    >
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.getIsSorted() === 'asc' ? <span aria-hidden="true">▲</span> : null}
+                      {header.column.getIsSorted() === 'desc' ? <span aria-hidden="true">▼</span> : null}
+                    </button>
+                  )}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y" style={virtualize ? { height: rowVirtualizer.getTotalSize(), position: 'relative' } : undefined}>
+            {body()}
           </tbody>
         </table>
       </div>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{filtered.length} rows · page {safePage + 1}/{pages}</span>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            aria-label="Previous page"
-            className="rounded border px-2 py-1 disabled:opacity-40"
-            disabled={safePage === 0}
-            onClick={() => setPage(safePage - 1)}
-          >
-            <ChevronLeft size={13} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-label="Next page"
-            className="rounded border px-2 py-1 disabled:opacity-40"
-            disabled={safePage >= pages - 1}
-            onClick={() => setPage(safePage + 1)}
-          >
-            <ChevronRight size={13} aria-hidden="true" />
-          </button>
-        </div>
+        {virtualize ? (
+          <span>{filteredCount} rows · virtualised</span>
+        ) : (
+          <>
+            <span>{filteredCount} rows · page {pageIndex + 1}/{pages}</span>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                aria-label="Previous page"
+                className="rounded border px-2 py-1 disabled:opacity-40"
+                disabled={!table.getCanPreviousPage()}
+                onClick={() => table.previousPage()}
+              >
+                <ChevronLeft size={13} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-label="Next page"
+                className="rounded border px-2 py-1 disabled:opacity-40"
+                disabled={!table.getCanNextPage()}
+                onClick={() => table.nextPage()}
+              >
+                <ChevronRight size={13} aria-hidden="true" />
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

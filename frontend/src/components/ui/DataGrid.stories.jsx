@@ -42,7 +42,7 @@ const COLUMNS = [
       </span>
     ),
   },
-  { key: 'balance', label: 'Balance ₹', render: (v) => v.toLocaleString('en-IN') },
+  { key: 'balance', label: 'Balance ₹', render: (v) => (v == null ? '—' : v.toLocaleString('en-IN')) },
 ];
 
 export const Default = {
@@ -60,6 +60,45 @@ export const Paged = {
 
 export const Empty = {
   args: { columns: COLUMNS, rows: [], empty: 'No admissions today' },
+};
+
+/**
+ * 5000 rows crosses the virtualise threshold (default 100), so the pager is
+ * replaced by a scroller: only the visible window plus overscan is in the DOM.
+ * Sort by any column and scroll — the header stays put, the rows recycle.
+ */
+export const Virtualised = {
+  name: 'Virtualised (5000 rows)',
+  args: {
+    columns: COLUMNS,
+    rows: Array.from({ length: 5000 }, (_, i) => ({
+      uhid: `UH-${2000 + i}`,
+      name: `Patient ${i}`,
+      bed: `${['A', 'B', 'ICU'][i % 3]}-${(i % 40) + 1}`,
+      status: ['Admitted', 'Discharged', 'Critical', 'Waiting'][i % 4],
+      balance: (i * 37) % 25000,
+    })),
+    rowKey: 'uhid',
+  },
+};
+
+/**
+ * 5000 rows with a null balance sprinkled through them — sorting by Balance
+ * must keep the nulls LAST in both ascending and descending order.
+ */
+export const VirtualisedWithNulls = {
+  name: 'Virtualised with null sort values',
+  args: {
+    columns: COLUMNS,
+    rows: Array.from({ length: 5000 }, (_, i) => ({
+      uhid: `UH-${2000 + i}`,
+      name: `Patient ${i}`,
+      bed: `A-${(i % 40) + 1}`,
+      status: 'Admitted',
+      balance: i % 7 === 0 ? null : (i * 37) % 25000,
+    })),
+    rowKey: 'uhid',
+  },
 };
 
 export const LoadingShaped = {
