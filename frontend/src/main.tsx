@@ -72,3 +72,10 @@ if ((import.meta as any).hot) {
     }
   });
 }
+
+// File 22 P2-32: service worker registration (production only)
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}

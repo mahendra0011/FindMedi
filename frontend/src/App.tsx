@@ -294,6 +294,7 @@ const GrowthCharts = lazy(() => import('./pages/paed/GrowthCharts'));
 const VaccinationAlerts = lazy(() => import('./pages/paed/VaccinationAlerts'));
 const Partogram = lazy(() => import('./pages/paed/Partogram'));
 const NewbornScreening = lazy(() => import('./pages/paed/NewbornScreening'));
+const PdfWorker = lazy(() => import('./pages/PdfWorker'));
 const ClinicNotifications = lazy(() => import('./pages/clinic/ClinicNotifications'));
 const ClinicPlatformSettings = lazy(() => import('./pages/clinic/ClinicPlatformSettings'));
 
@@ -1131,6 +1132,7 @@ const CLINIC_ROLES = ['clinic_doctor', 'clinic_admin', 'clinic_receptionist', 'c
                     <Route path="/paed/vaccination-alerts" element={<RoleRoute allowedRoles={CLINIC_ROLES}><VaccinationAlerts /></RoleRoute>} />
                     <Route path="/paed/partogram" element={<RoleRoute allowedRoles={CLINIC_ROLES}><Partogram /></RoleRoute>} />
                     <Route path="/paed/newborn-screening" element={<RoleRoute allowedRoles={CLINIC_ROLES}><NewbornScreening /></RoleRoute>} />
+                    <Route path="/pdf-worker" element={<RoleRoute allowedRoles={CLINIC_ROLES}><PdfWorker /></RoleRoute>} />
 <Route path="/clinic/notifications" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicNotifications /></RoleRoute>} />
 <Route path="/clinic/test-requests" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicTestRequests /></RoleRoute>} />
 <Route path="/clinic/payment-history" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicPaymentHistory /></RoleRoute>} />

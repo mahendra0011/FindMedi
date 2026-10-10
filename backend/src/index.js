@@ -755,6 +755,7 @@ import growthChartRoutes from './routes/growthCharts.js';
 import vaccinationAlertRoutes from './routes/vaccinationAlerts.js';
 import partogramRoutes from './routes/partograms.js';
 import newbornScreeningRoutes from './routes/newbornScreening.js';
+import pdfWorkerRoutes from './routes/pdfWorker.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -1069,6 +1070,7 @@ app.use('/api/growth-charts', growthChartRoutes);
 app.use('/api/vaccinations', vaccinationAlertRoutes);
 app.use('/api/partograms', partogramRoutes);
 app.use('/api/newborn-screening', newbornScreeningRoutes);
+app.use('/api/pdf-worker', pdfWorkerRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);
