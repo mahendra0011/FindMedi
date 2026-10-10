@@ -11,6 +11,23 @@ import Record from '../models/Record.js';
 import { auditLog } from './audit.js';
 import { readAuthCookie } from '../lib/cookiePolicy.js';
 import { tenantQuotaGuard } from '../services/tenantQuotaService.js';
+import {
+  hashChain,
+  logAuditHashChain,
+  requireIdleLock,
+  requireShiftBound,
+  requireDeviceAllowList,
+  requireIpAllowList,
+  downtimeMode,
+  breachRegister,
+  verifyPin,
+  initPin,
+  updateActivity,
+  checkIdleLock,
+  checkShiftBound,
+  checkDeviceAllowList,
+  checkIpAllowList,
+} from '../lib/security.js';
 
 export { authorize } from './authorize.js';
 
@@ -171,7 +188,7 @@ export const protect = async (req, res, next) => {
     }
   }
 
-  req.user = {
+req.user = {
     id: user._id.toString(),
     _id: user._id,
     role: user.role,
@@ -181,15 +198,24 @@ export const protect = async (req, res, next) => {
     facilityId: user.facilityId || null,
     facilityType: user.facilityType || '',
     doctorProfileId: (user.role === 'doctor' || user.role === 'clinic_doctor' || user.role === 'counsellor' || user.role === 'psychiatrist') ? (doctor?._id || null) : null,
-    // AUTH-F-06: the reset-lock flag rides along so handlers can react without
-    // re-reading the full document (req.authUser already has it too).
     mustResetPassword: Boolean(user.mustResetPassword),
   };
   req.authUser = user;
-  // ADM-M-06: last gate before the handler. Every authenticated request from a
-  // hospital account counts against that hospital's aggregate sliding window -
-  // the one dimension the per-user/IP limiters (rateLimit.js) cannot see.
-  // Fail-open by design; see services/tenantQuotaService.js for why.
+
+  const idleLock = checkIdleLock(user);
+  if (idleLock.locked) {
+    return res.status(403).json({
+      message: `Session idle for ${idleLock.idleMinutes} minutes. Please enter your PIN to continue.`,
+      code: 'IDLE_LOCK',
+      idleMinutes: idleLock.idleMinutes,
+    });
+  }
+
+  const shiftCheck = checkShiftBound(user, user.shiftStart);
+  if (!shiftCheck.allowed) {
+    return res.status(403).json({ message: shiftCheck.reason, code: 'SHIFT_VIOLATION' });
+  }
+
   return tenantQuotaGuard(req, res, next);
 };
 
@@ -400,4 +426,22 @@ export const optionalProtect = async (req, res, next) => {
     req.user = null;
   }
   next();
+};
+
+export {
+  hashChain,
+  logAuditHashChain,
+  requireIdleLock,
+  requireShiftBound,
+  requireDeviceAllowList,
+  requireIpAllowList,
+  downtimeMode,
+  breachRegister,
+  verifyPin,
+  initPin,
+  updateActivity,
+  checkIdleLock,
+  checkShiftBound,
+  checkDeviceAllowList,
+  checkIpAllowList,
 };
