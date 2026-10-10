@@ -908,6 +908,19 @@ jobs:
     - name: Lint
       run: cd frontend && npm run lint
 
+    # P2-38: "Storybook + axe CI". Two halves of the same gate:
+    #   1. `npm test` above runs src/components/ui/systemA11y.test.jsx, which
+    #      drives axe-core over the shared UI system (AlertBanner, DataGrid,
+    #      FilterBar, EntityPicker, BarcodeScanner, PdfViewer) under WCAG 2.1
+    #      AA tags. That is the BLOCKING a11y check — it needs no browser.
+    #   2. This step proves the Storybook stories for those same components
+    #      still COMPILE and render in a static build, so the review/preview
+    #      surface cannot silently rot. The addon-a11y panel inside Storybook
+    #      runs the identical rule set, so a violation shows up both here and
+    #      in the vitest gate.
+    - name: Build Storybook (shared UI system)
+      run: cd frontend && npm run build-storybook
+
   e2e:
     name: Playwright E2E (frontend, mocked API)
     runs-on: ubuntu-latest

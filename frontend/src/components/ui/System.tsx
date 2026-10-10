@@ -5,7 +5,7 @@
  * alerts route through AlertBanner; scanning uses BarcodeScanner;
  * PDF previews use PdfViewer. One component set, every surface.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { X, ChevronLeft, ChevronRight, Search, AlertTriangle, Camera, Loader2 } from 'lucide-react';
 
 /* ─── AlertBanner ────────────────────────────────────────────────────────── */
@@ -105,8 +105,24 @@ export function DataGrid({ columns, rows, rowKey, onRowClick, empty = 'No record
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{filtered.length} rows · page {safePage + 1}/{pages}</span>
         <div className="flex gap-1">
-          <button className="rounded border px-2 py-1 disabled:opacity-40" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}><ChevronLeft size={13} /></button>
-          <button className="rounded border px-2 py-1 disabled:opacity-40" disabled={safePage >= pages - 1} onClick={() => setPage(safePage + 1)}><ChevronRight size={13} /></button>
+          <button
+            type="button"
+            aria-label="Previous page"
+            className="rounded border px-2 py-1 disabled:opacity-40"
+            disabled={safePage === 0}
+            onClick={() => setPage(safePage - 1)}
+          >
+            <ChevronLeft size={13} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label="Next page"
+            className="rounded border px-2 py-1 disabled:opacity-40"
+            disabled={safePage >= pages - 1}
+            onClick={() => setPage(safePage + 1)}
+          >
+            <ChevronRight size={13} aria-hidden="true" />
+          </button>
         </div>
       </div>
     </div>
@@ -138,6 +154,9 @@ export function FilterBar({ filters = [], value = {}, onChange }) {
             key={f.key}
             type={f.type || 'text'}
             className="h-9 w-40 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            // A placeholder disappears the moment someone types, so it is not a
+            // label: name the control explicitly for screen readers.
+            aria-label={f.label}
             placeholder={f.label}
             value={value[f.key] || ''}
             onChange={e => set(f.key, e.target.value)}
@@ -162,6 +181,7 @@ export function EntityPicker({ label, search, onSelect, renderOption, placeholde
   const [options, setOptions] = useState([]);
   const [open, setOpen] = useState(false);
   const boxRef = useRef(null);
+  const inputId = useId();
 
   useEffect(() => {
     if (!q.trim()) { setOptions([]); return; }
@@ -179,8 +199,9 @@ export function EntityPicker({ label, search, onSelect, renderOption, placeholde
 
   return (
     <div ref={boxRef} className="relative">
-      <label className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
+      <label htmlFor={inputId} className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
       <input
+        id={inputId}
         className="h-10 w-full rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         placeholder={placeholder}
         value={q}
@@ -207,12 +228,14 @@ export function EntityPicker({ label, search, onSelect, renderOption, placeholde
 /* ─── BarcodeScanner ─────────────────────────────────────────────────────── */
 export function BarcodeScanner({ onScan, label = 'Scan code' }) {
   const [manual, setManual] = useState('');
+  const inputId = useId();
   return (
     <div className="flex flex-wrap items-end gap-2 rounded-lg border p-3">
       <div className="flex-1 min-w-40">
-        <label className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
+        <label htmlFor={inputId} className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
         <div className="flex items-center gap-2">
           <input
+            id={inputId}
             className="h-10 flex-1 rounded-md border px-3 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             placeholder="scan or type code…"
             value={manual}
