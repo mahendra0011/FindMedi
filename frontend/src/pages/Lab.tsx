@@ -4,6 +4,7 @@ import { Search, FlaskConical, Plus, Clock, Shield, Microscope, Syringe, FileTex
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import PatientBanner from '@/components/clinical/PatientBanner';
 
 const labApi = {
   getOrders: (p = {}) => api.dispatch(() => Promise.resolve({ orders: [] }), '/lab/orders?' + new URLSearchParams(p)),
@@ -125,6 +126,7 @@ export default function Lab() {
               {isExpanded && (
                 <div className="px-5 pb-5 border-t border-border pt-4">
                   <div className="space-y-3">
+                    <PatientBanner patientId={order.patientId || ''} />
                     {order.tests?.map((test, i) => (
                       <div key={i} className="bg-muted/30 rounded-lg p-3 border border-border/50">
                         <div className="flex items-center justify-between mb-2">
