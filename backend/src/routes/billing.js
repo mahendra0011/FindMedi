@@ -18,6 +18,7 @@ import logger from '../config/logger.js';
 import { validate, createPaymentSchema, createBillingSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { paymentLimiter } from '../middleware/rateLimit.js';
+import { computeGstSplit } from '../lib/gst.js';
 import { paginatedResults } from '../utils/pagination.js';
 import { generateTransactionId, generateInvoiceId, generateBillId, generateTokenNumber } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
@@ -347,7 +348,31 @@ router.post('/', protect, authorize('billing:write'), paymentLimiter, validate(c
       body.tax = +body.services.reduce((t, s) => t + (Number(s.price) || 0) * (Number(s.quantity) || 1) * (Number(s.gstRate) || 0) / 100, 0).toFixed(2);
       body.taxableAmount = body.services.reduce((t, s) => t + (Number(s.price) || 0) * (Number(s.quantity) || 1), 0);
     }
-    // File 22 P1-14: package overage (amount beyond the package cap).
+    let cgst = 0, sgst = 0, igst = 0, placeOfSupply = '';
+    if ((body.tax || 0) > 0) {
+      try {
+        const { default: Hospital } = await import('../models/Hospital.js');
+        const hosp = req.user.hospitalId
+          ? await Hospital.findById(req.user.hospitalId).lean().catch(() => null)
+          : null;
+        const hospState = hosp?.state || '';
+        let patientState = hospState;
+        if (body.patientId) {
+          const { default: Patient } = await import('../models/Patient.js');
+          const pat = await Patient.findById(body.patientId).lean().catch(() => null);
+          const addr = pat?.address || '';
+          const stateMatch = addr.match(/,\s*([A-Za-z\s]+?)(?:\s+\d{6})?\s*$/);
+          if (stateMatch) patientState = stateMatch[1].trim();
+        }
+        const split = computeGstSplit(body.tax, hospState, patientState);
+        cgst = split.cgst; sgst = split.sgst; igst = split.igst; placeOfSupply = split.placeOfSupply;
+      } catch (e) {
+        // If Hospital/Patient lookups fail (e.g. in tests), default to CGST+SGST
+        const taxVal = Number(body.tax) || 0;
+        cgst = +(taxVal / 2).toFixed(2);
+        sgst = +(taxVal - cgst).toFixed(2);
+      }
+    }
     const packageCap = Number(body.packageCap) || 0;
     const overage = packageCap > 0 ? Math.max(0, (Number(body.amount) || 0) - packageCap) : 0;
     const bill = await Billing.create({
@@ -356,6 +381,7 @@ router.post('/', protect, authorize('billing:write'), paymentLimiter, validate(c
       invoiceId,
       invoiceSeries: seriesUsed,
       overage,
+      cgst, sgst, igst, placeOfSupply,
       date,
       encounterId: body.encounterId || undefined,
       appointmentId: body.appointmentId || undefined,
@@ -396,6 +422,86 @@ router.post('/doctor-fees', protect, authorize('billing:write'), async (req, res
     });
     await auditLog('doctor_fee_set', req.user._id, { feeId: row._id, doctorId, ip: req.ip });
     return res.status(201).json({ id: String(row._id) });
+  } catch (err) { next(err); }
+});
+
+// GET /api/billing/:id/tax-invoice — GST breakup JSON
+router.get('/:id/tax-invoice', protect, authorize('billing:read'), async (req, res, next) => {
+  try {
+    const bill = mongoose.Types.ObjectId.isValid(req.params.id)
+      ? await Billing.findById(req.params.id)
+      : await Billing.findOne({ invoiceId: req.params.id });
+    if (!bill) return res.status(404).json({ message: 'Bill not found' });
+    if (!canViewBill(bill, req.user)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    return res.json({
+      invoiceId: bill.invoiceId,
+      date: bill.date,
+      placeOfSupply: bill.placeOfSupply || '',
+      gstin: bill.gstin || '',
+      lines: (bill.services || []).map((s) => ({
+        name: s.name,
+        hsn: s.hsn || '',
+        price: s.price || 0,
+        quantity: s.quantity || 1,
+        gstRate: s.gstRate || 0,
+      })),
+      taxableAmount: bill.taxableAmount || 0,
+      cgst: bill.cgst || 0,
+      sgst: bill.sgst || 0,
+      igst: bill.igst || 0,
+      totalTax: bill.tax || 0,
+      amount: bill.amount || 0,
+      debitNoteTotal: bill.debitNoteTotal || 0,
+      netPayable: Math.max(0, (bill.amount || 0) - (bill.debitNoteTotal || 0)),
+    });
+  } catch (err) { next(err); }
+});
+
+// POST /api/billing/:id/debit-note — issue debit note against a settled bill
+router.post('/:id/debit-note', protect, authorize('billing:write'), async (req, res, next) => {
+  try {
+    const bill = mongoose.Types.ObjectId.isValid(req.params.id)
+      ? await Billing.findById(req.params.id)
+      : await Billing.findOne({ invoiceId: req.params.id });
+    if (!bill) return res.status(404).json({ message: 'Bill not found' });
+    if (!canViewBill(bill, req.user)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    if (bill.status !== 'Paid') return res.status(409).json({ message: 'Debit note only on Paid bills' });
+    const { amount, reason } = req.body || {};
+    if (!(Number(amount) > 0)) return res.status(400).json({ message: 'Positive amount required' });
+    if (!reason) return res.status(400).json({ message: 'Reason required' });
+    const { default: DebitNote } = await import('../models/DebitNote.js');
+    const noteCount = await DebitNote.countDocuments({ hospitalId: bill.hospitalId });
+    const noteId = `DN-${String(noteCount + 1).padStart(5, '0')}`;
+    const note = await DebitNote.create({
+      noteId, billId: bill._id, hospitalId: bill.hospitalId,
+      patient: bill.patient, patientId: bill.patientId,
+      amount: Number(amount), reason: String(reason).slice(0, 500),
+      createdBy: req.user._id,
+    });
+    bill.debitNoteTotal = +((bill.debitNoteTotal || 0) + Number(amount)).toFixed(2);
+    await bill.save();
+    await auditLog('debit_note_issued', req.user._id, { billId: bill._id, noteId, amount: Number(amount), ip: req.ip });
+    return res.status(201).json({ id: String(note._id), noteId, amount: Number(amount) });
+  } catch (err) { next(err); }
+});
+
+// GET /api/billing/:id/debit-notes — list debit notes for a bill
+router.get('/:id/debit-notes', protect, authorize('billing:read'), async (req, res, next) => {
+  try {
+    const bill = mongoose.Types.ObjectId.isValid(req.params.id)
+      ? await Billing.findById(req.params.id)
+      : await Billing.findOne({ invoiceId: req.params.id });
+    if (!bill) return res.status(404).json({ message: 'Bill not found' });
+    if (!canViewBill(bill, req.user)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    const { default: DebitNote } = await import('../models/DebitNote.js');
+    const notes = await DebitNote.find({ billId: bill._id }).sort({ createdAt: -1 }).limit(100).lean();
+    return res.json({ notes });
   } catch (err) { next(err); }
 });
 

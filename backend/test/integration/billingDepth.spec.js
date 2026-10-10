@@ -1,7 +1,8 @@
 /**
- * File 22 P1-14: split collection, cancel-with-approval, series numbering.
+ * File 22 P1-14: split collection, cancel-with-approval, series numbering, GST split, debit note.
  */
 import { mountApp, query } from '../helpers/appHarness.js';
+import { computeGstSplit } from '../../src/lib/gst.js';
 
 const bills = [];
 const approvals = [];
@@ -41,6 +42,13 @@ const { as } = await mountApp('billing', {
     default: { findOneAndUpdate: async () => ({ next: 41 }) },
   }),
   '../../src/models/AuditLog.js': () => ({ default: { create: async () => ({}) } }),
+  '../../src/models/DebitNote.js': () => ({
+    default: {
+      countDocuments: async () => 0,
+      create: async (doc) => ({ _id: `dn${Math.random()}`, ...doc }),
+      find: () => ({ sort: () => ({ limit: () => ({ lean: async () => [] }) }) }),
+    },
+  }),
 });
 
 const biller = { _id: 'r1', id: 'r1', role: 'receptionist', hospitalId: 'h1' };
@@ -109,5 +117,65 @@ describe('P1-14 billing depth', () => {
     expect(res.body.encounterId).toBe('64b000000000000000000e01');
     expect(res.body.admissionId).toBe('64b000000000000000000a01');
     expect(res.body.appointmentId).toBe('64b000000000000000000b01');
+  });
+
+  test('GST split: intra-state → CGST+SGST, inter-state → IGST', () => {
+    const intra = computeGstSplit(180, 'MH', 'MH');
+    expect(intra.cgst).toBe(90);
+    expect(intra.sgst).toBe(90);
+    expect(intra.igst).toBe(0);
+    const inter = computeGstSplit(180, 'MH', 'DL');
+    expect(inter.cgst).toBe(0);
+    expect(inter.sgst).toBe(0);
+    expect(inter.igst).toBe(180);
+    const zero = computeGstSplit(0, 'MH', 'MH');
+    expect(zero.cgst).toBe(0);
+    expect(zero.sgst).toBe(0);
+    expect(zero.igst).toBe(0);
+  });
+
+  test('create bill with GST fields persists split', async () => {
+    const res = await as(biller).post('/').send({
+      patient: 'Sita', service: 'OPD', amount: 1180,
+      services: [{ name: 'Consult', price: 1000, quantity: 1, gstRate: 18 }],
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.tax).toBe(180);
+    expect(res.body.cgst + res.body.sgst + res.body.igst).toBe(180);
+  });
+
+  test('tax-invoice endpoint returns GST breakup', async () => {
+    const c = await as(biller).post('/').send({
+      patient: 'Ravi', service: 'OPD', amount: 1180,
+      services: [{ name: 'Consult', price: 1000, quantity: 1, gstRate: 18 }],
+    });
+    const id = c.body._id || bills[bills.length - 1]._id;
+    const res = await as(biller).get(`/${id}/tax-invoice`);
+    expect(res.status).toBe(200);
+    expect(res.body.totalTax).toBe(180);
+    expect(res.body.cgst).toBe(90);
+    expect(res.body.sgst).toBe(90);
+    expect(res.body.netPayable).toBe(1180);
+  });
+
+  test('debit note: issue on Paid bill + list', async () => {
+    const c = await as(biller).post('/').send({ patient: 'Mohan', service: 'OPD', amount: 500 });
+    const id = c.body._id || bills[bills.length - 1]._id;
+    const last = bills[bills.length - 1];
+    last.status = 'Paid';
+    last.paid = 500;
+    const dn = await as(biller).post(`/${id}/debit-note`).send({ amount: 100, reason: 'overcharge' });
+    expect(dn.status).toBe(201);
+    expect(dn.body.noteId).toBe('DN-00001');
+    const list = await as(biller).get(`/${id}/debit-notes`);
+    expect(list.status).toBe(200);
+    expect(Array.isArray(list.body.notes)).toBe(true);
+  });
+
+  test('debit note rejected on non-Paid bill', async () => {
+    const c = await as(biller).post('/').send({ patient: 'Rohan', service: 'OPD', amount: 500 });
+    const id = c.body._id || bills[bills.length - 1]._id;
+    const res = await as(biller).post(`/${id}/debit-note`).send({ amount: 100, reason: 'test' });
+    expect(res.status).toBe(409);
   });
 });

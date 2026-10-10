@@ -130,7 +130,7 @@ export const RETENTION_RULES = [
   // was honoured — same reason DeletionRequest sits here: the proof must
   // outlive the data it describes.
   [/^(AuditLog|LoginEvent|NotificationAudit|DeletionRequest|DataSubjectRequest)$/, 'Audit logs', '7 years (longer than the data they describe)'],
-    [/^(TransactionLedger|Payment|DemoPayment|Refund|Payout|CommissionConfig|Billing|LoyaltyLedger|LoyaltyEarnRule|RewardCatalogItem|RewardRedemption|WalletGuard|Dispute|Insurance|PlatformCouponRedemption|PlatformCouponUserUsage|IpdDeposit|CreditNote|Expense|LedgerEntry)$/, 'Payment and ledger entries', '8 years (statutory accounting)'],
+    [/^(TransactionLedger|Payment|DemoPayment|Refund|Payout|CommissionConfig|Billing|LoyaltyLedger|LoyaltyEarnRule|RewardCatalogItem|RewardRedemption|WalletGuard|Dispute|Insurance|PlatformCouponRedemption|PlatformCouponUserUsage|IpdDeposit|CreditNote|DebitNote|Expense|LedgerEntry)$/, 'Payment and ledger entries', '8 years (statutory accounting)'],
   [/^(Notification|NotificationDelivery)$/, 'Notifications', '90 days'],
   [/^(OTP|RefreshToken|AmbulanceSetupCode|Token)$/, 'OTP / setup codes / tokens', '15–60 minutes (TTL index) — tokens until logout or expiry'],
   [/^(RideBooking|RideTracking|Emergency|EmergencyRequest|EmergencyDoctorRequest|Ambulance)$/, 'Ride and SOS location traces', 'Trip duration + 30 days (dispute window)'],

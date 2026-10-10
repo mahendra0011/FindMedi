@@ -13,8 +13,8 @@
 
 ## Summary
 
-- **304 models** across 299 files (0 skipped)
-- **6599 schema fields**, of which **731 classified as PII** in **215 collections**
+- **305 models** across 300 files (0 skipped)
+- **6616 schema fields**, of which **733 classified as PII** in **216 collections**
 - **6 collections** carry a TTL index
 - **103 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -31,7 +31,7 @@
 | Location | 23 |
 | Image/Biometric | 4 |
 | Device/Network | 7 |
-| Identifier | 185 |
+| Identifier | 186 |
 | Identity | 80 |
 
 ## Collections
@@ -68,7 +68,7 @@
 | `banktxns` | BankTxn | 13 | 0 | 3 | — | No PII fields detected |
 | `beds` | Bed | 19 | 0 | 3 | — | No PII fields detected |
 | `bedtransfers` | BedTransfer | 13 | 1 | 3 | — | Clinical records |
-| `billings` | Billing | 62 | 4 | 5 | — | Payment and ledger entries |
+| `billings` | Billing | 67 | 4 | 5 | — | Payment and ledger entries |
 | `birthrecords` | BirthRecord | 12 | 0 | 1 | — | No PII fields detected |
 | `bloodrequests` | BloodRequest | 35 | 6 | 2 | — | Clinical records |
 | `bloodunits` | BloodUnit | 24 | 1 | 2 | — | Clinical records |
@@ -111,6 +111,7 @@
 | `dashboardalerts` | DashboardAlert | 17 | 0 | 6 | — | No PII fields detected |
 | `datasubjectrequests` | DataSubjectRequest | 18 | 1 | 7 | — | Audit logs |
 | `deathrecords` | DeathRecord | 18 | 2 | 1 | — | Clinical records |
+| `debitnotes` | DebitNote | 12 | 2 | 3 | — | Payment and ledger entries |
 | `delegations` | Delegation | 10 | 0 | 1 | — | No PII fields detected |
 | `deletionrequests` | DeletionRequest | 27 | 1 | 2 | — | Audit logs |
 | `deliverypartners` | DeliveryPartner | 44 | 16 | 3 | — | Provider KYC documents |
@@ -1742,6 +1743,11 @@ source `Billing.js` · timestamps: yes · virtuals: 0 · retention: 8 years (sta
 | `packageId` | String |  |  | "" |  |  |  |
 | `packageCap` | Number |  |  | 0 |  |  |  |
 | `overage` | Number |  |  | 0 |  |  |  |
+| `cgst` | Number |  |  | 0 |  |  |  |
+| `sgst` | Number |  |  | 0 |  |  |  |
+| `igst` | Number |  |  | 0 |  |  |  |
+| `placeOfSupply` | String |  |  | "" |  |  |  |
+| `debitNoteTotal` | Number |  |  | 0 |  |  |  |
 | `cancelReason` | String |  |  | "" |  |  |  |
 | `cancelledBy` | ObjectId |  |  | null |  | User |  |
 | `cancelApprovalRef` | ObjectId |  |  | null |  | ApprovalRequest |  |
@@ -3150,6 +3156,33 @@ Indexes:
 
 | Keys | Flags |
 |---|---|
+| `hospitalId:1` |  |
+
+### `debitnotes` — DebitNote
+
+source `DebitNote.js` · timestamps: yes · virtuals: 0 · retention: 8 years (statutory accounting) (docs/privacy/RETENTION.md) · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `noteId` | String | yes | yes |  |  |  |  |
+| `billId` | ObjectId | yes |  |  |  | Billing |  |
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `patient` | String |  |  | "" |  |  |  |
+| `patientId` | ObjectId |  |  |  |  | User | Identifier |
+| `amount` | Number | yes |  |  |  |  |  |
+| `reason` | String | yes |  |  |  |  |  |
+| `status` | String |  |  | "Issued" | Issued, Adjusted, Cancelled |  |  |
+| `createdBy` | ObjectId |  |  |  |  | User | Identifier |
+| `createdAt` | Date |  |  | [function] |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `noteId:1` | unique |
+| `billId:1` |  |
 | `hospitalId:1` |  |
 
 ### `delegations` — Delegation
