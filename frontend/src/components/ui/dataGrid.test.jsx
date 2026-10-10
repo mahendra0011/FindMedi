@@ -256,6 +256,40 @@ describe('DataGrid · rowClassName', () => {
   });
 });
 
+describe('DataGrid · expanded detail row', () => {
+  const rows = [
+    { uhid: 'UH-1', name: 'Asha', balance: 10 },
+    { uhid: 'UH-2', name: 'Babu', balance: 20 },
+  ];
+
+  it('renders the detail content under the matching row only', () => {
+    render(
+      <DataGrid
+        columns={COLS}
+        rows={rows}
+        rowKey="uhid"
+        expandedRowKey="UH-2"
+        renderDetail={(r) => <p>Doctors of {r.name}</p>}
+      />,
+    );
+    expect(screen.getByText('Doctors of Babu')).toBeInTheDocument();
+    expect(screen.queryByText('Doctors of Asha')).not.toBeInTheDocument();
+  });
+
+  it('renders no detail row when nothing is expanded', () => {
+    render(
+      <DataGrid
+        columns={COLS}
+        rows={rows}
+        rowKey="uhid"
+        expandedRowKey={null}
+        renderDetail={(r) => <p>Doctors of {r.name}</p>}
+      />,
+    );
+    expect(screen.queryByText(/Doctors of/)).not.toBeInTheDocument();
+  });
+});
+
 describe('DataGrid · interaction', () => {
   it('onRowClick receives the clicked row object', () => {
     const onRowClick = vi.fn();

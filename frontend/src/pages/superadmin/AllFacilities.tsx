@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Building2, Building, Search, Ban, Trash2, ChevronDown, ChevronRight,
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/sonner';
 
@@ -208,150 +209,137 @@ export default function AllFacilities() {
             </p>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-muted/50 border-b">
-                  <th className="text-left font-medium text-muted-foreground px-4 py-3 whitespace-nowrap">Hospital</th>
-                  <th className="text-left font-medium text-muted-foreground px-4 py-3 whitespace-nowrap">City</th>
-                  <th className="text-left font-medium text-muted-foreground px-4 py-3 whitespace-nowrap">Status</th>
-                  <th className="text-left font-medium text-muted-foreground px-4 py-3 whitespace-nowrap">Plan</th>
-                  <th className="text-left font-medium text-muted-foreground px-4 py-3 whitespace-nowrap">Created</th>
-                  <th className="text-right font-medium text-muted-foreground px-4 py-3 whitespace-nowrap">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">Loading...</td>
-                  </tr>
-                ) : filteredHospitals.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                      {searchTerm ? 'No hospitals match your search' : 'No hospitals registered yet'}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredHospitals.map((h, i) => (
-                    <React.Fragment key={h._id}>
-                      <motion.tr
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.2, delay: i * 0.03 }}
-                        className="border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
-                        onClick={() => toggleExpand(h._id)}
-                      >
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            {expandedHospitalId === h._id
-                              ? <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground" />
-                              : <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
-                            }
-                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                              <Building2 className="w-4 h-4 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-foreground">{h.name}</p>
-                              <p className="text-xs text-muted-foreground">{h.email}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">{h.city}</td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[h.status] || 'bg-muted text-muted-foreground'}`}>
-                            {h.status === 'approved' && <CheckCircle className="w-3 h-3" />}
-                            {h.status === 'pending' && <Clock className="w-3 h-3" />}
-                            {h.status === 'rejected' && <XCircle className="w-3 h-3" />}
-                            {h.status === 'suspended' && <Ban className="w-3 h-3" />}
-                            {h.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${planColors[h.subscriptionPlan] || 'bg-muted text-muted-foreground'}`}>
-                            {h.subscriptionPlan || 'free'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                          {h.createdAt ? new Date(h.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                        </td>
-                        <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-2">
-                            {h.status === 'approved' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5"
-                                onClick={() => handleSuspend(h._id)}
-                              >
-                                <Ban className="w-3.5 h-3.5" />
-                                Suspend
-                              </Button>
-                            )}
-                            {deleteConfirmId === h._id ? (
-                              <div className="flex items-center gap-1">
-                                <Button size="sm" variant="destructive" className="gap-1" onClick={() => handleDelete(h._id)}>
-                                  Confirm
-                                </Button>
-                                <Button size="sm" variant="outline" onClick={() => setDeleteConfirmId(null)}>
-                                  Cancel
-                                </Button>
-                              </div>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5"
-                                onClick={() => setDeleteConfirmId(h._id)}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                Delete
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </motion.tr>
-                      {expandedHospitalId === h._id && (
-                        <tr key={`${h._id}-doctors`} className="bg-muted/20 border-b">
-                          <td colSpan={6} className="px-4 py-4">
-                            {doctorsLoading ? (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                                Loading doctors...
-                              </div>
-                            ) : hospitalDoctors.length === 0 ? (
-                              <p className="text-sm text-muted-foreground py-2">No doctors found for this hospital</p>
-                            ) : (
-                              <div className="space-y-1">
-                                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
-                                  Doctors ({hospitalDoctors.length})
-                                </p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                  {hospitalDoctors.map(doc => (
-                                    <div key={doc._id} className="flex items-center gap-2 p-2 bg-background rounded-lg border">
-                                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                        <UserRound className="w-3.5 h-3.5 text-primary" />
-                                      </div>
-                                      <div className="min-w-0">
-                                        <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
-                                        <p className="text-xs text-muted-foreground truncate">{doc.specialization}</p>
-                                      </div>
-                                      <span className={`ml-auto shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${doc.available ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
-                                        {doc.available ? 'Available' : 'Unavailable'}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
+          {loading ? (
+            <div className="rounded-xl border px-4 py-12 text-center text-muted-foreground">Loading...</div>
+          ) : (
+            /* Master-detail: click a hospital row to expand its doctors inline.
+             * Page owns search (client filter above), so showSearch off. */
+            <DataGrid
+              columns={[
+                {
+                  key: 'name', label: 'Hospital',
+                  render: (_v, h) => (
+                    <div className="flex items-center gap-3">
+                      {expandedHospitalId === h._id
+                        ? <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground" />
+                        : <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
+                      }
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <Building2 className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">{h.name}</p>
+                        <p className="text-xs text-muted-foreground">{h.email}</p>
+                      </div>
+                    </div>
+                  ),
+                },
+                { key: 'city', label: 'City', render: (v) => <span className="text-muted-foreground">{v}</span> },
+                {
+                  key: 'status', label: 'Status',
+                  render: (v) => (
+                    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[v] || 'bg-muted text-muted-foreground'}`}>
+                      {v === 'approved' && <CheckCircle className="w-3 h-3" />}
+                      {v === 'pending' && <Clock className="w-3 h-3" />}
+                      {v === 'rejected' && <XCircle className="w-3 h-3" />}
+                      {v === 'suspended' && <Ban className="w-3 h-3" />}
+                      {v}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'subscriptionPlan', label: 'Plan',
+                  render: (v) => (
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${planColors[v] || 'bg-muted text-muted-foreground'}`}>
+                      {v || 'free'}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'createdAt', label: 'Created',
+                  render: (v) => <span className="text-muted-foreground whitespace-nowrap">{v ? new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>,
+                },
+                {
+                  key: '_actions', label: 'Action', sortable: false,
+                  render: (_v, h) => (
+                    <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                      {h.status === 'approved' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5"
+                          onClick={() => handleSuspend(h._id)}
+                        >
+                          <Ban className="w-3.5 h-3.5" />
+                          Suspend
+                        </Button>
                       )}
-                    </React.Fragment>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                      {deleteConfirmId === h._id ? (
+                        <div className="flex items-center gap-1">
+                          <Button size="sm" variant="destructive" className="gap-1" onClick={() => handleDelete(h._id)}>
+                            Confirm
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setDeleteConfirmId(null)}>
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5"
+                          onClick={() => setDeleteConfirmId(h._id)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  ),
+                },
+              ]}
+              rows={filteredHospitals}
+              rowKey="_id"
+              empty={searchTerm ? 'No hospitals match your search' : 'No hospitals registered yet'}
+              showSearch={false}
+              manualPagination
+              onRowClick={(h) => toggleExpand(h._id)}
+              rowClassName={(h) => (expandedHospitalId === h._id ? 'bg-muted/10' : '')}
+              expandedRowKey={expandedHospitalId}
+              renderDetail={() => (
+                doctorsLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    Loading doctors...
+                  </div>
+                ) : hospitalDoctors.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">No doctors found for this hospital</p>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+                      Doctors ({hospitalDoctors.length})
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {hospitalDoctors.map(doc => (
+                        <div key={doc._id} className="flex items-center gap-2 p-2 bg-background rounded-lg border">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <UserRound className="w-3.5 h-3.5 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{doc.specialization}</p>
+                          </div>
+                          <span className={`ml-auto shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${doc.available ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                            {doc.available ? 'Available' : 'Unavailable'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              )}
+            />
+          )}
         </>
       )}
 

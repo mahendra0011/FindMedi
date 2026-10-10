@@ -5,7 +5,7 @@
  * alerts route through AlertBanner; scanning uses BarcodeScanner;
  * PDF previews use PdfViewer. One component set, every surface.
  */
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel,
   getSortedRowModel, useReactTable,
@@ -120,6 +120,14 @@ export function DataGrid({
    * Receives the original row object, returns extra class names.
    */
   rowClassName,
+  /**
+   * Master-detail lists (e.g. a hospital row that expands to its doctors).
+   * When `expandedRowKey` matches a row's `rowKey` value, an extra full-width
+   * row renders underneath with this content. Virtualised grids skip it — a
+   * measured detail row would desync the virtual offsets.
+   */
+  expandedRowKey,
+  renderDetail,
 }) {
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState([]);
@@ -209,7 +217,9 @@ export function DataGrid({
 
   const renderRow = (row, virtualIndex) => {
     const r = row.original;
-    return (
+    const isExpanded = !virtualize && renderDetail && expandedRowKey != null
+      && rowKey != null && r?.[rowKey] === expandedRowKey;
+    const mainRow = (
       <tr
         key={row.id}
         data-index={virtualIndex}
@@ -227,6 +237,17 @@ export function DataGrid({
           </td>
         ))}
       </tr>
+    );
+    if (!isExpanded) return mainRow;
+    return (
+      <Fragment key={`${row.id}-detail`}>
+        {mainRow}
+        <tr className="bg-muted/20">
+          <td colSpan={columns.length} className="px-3 py-2 text-sm">
+            {renderDetail(r)}
+          </td>
+        </tr>
+      </Fragment>
     );
   };
 
