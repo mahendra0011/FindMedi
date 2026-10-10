@@ -103,6 +103,18 @@ export function DataGrid({
   empty = 'No records',
   pageSize = 20,
   virtualizeThreshold = 100,
+  /**
+   * Most list pages already own their search box (it hits the API with a
+   * `search` param so the server can index). Rendering a SECOND filter on top
+   * would be confusing, so those callers hide this one.
+   */
+  showSearch = true,
+  /**
+   * For server-paginated lists: the caller owns the page window, so the grid
+   * must not paginate again on top of it. Renders every row it is handed and
+   * suppresses the pager; virtualisation still applies past the threshold.
+   */
+  manualPagination = false,
 }) {
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState([]);
@@ -137,7 +149,12 @@ export function DataGrid({
     onGlobalFilterChange: setGlobalFilter,
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
-    getRowId: (row) => (rowKey ? String(row[rowKey]) : JSON.stringify(row)),
+    // The index is part of the id on purpose: a list where the business key is
+    // missing (new unsaved row) or repeated (two lines with the same UHID)
+    // would otherwise hand TanStack duplicate row ids, and React then keys two
+    // <tr>s identically — rendering the row twice and breaking sort order.
+    // The index is the SOURCE index, so it stays stable across sorts.
+    getRowId: (row, index) => `${rowKey != null && row?.[rowKey] != null ? String(row[rowKey]) : 'row'}-${index}`,
     globalFilterFn,
     // TanStack's auto sort dir is DESC for numeric columns. Every other list in
     // this product starts with the first click = ascending, so pin it.
@@ -145,13 +162,22 @@ export function DataGrid({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    // The caller owns the page window when manualPagination is on, so installing
+    // the pagination model would silently re-page a slice that is already one page.
+    ...(manualPagination ? {} : { getPaginationRowModel: getPaginationRowModel() }),
   });
 
   const filteredCount = table.getFilteredRowModel().rows.length;
   const virtualize = filteredCount > virtualizeThreshold;
-  // A virtual scroller IS the page — paging a scroller double-counts the rows.
-  const pageRows = virtualize ? table.getFilteredRowModel().rows : table.getRowModel().rows;
+  // getFilteredRowModel applies the SEARCH ONLY — it does not sort. The sorted
+  // model is what builds on it, and getRowModel() is that plus the pager. Any
+  // mode that renders rows itself must take the sorted model, or clicking a
+  // header silently does nothing.
+  // A virtual scroller IS the page (paging it double-counts); manualPagination
+  // has the same shape (the caller already owns the window).
+  const pageRows = (virtualize || manualPagination)
+    ? table.getSortedRowModel().rows
+    : table.getRowModel().rows;
 
   const rowVirtualizer = useVirtualizer({
     count: pageRows.length,
@@ -217,16 +243,18 @@ export function DataGrid({
 
   return (
     <div className="space-y-2">
-      <div className="relative max-w-xs">
-        <Search className="absolute left-2.5 top-2 text-muted-foreground" size={14} />
-        <input
-          className="h-9 w-full rounded-md border pl-8 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          placeholder="Filter rows…"
-          value={globalFilter}
-          onChange={(e) => { setGlobalFilter(e.target.value); table.setPageIndex(0); }}
-          aria-label="Filter table rows"
-        />
-      </div>
+      {showSearch ? (
+        <div className="relative max-w-xs">
+          <Search className="absolute left-2.5 top-2 text-muted-foreground" size={14} />
+          <input
+            className="h-9 w-full rounded-md border pl-8 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            placeholder="Filter rows…"
+            value={globalFilter}
+            onChange={(e) => { setGlobalFilter(e.target.value); table.setPageIndex(0); }}
+            aria-label="Filter table rows"
+          />
+        </div>
+      ) : null}
       <div
         ref={virtualize ? parentRef : undefined}
         className={`rounded-lg border ${virtualize ? 'overflow-auto' : 'overflow-x-auto'}`}
@@ -266,6 +294,10 @@ export function DataGrid({
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         {virtualize ? (
           <span>{filteredCount} rows · virtualised</span>
+        ) : manualPagination ? (
+          // The caller is already showing "page 3 of 12"; a second pager here
+          // would page the slice it handed us a second time.
+          <span>{filteredCount} rows</span>
         ) : (
           <>
             <span>{filteredCount} rows · page {pageIndex + 1}/{pages}</span>

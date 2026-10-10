@@ -3,6 +3,7 @@ import { ShieldAlert, MonitorSmartphone, KeyRound, CheckCircle2 } from 'lucide-r
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { userFacingError } from '@/lib/errorCopy';
@@ -136,32 +137,26 @@ export default function Security() {
           {sessions.length === 0 ? (
             <p className="text-sm text-muted-foreground">No unexpired refresh-token sessions.</p>
           ) : (
-            <div className="overflow-x-auto rounded-xl border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-muted/50 border-b">
-                    <th className="text-left font-medium text-muted-foreground px-4 py-3">Admin</th>
-                    <th className="text-left font-medium text-muted-foreground px-4 py-3">Role</th>
-                    <th className="text-left font-medium text-muted-foreground px-4 py-3">Created</th>
-                    <th className="text-left font-medium text-muted-foreground px-4 py-3">Expires</th>
-                    <th className="text-right font-medium text-muted-foreground px-4 py-3">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sessions.map((s) => (
-                    <tr key={s.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="px-4 py-3 font-medium">{s.name || '—'}<span className="block text-xs text-muted-foreground">{s.email}</span></td>
-                      <td className="px-4 py-3 text-xs">{s.role}</td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{s.createdAt ? new Date(s.createdAt).toLocaleString('en-IN') : '—'}</td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{s.expiresAt ? new Date(s.expiresAt).toLocaleString('en-IN') : '—'}</td>
-                      <td className="px-4 py-3 text-right">
-                        <Button size="sm" variant="destructive" onClick={() => kill(s.id, s.email)}>Kill session</Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataGrid
+              columns={[
+                {
+                  key: 'name', label: 'Admin',
+                  render: (v, s) => <span className="font-medium">{v || '—'}<span className="block text-xs text-muted-foreground">{s.email}</span></span>,
+                },
+                { key: 'role', label: 'Role', render: (v) => <span className="text-xs">{v}</span> },
+                { key: 'createdAt', label: 'Created', render: (v) => <span className="text-xs text-muted-foreground">{v ? new Date(v).toLocaleString('en-IN') : '—'}</span> },
+                { key: 'expiresAt', label: 'Expires', render: (v) => <span className="text-xs text-muted-foreground">{v ? new Date(v).toLocaleString('en-IN') : '—'}</span> },
+                {
+                  key: '_actions', label: 'Action', sortable: false,
+                  render: (_v, s) => <Button size="sm" variant="destructive" onClick={() => kill(s.id, s.email)}>Kill session</Button>,
+                },
+              ]}
+              rows={sessions}
+              rowKey="id"
+              empty="No unexpired refresh-token sessions."
+              showSearch={false}
+              manualPagination
+            />
           )}
         </CardContent>
       </Card>

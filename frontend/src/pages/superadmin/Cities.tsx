@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
@@ -92,39 +93,35 @@ export default function Cities() {
         </Card>
       )}
 
-      <div className="overflow-x-auto rounded-xl border">
-        <table className="w-full text-sm">
-          <thead><tr className="bg-muted/50 border-b"><th className="text-left px-4 py-3 font-medium text-muted-foreground">City</th><th className="text-left px-4 py-3 font-medium text-muted-foreground">State</th><th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th><th className="text-left px-4 py-3 font-medium text-muted-foreground">Onboarding</th><th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th></tr></thead>
-          <tbody>
-            {cities.map(c => (
-              <tr key={c._id} className="border-b last:border-0 hover:bg-muted/30">
-                <td className="px-4 py-3"><div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /><span className="font-medium text-foreground">{c.name}</span></div></td>
-                <td className="px-4 py-3 text-muted-foreground">{c.state || '—'}</td>
-                <td className="px-4 py-3"><Badge className={c.isActive ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}>{c.isActive ? 'Live' : 'Inactive'}</Badge></td>
-                <td className="px-4 py-3">
-                  {c.isOnboarding ? (
-                    <Badge className="bg-info/10 text-info text-xs">Open {c.onboardingDate ? `(${new Date(c.onboardingDate).toLocaleDateString()})` : ''}</Badge>
-                  ) : <span className="text-muted-foreground/50 text-xs">Closed</span>}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex items-center gap-1.5 justify-end">
-                    <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => handleToggle(c)}>
-                      {c.isActive ? <XCircle className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}
-                      {c.isActive ? 'Deactivate' : 'Activate'}
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => handleToggleOnboarding(c)}>
-                      {c.isOnboarding ? <ToggleLeft className="w-3 h-3" /> : <ToggleRight className="w-3 h-3" />}
-                      {c.isOnboarding ? 'Close' : 'Open'} Onboarding
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-xs h-7 text-destructive" onClick={() => handleDelete(c._id, c.name)}>Delete</Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {cities.length === 0 && <tr><td colSpan="5" className="py-8 text-center text-muted-foreground">No cities configured</td></tr>}
-          </tbody>
-        </table>
-      </div>
+      <DataGrid
+        columns={[
+          { key: 'name', label: 'City', render: (v) => <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /><span className="font-medium text-foreground">{v}</span></div> },
+          { key: 'state', label: 'State', render: (v) => v || '—' },
+          { key: 'isActive', label: 'Status', render: (v) => <Badge className={v ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}>{v ? 'Live' : 'Inactive'}</Badge> },
+          { key: 'isOnboarding', label: 'Onboarding', render: (v, c) => v ? <Badge className="bg-info/10 text-info text-xs">Open {c.onboardingDate ? `(${new Date(c.onboardingDate).toLocaleDateString()})` : ''}</Badge> : <span className="text-muted-foreground/50 text-xs">Closed</span> },
+          {
+            key: '_actions', label: 'Actions', sortable: false,
+            render: (_v, c) => (
+              <div className="flex items-center gap-1.5 justify-end">
+                <Button variant="outline" size="sm" className="text-xs h-7 gap-1" aria-label={c.isActive ? `Deactivate ${c.name}` : `Activate ${c.name}`} onClick={() => handleToggle(c)}>
+                  {c.isActive ? <XCircle className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}
+                  {c.isActive ? 'Deactivate' : 'Activate'}
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs h-7 gap-1" aria-label={`${c.isOnboarding ? 'Close' : 'Open'} onboarding for ${c.name}`} onClick={() => handleToggleOnboarding(c)}>
+                  {c.isOnboarding ? <ToggleLeft className="w-3 h-3" /> : <ToggleRight className="w-3 h-3" />}
+                  {c.isOnboarding ? 'Close' : 'Open'} Onboarding
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs h-7 text-destructive" onClick={() => handleDelete(c._id, c.name)}>Delete</Button>
+              </div>
+            ),
+          },
+        ]}
+        rows={cities}
+        rowKey="_id"
+        empty="No cities configured"
+        showSearch={false}
+        manualPagination
+      />
     </div>
   );
 }

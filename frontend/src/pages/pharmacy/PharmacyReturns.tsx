@@ -3,6 +3,7 @@ import { RefreshCw, Search, BadgeCheck, XCircle, IndianRupee } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -30,51 +31,53 @@ export default function PharmacyReturns() {
     catch (e) { toast.error(e.message); }
   };
 
+  const columns = [
+    { key: 'returnId', label: 'Return ID', render: (v, r) => <span className="font-medium text-foreground">{v || r._id?.slice(-6)}</span> },
+    { key: 'medicine', label: 'Medicine', render: (v) => <span className="text-muted-foreground">{v || '—'}</span> },
+    { key: 'quantity', label: 'Qty', render: (v) => <span className="text-muted-foreground">{v || 0}</span> },
+    { key: 'status', label: 'Status', render: (v) => <Badge className={statusColors[v]}>{v}</Badge> },
+    {
+      key: '_actions',
+      label: 'Actions',
+      sortable: false,
+      render: (_v, r) => (
+        <div className="flex items-center justify-end gap-1">
+          {r.status === 'Pending' && (
+            <>
+              <Button variant="ghost" size="sm" className="h-8 text-xs text-success" onClick={() => updateStatus(r._id, 'Approved')}><BadgeCheck className="w-4 h-4 mr-1" />Approve</Button>
+              <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive" onClick={() => updateStatus(r._id, 'Rejected')}><XCircle className="w-4 h-4 mr-1" />Reject</Button>
+            </>
+          )}
+          {r.status === 'Approved' && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs text-info" onClick={() => updateStatus(r._id, 'Refunded')}><IndianRupee className="w-4 h-4 mr-1" />Refund</Button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  // Server-side search already narrowed this list, so the grid must not filter
+  // or page it again.
+  const rows = returns.map(r => ({ ...r, medicine: r.medicineName || r.medicine?.name || '' }));
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
         <h1 className="font-heading text-xl font-bold text-foreground">Returns</h1>
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search returns..." className="pl-9" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search returns..." aria-label="Search returns" className="pl-9" />
         </div>
       </div>
 
-      <div className="bg-card rounded-xl border shadow-sm overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/30">
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Return ID</th>
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Medicine</th>
-              <th className="text-center py-3 px-4 font-medium text-muted-foreground">Qty</th>
-              <th className="text-center py-3 px-4 font-medium text-muted-foreground">Status</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {returns.map(r => (
-              <tr key={r._id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
-                <td className="py-3 px-4 font-medium text-foreground">{r.returnId || r._id?.slice(-6)}</td>
-                <td className="py-3 px-4 text-muted-foreground">{r.medicineName || r.medicine?.name || '—'}</td>
-                <td className="py-3 px-4 text-center text-muted-foreground">{r.quantity || 0}</td>
-                <td className="py-3 px-4 text-center"><Badge className={statusColors[r.status]}>{r.status}</Badge></td>
-                <td className="py-3 px-4 text-right">
-                  {r.status === 'Pending' && (
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="sm" className="h-8 text-xs text-success" onClick={() => updateStatus(r._id, 'Approved')}><BadgeCheck className="w-4 h-4 mr-1" />Approve</Button>
-                      <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive" onClick={() => updateStatus(r._id, 'Rejected')}><XCircle className="w-4 h-4 mr-1" />Reject</Button>
-                    </div>
-                  )}
-                  {r.status === 'Approved' && (
-                    <Button variant="ghost" size="sm" className="h-8 text-xs text-info" onClick={() => updateStatus(r._id, 'Refunded')}><IndianRupee className="w-4 h-4 mr-1" />Refund</Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {returns.length === 0 && !loading && <tr><td colSpan={5} className="py-12 text-center text-muted-foreground">No returns found</td></tr>}
-          </tbody>
-        </table>
-      </div>
+      <DataGrid
+        columns={columns}
+        rows={rows}
+        rowKey="_id"
+        empty={loading ? 'Loading…' : 'No returns found'}
+        showSearch={false}
+        manualPagination
+      />
     </div>
   );
 }

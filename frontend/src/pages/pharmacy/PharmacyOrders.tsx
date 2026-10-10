@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Search, ShoppingCart, Eye } from 'lucide-react';
+import { Search, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 
 const statusColors = {
@@ -27,21 +28,39 @@ export default function PharmacyOrders() {
     load();
   }, [status, search]);
 
+  const columns = [
+    { key: 'orderId', label: 'Order ID', render: (v, r) => <span className="font-medium text-foreground">{v || r._id?.slice(-6)}</span> },
+    { key: 'customer', label: 'Customer', render: (v, r) => <span className="text-muted-foreground">{r.patientName || v || '—'}</span> },
+    { key: 'items', label: 'Items', render: (v) => <span className="text-muted-foreground">{v ?? '—'}</span> },
+    { key: 'total', label: 'Total', render: (v) => <span className="font-medium text-foreground">₹{(v || 0).toLocaleString()}</span> },
+    { key: 'status', label: 'Status', render: (v) => <Badge className={statusColors[v]}>{v}</Badge> },
+  ];
+
+  // The API already applies the status + search filters, so the rows handed in
+  // ARE the result set — the grid must not re-filter or re-page them.
+  const rows = orders.map(o => ({
+    ...o,
+    orderId: o.orderId || o._id?.slice(-6),
+    customer: o.patientName || o.customer || '',
+    items: o.items?.length || o.totalItems || null,
+    total: o.total || o.amount || 0,
+  }));
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
         <h1 className="font-heading text-xl font-bold text-foreground">Orders</h1>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <Button variant="outline" size="sm" onClick={() => {
-            const rows = [["OrderID", "Customer", "Items", "Total", "Status"], ...orders.map(o => [o.orderId || o._id, o.patientName || o.customer || "", o.items?.length || o.totalItems || "", o.total || o.amount || 0, o.status || ""])];
-            const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+            const csvRows = [["OrderID", "Customer", "Items", "Total", "Status"], ...rows.map(o => [o.orderId, o.customer, o.items ?? "", o.total, o.status || ""])];
+            const csv = csvRows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
             const blob = new Blob([csv], { type: "text/csv" });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
             a.download = "pharmacy-orders.csv";
             a.click();
           }}>Export CSV</Button>
-          <select value={status} onChange={e => setStatus(e.target.value)} className="h-10 rounded-lg border border-border bg-background text-sm px-3">
+          <select value={status} onChange={e => setStatus(e.target.value)} aria-label="Filter by status" className="h-10 rounded-lg border border-border bg-background text-sm px-3">
             <option value="All">All Status</option>
             <option value="Pending">Pending</option>
             <option value="Processing">Processing</option>
@@ -50,43 +69,27 @@ export default function PharmacyOrders() {
           </select>
           <div className="relative flex-1 sm:w-56">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search orders..." className="pl-9" />
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search orders..." aria-label="Search orders" className="pl-9" />
           </div>
         </div>
       </div>
 
-      <div className="bg-card rounded-xl border shadow-sm overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/30">
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Order ID</th>
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Customer</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground hidden sm:table-cell">Items</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground">Total</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map(o => (
-              <tr key={o._id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => setSelected(o)}>
-                <td className="py-3 px-4 font-medium text-foreground">{o.orderId || o._id?.slice(-6)}</td>
-                <td className="py-3 px-4 text-muted-foreground">{o.patientName || o.customer || '—'}</td>
-                <td className="py-3 px-4 text-right hidden sm:table-cell text-muted-foreground">{o.items?.length || o.totalItems || '—'}</td>
-                <td className="py-3 px-4 text-right font-medium text-foreground">₹{(o.total || o.amount || 0).toLocaleString()}</td>
-                <td className="py-3 px-4 text-right"><Badge className={statusColors[o.status]}>{o.status}</Badge></td>
-              </tr>
-            ))}
-            {orders.length === 0 && !loading && <tr><td colSpan={5} className="py-12 text-center text-muted-foreground">No orders found</td></tr>}
-          </tbody>
-        </table>
-      </div>
+      <DataGrid
+        columns={columns}
+        rows={rows}
+        rowKey="_id"
+        onRowClick={setSelected}
+        empty={loading ? 'Loading…' : 'No orders found'}
+        showSearch={false}
+        manualPagination
+      />
 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelected(null)}>
           <div className="bg-card rounded-2xl shadow-xl border p-6 w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-heading text-lg font-bold text-foreground">{selected.orderId || 'Order Details'}</h2>
-              <Button variant="ghost" size="icon" onClick={() => setSelected(null)}><ShoppingCart className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon" aria-label="Close" onClick={() => setSelected(null)}><ShoppingCart className="w-4 h-4" /></Button>
             </div>
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-2"><span className="text-muted-foreground">Customer:</span><span className="text-foreground font-medium">{selected.patientName || selected.customer || '—'}</span></div>

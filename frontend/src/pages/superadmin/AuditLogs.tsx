@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
+import { DataGrid } from '@/components/ui/System';
 import { api, downloadAuditExport } from '@/lib/api';
 
 // Mirrors TARGET_DETAIL_KEYS in backend/src/routes/auditLogs.js - the detail
@@ -187,65 +188,65 @@ function AuditLogsTab() {
 
       {loading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
-      ) : logs.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">No audit logs found</div>
       ) : (
         <div className="overflow-x-auto rounded-xl border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-muted/50 border-b">
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Timestamp</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">User</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Action</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Target</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Details</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">IP</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((log, i) => (
-                <tr key={log._id || i} className="border-b last:border-0 hover:bg-muted/30">
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-xs">
-                    {log.timestamp ? new Date(log.timestamp).toLocaleString() : '—'}
-                  </td>
-                  <td className="px-4 py-3">
+          {/* Server owns both the ORDER (timestamp desc) and the PAGE (30 rows),
+              so every column is unsortable and the grid's own pager is replaced
+              by the server pager below — re-sorting one server page client-side
+              would sort30 rows and pretend to be the whole trail. */}
+          <DataGrid
+            columns={[
+              { key: 'timestamp', label: 'Timestamp', sortable: false, render: (v) => <span className="text-muted-foreground whitespace-nowrap text-xs">{v ? new Date(v).toLocaleString() : '—'}</span> },
+              {
+                key: 'user', label: 'User', sortable: false,
+                render: (_v, log) => (
+                  <>
                     <span className="text-sm font-medium">{log.user?.name || log.userId || 'System'}</span>
                     {log.user?.email && <p className="text-xs text-muted-foreground">{log.user.email}</p>}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant="outline" className="text-xs font-mono">{log.action}</Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    {targetOf(log) ? (
-                      <button
-                        type="button"
-                        title="Filter to this record's history"
-                        className="text-xs font-mono text-info hover:underline max-w-[150px] truncate block"
-                        onClick={() => setTargetFilter(targetOf(log))}
-                      >
-                        {targetOf(log)}
-                      </button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className="text-xs text-muted-foreground max-w-[260px] truncate block"
-                      title={log.details ? JSON.stringify(log.details) : undefined}
+                  </>
+                ),
+              },
+              { key: 'action', label: 'Action', sortable: false, render: (v) => <Badge variant="outline" className="text-xs font-mono">{v}</Badge> },
+              {
+                key: '_target', label: 'Target', sortable: false,
+                render: (_v, log) => (
+                  targetOf(log) ? (
+                    <button
+                      type="button"
+                      title="Filter to this record's history"
+                      className="text-xs font-mono text-info hover:underline max-w-[150px] truncate block"
+                      onClick={() => setTargetFilter(targetOf(log))}
                     >
-                      {log.details && Object.keys(log.details).length
-                        ? Object.entries(log.details).slice(0, 4)
-                            .map(([k, v]) => `${k}: ${v !== null && typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
-                            .join(' · ')
-                        : '—'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{log.ip || '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      {targetOf(log)}
+                    </button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )
+                ),
+              },
+              {
+                key: 'details', label: 'Details', sortable: false,
+                render: (v) => (
+                  <span
+                    className="text-xs text-muted-foreground max-w-[260px] truncate block"
+                    title={v ? JSON.stringify(v) : undefined}
+                  >
+                    {v && Object.keys(v).length
+                      ? Object.entries(v).slice(0, 4)
+                          .map(([k, val]) => `${k}: ${val !== null && typeof val === 'object' ? JSON.stringify(val) : String(val)}`)
+                          .join(' · ')
+                      : '—'}
+                  </span>
+                ),
+              },
+              { key: 'ip', label: 'IP', sortable: false, render: (v) => <span className="text-xs text-muted-foreground">{v || '—'}</span> },
+            ]}
+            rows={logs.map((log, i) => ({ ...log, _id: log._id || `row-${i}` }))}
+            rowKey="_id"
+            empty="No audit logs found"
+            showSearch={false}
+            manualPagination
+          />
         </div>
       )}
 

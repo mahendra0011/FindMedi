@@ -3,6 +3,7 @@ import { Search, Plus, Pill, Edit2, Trash2, AlertTriangle, X } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -46,6 +47,41 @@ export default function PharmacyInventory() {
     catch (e) { toast.error(e.message); }
   };
 
+  const columns = [
+    {
+      key: 'name', label: 'Name',
+      render: (v, m) => (
+        <div className="flex items-center gap-2">
+          <Pill className="w-4 h-4 text-primary shrink-0" />
+          <span className="font-medium text-foreground">{v}</span>
+          {m.expiryDate && new Date(m.expiryDate) <= new Date(Date.now() + 90 * 86400000) && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-400 text-amber-600"><AlertTriangle className="w-3 h-3 mr-0.5" />Expiring</Badge>}
+          {(m.currentStock ?? 0) <= (m.reorderLevel ?? 0) && <Badge variant="destructive" className="text-[10px] px-1.5 py-0"><AlertTriangle className="w-3 h-3" /></Badge>}
+        </div>
+      ),
+    },
+    { key: 'genericName', label: 'Generic', render: (v) => v || '—' },
+    { key: 'manufacturer', label: 'Manufacturer', render: (v) => v || '—' },
+    { key: 'price', label: 'Price', render: (v) => <span className="font-medium text-foreground">₹{v || 0}</span> },
+    {
+      key: 'currentStock', label: 'Stock',
+      render: (v, m) => (
+        <>
+          <span className={v <= (m.reorderLevel ?? 0) ? 'text-destructive font-semibold' : 'text-foreground'}>{v ?? 0}</span>
+          <span className="text-xs text-muted-foreground ml-1">/ {m.reorderLevel ?? 0}</span>
+        </>
+      ),
+    },
+    {
+      key: '_actions', label: 'Actions', sortable: false,
+      render: (_v, m) => (
+        <div className="flex items-center justify-end gap-1">
+          <Button variant="ghost" size="icon" className="w-8 h-8" aria-label={`Edit ${m.name}`} onClick={() => openEdit(m)}><Edit2 className="w-4 h-4" /></Button>
+          <Button variant="ghost" size="icon" className="w-8 h-8 text-destructive" aria-label={`Delete ${m.name}`} onClick={() => handleDelete(m._id)}><Trash2 className="w-4 h-4" /></Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
@@ -53,54 +89,20 @@ export default function PharmacyInventory() {
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search medicines..." className="pl-9" />
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search medicines..." aria-label="Search medicines" className="pl-9" />
           </div>
           <Button onClick={openAdd}><Plus className="w-4 h-4 mr-1" /> Add</Button>
         </div>
       </div>
 
-      <div className="bg-card rounded-xl border shadow-sm overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/30">
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Generic</th>
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Manufacturer</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground">Price</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground">Stock</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {medicines.map(m => (
-              <tr key={m._id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    <Pill className="w-4 h-4 text-primary shrink-0" />
-                    <span className="font-medium text-foreground">{m.name}</span>
-                    {m.expiryDate && new Date(m.expiryDate) <= new Date(Date.now() + 90 * 86400000) && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-400 text-amber-600"><AlertTriangle className="w-3 h-3 mr-0.5" />Expiring</Badge>}
-                    {(m.currentStock ?? 0) <= (m.reorderLevel ?? 0) && <Badge variant="destructive" className="text-[10px] px-1.5 py-0"><AlertTriangle className="w-3 h-3" /></Badge>}
-                  </div>
-                </td>
-                <td className="py-3 px-4 text-muted-foreground">{m.genericName || '—'}</td>
-                <td className="py-3 px-4 text-muted-foreground hidden md:table-cell">{m.manufacturer || '—'}</td>
-                <td className="py-3 px-4 text-right font-medium text-foreground">₹{m.price || 0}</td>
-                <td className="py-3 px-4 text-right">
-                  <span className={m.currentStock <= m.reorderLevel ? 'text-destructive font-semibold' : 'text-foreground'}>{m.currentStock ?? 0}</span>
-                  <span className="text-xs text-muted-foreground ml-1">/ {m.reorderLevel ?? 0}</span>
-                </td>
-                <td className="py-3 px-4 text-right hidden md:table-cell">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => openEdit(m)}><Edit2 className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="icon" className="w-8 h-8 text-destructive" onClick={() => handleDelete(m._id)}><Trash2 className="w-4 h-4" /></Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {medicines.length === 0 && !loading && <tr><td colSpan={6} className="py-12 text-center text-muted-foreground">No medicines found</td></tr>}
-          </tbody>
-        </table>
-      </div>
+      <DataGrid
+        columns={columns}
+        rows={medicines}
+        rowKey="_id"
+        empty={loading ? 'Loading…' : 'No medicines found'}
+        showSearch={false}
+        manualPagination
+      />
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowModal(false)}>

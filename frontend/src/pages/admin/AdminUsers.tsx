@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Users, Search, Trash2, Shield, Stethoscope, UserRound, Ban, CheckCircle, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -51,6 +52,62 @@ export default function AdminUsers() {
     try { await api.blockUser(id); loadUsers(); } catch { toast.error('Failed to update user status'); }
   };
 
+  const columns = [
+    {
+      key: 'name', label: 'User',
+      render: (v) => (
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
+            {v?.charAt(0).toUpperCase()}
+          </div>
+          <span className="text-sm font-medium">{v}</span>
+        </div>
+      ),
+    },
+    { key: 'email', label: 'Email', render: (v) => <span className="text-sm text-muted-foreground">{v}</span> },
+    {
+      key: 'role', label: 'Role',
+      render: (v) => {
+        const RoleIcon = roleIcons[v] || UserRound;
+        return (
+          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize flex items-center gap-1 w-fit ${roleColors[v]}`}>
+            <RoleIcon className="w-3 h-3" /> {v}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'status', label: 'Status',
+      render: (v, u) => (
+        <>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${v === 'blocked' ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>
+            {v || 'active'}
+          </span>
+          <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground">
+            2FA: {u.twoFactorEnabled ? 'ON' : 'OFF'}
+          </span>
+        </>
+      ),
+    },
+    {
+      key: '_actions', label: 'Actions', sortable: false,
+      render: (_v, u) => (
+        <div className="flex items-center gap-2 justify-end">
+          <Button variant="outline" size="sm" className="gap-1" onClick={() => handleBlock(u._id, u.status === 'blocked')}>
+            {u.status === 'blocked' ? <CheckCircle className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
+            {u.status === 'blocked' ? 'Unblock' : 'Block'}
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1" onClick={() => { if (confirm(`Reset password for ${u.email}?`)) toast.success('Password reset link sent'); }}>
+            Reset PW
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1 text-destructive hover:text-destructive" aria-label={`Delete ${u.name}`} onClick={() => handleDelete(u._id)}>
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -66,7 +123,7 @@ export default function AdminUsers() {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search users..." className="pl-10" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search users..." aria-label="Search users" className="pl-10" />
         </div>
         <div className="flex gap-2">
           {roleFilters.map(r => (
@@ -97,68 +154,16 @@ export default function AdminUsers() {
       {/* Users Table */}
       {loading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
-      ) : users.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">No users found</div>
       ) : (
         <div className="bg-card rounded-2xl border border-border/60 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border/60">
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">User</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Email</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Role</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Status</th>
-                  <th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u, i) => {
-                  const RoleIcon = roleIcons[u.role] || UserRound;
-                  return (
-                     <tr key={u._id || u.id || i} className="border-b border-border/30 hover:bg-muted/30">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
-                            {u.name?.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="text-sm font-medium">{u.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">{u.email}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize flex items-center gap-1 w-fit ${roleColors[u.role]}`}>
-                          <RoleIcon className="w-3 h-3" /> {u.role}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${u.status === 'blocked' ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>
-                          {u.status || 'active'}
-                        </span>
-                        <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground">
-                          2FA: {u.twoFactorEnabled ? 'ON' : 'OFF'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center gap-2 justify-end">
-                          <Button variant="outline" size="sm" className="gap-1" onClick={() => handleBlock(u._id, u.status === 'blocked')}>
-                            {u.status === 'blocked' ? <CheckCircle className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
-                            {u.status === 'blocked' ? 'Unblock' : 'Block'}
-                          </Button>
-                          <Button variant="outline" size="sm" className="gap-1" onClick={() => { if (confirm(`Reset password for ${u.email}?`)) toast.success('Password reset link sent'); }}>
-                            Reset PW
-                          </Button>
-                          <Button variant="outline" size="sm" className="gap-1 text-destructive hover:text-destructive" onClick={() => handleDelete(u._id)}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataGrid
+            columns={columns}
+            rows={users.map(u => ({ ...u, _id: u._id || u.id }))}
+            rowKey="_id"
+            empty="No users found"
+            showSearch={false}
+            manualPagination
+          />
         </div>
       )}
     </div>

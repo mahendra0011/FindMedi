@@ -164,6 +164,22 @@ describe('DataGrid · TanStack Virtual', () => {
     expect(screen.queryByText(/virtualised/)).not.toBeInTheDocument();
   });
 
+  it('sorting APPLIES inside the virtualised window', () => {
+    // Regression: the virtual path used getFilteredRowModel, which filters but
+    // never sorts — so header clicks did nothing past the threshold.
+    const unsorted = [
+      { uhid: 'UH-2', name: 'Beta', balance: 2 },
+      { uhid: 'UH-1', name: 'Alpha', balance: 1 },
+    ].concat(many);
+    render(<DataGrid columns={COLS} rows={unsorted} rowKey="uhid" />);
+    fireEvent.click(screen.getByRole('button', { name: /patient/i }));
+    // 'Alpha' must be the first VISIBLE row of the virtual window
+    expect(screen.getByText('Alpha')).toBeInTheDocument();
+    const names = screen.getAllByRole('row').slice(1)
+      .map(r => within(r).getAllByRole('cell')[1]?.textContent);
+    expect(names[0]).toBe('Alpha');
+  });
+
   it('stays virtualised while the filtered set is still large', () => {
     render(<DataGrid columns={COLS} rows={many} rowKey="uhid" />);
     // 1234 matches, still above the threshold -> stays virtualised
@@ -176,6 +192,40 @@ describe('DataGrid · TanStack Virtual', () => {
     render(<DataGrid columns={COLS} rows={ROWS} rowKey="uhid" virtualizeThreshold={2} />);
     // 4 rows > threshold 2, so virtualised
     expect(screen.getByText(/virtualised/)).toBeInTheDocument();
+  });
+});
+
+describe('DataGrid · server-owned controls', () => {
+  it('showSearch={false} hides the client filter (page owns search)', () => {
+    render(<DataGrid columns={COLS} rows={ROWS} rowKey="uhid" showSearch={false} />);
+    expect(screen.queryByLabelText('Filter table rows')).not.toBeInTheDocument();
+    // all rows still render — nothing is filtering them
+    expect(bodyCells(1)).toHaveLength(4);
+  });
+
+  it('manualPagination renders the WHOLE slice with no pager', () => {
+    // The caller hands us "page 3" = 50 rows. Paging them again would silently
+    // drop 30 of them behind a pager the caller already renders.
+    const slice = ROWS.concat(ROWS).concat(ROWS);
+    render(<DataGrid columns={COLS} rows={slice} rowKey="uhid" pageSize={5} manualPagination />);
+    expect(bodyCells(1)).toHaveLength(12);
+    expect(screen.queryByRole('button', { name: /next page/i })).not.toBeInTheDocument();
+    expect(screen.getByText('12 rows')).toBeInTheDocument();
+  });
+
+  it('manualPagination still sorts the slice it was given', () => {
+    const slice = ROWS.concat(ROWS);
+    render(<DataGrid columns={COLS} rows={slice} rowKey="uhid" manualPagination showSearch={false} />);
+    fireEvent.click(screen.getByRole('button', { name: /patient/i }));
+    const cells = bodyCells(1);
+    expect(cells[0]).toBe('Asha Patel');
+    expect(cells).toHaveLength(8);
+  });
+
+  it('manualPagination virtualises a large slice', () => {
+    const many = Array.from({ length: 400 }, (_, i) => ({ uhid: `UH-${i}`, name: `P${i}`, balance: i }));
+    render(<DataGrid columns={COLS} rows={many} rowKey="uhid" manualPagination virtualizeThreshold={100} />);
+    expect(screen.getByText(/400 rows · virtualised/)).toBeInTheDocument();
   });
 });
 
