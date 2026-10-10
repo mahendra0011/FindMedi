@@ -6,6 +6,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { userFacingError } from '@/lib/errorCopy';
@@ -174,91 +175,98 @@ function CommissionConfigTab() {
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-xl border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-muted/50 border-b">
-              <th className="text-left font-medium text-muted-foreground px-4 py-3">Facility</th>
-              <th className="text-left font-medium text-muted-foreground px-4 py-3">Commission %</th>
-              <th className="text-left font-medium text-muted-foreground px-4 py-3">Cap</th>
-              <th className="text-left font-medium text-muted-foreground px-4 py-3">Schedule</th>
-              <th className="text-left font-medium text-muted-foreground px-4 py-3">Earnings</th>
-              <th className="text-left font-medium text-muted-foreground px-4 py-3">Pending</th>
-              <th className="text-left font-medium text-muted-foreground px-4 py-3">Status</th>
-              <th className="text-right font-medium text-muted-foreground px-4 py-3">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {configs.map((c, i) => (
-              <tr key={c._id || i} className="border-b last:border-0 hover:bg-muted/30">
-                <td className="px-4 py-3">
-                  <p className="font-medium text-foreground">{c.facilityName || 'Unknown'}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{c.facilityType}</p>
-                </td>
-                <td className="px-4 py-3">
-                  {editId === c._id ? (
-                    <Input type="number" value={editFields.commissionPercent ?? c.commissionPercent}
-                      onChange={e => setEditFields(f => ({ ...f, commissionPercent: Number(e.target.value) }))}
-                      className="w-20 h-8 text-sm" min={0} max={100} />
-                  ) : (
-                    <span className="font-semibold">{c.commissionPercent}%</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {editId === c._id ? (
-                    <Input type="number" value={editFields.commissionCap ?? c.commissionCap}
-                      onChange={e => setEditFields(f => ({ ...f, commissionCap: Number(e.target.value) }))}
-                      className="w-24 h-8 text-sm" />
-                  ) : (
-                    <span>₹{c.commissionCap || 0}</span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  {editId === c._id ? (
-                    <select value={editFields.payoutSchedule ?? c.payoutSchedule}
-                      onChange={e => setEditFields(f => ({ ...f, payoutSchedule: e.target.value }))}
-                      className="h-8 px-2 rounded border border-input bg-background text-sm">
-                      <option value="weekly">Weekly</option>
-                      <option value="biweekly">Bi-Weekly</option>
-                      <option value="monthly">Monthly</option>
-                    </select>
-                  ) : (
-                    <span className="capitalize">{c.payoutSchedule}</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 font-medium">₹{(c.totalEarnings || 0).toLocaleString()}</td>
-                <td className="px-4 py-3 text-warning font-medium">₹{(c.pendingPayout || 0).toLocaleString()}</td>
-                <td className="px-4 py-3">
-                  {editId === c._id ? (
-                    <select value={editFields.status ?? c.status}
-                      onChange={e => setEditFields(f => ({ ...f, status: e.target.value }))}
-                      className="h-8 px-2 rounded border border-input bg-background text-sm">
-                      <option value="active">Active</option>
-                      <option value="paused">Paused</option>
-                    </select>
-                  ) : (
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${c.status === 'active' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
-                      {c.status}
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {editId === c._id ? (
-                    <div className="flex gap-1 justify-end">
-                      <Button size="sm" onClick={() => handleSave(c._id)}>Save</Button>
-                      <Button size="sm" variant="outline" onClick={() => setEditId(null)}>Cancel</Button>
-                    </div>
-                  ) : (
-                    <Button variant="ghost" size="sm" onClick={() => { setEditId(c._id); setEditFields({}); }}>
-                      <Settings className="w-3.5 h-3.5" />
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataGrid
+        columns={[
+          {
+            key: 'facilityName', label: 'Facility', sortable: false,
+            render: (_v, c) => (
+              <>
+                <p className="font-medium text-foreground">{c.facilityName || 'Unknown'}</p>
+                <p className="text-xs text-muted-foreground capitalize">{c.facilityType}</p>
+              </>
+            ),
+          },
+          {
+            key: 'commissionPercent', label: 'Commission %', sortable: false,
+            render: (_v, c) => (
+              editId === c._id ? (
+                <Input type="number" value={editFields.commissionPercent ?? c.commissionPercent}
+                  onChange={e => setEditFields(f => ({ ...f, commissionPercent: Number(e.target.value) }))}
+                  className="w-20 h-8 text-sm" min={0} max={100} />
+              ) : (
+                <span className="font-semibold">{c.commissionPercent}%</span>
+              )
+            ),
+          },
+          {
+            key: 'commissionCap', label: 'Cap', sortable: false,
+            render: (_v, c) => (
+              editId === c._id ? (
+                <Input type="number" value={editFields.commissionCap ?? c.commissionCap}
+                  onChange={e => setEditFields(f => ({ ...f, commissionCap: Number(e.target.value) }))}
+                  className="w-24 h-8 text-sm" />
+              ) : (
+                <span className="text-muted-foreground">₹{c.commissionCap || 0}</span>
+              )
+            ),
+          },
+          {
+            key: 'payoutSchedule', label: 'Schedule', sortable: false,
+            render: (_v, c) => (
+              editId === c._id ? (
+                <select value={editFields.payoutSchedule ?? c.payoutSchedule}
+                  onChange={e => setEditFields(f => ({ ...f, payoutSchedule: e.target.value }))}
+                  className="h-8 px-2 rounded border border-input bg-background text-sm">
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              ) : (
+                <span className="capitalize">{c.payoutSchedule}</span>
+              )
+            ),
+          },
+          { key: 'totalEarnings', label: 'Earnings', sortable: false, render: (v) => <span className="font-medium">₹{(v || 0).toLocaleString()}</span> },
+          { key: 'pendingPayout', label: 'Pending', sortable: false, render: (v) => <span className="text-warning font-medium">₹{(v || 0).toLocaleString()}</span> },
+          {
+            key: 'status', label: 'Status', sortable: false,
+            render: (_v, c) => (
+              editId === c._id ? (
+                <select value={editFields.status ?? c.status}
+                  onChange={e => setEditFields(f => ({ ...f, status: e.target.value }))}
+                  className="h-8 px-2 rounded border border-input bg-background text-sm">
+                  <option value="active">Active</option>
+                  <option value="paused">Paused</option>
+                </select>
+              ) : (
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${c.status === 'active' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
+                  {c.status}
+                </span>
+              )
+            ),
+          },
+          {
+            key: '_actions', label: 'Action', sortable: false,
+            render: (_v, c) => (
+              editId === c._id ? (
+                <div className="flex gap-1 justify-end">
+                  <Button size="sm" onClick={() => handleSave(c._id)}>Save</Button>
+                  <Button size="sm" variant="outline" onClick={() => setEditId(null)}>Cancel</Button>
+                </div>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={() => { setEditId(c._id); setEditFields({}); }}>
+                  <Settings className="w-3.5 h-3.5" />
+                </Button>
+              )
+            ),
+          },
+        ]}
+        rows={configs.map((c, i) => ({ ...c, _id: c._id || `cfg-${i}` }))}
+        rowKey="_id"
+        empty="No commission configs"
+        showSearch={false}
+        manualPagination
+      />
     </div>
   );
 }
@@ -323,40 +331,23 @@ function TransactionLedgerTab() {
       ) : transactions.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No transactions found</div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-muted/50 border-b">
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Date</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Facility</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Source</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Patient</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3">Amount</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3">Commission</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3">Net</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions.map((t, i) => (
-                <tr key={t._id || i} className="border-b last:border-0 hover:bg-muted/30">
-                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                    {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="text-sm font-medium">{t.facilityName || '—'}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs capitalize bg-muted px-2 py-0.5 rounded-full">{t.source}</span>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{t.patientName || '—'}</td>
-                  <td className="px-4 py-3 text-right font-medium">₹{(t.amount || 0).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-warning">₹{(t.commissionAmount || 0).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-success font-medium">₹{(t.netAmount || 0).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        /* Server-paginated + server-filtered (source buttons above own the controls). */
+        <DataGrid
+          columns={[
+            { key: 'createdAt', label: 'Date', sortable: false, render: (v) => <span className="text-xs text-muted-foreground whitespace-nowrap">{v ? new Date(v).toLocaleDateString() : '—'}</span> },
+            { key: 'facilityName', label: 'Facility', sortable: false, render: (v) => <span className="text-sm font-medium">{v || '—'}</span> },
+            { key: 'source', label: 'Source', sortable: false, render: (v) => <span className="text-xs capitalize bg-muted px-2 py-0.5 rounded-full">{v}</span> },
+            { key: 'patientName', label: 'Patient', sortable: false, render: (v) => <span className="text-muted-foreground">{v || '—'}</span> },
+            { key: 'amount', label: 'Amount', sortable: false, render: (v) => <span className="text-right font-medium">₹{(v || 0).toLocaleString()}</span> },
+            { key: 'commissionAmount', label: 'Commission', sortable: false, render: (v) => <span className="text-right text-warning">₹{(v || 0).toLocaleString()}</span> },
+            { key: 'netAmount', label: 'Net', sortable: false, render: (v) => <span className="text-right text-success font-medium">₹{(v || 0).toLocaleString()}</span> },
+          ]}
+          rows={transactions.map((t, i) => ({ ...t, _id: t._id || `txn-${i}` }))}
+          rowKey="_id"
+          empty="No transactions found"
+          showSearch={false}
+          manualPagination
+        />
       )}
 
       {totalPages > 1 && (
@@ -443,62 +434,46 @@ function PayoutsTab() {
       ) : payouts.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No payouts yet</div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-muted/50 border-b">
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Facility</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Period</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3">Gross</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3">Commission</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3">Net Payout</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Txns</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Status</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payouts.map((p, i) => (
-                <tr key={p._id || i} className="border-b last:border-0 hover:bg-muted/30">
-                  <td className="px-4 py-3 font-medium">{p.facilityName || '—'}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {p.periodStart ? new Date(p.periodStart).toLocaleDateString() : '—'} - {p.periodEnd ? new Date(p.periodEnd).toLocaleDateString() : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-right">₹{(p.grossRevenue || 0).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-warning">₹{(p.commissionAmount || 0).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right font-semibold">₹{(p.netPayout || 0).toLocaleString()}</td>
-                  <td className="px-4 py-3">{p.transactionCount || 0}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${p.status === 'paid' ? 'bg-success/10 text-success' : p.status === 'cancelled' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}`}>
-                      {p.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {p.status === 'pending' && (
-                      <div className="flex gap-1.5 justify-end items-center">
-                        {(p.netPayout || 0) >= 100000 && (
-                          <span className="text-[11px] text-muted-foreground tabular-nums" title={(p.approvals || []).map((a) => a.adminName || 'admin').join(', ') || 'No approvals yet'}>
-                            {(p.approvals || []).length}/2 approvals
-                          </span>
-                        )}
-                        <Button size="sm" variant="outline" onClick={() => handleApprove(p._id)}>
-                          Approve
-                        </Button>
-                        <Button size="sm" variant="default" className="bg-success hover:bg-success/90 gap-1"
-                          onClick={() => handleMarkPaid(p._id)}>
-                          <CheckCircle className="w-3.5 h-3.5" /> Mark Paid
-                        </Button>
-                      </div>
+        /* Server-paginated (own Prev/Next below owns paging). */
+        <DataGrid
+          columns={[
+            { key: 'facilityName', label: 'Facility', sortable: false, render: (v) => <span className="font-medium">{v || '—'}</span> },
+            { key: 'periodStart', label: 'Period', sortable: false, render: (v, p) => <span className="text-xs text-muted-foreground">{v ? new Date(v).toLocaleDateString() : '—'} - {p.periodEnd ? new Date(p.periodEnd).toLocaleDateString() : '—'}</span> },
+            { key: 'grossRevenue', label: 'Gross', sortable: false, render: (v) => <span className="text-right">₹{(v || 0).toLocaleString()}</span> },
+            { key: 'commissionAmount', label: 'Commission', sortable: false, render: (v) => <span className="text-right text-warning">₹{(v || 0).toLocaleString()}</span> },
+            { key: 'netPayout', label: 'Net Payout', sortable: false, render: (v) => <span className="text-right font-semibold">₹{(v || 0).toLocaleString()}</span> },
+            { key: 'transactionCount', label: 'Txns', sortable: false },
+            { key: 'status', label: 'Status', sortable: false, render: (v) => <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${v === 'paid' ? 'bg-success/10 text-success' : v === 'cancelled' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}`}>{v}</span> },
+            {
+              key: '_actions', label: 'Action', sortable: false,
+              render: (_v, p) => (
+                p.status === 'pending' ? (
+                  <div className="flex gap-1.5 justify-end items-center">
+                    {(p.netPayout || 0) >= 100000 && (
+                      <span className="text-[11px] text-muted-foreground tabular-nums" title={(p.approvals || []).map((a) => a.adminName || 'admin').join(', ') || 'No approvals yet'}>
+                        {(p.approvals || []).length}/2 approvals
+                      </span>
                     )}
-                    {p.status === 'paid' && p.transactionRef && (
-                      <span className="text-xs text-muted-foreground">{p.transactionRef}</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    <Button size="sm" variant="outline" onClick={() => handleApprove(p._id)}>
+                      Approve
+                    </Button>
+                    <Button size="sm" variant="default" className="bg-success hover:bg-success/90 gap-1"
+                      onClick={() => handleMarkPaid(p._id)}>
+                      <CheckCircle className="w-3.5 h-3.5" /> Mark Paid
+                    </Button>
+                  </div>
+                ) : p.status === 'paid' && p.transactionRef ? (
+                  <span className="text-xs text-muted-foreground">{p.transactionRef}</span>
+                ) : null
+              ),
+            },
+          ]}
+          rows={payouts.map((p, i) => ({ ...p, _id: p._id || `po-${i}` }))}
+          rowKey="_id"
+          empty="No payouts yet"
+          showSearch={false}
+          manualPagination
+        />
       )}
 
       {totalPages > 1 && (
