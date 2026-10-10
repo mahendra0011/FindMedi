@@ -511,6 +511,8 @@ export const api = {
   addEmergencyNote:      (id,text)  => request(`/emergency/${id}/notes`, { method:'POST', body: JSON.stringify({ text }) }),
   getEmergencyStats:     ()         => request('/emergency/stats'),
 
+  ackClinicalAlert:      (code, body) => request(`/clinical-alerts/${encodeURIComponent(code)}/ack`, { method: 'POST', body: JSON.stringify(body || {}) }),
+
   getPayments:    (p={})  => request('/payments?' + new URLSearchParams(p)),
   createPayment:  (body)  => request('/payments',            { method:'POST',   body: JSON.stringify(body) }),
   updatePayment:  (id,b)  => request(`/payments/${id}`,      { method:'PUT',    body: JSON.stringify(b) }),
@@ -688,7 +690,6 @@ export const api = {
   updateCommissionConfig:     (id,b)    => request(`/commission/config/${id}`, { method:'PUT', body: JSON.stringify(b) }),
   getTransactionLedger:       (p={})    => request('/commission/ledger?' + new URLSearchParams(p)),
   getPayouts:                 (p={})    => request('/commission/payouts?' + new URLSearchParams(p)),
-  createPayout:               (body)    => request('/commission/payouts', { method:'POST', body: JSON.stringify(body) }),
   markPayoutPaid:             (id,b)    => request(`/commission/payouts/${id}/pay`, { method:'PUT', body: JSON.stringify(b) }),
   approvePayout:              (id)      => request(`/commission/payouts/${id}/approve`, { method:'PUT' }),
   getCommissionStats:         ()        => request('/commission/stats'),
@@ -811,8 +812,6 @@ export const api = {
   getRecallDues:           ()        => request('/recalls/dues'),
   sendRecalls:            (body)    => request('/recalls/send', { method:'POST', body: JSON.stringify(body) }),
   callNextToken:         (body)    => request('/tokens/call-next', { method:'POST', body: JSON.stringify(body || {}) }),
-  callToken:             (id)      => request(`/tokens/${id}/call`, { method:'PUT' }),
-  skipToken:             (id)      => request(`/tokens/${id}/skip`, { method:'PUT' }),
   noShowToken:           (id)      => request(`/tokens/${id}/no-show`, { method:'PUT' }),
   getSecondOpinionInbox: ()        => request('/second-opinions/inbox'),
   getChemoProtocols:      ()        => request('/oncology/protocols'),
@@ -833,7 +832,6 @@ export const api = {
   // File 14 forms + print + signatures + queues
   getFormTemplates:      (p={})    => request('/forms/templates?' + new URLSearchParams(p)),
   createFormTemplate:    (body)    => request('/forms/templates', { method:'POST', body: JSON.stringify(body) }),
-  seedScoreForms:        ()        => request('/forms/templates/seed-scores', { method:'POST' }),
   publishFormTemplate:   (id)      => request(`/forms/templates/${id}/publish`, { method:'POST' }),
   submitFormResponse:    (body)    => request('/forms/responses', { method:'POST', body: JSON.stringify(body) }),
   // ── File 22 P1-20: clinical score seeds ──
@@ -858,7 +856,6 @@ export const api = {
   reviewLabOrder:        (id)      => request(`/orders/review-lab/${id}`, { method:'PUT' }),
   getMyRounds:           ()        => request('/orders/my-rounds'),
   getMyOt:               (p={})    => request('/orders/my-ot?' + new URLSearchParams(p)),
-  reviewLabOrder:        (id)      => request(`/orders/review-lab/${id}`, { method:'PUT' }),
 
   // File 25 tenant Access Control Center
   getIamPolicies:        ()        => request('/iam/policies'),
@@ -1350,7 +1347,6 @@ export const api = {
   hubCreateSub:           (body)    => request('/hub/webhooks/subs', { method: 'POST', body: JSON.stringify(body) }),
   hubDeleteSub:           (id)      => request(`/hub/webhooks/subs/${id}`, { method: 'DELETE' }),
   hubDeliveries:          (p={})    => request('/hub/webhooks/deliveries' + qs(p)),
-  createPaymentLink:     (body)    => request('/checkout/payment-links', { method: 'POST', body: JSON.stringify(body) }),
   setPin:                (pin)     => request('/auth/pin', { method: 'POST', body: JSON.stringify({ pin }) }),
   unlockWithPin:         (pin)     => request('/auth/pin/unlock', { method: 'POST', body: JSON.stringify({ pin }) }),
   downloadGstr:          (month)   => request('/finance/gstr?month=' + encodeURIComponent(month)),

@@ -64,7 +64,7 @@ export default function ClinicalLockingAlert({ alert, onAcked, onAction }) {
     setAcking(true);
     try {
       const { api } = await import('@/lib/api');
-      const res = await api.post(`/clinical-alerts/${encodeURIComponent(alert.alertId)}/ack`, {
+      const res = await api.ackClinicalAlert(alert.alertId, {
         room: alert.room || '',
         action: 'acknowledged_from_locking_modal',
       });

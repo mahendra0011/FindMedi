@@ -40,6 +40,7 @@ import StepUpDialog from './components/StepUpDialog';
 import { useProactiveTokenRefresh } from '@/lib/useProactiveTokenRefresh';
 import EmergencyFlowController from '@/components/emergency/EmergencyFlowController';
 import ReminderAlarmHost from '@/components/patient/ReminderAlarmHost';
+import DashboardAlertHost from '@/components/DashboardAlertHost';
 
 // Keep layouts that are always needed
 const Home = lazy(() => import('./pages/Home'));
@@ -55,7 +56,6 @@ const JoinPlatform = lazy(() => import('./pages/JoinPlatform'));
 const JoinWizard = lazy(() => import('./pages/join/JoinWizard'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
-const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Doctors = lazy(() => import('./pages/Doctors'));
 const Patients = lazy(() => import('./pages/Patients'));
 const Appointments = lazy(() => import('./pages/Appointments'));
@@ -305,6 +305,8 @@ const StaffDashboardPage = lazy(() => import('./pages/StaffDashboard'));
 const AccessControl = lazy(() => import('./pages/AccessControl'));
 const FrontDesk = lazy(() => import('./pages/FrontDesk'));
 const HospitalDashboardV2 = lazy(() => import('./pages/HospitalDashboardV2'));
+const DashboardOverviewPage = lazy(() => import('./pages/hospital/DashboardOverviewPage'));
+const DashboardQueuePage = lazy(() => import('./pages/hospital/DashboardQueuePage'));
 const DeliveryOrders = lazy(() => import('./pages/delivery/DeliveryOrders'));
 const DeliveryHistory = lazy(() => import('./pages/delivery/DeliveryHistory'));
 const DeliveryEarnings = lazy(() => import('./pages/delivery/DeliveryEarnings'));
@@ -580,6 +582,27 @@ function StaffDashboard() {
   return <StaffDashboardPage />;
 }
 
+const CLINIC_OPS_ROLES = ['clinic_admin', 'clinic_receptionist', 'clinic_nurse', 'clinic_accountant', 'clinic_pharmacist'];
+
+const SPECIALTY_DASHBOARD_PATHS: Record<string, string> = {
+  dentist: '/dashboard/dentist',
+  dental_clinic_admin: '/dashboard/dentist',
+  physio: '/dashboard/physio',
+  physiotherapist: '/dashboard/physio',
+  yoga: '/dashboard/yoga',
+  yoga_instructor: '/dashboard/yoga',
+  yoga_studio_admin: '/dashboard/yoga',
+  gym: '/dashboard/gym',
+  gym_owner: '/dashboard/gym',
+  trainer: '/dashboard/gym',
+  equipment: '/dashboard/equipment',
+  equipment_vendor: '/dashboard/equipment',
+  events: '/dashboard/events',
+  event_organizer: '/dashboard/events',
+  phlebotomist: '/dashboard/phlebotomist',
+  dietitian: '/dashboard/dietitian',
+};
+
 function RoleDashboard() {
   const { user } = useAuth();
   const defaultPath = getDefaultDashboardPath(user);
@@ -590,13 +613,18 @@ function RoleDashboard() {
   // Psychiatrist doctor hai → FindMedi DoctorDashboard; counsellor ka bhi provider dashboard
   if (user?.role === 'psychiatrist') return <DoctorDashboard />;
   if (user?.role === 'counsellor') return <DoctorDashboard />;
-  if (user?.role === 'hospital_admin') return <Dashboard />;
+  if (user?.role === 'hospital_admin') return <Navigate to="/dashboard/v2" replace />;
   // File 22 P0-8: operations roles land on their module (each target route
   // admits the role — see the RoleRoute entries below).
   if (['front_desk', 'receptionist'].includes(user?.role ?? '')) return <Navigate to="/frontdesk" replace />;
   if (['billing_executive', 'cashier'].includes(user?.role ?? '')) return <Navigate to="/billing" replace />;
   if (user?.role === 'insurance_desk') return <Navigate to="/insurance/desk" replace />;
   if (['medical_director', 'cmo'].includes(user?.role ?? '')) return <Navigate to="/dashboard/v2" replace />;
+  // File 22 P0-8: clinic org staff land on the clinic console (CLINIC_ROLES
+  // below admits all five) and specialty roles on their own /dashboard/* page.
+  if (CLINIC_OPS_ROLES.includes(user?.role ?? '')) return <Navigate to="/clinic/dashboard" replace />;
+  const specialtyPath = SPECIALTY_DASHBOARD_PATHS[user?.role ?? ''];
+  if (specialtyPath) return <Navigate to={specialtyPath} replace />;
   if (['nursing_supervisor', 'matron', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse'].includes(user?.role ?? '')) return <StaffDashboard />;
   if (['surgeon', 'anaesthetist'].includes(user?.role ?? '')) return <DoctorDashboard />;
   if (user?.role === 'ot_technician') return <Navigate to="/ot/board" replace />;
@@ -621,7 +649,10 @@ function RoleDashboard() {
   // File 22 P0-8: operations roles without a dedicated console fall back to
   // the generic staff console (fail-soft widgets) instead of PatientDashboard.
   if (['ward_boy','housekeeping_supervisor','mortuary_attendant','dietician_head','kitchen_staff','biomedical_engineer','maintenance','store_keeper','purchase_officer','ot_technician','cssd_technician'].includes(user?.role ?? '')) return <StaffDashboard />;
-  return <PatientDashboard />;
+  // File 22 P0-8: every remaining canonical role is staff — only the patient
+  // role (or an unidentified session) gets the patient dashboard.
+  if (!user?.role || user.role === 'patient') return <PatientDashboard />;
+  return <StaffDashboard />;
 }
 
 function MindDashboardShell() {
@@ -693,6 +724,7 @@ const App = () => (
             <Sonner />
             <EmergencyFlowController />
             <ReminderAlarmHost />
+            <DashboardAlertHost />
             <GlobalSearch />
             <LenisScroll>
               <AppMotion>
@@ -947,6 +979,8 @@ const App = () => (
                     <Route path="/patient-registration" element={<RoleRoute allowedRoles={['hospital_admin', 'nurse', 'receptionist', 'front_desk']}><PatientRegistration /></RoleRoute>} />
                     <Route path="/frontdesk" element={<RoleRoute allowedRoles={['hospital_admin', 'receptionist', 'front_desk']}><FrontDesk /></RoleRoute>} />
                     <Route path="/dashboard/v2" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'medical_director', 'cmo']}><HospitalDashboardV2 /></RoleRoute>} />
+                    <Route path="/dashboard/overview" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'medical_director', 'cmo']}><DashboardOverviewPage /></RoleRoute>} />
+                    <Route path="/dashboard/queue" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'medical_director', 'cmo']}><DashboardQueuePage /></RoleRoute>} />
                     <Route path="/ipd/discharges" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor']}><DischargeDesk /></RoleRoute>} />
                     <Route path="/insurance/desk" element={<RoleRoute allowedRoles={['hospital_admin', 'tpa_agent', 'accountant', 'insurance_desk']}><TpaDesk /></RoleRoute>} />
                     <Route path="/hr/roster" element={<RoleRoute allowedRoles={['hospital_admin', 'hr_manager', 'nursing_supervisor', 'matron']}><RosterPage /></RoleRoute>} />

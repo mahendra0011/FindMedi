@@ -109,7 +109,8 @@ export default function HospitalDashboardV2() {
             <option value="30">30 days</option>
           </select>
           <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={compare} onChange={(e) => setCompare(e.target.checked)} /> compare</label>
-          <Link to="/dashboard"><Button variant="outline" size="sm">Classic view</Button></Link>
+          <Link to="/dashboard/overview"><Button variant="outline" size="sm">Overview</Button></Link>
+          <Link to="/dashboard/queue"><Button variant="outline" size="sm">Live queue</Button></Link>
         </div>
       </div>
 

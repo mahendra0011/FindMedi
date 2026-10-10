@@ -11,6 +11,17 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import NotificationBell from './NotificationBell';
 
+const specialtyNav = (path: string) => [
+  { icon: LayoutDashboard, labelKey: 'nav.dashboard', path },
+  { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
+  { icon: Calendar, labelKey: 'nav.mySchedule', path: `${path}?tab=calendar` },
+  { icon: ClipboardList, labelKey: 'nav.appointments', path: `${path}?tab=bookings` },
+  { icon: IndianRupee, labelKey: 'nav.myEarnings', path: `${path}?tab=earnings` },
+  { icon: Star, labelKey: 'nav.myReviews', path: `${path}?tab=reviews` },
+  { icon: Bell, labelKey: 'nav.notifications', path: '/notifications' },
+  { icon: Settings, labelKey: 'nav.settings', path: '/settings' },
+];
+
 const navConfig = {
   superadmin: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard', section: 'Overview & Analytics' },
@@ -110,7 +121,7 @@ const navConfig = {
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings' },
   ],
   hospital_admin: [
-    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'        },
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard/v2'      },
     { icon: Bot,             labelKey: 'nav.chatWithAI',       path: '/ai-chat'          },
     // Appointments (admin view; doctor-channel pages live in the doctor menu)
     { icon: CalendarDays,    labelKey: 'nav.todayAppointments', path: '/appointments'     },
@@ -605,7 +616,7 @@ const navConfig = {
     { icon: Settings, labelKey: 'nav.settings', path: '/settings' },
   ],
   dietitian: [
-    { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/dashboard' },
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/dashboard/dietitian' },
     { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
     { icon: Hospital, labelKey: 'nav.ipd', path: '/ipd' },
     { icon: Activity, labelKey: 'nav.triage', path: '/triage' },
@@ -624,7 +635,7 @@ const navConfig = {
     { icon: Settings, labelKey: 'nav.settings', path: '/settings' },
   ],
   physiotherapist: [
-    { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/dashboard' },
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/dashboard/physio' },
     { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
     { icon: Hospital, labelKey: 'nav.ipd', path: '/ipd' },
     { icon: Activity, labelKey: 'nav.triage', path: '/triage' },
@@ -940,7 +951,97 @@ const navConfig = {
     { icon: Bell, labelKey: 'nav.notifications', path: '/notifications' },
     { icon: Settings, labelKey: 'nav.settings', path: '/settings' },
   ],
+  clinic_admin: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/clinic/dashboard' },
+    { icon: TrendingUp, labelKey: 'nav.clinicOverview', path: '/clinic/overview' },
+    { icon: Hospital, labelKey: 'nav.clinicManagement', path: '/clinic/management' },
+    { icon: Users, labelKey: 'nav.staffManagement', path: '/clinic/staff' },
+    { icon: CalendarDays, labelKey: 'nav.appointments', path: '/clinic/appointments' },
+    { icon: Inbox, labelKey: 'nav.approvals', path: '/clinic/appointments/approve' },
+    { icon: UserRound, labelKey: 'nav.myPatients', path: '/clinic/patients' },
+    { icon: FileText, labelKey: 'nav.consultations', path: '/clinic/consultations' },
+    { icon: Pill, labelKey: 'nav.prescriptions', path: '/clinic/prescriptions' },
+    { icon: CreditCard, labelKey: 'nav.billing', path: '/clinic/billing' },
+    { icon: IndianRupee, labelKey: 'nav.myEarnings', path: '/clinic/earnings' },
+    { icon: BarChart3, labelKey: 'nav.analytics', path: '/clinic/analytics' },
+    { icon: Bell, labelKey: 'nav.notifications', path: '/clinic/notifications' },
+    { icon: Settings, labelKey: 'nav.clinicSettings', path: '/clinic/settings' },
+    { icon: Globe, labelKey: 'nav.platformSettings', path: '/clinic/platform-settings' },
+  ],
+  clinic_receptionist: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/clinic/dashboard' },
+    { icon: TrendingUp, labelKey: 'nav.clinicOverview', path: '/clinic/overview' },
+    { icon: CalendarDays, labelKey: 'nav.appointments', path: '/clinic/appointments' },
+    { icon: Inbox, labelKey: 'nav.approvals', path: '/clinic/appointments/approve' },
+    { icon: History, labelKey: 'nav.offlineAppointmentHistory', path: '/clinic/appointments/history' },
+    { icon: Globe, labelKey: 'nav.approveOnlineAppointments', path: '/clinic/online-appointments?tab=approve' },
+    { icon: CalendarDays, labelKey: 'nav.onlineAppointmentHistory', path: '/clinic/online-appointments?tab=history' },
+    { icon: MapPin, labelKey: 'nav.inPersonAppointments', path: '/clinic/home-visit' },
+    { icon: MapPin, labelKey: 'nav.inPersonVisits', path: '/clinic/in-person' },
+    { icon: Calendar, labelKey: 'nav.mySchedule', path: '/clinic/schedule' },
+    { icon: UserRound, labelKey: 'nav.myPatients', path: '/clinic/patients' },
+    { icon: Bell, labelKey: 'nav.notifications', path: '/clinic/notifications' },
+    { icon: Settings, labelKey: 'nav.clinicSettings', path: '/clinic/settings' },
+  ],
+  clinic_nurse: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/clinic/dashboard' },
+    { icon: TrendingUp, labelKey: 'nav.clinicOverview', path: '/clinic/overview' },
+    { icon: UserRound, labelKey: 'nav.myPatients', path: '/clinic/patients' },
+    { icon: FileText, labelKey: 'nav.consultations', path: '/clinic/consultations' },
+    { icon: Pill, labelKey: 'nav.prescriptions', path: '/clinic/prescriptions' },
+    { icon: FlaskConical, labelKey: 'nav.clinicTests', path: '/clinic/tests' },
+    { icon: TestTube, labelKey: 'nav.testRequests', path: '/clinic/test-requests' },
+    { icon: CalendarDays, labelKey: 'nav.appointments', path: '/clinic/appointments' },
+    { icon: Bell, labelKey: 'nav.notifications', path: '/clinic/notifications' },
+    { icon: Settings, labelKey: 'nav.clinicSettings', path: '/clinic/settings' },
+  ],
+  clinic_accountant: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/clinic/dashboard' },
+    { icon: TrendingUp, labelKey: 'nav.clinicOverview', path: '/clinic/overview' },
+    { icon: CreditCard, labelKey: 'nav.billing', path: '/clinic/billing' },
+    { icon: IndianRupee, labelKey: 'nav.myEarnings', path: '/clinic/earnings' },
+    { icon: Receipt, labelKey: 'nav.paymentHistory', path: '/clinic/payment-history' },
+    { icon: Percent, labelKey: 'nav.feesPricing', path: '/clinic/fees' },
+    { icon: BarChart3, labelKey: 'nav.analytics', path: '/clinic/analytics' },
+    { icon: Package, labelKey: 'nav.inventory', path: '/clinic/inventory' },
+    { icon: Bell, labelKey: 'nav.notifications', path: '/clinic/notifications' },
+    { icon: Settings, labelKey: 'nav.clinicSettings', path: '/clinic/settings' },
+  ],
+  clinic_pharmacist: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/clinic/dashboard' },
+    { icon: TrendingUp, labelKey: 'nav.clinicOverview', path: '/clinic/overview' },
+    { icon: Pill, labelKey: 'nav.prescriptions', path: '/clinic/prescriptions' },
+    { icon: FlaskConical, labelKey: 'nav.clinicTests', path: '/clinic/tests' },
+    { icon: TestTube, labelKey: 'nav.testRequests', path: '/clinic/test-requests' },
+    { icon: Package, labelKey: 'nav.inventory', path: '/clinic/inventory' },
+    { icon: UserRound, labelKey: 'nav.myPatients', path: '/clinic/patients' },
+    { icon: Bell, labelKey: 'nav.notifications', path: '/clinic/notifications' },
+    { icon: Settings, labelKey: 'nav.clinicSettings', path: '/clinic/settings' },
+  ],
+  dentist: specialtyNav('/dashboard/dentist'),
+  dental_clinic_admin: specialtyNav('/dashboard/dentist'),
+  yoga_instructor: specialtyNav('/dashboard/yoga'),
+  yoga_studio_admin: specialtyNav('/dashboard/yoga'),
+  gym_owner: specialtyNav('/dashboard/gym'),
+  trainer: specialtyNav('/dashboard/gym'),
+  equipment_vendor: specialtyNav('/dashboard/equipment'),
+  event_organizer: specialtyNav('/dashboard/events'),
+  phlebotomist: specialtyNav('/dashboard/phlebotomist'),
+  tpa_agent: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/insurance/desk' },
+    { icon: ShieldCheck, labelKey: 'nav.insurance', path: '/insurance/desk' },
+    { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
+    { icon: Bell, labelKey: 'nav.notifications', path: '/notifications' },
+    { icon: Settings, labelKey: 'nav.settings', path: '/settings' },
+  ],
 };
+
+const safeStaffNav = [
+  { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/dashboard' },
+  { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
+  { icon: Bell, labelKey: 'nav.notifications', path: '/notifications' },
+  { icon: Settings, labelKey: 'nav.settings', path: '/settings' },
+];
 
 const roleBadgeColor = { hospital_admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning', lab_owner: 'bg-purple-500/20 text-purple-600', pharmacy_owner: 'bg-rose-500/20 text-rose-600', delivery_boy: 'bg-blue-500/20 text-blue-600', rider: 'bg-teal-500/20 text-teal-600', assistant: 'bg-emerald-500/20 text-emerald-600', lawyer: 'bg-slate-900/15 text-slate-900 dark:bg-white/15 dark:text-slate-100', ambulance: 'bg-red-500/20 text-red-600', counsellor: 'bg-violet-500/20 text-violet-600', psychiatrist: 'bg-fuchsia-500/20 text-fuchsia-600' };
 
@@ -953,7 +1054,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
   const handleGoHome = () => { navigate('/'); onNavClick?.(); };
   const handleLogout = () => { logout(); navigate('/login'); onNavClick?.(); };
 
-  const navItems = navConfig[user?.role] || navConfig.patient;
+  const navItems = navConfig[user?.role] || safeStaffNav;
   const language = user?.settings?.language || 'en';
   const [myHealthOpen, setMyHealthOpen] = useState(true);
   const [mindOpen, setMindOpen] = useState(true);
