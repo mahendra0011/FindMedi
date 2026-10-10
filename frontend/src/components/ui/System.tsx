@@ -115,6 +115,11 @@ export function DataGrid({
    * suppresses the pager; virtualisation still applies past the threshold.
    */
   manualPagination = false,
+  /**
+   * Per-row tinting some lists need (flagged users, low stock, expiring…).
+   * Receives the original row object, returns extra class names.
+   */
+  rowClassName,
 }) {
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState([]);
@@ -214,7 +219,7 @@ export function DataGrid({
         ref={virtualize ? (node) => { if (node) rowVirtualizer.measureElement(node); } : undefined}
         style={virtualize ? { transform: `translateY(${virtualRows[virtualIndex]?.start ?? 0}px)`, position: 'absolute', left: 0, right: 0 } : undefined}
         onClick={onRowClick ? () => onRowClick(r) : undefined}
-        className={onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-colors' : ''}
+        className={[onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-colors' : '', rowClassName ? rowClassName(r) : ''].filter(Boolean).join(' ') || undefined}
       >
         {columns.map(c => (
           <td key={c.key} className="px-3 py-2 text-sm">

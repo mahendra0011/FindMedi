@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
@@ -59,6 +60,87 @@ export default function UserManagementTab() {
   };
   const roleIcons = { superadmin: Shield, admin: Shield, doctor: Stethoscope, clinic_doctor: Stethoscope, patient: UserRound, lab_owner: Activity, pharmacy_owner: Activity };
 
+  const columns = [
+    {
+      key: 'name', label: 'User',
+      render: (v) => (
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
+            {v?.charAt(0).toUpperCase()}
+          </div>
+          <span className="text-sm font-medium">{v}</span>
+        </div>
+      ),
+    },
+    { key: 'email', label: 'Email', render: (v) => <span className="text-muted-foreground">{v}</span> },
+    {
+      key: 'role', label: 'Role',
+      render: (v) => {
+        const RoleIcon = roleIcons[v] || UserRound;
+        return (
+          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize flex items-center gap-1 w-fit ${roleColors[v] || 'bg-muted text-muted-foreground'}`}>
+            <RoleIcon className="w-3 h-3" /> {v}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'status', label: 'Status',
+      render: (v) => (
+        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${v === 'blocked' ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>
+          {v || 'active'}
+        </span>
+      ),
+    },
+    {
+      key: 'flagged', label: 'Flag',
+      render: (v, u) => (
+        v ? (
+          <div className="flex items-center gap-1.5">
+            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs gap-1">
+              <Flag className="w-3 h-3" /> Flagged
+            </Badge>
+            {u.flagReason && <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">{u.flagReason}</span>}
+          </div>
+        ) : (
+          <span className="text-muted-foreground/50 text-xs">—</span>
+        )
+      ),
+    },
+    {
+      key: '_actions', label: 'Actions', sortable: false,
+      render: (_v, u) => (
+        <div className="flex items-center gap-1.5 justify-end">
+          {u.flagged ? (
+            <Button variant="outline" size="sm" className="gap-1 text-xs h-8" onClick={() => handleUnflag(u.id || u._id)}>
+              <CheckCircle className="w-3.5 h-3.5" /> Unflag
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" className="gap-1 text-xs h-8" onClick={() => handleFlag(u.id || u._id, u.name)}>
+              <Flag className="w-3.5 h-3.5" /> Flag
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1 text-xs h-8"
+            title="Who blocked/flagged/deleted this user, and when"
+            onClick={() => navigate(`/audit-logs?target=${u.id || u._id}`)}
+          >
+            <History className="w-3.5 h-3.5" /> History
+          </Button>
+          <Button variant="outline" size="sm" className={`gap-1 text-xs h-8 ${u.status === 'blocked' ? 'text-success' : ''}`} onClick={() => handleBlock(u.id || u._id)}>
+            {u.status === 'blocked' ? <CheckCircle className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
+            {u.status === 'blocked' ? 'Unblock' : 'Block'}
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1 text-xs h-8 text-destructive" aria-label={`Delete ${u.name}`} onClick={() => handleDelete(u.id || u._id)}>
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-5">
       <div>
@@ -69,7 +151,7 @@ export default function UserManagementTab() {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search users..." className="pl-10" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search users..." aria-label="Search users" className="pl-10" />
         </div>
         <Button variant={showFlagged ? 'default' : 'outline'} size="sm" onClick={() => setShowFlagged(!showFlagged)} className="gap-2">
           <Flag className="w-4 h-4" />
@@ -107,91 +189,17 @@ export default function UserManagementTab() {
 
       {loading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
-      ) : users.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">No users found</div>
       ) : (
         <div className="overflow-x-auto rounded-xl border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-muted/50 border-b">
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">User</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Email</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Role</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Status</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Flag</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(u => {
-                const RoleIcon = roleIcons[u.role] || UserRound;
-                return (
-                  <tr key={u.id || u._id} className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${u.flagged ? 'bg-amber-50/50 dark:bg-amber-950/10' : ''}`}>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
-                          {u.name?.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="text-sm font-medium">{u.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize flex items-center gap-1 w-fit ${roleColors[u.role] || 'bg-muted text-muted-foreground'}`}>
-                        <RoleIcon className="w-3 h-3" /> {u.role}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${u.status === 'blocked' ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>
-                        {u.status || 'active'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {u.flagged ? (
-                        <div className="flex items-center gap-1.5">
-                          <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs gap-1">
-                            <Flag className="w-3 h-3" /> Flagged
-                          </Badge>
-                          {u.flagReason && <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">{u.flagReason}</span>}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground/50 text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center gap-1.5 justify-end">
-                        {u.flagged ? (
-                          <Button variant="outline" size="sm" className="gap-1 text-xs h-8" onClick={() => handleUnflag(u.id || u._id)}>
-                            <CheckCircle className="w-3.5 h-3.5" /> Unflag
-                          </Button>
-                        ) : (
-                          <Button variant="outline" size="sm" className="gap-1 text-xs h-8" onClick={() => handleFlag(u.id || u._id, u.name)}>
-                            <Flag className="w-3.5 h-3.5" /> Flag
-                          </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1 text-xs h-8"
-                          title="Who blocked/flagged/deleted this user, and when"
-                          onClick={() => navigate(`/audit-logs?target=${u.id || u._id}`)}
-                        >
-                          <History className="w-3.5 h-3.5" /> History
-                        </Button>
-                        <Button variant="outline" size="sm" className={`gap-1 text-xs h-8 ${u.status === 'blocked' ? 'text-success' : ''}`} onClick={() => handleBlock(u.id || u._id)}>
-                          {u.status === 'blocked' ? <CheckCircle className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
-                          {u.status === 'blocked' ? 'Unblock' : 'Block'}
-                        </Button>
-                        <Button variant="outline" size="sm" className="gap-1 text-xs h-8 text-destructive" onClick={() => handleDelete(u.id || u._id)}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <DataGrid
+            columns={columns}
+            rows={users.map(u => ({ ...u, _id: u._id || u.id }))}
+            rowKey="_id"
+            empty="No users found"
+            showSearch={false}
+            manualPagination
+            rowClassName={(u) => (u.flagged ? 'bg-amber-50/50 dark:bg-amber-950/10' : '')}
+          />
         </div>
       )}
     </div>

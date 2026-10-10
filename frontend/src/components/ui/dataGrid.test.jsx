@@ -229,6 +229,33 @@ describe('DataGrid · server-owned controls', () => {
   });
 });
 
+describe('DataGrid · rowClassName', () => {
+  it('tints only the rows the caller flags', () => {
+    const rows = [
+      { uhid: 'UH-1', name: 'Clean', balance: 1, flagged: false },
+      { uhid: 'UH-2', name: 'Bad', balance: 2, flagged: true },
+    ];
+    render(
+      <DataGrid
+        columns={COLS}
+        rows={rows}
+        rowKey="uhid"
+        rowClassName={(r) => (r.flagged ? 'bg-amber-50' : '')}
+      />,
+    );
+    const [clean, bad] = screen.getAllByRole('row').slice(1);
+    expect(clean.className).not.toContain('bg-amber-50');
+    expect(bad.className).toContain('bg-amber-50');
+  });
+
+  it('omits the class attribute when no row is flagged', () => {
+    const rows = [{ uhid: 'UH-1', name: 'Clean', balance: 1, flagged: false }];
+    render(<DataGrid columns={COLS} rows={rows} rowKey="uhid" rowClassName={(r) => (r.flagged ? 'bg-amber-50' : '')} />);
+    const row = screen.getAllByRole('row')[1];
+    expect(row).not.toHaveAttribute('class');
+  });
+});
+
 describe('DataGrid · interaction', () => {
   it('onRowClick receives the clicked row object', () => {
     const onRowClick = vi.fn();

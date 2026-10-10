@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
@@ -92,9 +93,11 @@ export default function GlobalCatalog() {
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Search..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+        <Input placeholder="Search..." aria-label="Search catalog" className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
+      {/* The page's ONE search box spans all three tabs, so the grid's own
+          filter is hidden; the rows it is handed are already filtered. */}
       {tab === 'tests' && (
         <>
           {dupTests.length > 0 && (
@@ -126,35 +129,21 @@ export default function GlobalCatalog() {
               <CardTitle className="text-sm">All Tests ({filteredTests.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-muted-foreground">
-                      <th className="pb-2 font-medium">Name</th>
-                      <th className="pb-2 font-medium">Category</th>
-                      <th className="pb-2 font-medium">Price</th>
-                      <th className="pb-2 font-medium">MRP</th>
-                      <th className="pb-2 font-medium">Popular</th>
-                      <th className="pb-2 font-medium">Home Collection</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTests.map((t, i) => (
-                      <tr key={t._id || i} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                        <td className="py-2.5 font-medium text-foreground">{t.name}</td>
-                        <td className="py-2.5"><Badge variant="outline" className="text-xs">{t.category || 'N/A'}</Badge></td>
-                        <td className="py-2.5">₹{t.price?.toLocaleString() || '—'}</td>
-                        <td className="py-2.5">₹{t.mrp?.toLocaleString() || '—'}</td>
-                        <td className="py-2.5">{t.popular ? <CheckCircle className="w-4 h-4 text-success" /> : '—'}</td>
-                        <td className="py-2.5">{t.homeCollection ? <CheckCircle className="w-4 h-4 text-success" /> : '—'}</td>
-                      </tr>
-                    ))}
-                    {filteredTests.length === 0 && (
-                      <tr><td colSpan="6" className="py-8 text-center text-muted-foreground">No tests found</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <DataGrid
+                columns={[
+                  { key: 'name', label: 'Name', render: (v) => <span className="font-medium text-foreground">{v}</span> },
+                  { key: 'category', label: 'Category', render: (v) => <Badge variant="outline" className="text-xs">{v || 'N/A'}</Badge> },
+                  { key: 'price', label: 'Price', render: (v) => <>₹{v?.toLocaleString() || '—'}</> },
+                  { key: 'mrp', label: 'MRP', render: (v) => <>₹{v?.toLocaleString() || '—'}</> },
+                  { key: 'popular', label: 'Popular', render: (v) => (v ? <CheckCircle className="w-4 h-4 text-success" /> : '—') },
+                  { key: 'homeCollection', label: 'Home Collection', render: (v) => (v ? <CheckCircle className="w-4 h-4 text-success" /> : '—') },
+                ]}
+                rows={filteredTests.map((t, i) => ({ ...t, _id: t._id || `test-${i}` }))}
+                rowKey="_id"
+                empty="No tests found"
+                showSearch={false}
+                manualPagination
+              />
             </CardContent>
           </Card>
         </>
@@ -166,37 +155,27 @@ export default function GlobalCatalog() {
             <CardTitle className="text-sm">All Medicines ({filteredMeds.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-2 font-medium">Name</th>
-                    <th className="pb-2 font-medium">Category</th>
-                    <th className="pb-2 font-medium">Price</th>
-                    <th className="pb-2 font-medium">Stock</th>
-                    <th className="pb-2 font-medium">Prescription Required</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredMeds.map((m, i) => (
-                    <tr key={m._id || i} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                      <td className="py-2.5 font-medium text-foreground">{m.name}</td>
-                      <td className="py-2.5"><Badge variant="outline" className="text-xs">{m.category || 'N/A'}</Badge></td>
-                      <td className="py-2.5">₹{(m.price || m.sellingPrice || 0).toLocaleString()}</td>
-                      <td className="py-2.5">
-                        <Badge className={`text-xs ${(m.stock || 0) > 10 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
-                          {m.stock || 0} units
-                        </Badge>
-                      </td>
-                      <td className="py-2.5">{m.prescriptionRequired ? <CheckCircle className="w-4 h-4 text-success" /> : '—'}</td>
-                    </tr>
-                  ))}
-                  {filteredMeds.length === 0 && (
-                    <tr><td colSpan="5" className="py-8 text-center text-muted-foreground">No medicines found</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <DataGrid
+              columns={[
+                { key: 'name', label: 'Name', render: (v) => <span className="font-medium text-foreground">{v}</span> },
+                { key: 'category', label: 'Category', render: (v) => <Badge variant="outline" className="text-xs">{v || 'N/A'}</Badge> },
+                { key: 'price', label: 'Price', render: (v, m) => <>₹{(v || m.sellingPrice || 0).toLocaleString()}</> },
+                {
+                  key: 'stock', label: 'Stock',
+                  render: (v) => (
+                    <Badge className={`text-xs ${(v || 0) > 10 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                      {v || 0} units
+                    </Badge>
+                  ),
+                },
+                { key: 'prescriptionRequired', label: 'Prescription Required', render: (v) => (v ? <CheckCircle className="w-4 h-4 text-success" /> : '—') },
+              ]}
+              rows={filteredMeds.map((m, i) => ({ ...m, _id: m._id || `med-${i}` }))}
+              rowKey="_id"
+              empty="No medicines found"
+              showSearch={false}
+              manualPagination
+            />
           </CardContent>
         </Card>
       )}
