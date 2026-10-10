@@ -6,6 +6,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -229,64 +230,52 @@ export default function SuperAdminDelivery() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name or phone..."
+              aria-label="Search delivery partners"
               className="pl-10"
             />
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-2 text-muted-foreground font-medium">Partner</th>
-                  <th className="text-left py-3 px-2 text-muted-foreground font-medium">Vehicle</th>
-                  <th className="text-left py-3 px-2 text-muted-foreground font-medium">Status</th>
-                  <th className="text-right py-3 px-2 text-muted-foreground font-medium">Deliveries</th>
-                  <th className="text-right py-3 px-2 text-muted-foreground font-medium">Rating</th>
-                  <th className="text-center py-3 px-2 text-muted-foreground font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAll.map((p) => (
-                  <tr key={p._id} className="border-b border-border last:border-0">
-                    <td className="py-3 px-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">
-                          {p.name?.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{p.name}</p>
-                          <p className="text-xs text-muted-foreground">{p.phone}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-2 text-muted-foreground">{p.vehicleType} {p.vehicleNumber}</td>
-                    <td className="py-3 px-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[p.status] || 'bg-muted text-muted-foreground'}`}>
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 text-right text-card-foreground">{p.totalDeliveries || 0}</td>
-                    <td className="py-3 px-2 text-right text-card-foreground">{p.rating || '—'}</td>
-                    <td className="py-3 px-2 text-center">
-                      {p.status === 'approved' ? (
-                        <Button size="sm" variant="outline" onClick={() => handleSuspend(p._id)} className="text-xs">
-                          Suspend
-                        </Button>
-                      ) : p.status === 'suspended' ? (
-                        <Button size="sm" onClick={() => handleApprove(p._id)} className="text-xs">
-                          Reactivate
-                        </Button>
-                      ) : (
-                        <Button size="sm" onClick={() => handleApprove(p._id)} className="text-xs">
-                          Approve
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* `filteredAll` is already narrowed by the box above, so the grid
+              must not filter (or page) a second time. */}
+          <DataGrid
+            columns={[
+              {
+                key: 'name', label: 'Partner',
+                render: (v, p) => (
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">
+                      {v?.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">{v}</p>
+                      <p className="text-xs text-muted-foreground">{p.phone}</p>
+                    </div>
+                  </div>
+                ),
+              },
+              { key: 'vehicleType', label: 'Vehicle', render: (v, p) => <span className="text-muted-foreground">{v} {p.vehicleNumber}</span> },
+              { key: 'status', label: 'Status', render: (v) => <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[v] || 'bg-muted text-muted-foreground'}`}>{v}</span> },
+              { key: 'totalDeliveries', label: 'Deliveries', render: (v) => <span className="text-right block text-card-foreground">{v || 0}</span> },
+              { key: 'rating', label: 'Rating', render: (v) => <span className="text-right block text-card-foreground">{v || '—'}</span> },
+              {
+                key: '_actions', label: 'Actions', sortable: false,
+                render: (_v, p) => (
+                  p.status === 'approved' ? (
+                    <Button size="sm" variant="outline" onClick={() => handleSuspend(p._id)} className="text-xs">Suspend</Button>
+                  ) : p.status === 'suspended' ? (
+                    <Button size="sm" onClick={() => handleApprove(p._id)} className="text-xs">Reactivate</Button>
+                  ) : (
+                    <Button size="sm" onClick={() => handleApprove(p._id)} className="text-xs">Approve</Button>
+                  )
+                ),
+              },
+            ]}
+            rows={filteredAll}
+            rowKey="_id"
+            empty="No delivery partners match"
+            showSearch={false}
+            manualPagination
+          />
         </div>
       )}
 

@@ -4,6 +4,7 @@ import { IndianRupee, Calendar, User, Search, Plus, X, Send, CreditCard, CheckCi
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 
@@ -129,7 +130,7 @@ export default function LabBilling() {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search patient or invoice..." className="pl-10" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search patient or invoice..." aria-label="Search invoices" className="pl-10" />
         </div>
         <div className="flex gap-2">
           {['All', 'Paid', 'Pending', 'Overdue'].map(s => (
@@ -146,40 +147,32 @@ export default function LabBilling() {
         </div>
       ) : (
         <div className="bg-card rounded-2xl border border-border/60 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border/60 bg-muted/30">
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Invoice</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Patient</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Tests</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Date</th>
-                  <th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">Amount</th>
-                  <th className="text-center text-xs font-medium text-muted-foreground px-4 py-3">Status</th>
-                  <th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(bill => (
-                  <tr key={bill._id} className="border-b border-border/30 hover:bg-muted/30">
-                    <td className="px-4 py-3 text-sm font-mono text-primary">{bill.invoiceId}</td>
-                    <td className="px-4 py-3 text-sm font-medium">{bill.patient}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{bill.tests.length} test(s)</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{bill.date}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-right">₹{bill.total || bill.amount}</td>
-                    <td className="px-4 py-3 text-center"><Badge className={statusColors[bill.status] || 'bg-muted'}>{bill.status}</Badge></td>
-                    <td className="px-4 py-3 text-right">
-                      {bill.status !== 'Paid' && (
-                        <Button size="sm" variant="outline" onClick={() => markPaid(bill._id)} className="gap-1 text-success border-success/30">
-                          <CheckCircle className="w-3.5 h-3.5" /> Mark Paid
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* The search box and status chips above already narrowed this list. */}
+          <DataGrid
+            columns={[
+              { key: 'invoiceId', label: 'Invoice', render: (v) => <span className="text-sm font-mono text-primary">{v}</span> },
+              { key: 'patient', label: 'Patient', render: (v) => <span className="text-sm font-medium">{v}</span> },
+              { key: 'tests', label: 'Tests', render: (v) => <span className="text-sm text-muted-foreground">{v?.length || 0} test(s)</span> },
+              { key: 'date', label: 'Date', render: (v) => <span className="text-sm text-muted-foreground">{v}</span> },
+              { key: 'total', label: 'Amount', render: (v, b) => <span className="text-sm font-semibold">₹{v || b.amount}</span> },
+              { key: 'status', label: 'Status', render: (v) => <Badge className={statusColors[v] || 'bg-muted'}>{v}</Badge> },
+              {
+                key: '_actions', label: 'Action', sortable: false,
+                render: (_v, b) => (
+                  b.status !== 'Paid' && (
+                    <Button size="sm" variant="outline" onClick={() => markPaid(b._id)} className="gap-1 text-success border-success/30">
+                      <CheckCircle className="w-3.5 h-3.5" /> Mark Paid
+                    </Button>
+                  )
+                ),
+              },
+            ]}
+            rows={filtered}
+            rowKey="_id"
+            empty="No invoices yet"
+            showSearch={false}
+            manualPagination
+          />
         </div>
       )}
 
