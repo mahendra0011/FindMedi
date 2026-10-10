@@ -3,6 +3,7 @@ import { Receipt, Download, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
@@ -120,40 +121,23 @@ export default function TaxLedger() {
         ))}
       </div>
 
-      {rows.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">No ledger entries yet.</div>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-muted/50 border-b">
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Date</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Facility</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Source</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3 tabular-nums">Gross</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3 tabular-nums">Fee</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3 tabular-nums">TDS 1%</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3 tabular-nums">GST 18%</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((t) => (
-                <tr key={t._id} className="border-b last:border-0 hover:bg-muted/30">
-                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-IN') : '—'}</td>
-                  <td className="px-4 py-3 font-medium max-w-[180px] truncate">{t.facilityName || '—'}</td>
-                  <td className="px-4 py-3 text-xs capitalize">{t.source || '—'}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{inr(t.amount)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{inr(t.commissionAmount)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{inr(Math.round((Number(t.amount) || 0) * TDS_RATE))}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{inr(Math.round((Number(t.commissionAmount) || 0) * GST_ON_FEE_RATE))}</td>
-                  <td className="px-4 py-3"><Badge variant="outline" className="text-[11px]">{t.status}</Badge></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataGrid
+        columns={[
+          { key: 'createdAt', label: 'Date', sortable: false, render: (v) => <span className="text-xs text-muted-foreground whitespace-nowrap">{v ? new Date(v).toLocaleDateString('en-IN') : '—'}</span> },
+          { key: 'facilityName', label: 'Facility', sortable: false, render: (v) => <span className="font-medium max-w-[180px] truncate block">{v || '—'}</span> },
+          { key: 'source', label: 'Source', sortable: false, render: (v) => <span className="text-xs capitalize">{v || '—'}</span> },
+          { key: 'amount', label: 'Gross', sortable: false, render: (v) => <span className="tabular-nums">{inr(v)}</span> },
+          { key: 'commissionAmount', label: 'Fee', sortable: false, render: (v) => <span className="tabular-nums">{inr(v)}</span> },
+          { key: '_tds', label: 'TDS 1%', sortable: false, render: (_v, t) => <span className="tabular-nums">{inr(Math.round((Number(t.amount) || 0) * TDS_RATE))}</span> },
+          { key: '_gst', label: 'GST 18%', sortable: false, render: (_v, t) => <span className="tabular-nums">{inr(Math.round((Number(t.commissionAmount) || 0) * GST_ON_FEE_RATE))}</span> },
+          { key: 'status', label: 'Status', sortable: false, render: (v) => <Badge variant="outline" className="text-[11px]">{v}</Badge> },
+        ]}
+        rows={rows.map((t, i) => ({ ...t, _id: t._id || `tx-${i}` }))}
+        rowKey="_id"
+        empty="No ledger entries yet."
+        showSearch={false}
+        manualPagination
+      />
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
@@ -211,28 +195,19 @@ export default function TaxLedger() {
               {(taxSummary.facilities || []).length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">No payouts in this quarter yet.</p>
               ) : (
-                <div className="overflow-x-auto rounded-xl border">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-muted/50 border-b">
-                        <th className="text-left font-medium text-muted-foreground px-4 py-2">Deductee (facility)</th>
-                        <th className="text-right font-medium text-muted-foreground px-4 py-2 tabular-nums">Gross</th>
-                        <th className="text-right font-medium text-muted-foreground px-4 py-2 tabular-nums">TDS 1%</th>
-                        <th className="text-right font-medium text-muted-foreground px-4 py-2 tabular-nums">Txns</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {taxSummary.facilities.map((f) => (
-                        <tr key={String(f.facilityId)} className="border-b last:border-0">
-                          <td className="px-4 py-2 font-medium max-w-[220px] truncate">{f.facilityName || String(f.facilityId)}</td>
-                          <td className="px-4 py-2 text-right tabular-nums">{inr(f.gross)}</td>
-                          <td className="px-4 py-2 text-right tabular-nums font-semibold">{inr(f.tds)}</td>
-                          <td className="px-4 py-2 text-right tabular-nums">{f.transactions}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <DataGrid
+                  columns={[
+                    { key: 'facilityName', label: 'Deductee (facility)', sortable: false, render: (v, f) => <span className="font-medium max-w-[220px] truncate block">{v || String(f.facilityId)}</span> },
+                    { key: 'gross', label: 'Gross', sortable: false, render: (v) => <span className="text-right tabular-nums block">{inr(v)}</span> },
+                    { key: 'tds', label: 'TDS 1%', sortable: false, render: (v) => <span className="text-right tabular-nums font-semibold block">{inr(v)}</span> },
+                    { key: 'transactions', label: 'Txns', sortable: false, render: (v) => <span className="text-right tabular-nums block">{v}</span> },
+                  ]}
+                  rows={(taxSummary.facilities || []).map((f, i) => ({ ...f, _id: f.facilityId || `fac-${i}` }))}
+                  rowKey="_id"
+                  empty="No payouts in this quarter yet."
+                  showSearch={false}
+                  manualPagination
+                />
               )}
               <p className="text-[11px] text-muted-foreground">Generated live from the transaction ledger for {taxSummary.quarter}. File with the quarterly TDS return; this view is the working for Form 16A issuance.</p>
             </div>

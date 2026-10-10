@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
@@ -105,7 +106,7 @@ export default function Promotions() {
           <div className="flex items-center justify-between">
             <div className="relative max-w-sm flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Search coupons..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+              <Input placeholder="Search coupons..." aria-label="Search coupons" className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <Button onClick={() => setShowForm(!showForm)} className="gap-2"><Plus className="w-4 h-4" /> New Coupon</Button>
           </div>
@@ -132,24 +133,26 @@ export default function Promotions() {
             </Card>
           )}
 
-          <div className="overflow-x-auto rounded-xl border">
-            <table className="w-full text-sm">
-              <thead><tr className="bg-muted/50 border-b"><th className="text-left px-4 py-3 font-medium text-muted-foreground">Code</th><th className="text-left px-4 py-3 font-medium text-muted-foreground">Discount</th><th className="text-left px-4 py-3 font-medium text-muted-foreground">Used</th><th className="text-left px-4 py-3 font-medium text-muted-foreground">Valid</th><th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th><th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th></tr></thead>
-              <tbody>
-                {coupons.map(c => (
-                  <tr key={c._id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="px-4 py-3"><span className="font-mono font-bold text-foreground">{c.code}</span></td>
-                    <td className="px-4 py-3">{c.discountType === 'percentage' ? `${c.discountValue}%` : `₹${c.discountValue}`}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{c.usedCount}{c.usageLimit > 0 ? `/${c.usageLimit}` : ''}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(c.validFrom).toLocaleDateString()} - {new Date(c.validUntil).toLocaleDateString()}</td>
-                    <td className="px-4 py-3"><Badge className={c.isActive ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}>{c.isActive ? 'Active' : 'Inactive'}</Badge></td>
-                    <td className="px-4 py-3 text-right"><Button variant="outline" size="sm" onClick={() => handleToggleCoupon(c)}>{c.isActive ? 'Deactivate' : 'Activate'}</Button></td>
-                  </tr>
-                ))}
-                {coupons.length === 0 && <tr><td colSpan="6" className="py-8 text-center text-muted-foreground">No coupons yet</td></tr>}
-              </tbody>
-            </table>
-          </div>
+          {/* Search already hit the API (getPlatformCoupons({search})), so the
+              rows handed in are the result set — no second filter, no pager. */}
+          <DataGrid
+            columns={[
+              { key: 'code', label: 'Code', render: (v) => <span className="font-mono font-bold text-foreground">{v}</span> },
+              { key: 'discountType', label: 'Discount', render: (v, c) => (v === 'percentage' ? `${c.discountValue}%` : `₹${c.discountValue}`) },
+              { key: 'usedCount', label: 'Used', render: (v, c) => <span className="text-muted-foreground">{v}{c.usageLimit > 0 ? `/${c.usageLimit}` : ''}</span> },
+              { key: 'validFrom', label: 'Valid', render: (v, c) => <span className="text-xs text-muted-foreground">{new Date(v).toLocaleDateString()} - {new Date(c.validUntil).toLocaleDateString()}</span> },
+              { key: 'isActive', label: 'Status', render: (v) => <Badge className={v ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}>{v ? 'Active' : 'Inactive'}</Badge> },
+              {
+                key: '_actions', label: 'Actions', sortable: false,
+                render: (_v, c) => <Button variant="outline" size="sm" onClick={() => handleToggleCoupon(c)}>{c.isActive ? 'Deactivate' : 'Activate'}</Button>,
+              },
+            ]}
+            rows={coupons}
+            rowKey="_id"
+            empty="No coupons yet"
+            showSearch={false}
+            manualPagination
+          />
         </>
       )}
 
