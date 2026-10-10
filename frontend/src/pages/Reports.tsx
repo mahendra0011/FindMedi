@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Search, Download, Clock, X, FileText, TrendingUp, Users, Activity, BarChart3, Calendar, Filter, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 
 const reportsApi = {
@@ -164,27 +165,20 @@ export default function Reports() {
                       </div>
                     )}
 
-                    {/* Data Table */}
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b">
-                            {Object.keys(reportData.data[0] || {}).map(key => (
-                              <th key={key} className="text-left p-2 text-xs font-medium text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {reportData.data.map((row, i) => (
-                            <tr key={i} className="border-b last:border-0 hover:bg-muted/20">
-                              {Object.values(row).map((val, j) => (
-                                <td key={j} className="p-2 text-xs text-foreground">{val || '-'}</td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    {/* Data Table — columns are derived from the first row's keys */}
+                    <DataGrid
+                      columns={Object.keys(reportData.data[0] || {}).map((key) => ({
+                        key,
+                        label: key.replace(/_/g, ' '),
+                        sortable: false,
+                        render: (v) => <span className="text-xs text-foreground">{v || '-'}</span>,
+                      }))}
+                      rows={reportData.data.map((row, i) => ({ ...row, __id: `report-${i}` }))}
+                      rowKey="__id"
+                      empty="No data available"
+                      showSearch={false}
+                      manualPagination
+                    />
                   </div>
                 ) : (
                   <div className="text-center py-20">

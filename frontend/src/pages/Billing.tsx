@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, IndianRupee, AlertCircle, CheckCircle, X, Trash2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DataGrid } from '@/components/ui/System';
 import { api, downloadInvoicePdf } from '@/lib/api';
 import { toast } from 'sonner';
 import PatientBanner from '@/components/clinical/PatientBanner';
@@ -184,56 +185,53 @@ export default function Billing() {
         </div>
       ) : null}
       <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                {['Invoice','Patient','Doctor','Service','Amount','Paid','Status','Due Date',''].map(h => (
-                  <th key={h} className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 uppercase tracking-wide whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {isLoading ? (
-                [...Array(5)].map((_,i) => <tr key={i}><td colSpan={9} className="px-4 py-3"><div className="h-4 bg-muted rounded animate-pulse" /></td></tr>)
-              ) : bills.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-16 text-muted-foreground">No invoices found</td></tr>
-              ) : bills.map(b => (
-                <tr key={b._id} onClick={() => setSelectedBill(selectedBill?._id === b._id ? null : b)}
-                  className={`hover:bg-muted/30 transition-colors group cursor-pointer ${selectedBill?._id === b._id ? 'bg-muted/40' : ''}`}>
-                  <td className="px-4 py-3 text-xs font-mono text-muted-foreground">{b.invoiceId}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-card-foreground">{b.patient}</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">{b.doctor}</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground max-w-[180px] truncate">{b.service}</td>
-                  <td className="px-4 py-3 text-sm font-semibold text-card-foreground">₹{b.amount?.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-sm text-success font-medium">₹{b.paid?.toLocaleString()}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusCls[b.status] ?? 'bg-muted text-muted-foreground'}`}>{b.status}</span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{b.dueDate}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => downloadInvoice(b)}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Download Invoice">
-                        <Download className="w-4 h-4" />
+        {isLoading ? (
+          <div className="p-4 space-y-3">
+            {[...Array(5)].map((_, i) => <div key={i} className="h-4 bg-muted rounded animate-pulse" />)}
+          </div>
+        ) : (
+          /* Page owns search + status chips, so showSearch off; no server paging. */
+          <DataGrid
+            columns={[
+              { key: 'invoiceId', label: 'Invoice', sortable: false, render: (v) => <span className="text-xs font-mono text-muted-foreground">{v}</span> },
+              { key: 'patient', label: 'Patient', sortable: false, render: (v) => <span className="text-sm font-medium text-card-foreground">{v}</span> },
+              { key: 'doctor', label: 'Doctor', sortable: false, render: (v) => <span className="text-sm text-muted-foreground">{v}</span> },
+              { key: 'service', label: 'Service', sortable: false, render: (v) => <span className="text-sm text-muted-foreground max-w-[180px] truncate block">{v}</span> },
+              { key: 'amount', label: 'Amount', sortable: false, render: (v) => <span className="text-sm font-semibold text-card-foreground">₹{v?.toLocaleString()}</span> },
+              { key: 'paid', label: 'Paid', sortable: false, render: (v) => <span className="text-sm text-success font-medium">₹{v?.toLocaleString()}</span> },
+              { key: 'status', label: 'Status', sortable: false, render: (v) => <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusCls[v] ?? 'bg-muted text-muted-foreground'}`}>{v}</span> },
+              { key: 'dueDate', label: 'Due Date', sortable: false, render: (v) => <span className="text-xs text-muted-foreground">{v}</span> },
+              {
+                key: '_actions', label: '', sortable: false,
+                render: (_v, b) => (
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    <button onClick={() => downloadInvoice(b)}
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Download Invoice">
+                      <Download className="w-4 h-4" />
+                    </button>
+                    {b.status !== 'Paid' && (
+                      <button onClick={() => markPaidMut.mutate({ id: b._id, amount: b.amount })}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-success hover:bg-success/10 transition-colors" title="Mark Paid">
+                        <CheckCircle className="w-4 h-4" />
                       </button>
-                      {b.status !== 'Paid' && (
-                        <button onClick={() => markPaidMut.mutate({ id: b._id, amount: b.amount })}
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-success hover:bg-success/10 transition-colors" title="Mark Paid">
-                          <CheckCircle className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button onClick={() => { if (confirm('Delete invoice?')) deleteMut.mutate(b._id); }}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    )}
+                    <button onClick={() => { if (confirm('Delete invoice?')) deleteMut.mutate(b._id); }}
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+            rows={bills}
+            rowKey="_id"
+            empty="No invoices found"
+            showSearch={false}
+            manualPagination
+            onRowClick={(b) => setSelectedBill(selectedBill?._id === b._id ? null : b)}
+            rowClassName={(b) => (selectedBill?._id === b._id ? 'bg-muted/40' : '')}
+          />
+        )}
       </div>
 
       {/* New Invoice Modal */}

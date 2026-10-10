@@ -3,6 +3,7 @@ import { FileBarChart, Save, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
@@ -107,14 +108,20 @@ export default function ReportStudioPage() {
         <CardContent>
           {out ? (
             <div className="max-h-[560px] overflow-auto rounded-md border">
-              <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-muted"><tr>{out.columns?.map((c: string) => <th key={c} className="p-1.5 text-left">{c}</th>)}</tr></thead>
-                <tbody>
-                  {out.rows?.slice(0, 200).map((r: any, i: number) => (
-                    <tr key={i} className="border-t">{out.columns?.map((c: string) => <td key={c} className="max-w-48 truncate p-1.5">{String(r[c] ?? '')}</td>)}</tr>
-                  ))}
-                </tbody>
-              </table>
+              {/* Whitelisted report output: dynamic columns, capped at 200 rows. */}
+              <DataGrid
+                columns={(out.columns || []).map((c: string) => ({
+                  key: c,
+                  label: c,
+                  sortable: false,
+                  render: (v) => <span className="block max-w-48 truncate">{String(v ?? '')}</span>,
+                }))}
+                rows={(out.rows || []).slice(0, 200).map((r: any, i: number) => ({ ...r, __id: `r-${i}` }))}
+                rowKey="__id"
+                empty="No rows"
+                showSearch={false}
+                manualPagination
+              />
             </div>
           ) : <p className="text-sm text-muted-foreground">Pick a report and Run. Views ({views.length}) reuse saved columns.</p>}
         </CardContent>
