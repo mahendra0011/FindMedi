@@ -23,6 +23,31 @@ const requireObjectId = (req, res, next) => (
 const tenantFilter = (req) => (req.user.role === 'superadmin' && !req.user.hospitalId
   ? {} : { hospitalId: req.user.hospitalId });
 
+// File 22 P1-20: charted score -> alert doorway. Only RED bands fire (amber
+// is a nursing prompt, not an alert), and the same (templateKey, encounter,
+// score id) pair never fires twice for one encounter — dedup via a stable
+// rule key + entityRef keeps the Action Center free of duplicates.
+const raiseScoreAlert = async ({ req, templateKey, scores, patientId, encounterId, responseId }) => {
+  try {
+    if (!scores || typeof scores !== 'object') return;
+    const { raiseAlert } = await import('../lib/alerts.js');
+    for (const [scoreId, s] of Object.entries(scores)) {
+      if (!s || s.color !== 'red') continue;
+      await raiseAlert({
+        hospitalId: req.user.hospitalId,
+        severity: 'critical',
+        message: `${templateKey.toUpperCase()} score ${scoreId} = ${s.value} (${s.band || 'high risk'})`,
+        entityRef: { kind: 'form_response', id: String(responseId), patientId, encounterId },
+        ruleKey: `score-${templateKey}-${scoreId}`,
+        by: actorId(req),
+      });
+    }
+  } catch (err) {
+    // Charting must never fail because the alert doorway hiccupped.
+    logger.warn(`Score alert failed (${templateKey}): ${err.message}`);
+  }
+};
+
 const validateTemplateShape = (body) => {
   const sections = body?.definition?.sections;
   if (!Array.isArray(sections) || !sections.length || sections.length > 50) {
@@ -193,13 +218,17 @@ router.post('/responses', authorize('records:write'), async (req, res) => {
     if (!template) return res.status(404).json({ message: 'Published template not found' });
     const parsed = schemaFromTemplate(template).safeParse(values || {});
     if (!parsed.success) return res.status(400).json({ message: 'Validation failed', issues: parsed.error.issues.slice(0, 20) });
-    const { computed } = computeTemplate(template, parsed.data);
+    const { computed, scores } = computeTemplate(template, parsed.data);
     const row = await FormResponse.create({
       hospitalId: req.user.hospitalId, templateKey, templateVersion: template.version,
       encounterId: encounterId || null, patientId,
-      values: parsed.data, computed, createdBy: actorId(req),
+      values: parsed.data, computed, scores, createdBy: actorId(req),
     });
-    return res.status(201).json({ id: String(row._id), computed });
+    // File 22 P1-20: a red-band score (NEWS2 High, Morse High risk, Braden
+    // Very/High risk) goes through the same alert doorway as the rule engine,
+    // so the Action Center sees it within seconds of charting.
+    await raiseScoreAlert({ req, templateKey, scores, patientId, encounterId, responseId: row._id });
+    return res.status(201).json({ id: String(row._id), computed, scores });
   } catch (err) {
     logger.error(`Form response error: ${err.message}`);
     return res.status(500).json({ message: err.message });
@@ -217,9 +246,15 @@ router.put('/responses/:id', authorize('records:write'), requireObjectId, async 
     const parsed = schemaFromTemplate(template).safeParse(req.body?.values || {});
     if (!parsed.success) return res.status(400).json({ message: 'Validation failed', issues: parsed.error.issues.slice(0, 20) });
     row.values = parsed.data;
-    row.computed = computeTemplate(template, parsed.data).computed;
+    const recomputed = computeTemplate(template, parsed.data);
+    row.computed = recomputed.computed;
+    row.scores = recomputed.scores;
     await row.save();
-    return res.json({ id: String(row._id) });
+    await raiseScoreAlert({
+      req, templateKey: row.templateKey, scores: row.scores,
+      patientId: row.patientId, encounterId: row.encounterId, responseId: row._id,
+    });
+    return res.json({ id: String(row._id), scores: row.scores });
   } catch (err) {
     logger.error(`Form update error: ${err.message}`);
     return res.status(500).json({ message: err.message });
@@ -256,10 +291,11 @@ router.post('/responses/:id/amend', authorize('records:write'), requireObjectId,
     if (!parsed.success) return res.status(400).json({ message: 'Validation failed', issues: parsed.error.issues.slice(0, 20) });
     prev.status = 'Amended';
     await prev.save();
+    const amended = computeTemplate(template, parsed.data);
     const row = await FormResponse.create({
       hospitalId: prev.hospitalId, templateKey: prev.templateKey, templateVersion: prev.templateVersion,
       encounterId: prev.encounterId, patientId: prev.patientId,
-      values: parsed.data, computed: computeTemplate(template, parsed.data).computed,
+      values: parsed.data, computed: amended.computed, scores: amended.scores,
       status: 'Draft', amendmentOf: prev._id, amendmentReason: String(reason).slice(0, 1000),
       createdBy: actorId(req),
     });

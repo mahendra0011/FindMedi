@@ -758,6 +758,7 @@ import newbornScreeningRoutes from './routes/newbornScreening.js';
 import pdfWorkerRoutes from './routes/pdfWorker.js';
 import infectionControlRoutes from './routes/infectionControl.js';
 import procedureSuiteRoutes from './routes/procedureSuite.js';
+import aiFeatureRoutes from './routes/aiFeatures.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -1075,6 +1076,7 @@ app.use('/api/newborn-screening', newbornScreeningRoutes);
 app.use('/api/pdf-worker', pdfWorkerRoutes);
 app.use('/api/infection-control', infectionControlRoutes);
 app.use('/api/procedures', procedureSuiteRoutes);
+app.use('/api/ai', aiFeatureRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);

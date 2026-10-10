@@ -117,4 +117,70 @@ router.get('/stats', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// File 22 P2-32: bedside barcode lookup — the nurse scans a MAR card, lab
+// sample or blood unit and gets back the entity + patient in one round trip.
+// Read-only by design: scanning never mutates state, the actual administration
+// or issue goes through the dedicated endpoints.
+router.post('/scan', protect, async (req, res) => {
+  try {
+    const { kind, code } = req.body || {};
+    if (!['mar', 'sample', 'blood'].includes(kind)) {
+      return res.status(400).json({ message: 'kind must be mar|sample|blood' });
+    }
+    const codeStr = String(code || '').trim();
+    if (!codeStr) return res.status(400).json({ message: 'code required' });
+    const hFilter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+
+    if (kind === 'sample') {
+      const { default: LabOrder } = await import('../models/LabOrder.js');
+      const order = await LabOrder.findOne({
+        ...hFilter,
+        $or: [{ accessionNo: codeStr }, { orderId: codeStr }, { 'tests.sampleId': codeStr }],
+      }).select('orderId accessionNo patientId patientName tests status').lean();
+      if (!order) return res.status(404).json({ message: 'No lab order/sample matches that code' });
+      const test = (order.tests || []).find((t) => t.sampleId === codeStr) || null;
+      return res.json({
+        kind, code: codeStr,
+        found: true,
+        entity: {
+          orderId: order.orderId, accessionNo: order.accessionNo,
+          patientId: String(order.patientId || ''), patientName: order.patientName || '',
+          status: order.status, test: test ? test.testName : null, sampleId: test?.sampleId || null,
+        },
+      });
+    }
+
+    if (kind === 'blood') {
+      const { default: BloodUnit } = await import('../models/BloodBank.js').then((m) => ({ default: m.BloodUnit }));
+      const unit = await BloodUnit.findOne({ ...hFilter, unitId: codeStr }).lean();
+      if (!unit) return res.status(404).json({ message: 'No blood unit matches that code' });
+      return res.json({
+        kind, code: codeStr, found: true,
+        entity: {
+          unitId: unit.unitId, bloodGroup: unit.bloodGroup, status: unit.status,
+          expiryDate: unit.expiryDate || null,
+        },
+      });
+    }
+
+    // kind === 'mar': MAR cards carry an admission id or patient id — resolve
+    // the active admission so the nurse sees the medication list context.
+    const objectId = /^[0-9a-f]{24}$/i.test(codeStr);
+    const or = [{ patientId: codeStr }];
+    if (objectId) or.push({ _id: codeStr }, { patientId: codeStr });
+    const admission = await Admission.findOne({
+      ...hFilter, $or: or, status: 'Admitted',
+    }).select('patientId patientName bedId wardId').lean();
+    if (!admission) return res.status(404).json({ message: 'No admitted patient matches that code' });
+    return res.json({
+      kind, code: codeStr, found: true,
+      entity: {
+        admissionId: String(admission._id), patientId: String(admission.patientId),
+        patientName: admission.patientName || '', bedId: admission.bedId || null,
+      },
+    });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 export default router;

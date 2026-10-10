@@ -239,6 +239,26 @@ router.get('/webhooks/deliveries', authorize('staff:manage'), async (req, res) =
   }
 });
 
+// File 22 P1-26: manual retry — requeue a failed delivery immediately instead
+// of waiting for the scheduler's backoff window.
+router.post('/webhooks/deliveries/:id/retry', authorize('staff:manage'), async (req, res) => {
+  try {
+    const row = await WebhookDelivery.findOne({ _id: req.params.id, ...tenant(req) });
+    if (!row) return res.status(404).json({ message: 'Not found' });
+    if (row.status === 'delivered') return res.status(409).json({ message: 'Already delivered' });
+    row.status = 'pending';
+    row.nextRetryAt = new Date();
+    row.lastError = '';
+    await row.save();
+    await auditLog('webhook_delivery_retry', actorId(req), { deliveryId: row._id, ip: req.ip });
+    deliverWebhook(row).catch((e) => logger.warn(`webhook retry: ${e.message}`));
+    return res.json({ id: String(row._id), status: row.status });
+  } catch (err) {
+    logger.error(`Delivery retry error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 // Scheduler hook: retry due pending deliveries.
 export async function retryDueWebhooks() {
   const due = await WebhookDelivery.find({

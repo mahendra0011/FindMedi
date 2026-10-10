@@ -210,4 +210,109 @@ router.get('/stats', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// ─── File 22 P2-29: DICOM/PACS integration + radiation dose log ────────────
+// The DicomClient speaks DIMSE over TCP to a local Orthanc (or any PACS).
+// All network calls carry an 8s timeout inside the client, so a dead PACS
+// degrades to a 503 here rather than hanging the RIS UI.
+
+const dicomConfig = () => ({
+  host: process.env.ORTHANC_HOST || 'localhost',
+  port: Number(process.env.ORTHANC_PORT || 4242),
+  aeTitle: process.env.ORTHANC_AE || 'RIS_AE',
+  calledAe: process.env.ORTHANC_CALLED_AE || 'PACS_AE',
+});
+
+// C-ECHO: "is the PACS alive?" — powers the RIS connectivity badge.
+router.get('/dicom/ping', protect, adminOnly, async (req, res) => {
+  try {
+    const { DicomClient } = await import('../lib/dicom.js');
+    const client = new DicomClient(dicomConfig());
+    const ok = await client.ping();
+    return res.json({ reachable: ok, host: dicomConfig().host, port: dicomConfig().port });
+  } catch (err) {
+    return res.json({ reachable: false, error: err.message });
+  }
+});
+
+// C-FIND worklist: studies waiting to be read (patient/accession filters).
+router.get('/dicom/worklist', protect, async (req, res) => {
+  try {
+    const { DicomClient } = await import('../lib/dicom.js');
+    const client = new DicomClient(dicomConfig());
+    const reachable = await client.ping();
+    if (!reachable) return res.status(503).json({ message: 'PACS unreachable', studies: [] });
+    const studies = await client.find({
+      patientId: req.query.patientId || '',
+      accessionNumber: req.query.accessionNumber || '',
+      studyDate: req.query.studyDate || '',
+    });
+    return res.json({ studies, count: studies.length });
+  } catch (err) {
+    return res.status(502).json({ message: err.message, studies: [] });
+  }
+});
+
+// Dose log: append-only (modality feed or manual entry for old devices).
+router.post('/dose', protect, adminOnly, async (req, res) => {
+  try {
+    const { default: DoseLog } = await import('../models/DoseLog.js');
+    const b = req.body || {};
+    // A dose field the modality sent as junk must land as null, not NaN:
+    // NaN would poison the aggregate sums downstream.
+    const num = (v) => {
+      if (v === null || v === undefined || v === '') return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+    const row = await DoseLog.create({
+      hospitalId: req.user.hospitalId || undefined,
+      orderId: String(b.orderId || '').slice(0, 40),
+      studyUid: String(b.studyUid || '').slice(0, 128),
+      accessionNo: String(b.accessionNo || '').slice(0, 40),
+      patientId: b.patientId || null,
+      modality: String(b.modality || '').slice(0, 12),
+      bodyPart: String(b.bodyPart || '').slice(0, 80),
+      dapGycm2: num(b.dapGycm2),
+      doseGy: num(b.doseGy),
+      dlpMgycm: num(b.dlpMgycm),
+      exposureMs: num(b.exposureMs),
+      ctvolCm3: num(b.ctvolCm3),
+      deviceAe: String(b.deviceAe || '').slice(0, 16),
+      operatorId: req.user._id,
+      at: b.at ? new Date(b.at) : new Date(),
+    });
+    return res.status(201).json({ id: String(row._id) });
+  } catch (err) { return res.status(400).json({ message: err.message }); }
+});
+
+// Dose audit over a period: total events + per-modality exposure.
+router.get('/dose', protect, adminOnly, async (req, res) => {
+  try {
+    const { default: DoseLog } = await import('../models/DoseLog.js');
+    const match = {};
+    if (req.user.hospitalId) match.hospitalId = req.user.hospitalId;
+    if (req.query.from || req.query.to) {
+      match.at = {};
+      if (req.query.from) match.at.$gte = new Date(req.query.from);
+      if (req.query.to) match.at.$lte = new Date(req.query.to);
+    }
+    if (req.query.modality) match.modality = String(req.query.modality).toUpperCase();
+    const rows = await DoseLog.find(match).sort({ at: -1 }).limit(500).lean();
+    const byModality = {};
+    let totalDap = 0;
+    let totalDlp = 0;
+    for (const r of rows) {
+      const k = r.modality || 'unknown';
+      byModality[k] = (byModality[k] || 0) + 1;
+      if (r.dapGycm2 != null) totalDap += r.dapGycm2;
+      if (r.dlpMgycm != null) totalDlp += r.dlpMgycm;
+    }
+    return res.json({
+      count: rows.length, byModality,
+      totals: { dapGycm2: Math.round(totalDap * 100) / 100, dlpMgycm: Math.round(totalDlp * 100) / 100 },
+      rows,
+    });
+  } catch (err) { return res.status(500).json({ message: err.message }); }
+});
+
 export default router;

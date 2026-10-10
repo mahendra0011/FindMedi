@@ -30,6 +30,26 @@ export const KPI_CATALOGUE = [
   { key: 'pharmacy_pending_count', name: 'Active prescriptions (pharmacy load)', category: 'ops', unit: 'count' },
   { key: 'lab_verify_backlog', name: 'Lab orders under verification', category: 'clinical', unit: 'count' },
   { key: 'ot_completed_30d', name: 'OT cases completed (30d)', category: 'ops', unit: 'count' },
+  // File 22 P2-36: third wave — inventory, supply chain, revenue quality,
+  // infection control and department mix. Derived in insights.js compute;
+  // keys whose source data is unavailable return explicit null (never faked).
+  { key: 'inventory_turnover', name: 'Inventory turnover (x)', category: 'ops', unit: 'ratio' },
+  { key: 'stockout_items', name: 'Items at/below reorder level', category: 'ops', unit: 'count' },
+  { key: 'near_expiry_value', name: 'Near-expiry stock value (₹)', category: 'finance', unit: 'rupees' },
+  { key: 'vendor_otd_pct', name: 'Vendor on-time delivery %', category: 'ops', unit: 'percent' },
+  { key: 'po_fill_rate', name: 'PO line fill rate %', category: 'ops', unit: 'percent' },
+  { key: 'arpob', name: 'ARPOB (₹/occupied bed/day)', category: 'finance', unit: 'rupees' },
+  { key: 'ar_days', name: 'AR days (collection lag)', category: 'finance', unit: 'days' },
+  { key: 'cash_collection', name: 'Cash collected (period, ₹)', category: 'finance', unit: 'rupees' },
+  { key: 'claim_approval_days', name: 'Claim approval TAT (days)', category: 'finance', unit: 'days' },
+  { key: 'claim_ageing_60', name: 'Claims ageing >60 days', category: 'finance', unit: 'count' },
+  { key: 'opd_new_patient_pct', name: 'New patient % (OPD)', category: 'growth', unit: 'percent' },
+  { key: 'icu_occupancy', name: 'ICU/high-dependency occupancy %', category: 'ops', unit: 'percent' },
+  { key: 'mortality_rate', name: 'In-hospital mortality %', category: 'clinical', unit: 'percent' },
+  { key: 'hai_rate', name: 'HAI rate (per 1000 patient-days)', category: 'clinical', unit: 'rate' },
+  { key: 'needlestick_reports', name: 'Needle-stick reports (period)', category: 'clinical', unit: 'count' },
+  { key: 'restricted_abx_pending', name: 'Restricted antibiotics awaiting approval', category: 'clinical', unit: 'count' },
+  { key: 'dialysis_sessions_30d', name: 'Dialysis sessions (30d)', category: 'ops', unit: 'count' },
 ];
 
 export default mongoose.models.KpiDefinition || mongoose.model('KpiDefinition', kpiDefinitionSchema);

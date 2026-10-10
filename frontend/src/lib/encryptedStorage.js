@@ -14,7 +14,7 @@ async function deriveKey(password, salt) {
   return crypto.subtle.deriveKey(
     { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
     keyMaterial,
-    { name: 'ALG', length: KEY_LENGTH },
+    { name: ALG, length: KEY_LENGTH },
     false,
     ['encrypt', 'decrypt'],
   );
@@ -25,7 +25,7 @@ export async function encryptAndStore(key, data) {
   const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
   const cryptoKey = await deriveKey(key, iv.slice(0, 8));
   const encrypted = await crypto.subtle.encrypt(
-    { name: 'ALG', iv },
+    { name: ALG, iv },
     cryptoKey,
     enc.encode(JSON.stringify(data)),
   );
@@ -45,7 +45,7 @@ export async function decryptAndLoad(key) {
     const data = new Uint8Array(payload.data);
     const cryptoKey = await deriveKey(key, iv.slice(0, 8));
     const decrypted = await crypto.subtle.decrypt(
-      { name: 'ALG', iv },
+      { name: ALG, iv },
       cryptoKey,
       data,
     );

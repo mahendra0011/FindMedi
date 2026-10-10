@@ -474,6 +474,70 @@ router.post('/payslips/:id/release', protect, authorize('staff:manage'), adminOn
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// File 22 P1-17: payslip PDF — server-rendered so the browser never depends
+// on client-side PDF libs; only Released/Paid slips are printable (Draft
+// numbers change on edit, so a PDF would be a stale artefact).
+router.get('/payslips/:id/pdf', protect, authorize('staff:manage'), async (req, res) => {
+  try {
+    const { default: PDFDocument } = await import('pdfkit');
+    const { default: Payslip } = await import('../models/Payslip.js');
+    const filter = { _id: req.params.id };
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const slip = await Payslip.findOne(filter).lean();
+    if (!slip) return res.status(404).json({ message: 'Payslip not found' });
+    if (slip.status === 'Draft') return res.status(409).json({ message: 'Release the payslip before printing' });
+    const staff = await Staff.findById(slip.staffId).select('name designation employeeId').lean();
+    const hospital = req.user.hospitalId
+      ? await (await import('../models/Hospital.js')).default.findById(req.user.hospitalId).select('name address').lean()
+      : null;
+    const inr = (n) => `Rs ${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+    const doc = new PDFDocument({ size: 'A4', margin: 48 });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="payslip-${slip.month}-${(staff?.name || 'staff').replace(/\s+/g, '-')}.pdf"`);
+    doc.pipe(res);
+
+    doc.fontSize(16).text(hospital?.name || 'FindMedi Hospital', { align: 'center' });
+    if (hospital?.address) doc.fontSize(9).fillColor('#555').text(hospital.address, { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fillColor('#000').fontSize(13).text('PAYSLIP', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(10);
+    doc.text(`Employee: ${staff?.name || slip.staffId}`);
+    if (staff?.employeeId) doc.text(`Employee code: ${staff.employeeId}`);
+    if (staff?.designation) doc.text(`Designation: ${staff.designation}`);
+    doc.text(`Month: ${slip.month}`);
+    doc.text(`Status: ${slip.status}`);
+    doc.moveDown();
+
+    doc.fontSize(11).text('Earnings');
+    doc.fontSize(10);
+    const e = slip.earnings || {};
+    for (const [k, v] of [['Basic', e.basic], ['HRA', e.hra], ['Allowances', e.allowances], ['Overtime', e.overtime]]) {
+      doc.text(`  ${k}: ${inr(v)}`);
+    }
+    doc.text(`  Gross: ${inr(slip.gross)}`, { underline: true });
+    doc.moveDown();
+
+    doc.fontSize(11).text('Deductions');
+    doc.fontSize(10);
+    const d = slip.deductions || {};
+    for (const [k, v] of [['PF', d.pf], ['ESI', d.esi], ['Professional tax', d.pt], ['TDS', d.tds], ['Advances', d.advances]]) {
+      doc.text(`  ${k}: ${inr(v)}`);
+    }
+    doc.text(`  Total deductions: ${inr(slip.totalDeductions)}`, { underline: true });
+    doc.moveDown();
+
+    doc.fontSize(13).text(`Net pay: ${inr(slip.net)}`, { align: 'right' });
+    doc.moveDown(2);
+    doc.fontSize(8).fillColor('#777').text(
+      'System-generated payslip. Gross and net are derived server-side; deductions are never client-supplied.',
+      { align: 'center' },
+    );
+    doc.end();
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 // File 22 P1-17: staff loans/advances + recovery (recovered flows into payslip).
 router.get('/loans', protect, authorize('staff:manage'), async (req, res) => {
   try {

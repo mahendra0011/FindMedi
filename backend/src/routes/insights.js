@@ -126,6 +126,124 @@ router.get('/kpis/compute', authorize('staff:view'), async (req, res) => {
       const monthAgo = new Date(Date.now() - 30 * 86400 * 1000);
       out.ot_completed_30d = await OtM.countDocuments({ hospitalId, status: 'Completed', createdAt: { $gte: monthAgo } }).catch(() => 0);
     } else out.ot_completed_30d = null;
+
+    // File 22 P2-36: third KPI wave. Every model load is fail-soft — a
+    // missing collection yields an explicit null (never a fabricated 0),
+    // which is what the dashboard renders as "no data".
+    const load = (p) => p.catch(() => null);
+    const [InvM, PoM, LedgerM, DialysisM, HaiM, AbxM, NeedleM] = await Promise.all([
+      load(import('../models/Inventory.js').then((m) => m.default)),
+      load(import('../models/PurchaseOrder.js').then((m) => m.default)),
+      load(import('../models/StockLedger.js').then((m) => m.default)),
+      load(import('../models/DialysisSession.js').then((m) => m.default)),
+      load(import('../models/InfectionControl.js').then((m) => m.default)),
+      load(import('../models/InfectionControl.js').then((m) => m.AntibioticReview)),
+      load(import('../models/InfectionControl.js').then((m) => m.NeedleStick)),
+    ]);
+    const inv = InvM ? await InvM.find({ hospitalId })
+      .select('currentStock minStockLevel unitPrice expiryDate').limit(2000).lean().catch(() => []) : [];
+    const stockouts = inv.filter((i) => Number(i.currentStock || 0) <= Number(i.minStockLevel || 0)).length;
+    out.stockout_items = InvM ? stockouts : null;
+    const soon = Date.now() + 90 * 86400000;
+    out.near_expiry_value = InvM
+      ? Math.round(inv.filter((i) => i.expiryDate && new Date(i.expiryDate).getTime() <= soon)
+        .reduce((a, i) => a + Number(i.unitPrice || 0) * Number(i.currentStock || 0), 0)) : null;
+    // Inventory turnover: trailing-90d issue value / average stock value
+    // (opening+closing)/2. Missing issue history yields explicit null.
+    out.inventory_turnover = null;
+    if (InvM && LedgerM) {
+      const since = new Date(Date.now() - 90 * 86400000);
+      const [outRows, prices] = await Promise.all([
+        LedgerM.find({ hospitalId, qtyOut: { $gt: 0 }, createdAt: { $gte: since } })
+          .select('itemId qtyOut').limit(5000).lean().catch(() => []),
+        InvM.find({ hospitalId }).select('itemName unitPrice currentStock').limit(2000).lean().catch(() => []),
+      ]);
+      if (outRows.length && prices.length) {
+        const priceById = new Map(prices.map((p) => [String(p.itemName), Number(p.unitPrice || 0)]));
+        const issueValue = outRows.reduce((a, r) => a + (priceById.get(String(r.itemId)) || 0) * Number(r.qtyOut || 0), 0);
+        const stockValue = prices.reduce((a, p) => a + Number(p.unitPrice || 0) * Number(p.currentStock || 0), 0);
+        if (stockValue > 0) out.inventory_turnover = Math.round((issueValue / stockValue) * 100) / 100;
+      }
+    }
+    if (PoM) {
+      const pos = await PoM.find({ hospitalId, status: { $in: ['Received', 'Partially Received', 'Ordered'] } })
+        .select('status expectedDelivery receivedDate').limit(300).lean().catch(() => []);
+      const delivered = pos.filter((p) => p.receivedDate && p.expectedDelivery);
+      const onTime = delivered.filter((p) => new Date(p.receivedDate) <= new Date(p.expectedDelivery)).length;
+      out.vendor_otd_pct = delivered.length ? pct(onTime, delivered.length) : null;
+      out.po_fill_rate = pos.length
+        ? pct(pos.filter((p) => p.status === 'Received').length, pos.length) : null;
+    } else { out.vendor_otd_pct = null; out.po_fill_rate = null; }
+    // ARPOB = billed / (occupied beds x 30) for the trailing window.
+    out.arpob = occBeds > 0 ? Math.round(billed / (occBeds * 30)) : null;
+    // AR days: unpaid balance / (billed / 30).
+    const outstanding = bills.reduce((a, b) => a + Math.max(0, Number(b.amount || 0) - Number(b.paid || 0)), 0);
+    out.ar_days = billed > 0 ? Math.round((outstanding / (billed / 30)) * 10) / 10 : null;
+    out.cash_collection = Math.round(bills.filter((b) => b.paymentMethod === 'Cash')
+      .reduce((a, b) => a + Number(b.paid || 0), 0));
+    if (ClaimM) {
+      const monthAgo = new Date(Date.now() - 30 * 86400000);
+      const recent = await ClaimM.find({ hospitalId, submittedAt: { $gte: monthAgo } })
+        .select('submittedAt updatedAt status').limit(300).lean().catch(() => []);
+      const decided = recent.filter((c) => c.updatedAt && c.submittedAt);
+      out.claim_approval_days = decided.length
+        ? Math.round((decided.reduce((a, c) => a + (new Date(c.updatedAt) - new Date(c.submittedAt)), 0)
+          / decided.length) / 86400000 * 10) / 10 : null;
+      const cutoff = Date.now() - 60 * 86400000;
+      out.claim_ageing_60 = await ClaimM.countDocuments({
+        hospitalId, submittedAt: { $lte: new Date(cutoff) },
+        status: { $in: ['Submitted', 'Appealed'] },
+      }).catch(() => 0);
+    } else { out.claim_approval_days = null; out.claim_ageing_60 = null; }
+    if (AppointmentM) {
+      // New patient % = share of appointments that were the patient's first.
+      const apptRows = await AppointmentM.find({ hospitalId })
+        .select('patientId createdAt').limit(2000).lean().catch(() => []);
+      if (apptRows.length) {
+        const firstAt = new Map();
+        for (const a of apptRows) {
+          const k = String(a.patientId || '');
+          const t = new Date(a.createdAt || 0).getTime();
+          if (k && (!firstAt.has(k) || t < firstAt.get(k))) firstAt.set(k, t);
+        }
+        const isFirst = apptRows.filter((a) => {
+          const k = String(a.patientId || '');
+          return k && new Date(a.createdAt || 0).getTime() === firstAt.get(k);
+        }).length;
+        out.opd_new_patient_pct = pct(isFirst, apptRows.length);
+      } else out.opd_new_patient_pct = null;
+    } else out.opd_new_patient_pct = null;
+    if (Bed) {
+      const icuBeds = await Bed.countDocuments({ hospitalId, ward: { $in: ['ICU', 'NICU', 'PICU'] } }).catch(() => 0);
+      const icuOcc = await Bed.countDocuments({ hospitalId, ward: { $in: ['ICU', 'NICU', 'PICU'] }, status: 'Occupied' }).catch(() => 0);
+      out.icu_occupancy = pct(icuOcc, icuBeds);
+    } else out.icu_occupancy = null;
+    out.mortality_rate = pct(
+      await AdmissionM.countDocuments({ hospitalId, status: 'DOD' }).catch(() => 0),
+      Math.max(1, await AdmissionM.countDocuments({ hospitalId, status: { $in: ['Discharged', 'DOD'] } }).catch(() => 1)),
+    );
+    if (HaiM && HaiM.countDocuments) {
+      const monthAgo = new Date(Date.now() - 30 * 86400000);
+      const [hai, admits] = await Promise.all([
+        HaiM.countDocuments({ hospitalId, status: 'confirmed', onsetDate: { $gte: monthAgo } }).catch(() => 0),
+        AdmissionM.countDocuments({ hospitalId, createdAt: { $gte: monthAgo } }).catch(() => 0),
+      ]);
+      const patientDays = Math.max(1, admits * 4);
+      out.hai_rate = Math.round((hai / patientDays) * 1000 * 100) / 100;
+    } else out.hai_rate = null;
+    out.needlestick_reports = NeedleM
+      ? await NeedleM.countDocuments({ hospitalId, injuryDate: { $gte: new Date(Date.now() - 30 * 86400000) } }).catch(() => 0)
+      : null;
+    out.restricted_abx_pending = AbxM
+      ? await AbxM.countDocuments({ hospitalId, restricted: true, approvalStatus: 'pending' }).catch(() => 0)
+      : null;
+    out.dialysis_sessions_30d = DialysisM
+      ? await DialysisM.countDocuments({
+        hospitalId,
+        // DialysisSession.date is a YYYY-MM-DD string, not a Date.
+        date: { $gte: new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10) },
+      }).catch(() => 0)
+      : null;
     return res.json({ kpis: out });
   } catch (err) {
     logger.error(`KPI compute error: ${err.message}`);

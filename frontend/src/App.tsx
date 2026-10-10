@@ -125,7 +125,9 @@ const CallConsole = lazy(() => import('./pages/hospital/CallConsole'));
 const HubBoard = lazy(() => import('./pages/hospital/HubBoard'));
 const SafetyDesk = lazy(() => import('./pages/hospital/SafetyDesk'));
 const VitalsStation = lazy(() => import('./pages/hospital/VitalsStation'));
+const BedsideScan = lazy(() => import('./pages/hospital/BedsideScan'));
 const NotifyStudio = lazy(() => import('./pages/hospital/NotifyStudio'));
+const WebhookStudio = lazy(() => import('./pages/hospital/WebhookStudio'));
 const QualityBoard = lazy(() => import('./pages/hospital/QualityBoard'));
 const GlobalSearch = lazy(() => import('./components/GlobalSearch'));
 const HealthcarePage = lazy(() => import('./pages/HealthcarePage'));
@@ -969,7 +971,9 @@ const App = () => (
                     <Route path="/hospital/hub" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><HubBoard /></RoleRoute>} />
                     <Route path="/hospital/safety" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'receptionist', 'superadmin', 'quality_officer', 'pharmacovigilance_officer', 'infection_control_nurse', 'nursing_supervisor', 'matron', 'front_desk']}><SafetyDesk /></RoleRoute>} />
                     <Route path="/hospital/vitals" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'receptionist', 'superadmin', 'front_desk', 'ward_nurse', 'icu_nurse', 'ot_nurse']}><VitalsStation /></RoleRoute>} />
+                    <Route path="/hospital/bedside" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'superadmin']}><BedsideScan /></RoleRoute>} />
                     <Route path="/hospital/notify" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><NotifyStudio /></RoleRoute>} />
+                    <Route path="/hospital/webhooks" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><WebhookStudio /></RoleRoute>} />
                     <Route path="/hospital/quality" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'quality_officer', 'medical_director', 'cmo']}><QualityBoard /></RoleRoute>} />
 
                     {/* Patient routes */}

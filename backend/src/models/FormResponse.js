@@ -13,6 +13,9 @@ const formResponseSchema = new mongoose.Schema({
   patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
   values: { type: mongoose.Schema.Types.Mixed, default: {} },
   computed: { type: mongoose.Schema.Types.Mixed, default: {} },
+  // File 22 P1-20: scored templates (NEWS2/Morse/Braden) keep their band
+  // verdicts here so the alert doorway and the UI read the same numbers.
+  scores: { type: mongoose.Schema.Types.Mixed, default: {} },
   status: { type: String, enum: ['Draft', 'Signed', 'Amended'], default: 'Draft', index: true },
   signatures: [{
     role: { type: String, default: '' },

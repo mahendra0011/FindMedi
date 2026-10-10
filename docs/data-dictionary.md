@@ -13,8 +13,8 @@
 
 ## Summary
 
-- **302 models** across 297 files (0 skipped)
-- **6561 schema fields**, of which **729 classified as PII** in **214 collections**
+- **304 models** across 299 files (0 skipped)
+- **6593 schema fields**, of which **730 classified as PII** in **215 collections**
 - **6 collections** carry a TTL index
 - **103 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -31,7 +31,7 @@
 | Location | 23 |
 | Image/Biometric | 4 |
 | Device/Network | 7 |
-| Identifier | 184 |
+| Identifier | 185 |
 | Identity | 80 |
 
 ## Collections
@@ -47,6 +47,7 @@
 | `adrreports` | AdrReport | 13 | 1 | 2 | — | Clinical records |
 | `agentsessions` | AgentSession | 8 | 0 | 2 | — | No PII fields detected |
 | `aiinvocations` | AiInvocation | 13 | 0 | 3 | — | No PII fields detected |
+| `aireviews` | AiReview | 13 | 0 | 3 | — | No PII fields detected |
 | `aisafetyevents` | AiSafetyEvent | 12 | 1 | 2 | — | **UNMAPPED — see gaps** |
 | `ambulances` | Ambulance | 35 | 5 | 8 | — | Ride and SOS location traces |
 | `ambulancesetupcodes` | AmbulanceSetupCode | 9 | 2 | 3 | 0s | OTP / setup codes / tokens |
@@ -128,6 +129,7 @@
 | `doctorfees` | DoctorFee | 12 | 2 | 3 | — | **UNMAPPED — see gaps** |
 | `doctors` | Doctor | 117 | 11 | 15 | — | Provider KYC documents |
 | `donorscreenings` | DonorScreening | 17 | 3 | 2 | — | **UNMAPPED — see gaps** |
+| `doselogs` | DoseLog | 18 | 1 | 4 | — | Clinical records |
 | `emergencies` | Emergency | 21 | 7 | 3 | — | Ride and SOS location traces |
 | `emergencydoctorrequests` | EmergencyDoctorRequest | 75 | 21 | 6 | — | Ride and SOS location traces |
 | `emergencyrequests` | EmergencyRequest | 62 | 17 | 4 | — | Ride and SOS location traces |
@@ -144,7 +146,7 @@
 | `familymembers` | FamilyMember | 35 | 12 | 3 | — | Clinical records |
 | `featuredlistings` | FeaturedListing | 11 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `fertilitycycles` | FertilityCycle | 19 | 3 | 6 | — | **UNMAPPED — see gaps** |
-| `formresponses` | FormResponse | 19 | 3 | 6 | — | Clinical records |
+| `formresponses` | FormResponse | 20 | 3 | 6 | — | Clinical records |
 | `formtemplates` | FormTemplate | 38 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `grns` | GRN | 19 | 0 | 3 | — | Operational config (organization/catalog record — not personal data) |
 | `growthcharts` | GrowthChart | 17 | 3 | 0 | — | Clinical records |
@@ -779,6 +781,34 @@ Indexes:
 | `hospitalId:1` |  |
 | `feature:1` |  |
 | `hospitalId:1, feature:1` |  |
+
+### `aireviews` — AiReview
+
+source `AiReview.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `feature` | String | yes |  |  |  |  |  |
+| `sourceId` | String |  |  | "" |  |  |  |
+| `input` | Mixed |  |  | [function] |  |  |  |
+| `output` | Mixed |  |  | [function] |  |  |  |
+| `status` | String |  |  | "Pending" | Pending, Approved, Rejected, Edited |  |  |
+| `reviewerId` | ObjectId |  |  | null |  | User |  |
+| `reviewedAt` | Date |  |  | null |  |  |  |
+| `reviewerNote` | String |  |  | "" |  |  |  |
+| `by` | ObjectId |  |  | null |  | User |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `status:1` |  |
+| `hospitalId:1, status:1, createdAt:-1` |  |
 
 ### `aisafetyevents` — AiSafetyEvent
 
@@ -3845,6 +3875,40 @@ Indexes:
 | `hospitalId:1` |  |
 | `hospitalId:1, phone:1` |  |
 
+### `doselogs` — DoseLog
+
+source `DoseLog.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `orderId` | String |  |  | "" |  |  |  |
+| `studyUid` | String |  |  | "" |  |  |  |
+| `accessionNo` | String |  |  | "" |  |  |  |
+| `patientId` | ObjectId |  |  | null |  | User | Identifier |
+| `modality` | String |  |  | "" |  |  |  |
+| `bodyPart` | String |  |  | "" |  |  |  |
+| `dapGycm2` | Number |  |  | null |  |  |  |
+| `doseGy` | Number |  |  | null |  |  |  |
+| `dlpMgycm` | Number |  |  | null |  |  |  |
+| `exposureMs` | Number |  |  | null |  |  |  |
+| `ctvolCm3` | Number |  |  | null |  |  |  |
+| `deviceAe` | String |  |  | "" |  |  |  |
+| `operatorId` | ObjectId |  |  | null |  | User |  |
+| `at` | Date |  |  | [function] |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `orderId:1` |  |
+| `studyUid:1` |  |
+| `hospitalId:1, at:-1` |  |
+
 ### `emergencies` — Emergency
 
 source `Emergency.js` · timestamps: yes · virtuals: 0 · retention: Trip duration + 30 days (dispute window) (docs/privacy/RETENTION.md) · PII: Contact, Demographic, Health, Identifier, Identity
@@ -4611,6 +4675,7 @@ source `FormResponse.js` · timestamps: yes · virtuals: 0 · retention: Statuto
 | `patientId` | ObjectId |  |  |  |  | User | Identifier |
 | `values` | Mixed |  |  | [function] |  |  |  |
 | `computed` | Mixed |  |  | [function] |  |  |  |
+| `scores` | Mixed |  |  | [function] |  |  |  |
 | `status` | String |  |  | "Draft" | Draft, Signed, Amended |  |  |
 | `signatures` | Array<subdocument> |  |  |  |  |  |  |
 | `signatures.role` | String |  |  | "" |  |  |  |

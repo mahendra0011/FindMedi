@@ -1360,6 +1360,13 @@ export const api = {
   saveNotifyTemplate:     (body)    => request('/notify/templates', { method: 'POST', body: JSON.stringify(body) }),
   previewNotifyTemplate:  (id, values) => request(`/notify/templates/${id}/preview`, { method: 'POST', body: JSON.stringify({ values }) }),
 
+  // ── File 22 P1-26: webhook subscriptions + delivery log ──
+  webhookSubs:            (p={})    => request('/hub/webhooks/subs' + qs(p)),
+  createWebhookSub:       (body)    => request('/hub/webhooks/subs', { method: 'POST', body: JSON.stringify(body) }),
+  deleteWebhookSub:       (id)      => request(`/hub/webhooks/subs/${id}`, { method: 'DELETE' }),
+  webhookDeliveries:      (p={})    => request('/hub/webhooks/deliveries' + qs(p)),
+  retryWebhookDelivery:   (id)      => request(`/hub/webhooks/deliveries/${id}/retry`, { method: 'POST' }),
+
   // ── File 22 P2-30: quality ──
   nabhChapters:            ()        => request('/quality/chapters'),
   seedNabh:                ()        => request('/quality/chapters/seed', { method: 'POST' }),
