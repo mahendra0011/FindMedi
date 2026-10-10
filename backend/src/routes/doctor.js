@@ -521,6 +521,90 @@ router.post('/teleconsult/validate-prescription', doctorOnly, async (req, res) =
   }
 });
 
+const TELECONSULT_PROHIBITED_DRUGS = [
+  'Narcotics', 'Psychotropics', 'Schedule X', 'Benzodiazepines',
+  'Barbiturates', 'Amphetamines', 'Opioids', 'Cannabis',
+];
+
+function hasValidRmp(doctor) {
+  const regs = doctor?.registrations || {};
+  return Boolean(regs.councilNumber || regs.rmpNumber || regs.registrationNo);
+}
+
+function containsProhibitedDrug(medications) {
+  if (!Array.isArray(medications)) return [];
+  return medications.filter((m) => {
+    const name = String(m?.name || m?.drug || m || '').toLowerCase();
+    return TELECONSULT_PROHIBITED_DRUGS.some((p) => name.includes(p.toLowerCase()));
+  });
+}
+
+router.get('/teleconsult/compliance', doctorOnly, async (req, res) => {
+  try {
+    const { default: Doctor } = await import('../models/Doctor.js');
+    const doc = await Doctor.findById(req.user.doctorProfileId || req.user._id).lean();
+    const rmpValid = hasValidRmp(doc);
+    return res.json({
+      rmpValid,
+      rmpNumber: doc?.registrations?.councilNumber || doc?.registrations?.rmpNumber || '',
+      prohibitedDrugs: TELECONSULT_PROHIBITED_DRUGS,
+      canPrescribe: rmpValid,
+    });
+  } catch (err) {
+    logger.error(`Teleconsult compliance error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/teleconsult/consent', doctorOnly, async (req, res) => {
+  try {
+    const { default: TeleConsent } = await import('../models/TeleConsent.js');
+    const { patientId, appointmentId, mode } = req.body || {};
+    if (!patientId) return res.status(400).json({ message: 'patientId required' });
+    const consent = await TeleConsent.create({
+      patientId, appointmentId: appointmentId || null,
+      doctorId: req.user.doctorProfileId || req.user._id,
+      mode: mode || 'video', createdBy: req.user._id,
+      hospitalId: req.user.hospitalId || undefined,
+    });
+    await auditLog('teleconsult_consent', req.user._id, { consentId: consent._id, patientId, ip: req.ip });
+    return res.status(201).json({ id: String(consent._id), consentedAt: consent.consentedAt });
+  } catch (err) {
+    logger.error(`Teleconsult consent error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/teleconsult/consent/:appointmentId', doctorOnly, async (req, res) => {
+  try {
+    const { default: TeleConsent } = await import('../models/TeleConsent.js');
+    const consent = await TeleConsent.findOne({ appointmentId: req.params.appointmentId }).lean();
+    return res.json({ consent: consent || null });
+  } catch (err) {
+    logger.error(`Teleconsult consent lookup error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/teleconsult/validate-prescription', doctorOnly, async (req, res) => {
+  try {
+    const { default: Doctor } = await import('../models/Doctor.js');
+    const doc = await Doctor.findById(req.user.doctorProfileId || req.user._id).lean();
+    if (!hasValidRmp(doc)) {
+      return res.status(403).json({ message: 'Valid RMP registration required for teleconsult prescription', code: 'RMP_REQUIRED' });
+    }
+    const { medications } = req.body || {};
+    const prohibited = containsProhibitedDrug(medications);
+    if (prohibited.length > 0) {
+      return res.status(422).json({ message: 'Prohibited drugs cannot be prescribed via teleconsult', code: 'PROHIBITED_DRUG', drugs: prohibited });
+    }
+    return res.json({ valid: true });
+  } catch (err) {
+    logger.error(`Teleconsult prescription validation error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 // Tasks: discharge approvals waiting on me + unreviewed results + OT today.
 router.get('/tasks', doctorOnly, async (req, res) => {
   try {
