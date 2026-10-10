@@ -4,6 +4,7 @@ import { IndianRupee, Search, Download, Plus, X, Send, CreditCard, CheckCircle, 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { DataGrid } from '@/components/ui/System';
 import { useAuth } from '@/context/AuthContext';
 import { api, downloadInvoicePdf } from '@/lib/api';
 import { toast } from 'sonner';
@@ -169,7 +170,7 @@ export default function ClinicBilling() {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search patient or invoice..." className="pl-10" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search patient or invoice..." aria-label="Search invoices" className="pl-10" />
         </div>
         <div className="flex gap-2 flex-wrap">
           {STATUSES.map(s => (
@@ -187,54 +188,44 @@ export default function ClinicBilling() {
         </div>
       ) : (
         <div className="bg-card rounded-2xl border border-border/60 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border/60 bg-muted/30">
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Invoice</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Patient</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Service</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Date</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Due Date</th>
-                  <th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">Amount</th>
-                  <th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">Paid</th>
-                  <th className="text-center text-xs font-medium text-muted-foreground px-4 py-3">Status</th>
-                  <th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(bill => (
-                  <tr key={bill._id} className="border-b border-border/30 hover:bg-muted/30 group">
-                    <td className="px-4 py-3 text-sm font-mono text-primary">{bill.invoiceId || 'N/A'}</td>
-                    <td className="px-4 py-3 text-sm font-medium">{bill.patient}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground max-w-[180px] truncate">{bill.service}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{bill.date}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{bill.dueDate || '—'}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-right">₹{bill.amount?.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-success text-right">₹{bill.paid?.toLocaleString() || 0}</td>
-                    <td className="px-4 py-3 text-center">
-                      <Badge className={statusColors[bill.status] || 'bg-muted'}>{bill.status}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Download PDF" onClick={() => handleDownload(bill)}>
-                          <Download className="w-3.5 h-3.5" />
-                        </Button>
-                        {bill.status !== 'Paid' && (
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-success hover:text-success" title="Mark Paid" onClick={() => handleMarkPaid(bill)}>
-                            <CheckCircle className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive" title="Delete" onClick={() => handleDelete(bill._id)}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* Search + status chips above already narrowed this list. The `group`
+              row class keeps the action icons hover-revealed as before. */}
+          <DataGrid
+            columns={[
+              { key: 'invoiceId', label: 'Invoice', render: (v) => <span className="text-sm font-mono text-primary">{v || 'N/A'}</span> },
+              { key: 'patient', label: 'Patient', render: (v) => <span className="text-sm font-medium">{v}</span> },
+              { key: 'service', label: 'Service', render: (v) => <span className="text-sm text-muted-foreground max-w-[180px] truncate block">{v}</span> },
+              { key: 'date', label: 'Date', render: (v) => <span className="text-sm text-muted-foreground">{v}</span> },
+              { key: 'dueDate', label: 'Due Date', render: (v) => <span className="text-sm text-muted-foreground">{v || '—'}</span> },
+              { key: 'amount', label: 'Amount', render: (v) => <span className="text-sm font-semibold">₹{v?.toLocaleString()}</span> },
+              { key: 'paid', label: 'Paid', render: (v) => <span className="text-sm font-semibold text-success">₹{v?.toLocaleString() || 0}</span> },
+              { key: 'status', label: 'Status', render: (v) => <Badge className={statusColors[v] || 'bg-muted'}>{v}</Badge> },
+              {
+                key: '_actions', label: 'Action', sortable: false,
+                render: (_v, bill) => (
+                  <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Download PDF" aria-label={`Download invoice ${bill.invoiceId || ''}`} onClick={() => handleDownload(bill)}>
+                      <Download className="w-3.5 h-3.5" />
+                    </Button>
+                    {bill.status !== 'Paid' && (
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-success hover:text-success" title="Mark Paid" aria-label={`Mark invoice ${bill.invoiceId || ''} paid`} onClick={() => handleMarkPaid(bill)}>
+                        <CheckCircle className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive" title="Delete" aria-label={`Delete invoice ${bill.invoiceId || ''}`} onClick={() => handleDelete(bill._id)}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ),
+              },
+            ]}
+            rows={filtered}
+            rowKey="_id"
+            empty="No invoices yet"
+            showSearch={false}
+            manualPagination
+            rowClassName={() => 'group'}
+          />
         </div>
       )}
 
