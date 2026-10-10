@@ -237,5 +237,153 @@ export class CashfreeGateway {
 export function gatewayFor(name) {
   if (name === 'razorpay') return new RazorpayGateway();
   if (name === 'cashfree') return new CashfreeGateway();
+  if (name === 'payu') return new PayUGateway();
+  if (name === 'phonepe') return new PhonePeGateway();
   return new MockGateway();
+}
+
+/** File 22 P0-left: PayU adapter (hash-based checkout API). */
+export class PayUGateway {
+  name = 'payu';
+  constructor(merchantKey, merchantSalt) {
+    this.merchantKey = merchantKey || process.env.PAYU_MERCHANT_KEY || '';
+    this.merchantSalt = merchantSalt || process.env.PAYU_MERCHANT_SALT || '';
+    this.env = process.env.PAYU_ENV || 'test';
+  }
+
+  baseUrl() {
+    return this.env === 'production' ? 'https://secure.payu.in' : 'https://test.payu.in';
+  }
+
+  requireConfigured() {
+    if (!this.merchantKey || !this.merchantSalt) {
+      const err = new Error('PayU credentials not configured (PAYU_MERCHANT_KEY/PAYU_MERCHANT_SALT)');
+      err.code = 'GATEWAY_NOT_CONFIGURED';
+      throw err;
+    }
+  }
+
+  sign(params) {
+    const fields = ['txnid', 'amount', 'productinfo', 'firstname', 'email', 'udf1'];
+    const s = fields.map((f) => params[f] || '').join('|') + '|' + this.merchantSalt;
+    return nodeCrypto.createHash('sha512').update(s).digest('hex');
+  }
+
+  async createPaymentLink({ amount, description, customer }) {
+    this.requireConfigured();
+    const txnid = `payu_${Date.now()}`;
+    const params = {
+      key: this.merchantKey, txnid, amount: String(amount), productinfo: description || 'Payment',
+      firstname: customer?.name || 'Customer', email: customer?.email || 'test@test.com',
+      phone: customer?.phone || '', surl: process.env.PAYU_SUCCESS_URL || '/', furl: process.env.PAYU_FAIL_URL || '/',
+      udf1: '',
+    };
+    const hash = this.sign(params);
+    return { url: `${this.baseUrl()}/_payment`, params: { ...params, hash }, gateway: 'payu' };
+  }
+
+  async createOrder({ amount, currency = 'INR', receipt, customer }) {
+    this.requireConfigured();
+    const txnid = String(receipt || `payu_${Date.now()}`);
+    const params = {
+      key: this.merchantKey, txnid, amount: String(amount), productinfo: 'Order',
+      firstname: customer?.name || 'Customer', email: customer?.email || '', phone: customer?.phone || '',
+      surl: '/', furl: '/', udf1: '',
+    };
+    return { gatewayOrderId: txnid, amount: Number(amount), currency, status: 'created', hash: this.sign(params), params };
+  }
+
+  verifyWebhookSignature(rawBody, signature) {
+    if (!this.merchantSalt || !signature) return false;
+    const expected = nodeCrypto.createHmac('sha512', this.merchantSalt).update(rawBody).digest('hex');
+    const a = Buffer.from(expected);
+    const b = Buffer.from(String(signature));
+    if (a.length !== b.length) return false;
+    return nodeCrypto.timingSafeEqual(a, b);
+  }
+
+  normalizeEvent(payload = {}) {
+    return {
+      event: payload.status === 'success' ? 'payment.captured' : payload.status || 'unknown',
+      gatewayOrderId: payload.txnid || '',
+      gatewayPaymentId: payload.payuMoneyId || '',
+      amount: Number(payload.amount) || 0,
+    };
+  }
+}
+
+/** File 22 P0-left: PhonePe adapter (PG REST API). */
+export class PhonePeGateway {
+  name = 'phonepe';
+  constructor(merchantId, saltKey, saltIndex) {
+    this.merchantId = merchantId || process.env.PHONEPE_MERCHANT_ID || '';
+    this.saltKey = saltKey || process.env.PHONEPE_SALT_KEY || '';
+    this.saltIndex = saltIndex || process.env.PHONEPE_SALT_INDEX || '1';
+    this.env = process.env.PHONEPE_ENV || 'test';
+  }
+
+  baseUrl() {
+    return this.env === 'production' ? 'https://api.phonepe.com/apis/pg' : 'https://api-preprod.phonepe.com/apis/pg';
+  }
+
+  requireConfigured() {
+    if (!this.merchantId || !this.saltKey) {
+      const err = new Error('PhonePe credentials not configured (PHONEPE_MERCHANT_ID/PHONEPE_SALT_KEY)');
+      err.code = 'GATEWAY_NOT_CONFIGURED';
+      throw err;
+    }
+  }
+
+  headers(payloadB64) {
+    const string = `${payloadB64}/pg/v1/pay${this.saltKey}`;
+    const xVerify = nodeCrypto.createHash('sha256').update(string).digest('hex') + '###' + this.saltIndex;
+    return { 'Content-Type': 'application/json', 'X-VERIFY': xVerify, 'X-MERCHANT-ID': this.merchantId };
+  }
+
+  async createPaymentLink({ amount, description, customer }) {
+    this.requireConfigured();
+    const merchantTransactionId = `pp_${Date.now()}`;
+    const payload = {
+      merchantId: this.merchantId, merchantTransactionId, amount: Math.round(amount * 100),
+      merchantUserId: customer?.id || `u_${Date.now()}`,
+      redirectUrl: process.env.PHONEPE_REDIRECT_URL || '/',
+      redirectMode: 'POST', paymentInstrument: { type: 'PAY_PAGE' },
+    };
+    const b64 = Buffer.from(JSON.stringify(payload)).toString('base64');
+    const resp = await fetch(`${this.baseUrl()}/checkout/v2/pay`, {
+      method: 'POST', headers: this.headers(b64), body: JSON.stringify({ request: b64 }),
+    });
+    const o = await resp.json();
+    if (o.success === false) {
+      const err = new Error(`PhonePe pay failed: ${o.message || o.code}`);
+      err.code = 'GATEWAY_ERROR';
+      throw err;
+    }
+    return { url: o.data?.instrumentResponse?.redirectInfo?.url || '', gateway: 'phonepe', merchantTransactionId };
+  }
+
+  async createOrder({ amount, currency = 'INR', receipt, customer }) {
+    return this.createPaymentLink({ amount, description: receipt, customer });
+  }
+
+  verifyWebhookSignature(rawBody, signature) {
+    if (!this.saltKey || !signature) return false;
+    const [sha256, idx] = String(signature).split('###');
+    const string = Buffer.from(rawBody).toString('base64') + this.saltKey;
+    const expected = nodeCrypto.createHash('sha256').update(string).digest('hex');
+    const a = Buffer.from(sha256);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length) return false;
+    return nodeCrypto.timingSafeEqual(a, b);
+  }
+
+  normalizeEvent(payload = {}) {
+    const d = payload.data || {};
+    return {
+      event: d.code === 'PAYMENT_SUCCESS' ? 'payment.captured' : payload.event || 'unknown',
+      gatewayOrderId: d.merchantTransactionId || '',
+      gatewayPaymentId: d.transactionId || '',
+      amount: (Number(d.amount) || 0) / 100,
+    };
+  }
 }

@@ -153,12 +153,18 @@ router.put('/claims/:id/settle', tpaOnly, requireObjectId, async (req, res) => {
   }
 });
 
-// Pipeline funnel (counts by status) for the dashboard insurance widget.
+// Pipeline funnel (counts + amounts by status) for the dashboard insurance widget.
 router.get('/pipeline', authorize('billing:read'), async (req, res) => {
   try {
     const [pre, claims] = await Promise.all([
-      PreAuthRequest.aggregate([{ $match: tenantFilter(req) }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
-      Claim.aggregate([{ $match: tenantFilter(req) }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
+      PreAuthRequest.aggregate([
+        { $match: tenantFilter(req) },
+        { $group: { _id: '$status', count: { $sum: 1 }, amount: { $sum: { $ifNull: ['$amount', 0] } } } },
+      ]),
+      Claim.aggregate([
+        { $match: tenantFilter(req) },
+        { $group: { _id: '$status', count: { $sum: 1 }, amount: { $sum: { $ifNull: ['$claimedAmount', '$amount', 0] } } } },
+      ]),
     ]);
     return res.json({ preauth: pre, claims });
   } catch (err) {

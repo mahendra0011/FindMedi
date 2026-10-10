@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, BedDouble, Users, Wallet, CheckCircle, TrendingUp, TrendingDown, ListVideo, EyeOff } from 'lucide-react';
+import { AlertTriangle, BedDouble, Users, Wallet, CheckCircle, TrendingUp, TrendingDown, ListVideo, EyeOff, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -250,7 +250,7 @@ export default function HospitalDashboardV2() {
 
         {/* Staff + TPA */}
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="w-4 h-4" />Staff & TPA</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="w-4 h-4" />Staff</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>On leave today: <b>{staff?.onLeave ?? (errors.staff || '—')}</b></p>
             <div className="flex flex-wrap gap-1.5">
@@ -258,8 +258,27 @@ export default function HospitalDashboardV2() {
                 <span key={i} className="text-[11px] bg-muted px-2 py-0.5 rounded-md">{r._id}: {r.count}</span>
               ))}
             </div>
-            <p className="pt-1">Pre-auth: {(tpa?.preauth || []).map((p: any) => `${p._id}(${p.count})`).join(' · ') || '—'}</p>
-            <p>Claims: {(tpa?.claims || []).map((p: any) => `${p._id}(${p.count})`).join(' · ') || '—'}</p>
+          </CardContent>
+        </Card>
+
+        {/* File 22 P0-left: insurance pipeline funnel */}
+        <Card>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Shield className="w-4 h-4" />Insurance pipeline</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">Pre-auth</p>
+            <div className="flex flex-wrap gap-1.5">
+              {(tpa?.preauth || []).map((p: any, i: number) => (
+                <span key={i} className="text-[11px] bg-muted px-2 py-0.5 rounded-md">{p._id}: {p.count} ({inr(p.amount || 0)})</span>
+              ))}
+              {!(tpa?.preauth || []).length && <span className="text-xs text-muted-foreground">No pre-auths</span>}
+            </div>
+            <p className="text-xs font-semibold uppercase text-muted-foreground pt-1">Claims</p>
+            <div className="flex flex-wrap gap-1.5">
+              {(tpa?.claims || []).map((c: any, i: number) => (
+                <span key={i} className="text-[11px] bg-muted px-2 py-0.5 rounded-md">{c._id}: {c.count} ({inr(c.amount || 0)})</span>
+              ))}
+              {!(tpa?.claims || []).length && <span className="text-xs text-muted-foreground">No claims</span>}
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -59,6 +59,13 @@ router.post('/generate', protect, tokenDeskOnly, validate(createTokenSchema), as
       return res.status(400).json({ message: 'Patient and department required' });
     }
 
+    // File 22 P0-left: blacklisted/deceased patients cannot get tokens.
+    try {
+      const { patientHardStop } = await import('./masters.js');
+      const stop = await patientHardStop(req.user.hospitalId, patientId);
+      if (stop) return res.status(409).json({ message: `Token blocked: patient is ${stop}`, code: 'PATIENT_HARD_STOP' });
+    } catch { /* flag lookup must never break token generation on infra errors */ }
+
     // Check for existing waiting token for same patient
     const existingToken = await Token.findOne({ patientId, status: { $in: ['Waiting', 'Called', 'In Consultation'] } });
     if (existingToken) {
@@ -188,6 +195,20 @@ router.put('/:id/start-consultation', protect, tokenDeskOnly, async (req, res) =
     token.status = 'In Consultation';
     token.consultationStartTime = new Date();
     await token.save();
+    // File 22 P0-left: visit start opens the OPD Encounter (idempotent).
+    if (token.patientId && !token.encounterId) {
+      try {
+        const { ensureEncounter } = await import('../lib/encounter.js');
+        const enc = await ensureEncounter({
+          hospitalId: token.hospitalId, patientId: token.patientId, type: 'OPD',
+          createdBy: req.user._id ?? req.user.id,
+        });
+        token.encounterId = enc._id;
+        await token.save();
+      } catch (e) {
+        logger.warn(`token encounter auto-create failed: ${e.message}`);
+      }
+    }
     void emitQueueUpdate(token);
     res.json(token);
   } catch (err) { res.status(400).json({ message: err.message }); }

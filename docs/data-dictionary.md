@@ -13,8 +13,8 @@
 
 ## Summary
 
-- **296 models** across 295 files (0 skipped)
-- **6441 schema fields**, of which **722 classified as PII** in **209 collections**
+- **302 models** across 297 files (0 skipped)
+- **6561 schema fields**, of which **729 classified as PII** in **214 collections**
 - **6 collections** carry a TTL index
 - **103 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -26,12 +26,12 @@
 | Government ID | 1 |
 | Contact | 33 |
 | Financial | 13 |
-| Health | 30 |
+| Health | 31 |
 | Demographic | 15 |
 | Location | 23 |
 | Image/Biometric | 4 |
 | Device/Network | 7 |
-| Identifier | 179 |
+| Identifier | 184 |
 | Identity | 80 |
 
 ## Collections
@@ -52,11 +52,12 @@
 | `ambulancesetupcodes` | AmbulanceSetupCode | 9 | 2 | 3 | 0s | OTP / setup codes / tokens |
 | `announcements` | Announcement | 9 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `antenatalrecords` | AntenatalRecord | 28 | 3 | 4 | — | Clinical records |
+| `antibioticreviews` | AntibioticReview | 18 | 1 | 3 | — | Clinical records |
 | `apikeys` | ApiKey | 13 | 2 | 5 | — | **UNMAPPED — see gaps** |
 | `appointments` | Appointment | 86 | 11 | 14 | — | Clinical records |
 | `appointmentseries` | AppointmentSeries | 24 | 4 | 3 | — | **UNMAPPED — see gaps** |
 | `approvalpolicies` | ApprovalPolicy | 14 | 1 | 3 | — | **UNMAPPED — see gaps** |
-| `approvalrequests` | ApprovalRequest | 23 | 0 | 2 | — | No PII fields detected |
+| `approvalrequests` | ApprovalRequest | 25 | 0 | 2 | — | No PII fields detected |
 | `assetmaintenances` | AssetMaintenance | 14 | 1 | 5 | — | **UNMAPPED — see gaps** |
 | `assetunits` | AssetUnit | 24 | 2 | 7 | — | **UNMAPPED — see gaps** |
 | `assistantbookings` | AssistantBooking | 82 | 15 | 11 | — | Clinical records |
@@ -81,6 +82,7 @@
 | `cashcounters` | CashCounter | 8 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `cashshifts` | CashShift | 15 | 0 | 4 | — | No PII fields detected |
 | `categories` | Category | 23 | 0 | 3 | — | Operational config (organization/catalog record — not personal data) |
+| `cathlabrecords` | CathLabRecord | 19 | 1 | 3 | — | Clinical records |
 | `chargeitems` | ChargeItem | 23 | 1 | 8 | — | Clinical records |
 | `chatconversations` | ChatConversation | 37 | 4 | 4 | — | **UNMAPPED — see gaps** |
 | `chatmessages` | ChatMessage | 33 | 3 | 4 | 0s | **UNMAPPED — see gaps** |
@@ -130,6 +132,7 @@
 | `emergencydoctorrequests` | EmergencyDoctorRequest | 75 | 21 | 6 | — | Ride and SOS location traces |
 | `emergencyrequests` | EmergencyRequest | 62 | 17 | 4 | — | Ride and SOS location traces |
 | `encounters` | Encounter | 24 | 2 | 8 | — | Clinical records |
+| `endoscopyrecords` | EndoscopyRecord | 19 | 1 | 3 | — | Clinical records |
 | `enquiries` | Enquiry | 13 | 3 | 4 | — | **UNMAPPED — see gaps** |
 | `equipment` | Equipment | 22 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `eventregistrations` | EventRegistration | 17 | 2 | 5 | — | **UNMAPPED — see gaps** |
@@ -145,6 +148,7 @@
 | `formtemplates` | FormTemplate | 38 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `grns` | GRN | 19 | 0 | 3 | — | Operational config (organization/catalog record — not personal data) |
 | `growthcharts` | GrowthChart | 17 | 3 | 0 | — | Clinical records |
+| `haievents` | HaiEvent | 15 | 1 | 3 | — | Clinical records |
 | `healthpackages` | HealthPackage | 17 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `hospitals` | Hospital | 52 | 0 | 6 | — | Operational config (organization/catalog record — not personal data) |
 | `housekeepings` | Housekeeping | 15 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
@@ -193,7 +197,9 @@
 | `mtpregisters` | MtpRegister | 12 | 3 | 1 | — | **UNMAPPED — see gaps** |
 | `nabhassessments` | NabhAssessment | 10 | 0 | 3 | — | No PII fields detected |
 | `nabhchapters` | NabhChapter | 9 | 0 | 1 | — | No PII fields detected |
+| `needlesticks` | NeedleStick | 20 | 0 | 2 | — | No PII fields detected |
 | `newbornscreenings` | NewbornScreening | 16 | 3 | 1 | — | Clinical records |
+| `nicurecords` | NicuRecord | 26 | 3 | 3 | — | Clinical records |
 | `notificationaudits` | NotificationAudit | 11 | 1 | 6 | — | Audit logs |
 | `notificationdeliveries` | NotificationDelivery | 19 | 1 | 6 | — | Notifications |
 | `notificationpreferences` | NotificationPreference | 15 | 2 | 1 | — | **UNMAPPED — see gaps** |
@@ -308,7 +314,7 @@
 | `tenantgrants` | TenantGrant | 20 | 0 | 6 | — | No PII fields detected |
 | `territories` | Territory | 11 | 1 | 2 | — | **UNMAPPED — see gaps** |
 | `tests` | Test | 45 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
-| `tokens` | Token | 24 | 4 | 3 | — | OTP / setup codes / tokens |
+| `tokens` | Token | 25 | 4 | 3 | — | OTP / setup codes / tokens |
 | `transactionledgers` | TransactionLedger | 20 | 4 | 9 | — | Payment and ledger entries |
 | `triages` | Triage | 46 | 16 | 2 | — | Clinical records |
 | `users` | User | 103 | 27 | 18 | — | **UNMAPPED — see gaps** |
@@ -945,6 +951,39 @@ Indexes:
 | `status:1` |  |
 | `patientId:1, status:1` |  |
 
+### `antibioticreviews` — AntibioticReview
+
+source `InfectionControl.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `patientId` | ObjectId |  |  |  |  | Patient | Identifier |
+| `encounterId` | ObjectId |  |  |  |  | Encounter |  |
+| `drug` | String | yes |  |  |  |  |  |
+| `indication` | String |  |  | "" |  |  |  |
+| `route` | String |  |  | "iv" | iv, im, po, topical, other |  |  |
+| `startDate` | Date | yes |  |  |  |  |  |
+| `plannedDays` | Number |  |  | 7 |  |  |  |
+| `actualEndDate` | Date |  |  |  |  |  |  |
+| `restricted` | Boolean |  |  | false |  |  |  |
+| `approvalStatus` | String |  |  | "auto" | auto, pending, approved, restricted-denied |  |  |
+| `reviewedBy` | ObjectId |  |  |  |  | User |  |
+| `deescalated` | Boolean |  |  | false |  |  |  |
+| `cultureSensitive` | Boolean |  |  |  |  |  |  |
+| `notes` | String |  |  |  |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `patientId:1` |  |
+| `hospitalId:1, approvalStatus:1` |  |
+
 ### `apikeys` — ApiKey
 
 source `ApiKey.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Identifier, Identity
@@ -1181,6 +1220,8 @@ source `ApprovalRequest.js` · timestamps: yes · virtuals: 0 · retention: n/a 
 | `consumedAt` | Date |  |  | null |  |  |  |
 | `consumedBy` | ObjectId |  |  | null |  | User |  |
 | `consumedFor` | String |  |  | "" |  |  |  |
+| `escalatedAt` | Date |  |  | null |  |  |  |
+| `escalationLevel` | Number |  |  | 0 |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -2143,6 +2184,40 @@ Indexes:
 | `type:1, code:1` | unique, partial |
 | `type:1, parent:1, name:1` |  |
 | `name:text, aliases:text` |  |
+
+### `cathlabrecords` — CathLabRecord
+
+source `ProcedureSuite.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `patientId` | ObjectId | yes |  |  |  | Patient | Identifier |
+| `encounterId` | ObjectId |  |  |  |  | Encounter |  |
+| `procedureType` | String | yes |  |  |  |  |  |
+| `accessSite` | String |  |  | "radial" | radial, femoral, brachial |  |  |
+| `vessel` | String |  |  | "" |  |  |  |
+| `contrastUsedMl` | Number |  |  |  |  |  |  |
+| `radiationDoseDap` | Number |  |  |  |  |  |  |
+| `fluoroscopyTimeMin` | Number |  |  |  |  |  |  |
+| `complications` | String |  |  | "" |  |  |  |
+| `kirsIncluded` | Boolean |  |  | false |  |  |  |
+| `procedureStatus` | String |  |  | "planned" | planned, in-progress, completed, aborted |  |  |
+| `scheduledAt` | Date |  |  |  |  |  |  |
+| `completedAt` | Date |  |  |  |  |  |  |
+| `performedBy` | ObjectId |  |  |  |  | User |  |
+| `notes` | String |  |  |  |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `patientId:1` |  |
+| `hospitalId:1, procedureStatus:1` |  |
 
 ### `chargeitems` — ChargeItem
 
@@ -4021,6 +4096,40 @@ Indexes:
 | `hospitalId:1, status:1` |  |
 | `patientId:1, createdAt:-1` |  |
 
+### `endoscopyrecords` — EndoscopyRecord
+
+source `ProcedureSuite.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `patientId` | ObjectId | yes |  |  |  | Patient | Identifier |
+| `encounterId` | ObjectId |  |  |  |  | Encounter |  |
+| `procedureType` | String | yes |  |  |  |  |  |
+| `indication` | String |  |  |  |  |  |  |
+| `sedation` | String |  |  | "conscious" | none, conscious, general |  |  |
+| `findings` | String |  |  |  |  |  |  |
+| `biopsiesTaken` | Boolean |  |  | false |  |  |  |
+| `polypsRemoved` | Boolean |  |  | false |  |  |  |
+| `therapeuticIntervention` | String |  |  |  |  |  |  |
+| `adverseEvent` | String |  |  |  |  |  |  |
+| `procedureStatus` | String |  |  | "planned" | planned, in-progress, completed, aborted |  |  |
+| `scheduledAt` | Date |  |  |  |  |  |  |
+| `completedAt` | Date |  |  |  |  |  |  |
+| `performedBy` | ObjectId |  |  |  |  | User |  |
+| `notes` | String |  |  |  |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `patientId:1` |  |
+| `hospitalId:1, procedureStatus:1` |  |
+
 ### `enquiries` — Enquiry
 
 source `Enquiry.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Contact, Identifier, Identity
@@ -4639,6 +4748,36 @@ source `GrowthChart.js` · timestamps: yes · virtuals: 0 · retention: Statutor
 | `__v` | Number |  |  |  |  |  |  |
 
 _No indexes beyond the default `_id`._
+
+### `haievents` — HaiEvent
+
+source `InfectionControl.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `patientId` | ObjectId |  |  |  |  | Patient | Identifier |
+| `encounterId` | ObjectId |  |  |  |  | Encounter |  |
+| `infectionType` | String | yes |  |  |  |  |  |
+| `site` | String |  |  | "" |  |  |  |
+| `suspectedSource` | String |  |  | "" |  |  |  |
+| `onsetDate` | Date | yes |  |  |  |  |  |
+| `detectedVia` | String |  |  | "clinical" | culture, clinical, surveillance, report |  |  |
+| `status` | String |  |  | "suspected" | suspected, confirmed, ruled-out, reported |  |  |
+| `severity` | String |  |  | "moderate" | mild, moderate, severe, fatal |  |  |
+| `reportedBy` | ObjectId |  |  |  |  | User |  |
+| `notes` | String |  |  |  |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `patientId:1` |  |
+| `hospitalId:1, status:1, onsetDate:-1` |  |
 
 ### `healthpackages` — HealthPackage
 
@@ -6507,6 +6646,40 @@ Indexes:
 |---|---|
 | `code:1` | unique |
 
+### `needlesticks` — NeedleStick
+
+source `InfectionControl.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `staffId` | ObjectId | yes |  |  |  | Staff |  |
+| `injuryDate` | Date | yes |  |  |  |  |  |
+| `deviceType` | String |  |  | "" |  |  |  |
+| `bodySite` | String |  |  | "" |  |  |  |
+| `sourcePatientId` | ObjectId |  |  |  |  | Patient |  |
+| `sourceHivPositive` | Boolean |  |  | false |  |  |  |
+| `sourceHcvPositive` | Boolean |  |  | false |  |  |  |
+| `sourceHbsagPositive` | Boolean |  |  | false |  |  |  |
+| `pepStarted` | Boolean |  |  | false |  |  |  |
+| `pepStartDate` | Date |  |  |  |  |  |  |
+| `pepRegimen` | String |  |  | "" |  |  |  |
+| `baselineSerology` | String |  |  | "" |  |  |  |
+| `followUpSerology` | String |  |  | "" |  |  |  |
+| `outcome` | String |  |  | "pending" | pending, recovered, seroconverted, lost-to-followup |  |  |
+| `reportedTo` | ObjectId |  |  |  |  | User |  |
+| `notes` | String |  |  |  |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `hospitalId:1, outcome:1` |  |
+
 ### `newbornscreenings` — NewbornScreening
 
 source `NewbornScreening.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Identifier, Identity
@@ -6535,6 +6708,47 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `patientId:1, status:1` |  |
+
+### `nicurecords` — NicuRecord
+
+source `ProcedureSuite.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Health, Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `patientId` | ObjectId | yes |  |  |  | Patient | Identifier |
+| `encounterId` | ObjectId |  |  |  |  | Encounter |  |
+| `admissionId` | ObjectId |  |  |  |  | Admission |  |
+| `gestationalAgeWeeks` | Number |  |  |  |  |  |  |
+| `birthWeightG` | Number |  |  |  |  |  |  |
+| `admissionWeightG` | Number |  |  |  |  |  |  |
+| `currentWeightG` | Number |  |  |  |  |  |  |
+| `temperatureC` | Number |  |  |  |  |  |  |
+| `heartRate` | Number |  |  |  |  |  | Health |
+| `respiratoryRate` | Number |  |  |  |  |  |  |
+| `spo2` | Number |  |  |  |  |  | Health |
+| `fio2` | Number |  |  |  |  |  |  |
+| `bloodGlucoseMgDl` | Number |  |  |  |  |  |  |
+| `feedingType` | String |  |  | "breast" | breast, formula, tpn, nil |  |  |
+| `apneaEpisodes` | Number |  |  | 0 |  |  |  |
+| `jaundice` | Boolean |  |  | false |  |  |  |
+| `sepsisScreen` | String |  |  | "pending" | pending, negative, positive |  |  |
+| `antibioticsStarted` | Boolean |  |  | false |  |  |  |
+| `isolation` | Boolean |  |  | false |  |  |  |
+| `observedBy` | ObjectId |  |  |  |  | User |  |
+| `observedAt` | Date |  |  | [function] |  |  |  |
+| `notes` | String |  |  |  |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `patientId:1` |  |
+| `hospitalId:1, observedAt:-1` |  |
 
 ### `notificationaudits` — NotificationAudit
 
@@ -10654,6 +10868,7 @@ source `Token.js` · timestamps: yes · virtuals: 0 · retention: 15–60 minute
 | `doctorName` | String |  |  |  |  |  | Identity |
 | `department` | String | yes |  |  |  |  |  |
 | `appointmentId` | ObjectId |  |  |  |  | Appointment |  |
+| `encounterId` | ObjectId |  |  | null |  | Encounter |  |
 | `type` | String |  |  | "OPD" | OPD, IPD, Emergency, Lab, Pharmacy, Radiology |  |  |
 | `priority` | String |  |  | "Normal" | Normal, Urgent, Emergency |  |  |
 | `status` | String |  |  | "Waiting" | Waiting, Called, In Consultation, Completed, Skipped, Cancelled, NoShow |  |  |

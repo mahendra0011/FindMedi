@@ -22,6 +22,10 @@ const approvalRequestSchema = new mongoose.Schema({
   consumedAt: { type: Date, default: null },
   consumedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   consumedFor: { type: String, default: '' },
+  // File 22 P0-left: SLA escalation — pending requests past 75% of dueAt
+  // escalate to the next tier (hospital_admin) so they don't silently expire.
+  escalatedAt: { type: Date, default: null },
+  escalationLevel: { type: Number, default: 0 },
 }, { timestamps: true });
 
 export default mongoose.models.ApprovalRequest || mongoose.model('ApprovalRequest', approvalRequestSchema);

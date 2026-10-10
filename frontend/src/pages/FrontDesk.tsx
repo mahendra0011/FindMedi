@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 import PatientBanner from '@/components/clinical/PatientBanner';
 
 /**
@@ -22,6 +23,9 @@ export default function FrontDesk() {
   const [dups, setDups] = useState<any[]>([]);
   const [abha, setAbha] = useState('');
   const [visitor, setVisitor] = useState({ visitorName: '', phone: '', relation: '' });
+  // File 22 P0-left: check-in + bill collection.
+  const [checkInDept, setCheckInDept] = useState('');
+  const [selectedBillId, setSelectedBillId] = useState('');
 
   const loadEnquiries = async () => {
     try {
@@ -70,6 +74,31 @@ export default function FrontDesk() {
           ))}
           {/* File 22 P0-2: flag chips for the selected patient */}
           {selectedId && <PatientBanner patientId={selectedId} />}
+          {/* File 22 P0-left: quick check-in (token) + bill collection for the selected patient */}
+          {selectedId ? (
+            <div className="flex flex-wrap gap-2 rounded-lg border border-border/50 p-2.5">
+              <Input className="w-44 h-8 text-xs" placeholder="Department (e.g. General Medicine)" value={checkInDept} onChange={(e) => setCheckInDept(e.target.value)} />
+              <Button size="sm" onClick={async () => {
+                try {
+                  const sel = rows.find((p: any) => (p._id || p.id) === selectedId);
+                  await api.post('/tokens/generate', {
+                    patientId: sel?.userId || sel?._id, patientName: sel?.name,
+                    uhid: sel?.uhid, department: checkInDept || 'General',
+                  });
+                  setCheckInDept('');
+                  toast.success('Token generated');
+                } catch (err: any) { toast.error(err?.response?.data?.message || 'Token failed'); }
+              }}>Check in</Button>
+              <Button size="sm" variant="outline" onClick={async () => {
+                try {
+                  const r: any = await api.getBills({ patientId: selectedId, status: 'Unpaid', limit: 1 });
+                  const bill = (r?.data || r?.bills || [])[0];
+                  if (bill) { setSelectedBillId(bill._id); toast.info(`Bill ${bill.invoiceId} — balance ₹${bill.balance ?? bill.amount}`); }
+                  else toast.success('No unpaid bills');
+                } catch { toast.error('Billing lookup failed'); }
+              }}>Collect bill</Button>
+            </div>
+          ) : null}
           {/* File 22 P1-12: ABHA link + visitor pass for the selected patient */}
           {selectedId ? (
             <div className="flex flex-wrap gap-2 rounded-lg border border-border/50 p-2.5">

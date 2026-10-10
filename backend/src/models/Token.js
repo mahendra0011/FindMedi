@@ -9,6 +9,8 @@ const tokenSchema = new mongoose.Schema({
   doctorName: { type: String },
   department: { type: String, required: true },
   appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment' },
+  // File 22 P0-left: OPD encounter link (auto-created on consultation start).
+  encounterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Encounter', default: null },
   type: { type: String, enum: ['OPD', 'IPD', 'Emergency', 'Lab', 'Pharmacy', 'Radiology'], default: 'OPD' },
   priority: { type: String, enum: ['Normal', 'Urgent', 'Emergency'], default: 'Normal' },
   status: { type: String, enum: ['Waiting', 'Called', 'In Consultation', 'Completed', 'Skipped', 'Cancelled', 'NoShow'], default: 'Waiting' },

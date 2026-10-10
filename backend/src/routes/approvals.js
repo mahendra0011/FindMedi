@@ -181,11 +181,29 @@ router.post('/delegations', authorize('staff:manage'), async (req, res) => {
 
 router.post('/sweep', authorize('staff:manage'), async (req, res) => {
   try {
-    const out = await ApprovalRequest.updateMany(
-      { ...tenantFilter(req), status: 'pending', dueAt: { $lte: new Date() } },
+    // File 22 P0-left: SLA escalation — pending requests past 75% of their
+    // SLA window escalate to hospital_admin (one level only) instead of
+    // silently expiring. The sweep does both: escalate then expire.
+    const now = new Date();
+    const escapeThreshold = new Date(now.getTime() - 0.75 * 48 * 3600 * 1000);
+    const escalated = await ApprovalRequest.updateMany(
+      {
+        ...tenantFilter(req), status: 'pending', escalatedAt: null,
+        createdAt: { $lte: escapeThreshold }, dueAt: { $gt: now },
+      },
+      {
+        $set: { escalatedAt: now, escalationLevel: 1 },
+        $push: { requiredRoles: 'hospital_admin' },
+      },
+    );
+    const expired = await ApprovalRequest.updateMany(
+      { ...tenantFilter(req), status: 'pending', dueAt: { $lte: now } },
       { $set: { status: 'expired' } },
     );
-    return res.json({ expired: out.modifiedCount || 0 });
+    return res.json({
+      expired: expired.modifiedCount || 0,
+      escalated: escalated.modifiedCount || 0,
+    });
   } catch (err) {
     logger.error(`Approval sweep error: ${err.message}`);
     return res.status(500).json({ message: err.message });

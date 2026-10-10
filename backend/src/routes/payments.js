@@ -213,6 +213,24 @@ router.put('/:id/refund', protect, paymentLimiter, requireStepUp('refunds:issue'
     // double-click re-ran the handler and issued TWO refunds, and a partial refund
     // reported the terminal `refunded` status. Both are now refused.
     const idemKey = req.header('Idempotency-Key') || `refund:${payment._id}:${refund_amount}`;
+    // File 22 P0-left: refunds over threshold need approval. Small refunds
+    // (<= Rs 5000) go through without one to keep the counter fast.
+    const { ensureApproval, approvalError } = await import('./approvals.js');
+    if (refund_amount > 5000) {
+      try {
+        await ensureApproval({
+          req, policyKey: 'refund',
+          entityRef: { model: 'Payment', id: payment._id },
+          title: `Refund ${refund_amount} for payment ${payment._id}`,
+          amount: refund_amount,
+          roles: ['hospital_admin', 'finance_manager'],
+        });
+      } catch (apErr) {
+        const handled = approvalError(res, apErr, 'Refund requires approval');
+        if (handled) return handled;
+        throw apErr;
+      }
+    }
     const { default: Refund } = await import('../models/Refund.js');
     const { refund, created } = await Refund.requestRefund({
       paymentId: payment._id,

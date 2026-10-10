@@ -168,6 +168,18 @@ export default function Billing() {
                 toast.error(d?.code === 'NEEDS_APPROVAL' ? `Paid bill — approval ${d.approvalId} raised for ${d.approverRoles?.join('/')}` : (d?.message || 'Cancel failed'));
               }
             }}>Cancel bill</Button>
+            {/* File 22 P0-left: share a payment link for remote collection */}
+            <Button size="sm" variant="outline" onClick={async () => {
+              try {
+                const r: any = await api.post('/checkout/payment-links', {
+                  amount: Number(selectedBill.balance ?? selectedBill.amount ?? 0),
+                  description: `Bill ${selectedBill.invoiceId}`,
+                });
+                if (r.url) { window.open(r.url, '_blank'); toast.success('Payment link opened'); }
+                else if (r.params) { toast.info('PayU params ready — POST to gateway URL'); }
+                else toast.success('Payment link created');
+              } catch (err: any) { toast.error(err?.response?.data?.message || 'Payment link failed'); }
+            }}>Payment link</Button>
           </div>
         </div>
       ) : null}

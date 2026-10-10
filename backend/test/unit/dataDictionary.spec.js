@@ -123,7 +123,9 @@ describe('buildDictionary against the real schemas', () => {
   it('loads every model file with nothing skipped', () => {
     expect(dict.counts.skipped).toBe(0);
     expect(dict.counts.models).toBeGreaterThanOrEqual(100);
-    expect(dict.counts.files).toBeGreaterThanOrEqual(dict.counts.models - 1); // BloodBank.js exports two models
+    // Every file exports at least one model (BloodBank.js, InfectionControl.js
+    // and ProcedureSuite.js export several).
+    expect(dict.counts.models).toBeGreaterThanOrEqual(dict.counts.files);
     expect(dict.counts.fields).toBeGreaterThan(2500);
     expect(dict.counts.piiFields).toBeGreaterThan(300);
   });

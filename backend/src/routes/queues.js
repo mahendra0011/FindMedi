@@ -95,6 +95,14 @@ router.post('/:id/tickets', protect, authorize('appointments:write'), async (req
     if (!q || !q.active) return res.status(404).json({ message: 'Queue not found' });
     if (!queueScope(req, q)) return res.status(403).json({ message: 'Access denied' });
     const { patientId, encounterId, priority, createdVia } = req.body || {};
+    // File 22 P0-left: blacklisted/deceased patients cannot get walk-in tickets.
+    if (patientId) {
+      try {
+        const { patientHardStop } = await import('./masters.js');
+        const stop = await patientHardStop(q.hospitalId, patientId);
+        if (stop) return res.status(409).json({ message: `Walk-in blocked: patient is ${stop}`, code: 'PATIENT_HARD_STOP' });
+      } catch { /* flag lookup must never break ticket creation on infra errors */ }
+    }
     const seq = (q.seq || 0) + 1;
     q.seq = seq;
     await q.save();

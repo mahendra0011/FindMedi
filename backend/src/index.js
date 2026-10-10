@@ -756,6 +756,8 @@ import vaccinationAlertRoutes from './routes/vaccinationAlerts.js';
 import partogramRoutes from './routes/partograms.js';
 import newbornScreeningRoutes from './routes/newbornScreening.js';
 import pdfWorkerRoutes from './routes/pdfWorker.js';
+import infectionControlRoutes from './routes/infectionControl.js';
+import procedureSuiteRoutes from './routes/procedureSuite.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -1071,6 +1073,8 @@ app.use('/api/vaccinations', vaccinationAlertRoutes);
 app.use('/api/partograms', partogramRoutes);
 app.use('/api/newborn-screening', newbornScreeningRoutes);
 app.use('/api/pdf-worker', pdfWorkerRoutes);
+app.use('/api/infection-control', infectionControlRoutes);
+app.use('/api/procedures', procedureSuiteRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);
