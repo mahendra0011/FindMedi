@@ -320,4 +320,29 @@ router.get('/dose', protect, adminOnly, async (req, res) => {
   } catch (err) { return res.status(500).json({ message: err.message }); }
 });
 
+// PACS viewer integration (Orthanc + OHIF/Cornerstone stub): returns a ready
+// viewer deep-link for a study. The actual pixel-render lives in OHIF (a
+// separate deploy) — the RIS's job is to hand the radiologist a URL that
+// opens the exact study, so this endpoint only BUILDS that URL and reports
+// which viewer flavour is configured. When no OHIF base is configured it
+// falls back to Orthanc's built-in viewer, so a single-PACS small hospital
+// still gets a working link without an OHIF stack.
+// authz: role
+router.get('/dicom/viewer-url', protect, adminOnly, async (req, res) => {
+  try {
+    const studyUid = String(req.query.studyUid || '').trim();
+    if (!studyUid) return res.status(400).json({ message: 'studyUid is required' });
+    const ohifBase = (process.env.OHIF_URL || '').replace(/\/+$/, '');
+    const orthancBase = (process.env.ORTHANC_HTTP_URL || `http://${dicomConfig().host}:${process.env.ORTHANC_HTTP_PORT || 8042}`).replace(/\/+$/, '');
+    if (ohifBase) {
+      return res.json({ viewer: 'ohif', url: `${ohifBase}/viewer?StudyInstanceUIDs=${encodeURIComponent(studyUid)}` });
+    }
+    return res.json({
+      viewer: 'orthanc',
+      url: `${orthancBase}/viewer?StudyInstanceUID=${encodeURIComponent(studyUid)}`,
+      note: 'OHIF_URL not configured — using Orthanc built-in viewer',
+    });
+  } catch (err) { return res.status(500).json({ message: err.message }); }
+});
+
 export default router;

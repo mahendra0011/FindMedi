@@ -130,7 +130,10 @@ describe('AUTHZ-M-01 · migration preconditions now hold', () => {
     const pha = read('../../src/routes/pharmacy.js');
     const lab = read('../../src/routes/lab.js');
     expect((inv.match(/authorizeObject\(/g) || []).length).toBe(2);
-    expect((pha.match(/authorizeObject\(/g) || []).length).toBe(16);
+    // 16 -> 18 (2026-10-10): the two generic-substitution consent routes
+    // (POST/PUT /orders/:id/substitutions) adopted authorizeObject too — the
+    // pin rises with MORE adoption, never with less (that is the ratchet).
+    expect((pha.match(/authorizeObject\(/g) || []).length).toBe(18);
     expect((lab.match(/authorizeObject\(/g) || []).length).toBe(7);
     for (const src of [inv, pha, lab]) {
       expect(src).not.toMatch(/requireTenantOwnership\(/);

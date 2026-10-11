@@ -307,7 +307,6 @@ export default function JoinPlatform() {
     address: '', city: '',
     govtIdType: 'Aadhaar', govtIdNumber: '',
     drivingLicenseNumber: '', drivingLicenseExpiry: '', commercialEndorsement: '', pucNumber: '', emergencyStandby: false,
-    bankAccount: '', bankIfsc: '',
     vehicleType: 'car', vehicleBrand: '', vehicleModel: '',
     rcNumber: '', insuranceNumber: '', insuranceExpiry: '',
     vehicleColor: '', seatingCapacity: 4, fuelType: 'Petrol',
@@ -828,7 +827,7 @@ export default function JoinPlatform() {
         if (!rider.rcNumber || !rider.pucNumber) {
           throw new Error('RC + PUC mandatory hai');
         }
-        if (!rider.bankAccount || !rider.bankIfsc) {
+        if (!rider.bankAccountNumber || !rider.bankIfsc) {
           throw new Error('Bank account + IFSC mandatory hai');
         }
         if (!riderEmergencyPledge) {

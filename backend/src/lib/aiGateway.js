@@ -124,6 +124,54 @@ export function ocrDocument({ docType, rawText }) {
   return { ...out, provider: 'stub', docType };
 }
 
+/**
+ * File 22 P2-37 / checklist item 4: OCR with a REAL provider when one is
+ * configured. `GEMINI_API_KEY` selects Google Gemini (generateContent with a
+ * JSON-extraction prompt over the already-redacted text); with no key the
+ * honest stub runs and says `provider: 'stub'` — the same "no silent
+ * fake-AI" contract the rest of the gateway follows. The route layer passes
+ * ONLY redacted text; the key never leaves the server and the prompt never
+ * sees raw PHI because redaction happens before this call.
+ */
+export async function ocrDocumentWithProvider({ docType, rawText }) {
+  const apiKey = process.env.GEMINI_API_KEY || '';
+  if (!apiKey) return ocrDocument({ docType, rawText });
+  const started = Date.now();
+  try {
+    const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const prompt = [
+      'Extract structured fields from this clinical document text.',
+      `docType: ${docType || 'unknown'}`,
+      'Reply with ONLY a JSON object of extracted fields. No prose, no markdown fences.',
+      '---',
+      String(rawText || '').slice(0, 12000),
+    ].join('\n');
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0, responseMimeType: 'application/json' },
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
+    const body = await res.json();
+    const textOut = body?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    let parsed = {};
+    try { parsed = JSON.parse(textOut); } catch { parsed = { _unparsed: String(textOut).slice(0, 500) }; }
+    return { ...parsed, provider: 'gemini', docType, ms: Date.now() - started };
+  } catch (err) {
+    // A provider outage must not take the review queue down — degrade to the
+    // stub and label WHICH provider failed, so the reviewer knows the fields
+    // are heuristic, not model-extracted.
+    logger.warn(`Gemini OCR failed, falling back to stub: ${err.message}`);
+    const fallback = ocrDocument({ docType, rawText });
+    return { ...fallback, providerFailed: 'gemini', providerError: String(err.message).slice(0, 200) };
+  }
+}
+
 /** File 22 P2-37: Claim-document checker — validates an insurance claim
  * against expected fields and flags common rejection reasons.
  */

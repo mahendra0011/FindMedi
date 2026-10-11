@@ -58,6 +58,8 @@ export interface FormField {
   id: string;
   type: string;
   label?: string;
+  /** Hindi (Devanagari) label — optional; rendered as secondary text when present. */
+  labelHi?: string;
   required?: boolean;
   options?: string[];
   showIf?: any;
@@ -75,6 +77,15 @@ export default function FormRenderer({
 }) {
   const set = (id: string, v: any) => onChange({ ...values, [id]: v });
   const sections = template?.definition?.sections || [];
+  // Hindi label: show Devanagari under the primary label when the template
+  // provides one (checklist item 12 — Hindi labels). `lang` attr set so
+  // screen readers switch pronunciation.
+  const labelWithHi = (f: FormField, required: boolean) => (
+    <span className="font-medium">
+      {f.label}{required ? ' *' : ''}
+      {f.labelHi && <span lang="hi" className="block text-xs font-normal text-muted-foreground">{f.labelHi}</span>}
+    </span>
+  );
 
   return (
     <div className="space-y-5">
@@ -89,7 +100,7 @@ export default function FormRenderer({
               case 'textarea':
                 return (
                   <label key={f.id} className="block text-sm">
-                    <span className="font-medium">{f.label}{required ? ' *' : ''}</span>
+                    {labelWithHi(f, required)}
                     <textarea className={`${common} mt-1 rounded-md border border-input bg-background p-2 min-h-20`} value={values[f.id] ?? ''} onChange={(e) => set(f.id, e.target.value)} />
                   </label>
                 );
@@ -97,7 +108,7 @@ export default function FormRenderer({
               case 'scale':
                 return (
                   <label key={f.id} className="block text-sm">
-                    <span className="font-medium">{f.label}{required ? ' *' : ''}</span>
+                    {labelWithHi(f, required)}
                     <Input className="mt-1" type="number" inputMode="numeric" value={values[f.id] ?? ''} onChange={(e) => set(f.id, e.target.value === '' ? '' : Number(e.target.value))} />
                   </label>
                 );
@@ -105,7 +116,7 @@ export default function FormRenderer({
               case 'radio':
                 return (
                   <label key={f.id} className="block text-sm">
-                    <span className="font-medium">{f.label}{required ? ' *' : ''}</span>
+                    {labelWithHi(f, required)}
                     <select className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3" value={values[f.id] ?? ''} onChange={(e) => set(f.id, e.target.value)}>
                       <option value="">Select</option>
                       {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
@@ -117,7 +128,7 @@ export default function FormRenderer({
                 const cur: string[] = Array.isArray(values[f.id]) ? values[f.id] : [];
                 return (
                   <fieldset key={f.id} className="text-sm">
-                    <legend className="font-medium">{f.label}{required ? ' *' : ''}</legend>
+                    <legend className="font-medium">{labelWithHi(f, required)}</legend>
                     {(f.options || []).map((o) => (
                       <label key={o} className="flex items-center gap-2 py-1">
                         <input type="checkbox" checked={cur.includes(o)} onChange={() => set(f.id, cur.includes(o) ? cur.filter((x) => x !== o) : [...cur, o])} />
@@ -130,7 +141,7 @@ export default function FormRenderer({
               case 'yesno':
                 return (
                   <div key={f.id} className="flex items-center gap-2 text-sm">
-                    <span className="font-medium">{f.label}{required ? ' *' : ''}</span>
+                    {labelWithHi(f, required)}
                     {['yes', 'no', 'na'].map((o) => (
                       <Button key={o} size="sm" variant={values[f.id] === o ? 'default' : 'outline'} onClick={() => set(f.id, o)}>{o}</Button>
                     ))}
@@ -142,7 +153,7 @@ export default function FormRenderer({
               case 'signature':
                 return (
                   <label key={f.id} className="block text-sm">
-                    <span className="font-medium">{f.label}{required ? ' *' : ''}</span>
+                    {labelWithHi(f, required)}
                     <Input className="mt-1 font-mono" placeholder="Type full name to sign" value={values[f.id] ?? ''} onChange={(e) => set(f.id, e.target.value)} />
                   </label>
                 );
@@ -157,7 +168,7 @@ export default function FormRenderer({
               default:
                 return (
                   <label key={f.id} className="block text-sm">
-                    <span className="font-medium">{f.label}{required ? ' *' : ''}</span>
+                    {labelWithHi(f, required)}
                     <Input className="mt-1" type={f.type === 'text' ? 'text' : f.type} value={values[f.id] ?? ''} onChange={(e) => set(f.id, e.target.value)} />
                   </label>
                 );

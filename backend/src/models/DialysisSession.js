@@ -23,6 +23,16 @@ const dialysisSessionSchema = new mongoose.Schema({
   ufLitres: { type: Number, min: 0, max: 10 },
   durationMin: { type: Number, min: 30, max: 600 },
   isolation: { type: String, enum: DIALYSIS_ISOLATION, default: 'none', index: true },
+  // Checklist §2 dialysis extension: dialyser reuse is counted per patient
+  // (reuse beyond manufacturer limit is a bloodstream-infection risk), and
+  // serology is segregated per session so an HBV/HCV-positive dialysis is
+  // visibly bound to its isolation machine, not just implied by a flag.
+  dialyserReuseCount: { type: Number, min: 0, max: 12, default: 0 },
+  serology: {
+    hbsag: { type: String, enum: ['positive', 'negative', 'unknown'], default: 'unknown' },
+    hcv: { type: String, enum: ['positive', 'negative', 'unknown'], default: 'unknown' },
+    hiv: { type: String, enum: ['positive', 'negative', 'unknown'], default: 'unknown' },
+  },
   complications: { type: String, trim: true, maxlength: 500, default: '' },
   notes: { type: String, trim: true, maxlength: 1000, default: '' },
   createdAt: { type: Date, default: Date.now },

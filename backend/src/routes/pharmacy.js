@@ -14,6 +14,7 @@ import PharmacyDelivery from '../models/PharmacyDelivery.js';
 import PharmacyOffer from '../models/PharmacyOffer.js';
 import PharmacyReturn from '../models/PharmacyReturn.js';
 import PharmacyStaff from '../models/PharmacyStaff.js';
+import H1RegisterEntry, { REGISTER_SCHEDULES, REGISTER_SCHEDULE_ALIASES } from '../models/H1RegisterEntry.js';
 import Facility from '../models/Facility.js';
 import { latLngToCell } from 'h3-js';
 import { calculateDistanceKm } from '../lib/geoUtils.js';
@@ -922,9 +923,92 @@ router.put('/prescriptions/:id/dispense', protect, authorize('pharmacy:dispense'
       med.dispensedBy = req.user.name;
       await prescription.save();
     }
+    // Checklist item 7: H1 / Schedule-X / NDPS dispenses land in the statutory
+    // register. Fail-soft on the write (pricing-style): the dispense is the
+    // durable clinical fact; a register hiccup must not unwind it — the entry
+    // is reconstructible from (prescription, line) and the register endpoint
+    // surfaces gaps by joining dispensed controlled lines against entries.
+    try {
+      const schedRaw = String(medicineDoc?.rxSchedule || '').trim();
+      const sched = REGISTER_SCHEDULE_ALIASES[schedRaw] || schedRaw.toLowerCase();
+      if (med.medicineId && REGISTER_SCHEDULES.has(sched)) {
+        await H1RegisterEntry.create({
+          hospitalId: prescription.hospitalId || undefined,
+          facilityId: medicineDoc?.facilityId || medicineDoc?.hospitalId || undefined,
+          patientId: prescription.patientId?._id || prescription.patientId || null,
+          patientName: prescription.patientName || '',
+          prescriberId: prescription.doctorId || prescription.prescribedBy || null,
+          prescriberName: prescription.doctorName || '',
+          prescriptionId: prescription._id,
+          prescriptionNo: prescription.prescriptionId || '',
+          medicineId: med.medicineId,
+          medicineName: med.medicineName,
+          rxSchedule: sched,
+          quantity: Number(med.quantity) || 1,
+          dispensedBy: req.user._id ?? req.user.id ?? null,
+          dispensedByName: req.user.name || '',
+        });
+      }
+    } catch (regErr) {
+      logger.warn(`H1 register write failed for prescription ${prescription._id}: ${regErr.message}`);
+    }
     await auditLog('dispense_prescription', req.user._id, { recordId: prescription._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(prescription);
   } catch (err) { res.status(err.status || 500).json({ message: err.status ? err.message : 'Dispensing could not be completed', ...(err.code ? { code: err.code } : {}) }); }
+});
+
+// ─── Checklist item 7: H1 / controlled-substance register ───────────────────
+// The statutory register is a query here, not a reconstruction from audit
+// logs: every dispense of an h1/x/narcotic_ndps medicine writes one row in
+// the dispense route above. The gaps probe joins dispensed controlled lines
+// back against entries so a fail-soft register hiccup is visible, not silent.
+// authz: role
+router.get('/h1-register', protect, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
+  try {
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.query.rxSchedule) filter.rxSchedule = String(req.query.rxSchedule).toLowerCase();
+    if (req.query.from || req.query.to) {
+      filter.dispensedAt = {};
+      if (req.query.from) filter.dispensedAt.$gte = new Date(req.query.from);
+      if (req.query.to) filter.dispensedAt.$lte = new Date(req.query.to);
+    }
+    const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 100));
+    const rows = await H1RegisterEntry.find(filter).sort({ dispensedAt: -1 }).limit(limit).lean();
+    res.json({ count: rows.length, rows });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// authz: role
+router.get('/h1-register/gaps', protect, authorize('pharmacy:manage'), async (req, res) => {
+  try {
+    const tenant = (req.user.hospitalId && req.user.role !== 'superadmin')
+      ? { hospitalId: req.user.hospitalId } : {};
+    const controlledIds = await Medicine.find({
+      $or: [
+        { rxSchedule: { $in: [...REGISTER_SCHEDULES, ...Object.keys(REGISTER_SCHEDULE_ALIASES)] } },
+        { 'storage.controlled': true },
+      ],
+    }).select('_id').lean();
+    const idSet = new Set(controlledIds.map((m) => String(m._id)));
+    if (!idSet.size) return res.json({ gaps: [], checked: 0 });
+    const scripts = await Prescription.find({ ...tenant, 'medicines.isDispensed': true })
+      .select('prescriptionId medicines').limit(2000).lean();
+    const entries = await H1RegisterEntry.find(tenant).select('prescriptionId medicineId').lean();
+    const covered = new Set(entries.map((e) => `${e.prescriptionId}:${e.medicineId}`));
+    const gaps = [];
+    let checked = 0;
+    for (const s of scripts) {
+      for (const line of (s.medicines || [])) {
+        if (!line.isDispensed || !line.medicineId || !idSet.has(String(line.medicineId))) continue;
+        checked += 1;
+        if (!covered.has(`${s._id}:${line.medicineId}`)) {
+          gaps.push({ prescriptionId: String(s._id), prescriptionNo: s.prescriptionId || '', medicineId: String(line.medicineId), medicineName: line.medicineName || '' });
+        }
+      }
+    }
+    res.json({ gaps: gaps.slice(0, 200), checked, totalGaps: gaps.length });
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 // ─── Admin: Verify Prescription ─────────────────────────────────────────────
@@ -1376,6 +1460,62 @@ router.put('/orders/:id/reject', protect, authorize('pharmacy:manage'), authoriz
     order.note = order.note + (order.note ? ' | ' : '') + `Rejected: ${reason || 'No reason given'}`;
     await order.save();
     await auditLog('reject_pharmacy_prescription', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json(order);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// ─── Checklist item 7: generic substitution with patient consent ─────────
+// A generic swap is a CONSENT event, not a silent item edit — the model
+// (PharmacyOrder.substitution[]) keeps the original line intact, records what
+// was proposed and whether the patient accepted. Pharmacist proposes,
+// patient (own order) accepts/declines.
+// authz: role
+const substitutionProposeSchema = z.object({
+  itemIndex: z.number().int().nonnegative(),
+  suggestedName: z.string().trim().min(1).max(300),
+  reason: z.string().trim().max(300).optional(),
+});
+router.post('/orders/:id/substitutions', protect, authorize('pharmacy:manage', 'pharmacy:dispense'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), validate(substitutionProposeSchema), async (req, res) => {
+  try {
+    const order = await PharmacyOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (!['Pending', 'Confirmed'].includes(order.status)) {
+      return res.status(409).json({ message: 'Substitutions can only be proposed before dispatch', code: 'ORDER_NOT_SUBSTITUTABLE' });
+    }
+    const item = (order.items || [])[req.body.itemIndex];
+    if (!item) return res.status(404).json({ message: 'Order item not found' });
+    if ((order.substitution || []).some((s) => s.itemIndex === req.body.itemIndex && s.consent === 'pending')) {
+      return res.status(409).json({ message: 'A pending substitution already exists for this item', code: 'SUBSTITUTION_PENDING' });
+    }
+    order.substitution.push({
+      itemIndex: req.body.itemIndex,
+      originalName: item.name || item.medicineName || 'Medicine',
+      suggestedName: req.body.suggestedName,
+      reason: req.body.reason || '',
+      consent: 'pending',
+      substitutedBy: req.user._id ?? req.user.id,
+    });
+    await order.save();
+    await auditLog('substitution_proposed', req.user._id, { recordId: order._id, itemIndex: req.body.itemIndex, ip: req.ip });
+    res.status(201).json(order);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// authz: object (own order; pharmacist manage path kept for counter consent)
+const substitutionConsentSchema = z.object({
+  consent: z.enum(['accepted', 'declined']),
+});
+router.put('/orders/:id/substitutions/:subIndex', protect, authorize('pharmacy:manage', 'pharmacy:order:own'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage', 'pharmacy:order:own'), write: true }), validate(substitutionConsentSchema), async (req, res) => {
+  try {
+    const order = await PharmacyOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    const sub = (order.substitution || [])[Number(req.params.subIndex)];
+    if (!sub) return res.status(404).json({ message: 'Substitution not found' });
+    if (sub.consent !== 'pending') return res.status(409).json({ message: `Substitution already ${sub.consent}`, code: 'SUBSTITUTION_DECIDED' });
+    sub.consent = req.body.consent;
+    sub.consentAt = new Date();
+    await order.save();
+    await auditLog(`substitution_${req.body.consent}`, req.user._id, { recordId: order._id, itemIndex: sub.itemIndex, ip: req.ip });
     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

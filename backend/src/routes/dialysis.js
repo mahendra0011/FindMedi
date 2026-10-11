@@ -65,6 +65,8 @@ router.post('/sessions', protect, validate(createDialysisSessionSchema), authori
       ufLitres: req.body.ufLitres,
       durationMin: req.body.durationMin,
       isolation: req.body.isolation ?? 'none',
+      dialyserReuseCount: req.body.dialyserReuseCount ?? 0,
+      serology: req.body.serology ?? undefined,
       complications: req.body.complications ?? '',
       notes: req.body.notes ?? '',
     });

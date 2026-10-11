@@ -307,6 +307,48 @@ router.post('/responses/:id/amend', authorize('records:write'), requireObjectId,
   }
 });
 
+// Addendum chain read: full supersede chain for a response (original →
+// amendments → latest). The amend WRITE already exists (POST /:id/amend);
+// this is the matching read so a reviewer sees WHY today's values differ
+// from what was signed, not just the latest row. Walks amendmentOf up to
+// the root, then collects descendants via the same pointer.
+// authz: role
+router.get('/responses/:id/chain', authorize('records:read'), requireObjectId, async (req, res) => {
+  try {
+    const root = await FormResponse.findById(req.params.id).lean();
+    if (!root) return res.status(404).json({ message: 'Response not found' });
+    // Walk up to the original.
+    let top = root;
+    const guard = new Set([String(top._id)]);
+    while (top.amendmentOf && !guard.has(String(top.amendmentOf))) {
+      const parent = await FormResponse.findById(top.amendmentOf).lean();
+      if (!parent) break;
+      guard.add(String(parent._id));
+      top = parent;
+    }
+    // Collect the whole chain (root-first) by following amendmentOf pointers.
+    const chain = [];
+    let cursor = top;
+    const seen = new Set();
+    while (cursor && !seen.has(String(cursor._id))) {
+      seen.add(String(cursor._id));
+      chain.push({
+        id: String(cursor._id),
+        status: cursor.status,
+        amendmentOf: cursor.amendmentOf ? String(cursor.amendmentOf) : null,
+        amendmentReason: cursor.amendmentReason || '',
+        createdAt: cursor.createdAt,
+        createdBy: cursor.createdBy ? String(cursor.createdBy) : null,
+      });
+      cursor = await FormResponse.findOne({ amendmentOf: cursor._id }).sort({ createdAt: 1 }).lean();
+    }
+    return res.json({ chain, total: chain.length });
+  } catch (err) {
+    logger.error(`Form chain error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 router.get('/responses/:id/pdf', authorize('records:read', 'records:read:own'), requireObjectId, async (req, res) => {
   try {
     const row = await FormResponse.findById(req.params.id).lean();

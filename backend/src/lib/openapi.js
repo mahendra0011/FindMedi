@@ -346,6 +346,7 @@ export function buildOpenApiDocument() {
       '/api/rider', '/api/assistant-bookings', '/api/lawyer-bookings', '/api/medicine-reminders',
       '/api/vitals', '/api/care-plans', '/api/emergency-sos', '/api/emergency-doctor',
       '/api/instant', '/api/ambulance', '/api/mindsupport', '/api/payment/demo',
+      '/api/feedback', '/api/ambulance-trips', '/api/linen', '/api/security',
     ],
   };
 }

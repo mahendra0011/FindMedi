@@ -829,6 +829,12 @@ export const createDialysisSessionSchema = z.object({
   ufLitres: z.number().min(0).max(10).optional(),
   durationMin: z.number().int().min(30).max(600).optional(),
   isolation: z.enum(DIALYSIS_ISOLATION).optional(),
+  dialyserReuseCount: z.number().int().min(0).max(12).optional(),
+  serology: z.object({
+    hbsag: z.enum(['positive', 'negative', 'unknown']).optional(),
+    hcv: z.enum(['positive', 'negative', 'unknown']).optional(),
+    hiv: z.enum(['positive', 'negative', 'unknown']).optional(),
+  }).strict().optional(),
   complications: z.string().trim().max(500).optional(),
   notes: z.string().trim().max(1000).optional(),
 }).strict();

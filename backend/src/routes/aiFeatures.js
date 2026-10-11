@@ -4,7 +4,7 @@ import { auditLog } from '../middleware/audit.js';
 import AiReview from '../models/AiReview.js';
 import AiInvocation from '../models/AiInvocation.js';
 import {
-  ocrDocument, checkClaim, ragAnswer, labTrendNarrative,
+  ocrDocumentWithProvider, checkClaim, ragAnswer, labTrendNarrative,
   draftDischargeSummary, redactPhi,
 } from '../lib/aiGateway.js';
 
@@ -41,7 +41,9 @@ router.post('/ocr', authorize('records:write'), async (req, res) => {
     const { docType = '', rawText = '', documentId = '' } = req.body || {};
     if (!rawText) return res.status(400).json({ message: 'rawText is required' });
     const { text } = redactPhi(String(rawText).slice(0, 20000));
-    const fields = ocrDocument({ docType, rawText: text });
+    // Checklist item 4: real provider (Gemini) when GEMINI_API_KEY is set,
+    // honest stub otherwise — PHI was redacted above, before either path.
+    const fields = await ocrDocumentWithProvider({ docType, rawText: text });
     const review = await enqueue(req, 'ocr', { docType, documentId }, fields, documentId);
     return res.json({ fields, reviewId: String(review?._id || ''), status: review?.status || 'Pending' });
   } catch (err) { return handle(res, err); }
