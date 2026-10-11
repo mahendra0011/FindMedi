@@ -3,7 +3,7 @@ import User from '../models/User.js';
 import Medicine from '../models/Medicine.js';
 import IcuFlowsheet from '../models/IcuFlowsheet.js';
 import Admission from '../models/Admission.js';
-import { protect } from '../middleware/auth.js';
+import { protect, clinicalStaffOnly } from '../middleware/auth.js';
 import { templateFor, templateSpecialties } from '../lib/emrTemplates.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
@@ -19,7 +19,10 @@ router.use(protect);
 const actorId = (req) => req.user._id ?? req.user.id;
 const norm = (s) => String(s || '').trim().toLowerCase();
 
-// authz: any authenticated clinician context (templates are knowledge, not PHI).
+// Guard comes from the file-level router.use(protect) above (line 17) — this is
+// static clinical knowledge (note templates), not PHI, so any authenticated
+// caller may read it; no per-object scope exists.
+// authz: inherited
 router.get('/emr/templates', async (req, res) => {
   try {
     const { specialty } = req.query;
@@ -31,8 +34,13 @@ router.get('/emr/templates', async (req, res) => {
   }
 });
 
-// authz: clinical roles prescribe; the check itself reveals nothing stored.
-router.post('/cds/check', async (req, res) => {
+// SECURITY: patientId comes from the request BODY of an authenticated caller —
+// without a staff gate any logged-in patient could submit an arbitrary id and
+// read back whether that person has a drug allergy (allergy-type alerts echo
+// the matched allergen). clinicalStaffOnly closes that oracle; the check
+// itself still reveals nothing stored beyond what the caller submitted.
+// authz: role
+router.post('/cds/check', clinicalStaffOnly, async (req, res) => {
   try {
     const { patientId, medicines } = req.body || {};
     if (!Array.isArray(medicines) || !medicines.length) {

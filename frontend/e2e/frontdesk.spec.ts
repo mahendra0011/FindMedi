@@ -16,7 +16,7 @@ test.describe('front desk search (mocked API)', () => {
     await page.goto('/#/frontdesk');
     await expect(page.getByRole('heading', { name: /front desk/i })).toBeVisible();
     await page.getByPlaceholder(/UHID \/ phone \/ name/i).fill('UHID-E2E-1');
-    await page.getByRole('button', { name: 'Search' }).click();
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
     await expect(page.getByText('E2E Walker')).toBeVisible();
   });
 });

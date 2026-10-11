@@ -52,6 +52,34 @@ const queueScope = (req, q) => {
   return t && String(q.hospitalId) === String(t);
 };
 
+// ─── Queue aging (checklist item 11) ────────────────────────────────────────
+// Redis sorted set = fast arrival-ordered view for wallboards (ZPOP-style
+// reads are O(log N) vs a Mongo sort per request). Mongo stays the source of
+// truth: every helper fails soft, and the aging endpoint reports drift so a
+// member left behind by a crash is visible instead of silently wrong.
+const waitingZKey = (queueId) => `queue:${queueId}:waiting`;
+
+const zAddWaiting = async (queueId, ticketId, arrivedAt) => {
+  try {
+    const { redisClient, isRedisReady } = await import('../config/redis.js');
+    if (!isRedisReady()) return false;
+    await redisClient.zAdd(waitingZKey(queueId), {
+      score: new Date(arrivedAt || Date.now()).getTime(),
+      value: String(ticketId),
+    });
+    return true;
+  } catch { return false; }
+};
+
+const zRemWaiting = async (queueId, ticketId) => {
+  try {
+    const { redisClient, isRedisReady } = await import('../config/redis.js');
+    if (!isRedisReady()) return false;
+    await redisClient.zRem(waitingZKey(queueId), String(ticketId));
+    return true;
+  } catch { return false; }
+};
+
 // ─── Queues ─────────────────────────────────────────────────────────────────
 // authz: role
 router.post('/', protect, authorize('staff:manage'), async (req, res) => {
@@ -113,6 +141,7 @@ router.post('/:id/tickets', protect, authorize('appointments:write'), async (req
       priority: priority || 'Walkin', createdVia: createdVia || 'reception',
       createdBy: actorId(req),
     });
+    await zAddWaiting(q._id, t._id, t.arrivedAt);
     await emitQueue(String(q._id), 'queue:updated', { queueId: String(q._id) });
     return res.status(201).json({ id: String(t._id), display: t.display, number: t.number });
   } catch (err) {
@@ -131,17 +160,34 @@ router.post('/:id/call-next', protect, authorize('appointments:write'), async (r
     if (!queueScope(req, q)) return res.status(403).json({ message: 'Access denied' });
     const { counterId } = req.body || {};
     const weights = Object.keys(PRIORITY_WEIGHT);
+    // Aging (checklist item 11): a ticket waiting past the queue SLA is
+    // escalated one priority class for this call. Each position is still one
+    // atomic findOneAndUpdate, so two counters can never take the same
+    // ticket. Position k = normal class k ∪ (aged class k+1, which now acts
+    // at class k); ties break on arrival, and an aged Emergency stays front.
+    const cutoff = new Date(Date.now() - (q.slaMinutes || 30) * 60000);
     let next = null;
-    for (const p of weights) {
+    for (let k = 0; k < weights.length; k += 1) {
+      const or = (k === 0
+        ? [{ priority: weights[0] }]
+        : [
+          { priority: weights[k], arrivedAt: { $gt: cutoff } },
+          { priority: weights[k + 1], arrivedAt: { $lte: cutoff } },
+        ]).filter((arm) => arm.priority);
       // eslint-disable-next-line no-await-in-loop
       next = await QueueTicket.findOneAndUpdate(
-        { queueId: q._id, status: 'Waiting', priority: p },
+        { queueId: q._id, status: 'Waiting', $or: or },
         { $set: { status: 'Called', calledAt: new Date(), counterId: counterId || '' } },
-        { new: true },
+        { new: true, sort: { arrivedAt: 1 } },
       );
       if (next) break;
     }
     if (!next) return res.status(404).json({ message: 'No waiting tickets' });
+    if (next.arrivedAt && new Date(next.arrivedAt).getTime() <= cutoff.getTime()) {
+      next.boosted = true;
+      await next.save().catch(() => {});
+    }
+    await zRemWaiting(q._id, next._id);
     await emitQueue(String(q._id), 'ticket:called', {
       display: next.display, counterId: next.counterId, queueId: String(q._id),
     });
@@ -159,6 +205,8 @@ const ticketTransition = async (req, res, from, to, extra = {}) => {
   if (!q || !queueScope(req, q)) return res.status(403).json({ message: 'Access denied' });
   Object.assign(t, extra, { status: to });
   await t.save();
+  // A ticket that just left Waiting leaves the Redis sorted view too.
+  if ((Array.isArray(from) ? from : [from]).includes('Waiting')) await zRemWaiting(t.queueId, t._id);
   // File 22 P0-3: visit start opens the OPD Encounter (idempotent per ticket).
   if (to === 'InService' && t.patientId && !t.encounterId) {
     try {
@@ -219,6 +267,7 @@ router.put('/tickets/:ticketId/transfer', protect, authorize('appointments:write
     t.status = 'Transferred';
     t.nextQueueId = dest._id;
     await t.save();
+    await zRemWaiting(t.queueId, t._id);
     const seq = (dest.seq || 0) + 1;
     dest.seq = seq;
     await dest.save();
@@ -228,6 +277,7 @@ router.put('/tickets/:ticketId/transfer', protect, authorize('appointments:write
       patientId: t.patientId, encounterId: t.encounterId, priority: t.priority,
       createdVia: 'reception', createdBy: actorId(req),
     });
+    await zAddWaiting(dest._id, nt._id, nt.arrivedAt);
     await emitQueue(String(dest._id), 'queue:updated', { queueId: String(dest._id) });
     return res.json({ id: String(nt._id), display: nt.display });
   } catch (err) {
@@ -235,6 +285,55 @@ router.put('/tickets/:ticketId/transfer', protect, authorize('appointments:write
     return res.status(500).json({ message: err.message });
   }
 });
+
+// Aging report (checklist item 11): per-ticket wait, SLA breach counts, and
+// the Redis ZSET order cross-checked against Mongo. `drift: true` means the
+// ZSET disagrees with the DB (stale member after a crash) — the payload
+// still serves the Mongo truth, sorted, so a wallboard never lies.
+// authz: object (queue tenant scope enforced below)
+router.get('/:id/aging', protect, async (req, res) => {
+  try {
+    const q = await Queue.findById(req.params.id);
+    if (!q) return res.status(404).json({ message: 'Queue not found' });
+    if (!queueScope(req, q)) return res.status(403).json({ message: 'Access denied' });
+    const now = Date.now();
+    const slaMinutes = q.slaMinutes || 30;
+    const waiting = await QueueTicket.find({ queueId: q._id, status: 'Waiting' })
+      .select('display priority arrivedAt number boosted').sort({ arrivedAt: 1 }).limit(200).lean();
+    const fromDb = waiting.map((t) => ({
+      id: String(t._id), display: t.display, priority: t.priority, boosted: !!t.boosted,
+      arrivedAt: t.arrivedAt,
+      waitMinutes: Math.max(0, Math.floor((now - new Date(t.arrivedAt).getTime()) / 60000)),
+    }));
+    let order = fromDb.map((t) => t.id);
+    let redisUsed = false;
+    let drift = false;
+    try {
+      const { redisClient, isRedisReady } = await import('../config/redis.js');
+      if (isRedisReady()) {
+        const members = await redisClient.zRange(waitingZKey(q._id), 0, -1);
+        redisUsed = true;
+        const zSet = new Set(members.map(String));
+        drift = members.length !== order.length || order.some((id) => !zSet.has(id));
+        if (members.length) order = members;
+      }
+    } catch { /* Redis optional — Mongo order already computed */ }
+    const byId = new Map(fromDb.map((t) => [t.id, t]));
+    const items = order.map((id) => byId.get(String(id))).filter(Boolean);
+    return res.json({
+      queueId: String(q._id), slaMinutes,
+      waiting: items.length,
+      oldestWaitMinutes: items.length ? items[0].waitMinutes : 0,
+      breached: items.filter((t) => t.waitMinutes >= slaMinutes).length,
+      redis: { used: redisUsed, drift },
+      items,
+    });
+  } catch (err) {
+    logger.error(`Aging error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 
 // Board: now-serving + waiting + ETA range (rolling median service time).
 // authz: object (queue tenant scope enforced below)

@@ -56,11 +56,17 @@ export function SlaRing({ dueAt, label }: { dueAt?: string | Date | null; label?
 
 export function BedTile({ bed, selected, onClick }: { bed: any; selected?: boolean; onClick?: () => void }) {
   const s = String(bed?.status || '');
-  const fill =
-    s === 'Occupied' ? 'hsl(var(--status-bad) / 0.75)'
-      : s === 'Under Cleaning' ? 'hsl(var(--status-warn) / 0.75)'
-        : s === 'Maintenance' ? 'hsl(var(--status-neutral) / 0.6)'
-          : 'hsl(var(--status-ok) / 0.75)';
+  // File 19 §19.5 bed tokens — includes checklist Reserved/Blocked/Isolation.
+  const BED_VAR: Record<string, string> = {
+    Available: '--bed-available',
+    Occupied: '--bed-occupied',
+    'Under Cleaning': '--bed-cleaning',
+    Maintenance: '--bed-maintenance',
+    Reserved: '--bed-reserved',
+    Blocked: '--bed-blocked',
+    Isolation: '--bed-isolation',
+  };
+  const fill = `hsl(var(${BED_VAR[s] || '--bed-available'}) / 0.75)`;
   return (
     <button
       onClick={onClick}

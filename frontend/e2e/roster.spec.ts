@@ -21,8 +21,8 @@ test.describe('duty roster (mocked API)', () => {
     });
     await page.goto('/#/hr/roster');
     await expect(page.getByRole('heading', { name: /duty roster/i })).toBeVisible();
-    await page.getByPlaceholder('Staff ID').fill('st-1');
-    await page.locator('input[type="date"]').fill('2026-10-09');
+    await page.getByPlaceholder('Staff ID', { exact: true }).fill('st-1');
+    await page.locator('input[type="date"]').first().fill('2026-10-09');
     await page.getByRole('button', { name: 'Save draft' }).click();
     await expect(page.getByText('st-1')).toBeVisible();
   });

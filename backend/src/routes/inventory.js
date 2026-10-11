@@ -6,6 +6,7 @@ import PurchaseOrder from '../models/PurchaseOrder.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createInventoryItemSchema, updateInventoryItemSchema, createSupplierSchema, createPurchaseOrderSchema } from '../utils/validate.js';
+import { validateGstin } from '../lib/gstin.js';
 import { auditLog } from '../middleware/audit.js';
 import { generateTimestampedId } from '../utils/idGenerator.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
@@ -151,7 +152,19 @@ router.get('/stats', protect, async (req, res) => {
 // Suppliers
 router.post('/suppliers', protect, adminOnly, validate(createSupplierSchema), async (req, res) => {
   try {
-    const supplier = await Supplier.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    const gstNumber = (req.body.gstNumber || '').trim();
+    let gstValidatedAt = null;
+    if (gstNumber) {
+      const gst = validateGstin(gstNumber);
+      if (!gst.valid) return res.status(400).json({ message: `Invalid GSTIN: ${gst.reason}` });
+      gstValidatedAt = new Date();
+    }
+    const supplier = await Supplier.create({
+      ...req.body,
+      hospitalId: req.user.hospitalId || undefined,
+      onboardingStatus: 'Pending',
+      gstValidatedAt,
+    });
     await auditLog('create_supplier', req.user._id, { recordId: supplier._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(supplier);
   } catch (err) { res.status(400).json({ message: err.message }); }
@@ -180,8 +193,40 @@ router.put('/suppliers/:id', protect, validate(updateSupplierSchema), async (req
     // AUTH-030: allowlisted fields only — supplierId/tenant linkage immutable.
     const { pickBody } = await import('../utils/pick.js');
     Object.assign(supplier, pickBody(req.body, ['name', 'contactPerson', 'email', 'phone', 'address', 'gstNumber', 'category', 'items', 'rating', 'leadTime', 'paymentTerms', 'isActive', 'notes']));
+    // Checklist L5: GSTIN re-checked whenever it is (re)written.
+    if (supplier.gstNumber) {
+      const gst = validateGstin(supplier.gstNumber);
+      if (!gst.valid) return res.status(400).json({ message: `Invalid GSTIN: ${gst.reason}` });
+      supplier.gstValidatedAt = new Date();
+    }
     await supplier.save();
     await auditLog('update_supplier', req.user._id, { recordId: supplier._id, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json(supplier);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// Checklist L5: onboarding approval gate — Pending/Rejected vendors cannot
+// receive purchase orders until an admin approves them.
+const onboardingSchema = z.object({
+  decision: z.enum(['Approved', 'Rejected']),
+  reason: z.string().max(500).optional(),
+});
+
+router.post('/suppliers/:id/onboarding', protect, adminOnly, validate(onboardingSchema), async (req, res) => {
+  try {
+    const supplier = await Supplier.findById(req.params.id);
+    if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && supplier.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    supplier.onboardingStatus = req.body.decision;
+    supplier.onboardingReview = {
+      by: req.user._id,
+      at: new Date(),
+      reason: req.body.reason || '',
+    };
+    await supplier.save();
+    await auditLog(`supplier_onboarding_${req.body.decision.toLowerCase()}`, req.user._id, { recordId: supplier._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(supplier);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -202,6 +247,18 @@ router.post('/purchase-orders', protect, adminOnly, validate(createPurchaseOrder
   try {
     const { supplierId, supplierName, items, expectedDelivery, notes, taxRate } = req.body;
     const poNumber = await generatePONumber();
+
+    // Checklist L5: onboarding gate — only Approved vendors get purchase
+    // orders. Non-ObjectId supplierId (legacy free text) skips the gate.
+    try {
+      const vendor = await Supplier.findById(supplierId).select('name onboardingStatus').lean();
+      if (vendor && vendor.onboardingStatus !== 'Approved') {
+        return res.status(409).json({
+          message: `Supplier "${vendor.name}" is ${vendor.onboardingStatus} — approval required before ordering`,
+          code: 'SUPPLIER_ONBOARDING_BLOCK',
+        });
+      }
+    } catch { /* legacy free-text supplier id — no supplier record to gate on */ }
 
     const subTotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
     const discount = items.reduce((sum, item) => sum + (item.discount || 0), 0);

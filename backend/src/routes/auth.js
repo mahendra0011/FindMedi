@@ -27,6 +27,7 @@ import RiderProfile from '../models/RiderProfile.js';
 import AssistantProfile from '../models/AssistantProfile.js';
 import LawyerProfile from '../models/LawyerProfile.js';
 import { protect } from '../middleware/auth.js';
+import { verifyPin as verifyPinWithLockout } from '../services/pinLockout.js';
 import { issueStepUpFor, clearStepUps } from '../middleware/stepUpAuth.js';
 import { sendServerError } from '../utils/safeError.js';
 import { publicOrigin } from '../utils/publicOrigin.js';
@@ -45,6 +46,12 @@ const SENSITIVE_SCOPES = new Set([
   'export:full',
   'records:amend',
   'users:role-change',
+  // F7 backfill: both were minted at guarded routes (breakGlass.js, iam.js)
+  // WITHOUT being registered here, so /auth/step-up could not issue a grant
+  // for them and every 2FA user hit a dead end on those mounts. The
+  // stepUpAuth spec now pins used-scopes ⊆ registry.
+  'phi:breakglass',
+  'iam:role-change',
 ]);
 export { SENSITIVE_SCOPES };
 import { createAndSendOTP, verifyOTP, resendOTP } from '../services/otpService.js';
@@ -2049,11 +2056,38 @@ router.post('/pin/unlock', protect, async (req, res) => {
     const { pin } = req.body || {};
     const user = await User.findById(req.user._id).select('+pinHash');
     if (!user?.pinHash) return res.status(409).json({ message: 'No PIN set', code: 'PIN_NOT_SET' });
-    const ok = await bcrypt.compare(String(pin || ''), user.pinHash);
-    if (!ok) {
-      await auditLog('pin_unlock_failed', req.user._id, { ip: req.ip });
-      return res.status(401).json({ message: 'Wrong PIN' });
+
+    // Checklist I8: count grinds through the shared Redis pin-lockout so a
+    // 4-digit PIN cannot be brute-forced across instances. If the counter
+    // store is down the service fails closed — but this endpoint guards an
+    // ALREADY-AUTHENTICATED session's UX, so a Redis outage must not brick
+    // the device: fall back to a single bcrypt compare (rate limiter still
+    // applies) and let the next call re-arm the counter.
+    let result = await verifyPinWithLockout(user._id.toString(), String(pin || ''), user.pinHash, req);
+    if (result.locked && result.reason === 'counter_unavailable') {
+      const ok = await bcrypt.compare(String(pin || ''), user.pinHash);
+      result = ok ? { ok: true } : { ok: false, locked: false };
     }
+    if (result.locked) {
+      return res.status(429).json({
+        message: `Too many failed attempts. Try again in ${Math.max(1, Math.ceil((result.retryAfterSeconds || 0) / 60))} minute(s).`,
+        code: 'PIN_LOCKED',
+        retryAfterSeconds: result.retryAfterSeconds,
+      });
+    }
+    if (!result.ok) {
+      return res.status(401).json({
+        message: 'Wrong PIN',
+        code: 'PIN_INVALID',
+        remaining: result.remaining,
+      });
+    }
+    // Successful unlock restarts the idle window so the very next API call is
+    // not bounced back into IDLE_LOCK.
+    user.lastActivityAt = new Date();
+    user.failedPinAttempts = 0;
+    await user.save();
+    await auditLog('pin_unlock', req.user._id, { ip: req.ip });
     return res.json({ unlocked: true });
   } catch (err) {
     return res.status(500).json({ message: err.message });

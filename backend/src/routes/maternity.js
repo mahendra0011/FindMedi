@@ -105,4 +105,40 @@ router.post('/labour/:id/deliver', clinicalOnly, async (req, res) => {
   }
 });
 
+// Checklist L9: birth certificate PDF — CRS data lives on the BirthRecord the
+// delivery close-out created; server-rendered like every other statutory PDF.
+router.get('/births/:id/certificate', clinicalOnly, async (req, res) => {
+  try {
+    const filter = { _id: req.params.id };
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const row = await BirthRecord.findOne(filter);
+    if (!row) return res.status(404).json({ message: 'Birth record not found' });
+    let motherName = '';
+    if (row.motherId) {
+      try {
+        const { default: User } = await import('../models/User.js');
+        motherName = (await User.findById(row.motherId).select('name'))?.name || '';
+      } catch { /* mother lookup is cosmetic — PDF still prints */ }
+    }
+    let hospitalName = '';
+    if (row.hospitalId) {
+      try {
+        const { default: Hospital } = await import('../models/Hospital.js');
+        hospitalName = (await Hospital.findById(row.hospitalId).select('name'))?.name || '';
+      } catch { /* cosmetic */ }
+    }
+    const { generateBirthCertificatePDF } = await import('../services/pdfService.js');
+    const buffer = await generateBirthCertificatePDF({
+      ...(row.toObject?.() ?? row), birthId: String(row._id), motherName, hospitalName,
+    });
+    await auditLog('birth_certificate_printed', actorId(req), { birthId: row._id, ip: req.ip });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="birth-certificate-${row.certificateNo || String(row._id)}.pdf"`);
+    return res.send(buffer);
+  } catch (err) {
+    logger.error(`Birth certificate error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

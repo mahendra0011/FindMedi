@@ -518,6 +518,10 @@ export const updateAppointmentSchema = z.object({
   // alongside cancelledBy/tier/fee. Previously this key was stripped silently,
   // so every cancel lost its reason.
   cancellationReason: z.string().trim().max(500).optional(),
+  // Item 6 (checklist §1.6): auto follow-up booking. A completion write may
+  // carry the doctor's follow-up interval; the route derives `followUpDate`
+  // server-side and books the linked Pending appointment after the commit.
+  followUpDays: z.number().int().min(1).max(365).optional(),
 });
 
 // â”€â”€â”€ Billing Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1045,7 +1049,7 @@ export const updateBedSchema = z.object({
   dailyRate: positiveNumber.optional(),
   floor: z.string().optional(),
   isAC: z.boolean().optional(),
-  status: z.string().optional(),
+  status: z.enum(['Available', 'Occupied', 'Under Cleaning', 'Maintenance', 'Reserved', 'Blocked', 'Isolation']).optional(),
 });
 
 // â”€â”€â”€ Record Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1285,6 +1289,7 @@ export const createSupplierSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   category: z.string().optional(),
+  gstNumber: z.string().optional(),
   hospitalId: z.string().optional(),
 });
 

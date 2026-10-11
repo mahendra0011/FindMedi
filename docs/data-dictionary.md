@@ -14,7 +14,7 @@
 ## Summary
 
 - **305 models** across 300 files (0 skipped)
-- **6616 schema fields**, of which **733 classified as PII** in **216 collections**
+- **6624 schema fields**, of which **733 classified as PII** in **216 collections**
 - **6 collections** carry a TTL index
 - **103 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -55,7 +55,7 @@
 | `antenatalrecords` | AntenatalRecord | 28 | 3 | 4 | — | Clinical records |
 | `antibioticreviews` | AntibioticReview | 18 | 1 | 3 | — | Clinical records |
 | `apikeys` | ApiKey | 13 | 2 | 5 | — | **UNMAPPED — see gaps** |
-| `appointments` | Appointment | 86 | 11 | 14 | — | Clinical records |
+| `appointments` | Appointment | 87 | 11 | 15 | — | Clinical records |
 | `appointmentseries` | AppointmentSeries | 24 | 4 | 3 | — | **UNMAPPED — see gaps** |
 | `approvalpolicies` | ApprovalPolicy | 14 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `approvalrequests` | ApprovalRequest | 25 | 0 | 2 | — | No PII fields detected |
@@ -308,7 +308,7 @@
 | `stockledgers` | StockLedger | 12 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `stores` | Store | 9 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `strikes` | Strike | 25 | 2 | 8 | — | **UNMAPPED — see gaps** |
-| `suppliers` | Supplier | 29 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
+| `suppliers` | Supplier | 34 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `supporttickets` | SupportTicket | 26 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `systemsettings` | SystemSetting | 7 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `tasks` | Task | 17 | 2 | 5 | — | **UNMAPPED — see gaps** |
@@ -320,7 +320,7 @@
 | `tokens` | Token | 25 | 4 | 3 | — | OTP / setup codes / tokens |
 | `transactionledgers` | TransactionLedger | 20 | 4 | 9 | — | Payment and ledger entries |
 | `triages` | Triage | 46 | 16 | 2 | — | Clinical records |
-| `users` | User | 103 | 27 | 18 | — | **UNMAPPED — see gaps** |
+| `users` | User | 105 | 27 | 19 | — | **UNMAPPED — see gaps** |
 | `vaccinationalerts` | VaccinationAlert | 12 | 1 | 1 | — | Clinical records |
 | `vaccinationschedules` | VaccinationSchedule | 17 | 1 | 5 | — | Clinical records |
 | `vehicles` | Vehicle | 20 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
@@ -1114,6 +1114,7 @@ source `Appointment.js` · timestamps: yes · virtuals: 0 · retention: Statutor
 | `consultationStartTime` | Date |  |  |  |  |  |  |
 | `consultationEndTime` | Date |  |  |  |  |  |  |
 | `followUpDate` | Date |  |  |  |  |  |  |
+| `followUpFor` | ObjectId |  |  | null |  | Appointment |  |
 | `reminderSent` | Boolean |  |  | false |  |  |  |
 | `reminderState.t24` | Subdocument |  |  |  |  |  |  |
 | `reminderState.t24.status` | String |  |  |  | pending, sending, sent, failed, skipped |  |  |
@@ -1147,6 +1148,7 @@ Indexes:
 | `patientRecordId:1` |  |
 | `encounterId:1` |  |
 | `checkoutExpiresAt:1` |  |
+| `followUpFor:1` |  |
 | `seriesId:1` |  |
 | `hospitalId:1` |  |
 | `doctorId:1, patientId:1, date:1, time:1` | unique, partial |
@@ -1628,8 +1630,8 @@ source `Bed.js` · timestamps: yes · virtuals: 0 · retention: n/a — no perso
 | `bedNumber` | String | yes |  |  |  |  |  |
 | `ward` | String | yes |  |  | General, Semi-Private, Private, ICU, NICU, PICU, Emergency |  |  |
 | `bedType` | String | yes |  |  | General, Semi-Private, Private, Deluxe/Suite, ICU, NICU, PICU, HDU, Isolation, Day-Care, Dialysis Chair |  |  |
-| `status` | String |  |  | "Available" | Available, Occupied, Under Cleaning, Maintenance |  |  |
-| `srcStatus` | String |  |  | "manual" | admit, discharge, transfer, cleaning, maintenance, available, manual |  |  |
+| `status` | String |  |  | "Available" | Available, Occupied, Under Cleaning, Maintenance, Reserved, Blocked, Isolation |  |  |
+| `srcStatus` | String |  |  | "manual" | admit, discharge, transfer, cleaning, maintenance, available, reserve, block, isolation, manual |  |  |
 | `oxygenPoint` | Boolean |  |  | false |  |  |  |
 | `locationId` | ObjectId |  |  | null |  | Location |  |
 | `wardTypeId` | ObjectId |  |  | null |  | WardType |  |
@@ -10653,7 +10655,12 @@ source `Supplier.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `email` | String |  |  |  |  |  |  |
 | `phone` | String | yes |  |  |  |  |  |
 | `address` | String |  |  |  |  |  |  |
-| `gstNumber` | String |  |  |  |  |  |  |
+| `gstNumber` | String |  |  | "" |  |  |  |
+| `gstValidatedAt` | Date |  |  | null |  |  |  |
+| `onboardingStatus` | String |  |  | "Approved" | Pending, Approved, Rejected |  |  |
+| `onboardingReview.by` | ObjectId |  |  | null |  | User |  |
+| `onboardingReview.at` | Date |  |  | null |  |  |  |
+| `onboardingReview.reason` | String |  |  | "" |  |  |  |
 | `category` | String |  |  | "General" | Medical Supplies, Pharmaceuticals, Surgical Instruments, Equipment, General, Reagents, Implants, Linen, Medical Gases, Food, IT, OT Consumables |  |  |
 | `items` | Array<Mixed> |  |  |  |  |  |  |
 | `rating` | Number |  |  |  |  |  |  |
@@ -11123,6 +11130,8 @@ source `User.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — 
 | `phone` | String | yes |  |  |  |  | Contact |
 | `allowedIps` | Array<Mixed> |  |  |  |  |  |  |
 | `pinHash` | String |  |  | "" |  |  |  |
+| `lastActivityAt` | Date |  |  | null |  |  |  |
+| `failedPinAttempts` | Number |  |  | 0 |  |  |  |
 | `passkeys` | Array<subdocument> |  |  |  |  |  |  |
 | `passkeys.credentialID` | String | yes |  |  |  |  |  |
 | `passkeys.publicKey` | String | yes |  |  |  |  |  |
@@ -11223,6 +11232,7 @@ Indexes:
 | `role:1` |  |
 | `hospitalId:1` |  |
 | `facilityId:1` |  |
+| `lastActivityAt:1` |  |
 | `uhid:1` | unique, sparse |
 | `isBloodDonor:1` |  |
 | `isVerified:1` |  |

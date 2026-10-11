@@ -343,6 +343,18 @@ apiClient.interceptors.response.use(
       }
     }
 
+    // P2-31 / checklist I8: the server hit the idle-PIN window (403
+    // IDLE_LOCK). Surface it to the global lock overlay — same pattern as the
+    // step-up dialog. The request still rejects below so no caller treats it
+    // as success; the overlay's unlock re-arms lastActivityAt server-side.
+    if (error.response?.status === 403 && error.response?.data?.code === 'IDLE_LOCK') {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('idle-lock', {
+          detail: { idleMinutes: error.response.data.idleMinutes },
+        }));
+      }
+    }
+
     // AUTH-F-06: the server locked this session to the password-reset
     // allowlist (change-password / logout / logout-all / me). Send the tab to
     // the one page that can clear the flag; the request itself still rejects

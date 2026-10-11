@@ -9,7 +9,7 @@ const config: RoleDashboardConfig = {
   kpis: [
     { label: "Today's patients", value: '12', hint: '4 RCT · 3 scaling' },
     { label: 'Chair occupancy', value: '78%' },
-    { label "Week's earnings", value: '₹48,200' },
+    { label: "Week's earnings", value: '₹48,200' },
     { label: 'Rating', value: '4.8 ★', hint: '212 reviews' },
   ],
   tasks: [

@@ -73,4 +73,30 @@ router.post('/:id/release', staffOnly, async (req, res) => {
   }
 });
 
+// Checklist L9: death certificate PDF — server-rendered (pdfkit), staff-only,
+// tenant-scoped, audited. Same pattern as payslip printing.
+router.get('/deaths/:id/certificate', staffOnly, async (req, res) => {
+  try {
+    const row = await DeathRecord.findOne({ _id: req.params.id, ...tenantFilter(req) });
+    if (!row) return res.status(404).json({ message: 'Death record not found' });
+    let certifierName = '';
+    if (row.certifiedBy) {
+      try {
+        const { default: User } = await import('../models/User.js');
+        const certifier = await User.findById(row.certifiedBy).select('name');
+        certifierName = certifier?.name || '';
+      } catch { /* certifier lookup is cosmetic — PDF still prints */ }
+    }
+    const { generateDeathCertificatePDF } = await import('../services/pdfService.js');
+    const buffer = await generateDeathCertificatePDF({ ...(row.toObject?.() ?? row), certifierName });
+    await auditLog('death_certificate_printed', actorId(req), { deathId: row._id, ip: req.ip });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="death-certificate-${row.certificateNo || String(row._id)}.pdf"`);
+    return res.send(buffer);
+  } catch (err) {
+    logger.error(`Death certificate error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

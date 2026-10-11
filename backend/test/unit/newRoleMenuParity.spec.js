@@ -30,12 +30,23 @@ const menuPaths = (role) => {
 
 const appRoutes = () => {
   const out = [];
-  const re = /<Route path="([^"]+)" element=\{<(\w+)( allowedRoles=\{\[([^\]]*)\])?/g;
+  // Resolve `const NAME = [...]` role constants (e.g. allowedRoles={CLINIC_ROLES})
+  // so constant-based routes are not false denials.
+  const consts = {};
+  const cre = /const\s+([A-Z][A-Z0-9_]*)\s*=\s*\[([^\]]*)\]/g;
+  let cm;
+  while ((cm = cre.exec(app)) !== null) {
+    consts[cm[1]] = cm[2].replace(/['"\s]/g, '').split(',').filter(Boolean);
+  }
+  const re = /<Route path="([^"]+)" element=\{<(\w+)( allowedRoles=\{(\[[^\]]*\]|[A-Za-z_$][\w$]*)\})?/g;
   let m;
   while ((m = re.exec(app)) !== null) {
     const isRoleRoute = m[2] === 'RoleRoute';
+    const raw = m[4] || '';
     const roles = isRoleRoute
-      ? (m[4] || '').replace(/['"\s]/g, '').split(',').filter(Boolean)
+      ? (raw.startsWith('[')
+          ? raw.replace(/['"[\]\s]/g, '').split(',').filter(Boolean)
+          : (consts[raw] || []))
       : ['*'];
     out.push({ path: m[1], roles });
   }

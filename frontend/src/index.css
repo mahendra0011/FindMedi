@@ -1335,6 +1335,55 @@ html[data-chat-contrast='high'] .chat-row-enter > div > div {
   --status-info: 210 80% 65%;
 }
 
+/* ── File 19: clinical severity / ESI / bed tokens (checklist O4) ─────────
+   HSL triplets like --status-*; consumed as hsl(var(--x) / alpha). */
+:root {
+  /* Alert severity */
+  --sev-info: 210 80% 55%;
+  --sev-warning: 38 92% 45%;
+  --sev-critical: 0 78% 48%;
+  /* ESI triage levels 1 (critical) → 5 (minor) */
+  --esi-1: 0 78% 48%;
+  --esi-2: 16 90% 47%;
+  --esi-3: 38 92% 45%;
+  --esi-4: 152 60% 42%;
+  --esi-5: 210 80% 55%;
+  /* Bed states (incl. checklist Reserved/Blocked/Isolation) */
+  --bed-available: 152 60% 42%;
+  --bed-occupied: 210 80% 55%;
+  --bed-reserved: 270 55% 55%;
+  --bed-blocked: 0 60% 45%;
+  --bed-isolation: 262 52% 47%;
+  --bed-cleaning: 38 92% 50%;
+  --bed-maintenance: 210 12% 50%;
+}
+.dark {
+  --sev-info: 210 80% 65%;
+  --sev-warning: 38 92% 58%;
+  --sev-critical: 0 78% 60%;
+  --esi-1: 0 78% 60%;
+  --esi-2: 16 90% 58%;
+  --esi-3: 38 92% 58%;
+  --esi-4: 152 60% 52%;
+  --esi-5: 210 80% 65%;
+  --bed-available: 152 60% 52%;
+  --bed-occupied: 210 80% 65%;
+  --bed-reserved: 270 55% 68%;
+  --bed-blocked: 0 60% 58%;
+  --bed-isolation: 262 52% 65%;
+  --bed-cleaning: 38 92% 58%;
+  --bed-maintenance: 210 12% 65%;
+}
+/* critPulse — critical alerts breathe instead of a hard blink (File 19 §19.4) */
+@keyframes critPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.crit-pulse { animation: critPulse 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .crit-pulse { animation: none; }
+}
+
 /* ── File 19: density modes (ops tables breathe on wall screens) ────────── */
 :root[data-density='compact'] {
   --pad-card: 0.5rem;

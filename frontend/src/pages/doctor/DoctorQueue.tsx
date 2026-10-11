@@ -115,7 +115,8 @@ export default function DoctorQueue() {
             ))}
           </CardContent>
         </Card>
-      )}
+        )}
+      </div>
     </div>
   );
 }

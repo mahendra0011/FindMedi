@@ -14,12 +14,22 @@ const bedSchema = new mongoose.Schema({
     ],
     required: true,
   },
-  status: { type: String, enum: ['Available', 'Occupied', 'Under Cleaning', 'Maintenance'], default: 'Available' },
+  // Checklist I8 (file 25): Reserved/Blocked/Isolation were missing — a bed
+  // held for a planned admission or an isolation precaution could only be
+  // faked as Maintenance.
+  status: {
+    type: String,
+    enum: ['Available', 'Occupied', 'Under Cleaning', 'Maintenance', 'Reserved', 'Blocked', 'Isolation'],
+    default: 'Available',
+  },
   srcStatus: {
     // File 13 §13.6: hard state machine — every mutation writes srcStatus so
     // audits can prove which transition armed the bed.
     type: String,
-    enum: ['admit', 'discharge', 'transfer', 'cleaning', 'maintenance', 'available', 'manual'],
+    enum: [
+      'admit', 'discharge', 'transfer', 'cleaning', 'maintenance', 'available',
+      'reserve', 'block', 'isolation', 'manual',
+    ],
     default: 'manual',
   },
   oxygenPoint: { type: Boolean, default: false },

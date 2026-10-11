@@ -194,9 +194,27 @@ export async function initPin(req, res, next) {
   res.json({ message: 'PIN set successfully' });
 }
 
-export function updateActivity(req, res, next) {
-  if (req.authUser) {
-    User.updateOne({ _id: req.authUser._id }, { $set: { lastActivityAt: new Date() } }).exec().catch(() => {});
+export function updateActivity(req, _res, next) {
+  // Throttled: one write per user per minute at most, so protect() never
+  // becomes a write-per-request load. The in-memory value on req.authUser is
+  // refreshed too so a burst of parallel requests collapses to a single write.
+  //
+  // Fail-soft by design: this is activity bookkeeping, not the request's
+  // purpose. A synchronous throw here (partial User mock in tests, model
+  // registration issue in prod) must not take down an otherwise-authenticated
+  // request — same contract as the .catch(() => {}) below it.
+  try {
+    if (req.authUser && typeof User.updateOne === 'function') {
+      const last = new Date(req.authUser.lastActivityAt || 0).getTime();
+      if (Date.now() - last > 60_000) {
+        req.authUser.lastActivityAt = new Date();
+        User.updateOne({ _id: req.authUser._id }, { $set: { lastActivityAt: req.authUser.lastActivityAt } })
+          .exec()
+          .catch(() => {});
+      }
+    }
+  } catch {
+    /* best-effort: never fail the request over activity tracking */
   }
-  next();
+  if (typeof next === 'function') next();
 }

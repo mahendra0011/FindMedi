@@ -1348,6 +1348,7 @@ export const api = {
   hubDeleteSub:           (id)      => request(`/hub/webhooks/subs/${id}`, { method: 'DELETE' }),
   hubDeliveries:          (p={})    => request('/hub/webhooks/deliveries' + qs(p)),
   setPin:                (pin)     => request('/auth/pin', { method: 'POST', body: JSON.stringify({ pin }) }),
+  unlockPin:             (pin)     => request('/auth/pin/unlock', { method: 'POST', body: JSON.stringify({ pin }) }),
   unlockWithPin:         (pin)     => request('/auth/pin/unlock', { method: 'POST', body: JSON.stringify({ pin }) }),
   downloadGstr:          (month)   => request('/finance/gstr?month=' + encodeURIComponent(month)),
 

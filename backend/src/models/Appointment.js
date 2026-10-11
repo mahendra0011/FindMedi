@@ -128,6 +128,10 @@ const appointmentSchema = new mongoose.Schema({
   consultationStartTime: { type: Date },
   consultationEndTime: { type: Date },
   followUpDate: { type: Date },
+  // Item 6 (checklist §1.6): the auto-booked NEXT visit points back at the
+  // consult that ordered it. One follow-up per parent — the route checks this
+  // before creating, so a retried completion cannot double-book.
+  followUpFor: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment', default: null, index: true },
   reminderSent: { type: Boolean, default: false },
   // NOTIF-M-03: T-24h/T-2h reminder state (see reminderMilestoneSchema above).
   reminderState: {

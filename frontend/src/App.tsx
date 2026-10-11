@@ -37,6 +37,7 @@ import AppMotion from './components/AppMotion';
 import { LenisScroll } from './components/LenisScroll';
 import ErrorBoundary from './components/ErrorBoundary';
 import StepUpDialog from './components/StepUpDialog';
+import IdleLockOverlay from '@/components/IdleLockOverlay';
 import { useProactiveTokenRefresh } from '@/lib/useProactiveTokenRefresh';
 import EmergencyFlowController from '@/components/emergency/EmergencyFlowController';
 import ReminderAlarmHost from '@/components/patient/ReminderAlarmHost';
@@ -62,6 +63,7 @@ const Appointments = lazy(() => import('./pages/Appointments'));
 const MedicalRecords = lazy(() => import('./pages/MedicalRecords'));
 const Billing = lazy(() => import('./pages/Billing'));
 const VerifyTransaction = lazy(() => import('./pages/VerifyTransaction'));
+const VerifyDoc = lazy(() => import('./pages/VerifyDoc'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 
@@ -583,6 +585,9 @@ function StaffDashboard() {
 }
 
 const CLINIC_OPS_ROLES = ['clinic_admin', 'clinic_receptionist', 'clinic_nurse', 'clinic_accountant', 'clinic_pharmacist'];
+// File 22 P2-39: all clinic org roles (incl. clinic_doctor) can reach the clinic
+// console; each page still gates its own actions (only clinic_doctor writes Rx).
+const CLINIC_ROLES = ['clinic_doctor', 'clinic_admin', 'clinic_receptionist', 'clinic_nurse', 'clinic_accountant', 'clinic_pharmacist'];
 
 const SPECIALTY_DASHBOARD_PATHS: Record<string, string> = {
   dentist: '/dashboard/dentist',
@@ -719,6 +724,8 @@ const App = () => (
           <VideoCallMinimized />
           {/* AUTHZ-M-03 (F7): global re-verification prompt for STEP_UP_REQUIRED */}
           <StepUpDialog />
+          {/* Checklist I8: global idle PIN-lock overlay (403 IDLE_LOCK) */}
+          <IdleLockOverlay />
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -749,6 +756,8 @@ const App = () => (
                     <Route path="/kiosk" element={<Kiosk />} />
                     <Route path="/forms" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'clinic_doctor', 'nurse', 'superadmin']}><FormsFill /></RoleRoute>} />
                     <Route path="/sign/:kind/:id" element={<RoleRoute allowedRoles={['patient', 'doctor', 'clinic_doctor', 'hospital_admin', 'nurse']}><SignDocument /></RoleRoute>} />
+                    {/* Public seal verification — no login (File 14 §14.5) */}
+                    <Route path="/verify/doc/:kind/:id" element={<VerifyDoc />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   {/* AUTH-F-06: forced rotation landing page for mustResetPassword sessions */}
                   <Route path="/set-password" element={<SetPassword />} />
@@ -1137,15 +1146,16 @@ const App = () => (
                     <Route path="/psychiatrist/leave-requests" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorLeaveRequests /></RoleRoute>} />
                     <Route path="/psychiatrist/profile" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorProfile /></RoleRoute>} />
 
-                    {/* Clinic Doctor routes */}
-const CLINIC_ROLES = ['clinic_doctor', 'clinic_admin', 'clinic_receptionist', 'clinic_nurse', 'clinic_accountant', 'clinic_pharmacist'];
-// File 22 P2-39: all clinic org roles can reach the clinic console; each page
-// still gates its own actions (e.g. only clinic_doctor writes prescriptions).
-<Route path="/clinic/dashboard" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicDashboard /></RoleRoute>} />
+                    {/* Clinic Doctor routes — CLINIC_ROLES is declared at module scope */}
+                    <Route path="/clinic/dashboard" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicDashboard /></RoleRoute>} />
 <Route path="/clinic/overview" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicOverview /></RoleRoute>} />
 <Route path="/clinic/appointments/approve" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicAppointments /></RoleRoute>} />
 <Route path="/clinic/appointments/upcoming" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicAppointments /></RoleRoute>} />
 <Route path="/clinic/appointments/history" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicAppointments /></RoleRoute>} />
+                    <Route path="/clinic/appointments/approved" element={<RoleRoute allowedRoles={CLINIC_ROLES}><DoctorAppointments /></RoleRoute>} />
+                    <Route path="/clinic/chat" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ChatPage /></RoleRoute>} />
+                    <Route path="/clinic/calls" element={<RoleRoute allowedRoles={CLINIC_ROLES}><DoctorCalls /></RoleRoute>} />
+                    <Route path="/clinic/video-calls" element={<RoleRoute allowedRoles={CLINIC_ROLES}><DoctorVideoCalls /></RoleRoute>} />
 <Route path="/clinic/appointments" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicAppointments /></RoleRoute>} />
 <Route path="/clinic/online-appointments" element={<RoleRoute allowedRoles={CLINIC_ROLES}><DoctorOnlineAppointments /></RoleRoute>} />
 <Route path="/clinic/home-visit" element={<RoleRoute allowedRoles={CLINIC_ROLES}><DoctorInPersonAppointments /></RoleRoute>} />

@@ -126,6 +126,12 @@ router.post('/otp/verify', protect, async (req, res) => {
 });
 
 // File 22 P2-34: Hindi consent templates (server-side, versioned).
+// AUTHZ-M-02: static reference text baked into the server bundle — the same
+// shape as video.js GET /status and facilities.js GET /settings, which are
+// both tagged `self`: no per-user/per-tenant object exists to scope by, so
+// protect + tag is the recorded decision. Versioning question (what text a
+// patient signed in March) stays with the stored consent record, not this list.
+// authz: self
 router.get('/templates/consent/:lang', protect, async (req, res) => {
   try {
     const lang = req.params.lang === 'hi' ? 'hi' : 'en';

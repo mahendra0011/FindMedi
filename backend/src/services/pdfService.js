@@ -722,3 +722,80 @@ export const generatePaymentInvoicePDF = async (payment, reference = null, user 
   doc.y = y + boxHeight + 20;
   });
 };
+
+// Checklist L9: statutory death certificate (mortuary.js) — server-rendered
+// so printing never depends on client PDF libs, same as payslips.
+export const generateDeathCertificatePDF = async (data = {}) => collectPdf((doc) => {
+  const formatDateTime = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+  };
+  drawHeader(doc, 'Death Certificate', { id: data.certificateNo || data.mortuaryTagNo || '', date: data.issuedAt || new Date() });
+  drawInfoGrid(doc, [
+    {
+      title: 'Deceased',
+      rows: [
+        { label: 'Name', value: data.patientName || data.patient?.name },
+        { label: 'Age', value: data.patient?.age },
+        { label: 'Gender', value: data.patient?.gender },
+        { label: 'Patient ID', value: data.patientId },
+      ],
+    },
+    {
+      title: 'Death Details',
+      rows: [
+        { label: 'Date & Time', value: formatDateTime(data.timeOfDeath) },
+        { label: 'Cause (ICD-10)', value: data.causeIcd10 },
+        { label: 'Mortuary Tag', value: data.mortuaryTagNo },
+        { label: 'MLC Case', value: data.mlcCaseId },
+      ],
+    },
+  ]);
+  drawSectionTitle(doc, 'Cause of Death');
+  drawTextBlock(doc, 'Clinical cause (free text)', data.causeText);
+  drawSectionTitle(doc, 'Certification');
+  drawTextBlock(doc, 'Declaration',
+    'This is to certify that the above-named person was received dead / died under medical care at this hospital, '
+    + 'and the particulars recorded above are true and correct to the best of my knowledge and belief.');
+  drawTextBlock(doc, 'Released To', data.releasedTo);
+  drawSignature(doc, data.certifierName ? `Certifying Doctor — ${doctorName(data.certifierName)}` : 'Certifying Doctor');
+});
+
+// Checklist L9: statutory birth certificate (maternity.js) — CRS data lives on
+// the BirthRecord created by the delivery close-out.
+export const generateBirthCertificatePDF = async (data = {}) => collectPdf((doc) => {
+  const formatDateTime = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+  };
+  drawHeader(doc, 'Birth Certificate', { id: data.certificateNo || '', date: data.issuedAt || new Date() });
+  drawInfoGrid(doc, [
+    {
+      title: 'Child',
+      rows: [
+        { label: 'Sex', value: data.sex },
+        { label: 'Weight (kg)', value: data.weightKg },
+        { label: 'Time of Birth', value: formatDateTime(data.timeOfBirth) },
+        { label: 'Delivery Type', value: data.deliveryType },
+      ],
+    },
+    {
+      title: 'Mother',
+      rows: [
+        { label: 'Name', value: data.motherName },
+        { label: 'Mother ID', value: data.motherId },
+        { label: 'Birth Record ID', value: data.birthId },
+        { label: 'Hospital', value: data.hospitalName },
+      ],
+    },
+  ]);
+  drawSectionTitle(doc, 'Certification');
+  drawTextBlock(doc, 'Declaration',
+    'This is to certify that the above birth was registered at this hospital and the particulars recorded '
+    + 'above are true and correct to the best of my knowledge and belief.');
+  drawSignature(doc, data.registrarName ? `Registrar — ${doctorName(data.registrarName)}` : 'Registrar / Attending Doctor');
+});

@@ -29,7 +29,11 @@ Goal: ek **complete, real-world Hospital Management System** jisme har departmen
 | 20 | `20-library-and-framework-stack.md` | existing vs recommended libraries, architecture patterns |
 | 21 | `21-coverage-matrix-blueprint-vs-repo.md` | 102-section blueprint vs repo vs files (kya already tha, kya naya) |
 | 22 | `22-implementation-status-report.md` | **Repo vs md files: kya implement hua / adhura / baki** (latest commit audit) |
-| 23 | `23-remaining-work-checklist.md` | **Jo baki hai uski prioritized checklist** (P0/P1/P2) |
+| 23 | `23-remaining-work-checklist.md` | **Abhi baki hua kaam** (updated, HEAD b3d4bfb): build/test fixes + chhote gaps + naye modules + test gaps |
+| 25 | `25-implementation-status-v3.md` | **Implementation status v3 (final re-check, HEAD b3d4bfb)**: 116 ✅ / 19 🟡 / 4 ❌, build-breaking bugs, test results |
+
+> **Note:** File 24 (Implementation Status v2) is folder me maujood nahi hai; uska reference sirf file 25 me hai.
+
 
 ## Verification levels (har item pe ye tag hai)
 

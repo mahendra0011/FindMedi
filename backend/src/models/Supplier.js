@@ -8,7 +8,22 @@ const supplierSchema = new mongoose.Schema({
   email: { type: String },
   phone: { type: String, required: true },
   address: { type: String },
-  gstNumber: { type: String },
+  gstNumber: { type: String, default: '' },
+  // Checklist L5: GSTIN is format+checksum validated (lib/gstin.js) at write
+  // time; `gstValidatedAt` records when it last passed.
+  gstValidatedAt: { type: Date, default: null },
+  // Checklist L5: vendor onboarding approval. Legacy rows hydrate as
+  // Approved; the create route forces Pending explicitly.
+  onboardingStatus: {
+    type: String,
+    enum: ['Pending', 'Approved', 'Rejected'],
+    default: 'Approved',
+  },
+  onboardingReview: {
+    by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    at: { type: Date, default: null },
+    reason: { type: String, default: '' },
+  },
   // A2 (rolesmd/subcatogary.md) + catogary.md L290 — the 5 originals plus
   // reagents, implants, linen, gases, food, IT and B2B surgical/OT
   // consumables. Additive only.

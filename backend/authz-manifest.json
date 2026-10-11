@@ -10,33 +10,30 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1550,
+  "total": 1561,
   "counts": {
-    "any": 1,
-    "clinical": 1,
     "inherited": 5,
-    "object": 425,
+    "object": 426,
     "public": 104,
-    "role": 952,
-    "self": 61,
-    "unclassified": 1
+    "role": 964,
+    "self": 62
   },
   "byMechanism": {
-    "adminOnly": 109,
+    "adminOnly": 111,
     "assertAssistantBookingAccess": 3,
     "assertCallParticipant": 2,
     "assertEhrSearchAccess": 1,
     "assertMentalHealthAccess": 11,
-    "authorize": 640,
+    "authorize": 643,
     "authorizeObject": 74,
     "canAccessPatient": 5,
     "canAccessRecord": 4,
     "clinicOnly": 4,
-    "clinicalOnly": 13,
-    "clinicalStaffOnly": 9,
+    "clinicalOnly": 14,
+    "clinicalStaffOnly": 10,
     "clinicianOnly": 6,
     "denyCallAccess": 2,
-    "doctorOnly": 10,
+    "doctorOnly": 14,
     "hospitalAdminOnly": 9,
     "orderRoleOnly": 7,
     "platformAdminOnly": 15,
@@ -53,7 +50,7 @@
     "resolvePartner": 6,
     "roleOnly": 5,
     "scopeToHospital": 9,
-    "staffOnly": 3,
+    "staffOnly": 4,
     "superadminOnly": 57,
     "tokenDeskOnly": 8,
     "tpaOnly": 11
@@ -113,19 +110,10 @@
         "routes": 1
       }
     ],
-    "unnamedHandlerGuard": 310,
+    "unnamedHandlerGuard": 311,
     "note": "AUTHZ-M-01 is OPEN. The alternatives are not necessarily wrong - several predate authorizeObject and carry domain rules it does not model - but the split was previously invisible, and a route can be guarded twice by two mechanisms whose rules were never reconciled."
   },
-  "unrecognised": [
-    {
-      "id": "radiology.js:238",
-      "target": "'/dicom/worklist'"
-    },
-    {
-      "id": "signatures.js:129",
-      "target": "'/templates/consent/:lang'"
-    }
-  ],
+  "unrecognised": [],
   "routes": [
     {
       "file": "adminApplications.js",
@@ -689,7 +677,7 @@
     },
     {
       "file": "appointments.js",
-      "line": 1261,
+      "line": 1334,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "role"
@@ -983,175 +971,175 @@
     },
     {
       "file": "auth.js",
-      "line": 383,
+      "line": 390,
       "method": "POST",
       "target": "'/register'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 777,
+      "line": 784,
       "method": "POST",
       "target": "'/verify-otp'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 845,
+      "line": 852,
       "method": "POST",
       "target": "'/resend-otp'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 896,
+      "line": 903,
       "method": "POST",
       "target": "'/login'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1227,
+      "line": 1234,
       "method": "POST",
       "target": "'/step-up'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 1258,
+      "line": 1265,
       "method": "POST",
       "target": "'/2fa/complete'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1331,
+      "line": 1338,
       "method": "POST",
       "target": "'/google'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1456,
+      "line": 1463,
       "method": "POST",
       "target": "'/google-register'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1563,
+      "line": 1570,
       "method": "POST",
       "target": "'/forgot-password'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1597,
+      "line": 1604,
       "method": "POST",
       "target": "'/reset-password'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1691,
+      "line": 1698,
       "method": "POST",
       "target": "'/doctor-setup'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1729,
+      "line": 1736,
       "method": "POST",
       "target": "'/ambulance-setup'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1782,
+      "line": 1789,
       "method": "GET",
       "target": "'/me'",
       "tag": "self"
     },
     {
       "file": "auth.js",
-      "line": 1789,
+      "line": 1796,
       "method": "PUT",
       "target": "'/change-password'",
       "tag": "self"
     },
     {
       "file": "auth.js",
-      "line": 1853,
+      "line": 1860,
       "method": "POST",
       "target": "'/avatar'",
       "tag": "self"
     },
     {
       "file": "auth.js",
-      "line": 1905,
+      "line": 1912,
       "method": "PUT",
       "target": "'/profile'",
       "tag": "self"
     },
     {
       "file": "auth.js",
-      "line": 1997,
+      "line": 2004,
       "method": "POST",
       "target": "'/logout'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 2013,
+      "line": 2020,
       "method": "POST",
       "target": "'/logout-all'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2030,
+      "line": 2037,
       "method": "POST",
       "target": "'/pin'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2047,
+      "line": 2054,
       "method": "POST",
       "target": "'/pin/unlock'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2064,
+      "line": 2098,
       "method": "GET",
       "target": "'/allowed-ips'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2073,
+      "line": 2107,
       "method": "PUT",
       "target": "'/allowed-ips'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2097,
+      "line": 2131,
       "method": "GET",
       "target": "'/sessions'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2151,
+      "line": 2185,
       "method": "DELETE",
       "target": "'/sessions/:jti'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2192,
+      "line": 2226,
       "method": "POST",
       "target": "'/refresh'",
       "tag": "public"
@@ -1172,126 +1160,147 @@
     },
     {
       "file": "beds.js",
-      "line": 50,
+      "line": 54,
       "method": "GET",
       "target": "'/heatmap'",
       "tag": "role"
     },
     {
       "file": "beds.js",
-      "line": 77,
+      "line": 81,
       "method": "POST",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "beds.js",
-      "line": 88,
+      "line": 92,
       "method": "PUT",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "beds.js",
-      "line": 103,
+      "line": 121,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "beds.js",
-      "line": 117,
+      "line": 135,
       "method": "POST",
       "target": "'/:id/hold-lock'",
       "tag": "role"
     },
     {
       "file": "billing.js",
-      "line": 223,
+      "line": 224,
       "method": "GET",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "billing.js",
-      "line": 290,
+      "line": 291,
       "method": "POST",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "billing.js",
-      "line": 374,
+      "line": 400,
       "method": "GET",
       "target": "'/doctor-fees'",
       "tag": "role"
     },
     {
       "file": "billing.js",
-      "line": 385,
+      "line": 411,
       "method": "POST",
       "target": "'/doctor-fees'",
       "tag": "role"
     },
     {
       "file": "billing.js",
-      "line": 403,
+      "line": 429,
+      "method": "GET",
+      "target": "'/:id/tax-invoice'",
+      "tag": "role"
+    },
+    {
+      "file": "billing.js",
+      "line": 463,
+      "method": "POST",
+      "target": "'/:id/debit-note'",
+      "tag": "role"
+    },
+    {
+      "file": "billing.js",
+      "line": 493,
+      "method": "GET",
+      "target": "'/:id/debit-notes'",
+      "tag": "role"
+    },
+    {
+      "file": "billing.js",
+      "line": 509,
       "method": "GET",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "billing.js",
-      "line": 423,
+      "line": 529,
       "method": "PUT",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "billing.js",
-      "line": 478,
+      "line": 584,
       "method": "POST",
       "target": "'/:id/collect'",
       "tag": "role"
     },
     {
       "file": "billing.js",
-      "line": 520,
+      "line": 626,
       "method": "POST",
       "target": "'/:id/cancel'",
       "tag": "role"
     },
     {
       "file": "billing.js",
-      "line": 566,
+      "line": 672,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "billing.js",
-      "line": 603,
+      "line": 709,
       "method": "POST",
       "target": "'/pay'",
       "tag": "object"
     },
     {
       "file": "billing.js",
-      "line": 1364,
+      "line": 1470,
       "method": "GET",
       "target": "'/:id/invoice'",
       "tag": "role"
     },
     {
       "file": "billing.js",
-      "line": 1401,
+      "line": 1507,
       "method": "GET",
       "target": "'/:id/bill'",
       "tag": "role"
     },
     {
       "file": "billing.js",
-      "line": 1438,
+      "line": 1544,
       "method": "GET",
       "target": "'/verify/:id'",
       "tag": "object"
@@ -2026,49 +2035,49 @@
     },
     {
       "file": "clinical.js",
-      "line": 23,
+      "line": 26,
       "method": "GET",
       "target": "'/emr/templates'",
-      "tag": "any"
+      "tag": "inherited"
     },
     {
       "file": "clinical.js",
-      "line": 35,
+      "line": 43,
       "method": "POST",
       "target": "'/cds/check'",
-      "tag": "clinical"
+      "tag": "role"
     },
     {
       "file": "clinical.js",
-      "line": 92,
+      "line": 100,
       "method": "GET",
       "target": "'/rx-templates'",
       "tag": "public"
     },
     {
       "file": "clinical.js",
-      "line": 103,
+      "line": 111,
       "method": "POST",
       "target": "'/rx-templates'",
       "tag": "public"
     },
     {
       "file": "clinical.js",
-      "line": 124,
+      "line": 132,
       "method": "POST",
       "target": "'/scribe/draft'",
       "tag": "public"
     },
     {
       "file": "clinical.js",
-      "line": 158,
+      "line": 166,
       "method": "POST",
       "target": "'/icu/flowsheet'",
       "tag": "object"
     },
     {
       "file": "clinical.js",
-      "line": 185,
+      "line": 193,
       "method": "GET",
       "target": "'/icu/flowsheet'",
       "tag": "public"
@@ -3090,7 +3099,35 @@
     },
     {
       "file": "doctor.js",
-      "line": 273,
+      "line": 290,
+      "method": "GET",
+      "target": "'/teleconsult/compliance'",
+      "tag": "role"
+    },
+    {
+      "file": "doctor.js",
+      "line": 307,
+      "method": "POST",
+      "target": "'/teleconsult/consent'",
+      "tag": "role"
+    },
+    {
+      "file": "doctor.js",
+      "line": 326,
+      "method": "GET",
+      "target": "'/teleconsult/consent/:appointmentId'",
+      "tag": "role"
+    },
+    {
+      "file": "doctor.js",
+      "line": 337,
+      "method": "POST",
+      "target": "'/teleconsult/validate-prescription'",
+      "tag": "role"
+    },
+    {
+      "file": "doctor.js",
+      "line": 357,
       "method": "GET",
       "target": "'/tasks'",
       "tag": "role"
@@ -5148,112 +5185,119 @@
     },
     {
       "file": "inventory.js",
-      "line": 23,
+      "line": 24,
       "method": "POST",
       "target": "'/items'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 31,
+      "line": 32,
       "method": "GET",
       "target": "'/items'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 52,
+      "line": 53,
       "method": "PUT",
       "target": "'/items/:id'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 68,
+      "line": 69,
       "method": "PUT",
       "target": "'/items/:id/stock'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 119,
+      "line": 120,
       "method": "GET",
       "target": "'/items/:id'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 130,
+      "line": 131,
       "method": "GET",
       "target": "'/stats'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 152,
+      "line": 153,
       "method": "POST",
       "target": "'/suppliers'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 160,
+      "line": 173,
       "method": "GET",
       "target": "'/suppliers'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 173,
+      "line": 186,
       "method": "PUT",
       "target": "'/suppliers/:id'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 189,
+      "line": 215,
+      "method": "POST",
+      "target": "'/suppliers/:id/onboarding'",
+      "tag": "role"
+    },
+    {
+      "file": "inventory.js",
+      "line": 234,
       "method": "GET",
       "target": "'/suppliers/:id'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 201,
+      "line": 246,
       "method": "POST",
       "target": "'/purchase-orders'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 264,
+      "line": 321,
       "method": "GET",
       "target": "'/purchase-orders'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 284,
+      "line": 341,
       "method": "GET",
       "target": "'/purchase-orders/:id'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 297,
+      "line": 354,
       "method": "PUT",
       "target": "'/purchase-orders/:id/status'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 345,
+      "line": 402,
       "method": "PUT",
       "target": "'/purchase-orders/:id/receive'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 381,
+      "line": 438,
       "method": "DELETE",
       "target": "'/purchase-orders/:id'",
       "tag": "object"
@@ -6288,6 +6332,13 @@
       "tag": "role"
     },
     {
+      "file": "maternity.js",
+      "line": 110,
+      "method": "GET",
+      "target": "'/births/:id/certificate'",
+      "tag": "role"
+    },
+    {
       "file": "mealSubscriptions.js",
       "line": 47,
       "method": "GET",
@@ -6649,6 +6700,13 @@
       "line": 55,
       "method": "POST",
       "target": "'/:id/release'",
+      "tag": "role"
+    },
+    {
+      "file": "mortuary.js",
+      "line": 78,
+      "method": "GET",
+      "target": "'/deaths/:id/certificate'",
       "tag": "role"
     },
     {
@@ -8333,112 +8391,119 @@
     },
     {
       "file": "queues.js",
-      "line": 57,
+      "line": 85,
       "method": "POST",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "queues.js",
-      "line": 78,
+      "line": 106,
       "method": "GET",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "queues.js",
-      "line": 92,
+      "line": 120,
       "method": "POST",
       "target": "'/:id/tickets'",
       "tag": "role"
     },
     {
       "file": "queues.js",
-      "line": 127,
+      "line": 156,
       "method": "POST",
       "target": "'/:id/call-next'",
       "tag": "role"
     },
     {
       "file": "queues.js",
-      "line": 181,
+      "line": 229,
       "method": "PUT",
       "target": "'/tickets/:ticketId/recall'",
       "tag": "role"
     },
     {
       "file": "queues.js",
-      "line": 205,
+      "line": 253,
       "method": "PUT",
       "target": "'/tickets/:ticketId/start'",
       "tag": "role"
     },
     {
       "file": "queues.js",
-      "line": 206,
+      "line": 254,
       "method": "PUT",
       "target": "'/tickets/:ticketId/done'",
       "tag": "role"
     },
     {
       "file": "queues.js",
-      "line": 207,
+      "line": 255,
       "method": "PUT",
       "target": "'/tickets/:ticketId/skip'",
       "tag": "role"
     },
     {
       "file": "queues.js",
-      "line": 210,
+      "line": 258,
       "method": "PUT",
       "target": "'/tickets/:ticketId/transfer'",
       "tag": "role"
     },
     {
       "file": "queues.js",
-      "line": 241,
+      "line": 294,
+      "method": "GET",
+      "target": "'/:id/aging'",
+      "tag": "object"
+    },
+    {
+      "file": "queues.js",
+      "line": 340,
       "method": "GET",
       "target": "'/:id/board'",
       "tag": "object"
     },
     {
       "file": "queues.js",
-      "line": 271,
+      "line": 370,
       "method": "GET",
       "target": "'/:id/metrics'",
       "tag": "object"
     },
     {
       "file": "queues.js",
-      "line": 297,
+      "line": 396,
       "method": "POST",
       "target": "'/display-tokens'",
       "tag": "role"
     },
     {
       "file": "queues.js",
-      "line": 314,
+      "line": 413,
       "method": "GET",
       "target": "'/display/queues'",
       "tag": "public"
     },
     {
       "file": "queues.js",
-      "line": 337,
+      "line": 436,
       "method": "POST",
       "target": "'/movements'",
       "tag": "role"
     },
     {
       "file": "queues.js",
-      "line": 360,
+      "line": 459,
       "method": "PUT",
       "target": "'/movements/:id/:action'",
       "tag": "role"
     },
     {
       "file": "queues.js",
-      "line": 386,
+      "line": 485,
       "method": "GET",
       "target": "'/movements'",
       "tag": "role"
@@ -8564,21 +8629,21 @@
     },
     {
       "file": "radiology.js",
-      "line": 238,
+      "line": 243,
       "method": "GET",
       "target": "'/dicom/worklist'",
-      "tag": "unclassified"
+      "tag": "role"
     },
     {
       "file": "radiology.js",
-      "line": 256,
+      "line": 261,
       "method": "POST",
       "target": "'/dose'",
       "tag": "role"
     },
     {
       "file": "radiology.js",
-      "line": 289,
+      "line": 294,
       "method": "GET",
       "target": "'/dose'",
       "tag": "role"
@@ -9894,14 +9959,14 @@
     },
     {
       "file": "signatures.js",
-      "line": 129,
+      "line": 135,
       "method": "GET",
       "target": "'/templates/consent/:lang'",
-      "tag": "inherited"
+      "tag": "self"
     },
     {
       "file": "signatures.js",
-      "line": 150,
+      "line": 156,
       "method": "GET",
       "target": "'/doc/:kind/:id'",
       "tag": "public"

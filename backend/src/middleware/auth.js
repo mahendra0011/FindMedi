@@ -211,6 +211,10 @@ req.user = {
     });
   }
 
+  // Checklist I8: session is live — advance the idle-PIN window (throttled in
+  // updateActivity) so the lock below triggers on genuine inactivity only.
+  updateActivity(req, res);
+
   const shiftCheck = checkShiftBound(user, user.shiftStart);
   if (!shiftCheck.allowed) {
     return res.status(403).json({ message: shiftCheck.reason, code: 'SHIFT_VIOLATION' });

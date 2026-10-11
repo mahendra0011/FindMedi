@@ -2,6 +2,10 @@
  * Doc 11 §7 acceptance 5: every path in the doctor sidebar must resolve to
  * an App route the doctor role may actually open. Catches D2-class drift
  * (menu links to pages the role cannot open, or dead paths).
+ *
+ * Routes may reference a role-list constant (e.g. `allowedRoles={CLINIC_ROLES}`)
+ * instead of a literal array — resolve `const NAME = [...]` declarations so
+ * constant usage isn't a false denial.
  */
 import { describe, it, expect } from '@jest/globals';
 import fs from 'node:fs';
@@ -28,17 +32,33 @@ const menuPaths = (role) => {
   return [...new Set(paths)];
 };
 
+// `const CLINIC_ROLES = ['a', 'b'];` (module scope in App.tsx) → { CLINIC_ROLES: ['a','b'] }
+const roleConstants = () => {
+  const consts = {};
+  const re = /const\s+([A-Z][A-Z0-9_]*)\s*=\s*\[([^\]]*)\]/g;
+  let m;
+  while ((m = re.exec(app)) !== null) {
+    consts[m[1]] = m[2].replace(/['"\s]/g, '').split(',').filter(Boolean);
+  }
+  return consts;
+};
+
 const appRoutes = () => {
   const out = [];
+  const consts = roleConstants();
   // Any element shape EXCEPT a RoleRoute that excludes doctors counts as
   // open (bare components sit under an authenticated layout; ProtectedRoute
   // is any-session). Only a doctor-less RoleRoute is a real denial.
-  const re = /<Route path="([^"]+)" element=\{<(\w+)( allowedRoles=\{\[([^\]]*)\])?/g;
+  // allowedRoles may be a literal array OR a constant identifier.
+  const re = /<Route path="([^"]+)" element=\{<(\w+)( allowedRoles=\{(\[[^\]]*\]|[A-Za-z_$][\w$]*)\})?/g;
   let m;
   while ((m = re.exec(app)) !== null) {
     const isRoleRoute = m[2] === 'RoleRoute';
+    const raw = m[4] || '';
     const roles = isRoleRoute
-      ? (m[4] || '').replace(/['"\s]/g, '').split(',').filter(Boolean)
+      ? (raw.startsWith('[')
+          ? raw.replace(/['"[\]\s]/g, '').split(',').filter(Boolean)
+          : (consts[raw] || []))
       : ['doctor', 'clinic_doctor'];
     out.push({ path: m[1], roles });
   }

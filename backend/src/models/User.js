@@ -147,6 +147,11 @@ const userSchema = new mongoose.Schema({
   // File 22 P2-31: device/IP allow-list, idle-PIN hash, WebAuthn passkeys.
   allowedIps: [{ type: String, maxlength: 45 }],
   pinHash: { type: String, default: '' },
+  // File 22 P2-31 / checklist I8: idle-PIN lock. `lastActivityAt` is stamped
+  // by updateActivity() (throttled to ~1 write/min) and re-stamped on a
+  // successful PIN unlock; `failedPinAttempts` persists the PIN grind counter.
+  lastActivityAt: { type: Date, default: null, index: true },
+  failedPinAttempts: { type: Number, default: 0 },
   passkeys: [{
     credentialID: { type: String, required: true },
     publicKey: { type: String, required: true },

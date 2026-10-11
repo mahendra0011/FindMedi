@@ -1058,6 +1058,25 @@ router.put('/:id', protect, authorize('appointments:write', 'appointments:write:
       updates.consultationEndTime = new Date();
     }
 
+    // Item 6 (checklist §1.6): `followUpDays` is a directive, not a column —
+    // strip it from the row update and derive the parent's `followUpDate`
+    // server-side so it lands in the SAME commit as the completion. The child
+    // booking itself happens after the commit (below), fail-soft.
+    const followUpDays = Number(updates.followUpDays);
+    delete updates.followUpDays;
+    let followUpDateIso = null;
+    if (status === 'Completed' && oldStatus !== 'Completed'
+      && Number.isInteger(followUpDays) && followUpDays >= 1 && followUpDays <= 365) {
+      // appointment.date is a YYYY-MM-DD calendar string; UTC arithmetic keeps
+      // it DST-free (IST has no DST, but the string is wall-clock, not an instant).
+      const fuBase = new Date(`${appointment.date}T00:00:00Z`);
+      if (!Number.isNaN(fuBase.getTime())) {
+        fuBase.setUTCDate(fuBase.getUTCDate() + followUpDays);
+        followUpDateIso = fuBase.toISOString().slice(0, 10);
+        updates.followUpDate = fuBase;
+      }
+    }
+
     // A5 (5.md §2.4): the cancellation decision (tier, refund owed, fee kept)
     // is computed BEFORE the row is committed so all of it lands in one write.
     // The plan is recomputed on a RETRY — status Cancelled even when the row
@@ -1246,10 +1265,64 @@ router.put('/:id', protect, authorize('appointments:write', 'appointments:write:
           logger.warn(`A5: appointment ${appointment._id} cancelled but refund not issued (${outcome.reason})`);
         }
       }
+      // Item 6 (checklist §1.6): book the follow-up visit AFTER the parent
+      // committed (the completion is the durable fact; the booking is a
+      // derivative). Idempotent via the `followUpFor` link — a retried PUT
+      // cannot double-book — and fail-soft: if the slot is taken or the write
+      // fails, the parent stays Completed and the response carries the reason
+      // instead of a 500 that would make the desk re-complete the consult.
+      let followUp = null;
+      let followUpSkipped = null;
+      if (followUpDateIso && status === 'Completed' && oldStatus !== 'Completed') {
+        try {
+          const alreadyBooked = await Appointment.findOne({ followUpFor: appointment._id });
+          if (alreadyBooked) {
+            followUp = { id: String(alreadyBooked._id), date: alreadyBooked.date, time: alreadyBooked.time, duplicate: true };
+          } else {
+            const fuConflict = await Appointment.findOne({
+              doctorId: appointment.doctorId,
+              date: followUpDateIso,
+              time: appointment.time,
+              status: { $nin: ['Cancelled', 'Completed', 'Missed'] },
+            });
+            if (fuConflict) {
+              followUpSkipped = 'slot-taken';
+            } else {
+              const fuRow = await Appointment.create({
+                patient: appointment.patient,
+                patientId: appointment.patientId,
+                doctor: appointment.doctor,
+                doctorId: appointment.doctorId,
+                department: appointment.department,
+                date: followUpDateIso,
+                time: appointment.time,
+                status: 'Pending',
+                appointmentMode: appointment.appointmentMode,
+                hospitalId: appointment.hospitalId,
+                notes: `Auto follow-up for appointment ${appointment._id}`,
+                followUpFor: appointment._id,
+              });
+              followUp = { id: String(fuRow._id), date: fuRow.date, time: fuRow.time };
+              await createNotification(
+                appointment.patientId,
+                'Follow-up booked',
+                `Your follow-up with ${appointment.doctor} is booked for ${followUpDateIso} at ${appointment.time}.`,
+              );
+            }
+          }
+        } catch (fuErr) {
+          logger.error(`auto follow-up booking failed for ${appointment._id}: ${fuErr.message}`);
+          followUpSkipped = 'error';
+        }
+      }
+
      await auditLog('update_appointment', req.user._id, { recordId: updated._id, ip: req.ip, userAgent: req.get('user-agent') });
      await emitAppointmentUpdate(updated);
       
-       res.json(updated);
+      // Plain-object fallback: the in-memory test harness (and any non-mongoose
+      // stub) has no toObject(); production docs do.
+      const fuPayload = typeof updated.toObject === 'function' ? updated.toObject() : updated;
+       res.json({ ...fuPayload, ...(followUp ? { followUp } : {}), ...(followUpSkipped ? { followUpSkipped } : {}) });
   } catch (err) {
     if (err.code === 11000) {
       return res.status(409).json({ message: 'This time slot is already taken with this doctor. Please choose a different slot.' });

@@ -235,7 +235,12 @@ router.get('/dicom/ping', protect, adminOnly, async (req, res) => {
 });
 
 // C-FIND worklist: studies waiting to be read (patient/accession filters).
-router.get('/dicom/worklist', protect, async (req, res) => {
+// AUTHZ-B-06: this was the one route in the file carrying `protect` with no
+// authorization decision (the coverage manifest's last `unclassified` gap).
+// Same gate as every sibling (/dicom/ping, /dose, /orders): an imaging
+// worklist exposes patient identifiers, so it is admin-gated, not just authed.
+// authz: role
+router.get('/dicom/worklist', protect, adminOnly, async (req, res) => {
   try {
     const { DicomClient } = await import('../lib/dicom.js');
     const client = new DicomClient(dicomConfig());

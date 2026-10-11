@@ -281,3 +281,7 @@ router.post('/tasks/:id/activity', authorize('staff:manage'), async (req, res) =
 });
 
 export { ruleMatches, get };
+// index.js:689 imports this as the DEFAULT and mounts it at /api/rules; without
+// this export the mount received `undefined` and the whole router 404'd (and
+// every spec that loads src/index.js failed at import time).
+export default router;

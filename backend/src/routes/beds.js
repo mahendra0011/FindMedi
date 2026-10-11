@@ -29,7 +29,11 @@ router.get('/stats', protect, scopeToHospital, async (req, res) => {
     const available = await Bed.countDocuments({ ...filter, status: 'Available' });
     const occupied = await Bed.countDocuments({ ...filter, status: 'Occupied' });
     const maintenance = await Bed.countDocuments({ ...filter, status: { $in: ['Under Cleaning', 'Maintenance'] } });
-    res.json({ total, available, occupied, maintenance });
+    // Checklist I8: the three extended states surfaced alongside the classics.
+    const reserved = await Bed.countDocuments({ ...filter, status: 'Reserved' });
+    const blocked = await Bed.countDocuments({ ...filter, status: 'Blocked' });
+    const isolation = await Bed.countDocuments({ ...filter, status: 'Isolation' });
+    res.json({ total, available, occupied, maintenance, reserved, blocked, isolation });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -94,8 +98,22 @@ router.put('/:id', protect, scopeToHospital, validate(updateBedSchema), async (r
     if (!bed) return res.status(404).json({ message: 'Bed not found' });
     // AUTH-030: allowlisted fields only — bedNumber/hospitalId immutable here.
     const { pickBody } = await import('../utils/pick.js');
-    const updated = await Bed.findByIdAndUpdate(req.params.id,
-      pickBody(req.body, ['ward', 'bedType', 'status', 'dailyRate', 'floor', 'isAC']), { new: true });
+    const patch = pickBody(req.body, ['ward', 'bedType', 'status', 'dailyRate', 'floor', 'isAC']);
+    // Checklist I8: a manual status flip must still arm the srcStatus state
+    // machine so audits can prove which transition moved the bed.
+    if (patch.status) {
+      const srcByStatus = {
+        Available: 'available',
+        'Under Cleaning': 'cleaning',
+        Maintenance: 'maintenance',
+        Reserved: 'reserve',
+        Blocked: 'block',
+        Isolation: 'isolation',
+        Occupied: 'manual',
+      };
+      patch.srcStatus = srcByStatus[patch.status] || 'manual';
+    }
+    const updated = await Bed.findByIdAndUpdate(req.params.id, patch, { new: true });
     res.json(updated);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
