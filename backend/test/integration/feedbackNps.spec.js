@@ -33,6 +33,22 @@ const { as } = await mountApp('feedback', {
           lean: async () => results,
         };
       },
+      findOne: (filter) => {
+        let results = [...feedbackStore];
+        if (filter?.patientId) {
+          results = results.filter((r) => String(r.patientId) === String(filter.patientId));
+        }
+        if (filter?.refId) {
+          results = results.filter((r) => String(r.refId) === String(filter.refId));
+        }
+        if (filter?.context) {
+          results = results.filter((r) => r.context === filter.context);
+        }
+        const item = results[0] || null;
+        return {
+          lean: async () => item,
+        };
+      },
       findById: async (id) => {
         const item = feedbackStore.find((r) => String(r._id) === String(id));
         if (!item) return null;
@@ -110,5 +126,43 @@ describe('Feedback & NPS API Endpoints', () => {
     expect(res.body.avgCsat).toBeDefined();
     expect(res.body.byDepartment).toBeDefined();
     expect(res.body.byDepartment.Cardiology).toBeDefined();
+  });
+
+  it('accepts feedback with refModel and refId and blocks duplicate submission', async () => {
+    const aptRefId = '64f000000000000000000101';
+    // First submission
+    const res1 = await as(patient)
+      .post('/')
+      .send({
+        context: 'visit',
+        department: 'Cardiology',
+        refModel: 'Appointment',
+        refId: aptRefId,
+        npsScore: 9,
+        rating: 5,
+        comment: 'Great appointment experience!',
+      })
+      .expect(201);
+    expect(res1.body.id).toBeDefined();
+
+    // Query mine with refId
+    const mineRes = await as(patient)
+      .get(`/mine?refId=${aptRefId}`)
+      .expect(200);
+    expect(mineRes.body.hasSubmitted).toBe(true);
+
+    // Second submission with same refId should be blocked with 409
+    const res2 = await as(patient)
+      .post('/')
+      .send({
+        context: 'visit',
+        department: 'Cardiology',
+        refModel: 'Appointment',
+        refId: aptRefId,
+        npsScore: 8,
+        rating: 4,
+      })
+      .expect(409);
+    expect(res2.body.code).toBe('FEEDBACK_DUPLICATE');
   });
 });

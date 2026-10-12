@@ -2,16 +2,18 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   CalendarDays, Video, Phone, MessageCircle, MapPin, 
-  Search, XCircle, RotateCcw, Clock, Building2 
+  Search, XCircle, RotateCcw, Clock, Building2, Star 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateUtils';
 import { toast } from 'sonner';
+import FeedbackPrompt from '@/components/feedback/FeedbackPrompt';
 
 export default function PatientAppointments() {
   const navigate = useNavigate();
@@ -19,6 +21,7 @@ export default function PatientAppointments() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('upcoming');
+  const [feedbackApt, setFeedbackApt] = useState<any | null>(null);
 
   // APPT-M-01: waitlist queue for full slots. The entry state (esp. the
   // 15-minute offer) is the source of truth; this card renders it with a live
@@ -393,8 +396,8 @@ export default function PatientAppointments() {
                       </Button>
                     )}
                     {activeTab === 'completed' && a.status === 'Completed' && (
-                      <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/patient/reviews/write')}>
-                        Leave Review
+                      <Button size="sm" variant="outline" className="w-full sm:w-auto text-amber-600 hover:text-amber-700 hover:border-amber-400" onClick={() => setFeedbackApt(a)}>
+                        <Star className="w-3.5 h-3.5 mr-1 fill-amber-400 text-amber-400" /> Rate Experience
                       </Button>
                     )}
                   </div>
@@ -403,6 +406,23 @@ export default function PatientAppointments() {
             );
           })}
         </div>
+      )}
+
+      {feedbackApt && (
+        <Dialog open={Boolean(feedbackApt)} onOpenChange={(open) => !open && setFeedbackApt(null)}>
+          <DialogContent className="max-w-xl p-0 border-0 bg-transparent shadow-none">
+            <DialogTitle className="sr-only">Feedback Survey</DialogTitle>
+            <FeedbackPrompt
+              context="visit"
+              refModel="Appointment"
+              refId={feedbackApt._id}
+              department={feedbackApt.department || 'Consultation'}
+              title={`How was your consultation with ${feedbackApt.doctor || feedbackApt.doctorName || 'your doctor'}?`}
+              onDone={() => setFeedbackApt(null)}
+              onSkip={() => setFeedbackApt(null)}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

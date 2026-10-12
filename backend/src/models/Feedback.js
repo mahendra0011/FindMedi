@@ -19,6 +19,18 @@ const feedbackSchema = new mongoose.Schema({
   npsScore: { type: Number, min: 0, max: 10 },
   rating: { type: Number, min: 1, max: 5 },
   comment: { type: String, trim: true, maxlength: 2000, default: '' },
+  refModel: {
+    type: String,
+    enum: ['', 'Appointment', 'Admission', 'PharmacyOrder', 'LabOrder', 'Teleconsult', 'Other'],
+    default: '',
+    index: true,
+  },
+  refId: {
+    type: String,
+    trim: true,
+    default: '',
+    index: true,
+  },
   status: { type: String, enum: ['new', 'in_review', 'resolved'], default: 'new', index: true },
   response: {
     by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -29,5 +41,9 @@ const feedbackSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 feedbackSchema.index({ hospitalId: 1, createdAt: -1 });
+feedbackSchema.index(
+  { patientId: 1, context: 1, refId: 1 },
+  { unique: true, partialFilterExpression: { refId: { $type: 'string', $gt: '' }, patientId: { $ne: null } } }
+);
 
 export default mongoose.models.Feedback || mongoose.model('Feedback', feedbackSchema);

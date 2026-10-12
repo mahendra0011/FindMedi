@@ -799,3 +799,67 @@ export const generateBirthCertificatePDF = async (data = {}) => collectPdf((doc)
     + 'above are true and correct to the best of my knowledge and belief.');
   drawSignature(doc, data.registrarName ? `Registrar — ${doctorName(data.registrarName)}` : 'Registrar / Attending Doctor');
 });
+
+// T6 (file 31): statutory H1 & Narcotic register PDF report for FDA Drug Inspector inspection
+export const generateH1RegisterPdf = async (data = {}) => collectPdf((doc) => {
+  const hospitalTitle = data.hospitalName || HOSPITAL.name;
+  drawHeader(doc, 'Schedule H1 / Controlled Drugs Register', {
+    id: data.drugLicenseNo ? `DL: ${data.drugLicenseNo}` : '',
+    date: new Date(),
+  });
+
+  const periodStr = `${formatDate(data.from || new Date())} to ${formatDate(data.to || new Date())}`;
+  drawInfoGrid(doc, [
+    {
+      title: 'Facility Details',
+      rows: [
+        { label: 'Facility', value: hospitalTitle },
+        { label: 'Drug License', value: data.drugLicenseNo || 'DL-20/21-Pending' },
+        { label: 'Audit Period', value: periodStr },
+      ],
+    },
+    {
+      title: 'Statutory Compliance',
+      rows: [
+        { label: 'Register Type', value: 'Schedule H1, X & NDPS' },
+        { label: 'Total Dispensed', value: data.entries?.length || 0 },
+        { label: 'Pharmacist-in-Charge', value: data.pharmacistName || 'Registered Pharmacist' },
+      ],
+    },
+  ]);
+
+  drawSectionTitle(doc, 'Dispensing Entries');
+  const columns = [
+    { label: 'Date', key: 'date', width: 0.12 },
+    { label: 'Presc #', key: 'prescNo', width: 0.13 },
+    { label: 'Patient Name', key: 'patient', width: 0.16 },
+    { label: 'Prescriber', key: 'prescriber', width: 0.15 },
+    { label: 'Medicine', key: 'medicine', width: 0.20 },
+    { label: 'Sched', key: 'sched', width: 0.08 },
+    { label: 'Qty', key: 'qty', width: 0.06, align: 'right' },
+    { label: 'Dispenser', key: 'dispenser', width: 0.10 },
+  ];
+
+  const rows = (data.entries || []).map((e) => ({
+    date: formatDate(e.dispensedAt),
+    prescNo: valueOrDash(e.prescriptionNo),
+    patient: valueOrDash(e.patientName),
+    prescriber: valueOrDash(e.prescriberName),
+    medicine: valueOrDash(e.medicineName),
+    sched: String(e.rxSchedule || 'H1').toUpperCase(),
+    qty: String(e.quantity || 1),
+    dispenser: valueOrDash(e.dispensedByName),
+  }));
+
+  drawTable(doc, columns, rows.length ? rows : [{
+    date: '-', prescNo: '-', patient: 'No entries in period', prescriber: '-',
+    medicine: '-', sched: '-', qty: '-', dispenser: '-',
+  }]);
+
+  drawSectionTitle(doc, 'Verification & Attestation');
+  drawTextBlock(doc, 'Statutory Declaration',
+    'I hereby certify that all Schedule H1, Schedule X, and NDPS medicines recorded above were dispensed '
+    + 'against valid prescriptions, and the physical balances reconcile with statutory register requirements.');
+
+  drawSignature(doc, data.pharmacistName ? `Pharmacist-in-Charge — ${data.pharmacistName}` : 'Pharmacist-in-Charge');
+});

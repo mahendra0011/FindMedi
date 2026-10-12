@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Package, Search, Calendar, Eye, Clock, Pill, IndianRupee, MapPin, Phone, Truck, CheckCircle2, XCircle, AlertCircle, Loader2, ChevronRight, RefreshCw } from 'lucide-react';
+import { ShoppingCart, Package, Search, Calendar, Eye, Clock, Pill, IndianRupee, MapPin, Phone, Truck, CheckCircle2, XCircle, AlertCircle, Loader2, ChevronRight, RefreshCw, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import FeedbackPrompt from '@/components/feedback/FeedbackPrompt';
 import { api } from '@/lib/api';
 
 const statusConfig = {
@@ -29,6 +31,7 @@ export default function PatientMedicineOrders() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
+  const [feedbackOrder, setFeedbackOrder] = useState<any | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -224,7 +227,14 @@ export default function PatientMedicineOrders() {
                   )}
 
                   {/* Footer */}
-                  <div className="flex items-center justify-end pt-3 border-t border-border/30">
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/30">
+                    {order.status === 'Delivered' && (
+                      <Button size="sm" variant="outline"
+                        className="gap-1.5 rounded-xl h-8 text-xs border-amber-500/30 text-amber-600 hover:bg-amber-500/10 hover:border-amber-500/50"
+                        onClick={() => setFeedbackOrder(order)}>
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> Rate Delivery
+                      </Button>
+                    )}
                     <Button size="sm" variant="outline"
                       className="gap-1.5 rounded-xl h-8 text-xs border-border/50 hover:bg-primary/5 hover:text-primary hover:border-primary/30"
                       onClick={() => navigate(`/order-tracking/${order._id}`)}>
@@ -236,6 +246,23 @@ export default function PatientMedicineOrders() {
             );
           })}
         </div>
+      )}
+
+      {feedbackOrder && (
+        <Dialog open={Boolean(feedbackOrder)} onOpenChange={(open) => !open && setFeedbackOrder(null)}>
+          <DialogContent className="max-w-xl p-0 border-0 bg-transparent shadow-none">
+            <DialogTitle className="sr-only">Order Feedback</DialogTitle>
+            <FeedbackPrompt
+              context="pharmacy"
+              refModel="PharmacyOrder"
+              refId={feedbackOrder._id}
+              department="Pharmacy"
+              title="How was your medicine delivery experience?"
+              onDone={() => setFeedbackOrder(null)}
+              onSkip={() => setFeedbackOrder(null)}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

@@ -20,6 +20,8 @@ const feedbackSchema = z.object({
   npsScore: z.number().int().min(0).max(10).optional(),
   rating: z.number().int().min(1).max(5).optional(),
   comment: z.string().trim().max(2000).optional(),
+  refModel: z.enum(['Appointment', 'Admission', 'PharmacyOrder', 'LabOrder', 'Teleconsult', 'Other']).optional(),
+  refId: z.string().trim().max(100).optional(),
 }).strict().refine((b) => b.npsScore !== undefined || b.rating !== undefined, {
   message: 'npsScore (0-10) or rating (1-5) required',
 });
@@ -33,17 +35,61 @@ router.post('/', protect, validate(feedbackSchema), async (req, res) => {
     if (req.body.patientId && isStaff) {
       return res.status(403).json({ message: 'Staff may not submit on behalf of a patient' });
     }
+    const patientId = req.body.patientId ?? (isStaff ? null : req.user._id);
+    const refId = req.body.refId ? String(req.body.refId).trim() : '';
+
+    if (refId && patientId) {
+      const existing = await Feedback.findOne({
+        patientId,
+        context: req.body.context || 'visit',
+        refId,
+      }).lean();
+      if (existing) {
+        return res.status(409).json({
+          message: 'Feedback already submitted for this visit/order',
+          code: 'FEEDBACK_DUPLICATE',
+          id: String(existing._id),
+        });
+      }
+    }
+
     const row = await Feedback.create({
       hospitalId: req.user.hospitalId || undefined,
-      patientId: req.body.patientId ?? (isStaff ? null : req.user._id),
+      patientId,
       context: req.body.context || 'visit',
       department: req.body.department || '',
       npsScore: req.body.npsScore,
       rating: req.body.rating,
       comment: req.body.comment || '',
+      refModel: req.body.refModel || '',
+      refId,
       createdBy: req.user._id,
     });
     await auditLog('feedback_submitted', req.user._id, { recordId: row._id, ip: req.ip });
+
+    // Detractor alert: score <= 6 notifies patient relations / hospital admin
+    if (typeof req.body.npsScore === 'number' && req.body.npsScore <= 6 && req.user.hospitalId) {
+      try {
+        const { createNotification } = await import('../services/notificationService.js');
+        const User = (await import('../models/User.js')).default;
+        const managers = await User.find({
+          hospitalId: req.user.hospitalId,
+          role: { $in: ['patient_relations', 'quality_officer', 'hospital_admin'] },
+        }).select('_id').limit(5).lean();
+        for (const m of managers) {
+          await createNotification({
+            userId: String(m._id),
+            type: 'system',
+            priority: 'high',
+            title: `NPS Detractor Alert (${req.body.npsScore}/10)`,
+            message: `Detractor feedback received in ${req.body.department || req.body.context || 'general'}: "${(req.body.comment || 'No comment').slice(0, 100)}"`,
+            details: { feedbackId: String(row._id), score: req.body.npsScore },
+            actor: 'feedbackSystem',
+          }).catch(() => null);
+        }
+      } catch { /* non-fatal notification */ }
+    }
+
     return res.status(201).json({ id: String(row._id) });
   } catch (err) { return res.status(400).json({ message: err.message }); }
 });
@@ -51,8 +97,11 @@ router.post('/', protect, validate(feedbackSchema), async (req, res) => {
 // authz: self
 router.get('/mine', protect, async (req, res) => {
   try {
-    const rows = await Feedback.find({ patientId: req.user._id }).sort({ createdAt: -1 }).limit(50).lean();
-    return res.json({ total: rows.length, feedback: rows });
+    const filter = { patientId: req.user._id };
+    if (req.query.refId) filter.refId = String(req.query.refId);
+    if (req.query.context) filter.context = String(req.query.context);
+    const rows = await Feedback.find(filter).sort({ createdAt: -1 }).limit(50).lean();
+    return res.json({ total: rows.length, hasSubmitted: rows.length > 0, feedback: rows });
   } catch (err) { return res.status(500).json({ message: err.message }); }
 });
 

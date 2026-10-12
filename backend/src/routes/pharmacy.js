@@ -15,6 +15,10 @@ import PharmacyOffer from '../models/PharmacyOffer.js';
 import PharmacyReturn from '../models/PharmacyReturn.js';
 import PharmacyStaff from '../models/PharmacyStaff.js';
 import H1RegisterEntry, { REGISTER_SCHEDULES, REGISTER_SCHEDULE_ALIASES } from '../models/H1RegisterEntry.js';
+import NarcoticAdjustment from '../models/NarcoticAdjustment.js';
+import NarcoticCount from '../models/NarcoticCount.js';
+import StockLedger from '../models/StockLedger.js';
+import { generateH1RegisterPdf } from '../services/pdfService.js';
 import Facility from '../models/Facility.js';
 import { latLngToCell } from 'h3-js';
 import { calculateDistanceKm } from '../lib/geoUtils.js';
@@ -1210,6 +1214,267 @@ router.get('/h1-register/export', protect, authorize('pharmacy:read', 'pharmacy:
     logger.error(`H1 export error: ${err.message}`);
     if (!res.headersSent) return res.status(500).json({ message: err.message });
     res.end();
+  }
+});
+
+// Statutory inspector PDF export for Schedule H1 / NDPS register
+// authz: role
+router.get('/h1-register/pdf', protect, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
+  try {
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.query.rxSchedule) filter.rxSchedule = String(req.query.rxSchedule).toLowerCase();
+    if (req.query.from || req.query.to) {
+      filter.dispensedAt = {};
+      if (req.query.from) filter.dispensedAt.$gte = new Date(req.query.from);
+      if (req.query.to) filter.dispensedAt.$lte = new Date(req.query.to);
+    }
+    const entries = await H1RegisterEntry.find(filter).sort({ dispensedAt: -1 }).limit(1000).lean();
+    let hospitalName = 'FindMedi Hospital';
+    let drugLicenseNo = '';
+    if (req.user.hospitalId) {
+      const fac = await Facility.findById(req.user.hospitalId).select('name registrationNumber').lean();
+      if (fac) {
+        hospitalName = fac.name;
+        drugLicenseNo = fac.registrationNumber || '';
+      }
+    }
+    const pdfBuffer = await generateH1RegisterPdf({
+      hospitalName,
+      drugLicenseNo,
+      entries,
+      from: req.query.from ? new Date(req.query.from) : undefined,
+      to: req.query.to ? new Date(req.query.to) : undefined,
+      pharmacistName: req.user.name,
+    });
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="h1-register-${stamp}.pdf"`);
+    return res.send(pdfBuffer);
+  } catch (err) {
+    logger.error(`H1 PDF generation error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// T6 Narcotic & Schedule H1 stock reconciliation:
+// Closing(expected) = Opening + Purchases(GRN) - Dispensed(H1) - Adjustments
+// Compare against physical count and compute variance
+// authz: role
+router.get('/narcotic-register/reconcile', protect, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
+  try {
+    const tenant = (req.user.hospitalId && req.user.role !== 'superadmin')
+      ? { hospitalId: req.user.hospitalId } : {};
+    const fromDate = req.query.from ? new Date(req.query.from) : new Date(Date.now() - 30 * 86400000);
+    const toDate = req.query.to ? new Date(req.query.to) : new Date();
+
+    const controlledFilter = {
+      $or: [
+        { rxSchedule: { $in: [...REGISTER_SCHEDULES, ...Object.keys(REGISTER_SCHEDULE_ALIASES)] } },
+        { 'storage.controlled': true },
+      ],
+    };
+    if (req.query.medicineId) controlledFilter._id = req.query.medicineId;
+
+    const medicines = await Medicine.find(controlledFilter).select('_id name rxSchedule stock batch').lean();
+    const rows = [];
+
+    for (const med of medicines) {
+      const medId = med._id;
+      // 1. Dispensed count in period
+      const dispensedEntries = await H1RegisterEntry.find({
+        ...tenant,
+        medicineId: medId,
+        dispensedAt: { $gte: fromDate, $lte: toDate },
+      }).select('quantity').lean();
+      const dispensedQty = dispensedEntries.reduce((sum, e) => sum + (e.quantity || 0), 0);
+
+      // 2. Adjustments in period
+      const adjustments = await NarcoticAdjustment.find({
+        ...tenant,
+        medicineId: medId,
+        at: { $gte: fromDate, $lte: toDate },
+      }).lean();
+      const adjustedQty = adjustments.reduce((sum, a) => sum + (a.qty || 0), 0);
+
+      // 3. Purchases / GRN in period from StockLedger (if available) or current stock baseline
+      const stockLedgerMoves = await StockLedger.find({
+        ...tenant,
+        itemId: String(medId),
+        createdAt: { $gte: fromDate, $lte: toDate },
+      }).lean();
+      const purchasesQty = stockLedgerMoves.reduce((sum, m) => sum + (m.qtyIn || 0), 0);
+
+      // 4. Latest physical count
+      const latestCount = await NarcoticCount.findOne({
+        ...tenant,
+        medicineId: medId,
+        at: { $lte: toDate },
+      }).sort({ at: -1 }).lean();
+
+      const currentStock = med.stock || 0;
+      // Opening = currentStock + dispensedQty + adjustedQty - purchasesQty
+      const openingQty = Math.max(0, currentStock + dispensedQty + adjustedQty - purchasesQty);
+      const expectedClosing = Math.max(0, openingQty + purchasesQty - dispensedQty - adjustedQty);
+      const physicalQty = latestCount ? latestCount.countedQty : currentStock;
+      const variance = physicalQty - expectedClosing;
+
+      rows.push({
+        medicineId: String(medId),
+        medicineName: med.name,
+        rxSchedule: med.rxSchedule || 'h1',
+        openingQty,
+        purchasesQty,
+        dispensedQty,
+        adjustedQty,
+        expectedClosing,
+        physicalQty,
+        variance,
+        lastCountedAt: latestCount?.at || null,
+        lastCountedByName: latestCount?.countedByName || '',
+        witnessByName: latestCount?.witnessByName || '',
+      });
+    }
+
+    const varianceCount = rows.filter((r) => r.variance !== 0).length;
+    res.json({
+      from: fromDate,
+      to: toDate,
+      count: rows.length,
+      varianceCount,
+      rows,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// T6 Narcotic & Schedule H1 stock adjustments (wastage / breakage / expiry / return)
+const narcoticAdjustmentSchema = z.object({
+  medicineId: z.string().regex(/^[0-9a-f]{24}$/i),
+  medicineName: z.string().trim().min(1).max(300),
+  batch: z.string().trim().max(100).optional(),
+  qty: z.number().int().min(1),
+  type: z.enum(['wastage', 'breakage', 'expiry', 'return-to-supplier']),
+  reason: z.string().trim().min(3).max(1000),
+  witnessBy: z.string().regex(/^[0-9a-f]{24}$/i),
+  storeId: z.string().regex(/^[0-9a-f]{24}$/i).optional(),
+});
+
+// authz: role
+router.post('/narcotic-register/adjustments', protect, authorize('pharmacy:manage'), validate(narcoticAdjustmentSchema), async (req, res) => {
+  try {
+    if (String(req.body.witnessBy) === String(req.user._id)) {
+      return res.status(400).json({ message: 'Witness must be a different authorized user (dual sign-off required)' });
+    }
+    const witnessUser = await User.findById(req.body.witnessBy).select('name role').lean();
+    if (!witnessUser) {
+      return res.status(404).json({ message: 'Witness user not found' });
+    }
+
+    const adj = await NarcoticAdjustment.create({
+      hospitalId: req.user.hospitalId || undefined,
+      storeId: req.body.storeId || undefined,
+      medicineId: req.body.medicineId,
+      medicineName: req.body.medicineName,
+      batch: req.body.batch || '',
+      qty: req.body.qty,
+      type: req.body.type,
+      reason: req.body.reason,
+      witnessBy: req.body.witnessBy,
+      witnessByName: witnessUser.name || '',
+      recordedBy: req.user._id,
+      recordedByName: req.user.name || '',
+    });
+
+    if (req.body.storeId) {
+      await StockLedger.create({
+        hospitalId: req.user.hospitalId || undefined,
+        storeId: req.body.storeId,
+        itemId: String(req.body.medicineId),
+        batch: req.body.batch || '',
+        qtyOut: req.body.qty,
+        refModel: 'NarcoticAdjustment',
+        refId: adj._id,
+        createdBy: req.user._id,
+      }).catch(() => null);
+    }
+
+    await auditLog('narcotic_adjustment_recorded', req.user._id, {
+      adjustmentId: adj._id,
+      medicineId: req.body.medicineId,
+      qty: req.body.qty,
+      type: req.body.type,
+      witnessBy: req.body.witnessBy,
+      ip: req.ip,
+    });
+
+    res.status(201).json({ adjustment: adj });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// List narcotic adjustments
+// authz: role
+router.get('/narcotic-register/adjustments', protect, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
+  try {
+    const tenant = (req.user.hospitalId && req.user.role !== 'superadmin')
+      ? { hospitalId: req.user.hospitalId } : {};
+    const rows = await NarcoticAdjustment.find(tenant).sort({ at: -1 }).limit(200).lean();
+    res.json({ count: rows.length, adjustments: rows });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// T6 Physical stock count log with dual sign-off
+const narcoticCountSchema = z.object({
+  medicineId: z.string().regex(/^[0-9a-f]{24}$/i),
+  medicineName: z.string().trim().min(1).max(300),
+  batch: z.string().trim().max(100).optional(),
+  countedQty: z.number().int().min(0),
+  witnessBy: z.string().regex(/^[0-9a-f]{24}$/i),
+  notes: z.string().trim().max(1000).optional(),
+  storeId: z.string().regex(/^[0-9a-f]{24}$/i).optional(),
+});
+
+// authz: role
+router.post('/narcotic-register/counts', protect, authorize('pharmacy:manage'), validate(narcoticCountSchema), async (req, res) => {
+  try {
+    if (String(req.body.witnessBy) === String(req.user._id)) {
+      return res.status(400).json({ message: 'Witness must be a different authorized user (dual sign-off required)' });
+    }
+    const witnessUser = await User.findById(req.body.witnessBy).select('name role').lean();
+    if (!witnessUser) {
+      return res.status(404).json({ message: 'Witness user not found' });
+    }
+
+    const countDoc = await NarcoticCount.create({
+      hospitalId: req.user.hospitalId || undefined,
+      storeId: req.body.storeId || undefined,
+      medicineId: req.body.medicineId,
+      medicineName: req.body.medicineName,
+      batch: req.body.batch || '',
+      countedQty: req.body.countedQty,
+      countedBy: req.user._id,
+      countedByName: req.user.name || '',
+      witnessBy: req.body.witnessBy,
+      witnessByName: witnessUser.name || '',
+      notes: req.body.notes || '',
+    });
+
+    await auditLog('narcotic_physical_count_recorded', req.user._id, {
+      countId: countDoc._id,
+      medicineId: req.body.medicineId,
+      countedQty: req.body.countedQty,
+      witnessBy: req.body.witnessBy,
+      ip: req.ip,
+    });
+
+    res.status(201).json({ count: countDoc });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 });
 
