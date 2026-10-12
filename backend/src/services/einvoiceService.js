@@ -122,6 +122,27 @@ export function buildEinvoicePayload({ billing, hospital, patient, lineItems }) 
 }
 
 /**
+ * Robust fetch helper with timeout and transient error retries.
+ */
+async function fetchWithRetry(url, options = {}, { retries = 1, timeoutMs = 20000 } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const signal = AbortSignal.timeout(timeoutMs);
+      const res = await fetch(url, { ...options, signal });
+      return res;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) {
+        logger.warn(`E-Invoice HTTP call to ${url} failed (attempt ${attempt + 1}/${retries + 1}): ${err.message}. Retrying...`);
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+/**
  * Generate IRN + signed data for a billing record.
  * Sandbox mode returns mock data; live mode would call NIC API.
  */
@@ -161,8 +182,8 @@ export async function generateEinvoice(billing, hospital, patient) {
 
   // Live mode: call NIC API (requires valid credentials)
   try {
-    // Step 1: Authenticate
-    const authRes = await fetch(`${config.baseUrl}/auth`, {
+    // Step 1: Authenticate with 20s timeout & retry
+    const authRes = await fetchWithRetry(`${config.baseUrl}/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -172,15 +193,15 @@ export async function generateEinvoice(billing, hospital, patient) {
         client_secret: config.clientSecret,
         grant_type: 'client_credentials',
       }),
-    });
+    }, { retries: 1, timeoutMs: 20000 });
     const authData = await authRes.json();
 
     if (!authData.access_token) {
       return { success: false, error: 'AUTH_FAILED', message: 'NIC e-invoice authentication failed' };
     }
 
-    // Step 2: Generate IRN
-    const invRes = await fetch(`${config.baseUrl}/invoice`, {
+    // Step 2: Generate IRN with 20s timeout & retry
+    const invRes = await fetchWithRetry(`${config.baseUrl}/invoice`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -188,7 +209,7 @@ export async function generateEinvoice(billing, hospital, patient) {
         'gstin': config.gstin,
       },
       body: JSON.stringify(payload),
-    });
+    }, { retries: 1, timeoutMs: 20000 });
     const invData = await invRes.json();
 
     if (invData.irn) {
@@ -246,6 +267,59 @@ export async function cancelEinvoice(irn, cancellationReason = '1', options = {}
   if (config.mode === 'sandbox') {
     return { success: true, mode: 'sandbox', irn, status: 'Cancelled', reason: cancellationReason };
   }
-  // Live mode would call NIC cancel API
-  return { success: false, error: 'NOT_IMPLEMENTED', message: 'Live cancel not implemented' };
+
+  // Live mode: call NIC cancel API
+  try {
+    const authRes = await fetchWithRetry(`${config.baseUrl}/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: config.username,
+        password: config.password,
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
+        grant_type: 'client_credentials',
+      }),
+    }, { retries: 1, timeoutMs: 20000 });
+    const authData = await authRes.json();
+
+    if (!authData.access_token) {
+      return { success: false, error: 'AUTH_FAILED', message: 'NIC e-invoice authentication failed' };
+    }
+
+    const cancelRes = await fetchWithRetry(`${config.baseUrl}/invoice/cancel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authData.access_token}`,
+        'gstin': config.gstin,
+      },
+      body: JSON.stringify({
+        Irn: irn,
+        CnlRsn: String(cancellationReason),
+        CnlRem: options.remarks || 'Cancelled by hospital billing',
+      }),
+    }, { retries: 1, timeoutMs: 20000 });
+    const cancelData = await cancelRes.json();
+
+    if (cancelData.status === 'Cancelled' || cancelData.cancelDate || cancelRes.ok) {
+      return {
+        success: true,
+        mode: 'live',
+        irn,
+        status: 'Cancelled',
+        cancelDate: cancelData.cancelDate || new Date().toISOString(),
+        reason: cancellationReason,
+      };
+    }
+
+    return {
+      success: false,
+      error: cancelData.error?.message || 'IRN_CANCEL_FAILED',
+      details: cancelData,
+    };
+  } catch (err) {
+    logger.error(`E-Invoice live cancel error: ${err.message}`);
+    return { success: false, error: 'NETWORK_ERROR', message: err.message };
+  }
 }

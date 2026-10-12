@@ -201,5 +201,141 @@ describe('E-Invoice Service Unit Tests', () => {
     expect(expiredRes.success).toBe(false);
     expect(expiredRes.error).toBe('CANCEL_WINDOW_EXPIRED');
   });
+
+  describe('Live Mode (NIC API Integration)', () => {
+    const originalFetch = global.fetch;
+
+    beforeEach(() => {
+      process.env.EINVOICE_MODE = 'live';
+      process.env.EINVOICE_GSTIN = '27AAPFU0939F1ZV';
+      process.env.EINVOICE_USERNAME = 'user_live';
+      process.env.EINVOICE_PASSWORD = 'pass_live';
+      process.env.EINVOICE_CLIENT_ID = 'client_123';
+      process.env.EINVOICE_CLIENT_SECRET = 'secret_456';
+      process.env.EINVOICE_BASE_URL = 'https://api.einvoice.gov.in/einvoice/v1.0';
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it('generates IRN in live mode using NIC API responses', async () => {
+      const mockLiveIrn = 'C'.repeat(64);
+      global.fetch = async (url) => {
+        if (url.endsWith('/auth')) {
+          return {
+            ok: true,
+            json: async () => ({ access_token: 'test_token_live' }),
+          };
+        }
+        if (url.endsWith('/invoice')) {
+          return {
+            ok: true,
+            json: async () => ({
+              irn: mockLiveIrn,
+              ackNo: 'AS99998888777766',
+              ackDt: '2026-10-12 12:30:00',
+              signedInvoice: 'base64_signed_data',
+              qrCode: 'qr_live_string',
+            }),
+          };
+        }
+        throw new Error(`Unexpected URL: ${url}`);
+      };
+
+      const res = await generateEinvoice(
+        { invoiceId: 'INV-LIVE-1', amount: 2000, lineItems: [{ description: 'Scan', amount: 2000 }] },
+        { name: 'Live Hospital', stateCode: '27' },
+        { name: 'Patient A', stateCode: '27' },
+      );
+
+      expect(res.success).toBe(true);
+      expect(res.mode).toBe('live');
+      expect(res.irn).toBe(mockLiveIrn);
+      expect(res.ackNo).toBe('AS99998888777766');
+    });
+
+    it('gracefully handles live auth failure', async () => {
+      global.fetch = async () => ({
+        ok: false,
+        json: async () => ({ error: 'Invalid credentials' }),
+      });
+
+      const res = await generateEinvoice(
+        { invoiceId: 'INV-LIVE-2', amount: 1000 },
+        { name: 'Live Hospital' },
+        { name: 'Patient B' },
+      );
+
+      expect(res.success).toBe(false);
+      expect(res.error).toBe('AUTH_FAILED');
+    });
+
+    it('gracefully handles transient network error with retry in live mode', async () => {
+      let callCount = 0;
+      global.fetch = async (url) => {
+        callCount++;
+        if (callCount === 1) {
+          throw new Error('ECONNRESET');
+        }
+        if (url.endsWith('/auth')) {
+          return {
+            ok: true,
+            json: async () => ({ access_token: 'test_retry_token' }),
+          };
+        }
+        return {
+          ok: true,
+          json: async () => ({
+            irn: 'D'.repeat(64),
+            ackNo: 'AS11112222333344',
+            ackDt: '2026-10-12 14:00:00',
+          }),
+        };
+      };
+
+      const res = await generateEinvoice(
+        { invoiceId: 'INV-LIVE-3', amount: 3000 },
+        { name: 'Live Hospital' },
+        { name: 'Patient C' },
+      );
+
+      expect(callCount).toBeGreaterThan(1);
+      expect(res.success).toBe(true);
+      expect(res.mode).toBe('live');
+    });
+
+    it('cancels IRN via live NIC cancel API', async () => {
+      const mockLiveIrn = 'E'.repeat(64);
+      global.fetch = async (url) => {
+        if (url.endsWith('/auth')) {
+          return {
+            ok: true,
+            json: async () => ({ access_token: 'test_cancel_token' }),
+          };
+        }
+        if (url.endsWith('/invoice/cancel')) {
+          return {
+            ok: true,
+            json: async () => ({
+              status: 'Cancelled',
+              cancelDate: '2026-10-12 18:00:00',
+            }),
+          };
+        }
+        throw new Error(`Unexpected URL: ${url}`);
+      };
+
+      const res = await cancelEinvoice(mockLiveIrn, '1', {
+        remarks: 'Order cancelled by patient request',
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.mode).toBe('live');
+      expect(res.irn).toBe(mockLiveIrn);
+      expect(res.status).toBe('Cancelled');
+      expect(res.cancelDate).toBe('2026-10-12 18:00:00');
+    });
+  });
 });
 

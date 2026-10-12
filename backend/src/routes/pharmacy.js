@@ -1140,7 +1140,25 @@ router.get('/h1-register/gaps', protect, authorize('pharmacy:manage'), async (re
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// Statutory inspector export for H1 / Schedule X / Narcotic Register (CSV)
+// Statutory inspector export for H1 / Schedule X / Narcotic Register (CSV).
+// T6 (file 31) hardening:
+//  - RFC4180 cells: quote everything, double inner quotes, flatten newlines;
+//  - formula-injection guard: a cell starting with =, +, - or @ (or tab/CR)
+//    is prefixed with ' so Excel/Sheets never executes it;
+//  - streamed via cursor: NO silent 1000-row truncation — an inspector export
+//    either contains every matching row or fails loudly;
+//  - the export itself is audited (who / when / filters / row count).
+const csvCellH1 = (v) => {
+  let s = v == null ? '' : String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  s = s.replace(/\r?\n/g, ' ');
+  return `"${s.replace(/"/g, '""')}"`;
+};
+const H1_CSV_HEADER = [
+  'DispensedAt', 'PrescriptionNo', 'PatientName', 'PrescriberName',
+  'MedicineName', 'RxSchedule', 'Quantity', 'DispensedByName',
+].map(csvCellH1).join(',') + '\r\n';
+
 router.get('/h1-register/export', protect, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
   try {
     const filter = {};
@@ -1151,25 +1169,47 @@ router.get('/h1-register/export', protect, authorize('pharmacy:read', 'pharmacy:
       if (req.query.from) filter.dispensedAt.$gte = new Date(req.query.from);
       if (req.query.to) filter.dispensedAt.$lte = new Date(req.query.to);
     }
-    const rows = await H1RegisterEntry.find(filter).sort({ dispensedAt: -1 }).limit(1000).lean();
-    const csvHeader = 'DispensedAt,PrescriptionNo,PatientName,PrescriberName,MedicineName,RxSchedule,Quantity,DispensedByName\n';
-    const csvRows = rows.map((r) => [
-      r.dispensedAt ? new Date(r.dispensedAt).toISOString() : '',
-      `"${r.prescriptionNo || ''}"`,
-      `"${r.patientName || ''}"`,
-      `"${r.prescriberName || ''}"`,
-      `"${r.medicineName || ''}"`,
-      r.rxSchedule || '',
-      r.quantity || 1,
-      `"${r.dispensedByName || ''}"`,
-    ].join(',')).join('\n');
 
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="h1-narcotic-register-inspection.csv"');
-    return res.send(csvHeader + csvRows);
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="h1-narcotic-register-${stamp}.csv"`);
+    // BOM: without it Excel reads UTF-8 as ANSI and mangles Devanagari names.
+    res.write('\uFEFF' + H1_CSV_HEADER);
+
+    let count = 0;
+    const cursor = H1RegisterEntry.find(filter).sort({ dispensedAt: -1 }).cursor();
+    for await (const r of cursor) {
+      res.write([
+        r.dispensedAt ? new Date(r.dispensedAt).toISOString() : '',
+        csvCellH1(r.prescriptionNo || ''),
+        csvCellH1(r.patientName || ''),
+        csvCellH1(r.prescriberName || ''),
+        csvCellH1(r.medicineName || ''),
+        csvCellH1(r.rxSchedule || ''),
+        csvCellH1(r.quantity || 1),
+        csvCellH1(r.dispensedByName || ''),
+      ].join(',') + '\r\n');
+      count += 1;
+    }
+    res.end();
+
+    // Exporting a statutory register is itself an audited admin action.
+    await auditLog('h1_register_exported', req.user._id, {
+      resourceType: 'H1RegisterEntry',
+      rows: count,
+      filters: {
+        rxSchedule: req.query.rxSchedule || 'all',
+        from: req.query.from || null,
+        to: req.query.to || null,
+        scopedToHospital: !!(req.user.hospitalId && req.user.role !== 'superadmin'),
+      },
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
   } catch (err) {
     logger.error(`H1 export error: ${err.message}`);
-    return res.status(500).json({ message: err.message });
+    if (!res.headersSent) return res.status(500).json({ message: err.message });
+    res.end();
   }
 });
 

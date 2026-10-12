@@ -24,7 +24,16 @@ jestApi.unstable_mockModule('../../src/models/H1RegisterEntry.js', () => ({
       let results = [...h1Entries];
       if (filter?.hospitalId) results = results.filter((r) => String(r.hospitalId) === String(filter.hospitalId));
       if (filter?.rxSchedule) results = results.filter((r) => r.rxSchedule === filter.rxSchedule);
-      return { sort: () => ({ limit: () => ({ lean: async () => results }) }) };
+      if (filter?.dispensedAt?.$gte) results = results.filter((r) => new Date(r.dispensedAt) >= filter.dispensedAt.$gte);
+      if (filter?.dispensedAt?.$lte) results = results.filter((r) => new Date(r.dispensedAt) <= filter.dispensedAt.$lte);
+      const chain = {
+        sort: () => chain,
+        limit: () => chain,
+        lean: async () => results,
+        // T6 export streams via cursor() — async generator over the rows.
+        cursor: () => (async function* () { for (const r of results) yield r; })(),
+      };
+      return chain;
     },
     findOne: () => query(null),
     countDocuments: async () => h1Entries.length,
@@ -107,7 +116,14 @@ jestApi.unstable_mockModule('../../src/models/Billing.js', () => ({
   default: { findById: () => query(null), findOne: () => query(null), find: () => query([]), create: async (d) => d },
 }));
 
-jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({ auditLog: async () => ({}) }));
+// T6: the audit mock RECORDS calls so specs can assert export auditing.
+const auditCalls = [];
+jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+  auditLog: async (action, userId, details) => {
+    auditCalls.push({ action, userId, details });
+    return {};
+  },
+}));
 
 jestApi.unstable_mockModule('../../src/middleware/authorize.js', () => ({
   authorizeObject: () => (_req, _res, next) => next(),
@@ -267,6 +283,43 @@ describe('H1 / Narcotic Register API', () => {
     expect(res.headers['content-disposition']).toMatch(/h1-narcotic-register/);
     // CSV header should be present
     expect(res.text).toContain('DispensedAt');
+  });
+
+  // T6 (file 31): CSV/formula-injection hardening — a cell beginning with
+  // =, +, - or @ must be neutralised before it reaches Excel/Sheets, inner
+  // quotes must be doubled (RFC4180), and the export is streamed (no silent
+  // 1000-row truncation).
+  it('GET /h1-register/export neutralises formula injection & escapes quotes', async () => {
+    // Register rows are written by the dispense flow; seed one directly.
+    h1Entries.push({
+      _id: 'h1_inject', hospitalId: 'h1',
+      patientName: "=cmd|' /C calc'!A0",
+      medicineName: 'H1 "Test" Drug',
+      prescriberName: '+91 9999999999',
+      prescriptionNo: 'RX-INJ-1',
+      rxSchedule: 'h1', quantity: 5,
+      dispensedAt: new Date(),
+      dispensedByName: 'Pharm A',
+    });
+
+    const res = await as(pharmacist).get('/h1-register/export').expect(200);
+    // Formula guard: leading = / + cells are prefixed with a single quote
+    expect(res.text).toContain('\'=cmd');
+    expect(res.text).toContain('\'+91 9999999999');
+    expect(res.text).not.toMatch(/,=cmd/);
+    // RFC4180: inner quotes doubled inside the quoted cell
+    expect(res.text).toContain('H1 ""Test"" Drug');
+  });
+
+  it('GET /h1-register/export writes an audit row for the export', async () => {
+    auditCalls.length = 0;
+    await as(pharmacist).get('/h1-register/export?rxSchedule=h1').expect(200);
+
+    const exported = auditCalls.find((c) => c.action === 'h1_register_exported');
+    expect(exported).toBeDefined();
+    expect(exported.details.filters.rxSchedule).toBe('h1');
+    expect(typeof exported.details.rows).toBe('number');
+    expect(exported.userId).toBe(pharmacist._id);
   });
 
   it('GET /h1-register/export → patient denied', async () => {

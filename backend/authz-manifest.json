@@ -8413,224 +8413,224 @@
     },
     {
       "file": "pharmacy.js",
-      "line": 1144,
+      "line": 1162,
       "method": "GET",
       "target": "'/h1-register/export'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1182,
+      "line": 1222,
       "method": "PUT",
       "target": "'/prescriptions/:id/verify'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1231,
+      "line": 1271,
       "method": "GET",
       "target": "'/stats'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1260,
+      "line": 1300,
       "method": "GET",
       "target": "'/billing/export'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1283,
+      "line": 1323,
       "method": "GET",
       "target": "'/orders'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1314,
+      "line": 1354,
       "method": "POST",
       "target": "'/orders'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1461,
+      "line": 1501,
       "method": "PUT",
       "target": "'/orders/:id'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1477,
+      "line": 1517,
       "method": "PUT",
       "target": "'/orders/:id/status'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1507,
+      "line": 1547,
       "method": "POST",
       "target": "'/orders/:id/cancel'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1531,
+      "line": 1571,
       "method": "POST",
       "target": "'/orders/:id/collect-cod'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1607,
+      "line": 1647,
       "method": "DELETE",
       "target": "'/orders/:id'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1611,
+      "line": 1651,
       "method": "POST",
       "target": "'/orders/:id/forward'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1619,
+      "line": 1659,
       "method": "PUT",
       "target": "'/orders/:id/reject'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1644,
+      "line": 1684,
       "method": "POST",
       "target": "'/orders/:id/substitutions'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1674,
+      "line": 1714,
       "method": "PUT",
       "target": "'/orders/:id/substitutions/:subIndex'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1690,
+      "line": 1730,
       "method": "GET",
       "target": "'/deliveries'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1703,
+      "line": 1743,
       "method": "POST",
       "target": "'/deliveries'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1711,
+      "line": 1751,
       "method": "PUT",
       "target": "'/deliveries/:id'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1754,
-      "method": "GET",
-      "target": "'/offers'",
-      "tag": "object"
-    },
-    {
-      "file": "pharmacy.js",
-      "line": 1767,
-      "method": "POST",
-      "target": "'/offers'",
-      "tag": "role"
-    },
-    {
-      "file": "pharmacy.js",
-      "line": 1775,
-      "method": "PUT",
-      "target": "'/offers/:id'",
-      "tag": "object"
-    },
-    {
-      "file": "pharmacy.js",
-      "line": 1788,
-      "method": "DELETE",
-      "target": "'/offers/:id'",
-      "tag": "object"
-    },
-    {
-      "file": "pharmacy.js",
       "line": 1794,
       "method": "GET",
-      "target": "'/returns'",
+      "target": "'/offers'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
       "line": 1807,
       "method": "POST",
+      "target": "'/offers'",
+      "tag": "role"
+    },
+    {
+      "file": "pharmacy.js",
+      "line": 1815,
+      "method": "PUT",
+      "target": "'/offers/:id'",
+      "tag": "object"
+    },
+    {
+      "file": "pharmacy.js",
+      "line": 1828,
+      "method": "DELETE",
+      "target": "'/offers/:id'",
+      "tag": "object"
+    },
+    {
+      "file": "pharmacy.js",
+      "line": 1834,
+      "method": "GET",
+      "target": "'/returns'",
+      "tag": "object"
+    },
+    {
+      "file": "pharmacy.js",
+      "line": 1847,
+      "method": "POST",
       "target": "'/returns'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1842,
+      "line": 1882,
       "method": "PUT",
       "target": "'/returns/:id'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1860,
+      "line": 1900,
       "method": "GET",
       "target": "'/staff'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1873,
+      "line": 1913,
       "method": "POST",
       "target": "'/staff'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1881,
+      "line": 1921,
       "method": "PUT",
       "target": "'/staff/:id'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1894,
+      "line": 1934,
       "method": "DELETE",
       "target": "'/staff/:id'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1906,
+      "line": 1946,
       "method": "POST",
       "target": "'/coupons/validate'",
       "tag": "self"
     },
     {
       "file": "pharmacy.js",
-      "line": 1922,
+      "line": 1962,
       "method": "POST",
       "target": "'/orders/verify-prescriptions'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 2020,
+      "line": 2060,
       "method": "POST",
       "target": "'/orders/:id/refund'",
       "tag": "object"
