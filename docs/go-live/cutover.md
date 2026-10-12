@@ -2,6 +2,14 @@
 
 This plan governs the transition from legacy hospital systems to Findmedi production deployment.
 
+**Pre-cutover gates — all must be green before T-0, tracked in `docs/legal/COMPLIANCE-REGISTER.md` §2/§3:**
+
+- [ ] Latest restore drill green (RTO ≤ 60 min recorded)
+- [ ] Server read-only downtime drill run (`docs/go-live/runbooks/downtime-drill.md`)
+- [ ] 12/12 UAT sheets signed (`docs/uat/`)
+- [ ] `docs/go-live/env-checklist.md` fully filled; gitleaks clean
+- [ ] ZAP baseline high/critical = 0 (`ZAP/baseline-report.md`)
+
 ---
 
 ## 1. Cutover Schedule & Timeline

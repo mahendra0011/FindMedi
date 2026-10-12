@@ -90,7 +90,7 @@ Expected result: `100% hash chain integrity verified`. Any broken links indicate
    - Patient count parity check.
    - Latest completed bill verification.
    - Hash chain validation on restored `AuditLog` records.
-4. Record elapsed time and document in compliance register.
+4. Record elapsed time and the result in the drill & assurance log (`docs/legal/COMPLIANCE-REGISTER.md` §2).
 
 ---
 
@@ -101,11 +101,15 @@ In case of prolonged network or cloud infrastructure failure:
 1. **Client-Side Fallback:**
    - Web application switches to Service Worker offline mode (`OfflineIndicator` banner activates).
    - Critical read-only formulary and patient roster cache remains available.
-2. **Physical Triplicate Forms:**
+2. **Server-Side Read-Only Mode:** the platform-side half of this drill —
+   toggling `downtime.readOnly` and verifying 503s/reads/allowlist — has its own
+   procedure in `docs/go-live/runbooks/downtime-drill.md`; record the result in
+   `docs/legal/COMPLIANCE-REGISTER.md` §2.
+3. **Physical Triplicate Forms:**
    - Pre-printed stationery kept in clinical emergency lockers:
      - OPD Token & Prescription triplicate sheets.
      - IPD Admission & Bed Allocation intake vouchers.
      - Surgical Safety Checklist & Consent slips.
      - Emergency MLC registry logbooks.
-3. **Reconnection & Catch-Up Reconciliation:**
+4. **Reconnection & Catch-Up Reconciliation:**
    - When network connectivity is restored, records entered manually are transcribed by Medical Records Department (MRD) with `backdated: true` flag and original physical timestamp.
