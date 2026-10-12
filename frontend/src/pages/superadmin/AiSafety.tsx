@@ -10,8 +10,8 @@ import { api } from '@/lib/api';
 // SA-M4: every row below is a REAL event logged by the AI chat route.
 // Token counts are provider estimates (chars/4) and labelled as such.
 export default function AiSafety() {
-  const [stats, setStats] = useState(null);
-  const [events, setEvents] = useState([]);
+  const [stats, setStats] = useState<any>(null);
+  const [events, setEvents] = useState<any[]>([]);
   const [kind, setKind] = useState('all');
   const [loading, setLoading] = useState(true);
 

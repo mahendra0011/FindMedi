@@ -1419,21 +1419,12 @@ const navConfig = {
   ],
 
   // ── Vertical provider roles mapped via specialtyNav helper ──
-  dentist: specialtyNav('/dashboard/dentist'),
-  dental_clinic_admin: specialtyNav('/dashboard/dentist'),
   optician: specialtyNav('/dashboard/optician'),
   optical_shop_owner: specialtyNav('/dashboard/optician'),
-  phlebotomist: specialtyNav('/dashboard/phlebotomist'),
   home_nursing_admin: specialtyNav('/dashboard/home-nursing'),
-  yoga_instructor: specialtyNav('/dashboard/yoga'),
-  yoga_studio_admin: specialtyNav('/dashboard/yoga'),
-  gym_owner: specialtyNav('/dashboard/gym'),
-  trainer: specialtyNav('/dashboard/gym'),
   wellness_admin: specialtyNav('/dashboard/wellness'),
   therapist: specialtyNav('/dashboard/physio'),
-  equipment_vendor: specialtyNav('/dashboard/equipment'),
   product_vendor: specialtyNav('/dashboard/equipment'),
-  event_organizer: specialtyNav('/dashboard/events'),
   ngo_admin: specialtyNav('/dashboard/ngo'),
   group_host: specialtyNav('/dashboard/events'),
   trainer_org: specialtyNav('/dashboard/gym'),
@@ -1457,7 +1448,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
   const handleGoHome = () => { navigate('/'); onNavClick?.(); };
   const handleLogout = () => { logout(); navigate('/login'); onNavClick?.(); };
 
-  const navItems = navConfig[user?.role] || safeStaffNav;
+  const navItems = (user?.role ? (navConfig as Record<string, any>)[user.role] : undefined) || safeStaffNav;
   const language = user?.settings?.language || 'en';
   const [myHealthOpen, setMyHealthOpen] = useState(true);
   const [mindOpen, setMindOpen] = useState(true);
@@ -1485,7 +1476,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-sidebar-foreground truncate">{user.name}</p>
-              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full capitalize ${roleBadgeColor[user.role] || 'bg-muted text-muted-foreground'}`}>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full capitalize ${(user.role && (roleBadgeColor as Record<string, string>)[user.role]) || 'bg-muted text-muted-foreground'}`}>
                 {t(`role.${user.role}`, language)}
               </span>
             </div>
