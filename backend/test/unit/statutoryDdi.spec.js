@@ -212,5 +212,30 @@ describe('Wave 4 Unit Specs — Statutory & DDI Engines', () => {
       expect(checkDrugInteractions(['Aspirin'])).toEqual([]);
       expect(checkDrugInteractions('not-an-array')).toEqual([]);
     });
+
+    test('145-pair DDI data lint: no duplicate pairs, valid severity enum, non-empty effects and recommendations', () => {
+      const interactions = JSON.parse(readFileSync(new URL('../../src/config/interactions.json', import.meta.url), 'utf8'));
+      expect(interactions.length).toBeGreaterThanOrEqual(145);
+
+      const seen = new Set();
+      const validSeverities = ['major', 'moderate', 'minor'];
+
+      for (const item of interactions) {
+        expect(item.drugA).toBeDefined();
+        expect(item.drugB).toBeDefined();
+        expect(item.drugA.trim().length).toBeGreaterThan(0);
+        expect(item.drugB.trim().length).toBeGreaterThan(0);
+
+        expect(validSeverities).toContain(item.severity);
+        expect(item.effect).toBeDefined();
+        expect(item.effect.trim().length).toBeGreaterThan(0);
+        expect(item.recommendation).toBeDefined();
+        expect(item.recommendation.trim().length).toBeGreaterThan(0);
+
+        const pairKey = [item.drugA.toLowerCase().trim(), item.drugB.toLowerCase().trim()].sort().join('::');
+        expect(seen.has(pairKey)).toBe(false);
+        seen.add(pairKey);
+      }
+    });
   });
 });

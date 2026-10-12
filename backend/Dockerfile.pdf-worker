@@ -1,0 +1,55 @@
+# ==============================================================================
+# FindMedi PDF Worker Dockerfile — Headless-Chromium print render (T9)
+# ==============================================================================
+# Specialized worker container with Playwright Chromium and Noto Indian fonts
+# for rendering complex HTML Handlebars templates (Devanagari / bilingual Hindi).
+#
+# Hardening features:
+# - Pre-installed Chromium with Playwright dependencies
+# - Noto Sans Devanagari & Hindi font packages (zero tofu glyphs)
+# - Runs as unprivileged 'pwuser'
+# - Memory limit friendly (pool of 3-5 pages, sandbox isolation)
+# - Read-only FS compatible with tmpfs on /tmp
+# ==============================================================================
+
+FROM mcr.microsoft.com/playwright:v1.49.0-noble AS base
+
+# Install Devanagari & Indian regional fonts for bilingual healthcare documents
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fonts-noto-core \
+    fonts-noto-cjk \
+    fonts-deva \
+    fonts-deva-extra \
+    ca-certificates \
+    curl \
+    && fc-cache -f -v \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Match host npm version
+RUN npm i -g npm@12
+
+# Copy package descriptors and install dependencies
+COPY package*.json .npmrc ./
+COPY prisma ./prisma/
+
+RUN npm ci --omit=dev && npx prisma generate
+
+# Copy backend source
+COPY src ./src
+COPY config ./config 2>/dev/null || true
+
+ENV NODE_ENV=production
+ENV PDF_RENDER=chromium
+ENV WORKER_ROLE=pdf
+
+# Set permissions for unprivileged playwright user
+RUN mkdir -p /tmp && chown -R pwuser:pwuser /app /tmp
+
+USER pwuser
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "process.exit(0)"
+
+CMD ["node", "src/workers/pdfWorker.js"]

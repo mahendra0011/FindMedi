@@ -3,17 +3,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import { AlertTriangle, Building2, CheckCircle2, ClipboardList, FileText, Link2, Loader2, PackageCheck, Plus, ReceiptText, RefreshCw, Send, Trash2, Truck } from 'lucide-react';
+import { AlertTriangle, Building2, CheckCircle2, ClipboardList, FileCheck2, FileText, Link2, Loader2, PackageCheck, Plus, ReceiptText, RefreshCw, Send, ShieldAlert, ShieldCheck, Trash2, Truck } from 'lucide-react';
 
 type TabKey = 'indents' | 'purchase-orders' | 'grn' | 'bills' | 'suppliers';
 const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: 'indents', label: 'Indents', icon: ClipboardList }, { key: 'purchase-orders', label: 'Purchase Orders', icon: FileText },
   { key: 'grn', label: 'Goods Receipt', icon: Truck }, { key: 'bills', label: 'Vendor Bills', icon: ReceiptText },
-  { key: 'suppliers', label: 'Suppliers', icon: Building2 },
+  { key: 'suppliers', label: 'Suppliers & KYC', icon: Building2 },
 ];
-type Supplier = { _id: string; name: string; contactPerson?: string; email?: string; phone?: string; address?: string; gstNumber?: string; category?: string; onboardingStatus?: string };
+type SupplierDoc = { docType: string; docNumber: string; docUrl?: string; expiry?: string; verifiedAt?: string };
+type Supplier = {
+  _id: string;
+  name: string;
+  contactPerson?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  gstNumber?: string;
+  category?: string;
+  onboardingStatus?: string;
+  kycStatus?: 'Pending' | 'Verified' | 'Rejected' | 'Expired';
+  kycDecision?: { status?: string; reason?: string; at?: string };
+  kycDocs?: SupplierDoc[];
+  licenseExpiry?: string;
+  complianceScore?: number;
+};
 type InventoryItem = { _id: string; itemName: string; category?: string; unit?: string; currentStock?: number; unitPrice?: number };
 type PoLine = { inventoryItemId: string; itemName: string; category: string; quantity: number; unitPrice: number; discount: number };
 type PurchaseOrder = { _id: string; poNumber: string; supplierId?: any; supplierName?: string; items: PoLine[]; grandTotal?: number; status: string; expectedDelivery?: string };
@@ -86,6 +103,46 @@ export default function PurchaseCenter() {
   const [indentForm, setIndentForm] = useState(emptyIndent), [poForm, setPoForm] = useState(emptyPo);
   const [grnForm, setGrnForm] = useState(emptyGrn), [matchForm, setMatchForm] = useState(emptyMatch);
   const [matchResult, setMatchResult] = useState<any>(null), [supplierForm, setSupplierForm] = useState(emptySupplier);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [kycDocForm, setKycDocForm] = useState({ docType: 'GST', docNumber: '', expiry: '', docUrl: '' });
+  const [rejectReason, setRejectReason] = useState('');
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const KYC_DOC_TYPES = ['GST', 'PAN', 'DrugLicense', 'MSME', 'CancelledCheque', 'Other'];
+
+  const updateKycDecision = async (status: 'Verified' | 'Rejected') => {
+    if (!selectedSupplier) return;
+    if (status === 'Rejected' && !rejectReason.trim()) {
+      toast.error('Rejection reason is required');
+      return;
+    }
+    await run(async () => {
+      const res: any = await api.put(`/stores/vendors/${selectedSupplier._id}/kyc`, {
+        kycStatus: status,
+        reason: status === 'Rejected' ? rejectReason.trim() : 'Statutory documents verified',
+      });
+      setSuppliers((prev) => prev.map((s) => (s._id === selectedSupplier._id ? { ...s, kycStatus: res?.kycStatus || status, kycDecision: res?.kycDecision } : s)));
+      setSelectedSupplier((curr) => curr ? { ...curr, kycStatus: res?.kycStatus || status, kycDecision: res?.kycDecision } : null);
+      setShowRejectInput(false);
+      setRejectReason('');
+      toast.success(`Vendor KYC ${status === 'Verified' ? 'Approved & Verified' : 'Rejected'}`);
+    }, 'Failed to update vendor KYC');
+  };
+
+  const addKycDoc = async () => {
+    if (!selectedSupplier) return;
+    if (!kycDocForm.docType || !kycDocForm.docNumber.trim()) {
+      toast.error('Document type and number are required');
+      return;
+    }
+    await run(async () => {
+      const res: any = await api.post(`/stores/vendors/${selectedSupplier._id}/kyc-docs`, kycDocForm);
+      const updatedDocs = res?.kycDocs || [...(selectedSupplier.kycDocs || []), { ...kycDocForm }];
+      setSuppliers((prev) => prev.map((s) => (s._id === selectedSupplier._id ? { ...s, kycDocs: updatedDocs } : s)));
+      setSelectedSupplier((curr) => curr ? { ...curr, kycDocs: updatedDocs } : null);
+      setKycDocForm({ docType: 'GST', docNumber: '', expiry: '', docUrl: '' });
+      toast.success('KYC document added successfully');
+    }, 'Failed to add KYC document');
+  };
   const run = async (fn: () => Promise<void>, fallback: string) => {
     setBusy(true);
     try { await fn(); } catch (err: any) { toast.error(errMsg(err, fallback)); } finally { setBusy(false); }
@@ -481,11 +538,20 @@ export default function PurchaseCenter() {
       )}
       {tab === 'suppliers' && (
         <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-          <Panel title={<><Building2 className="h-4 w-4 text-indigo-600" /> Suppliers ({suppliers.length})</>}
-            desc="New vendors land as Pending and must be approved before they can receive a PO.">
+          <Panel title={<><Building2 className="h-4 w-4 text-indigo-600" /> Suppliers & KYC Review ({suppliers.length})</>}
+            desc="Vendors require verified KYC (statutory drug license, GST, PAN) before receiving purchase orders.">
             {suppliers.length === 0 ? emptyRow('No active suppliers.') : (
               <table className="w-full text-xs text-left">
-                <thead className={head}><tr><th className={cell}>Supplier</th><th className={cell}>Contact</th><th className={cell}>GSTIN</th><th className={cell}>Category</th><th className={cell}>Onboarding</th></tr></thead>
+                <thead className={head}>
+                  <tr>
+                    <th className={cell}>Supplier</th>
+                    <th className={cell}>Contact</th>
+                    <th className={cell}>GSTIN</th>
+                    <th className={cell}>Category</th>
+                    <th className={cell}>KYC Status</th>
+                    <th className={`${cell} text-right`}>Actions</th>
+                  </tr>
+                </thead>
                 <tbody className="divide-y divide-border/60">
                   {suppliers.map((s) => (
                     <tr key={s._id} className={rowCls}>
@@ -496,7 +562,21 @@ export default function PurchaseCenter() {
                       <td className={`${cell} text-muted-foreground`}>{s.phone || '—'}{s.email ? <><br />{s.email}</> : null}</td>
                       <td className={`${cell} font-mono text-muted-foreground`}>{s.gstNumber || '—'}</td>
                       <td className={cell}>{s.category || 'General'}</td>
-                      <td className={cell}>{badge(s.onboardingStatus || 'Approved')}</td>
+                      <td className={cell}>
+                        <Badge variant="outline" className={
+                          s.kycStatus === 'Verified' ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/20' :
+                          s.kycStatus === 'Rejected' ? 'bg-red-500/15 text-red-600 border-red-500/20' :
+                          s.kycStatus === 'Expired' ? 'bg-rose-500/15 text-rose-600 border-rose-500/20' :
+                          'bg-amber-500/15 text-amber-600 border-amber-500/20'
+                        }>
+                          {s.kycStatus || 'Pending'}
+                        </Badge>
+                      </td>
+                      <td className={`${cell} text-right`}>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSelectedSupplier(s)}>
+                          Review KYC
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -516,9 +596,145 @@ export default function PurchaseCenter() {
             </div>
             <Field label="Address"><Input placeholder="City / state" value={supplierForm.address} onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })} /></Field>
             <Button className="w-full" onClick={createSupplier} disabled={busy}><Go busy={busy} icon={<Plus className="h-4 w-4" />} label="Add Supplier" /></Button>
-            <p className="text-[11px] text-muted-foreground">GSTIN is format-validated on save when provided.</p>
+            <p className="text-[11px] text-muted-foreground">GSTIN checksum is validated automatically upon creation.</p>
           </SidePanel>
         </div>
+      )}
+
+      {selectedSupplier && (
+        <Dialog open={!!selectedSupplier} onOpenChange={(open) => !open && setSelectedSupplier(null)}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle className="text-lg flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-indigo-600" /> Vendor KYC: {selectedSupplier.name}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs">
+                    Statutory documents, licenses, and approval decision workflow.
+                  </DialogDescription>
+                </div>
+                <Badge variant="outline" className={
+                  selectedSupplier.kycStatus === 'Verified' ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/20' :
+                  selectedSupplier.kycStatus === 'Rejected' ? 'bg-red-500/15 text-red-600 border-red-500/20' :
+                  selectedSupplier.kycStatus === 'Expired' ? 'bg-rose-500/15 text-rose-600 border-rose-500/20' :
+                  'bg-amber-500/15 text-amber-600 border-amber-500/20'
+                }>
+                  Status: {selectedSupplier.kycStatus || 'Pending'}
+                </Badge>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div className="p-3 rounded-lg bg-muted/40 border grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                <div>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Contact Person</span>
+                  <span className="font-medium">{selectedSupplier.contactPerson || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">GSTIN</span>
+                  <span className="font-mono font-medium">{selectedSupplier.gstNumber || 'Not provided'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Category</span>
+                  <span className="font-medium">{selectedSupplier.category || 'General'}</span>
+                </div>
+                {selectedSupplier.kycDecision?.reason && (
+                  <div className="col-span-full pt-1 border-t text-[11px]">
+                    <span className="text-muted-foreground font-semibold">Decision Note: </span>
+                    <span className="italic">{selectedSupplier.kycDecision.reason}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <FileCheck2 className="h-4 w-4" /> Uploaded Statutory Documents ({selectedSupplier.kycDocs?.length || 0})
+                </h4>
+
+                {!selectedSupplier.kycDocs?.length ? (
+                  <p className="text-xs text-muted-foreground p-3 border border-dashed rounded text-center">
+                    No KYC documents uploaded yet. Add GST Certificate, Drug License, or PAN below.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {selectedSupplier.kycDocs.map((doc, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2.5 rounded border bg-card text-xs">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground">{doc.docType}</span>
+                            <span className="font-mono text-muted-foreground">{doc.docNumber}</span>
+                          </div>
+                          {doc.expiry && (
+                            <p className="text-[11px] text-muted-foreground">
+                              Expiry: {new Date(doc.expiry).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                        {doc.docUrl ? (
+                          <a href={doc.docUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline">
+                            View Doc
+                          </a>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px]">Document on file</Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 border rounded-lg bg-muted/20 space-y-2.5">
+                <h5 className="text-xs font-semibold">Attach New KYC Document</h5>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <Field label="Doc Type">
+                    <Select value={kycDocForm.docType} onChange={(v) => setKycDocForm({ ...kycDocForm, docType: v })}>
+                      {KYC_DOC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </Select>
+                  </Field>
+                  <Field label="Doc Number *">
+                    <Input placeholder="e.g. 23AAAA0000A1Z5" value={kycDocForm.docNumber} onChange={(e) => setKycDocForm({ ...kycDocForm, docNumber: e.target.value })} />
+                  </Field>
+                  <Field label="Expiry Date">
+                    <Input type="date" value={kycDocForm.expiry} onChange={(e) => setKycDocForm({ ...kycDocForm, expiry: e.target.value })} />
+                  </Field>
+                </div>
+                <Button size="sm" variant="secondary" onClick={addKycDoc} disabled={busy} className="h-8 text-xs">
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Attach Document
+                </Button>
+              </div>
+
+              {showRejectInput && (
+                <div className="p-3 border border-red-500/30 rounded-lg bg-red-500/5 space-y-2">
+                  <span className="text-xs font-semibold text-red-600">State Reason for Rejection *</span>
+                  <Input
+                    placeholder="e.g. Expired drug license, invalid GSTIN verification failure"
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="flex items-center justify-between sm:justify-between border-t pt-3">
+              <Button variant="ghost" size="sm" onClick={() => setSelectedSupplier(null)}>Close</Button>
+              <div className="flex gap-2">
+                {!showRejectInput ? (
+                  <Button variant="outline" size="sm" className="text-red-600 border-red-500/30 hover:bg-red-500/10" onClick={() => setShowRejectInput(true)}>
+                    Reject KYC
+                  </Button>
+                ) : (
+                  <Button variant="destructive" size="sm" onClick={() => updateKycDecision('Rejected')} disabled={busy}>
+                    Confirm Reject
+                  </Button>
+                )}
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => updateKycDecision('Verified')} disabled={busy}>
+                  <ShieldCheck className="h-4 w-4 mr-1" /> Approve & Verify
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

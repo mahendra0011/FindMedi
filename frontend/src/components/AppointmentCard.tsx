@@ -9,7 +9,7 @@ import { formatDisplayDate } from '@/lib/dateUtils';
 /**
  * Convert a number to an ordinal string: 1 → "1st", 2 → "2nd", 3 → "3rd".
  */
-export function ordinal(n) {
+export function ordinal(n: number) {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
@@ -75,6 +75,15 @@ export default function AppointmentCard({
   onViewDetails,
   onViewHistory,
   onViewIntake,
+}: {
+  apt: any;
+  actionButtons?: any;
+  visitNumber?: number;
+  pastVisitCount?: number;
+  lastVisit?: any;
+  onViewDetails?: (apt: any) => void;
+  onViewHistory?: (apt: any) => void;
+  onViewIntake?: (apt: any) => void;
 }) {
   const priority = apt?.priority || 'Normal';
   const status   = apt?.status   || 'Pending';

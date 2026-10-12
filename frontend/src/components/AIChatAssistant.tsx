@@ -23,7 +23,7 @@ interface ChatMessage {
   role: string;
   content: string;
   image?: string | null;
-  suggestions?: string[];
+  suggestions?: any[];
   isTyping?: boolean;
 }
 

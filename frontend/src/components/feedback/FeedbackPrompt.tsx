@@ -3,7 +3,7 @@ import { Star, MessageSquare, ThumbsUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { api } from '@/lib/api';
 
 export interface FeedbackPromptProps {

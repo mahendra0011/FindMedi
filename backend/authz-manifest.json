@@ -10,12 +10,12 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1723,
+  "total": 1724,
   "counts": {
     "inherited": 5,
     "object": 437,
     "public": 112,
-    "role": 1106,
+    "role": 1107,
     "self": 63
   },
   "byMechanism": {
@@ -24,7 +24,7 @@
     "assertCallParticipant": 2,
     "assertEhrSearchAccess": 1,
     "assertMentalHealthAccess": 11,
-    "authorize": 775,
+    "authorize": 776,
     "authorizeObject": 76,
     "canAccessPatient": 5,
     "canAccessRecord": 4,
@@ -39,7 +39,7 @@
     "platformAdminOnly": 15,
     "requireConversationMember": 18,
     "requireMetricsToken": 1,
-    "requireObjectId": 88,
+    "requireObjectId": 89,
     "requirePatientGrant": 4,
     "requireReportScope": 2,
     "requireRole": 82,
@@ -11347,6 +11347,13 @@
     {
       "file": "stores.js",
       "line": 420,
+      "method": "POST",
+      "target": "'/vendors/:id/kyc-docs'",
+      "tag": "role"
+    },
+    {
+      "file": "stores.js",
+      "line": 450,
       "method": "GET",
       "target": "'/vendors/:id/performance'",
       "tag": "role"

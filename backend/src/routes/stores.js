@@ -417,6 +417,36 @@ router.put('/vendors/:id/kyc', requireObjectId, authorize('inventory:manage'), a
 });
 
 // authz: role
+router.post('/vendors/:id/kyc-docs', requireObjectId, authorize('inventory:manage'), async (req, res) => {
+  try {
+    const { docType, docNumber, docUrl, expiry } = req.body || {};
+    if (!docType || !docNumber) {
+      return res.status(400).json({ message: 'docType and docNumber are required' });
+    }
+    const supplier = await Supplier.findOne({ _id: req.params.id, ...tenantFilter(req) });
+    if (!supplier) return res.status(404).json({ message: 'Vendor not found' });
+    supplier.kycDocs = supplier.kycDocs || [];
+    supplier.kycDocs.push({
+      docType: ['GST', 'PAN', 'DrugLicense', 'MSME', 'CancelledCheque', 'Other'].includes(docType) ? docType : 'Other',
+      docNumber: String(docNumber),
+      docUrl: String(docUrl || ''),
+      expiry: expiry ? new Date(expiry) : null,
+      verifiedAt: null,
+      verifiedBy: null,
+    });
+    await supplier.save();
+    return res.status(201).json({
+      vendorId: String(supplier._id),
+      kycDocs: supplier.kycDocs,
+      kycDocsCount: supplier.kycDocs.length,
+    });
+  } catch (err) {
+    logger.error(`Vendor KYC doc upload error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// authz: role
 router.get('/vendors/:id/performance', requireObjectId, authorize('inventory:manage'), async (req, res) => {
   try {
     const supplier = await Supplier.findOne({ _id: req.params.id, ...tenantFilter(req) }).lean();
