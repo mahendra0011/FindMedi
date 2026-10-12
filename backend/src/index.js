@@ -624,6 +624,8 @@ import orderRoutes from './routes/orders.js';
 import storeRoutes from './routes/stores.js';
 import fhirRoutes from './routes/fhir.js';
 import rosterRoutes from './routes/roster.js';
+import hrRoutes from './routes/hr.js';
+import ddiRoutes from './routes/ddi.js';
 import maternityRoutes from './routes/maternity.js';
 import doctorDashRoutes from './routes/doctor.js';
 import caseRoutes from './routes/casePresentations.js';
@@ -908,6 +910,10 @@ app.use('/api/stores', storeRoutes);
 app.use('/api/fhir', fhirRoutes);
 // File 09 §9.8: duty roster (draft → published).
 app.use('/api/roster', rosterRoutes);
+// Wave 4a: HR document verification + exit interview
+app.use('/api/hr', hrRoutes);
+// Wave 4d: Drug-drug interaction engine
+app.use('/api/ddi', ddiRoutes);
 // File 09 §04.7: maternity (antenatal, labour, delivery → birth record).
 app.use('/api/maternity', maternityRoutes);
 // Doc 11 §5 P0: single-call doctor dashboard aggregate + tasks.

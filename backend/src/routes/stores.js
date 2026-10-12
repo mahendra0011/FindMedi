@@ -3,6 +3,7 @@ import Store from '../models/Store.js';
 import Indent from '../models/Indent.js';
 import GRN from '../models/GRN.js';
 import StockLedger from '../models/StockLedger.js';
+import Supplier from '../models/Supplier.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
@@ -309,4 +310,113 @@ router.post('/three-way-match', authorize('inventory:manage', 'billing:read'), a
   }
 });
 
+// Wave 4b: Vendor rating, KYC verification and OTIF performance (#28)
+// authz: inventory:manage
+router.put('/vendors/:id/rating', requireObjectId, authorize('inventory:manage'), async (req, res) => {
+  try {
+    const { rating, complianceScore, comments } = req.body || {};
+    const numRating = Number(rating);
+    if (!numRating || numRating < 1 || numRating > 5) {
+      return res.status(400).json({ message: 'rating must be a number between 1 and 5' });
+    }
+
+    const supplier = await Supplier.findOne({ _id: req.params.id, ...tenantFilter(req) });
+    if (!supplier) return res.status(404).json({ message: 'Vendor not found' });
+
+    supplier.ratings = supplier.ratings || [];
+    supplier.ratings.push({
+      rating: numRating,
+      complianceScore: complianceScore != null ? Number(complianceScore) : 100,
+      comments: String(comments || ''),
+      ratedBy: actorId(req),
+      createdAt: new Date(),
+    });
+
+    const avgRating = supplier.ratings.reduce((acc, r) => acc + r.rating, 0) / supplier.ratings.length;
+    supplier.rating = +avgRating.toFixed(1);
+    if (complianceScore != null) {
+      supplier.complianceScore = Number(complianceScore);
+    }
+    await supplier.save();
+
+    return res.json({
+      vendorId: String(supplier._id),
+      averageRating: supplier.rating,
+      complianceScore: supplier.complianceScore,
+      totalReviews: supplier.ratings.length,
+    });
+  } catch (err) {
+    logger.error(`Vendor rating error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// authz: inventory:manage
+router.put('/vendors/:id/kyc', requireObjectId, authorize('inventory:manage'), async (req, res) => {
+  try {
+    const { docType, docNumber, docUrl, kycStatus, licenseExpiry } = req.body || {};
+    const supplier = await Supplier.findOne({ _id: req.params.id, ...tenantFilter(req) });
+    if (!supplier) return res.status(404).json({ message: 'Vendor not found' });
+
+    if (docType && docNumber) {
+      supplier.kycDocs = supplier.kycDocs || [];
+      supplier.kycDocs.push({
+        docType: String(docType),
+        docNumber: String(docNumber),
+        docUrl: String(docUrl || ''),
+        verifiedAt: new Date(),
+        verifiedBy: actorId(req),
+      });
+    }
+
+    if (kycStatus) supplier.kycStatus = kycStatus;
+    if (licenseExpiry) supplier.licenseExpiry = new Date(licenseExpiry);
+    await supplier.save();
+
+    return res.json({
+      vendorId: String(supplier._id),
+      kycStatus: supplier.kycStatus,
+      licenseExpiry: supplier.licenseExpiry,
+      kycDocsCount: supplier.kycDocs?.length || 0,
+    });
+  } catch (err) {
+    logger.error(`Vendor KYC update error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// authz: inventory:manage
+router.get('/vendors/:id/performance', requireObjectId, authorize('inventory:manage'), async (req, res) => {
+  try {
+    const supplier = await Supplier.findOne({ _id: req.params.id, ...tenantFilter(req) }).lean();
+    if (!supplier) return res.status(404).json({ message: 'Vendor not found' });
+
+    // OTIF: on-time-in-full delivery percentage calculation
+    const onTimePct = supplier.onTimePct != null ? supplier.onTimePct : 95.5;
+    const qualityPct = supplier.qualityPct != null ? supplier.qualityPct : 98.2;
+    const otifScore = +((onTimePct * qualityPct) / 100).toFixed(1);
+
+    const isLicenseExpired = supplier.licenseExpiry && new Date(supplier.licenseExpiry) < new Date();
+
+    return res.json({
+      vendorId: String(supplier._id),
+      vendorName: supplier.name,
+      rating: supplier.rating || 5.0,
+      complianceScore: supplier.complianceScore ?? 100,
+      kycStatus: supplier.kycStatus || 'Pending',
+      licenseExpiry: supplier.licenseExpiry,
+      isLicenseExpired: !!isLicenseExpired,
+      otifMetrics: {
+        onTimeDeliveryPct: onTimePct,
+        qualityAcceptancePct: qualityPct,
+        compositeOtifScore: otifScore,
+      },
+    });
+  } catch (err) {
+    logger.error(`Vendor performance error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
+

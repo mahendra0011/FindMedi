@@ -1,0 +1,30 @@
+{
+  "financialYear": "2025-26",
+  "pf": {
+    "employeeRate": 0.12,
+    "employerRate": 0.12,
+    "wageCeiling": 15000,
+    "maxEmployeeMonthlyContribution": 1800,
+    "employerPensionRate": 0.0833,
+    "employerEpfsRate": 0.0367
+  },
+  "esi": {
+    "grossWageCeiling": 21000,
+    "employeeRate": 0.0075,
+    "employerRate": 0.0325
+  },
+  "gratuity": {
+    "daysFactorNumerator": 15,
+    "daysFactorDenominator": 26,
+    "minimumTenureYears": 5
+  },
+  "newTaxRegimeSlabs": [
+    { "upTo": 400000, "rate": 0.0 },
+    { "upTo": 800000, "rate": 0.05 },
+    { "upTo": 1200000, "rate": 0.10 },
+    { "upTo": 1600000, "rate": 0.15 },
+    { "upTo": 2000000, "rate": 0.20 },
+    { "upTo": 2400000, "rate": 0.25 },
+    { "upTo": null, "rate": 0.30 }
+  ]
+}

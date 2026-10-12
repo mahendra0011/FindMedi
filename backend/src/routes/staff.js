@@ -10,6 +10,7 @@ import { protect, adminOnly, authorize } from '../middleware/auth.js';
 import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { validate, createStaffSchema, updateStaffSchema } from '../utils/validate.js';
 import { generateTimestampedId } from '../utils/idGenerator.js';
+import { calculatePf, calculateEsi, calculateTds, calculateGratuity } from '../services/statutoryEngine.js';
 
 const attendanceSchema = z.object({ staffId: z.string().min(1), date: z.string().optional(), status: z.string().optional() });
 const bulkAttendanceSchema = z.object({ date: z.string().min(1), attendance: z.array(z.object({ staffId: z.string().min(1), status: z.string().optional() })).min(1) });
@@ -328,13 +329,22 @@ router.post('/payroll/calculate', protect, authorize('staff:manage'), adminOnly,
     }
     
     const baseSalary = staff.salary;
+    const basicPay = Math.round(baseSalary * 0.5); // 50% basic pay standard
+    const da = Math.round(baseSalary * 0.1); // 10% dearness allowance
     const overtimeAmount = (overtimeHours || 0) * (overtimeRate || (baseSalary / 30 / 8)); // per hour rate
     const allowances = req.body.allowances || 0;
-    const deductions = req.body.deductions || 0;
-    
     const grossSalary = baseSalary + overtimeAmount + allowances;
-    const netSalary = grossSalary - deductions;
-    
+
+    // Statutory deductions
+    const pfData = calculatePf(basicPay, da);
+    const esiData = calculateEsi(grossSalary);
+    const tdsData = calculateTds(grossSalary * 12);
+
+    const statutoryDeductions = pfData.employeePf + esiData.employeeEsi + tdsData.monthlyTds;
+    const customDeductions = req.body.deductions || 0;
+    const totalDeductions = statutoryDeductions + customDeductions;
+    const netSalary = Math.max(0, grossSalary - totalDeductions);
+
     const payroll = {
       staffId: staff._id,
       employeeId: staff.employeeId,
@@ -344,11 +354,18 @@ router.post('/payroll/calculate', protect, authorize('staff:manage'), adminOnly,
       month,
       year,
       baseSalary,
+      basicPay,
+      da,
       overtimeHours: overtimeHours || 0,
       overtimeRate: overtimeRate || (baseSalary / 30 / 8),
       overtimeAmount,
       allowances,
-      deductions,
+      statutory: {
+        pf: pfData,
+        esi: esiData,
+        tds: tdsData,
+      },
+      deductions: totalDeductions,
       grossSalary,
       netSalary,
       calculatedBy: req.user.name,

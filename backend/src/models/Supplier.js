@@ -50,7 +50,28 @@ const supplierSchema = new mongoose.Schema({
   onTimePct: { type: Number, default: null },
   qualityPct: { type: Number, default: null },
   leadTime: { type: Number, default: 7 }, // days
-  paymentTerms: { type: String, default: 'Net 30' },
+  // Wave 4b: Vendor rating + KYC (#28)
+  ratings: [{
+    rating: { type: Number, min: 1, max: 5 },
+    complianceScore: { type: Number, min: 0, max: 100 },
+    comments: { type: String, default: '' },
+    ratedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    createdAt: { type: Date, default: Date.now },
+  }],
+  kycDocs: [{
+    docType: { type: String, enum: ['GST', 'PAN', 'DrugLicense', 'MSME', 'CancelledCheque', 'Other'], default: 'Other' },
+    docNumber: { type: String, default: '' },
+    docUrl: { type: String, default: '' },
+    verifiedAt: { type: Date, default: null },
+    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  }],
+  kycStatus: {
+    type: String,
+    enum: ['Pending', 'Verified', 'Rejected', 'Expired'],
+    default: 'Pending',
+  },
+  complianceScore: { type: Number, default: 100 },
+  licenseExpiry: { type: Date, default: null },
   isActive: { type: Boolean, default: true },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   notes: { type: String },

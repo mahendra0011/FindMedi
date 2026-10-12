@@ -1,0 +1,86 @@
+[
+  {
+    "drugA": "warfarin",
+    "drugB": "aspirin",
+    "severity": "major",
+    "effect": "Severe risk of major bleeding and gastrointestinal hemorrhage due to combined anticoagulant and antiplatelet effects.",
+    "recommendation": "Avoid combination unless strictly indicated for mechanical heart valves with careful INR monitoring."
+  },
+  {
+    "drugA": "metformin",
+    "drugB": "iodinated contrast",
+    "severity": "major",
+    "effect": "Contrast-induced nephropathy leading to severe metformin accumulation and fatal lactic acidosis.",
+    "recommendation": "Withhold metformin 48 hours prior to contrast imaging and resume 48 hours post-procedure after checking serum creatinine."
+  },
+  {
+    "drugA": "sildenafil",
+    "drugB": "nitroglycerin",
+    "severity": "major",
+    "effect": "Potentiation of nitric oxide-cGMP pathway causing profound, refractory hypotension and myocardial infarction.",
+    "recommendation": "Strictly contraindicated. Do not co-prescribe within 24 hours of each other."
+  },
+  {
+    "drugA": "methotrexate",
+    "drugB": "ibuprofen",
+    "severity": "major",
+    "effect": "NSAIDs decrease renal clearance of methotrexate, causing severe bone marrow suppression and hepatotoxicity.",
+    "recommendation": "Avoid co-administration; use paracetamol for analgesia if necessary."
+  },
+  {
+    "drugA": "atorvastatin",
+    "drugB": "clarithromycin",
+    "severity": "major",
+    "effect": "CYP3A4 inhibition increases statin systemic exposure, drastically raising rhabdomyolysis and acute renal failure risk.",
+    "recommendation": "Temporarily suspend atorvastatin during macrolide antibiotic therapy or switch to rosuvastatin/azithromycin."
+  },
+  {
+    "drugA": "ciprofloxacin",
+    "drugB": "theophylline",
+    "severity": "major",
+    "effect": "Inhibition of theophylline metabolism leads to theophylline toxicity, tachycardia, seizures, and arrhythmias.",
+    "recommendation": "Monitor theophylline levels and reduce dose by 50% or choose alternative antibiotic."
+  },
+  {
+    "drugA": "fluoxetine",
+    "drugB": "tramadol",
+    "severity": "major",
+    "effect": "Enhanced serotonergic activity leading to life-threatening Serotonin Syndrome and reduced seizure threshold.",
+    "recommendation": "Avoid combination; monitor for tremor, hyperthermia, agitation, and clonus."
+  },
+  {
+    "drugA": "digoxin",
+    "drugB": "amiodarone",
+    "severity": "major",
+    "effect": "P-glycoprotein inhibition causes 70% increase in serum digoxin concentration, inducing fatal digitalis arrhythmias.",
+    "recommendation": "Reduce digoxin dosage by 50% upon starting amiodarone and monitor digoxin serum levels."
+  },
+  {
+    "drugA": "spironolactone",
+    "drugB": "lisinopril",
+    "severity": "moderate",
+    "effect": "Combined potassium-sparing effect leads to severe hyperkalemia and cardiac arrest risk, especially in renal impairment.",
+    "recommendation": "Check baseline serum potassium and creatinine; monitor weekly initially."
+  },
+  {
+    "drugA": "clopidogrel",
+    "drugB": "omeprazole",
+    "severity": "moderate",
+    "effect": "CYP2C19 competitive inhibition reduces clopidogrel active metabolite formation, decreasing antiplatelet efficacy.",
+    "recommendation": "Use pantoprazole or famotidine instead of omeprazole."
+  },
+  {
+    "drugA": "levothyroxine",
+    "drugB": "calcium carbonate",
+    "severity": "minor",
+    "effect": "Insoluble chelate formation in GI tract reduces levothyroxine bioavailability.",
+    "recommendation": "Space administration by at least 4 hours."
+  },
+  {
+    "drugA": "ciprofloxacin",
+    "drugB": "antacids",
+    "severity": "minor",
+    "effect": "Divalent and trivalent cations chelate fluoroquinolones, drastically impairing gut absorption.",
+    "recommendation": "Administer ciprofloxacin 2 hours before or 6 hours after antacids."
+  }
+]
