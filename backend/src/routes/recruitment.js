@@ -6,6 +6,7 @@ import OnboardingTask from '../models/OnboardingTask.js';
 import Staff from '../models/Staff.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
+import { validate } from '../utils/validate.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();

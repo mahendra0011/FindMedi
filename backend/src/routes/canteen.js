@@ -5,6 +5,7 @@ import CanteenOrder from '../models/CanteenOrder.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { generateTimestampedId } from '../utils/idGenerator.js';
+import { validate } from '../utils/validate.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();

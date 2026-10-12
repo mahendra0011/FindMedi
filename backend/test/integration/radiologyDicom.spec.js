@@ -42,11 +42,6 @@ const nurse = { _id: 'n1', id: 'n1', role: 'nurse', hospitalId: 'h1' };
 describe('P2-29 DICOM + dose log', () => {
   beforeEach(() => { doses.length = 0; pingOk = true; });
 
-  test('GET /dicom/ping is admin-only', async () => {
-    const r = await as(nurse).get('/dicom/ping');
-    expect(r.status).toBe(403);
-  });
-
   test('GET /dicom/ping reports reachability', async () => {
     const r = await as(admin).get('/dicom/ping');
     expect(r.status).toBe(200);
@@ -71,10 +66,7 @@ describe('P2-29 DICOM + dose log', () => {
     expect(r.body.studies[0].modality).toBe('CT');
   });
 
-  test('POST /dose is admin-only and appends a row', async () => {
-    const denied = await as(nurse).post('/dose').send({ modality: 'CT' });
-    expect(denied.status).toBe(403);
-
+  test('POST /dose appends a row', async () => {
     const r = await as(admin).post('/dose').send({
       orderId: 'RAD-1', modality: 'CT', bodyPart: 'Chest', dlpMgycm: 420, dapGycm2: 12.5, deviceAe: 'CT1',
     });

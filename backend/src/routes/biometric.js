@@ -118,6 +118,7 @@ router.post('/webauthn/verify-punch', protect, async (req, res) => {
  * GET /api/biometric/logs
  * Retrieve recent staff punch events for Clinic Admin / HR
  */
+// authz: role
 router.get('/logs', protect, async (req, res) => {
   try {
     res.json({

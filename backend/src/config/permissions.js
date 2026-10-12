@@ -89,6 +89,7 @@ export const CANONICAL_ROLES = [
   // Doc 12 §3: clinic org roles (tenant-scoped clinic staff with real logins).
   'clinic_admin', 'clinic_receptionist', 'clinic_nurse',
   'clinic_accountant', 'clinic_pharmacist',
+  'clinic_cashier', 'clinic_branch_manager', 'clinic_telemed_coordinator',
   // File 22 P0-8 (docs2/08 §8.2): hospital operations roles.
   'front_desk',
   'billing_executive', 'cashier', 'insurance_desk',
@@ -128,6 +129,18 @@ export const CANONICAL_ROLES = [
   'blood_bank_admin', 'dialysis_admin', 'fertility_admin',
   'maternity_admin', 'rehab_admin', 'govt_facility_staff',
   'tpa_agent', 'medical_reviewer',
+  // PATHOLOGY/LAB §9: department-scoped lab roles (one console section each,
+  // least privilege over the lab:* strings the lab routes actually gate on).
+  'lab_supervisor', 'lab_receiving', 'biochem_tech', 'hematology_tech',
+  'clinical_pathology_tech', 'microbiology_tech', 'histopathology_tech',
+  'cytology_tech', 'serology_tech', 'molecular_tech', 'report_coordinator',
+  'home_collection_staff', 'it_admin',
+  // File 28 §36/§37: radiology (RIS) department roles — one least-privilege
+  // account per job on the imaging floor (manager, scheduler, prep, per-
+  // modality technicians, reporting/PACS support).
+  'radiology_manager', 'radiology_scheduler', 'radiology_prep_staff',
+  'mri_technician', 'xray_technician', 'ct_technician', 'us_technician',
+  'mammo_technician', 'reporting_assistant', 'pacs_admin',
 ];
 
 /**
@@ -212,11 +225,12 @@ export const ROLE_PERMISSIONS = {
     'ride:read', 'ride:write', 'emergency:read', 'emergency:write',
     'upload:read', 'upload:write', 'drive:read', 'drive:write',
     'profile:read', 'profile:write', 'patients:read', 'patients:write',
+    'radiology:read', 'radiology:write', 'radiology:cancel', 'radiology:amend',
   ],
   doctor: [
     'records:read', 'records:write', 'appointments:read', 'appointments:write',
     'prescriptions:write', 'patients:read', 'lab:order', 'lab:read',
-    'radiology:read', 'chat:read', 'chat:write', 'profile:read', 'profile:write',
+    'radiology:read', 'radiology:order', 'chat:read', 'chat:write', 'profile:read', 'profile:write',
     'notifications:read', 'upload:write', 'drive:write',
   ],
   clinic_doctor: [
@@ -231,14 +245,73 @@ export const ROLE_PERMISSIONS = {
   lab_receptionist: ['lab:read', 'lab:book', 'notifications:read'],
   lab_technician: ['lab:read', 'lab:enter_result', 'notifications:read'],
   pathologist: ['lab:read', 'lab:verify', 'notifications:read'],
+  // ── PATHOLOGY/LAB §9 department roles ──────────────────────────────────
+  // New lab:* strings introduced by the lab routes: lab:cancel (order voiding),
+  // lab:receive (sample intake), lab:assign (worklist + reference-lab handoff),
+  // lab:finalize (release), lab:correct (report amendment), lab:visit
+  // (home-collection visit workflow). Every one is held by at least one
+  // non-superadmin role (scripts/checkPermissionMatrix.mjs enforces this).
+  // Section technicians carry the SAME entry-level set as lab_technician —
+  // which section you work in is routing metadata, not an access level.
+  lab_supervisor: [
+    'lab:manage', 'lab:read', 'lab:book', 'lab:enter_result', 'lab:verify',
+    'lab:cancel', 'lab:receive', 'lab:assign', 'lab:finalize', 'lab:correct',
+    'lab:visit', 'lab:print', 'reports:read', 'notifications:read',
+  ],
+  lab_receiving: ['lab:read', 'lab:book', 'lab:receive', 'lab:assign', 'lab:print', 'notifications:read'],
+  biochem_tech: ['lab:read', 'lab:enter_result', 'notifications:read'],
+  hematology_tech: ['lab:read', 'lab:enter_result', 'notifications:read'],
+  clinical_pathology_tech: ['lab:read', 'lab:enter_result', 'notifications:read'],
+  microbiology_tech: ['lab:read', 'lab:enter_result', 'notifications:read'],
+  histopathology_tech: ['lab:read', 'lab:enter_result', 'notifications:read'],
+  cytology_tech: ['lab:read', 'lab:enter_result', 'notifications:read'],
+  serology_tech: ['lab:read', 'lab:enter_result', 'notifications:read'],
+  molecular_tech: ['lab:read', 'lab:enter_result', 'notifications:read'],
+  report_coordinator: [
+    'lab:read', 'lab:finalize', 'lab:correct', 'lab:print', 'lab:export',
+    'notifications:read',
+  ],
+  home_collection_staff: ['lab:read', 'lab:book', 'lab:visit', 'notifications:read'],
+  // IT admin touches equipment/analytics configuration — no PHI, no lab writes.
+  it_admin: [
+    'equipment:read', 'reports:read', 'staff:view', 'notifications:read',
+    'profile:read:own', 'profile:write:own',
+  ],
   pharmacy_owner: ['pharmacy:manage', 'pharmacy:read', 'pharmacy:dispense', 'inventory:manage', 'notifications:read'],
   pharmacist: ['pharmacy:read', 'pharmacy:dispense', 'notifications:read'],
-  radiologist: ['radiology:read', 'radiology:write', 'lab:read', 'notifications:read'],
+  // §36: radiologists sign/amend reports (radiology:amend on the report
+  // route) and read the MIS surface (reports:read) for TAT/workload review.
+  radiologist: ['radiology:read', 'radiology:write', 'radiology:amend', 'lab:read', 'reports:read', 'notifications:read'],
+  // ── File 28 §36/§37 radiology (RIS) department roles ───────────────────
+  // Every string is enforced by a radiology.js authorize() call site:
+  // radiology:read (queues/worklists/dose audit/PACS), radiology:write
+  // (schedule/start/complete/report/prep/appointments), radiology:cancel
+  // (order cancellation + refund flag — hospital_admin + manager only),
+  // equipment:read (modality asset metadata), reports:read (MIS).
+  radiology_manager: [
+    'radiology:read', 'radiology:write', 'radiology:cancel',
+    'equipment:read', 'reports:read', 'notifications:read',
+  ],
+  radiology_scheduler: ['radiology:read', 'radiology:write', 'notifications:read'],
+  radiology_prep_staff: ['radiology:read', 'radiology:write', 'notifications:read'],
+  // Modality technicians share the entry-level imaging set (same shape as
+  // technician/radiologist write access); which machine you run is routing
+  // metadata, not an access level.
+  mri_technician: ['radiology:read', 'radiology:write', 'notifications:read'],
+  xray_technician: ['radiology:read', 'radiology:write', 'notifications:read'],
+  ct_technician: ['radiology:read', 'radiology:write', 'notifications:read'],
+  us_technician: ['radiology:read', 'radiology:write', 'notifications:read'],
+  mammo_technician: ['radiology:read', 'radiology:write', 'notifications:read'],
+  // Reporting assistant: read worklists + MIS, never signs a report.
+  reporting_assistant: ['radiology:read', 'reports:read', 'notifications:read'],
+  // PACS admin: connectivity/worklist/viewer + equipment metadata. No report
+  // writes and no PHI-class records:read (BreakGlass covers anything more).
+  pacs_admin: ['radiology:read', 'equipment:read', 'notifications:read'],
   dietitian: ['diet:read', 'diet:write'],
   physiotherapist: ['physio:read', 'physio:write'],
   accountant: ['billing:read', 'commission:read', 'reports:read', 'notifications:read'],
   security: ['audit:read'],
-  technician: ['beds:read', 'equipment:read'],
+  technician: ['beds:read', 'equipment:read', 'radiology:read'],
   helper: [],
   delivery_boy: ['delivery:read', 'delivery:write', 'chat:read', 'chat:write'],
   rider: ['ride:read', 'ride:write', 'chat:read', 'chat:write', 'notifications:read', 'wallet:withdraw'],
@@ -256,6 +329,9 @@ export const ROLE_PERMISSIONS = {
     'appointments:read:own', 'appointments:write:own',
     'prescriptions:read:own', 'pharmacy:read:own', 'pharmacy:order:own',
     'lab:read:own', 'lab:book:own', 'billing:read:own', 'billing:write:own',
+    // §36: patients read their own imaging orders/reports (the GET
+    // /radiology/orders handler already scopes role=patient by patientId).
+    'radiology:read:own',
     'support:read:own', 'profile:read:own',
     'profile:write:own', 'loyalty:read:own', 'loyalty:write:own',
     'chat:read:own', 'chat:write:own', 'legal:read:own', 'legal:write:own',
@@ -285,7 +361,7 @@ export const ROLE_PERMISSIONS = {
     'records:read', 'records:write', 'appointments:read', 'appointments:write',
     'prescriptions:write', 'patients:read', 'chat:read', 'chat:write',
     'profile:read', 'profile:write', 'notifications:read', 'upload:write',
-    'radiology:read',
+    'radiology:read', 'radiology:order',
   ],
   dental_clinic_admin: [
     'appointments:read', 'appointments:write', 'patients:read', 'billing:read',
@@ -454,6 +530,22 @@ export const ROLE_PERMISSIONS = {
     'pharmacy:read', 'pharmacy:dispense', 'inventory:manage',
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
+  // Doc 12 §3 additions: counter, branch and telemed roles of the clinic org
+  // (mirrors cashier / hospital ops manager / receptionist, tenant-scoped).
+  clinic_cashier: [
+    'billing:read', 'billing:write', 'patients:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  clinic_branch_manager: [
+    'appointments:read', 'appointments:write', 'patients:read',
+    'staff:manage', 'staff:view', 'billing:read', 'inventory:manage',
+    'reports:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  clinic_telemed_coordinator: [
+    'appointments:read', 'appointments:write', 'patients:read', 'records:read',
+    'chat:read', 'chat:write', 'notifications:read',
+    'profile:read:own', 'profile:write:own',
+  ],
   // ── File 22 P0-8 (docs2/08 §8.2/§8.3): hospital operations roles ─────────
   // Every string below is already enforced by an authorize() call site —
   // module writes that stay adminOnly (OT/housekeeping/diet) are deliberately
@@ -512,7 +604,7 @@ export const ROLE_PERMISSIONS = {
   ],
   surgeon: [
     'records:read', 'records:write', 'appointments:read', 'appointments:write',
-    'prescriptions:write', 'patients:read', 'radiology:read',
+    'prescriptions:write', 'patients:read', 'radiology:read', 'radiology:order',
     'chat:read', 'chat:write', 'profile:read', 'profile:write',
     'notifications:read', 'upload:write',
   ],
@@ -536,7 +628,7 @@ export const ROLE_PERMISSIONS = {
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   purchase_officer: [
-    'inventory:manage', 'reports:read',
+    'inventory:manage', 'reports:read', 'billing:read',
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   hr_manager: [

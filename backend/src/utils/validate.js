@@ -111,6 +111,15 @@ export const USER_ROLE_OPTIONS = [
   'quality_officer',
   'pharmacovigilance_officer',
   'call_center_agent',
+  // PATHOLOGY/LAB §9: department-scoped lab roles (mirror models/User.js).
+  'lab_supervisor', 'lab_receiving', 'biochem_tech', 'hematology_tech',
+  'clinical_pathology_tech', 'microbiology_tech', 'histopathology_tech',
+  'cytology_tech', 'serology_tech', 'molecular_tech', 'report_coordinator',
+  'home_collection_staff', 'it_admin',
+  // File 28 §36/§37: radiology (RIS) department roles (mirror models/User.js).
+  'radiology_manager', 'radiology_scheduler', 'radiology_prep_staff',
+  'mri_technician', 'xray_technician', 'ct_technician', 'us_technician',
+  'mammo_technician', 'reporting_assistant', 'pacs_admin',
 ];
 export const phoneSchema = z.string().min(10, 'Phone must be at least 10 digits').max(15).optional();
 export const positiveNumber = z.number().positive('Must be a positive number');
@@ -595,6 +604,83 @@ export const createTestSchema = z.object({
   homeCollectionFee: nonNegativeNumber.optional(),
   popular: z.boolean().optional(),
   nablAccredited: z.boolean().optional(),
+  // PATHOLOGY/LAB §6 test-master metadata (mirrors models/Test.js).
+  corporatePrice: nonNegativeNumber.optional(),
+  insuranceRate: nonNegativeNumber.optional(),
+  outsourcingCost: nonNegativeNumber.optional(),
+  reportTemplate: z.string().max(4000).optional(),
+  resultFormat: z.enum(['Text', 'Numeric', 'Table', 'Image']).optional(),
+  verificationRole: z.enum(['pathologist', 'lab_owner', 'both']).optional(),
+  expectedTatHours: z.number().nonnegative().max(720).optional(),
+  criticalLimits: z.object({
+    low: z.number().nullable().optional(),
+    high: z.number().nullable().optional(),
+  }).optional(),
+  referenceRanges: z.array(z.object({
+    gender: z.enum(['Male', 'Female', 'All', '']).optional(),
+    ageMin: z.number().nullable().optional(),
+    ageMax: z.number().nullable().optional(),
+    low: z.number().nullable().optional(),
+    high: z.number().nullable().optional(),
+    unit: z.string().max(60).optional(),
+  }).strict()).max(50).optional(),
+  fastingRequired: z.boolean().optional(),
+});
+
+// PATHOLOGY/LAB §6: PUT /api/tests/:id — full writable catalogue surface of
+// models/Test.js. The old route allowlisted four names that are not even model
+// fields (isActive/isAbnormal/method/normalRanges/turnaroundTime/testCode),
+// so those edits were silently dropped; this schema + the route allowlist now
+// agree with the model.
+const refRangeShape = z.object({
+  gender: z.enum(['Male', 'Female', 'All', '']).optional(),
+  ageMin: z.number().nullable().optional(),
+  ageMax: z.number().nullable().optional(),
+  low: z.number().nullable().optional(),
+  high: z.number().nullable().optional(),
+  unit: z.string().max(60).optional(),
+}).strict();
+
+export const updateTestSchema = z.object({
+  name: z.string().trim().min(2, 'Test name is required').optional(),
+  description: z.string().optional(),
+  category: z.string().optional(),
+  categoryCode: z.string().max(120).optional(),
+  department: z.string().optional(),
+  price: positiveNumber.optional(),
+  mrp: nonNegativeNumber.optional(),
+  discount: z.number().min(0).max(100).optional(),
+  sampleType: sampleTypeSchema.optional(),
+  prescriptionReq: z.boolean().optional(),
+  preparation: z.string().optional(),
+  unit: z.string().max(60).optional(),
+  refLow: z.number().nullable().optional(),
+  refHigh: z.number().nullable().optional(),
+  criticalLow: z.number().nullable().optional(),
+  criticalHigh: z.number().nullable().optional(),
+  reportTime: z.string().optional(),
+  homeCollection: z.boolean().optional(),
+  homeCollectionFee: nonNegativeNumber.optional(),
+  popular: z.boolean().optional(),
+  nablAccredited: z.boolean().optional(),
+  reportsOnline: z.boolean().optional(),
+  quickTest: z.boolean().optional(),
+  walkinAvailable: z.boolean().optional(),
+  aerbCertified: z.boolean().optional(),
+  // §6 metadata
+  corporatePrice: nonNegativeNumber.optional(),
+  insuranceRate: nonNegativeNumber.optional(),
+  outsourcingCost: nonNegativeNumber.optional(),
+  reportTemplate: z.string().max(4000).optional(),
+  resultFormat: z.enum(['Text', 'Numeric', 'Table', 'Image']).optional(),
+  verificationRole: z.enum(['pathologist', 'lab_owner', 'both']).optional(),
+  expectedTatHours: z.number().nonnegative().max(720).optional(),
+  criticalLimits: z.object({
+    low: z.number().nullable().optional(),
+    high: z.number().nullable().optional(),
+  }).optional(),
+  referenceRanges: z.array(refRangeShape).max(50).optional(),
+  fastingRequired: z.boolean().optional(),
 });
 
 // ── Women's health (6.md §2.9, opt-in) ───────────────────────────────────────
@@ -1113,6 +1199,87 @@ export const createLabOrderSchema = z.object({
   encounterId: objectIdSchema.optional(),
 });
 
+// ── PATHOLOGY/LAB write-path vocabularies (hand-copied from models/*.js —
+// models are deliberately not imported here; see the note above
+// VEHICLE_TYPE_OPTIONS). Each array mirrors a model enum 1:1 so a request can
+// never carry a value the document store would reject.
+export const LAB_SECTIONS = [
+  'Biochemistry', 'Hematology', 'Clinical Pathology', 'Microbiology',
+  'Histopathology', 'Cytology', 'Serology', 'Molecular',
+];
+export const LAB_REJECTION_REASONS = [
+  'Hemolyzed', 'Insufficient Quantity', 'Wrong Container', 'Wrong Sample',
+  'Clotted Sample', 'Leaking Container', 'Label Mismatch', 'Contamination',
+  'Improper Transport', 'Incorrect Storage', 'Other',
+];
+// Forward-only chain (§7): a reference-lab handoff never goes backwards.
+export const LAB_OUTSOURCE_STATUSES = [
+  'Dispatch Pending', 'Dispatched', 'Received by Reference Lab', 'Processing',
+  'Result Received', 'Review Pending', 'Finalized',
+];
+export const LAB_ORDER_STATUSES = [
+  'Ordered', 'Sample Pending', 'Processing', 'Under Verification', 'Completed',
+  'Partially Completed', 'Cancelled',
+  'Draft', 'Payment Pending', 'Collection Pending', 'Out for Collection',
+  'Collected', 'Received', 'Result Pending', 'Verification Pending',
+  'Finalized', 'Report Delivered',
+];
+export const LAB_BOOKING_STATUSES = [
+  'Pending', 'Confirmed', 'Sample Collected', 'Processing', 'Completed',
+  'Cancelled', 'Rescheduled',
+  'Verified', 'Rejected', 'Assigned', 'On Route', 'Collected', 'Submitted',
+  'Received', 'Failed',
+];
+export const LAB_BOOKING_VISIT_ACTIONS = ['start', 'handover', 'complete', 'fail'];
+
+export const labOrderStatusSchema = z.object({
+  status: z.enum(LAB_ORDER_STATUSES),
+  notes: z.string().max(2000).optional(),
+});
+export const labOrderCancelSchema = z.object({
+  reason: z.string().trim().min(2, 'Cancel reason required').max(500),
+});
+export const labAddTestSchema = z.object({
+  testId: objectIdSchema.optional(),
+  testName: z.string().trim().min(1).max(300).optional(),
+  category: z.string().max(60).optional(),
+  section: z.enum([...LAB_SECTIONS, '']).optional(),
+  priority: z.enum(['Routine', 'Urgent', 'STAT']).optional(),
+  sampleType: sampleTypeSchema.optional(),
+}).refine((v) => Boolean(v.testId || v.testName), { message: 'testId or testName is required' });
+export const labReceiveSchema = z.object({
+  // Restrictive by default: an omitted list means "everything on this order".
+  testIndexes: z.array(z.number().int().nonnegative()).max(500).optional(),
+  sampleNo: z.string().max(60).optional(),
+  sampleNos: z.array(z.string().max(60)).max(500).optional(),
+  condition: z.string().max(200).optional(),
+  accepted: z.boolean().optional(),
+});
+export const labRejectSampleSchema = z.object({
+  reason: z.enum(LAB_REJECTION_REASONS),
+  detail: z.string().max(500).optional(),
+});
+export const labOutsourceStatusSchema = z.object({ status: z.enum(LAB_OUTSOURCE_STATUSES) });
+export const labOutsourceResultSchema = z.object({
+  externalResultUrl: z.string().max(2048).optional(),
+  externalReportNo: z.string().max(120).optional(),
+  outsourceCost: nonNegativeNumber.optional(),
+  vendorInvoiceNo: z.string().max(120).optional(),
+  resultValue: z.string().max(4000).optional(),
+  normalRange: z.string().max(200).optional(),
+  unit: z.string().max(60).optional(),
+});
+export const labCorrectReportSchema = z.object({
+  reason: z.string().trim().min(3, 'Correction reason required').max(500),
+  testIndex: z.number().int().nonnegative().optional(),
+  resultValue: z.string().max(4000).optional(),
+  notes: z.string().max(2000).optional(),
+});
+export const labVisitSchema = z.object({
+  action: z.enum(['start', 'handover', 'complete', 'fail']),
+  reason: z.string().max(500).optional(),
+});
+
 // â”€â”€â”€ Medicine Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const updateMedicineSchema = z.object({
   name: z.string().optional(),
@@ -1398,6 +1565,10 @@ export const createRadiologyOrderSchema = z.object({
   bodyPart: z.string().min(1, 'Body part is required'),
   clinicalHistory: z.string().optional(),
   priority: z.string().optional(),
+  // §22: consult/admission lineage so postCharge lands the radiology line on
+  // the right encounter/stay instead of only the auto-opened admission.
+  encounterId: z.string().max(40).optional(),
+  admissionId: z.string().max(40).optional(),
 });
 
 // â”€â”€â”€ Physiotherapy Referral Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

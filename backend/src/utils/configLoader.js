@@ -21,6 +21,18 @@ const DEFAULTS = {
     { id: 'Birth Certificate', name: 'Birth Certificate Report', category: 'Administrative' },
     { id: 'Death Certificate', name: 'Death Certificate Report', category: 'Administrative' },
     { id: 'Notifiable Disease', name: 'Notifiable Disease Report', category: 'Administrative' },
+    // §34 radiology/ imaging MIS (reports.js switch cases).
+    { id: 'Radiology Study Volume', name: 'Radiology Study Volume', category: 'Clinical' },
+    { id: 'Radiology TAT', name: 'Radiology Turnaround Time', category: 'Clinical' },
+    { id: 'Radiology Report Pending', name: 'Radiology Report Pending', category: 'Clinical' },
+    { id: 'Radiology Revenue', name: 'Radiology Revenue', category: 'Financial' },
+    { id: 'Radiology Equipment Utilization', name: 'Radiology Equipment Utilization', category: 'Administrative' },
+    { id: 'Radiology Cancelled/No-show', name: 'Radiology Cancelled & No-show', category: 'Administrative' },
+    // PATHOLOGY/LAB §11: lab MIS (reports.js switch cases).
+    { id: 'Lab Turnaround Time', name: 'Lab Turnaround Time', category: 'Clinical' },
+    { id: 'Lab Rejection Rate', name: 'Lab Sample Rejection Rate', category: 'Clinical' },
+    { id: 'Lab Outsourcing', name: 'Lab Outsourcing Status', category: 'Clinical' },
+    { id: 'Lab Section Workload', name: 'Lab Section Workload', category: 'Clinical' },
   ],
   coupons: [],
 };

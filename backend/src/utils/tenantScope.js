@@ -31,6 +31,15 @@ export const TENANT_STAFF_ROLES = [
   'clinic_admin', 'clinic_receptionist', 'clinic_nurse',
   'clinic_accountant', 'clinic_pharmacist',
   'clinic_cashier', 'clinic_branch_manager', 'clinic_telemed_coordinator',
+  // Lab operational & section roles (LIMS)
+  'lab_supervisor', 'lab_receiving', 'biochem_tech', 'hematology_tech',
+  'clinical_pathology_tech', 'microbiology_tech', 'histopathology_tech',
+  'cytology_tech', 'serology_tech', 'molecular_tech', 'report_coordinator',
+  'home_collection_staff', 'it_admin',
+  // Radiology operational & modality roles (RIS)
+  'radiology_manager', 'radiology_scheduler', 'radiology_prep_staff',
+  'mri_technician', 'xray_technician', 'ct_technician', 'us_technician',
+  'mammo_technician', 'reporting_assistant', 'pacs_admin',
 ];
 
 export const isTenantStaff = (user) => TENANT_STAFF_ROLES.includes(user?.role);

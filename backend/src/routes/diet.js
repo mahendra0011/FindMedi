@@ -230,6 +230,7 @@ router.get('/stats', protect, async (req, res) => {
 });
 
 // ─── Clinical Nutrition, BMR & Macro Calculation Engine ──────────────────────
+// authz: role
 router.post('/calculate-nutrition', protect, async (req, res) => {
   try {
     const {

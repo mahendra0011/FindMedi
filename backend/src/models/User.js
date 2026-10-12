@@ -136,6 +136,19 @@ const userSchema = new mongoose.Schema({
       'quality_officer',
       'pharmacovigilance_officer',
       'call_center_agent',
+      // PATHOLOGY/LAB §9: department-scoped lab roles. Permission sets live in
+      // config/permissions.js ROLE_PERMISSIONS (assertRoleMatrixComplete and
+      // test/unit/roleMatrixSnapshot.spec.js enforce the enum/matrix pairing).
+      'lab_supervisor', 'lab_receiving', 'biochem_tech', 'hematology_tech',
+      'clinical_pathology_tech', 'microbiology_tech', 'histopathology_tech',
+      'cytology_tech', 'serology_tech', 'molecular_tech', 'report_coordinator',
+      'home_collection_staff', 'it_admin',
+      // File 28 §36/§37: radiology (RIS) department roles. Permission sets
+      // live in config/permissions.js ROLE_PERMISSIONS (assertRoleMatrixComplete
+      // and test/unit/roleMatrixSnapshot.spec.js enforce the pairing).
+      'radiology_manager', 'radiology_scheduler', 'radiology_prep_staff',
+      'mri_technician', 'xray_technician', 'ct_technician', 'us_technician',
+      'mammo_technician', 'reporting_assistant', 'pacs_admin',
     ],
     default: 'patient',
     index: true,

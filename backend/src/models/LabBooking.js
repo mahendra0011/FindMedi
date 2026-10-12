@@ -17,7 +17,17 @@ const labBookingSchema = new mongoose.Schema({
   totalAmount: { type: Number, required: true },
   discountedAmount: { type: Number },
   paymentStatus: { type: String, enum: ['Pending', 'Partially Paid', 'Paid', 'Refunded'], default: 'Pending' },
-  status: { type: String, enum: ['Pending', 'Confirmed', 'Sample Collected', 'Processing', 'Completed', 'Cancelled', 'Rescheduled'], default: 'Pending' },
+  // §1: prescription queue verdicts (Verified/Rejected) ride the same status
+  // field so the queue KPIs (filtered by status === 'Verified'/'Rejected')
+  // increment after a reload; §4 adds the home-collection visit workflow states.
+  status: {
+    type: String,
+    enum: [
+      'Pending', 'Confirmed', 'Sample Collected', 'Processing', 'Completed', 'Cancelled', 'Rescheduled',
+      'Verified', 'Rejected', 'Assigned', 'On Route', 'Collected', 'Submitted', 'Received', 'Failed',
+    ],
+    default: 'Pending',
+  },
   bookingDate: { type: Date, required: true },
   timeSlot: { type: String },
   visitType: { type: String, enum: ['Walk-in', 'Home Collection', 'Appointment'], default: 'Walk-in' },
@@ -28,6 +38,11 @@ const labBookingSchema = new mongoose.Schema({
   phlebotomistId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   prescriptionUrl: { type: String },
   prescriptionVerified: { type: Boolean, default: false },
+  // §4: home-collection visit lifecycle timestamps + failure capture.
+  visitStartedAt: { type: Date, default: null },
+  visitEndedAt: { type: Date, default: null },
+  handoverAt: { type: Date, default: null },
+  failedReason: { type: String, default: '' },
   isWalkin: { type: Boolean, default: false },
   notes: { type: String },
   reportUrl: { type: String },

@@ -12,11 +12,18 @@ const labOrderSchema = new mongoose.Schema({
     testName: { type: String, required: true },
     category: { type: String, enum: ['Blood', 'Urine', 'Stool', 'Imaging', 'Cardiac', 'Other'], default: 'Blood' },
     priority: { type: String, enum: ['Routine', 'Urgent', 'STAT'], default: 'Routine' },
-    status: { type: String, enum: ['Ordered', 'Sample Needed', 'Sample Collected', 'Processing', 'Completed', 'Verified', 'Report Delivered', 'Rejected', 'Recollect'], default: 'Ordered' },
+    status: { type: String, enum: ['Ordered', 'Sample Needed', 'Sample Collected', 'Processing', 'Result Pending', 'Completed', 'Verified', 'Report Delivered', 'Rejected', 'Recollect'], default: 'Ordered' },
     sampleId: { type: String },
     sampleType: { type: String },
+    // §6: pathology section a test belongs to (drives section worklists).
+    section: { type: String, enum: ['Biochemistry', 'Hematology', 'Clinical Pathology', 'Microbiology', 'Histopathology', 'Cytology', 'Serology', 'Molecular', ''], default: '' },
     sampleCollectedAt: { type: Date },
     collectedBy: { type: String },
+    // §2: receiving-side sample intake facts.
+    sampleNo: { type: String, default: '' },
+    receivedAt: { type: Date, default: null },
+    receivedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    sampleCondition: { type: String, default: '' },
     resultValue: { type: String },
     // File 22 P1-11: structured refs + flags (copied from Test master at order).
     refLow: { type: Number, default: null },
@@ -33,6 +40,18 @@ const labOrderSchema = new mongoose.Schema({
       lab: { type: String, default: '' },
       sentAt: { type: Date, default: null },
       receivedAt: { type: Date, default: null },
+      // §7: courier handoff + reference-lab result linkage.
+      courierName: { type: String, default: '' },
+      trackingNo: { type: String, default: '' },
+      dispatchAt: { type: Date, default: null },
+      deliveredAt: { type: Date, default: null },
+      externalResultUrl: { type: String, default: '' },
+      externalReportNo: { type: String, default: '' },
+      outsourceCost: { type: Number, default: null },
+      vendorInvoiceNo: { type: String, default: '' },
+      // Forward-only chain: Dispatch Pending -> Dispatched -> Received by
+      // Reference Lab -> Processing -> Result Received -> Review Pending -> Finalized.
+      status: { type: String, enum: ['Dispatch Pending', 'Dispatched', 'Received by Reference Lab', 'Processing', 'Result Received', 'Review Pending', 'Finalized', ''], default: '' },
     },
     normalRange: { type: String },
     unit: { type: String },
@@ -52,9 +71,25 @@ const labOrderSchema = new mongoose.Schema({
   clinicalNotes: { type: String },
   status: {
     type: String,
-    enum: ['Ordered', 'Sample Pending', 'Processing', 'Under Verification', 'Completed', 'Partially Completed', 'Cancelled'],
+    // §1 lifecycle: the legacy 7 stay first for UI ordering; the rest are the
+    // extended collection/verification chain (union, never a replacement).
+    enum: [
+      'Ordered', 'Sample Pending', 'Processing', 'Under Verification', 'Completed', 'Partially Completed', 'Cancelled',
+      'Draft', 'Payment Pending', 'Collection Pending', 'Out for Collection', 'Collected', 'Received',
+      'Result Pending', 'Verification Pending', 'Finalized', 'Report Delivered',
+    ],
     default: 'Ordered',
   },
+  // §12: report versioning for corrected/amended reports.
+  reportVersion: { type: Number, default: 1 },
+  reportVersions: [{
+    version: { type: Number, required: true },
+    status: { type: String, default: '' },
+    correctedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    reason: { type: String, default: '', maxlength: 500 },
+    content: { type: mongoose.Schema.Types.Mixed },
+    createdAt: { type: Date, default: Date.now },
+  }],
   priority: { type: String, enum: ['Routine', 'Urgent', 'STAT'], default: 'Routine' },
   sampleIds: [{ type: String }],
   reportUrl: { type: String },
@@ -84,14 +119,28 @@ const labOrderSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 
+// Statuses a route sets explicitly (receiving, verification, cancelling...).
+// When one of these is on the document, the test-derived derivation must NOT
+// overwrite it — otherwise PUT /orders/:id/status would be clobbered by the
+// next save() back to 'Processing'/'Completed'. Processing/Under Verification
+// stay derived (their derivation branches yield the same value).
+const EXPLICIT_STATUSES = new Set([
+  'Draft', 'Payment Pending', 'Collection Pending', 'Out for Collection', 'Collected', 'Received',
+  'Result Pending', 'Verification Pending', 'Finalized', 'Report Delivered', 'Cancelled',
+]);
+
 labOrderSchema.pre('save', function (next) {
   this.updatedAt = new Date();
+  if (this.status && EXPLICIT_STATUSES.has(this.status)) {
+    next();
+    return;
+  }
   const testStatuses = this.tests.map(t => t.status);
   if (testStatuses.every(s => s === 'Verified' || s === 'Report Delivered')) {
     this.status = 'Completed';
   } else if (testStatuses.some(s => s === 'Verified' || s === 'Report Delivered')) {
     this.status = 'Partially Completed';
-  } else if (testStatuses.some(s => s === 'Processing' || s === 'Completed')) {
+  } else if (testStatuses.some(s => s === 'Processing' || s === 'Completed' || s === 'Result Pending')) {
     this.status = 'Processing';
   } else if (testStatuses.some(s => s === 'Sample Collected')) {
     this.status = 'Sample Pending';

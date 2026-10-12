@@ -13,6 +13,10 @@ import OperationTheatre from '../models/OperationTheatre.js';
 import Staff from '../models/Staff.js';
 import Patient from '../models/Patient.js';
 import Doctor from '../models/Doctor.js';
+import Radiology from '../models/Radiology.js';
+import ImagingModality from '../models/ImagingModality.js';
+import ImagingAppointment from '../models/ImagingAppointment.js';
+import ChargeItem from '../models/ChargeItem.js';
 import { protect, adminOnly, authorize } from '../middleware/auth.js';
 import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { validate } from '../utils/validate.js';
@@ -277,6 +281,295 @@ case 'OT Statistics':
         },
         summary: `Total: ${totalAppointments}, Completed: ${completedAppointments}`
       };
+
+    // ── §34 radiology / imaging MIS ────────────────────────────────────────
+    case 'Radiology Study Volume': {
+      const radFilter = { ...dateFilter, ...hospFilter, status: { $ne: 'Cancelled' } };
+      const totalStudies = await Radiology.countDocuments(radFilter);
+      const byModality = await Radiology.aggregate([
+        { $match: radFilter },
+        { $group: { _id: '$modality', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]);
+      const byDay = await Radiology.aggregate([
+        { $match: radFilter },
+        { $group: { _id: { modality: '$modality', day: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } } }, count: { $sum: 1 } } },
+        { $sort: { '_id.day': 1 } },
+      ]);
+      return {
+        data: {
+          totalStudies,
+          byModality: byModality.map((m) => ({ modality: m._id, count: m.count })),
+          byDay: byDay.map((d) => ({ modality: d._id.modality, day: d._id.day, count: d.count })),
+        },
+        summary: `Total studies: ${totalStudies}, modalities: ${byModality.length}`,
+      };
+    }
+
+    case 'Radiology Revenue': {
+      const chargeFilter = { ...dateFilter, ...hospFilter, source: 'radiology', status: { $ne: 'Cancelled' } };
+      const total = await ChargeItem.aggregate([
+        { $match: chargeFilter },
+        { $group: { _id: null, amount: { $sum: '$amount' }, lines: { $sum: 1 } } },
+      ]);
+      const byService = await ChargeItem.aggregate([
+        { $match: chargeFilter },
+        { $group: { _id: '$serviceCode', amount: { $sum: '$amount' }, lines: { $sum: 1 } } },
+        { $sort: { amount: -1 } },
+      ]);
+      const byStatus = await ChargeItem.aggregate([
+        { $match: chargeFilter },
+        { $group: { _id: '$status', amount: { $sum: '$amount' }, lines: { $sum: 1 } } },
+      ]);
+      return {
+        data: {
+          totalAmount: total[0]?.amount || 0,
+          totalLines: total[0]?.lines || 0,
+          byService: byService.map((s) => ({ serviceCode: s._id, amount: s.amount, lines: s.lines })),
+          byStatus: byStatus.map((s) => ({ status: s._id, amount: s.amount, lines: s.lines })),
+        },
+        summary: `Radiology revenue: ₹${total[0]?.amount || 0} across ${total[0]?.lines || 0} lines`,
+      };
+    }
+
+    case 'Radiology TAT': {
+      const tatFilter = { ...dateFilter, ...hospFilter, reportedAt: { $ne: null } };
+      const reported = await Radiology.find(tatFilter).select('modality createdAt reportedAt').limit(2000).lean();
+      const byModality = {};
+      let totalHours = 0;
+      for (const r of reported) {
+        const hrs = (new Date(r.reportedAt) - new Date(r.createdAt)) / 3600000;
+        if (!Number.isFinite(hrs) || hrs < 0) continue;
+        const k = r.modality || 'unknown';
+        byModality[k] = byModality[k] || { count: 0, totalHours: 0 };
+        byModality[k].count += 1;
+        byModality[k].totalHours += hrs;
+        totalHours += hrs;
+      }
+      const perModality = Object.entries(byModality).map(([modality, v]) => ({
+        modality, count: v.count, avgTatHours: Math.round((v.totalHours / v.count) * 100) / 100,
+      }));
+      const stillPending = await Radiology.countDocuments({
+        ...dateFilter, ...hospFilter,
+        status: { $in: ['Study Completed', 'Reporting Pending', 'Report Finalized'] },
+      });
+      return {
+        data: {
+          reportedCount: reported.length,
+          avgTatHours: reported.length ? Math.round((totalHours / reported.length) * 100) / 100 : 0,
+          byModality: perModality,
+          reportingPending: stillPending,
+        },
+        summary: `Reported: ${reported.length}, avg TAT: ${reported.length ? (totalHours / reported.length).toFixed(1) : 0}h, pending: ${stillPending}`,
+      };
+    }
+
+    case 'Radiology Equipment Utilization': {
+      const aptFilter = { ...dateFilter, ...hospFilter };
+      const perMachine = await ImagingAppointment.aggregate([
+        { $match: aptFilter },
+        {
+          $group: {
+            _id: '$machineId',
+            appointments: { $sum: 1 },
+            bookedMinutes: {
+              $sum: { $cond: [{ $in: ['$status', ['Booked', 'Confirmed', 'Arrived', 'Completed']] }, '$slotMinutes', 0] },
+            },
+            noShows: { $sum: { $cond: [{ $eq: ['$status', 'No Show'] }, 1, 0] } },
+            cancelled: { $sum: { $cond: [{ $eq: ['$status', 'Cancelled'] }, 1, 0] } },
+          },
+        },
+      ]);
+      const machines = await ImagingModality.find(hospitalId ? { hospitalId } : {})
+        .select('name code modalityType slotDurationMinutes').lean();
+      const nameById = new Map(machines.map((m) => [String(m._id), m]));
+      const rows = perMachine.map((p) => {
+        const m = nameById.get(String(p._id));
+        return {
+          machineId: String(p._id || ''), name: m?.name || '', code: m?.code || '',
+          modalityType: m?.modalityType || '', appointments: p.appointments,
+          bookedMinutes: p.bookedMinutes, noShows: p.noShows, cancelled: p.cancelled,
+          slotMinutes: m?.slotDurationMinutes || 30,
+        };
+      });
+      return {
+        data: { machines: rows, totalAppointments: perMachine.reduce((s, p) => s + p.appointments, 0) },
+        summary: `Machines with activity: ${rows.length}`,
+      };
+    }
+
+    case 'Radiology Report Pending': {
+      const pendFilter = { ...dateFilter, ...hospFilter };
+      const byStatus = await Radiology.aggregate([
+        { $match: pendFilter },
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]);
+      const reportingPipeline = await Radiology.aggregate([
+        { $match: { ...pendFilter, status: { $in: ['Study Completed', 'Reporting Pending', 'Report Finalized'] } } },
+        { $group: { _id: '$modality', count: { $sum: 1 } } },
+      ]);
+      const reportingPending = reportingPipeline.reduce((s, r) => s + r.count, 0);
+      return {
+        data: {
+          byStatus: byStatus.map((s) => ({ status: s._id, count: s.count })),
+          reportingPending,
+          pendingByModality: reportingPipeline.map((r) => ({ modality: r._id, count: r.count })),
+        },
+        summary: `Reporting pending: ${reportingPending}`,
+      };
+    }
+
+    case 'Radiology Cancelled/No-show': {
+      const cancelled = await Radiology.countDocuments({ ...dateFilter, ...hospFilter, status: 'Cancelled' });
+      const noShows = await ImagingAppointment.countDocuments({ ...dateFilter, ...hospFilter, status: 'No Show' });
+      const cancelledAppts = await ImagingAppointment.countDocuments({ ...dateFilter, ...hospFilter, status: 'Cancelled' });
+      const cancelByModality = await Radiology.aggregate([
+        { $match: { ...dateFilter, ...hospFilter, status: 'Cancelled' } },
+        { $group: { _id: '$modality', count: { $sum: 1 } } },
+      ]);
+      return {
+        data: {
+          cancelledOrders: cancelled,
+          noShowAppointments: noShows,
+          cancelledAppointments: cancelledAppts,
+          byModality: cancelByModality.map((c) => ({ modality: c._id, count: c.count })),
+        },
+        summary: `Cancelled orders: ${cancelled}, no-shows: ${noShows}, cancelled appointments: ${cancelledAppts}`,
+      };
+    }
+
+    // ── PATHOLOGY/LAB §11 MIS: turnaround, rejection, outsourcing, workload ──
+    case 'Lab Turnaround Time': {
+      const tatFilter = { ...dateFilter, ...hospFilter };
+      const tatOrders = await LabOrder.find(tatFilter)
+        .select('priority createdAt tests.status tests.resultEnteredAt tests.verifiedAt')
+        .limit(5000).lean();
+      const SLA_H = { STAT: 2, Urgent: 6, Routine: 24 };
+      const hours = { STAT: [], Urgent: [], Routine: [] };
+      let breached = 0;
+      let completedLines = 0;
+      for (const o of tatOrders) {
+        const prio = SLA_H[o.priority] ? o.priority : 'Routine';
+        for (const t of (o.tests || [])) {
+          const end = t.verifiedAt || t.resultEnteredAt;
+          if (!end) continue;
+          const hrs = (new Date(end) - new Date(o.createdAt)) / 3600000;
+          hours[prio].push(+hrs.toFixed(2));
+          completedLines += 1;
+          if (hrs > SLA_H[prio]) breached += 1;
+        }
+      }
+      const avg = (arr) => (arr.length ? +(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : null);
+      const p90 = (arr) => (arr.length ? +[...arr].sort((a, b) => a - b)[Math.min(arr.length - 1, Math.floor(arr.length * 0.9))].toFixed(1) : null);
+      const out = {
+        sampleSize: completedLines,
+        avgHours: { STAT: avg(hours.STAT), Urgent: avg(hours.Urgent), Routine: avg(hours.Routine) },
+        p90Hours: { STAT: p90(hours.STAT), Urgent: p90(hours.Urgent), Routine: p90(hours.Routine) },
+        breached, slaHours: SLA_H,
+        breachRate: completedLines > 0 ? +((breached / completedLines) * 100).toFixed(2) : 0,
+      };
+      return {
+        data: out,
+        summary: `TAT (h): STAT ${out.avgHours.STAT ?? '–'} · Urgent ${out.avgHours.Urgent ?? '–'} · Routine ${out.avgHours.Routine ?? '–'} · breached ${breached}/${completedLines}`,
+      };
+    }
+
+    case 'Lab Rejection Rate': {
+      const rejMatch = { ...dateFilter, ...hospFilter };
+      const [rejByReason, receivedLines] = await Promise.all([
+        LabOrder.aggregate([
+          { $match: rejMatch },
+          { $unwind: '$tests' },
+          { $match: { 'tests.status': 'Rejected' } },
+          { $group: { _id: '$tests.rejectionReason', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+        ]),
+        LabOrder.aggregate([
+          { $match: rejMatch },
+          { $unwind: '$tests' },
+          { $match: { 'tests.receivedAt': { $ne: null } } },
+          { $group: { _id: null, n: { $sum: 1 } } },
+        ]),
+      ]);
+      const rejected = rejByReason.reduce((a, r) => a + r.count, 0);
+      const received = receivedLines[0]?.n || 0;
+      const rate = received > 0 ? +((rejected / received) * 100).toFixed(2) : 0;
+      return {
+        data: {
+          receivedSamples: received,
+          rejectedSamples: rejected,
+          rejectionRate: rate,
+          byReason: rejByReason.map(r => ({ reason: r._id || 'Unspecified', count: r.count })),
+        },
+        summary: `Rejected ${rejected} of ${received} received (${rate}%)`,
+      };
+    }
+
+    case 'Lab Outsourcing': {
+      const outMatch = { ...dateFilter, ...hospFilter, 'tests.outsourced.lab': { $ne: '' } };
+      const byLabStatus = await LabOrder.aggregate([
+        { $match: outMatch },
+        { $unwind: '$tests' },
+        { $match: { 'tests.outsourced.lab': { $ne: '' } } },
+        {
+          $group: {
+            _id: { lab: '$tests.outsourced.lab', status: '$tests.outsourced.status' },
+            count: { $sum: 1 },
+            cost: { $sum: { $ifNull: ['$tests.outsourced.outsourceCost', 0] } },
+          },
+        },
+        { $sort: { '_id.lab': 1, '_id.status': 1 } },
+      ]);
+      const labs = new Map();
+      let totalTests = 0;
+      let totalCost = 0;
+      for (const row of byLabStatus) {
+        const lab = row._id?.lab || 'Unknown';
+        totalTests += row.count;
+        totalCost += row.cost || 0;
+        if (!labs.has(lab)) labs.set(lab, { lab, tests: 0, cost: 0, byStatus: {} });
+        const entry = labs.get(lab);
+        entry.tests += row.count;
+        entry.cost += row.cost || 0;
+        entry.byStatus[row._id?.status || 'Not started'] = row.count;
+      }
+      return {
+        data: { totalTests, totalCost: +totalCost.toFixed(2), byLab: [...labs.values()] },
+        summary: `${totalTests} test(s) outsourced to ${labs.size} lab(s), cost ₹${totalCost.toFixed(2)}`,
+      };
+    }
+
+    case 'Lab Section Workload': {
+      const wlMatch = { ...dateFilter, ...hospFilter };
+      const bySection = await LabOrder.aggregate([
+        { $match: wlMatch },
+        { $unwind: '$tests' },
+        {
+          $group: {
+            _id: { section: '$tests.section', status: '$tests.status' },
+            count: { $sum: 1 },
+          },
+        },
+      ]);
+      const SECTIONS = ['Biochemistry', 'Hematology', 'Clinical Pathology', 'Microbiology', 'Histopathology', 'Cytology', 'Serology', 'Molecular'];
+      const buckets = new Map(SECTIONS.map(s => [s, { section: s, tests: 0, pending: 0, verified: 0, rejected: 0 }]));
+      for (const row of bySection) {
+        const section = row._id?.section && SECTIONS.includes(row._id.section) ? row._id.section : 'Unsectioned';
+        if (!buckets.has(section)) buckets.set(section, { section, tests: 0, pending: 0, verified: 0, rejected: 0 });
+        const bucket = buckets.get(section);
+        bucket.tests += row.count;
+        if (['Verified', 'Report Delivered'].includes(row._id?.status)) bucket.verified += row.count;
+        else if (row._id?.status === 'Rejected') bucket.rejected += row.count;
+        else bucket.pending += row.count;
+      }
+      const sections = [...buckets.values()].filter(s => s.tests > 0 || s.section !== 'Unsectioned');
+      const totalTests = sections.reduce((a, s) => a + s.tests, 0);
+      return {
+        data: { sections, totalTests },
+        summary: `${totalTests} test line(s) across ${sections.filter(s => s.tests).length} section(s)`,
+      };
+    }
   }
 };
 

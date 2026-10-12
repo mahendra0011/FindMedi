@@ -161,6 +161,7 @@ router.get('/mine', protect, authorize('records:read:own'), async (req, res) => 
 });
 
 // ─── Mathematical Daugirdas single-pool Kt/V & URR Calculation Engine ───────
+// authz: role
 router.post('/ktv-calculate', protect, async (req, res) => {
   try {
     const { preBUN, postBUN, sessionHours, ultrafiltrationVolumeL, postWeightKg } = req.body || {};

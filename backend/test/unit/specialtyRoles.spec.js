@@ -69,7 +69,7 @@ describe('7.md 3 specialty roles', () => {
     expect([...ROLE_PERMISSIONS.dentist].sort()).toEqual([
       'appointments:read', 'appointments:write', 'chat:read', 'chat:write',
       'notifications:read', 'patients:read', 'prescriptions:write',
-      'profile:read', 'profile:write', 'radiology:read', 'records:read',
+      'profile:read', 'profile:write', 'radiology:order', 'radiology:read', 'records:read',
       'records:write', 'upload:write',
     ].sort());
     expect([...ROLE_PERMISSIONS.tpa_agent].sort()).toEqual([

@@ -33,5 +33,6 @@
   "consent.accept": "Accept",
   "consent.decline": "Decline",
   "nav.opdRegistration": "OPD Registration",
-  "nav.analyticsReports": "Analytics Reports"
+  "nav.analyticsReports": "Analytics Reports",
+  "nav.radiology": "Radiology & Imaging"
 }

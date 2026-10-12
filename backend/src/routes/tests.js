@@ -1,8 +1,9 @@
 import express from 'express';
 import Test from '../models/Test.js';
 import { protect } from '../middleware/auth.js';
-import { validate, createTestSchema, canonicalSampleType } from '../utils/validate.js';
+import { validate, createTestSchema, updateTestSchema, canonicalSampleType } from '../utils/validate.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
+import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();
 
@@ -60,7 +61,7 @@ router.post('/', protect, validate(createTestSchema), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, validate(updateTestSchema), async (req, res) => {
   try {
     if (!canManageTests(req)) {
       return res.status(403).json({ message: 'Admin or clinic doctor access required' });
@@ -74,18 +75,37 @@ router.put('/:id', protect, async (req, res) => {
     // rewritten, so the ownership check above (which runs on the PRE-image)
     // could be satisfied and then the catalogue row re-parented to another
     // tenant. Only catalogue fields are updatable now.
+    // PATHOLOGY/LAB §6: the old allowlist carried five names that are not even
+    // model fields (reportUrl/isActive/isAbnormal/method/normalRanges/
+    // turnaroundTime/testCode) — they were silently dropped by mongoose strict
+    // mode, so staff edits to department/unit/refs never persisted. The list is
+    // now exactly the writable catalogue surface of models/Test.js.
     const { pickBody } = await import('../utils/pick.js');
     const body = pickBody(req.body, [
-      'name', 'description', 'category', 'price', 'mrp', 'discount', 'sampleType',
-      'reportUrl', 'isActive', 'prescriptionReq', 'isAbnormal', 'preparation',
-      'method', 'normalRanges', 'unit', 'turnaroundTime', 'testCode',
+      'name', 'description', 'category', 'categoryCode', 'department', 'price', 'mrp',
+      'discount', 'sampleType', 'prescriptionReq', 'preparation', 'unit',
+      'refLow', 'refHigh', 'criticalLow', 'criticalHigh', 'reportTime',
+      'homeCollection', 'homeCollectionFee', 'popular', 'nablAccredited',
+      'reportsOnline', 'quickTest', 'walkinAvailable', 'aerbCertified',
+      // §6 metadata
+      'corporatePrice', 'insuranceRate', 'outsourcingCost', 'reportTemplate',
+      'resultFormat', 'verificationRole', 'expectedTatHours', 'criticalLimits',
+      'referenceRanges', 'fastingRequired',
     ]);
     // subcatogary.md §79: the model enum is the last guard (runValidators),
-    // but coercing here keeps staff-typed 'blood' working on updates the same
+    // but coercing here keeps staff-typed 'blood' on updates the same
     // way the zod boundary does on create/register.
     if (body.sampleType !== undefined) body.sampleType = canonicalSampleType(body.sampleType);
     if (body.price && body.mrp) body.discount = Math.round((1 - body.price / body.mrp) * 100);
+    // §6: a price edit is appended to priceHistory (never a silent overwrite).
+    const priceChanged = body.price !== undefined && Number(body.price) !== Number(existing.price);
+    if (priceChanged) body.$push = { priceHistory: { price: Number(body.price), changedBy: req.user._id, changedAt: new Date() } };
     const updated = await Test.findByIdAndUpdate(req.params.id, body, { new: true, runValidators: true });
+    if (priceChanged) {
+      await auditLog('test_price_updated', req.user._id, {
+        recordId: existing._id, price: Number(body.price), previousPrice: existing.price, ip: req.ip,
+      });
+    }
     res.json(updated);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

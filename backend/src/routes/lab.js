@@ -1,5 +1,5 @@
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
-import { applyTenantScope } from '../utils/tenantScope.js';
+import { applyTenantScope, callerOwnsTenant } from '../utils/tenantScope.js';
 import { publicSearchLimiter } from '../middleware/rateLimit.js';
 import express from 'express';
 import { z } from 'zod';
@@ -18,7 +18,15 @@ import PharmacyDelivery from '../models/PharmacyDelivery.js';
 import DeliveryPartner from '../models/DeliveryPartner.js';
 import { protect, adminOnly, requireRole, authorize } from '../middleware/auth.js';
 import { authorizeObject, rolesWithPermission } from '../middleware/authorize.js';
-import { validate, createLabOrderSchema, sampleTypeSchema } from '../utils/validate.js';
+import {
+  validate, createLabOrderSchema, sampleTypeSchema,
+  LAB_SECTIONS, LAB_REJECTION_REASONS, LAB_OUTSOURCE_STATUSES, LAB_BOOKING_STATUSES,
+  LAB_ORDER_STATUSES,
+  labOrderStatusSchema, labOrderCancelSchema, labAddTestSchema, labReceiveSchema,
+  labRejectSampleSchema, labOutsourceStatusSchema, labOutsourceResultSchema,
+  labCorrectReportSchema, labVisitSchema,
+} from '../utils/validate.js';
+import { roleHasPermission } from '../config/permissions.js';
 import { auditLog } from '../middleware/audit.js';
 import { generateOrderId, generateSampleId, generateTimestampedId } from '../utils/idGenerator.js';
 import { randomDigits } from '../utils/secureRandom.js';
@@ -30,9 +38,30 @@ import { parseHl7, isCriticalFlag } from '../lib/hl7.js';
 import { apiKeyAuth } from '../middleware/apiKeyAuth.js';
 
 // Lab staff jo apne center ke reports manage / courier se bhej sakte hain.
-const LAB_STAFF_ROLES = ['lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist', 'hospital_admin', 'superadmin'];
+// PATHOLOGY/LAB §9: department-scoped roles join the staff pool — a
+// hematology tech must be able to register/collect samples like any technician.
+const LAB_DEPT_ROLES = [
+  'lab_supervisor', 'lab_receiving', 'biochem_tech', 'hematology_tech',
+  'clinical_pathology_tech', 'microbiology_tech', 'histopathology_tech',
+  'cytology_tech', 'serology_tech', 'molecular_tech', 'report_coordinator',
+];
+// Home-collection runners keep their own narrow guard (lab:visit) rather than
+// joining every staff-only route below; it_admin has no lab write surface.
+const LAB_STAFF_ROLES = ['lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist', 'hospital_admin', 'superadmin', ...LAB_DEPT_ROLES];
 // Report courier dispatch ke liye allowed roles (doctors bhi bhej sakte hain).
 const REPORT_DISPATCH_ROLES = [...LAB_STAFF_ROLES, 'doctor', 'clinic_doctor', 'radiologist'];
+
+// §1–§7: fail-closed tenant predicate for the new lab list routes.
+// `applyTenantScope` derives its staff roster from TENANT_STAFF_ROLES, which
+// does not list the §9 department roles yet (utils/tenantScope.js is shared by
+// every module, so it is a separate follow-up) — scoping by hospitalId here
+// keeps those roles working while an account with no hospital still sees only
+// tenant-less rows instead of the whole platform.
+function labScope(req, filter = {}) {
+  if (req.user.role === 'superadmin') return filter;
+  filter.hospitalId = req.user.hospitalId || { $in: [null] };
+  return filter;
+}
 
 const labRegisterSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), sampleType: sampleTypeSchema.optional() });
 const labCollectSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), rejectionReason: z.string().optional() });
@@ -432,6 +461,10 @@ router.put('/orders/:id/enter-result', protect, authorizeObject({ model: LabOrde
         }
       } catch { /* delta lookup must never block result entry */ }
     }
+    // Receiving/collection statuses are EXPLICIT (the pre-save derivation skips
+    // them), so a result landing must release the lock or the order would stay
+    // 'Received' forever instead of advancing to Processing -> verify.
+    if (order.status === 'Collected' || order.status === 'Received') order.status = 'Processing';
     await order.save();
     await auditLog('enter_lab_result', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
     if (test.isCritical) {
@@ -470,8 +503,8 @@ router.put('/orders/:id/verify', protect, authorizeObject({ model: LabOrder, own
     // human via a second account. A second-level check closes the second case:
     // verification additionally requires a role that is not allowed to enter
     // results, and it is recorded who entered and who released it.
-    const ENTERING_ROLES = ['lab_technician', 'lab_receptionist', 'lab_owner', 'hospital_admin', 'superadmin', 'doctor'];
-    const VERIFYING_ROLES = ['pathologist', 'lab_owner', 'superadmin'];
+    const ENTERING_ROLES = ['lab_technician', 'lab_receptionist', 'lab_owner', 'hospital_admin', 'superadmin', 'doctor', ...LAB_DEPT_ROLES.filter(r => r !== 'lab_supervisor')];
+    const VERIFYING_ROLES = ['pathologist', 'lab_owner', 'superadmin', 'lab_supervisor'];
     if (ENTERING_ROLES.includes(req.user.role) && !VERIFYING_ROLES.includes(req.user.role)) {
       return res.status(403).json({
         message: 'Separation of duties: verification requires a reviewing pathologist, not a role that may enter results',
@@ -495,6 +528,11 @@ router.put('/orders/:id/verify', protect, authorizeObject({ model: LabOrder, own
         return res.status(400).json({ message: 'Cannot verify a test with no entered result value' });
       }
     } else { test.status = 'Completed'; test.verificationNotes = notes || 'Rejected by pathologist'; }
+    // Verification releases every intermediate explicit status so the pre-save
+    // derivation can compute Completed/Partially Completed; terminal or
+    // operator-set statuses (Finalized, Report Delivered, Cancelled, Draft,
+    // Payment Pending) are left alone.
+    if (!['Finalized', 'Report Delivered', 'Cancelled', 'Draft', 'Payment Pending'].includes(order.status)) order.status = 'Processing';
     await order.save();
     await auditLog('verify_lab_result', req.user._id, {
       recordId: order._id,
@@ -520,7 +558,10 @@ router.put('/orders/:id/verify', protect, authorizeObject({ model: LabOrder, own
 });
 
 // File 22 P1-11: sample reject → recollect cycle (reason + count tracked).
-router.put('/orders/:id/tests/:index/reject', protect, authorize('lab:enter_result'), async (req, res) => {
+// PATHOLOGY/LAB §3: the reason is an 11-value controlled vocabulary (lab.js
+// schema above) — free text let every site spell the same defect differently,
+// which made rejection analytics useless. `Other` keeps an escape hatch.
+router.put('/orders/:id/tests/:index/reject', protect, authorize('lab:enter_result'), validate(labRejectSampleSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -529,13 +570,17 @@ router.put('/orders/:id/tests/:index/reject', protect, authorize('lab:enter_resu
     }
     const test = order.tests[Number(req.params.index)];
     if (!test) return res.status(404).json({ message: 'Test not found' });
-    if (!req.body?.reason) return res.status(400).json({ message: 'Reject reason required' });
+    if (!req.body?.reason || !LAB_REJECTION_REASONS.includes(req.body.reason)) {
+      return res.status(400).json({ message: `Reject reason must be one of: ${LAB_REJECTION_REASONS.join(', ')}` });
+    }
+    const detail = req.body.detail ? String(req.body.detail).slice(0, 500) : '';
     test.status = 'Rejected';
-    test.recollectReason = String(req.body.reason).slice(0, 500);
+    test.rejectionReason = req.body.reason;
+    test.recollectReason = detail ? `${req.body.reason}: ${detail}` : req.body.reason;
     test.recollectCount = Number(test.recollectCount || 0) + 1;
     await order.save();
     await auditLog('lab_sample_rejected', req.user._id, { recordId: order._id, reason: test.recollectReason, ip: req.ip });
-    return res.json({ id: String(order._id), status: test.status });
+    return res.json({ id: String(order._id), status: test.status, reason: test.rejectionReason });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
@@ -558,7 +603,9 @@ router.put('/orders/:id/tests/:index/recollect', protect, authorize('lab:enter_r
 });
 
 // File 22 P1-11: outsourced test hand-off (sent → received).
-router.put('/orders/:id/tests/:index/outsource', protect, authorize('lab:manage'), async (req, res) => {
+// PATHOLOGY/LAB §7: courier tracking + reference-lab handoff details ride the
+// extended `outsourced` subdoc, and the lifecycle status starts at Dispatched.
+router.put('/orders/:id/tests/:index/outsource', protect, authorize('lab:manage', 'lab:assign'), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -567,16 +614,110 @@ router.put('/orders/:id/tests/:index/outsource', protect, authorize('lab:manage'
     }
     const test = order.tests[Number(req.params.index)];
     if (!test) return res.status(404).json({ message: 'Test not found' });
-    const { lab, received } = req.body || {};
+    const { lab, received, courierName, trackingNo, outsourceCost, vendorInvoiceNo } = req.body || {};
     test.outsourced = test.outsourced || {};
     if (lab) {
       test.outsourced.lab = String(lab).slice(0, 200);
       test.outsourced.sentAt = new Date();
+      test.outsourced.dispatchAt = new Date();
+      if (!test.outsourced.status) test.outsourced.status = 'Dispatched';
     }
-    if (received) test.outsourced.receivedAt = new Date();
+    if (courierName !== undefined) test.outsourced.courierName = String(courierName).slice(0, 200);
+    if (trackingNo !== undefined) test.outsourced.trackingNo = String(trackingNo).slice(0, 120);
+    if (outsourceCost !== undefined && outsourceCost !== null && outsourceCost !== '') test.outsourced.outsourceCost = Number(outsourceCost);
+    if (vendorInvoiceNo !== undefined) test.outsourced.vendorInvoiceNo = String(vendorInvoiceNo).slice(0, 120);
+    if (received) {
+      test.outsourced.receivedAt = new Date();
+      test.outsourced.deliveredAt = new Date();
+      if (LAB_OUTSOURCE_STATUSES.indexOf(test.outsourced.status || '') < LAB_OUTSOURCE_STATUSES.indexOf('Result Received')) {
+        test.outsourced.status = 'Result Received';
+      }
+    }
     await order.save();
+    await auditLog('lab_outsource_updated', req.user._id, { recordId: order._id, testIndex: Number(req.params.index), ip: req.ip });
     return res.json({ id: String(order._id), outsourced: test.outsourced });
   } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// §7: forward-only status chain for an outsourced test (never rewinds).
+router.put('/orders/:id/tests/:index/outsource/status', protect, authorize('lab:manage', 'lab:assign'), validate(labOutsourceStatusSchema), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (!callerOwnsTenant(req.user, order)) return res.status(403).json({ message: 'Access denied' });
+    const test = order.tests[Number(req.params.index)];
+    if (!test) return res.status(404).json({ message: 'Test not found' });
+    if (!test.outsourced?.lab) return res.status(409).json({ message: 'Test is not outsourced' });
+    const { status } = req.body;
+    const current = test.outsourced.status || '';
+    if (current && LAB_OUTSOURCE_STATUSES.indexOf(status) <= LAB_OUTSOURCE_STATUSES.indexOf(current)) {
+      return res.status(409).json({ message: `Outsource status only moves forward (now: ${current}, asked: ${status})` });
+    }
+    test.outsourced.status = status;
+    if (status === 'Dispatched') {
+      test.outsourced.sentAt = test.outsourced.sentAt || new Date();
+      test.outsourced.dispatchAt = test.outsourced.dispatchAt || new Date();
+    }
+    if (status === 'Received by Reference Lab') test.outsourced.deliveredAt = new Date();
+    if (status === 'Result Received') test.outsourced.receivedAt = test.outsourced.receivedAt || new Date();
+    await order.save();
+    await auditLog('lab_outsource_status', req.user._id, { recordId: order._id, testIndex: Number(req.params.index), from: current, to: status, ip: req.ip });
+    return res.json({ id: String(order._id), status: test.outsourced.status });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// §7: reference-lab result landing (external report refs + result value).
+router.put('/orders/:id/tests/:index/outsource/result', protect, authorize('lab:enter_result', 'lab:manage'), validate(labOutsourceResultSchema), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (!callerOwnsTenant(req.user, order)) return res.status(403).json({ message: 'Access denied' });
+    const test = order.tests[Number(req.params.index)];
+    if (!test) return res.status(404).json({ message: 'Test not found' });
+    if (!test.outsourced?.lab) return res.status(409).json({ message: 'Test is not outsourced' });
+    const b = req.body || {};
+    if (b.externalResultUrl !== undefined) test.outsourced.externalResultUrl = String(b.externalResultUrl).slice(0, 2048);
+    if (b.externalReportNo !== undefined) test.outsourced.externalReportNo = String(b.externalReportNo).slice(0, 120);
+    if (b.outsourceCost !== undefined) test.outsourced.outsourceCost = Number(b.outsourceCost);
+    if (b.vendorInvoiceNo !== undefined) test.outsourced.vendorInvoiceNo = String(b.vendorInvoiceNo).slice(0, 120);
+    test.outsourced.receivedAt = test.outsourced.receivedAt || new Date();
+    test.outsourced.status = 'Result Received';
+    if (b.resultValue) {
+      test.resultValue = String(b.resultValue).slice(0, 4000);
+      test.normalRange = b.normalRange || test.normalRange;
+      test.unit = b.unit || test.unit;
+      test.resultEnteredBy = req.user._id;
+      test.resultEnteredAt = new Date();
+      // The value still needs an in-house release: park it at Result Pending so
+      // the verify gate (separation of duties) is never bypassed by an import.
+      if (!['Verified', 'Report Delivered'].includes(test.status)) test.status = 'Result Pending';
+      if (order.status === 'Collected' || order.status === 'Received') order.status = 'Processing';
+    }
+    await order.save();
+    await auditLog('lab_outsource_result', req.user._id, { recordId: order._id, testIndex: Number(req.params.index), ip: req.ip });
+    return res.json({ id: String(order._id), outsourced: test.outsourced, status: test.status });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// §7: every test currently sitting with a reference lab (tenant-scoped).
+router.get('/outsourced', protect, authorize('lab:read'), async (req, res) => {
+  try {
+    const filter = { 'tests.outsourced.lab': { $ne: '' } };
+    labScope(req, filter);
+    const orders = await LabOrder.find(filter).select('orderId patientName doctorName priority status tests createdAt').sort({ updatedAt: -1 }).limit(200).lean();
+    const rows = [];
+    for (const o of orders) {
+      (o.tests || []).forEach((t, i) => {
+        if (!t.outsourced?.lab) return;
+        rows.push({
+          orderId: o._id, orderNo: o.orderId, patientName: o.patientName,
+          testName: t.testName, section: t.section, testStatus: t.status,
+          testIndex: i, priority: o.priority, ...t.outsourced,
+        });
+      });
+    }
+    res.json({ outsourced: rows, total: rows.length });
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 // File 22 P1-11: critical-result call-back log (who was told, when).
@@ -751,6 +892,8 @@ function buildHl7Packet(profile, sampleId) {
   return segs.join('\r');
 }
 
+// Inline role allowlist inside the handler runs before any parse/write; no route-line guard.
+// authz: role
 router.post('/ingest/emulate', protect, async (req, res) => {
   try {
     if (!['lab_technician', 'lab_owner', 'hospital_admin', 'superadmin', 'pathologist'].includes(req.user?.role)) {
@@ -796,7 +939,331 @@ router.put('/orders/:id/deliver-report', protect, authorizeObject({ model: LabOr
     if (!test) return res.status(404).json({ message: 'Test not found' });
     test.status = 'Report Delivered';
     if (reportUrl) order.reportUrl = reportUrl;
+    // §12: the first delivered report opens version 1 with a snapshot, so a
+    // later correction has something to be diffed against.
+    if (!order.reportVersions.length) {
+      order.reportVersions.push({
+        version: order.reportVersion || 1, status: 'Report Delivered', correctedBy: req.user._id,
+        reason: 'Initial report', content: orderReportSnapshot(order), createdAt: new Date(),
+      });
+    }
+    if (order.tests.length && order.tests.every(t => t.status === 'Report Delivered')) {
+      order.status = 'Report Delivered';
+    }
     await order.save();
+    res.json(order);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// ─── §1: explicit order-status lifecycle ───────────────────────────────────
+// The model derives status from test statuses on save(); these routes are the
+// places a status is set DELIBERATELY (the pre-save hook leaves the extended
+// chain alone — see EXPLICIT_STATUSES in models/LabOrder.js).
+router.put('/orders/:id/status', protect, authorize('lab:manage', 'lab:receive'), validate(labOrderStatusSchema), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (!callerOwnsTenant(req.user, order)) return res.status(403).json({ message: 'Access denied' });
+    const { status, notes } = req.body;
+    if (status === 'Cancelled') return res.status(409).json({ message: 'Use PUT /orders/:id/cancel — cancelling carries a reason' });
+    if (order.status === 'Cancelled') return res.status(409).json({ message: 'Cancelled orders are immutable' });
+    const from = order.status;
+    order.status = status;
+    if (notes) order.clinicalNotes = [order.clinicalNotes, `[${new Date().toISOString()}] ${notes}`].filter(Boolean).join('\n');
+    await order.save();
+    await auditLog('lab_order_status', req.user._id, { recordId: order._id, from, to: status, ip: req.ip });
+    res.json(order);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/orders/:id/cancel', protect, authorize('lab:cancel', 'lab:manage'), validate(labOrderCancelSchema), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (!callerOwnsTenant(req.user, order)) return res.status(403).json({ message: 'Access denied' });
+    if (order.status === 'Cancelled') return res.status(409).json({ message: 'Order is already cancelled' });
+    if (['Completed', 'Finalized', 'Report Delivered'].includes(order.status)) {
+      return res.status(409).json({ message: 'A released report cannot be cancelled — issue a correction instead' });
+    }
+    const from = order.status;
+    order.status = 'Cancelled';
+    order.clinicalNotes = [order.clinicalNotes, `[${new Date().toISOString()}] Cancelled: ${req.body.reason}`].filter(Boolean).join('\n');
+    await order.save();
+    await auditLog('lab_order_cancelled', req.user._id, { recordId: order._id, from, reason: req.body.reason, ip: req.ip });
+    res.json(order);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// §12: release step. Every test verified → the order is Finalized, and the
+// first snapshot is recorded so a later amendment can be diffed against it.
+router.put('/orders/:id/finalize', protect, authorize('lab:finalize', 'lab:manage'), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (!callerOwnsTenant(req.user, order)) return res.status(403).json({ message: 'Access denied' });
+    if (order.status === 'Cancelled') return res.status(409).json({ message: 'Cancelled order cannot be finalized' });
+    if (!order.tests.length) return res.status(400).json({ message: 'Order has no tests' });
+    const unreleased = order.tests.filter(t => !['Verified', 'Report Delivered'].includes(t.status));
+    if (unreleased.length) {
+      return res.status(409).json({ message: `${unreleased.length} test(s) not verified yet`, tests: unreleased.map(t => t.testName) });
+    }
+    order.status = 'Finalized';
+    if (!order.reportVersions.length) {
+      order.reportVersions.push({
+        version: order.reportVersion || 1, status: 'Finalized', correctedBy: req.user._id,
+        reason: 'Initial release', content: orderReportSnapshot(order), createdAt: new Date(),
+      });
+    }
+    await order.save();
+    await auditLog('lab_order_finalized', req.user._id, { recordId: order._id, version: order.reportVersion, ip: req.ip });
+    res.json(order);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// §3: add a test to an existing order — same order-number lineage (one
+// orderId/accession for the whole collection set, the new line starts Ordered).
+router.post('/orders/:id/tests', protect, authorize('lab:order', 'lab:manage'), validate(labAddTestSchema), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (!callerOwnsTenant(req.user, order)) return res.status(403).json({ message: 'Access denied' });
+    if (order.status === 'Cancelled') return res.status(409).json({ message: 'Cannot add a test to a cancelled order' });
+    const b = req.body;
+    let master = null;
+    if (b.testId) {
+      master = await Test.findById(b.testId);
+      if (!master) return res.status(404).json({ message: 'Test master not found' });
+      if (master.hospitalId && order.hospitalId && master.hospitalId.toString() !== order.hospitalId.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    } else if (b.testName) {
+      master = await Test.findOne({ name: new RegExp(`^${escapeRegex(b.testName)}$`, 'i') }).sort({ hospitalId: -1 });
+    }
+    const ORDER_CATEGORIES = ['Blood', 'Urine', 'Stool', 'Imaging', 'Cardiac', 'Other'];
+    const section = b.section || (master && LAB_SECTIONS.includes(master.category) ? master.category : '');
+    order.tests.push({
+      testName: master?.name || b.testName,
+      category: master && ORDER_CATEGORIES.includes(master.category) ? master.category : 'Other',
+      priority: b.priority || order.priority,
+      status: 'Ordered',
+      section,
+      sampleType: b.sampleType || master?.sampleType || undefined,
+      refLow: master?.refLow ?? null,
+      refHigh: master?.refHigh ?? null,
+      criticalLow: master?.criticalLow ?? null,
+      criticalHigh: master?.criticalHigh ?? null,
+      unit: master?.unit || '',
+      normalRange: master && master.refLow != null && master.refHigh != null ? `${master.refLow} - ${master.refHigh}` : undefined,
+    });
+    await order.save();
+    await auditLog('lab_order_test_added', req.user._id, {
+      recordId: order._id, orderId: order.orderId, testIndex: order.tests.length - 1,
+      testName: order.tests[order.tests.length - 1].testName, ip: req.ip,
+    });
+    res.status(201).json(order);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// ─── §2: sample receiving + section worklists ──────────────────────────────
+// Intake list: orders whose samples have not landed at the bench yet.
+router.get('/receiving', protect, authorize('lab:read', 'lab:receive'), async (req, res) => {
+  try {
+    const filter = {
+      status: { $in: ['Ordered', 'Collection Pending', 'Out for Collection', 'Collected', 'Sample Pending'] },
+      'tests.receivedAt': null,
+      'tests.status': { $in: ['Ordered', 'Sample Needed', 'Sample Collected'] },
+    };
+    labScope(req, filter);
+    if (req.query.status) {
+      if (!LAB_ORDER_STATUSES.includes(String(req.query.status))) return res.status(400).json({ message: 'Unknown status' });
+      filter.status = { $in: [String(req.query.status)] };
+    }
+    const limit = Math.min(200, Math.max(1, Number.parseInt(req.query.limit, 10) || 50));
+    const orders = await LabOrder.find(filter)
+      .select('orderId patientName doctorName priority status createdAt tests sampleIds')
+      .sort({ priority: -1, createdAt: -1 }).limit(limit).lean();
+    const shaped = orders.map(o => ({
+      ...o,
+      pendingTests: (o.tests || [])
+        .map((t, i) => ({ ...t, testIndex: i }))
+        .filter(t => !t.receivedAt && ['Ordered', 'Sample Needed', 'Sample Collected'].includes(t.status)),
+    }));
+    res.json({ orders: shaped, total: shaped.length });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// §2: per-section load (the pathology dashboard's section tiles).
+router.get('/sections', protect, authorize('lab:read'), async (req, res) => {
+  try {
+    const filter = {};
+    labScope(req, filter);
+    const orders = await LabOrder.find(filter).select('tests.section tests.status').limit(2000).lean();
+    const rows = new Map(LAB_SECTIONS.map(s => [s, { section: s, tests: 0, pending: 0, verified: 0, rejected: 0 }]));
+    rows.set('Unsectioned', { section: 'Unsectioned', tests: 0, pending: 0, verified: 0, rejected: 0 });
+    for (const o of orders) {
+      for (const t of (o.tests || [])) {
+        const key = LAB_SECTIONS.includes(t.section) ? t.section : 'Unsectioned';
+        const row = rows.get(key);
+        row.tests += 1;
+        if (['Verified', 'Report Delivered'].includes(t.status)) row.verified += 1;
+        else if (t.status === 'Rejected') row.rejected += 1;
+        else row.pending += 1;
+      }
+    }
+    const sections = [...rows.values()].filter(r => r.section !== 'Unsectioned' || r.tests > 0);
+    res.json({ sections, total: sections.reduce((a, r) => a + r.tests, 0) });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// §2: bench worklist — one row per test line, filterable by section/status.
+router.get('/worklist', protect, authorize('lab:read'), async (req, res) => {
+  try {
+    const { section, status } = req.query;
+    if (section && !LAB_SECTIONS.includes(String(section))) return res.status(400).json({ message: 'Unknown section' });
+    const filter = {};
+    labScope(req, filter);
+    if (section) filter['tests.section'] = String(section);
+    if (status) filter['tests.status'] = String(status);
+    const limit = Math.min(200, Math.max(1, Number.parseInt(req.query.limit, 10) || 50));
+    const orders = await LabOrder.find(filter).select('orderId patientName doctorName priority status tests updatedAt').sort({ updatedAt: -1 }).limit(limit).lean();
+    const rows = [];
+    for (const o of orders) {
+      (o.tests || []).forEach((t, i) => {
+        if (section && t.section !== section) return;
+        if (status && t.status !== status) return;
+        rows.push({
+          orderId: o._id, orderNo: o.orderId, patientName: o.patientName,
+          doctorName: o.doctorName, orderStatus: o.status, priority: o.priority,
+          testIndex: i, testName: t.testName, section: t.section, status: t.status,
+          sampleId: t.sampleId || '', sampleNo: t.sampleNo || '',
+          receivedAt: t.receivedAt || null, resultEnteredAt: t.resultEnteredAt || null,
+          verifiedAt: t.verifiedAt || null, outsourced: Boolean(t.outsourced?.lab),
+        });
+      });
+    }
+    res.json({ worklist: rows, total: rows.length });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// §2: intake. Marks the selected lines received; the order lands on `Received`.
+router.post('/orders/:id/receive', protect, authorize('lab:receive', 'lab:manage'), validate(labReceiveSchema), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (!callerOwnsTenant(req.user, order)) return res.status(403).json({ message: 'Access denied' });
+    const b = req.body || {};
+    const now = new Date();
+    const targets = Array.isArray(b.testIndexes) && b.testIndexes.length
+      ? b.testIndexes
+      : order.tests.map((t, i) => (t.receivedAt ? null : i)).filter(i => i !== null);
+    if (!targets.length) return res.status(400).json({ message: 'No sample lines to receive on this order' });
+    const received = [];
+    for (let n = 0; n < targets.length; n += 1) {
+      const idx = targets[n];
+      const test = order.tests[idx];
+      if (!test) return res.status(404).json({ message: `Test index ${idx} not found` });
+      if (['Verified', 'Report Delivered'].includes(test.status)) {
+        return res.status(409).json({ message: `${test.testName} is already released — nothing to receive` });
+      }
+      test.receivedAt = now;
+      test.receivedBy = req.user._id;
+      test.sampleNo = b.sampleNos?.[n] || b.sampleNo || test.sampleNo || test.sampleId || '';
+      test.sampleCondition = b.condition || test.sampleCondition || (b.accepted === false ? 'Rejected at intake' : 'Accepted');
+      if (b.accepted === false) {
+        test.status = 'Rejected';
+        test.rejectionReason = test.rejectionReason || 'Other';
+        test.recollectReason = b.condition ? String(b.condition).slice(0, 500) : 'Sample rejected at intake';
+      } else if (['Ordered', 'Sample Needed'].includes(test.status)) {
+        test.status = 'Sample Collected';
+      }
+      received.push(idx);
+    }
+    if (b.accepted !== false) order.status = 'Received';
+    await order.save();
+    await auditLog('lab_sample_received', req.user._id, { recordId: order._id, received, accepted: b.accepted !== false, ip: req.ip });
+    res.json(order);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// §2: single-line intake verdict (accept after reject/recollect, or plain QC).
+router.put('/orders/:id/tests/:index/accept', protect, authorize('lab:receive', 'lab:manage'), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (!callerOwnsTenant(req.user, order)) return res.status(403).json({ message: 'Access denied' });
+    const test = order.tests[Number(req.params.index)];
+    if (!test) return res.status(404).json({ message: 'Test not found' });
+    if (['Verified', 'Report Delivered'].includes(test.status)) return res.status(409).json({ message: 'Released test cannot be re-accepted' });
+    const now = new Date();
+    test.receivedAt = test.receivedAt || now;
+    test.receivedBy = test.receivedBy || req.user._id;
+    test.sampleCondition = 'Accepted';
+    test.rejectionReason = '';
+    if (['Ordered', 'Sample Needed', 'Rejected'].includes(test.status)) test.status = 'Sample Collected';
+    if (['Ordered', 'Collection Pending', 'Out for Collection', 'Collected', 'Sample Pending'].includes(order.status)) order.status = 'Received';
+    await order.save();
+    await auditLog('lab_sample_accepted', req.user._id, { recordId: order._id, testIndex: Number(req.params.index), ip: req.ip });
+    res.json({ id: String(order._id), status: test.status, orderStatus: order.status });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// ─── §12: report versioning + amendment ────────────────────────────────────
+// Sanitised snapshot of what the report said at a version boundary.
+function orderReportSnapshot(order) {
+  return (order.tests || []).map(t => ({
+    testName: t.testName, status: t.status, resultValue: t.resultValue || '',
+    flag: t.flag || '', normalRange: t.normalRange || '', unit: t.unit || '',
+    verifiedAt: t.verifiedAt || null, verifiedByRole: t.verifiedByRole || '',
+  }));
+}
+
+router.get('/orders/:id/report/versions', protect, authorize('lab:read'), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (!callerOwnsTenant(req.user, order)) return res.status(403).json({ message: 'Access denied' });
+    res.json({ reportVersion: order.reportVersion, versions: order.reportVersions });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// Amended report: the released snapshot is kept, reportVersion increments, and
+// (when a line is corrected) that line goes back to Result Pending so the fix
+// passes the same verify gate the original did — never a silent overwrite.
+router.post('/orders/:id/correct-report', protect, authorize('lab:correct', 'lab:manage'), validate(labCorrectReportSchema), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (!callerOwnsTenant(req.user, order)) return res.status(403).json({ message: 'Access denied' });
+    if (order.status === 'Cancelled') return res.status(409).json({ message: 'Cancelled order cannot be corrected' });
+    const b = req.body;
+    const previousVersion = order.reportVersion || 1;
+    order.reportVersions.push({
+      version: previousVersion, status: order.status, correctedBy: req.user._id,
+      reason: b.reason, content: orderReportSnapshot(order), createdAt: new Date(),
+    });
+    order.reportVersion = previousVersion + 1;
+    let correctedTest = null;
+    if (b.testIndex !== undefined) {
+      const test = order.tests[b.testIndex];
+      if (!test) return res.status(404).json({ message: 'Test not found' });
+      if (b.resultValue !== undefined) {
+        test.prevValue = test.resultValue || '';
+        test.resultValue = String(b.resultValue).slice(0, 4000);
+        test.resultEnteredBy = req.user._id;
+        test.resultEnteredAt = new Date();
+        test.verificationNotes = b.notes || `Corrected: ${b.reason}`;
+        test.verifiedAt = null;
+        test.verifiedBy = null;
+        test.status = 'Result Pending';
+        correctedTest = test.testName;
+      }
+    }
+    if (correctedTest) order.status = 'Verification Pending';
+    await order.save();
+    await auditLog('lab_report_corrected', req.user._id, {
+      recordId: order._id, fromVersion: previousVersion, toVersion: order.reportVersion,
+      correctedTest, reason: b.reason, ip: req.ip,
+    });
     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -812,15 +1279,41 @@ router.get('/stats', protect, async (req, res) => {
     // is already restricted to their own orders by filter.patientId above, so the
     // tenant predicate is only applied to staff.
     if (req.user.role !== 'patient') {
-      const scope = applyTenantScope(req, filter, { fields: ['facilityId'] });
-      if (!scope.ok) return res.status(403).json({ message: scope.message });
+      // §9 department roles are not in utils/tenantScope.js TENANT_STAFF_ROLES
+      // yet (shared file, separate follow-up) — applyTenantScope would scope
+      // them to tenant-less rows only, i.e. a permanently empty dashboard.
+      // They get the same fail-closed hospitalId scope the new lab lists use.
+      if ([...LAB_DEPT_ROLES, 'home_collection_staff'].includes(req.user.role)) {
+        labScope(req, filter);
+      } else {
+        const scope = applyTenantScope(req, filter, { fields: ['facilityId'] });
+        if (!scope.ok) return res.status(403).json({ message: scope.message });
+      }
     }
+    // §1: counters follow the widened lifecycle — the legacy three keep their
+    // names and now cover the collection/verification chain too.
     const total = await LabOrder.countDocuments(filter);
-    const pending = await LabOrder.countDocuments({ ...filter, status: { $in: ['Ordered', 'Sample Pending'] } });
-    const processing = await LabOrder.countDocuments({ ...filter, status: { $in: ['Processing', 'Under Verification'] } });
-    const completed = await LabOrder.countDocuments({ ...filter, status: 'Completed' });
+    const pending = await LabOrder.countDocuments({ ...filter, status: { $in: ['Ordered', 'Sample Pending', 'Draft', 'Payment Pending', 'Collection Pending', 'Out for Collection', 'Collected'] } });
+    const processing = await LabOrder.countDocuments({ ...filter, status: { $in: ['Processing', 'Under Verification', 'Received', 'Result Pending', 'Verification Pending', 'Partially Completed'] } });
+    const completed = await LabOrder.countDocuments({ ...filter, status: { $in: ['Completed', 'Finalized', 'Report Delivered'] } });
     const critical = await LabOrder.countDocuments({ ...filter, 'tests.isCritical': true });
-    res.json({ total, pending, processing, completed, critical });
+    // §2/§5/§7: intake + verification + reference-lab queues, and the
+    // prescription-verdict KPIs the lab dashboard reads after a reload.
+    const awaitingIntake = await LabOrder.countDocuments({ ...filter, status: { $in: ['Collection Pending', 'Out for Collection', 'Collected'] } });
+    const awaitingVerification = await LabOrder.countDocuments({ ...filter, status: { $in: ['Under Verification', 'Verification Pending'] } });
+    const outsourced = await LabOrder.countDocuments({ ...filter, 'tests.outsourced.lab': { $ne: '' }, 'tests.outsourced.status': { $nin: ['Finalized'] } });
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const bookingScope = labScope(req, {});
+    const [verifiedToday, rejectedToday] = await Promise.all([
+      LabBooking.countDocuments({ ...bookingScope, status: 'Verified', createdAt: { $gte: startOfDay } }),
+      LabBooking.countDocuments({ ...bookingScope, status: 'Rejected', createdAt: { $gte: startOfDay } }),
+    ]);
+    res.json({
+      total, pending, processing, completed, critical,
+      awaitingIntake, awaitingVerification, outsourced,
+      verifiedToday, rejectedToday,
+    });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -1054,9 +1547,76 @@ router.put('/bookings/:id', protect, requireRole([...LAB_STAFF_ROLES, 'phlebotom
     // flow (Request → Assign → Collect → Receive): the UI was writing them but
     // pickBody silently dropped both (values constrained by the model enum).
     const { pickBody } = await import('../utils/pick.js');
-Object.assign(booking, pickBody(req.body, ['patientName', 'patientPhone', 'patientEmail', 'tests', 'testIds', 'totalAmount', 'discountedAmount', 'bookingDate', 'timeSlot', 'visitType', 'homeCollectionAddress', 'homeCollectionFee', 'prescriptionUrl', 'prescriptionVerified', 'notes', 'reportUrl', 'reportDeliveryMode', 'reportDeliveryFee', 'status', 'phlebotomist', 'phlebotomistId']));
+    const patch = pickBody(req.body, ['patientName', 'patientPhone', 'patientEmail', 'tests', 'testIds', 'totalAmount', 'discountedAmount', 'bookingDate', 'timeSlot', 'visitType', 'homeCollectionAddress', 'homeCollectionFee', 'prescriptionUrl', 'prescriptionVerified', 'notes', 'reportUrl', 'reportDeliveryMode', 'reportDeliveryFee', 'status', 'phlebotomist', 'phlebotomistId']);
+    // §1: prescription verdict. The queue screen counts "Verified Today" /
+    // "Rejected Today" from `status`, and a reload re-reads it — so the verdict
+    // must live on status (now in the model enum) AND flip prescriptionVerified,
+    // or the KPI stays frozen after refresh. Unknown statuses fail loudly here
+    // instead of surfacing as a mongoose enum error.
+    if (patch.status !== undefined) {
+      if (!LAB_BOOKING_STATUSES.includes(patch.status)) {
+        return res.status(400).json({ message: `Unknown booking status: ${patch.status}` });
+      }
+      if (patch.status === 'Verified') {
+        patch.prescriptionVerified = true;
+        if (req.body.prescriptionUrl) patch.prescriptionUrl = req.body.prescriptionUrl;
+      } else if (patch.status === 'Rejected') {
+        patch.prescriptionVerified = false;
+      }
+    }
+    Object.assign(booking, patch);
     await booking.save();
     await auditLog('update_lab_booking', req.user._id, { recordId: booking._id, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json(booking);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// §4: home-collection visit workflow — Assigned → On Route → Collected →
+// Submitted, with an explicit fail path. Guard is permission-based (lab:visit)
+// so the phlebotomist role (whose pinned permission set cannot change) reaches
+// it through lab:book, and the §9 home_collection_staff role through lab:visit.
+router.put('/bookings/:id/visit', protect, authorize('lab:visit', 'lab:book', 'lab:manage'), validate(labVisitSchema), async (req, res) => {
+  try {
+    const booking = await LabBooking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (!callerOwnsTenant(req.user, booking)) return res.status(403).json({ message: 'Access denied' });
+    if (booking.visitType !== 'Home Collection') return res.status(409).json({ message: 'Visit workflow applies to home-collection bookings only' });
+    const { action, reason } = req.body;
+    const now = new Date();
+    if (action === 'start') {
+      if (!['Assigned', 'Confirmed', 'Pending'].includes(booking.status)) {
+        return res.status(409).json({ message: `Cannot start from status ${booking.status}` });
+      }
+      booking.status = 'On Route';
+      booking.visitStartedAt = now;
+      if (!booking.phlebotomistId && roleHasPermission(req.user.role, 'lab:visit')) {
+        booking.phlebotomist = req.user.name;
+        booking.phlebotomistId = req.user._id;
+      }
+    } else if (action === 'complete') {
+      if (!['Assigned', 'Confirmed', 'Pending', 'On Route'].includes(booking.status)) {
+        return res.status(409).json({ message: `Cannot complete from status ${booking.status}` });
+      }
+      booking.status = 'Collected';
+      booking.visitEndedAt = now;
+    } else if (action === 'handover') {
+      if (!['Collected', 'On Route'].includes(booking.status)) {
+        return res.status(409).json({ message: `Cannot hand over from status ${booking.status}` });
+      }
+      booking.status = 'Submitted';
+      booking.handoverAt = now;
+      booking.visitEndedAt = booking.visitEndedAt || now;
+    } else if (action === 'fail') {
+      if (!['Assigned', 'Confirmed', 'Pending', 'On Route'].includes(booking.status)) {
+        return res.status(409).json({ message: `Cannot fail from status ${booking.status}` });
+      }
+      if (!reason) return res.status(400).json({ message: 'Failure reason required' });
+      booking.status = 'Failed';
+      booking.failedReason = String(reason).slice(0, 500);
+      booking.visitEndedAt = now;
+    }
+    await booking.save();
+    await auditLog(`lab_home_visit_${action}`, req.user._id, { recordId: booking._id, status: booking.status, ip: req.ip });
     res.json(booking);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

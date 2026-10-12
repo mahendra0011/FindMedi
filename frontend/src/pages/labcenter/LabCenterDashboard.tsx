@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Switch } from '@/components/ui/switch';
-import { Activity, CalendarDays, Clock, MapPin, User, AlertCircle, TrendingUp, DollarSign, Beaker, FileText, Microscope, RotateCcw, Globe, Save, Building2, Users, CheckCircle, CalendarClock, ChevronRight } from 'lucide-react';
+import { Activity, CalendarDays, Clock, MapPin, User, AlertCircle, TrendingUp, DollarSign, Beaker, FileText, Microscope, RotateCcw, Globe, Save, Building2, Users, CheckCircle, CalendarClock, ChevronRight, UserPlus, Boxes, FileBarChart, PackageCheck, FlaskConical } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -19,9 +19,14 @@ const statusColors = {
 export default function LabCenterDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [stats, setStats] = useState(null);
-  const [bookings, setBookings] = useState([]);
-  const [refunds, setRefunds] = useState([]);
+  const [stats, setStats] = useState<any>(null);
+  const [bookings, setBookings] = useState<any>([]);
+  const [refunds, setRefunds] = useState<any>([]);
+  const [tat, setTat] = useState<any>(null);
+  const [rejection, setRejection] = useState<any>(null);
+  const [invStats, setInvStats] = useState<any>(null);
+  const [equipment, setEquipment] = useState<any>([]);
+  const [qc, setQc] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [bookingTab, setBookingTab] = useState('pending');
   const [platformSettings, setPlatformSettings] = useState({
@@ -59,16 +64,33 @@ export default function LabCenterDashboard() {
     const load = async () => {
       setLoading(true);
       try {
+        const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+        const todayIso = new Date().toISOString().slice(0, 10);
         const results = await Promise.allSettled([
           api.getLabStats(),
           api.getLabBookings({}),
           api.getRefunds(),
+          api.labTat(),
+          api.generateReport({ reportType: 'Lab Rejection Rate', dateFrom: monthAgo, dateTo: todayIso }),
+          api.getInventoryStats(),
+          api.getLabEquipment({}),
+          api.getLabTests(),
         ]);
         if (!mounted.current) return;
-        const [s, b, rf] = results.map(res => res.status === 'fulfilled' ? res.value : null);
+        const [s, b, rf, t, rej, inv, eq, tests] = results.map(res => res.status === 'fulfilled' ? res.value : null);
         setStats(s);
         setBookings(b?.bookings || []);
         setRefunds((rf?.payments || rf?.data || []).slice(0, 5));
+        setTat(t);
+        setRejection(rej);
+        setInvStats(inv);
+        setEquipment(eq?.equipment || []);
+        const firstTest = tests?.tests?.[0]?.name;
+        if (firstTest) {
+          api.qcChart({ testName: firstTest })
+            .then((data: any) => { if (mounted.current) setQc(data); })
+            .catch(() => {});
+        }
         const failed = results.filter(r => r.status === 'rejected');
         if (failed.length > 0) toast.error(`Failed to load ${failed.length} data source(s)`);
       } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
@@ -88,6 +110,26 @@ export default function LabCenterDashboard() {
   const completedTests = bookings.filter(b => b.status === 'Completed').reduce((s, b) => s + (b.tests?.length || 0), 0);
   const totalRefunded = refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0);
   const pendingRefunds = refunds.filter(r => r.status === 'Pending' || r.status === 'pending').length;
+
+  const tatPriorities = ['STAT', 'Urgent', 'Routine'];
+  const tatAvgHrs = tatPriorities.reduce((max, p) => {
+    const v = tat?.byPriority?.[p]?.avgHrs;
+    return v != null ? Math.max(max, Number(v)) : max;
+  }, 0);
+  const tatBreached = Number(tat?.breached || 0);
+  const rejectionRate = rejection?.data?.rejectionRate;
+  const homeCollectionsToday = bookings.filter(b =>
+    b.visitType === 'Home Collection' && String(b.bookingDate || '').startsWith(today)
+    && !['Cancelled', 'Failed', 'Completed'].includes(b.status)).length;
+  const monthFromNow = Date.now() + 30 * 86400000;
+  const calibrationDueList = equipment.filter(e => {
+    if (!e.calibrationDue) return false;
+    const due = new Date(e.calibrationDue).getTime();
+    return !Number.isNaN(due) && due <= monthFromNow;
+  });
+  const lowStockItems = Number(invStats?.lowStock || 0);
+  const inventoryValue = Number(invStats?.inventoryValue || 0);
+  const qcViolations = Number(qc?.violations || 0);
 
   const displayedBookings = bookingTab === 'pending' ? pendingBookings
     : bookingTab === 'upcoming' ? upcomingBookings
@@ -160,10 +202,12 @@ export default function LabCenterDashboard() {
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
               <Clock className="w-4 h-4 text-emerald-500" />
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">On Target</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${tatBreached > 0 ? 'bg-red-500/10 text-red-600' : 'bg-emerald-500/10 text-emerald-600'}`}>
+              {tatBreached > 0 ? `${tatBreached} breached` : 'On Target'}
+            </span>
           </div>
           <div>
-            <p className="text-xl font-bold text-foreground">2.4 hrs</p>
+            <p className="text-xl font-bold text-foreground">{tatAvgHrs ? `${tatAvgHrs} hrs` : '—'}</p>
             <p className="text-[10px] text-muted-foreground uppercase font-semibold">Avg Turnaround Time (TAT)</p>
           </div>
         </div>
@@ -173,10 +217,14 @@ export default function LabCenterDashboard() {
             <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
               <AlertCircle className="w-4 h-4 text-orange-500" />
             </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">30 days</span>
           </div>
           <div>
-            <p className="text-xl font-bold text-orange-500">1.2%</p>
+            <p className="text-xl font-bold text-orange-500">{rejectionRate != null ? `${rejectionRate}%` : '—'}</p>
             <p className="text-[10px] text-muted-foreground uppercase font-semibold">Sample Rejection Rate</p>
+            {rejection?.data && (
+              <p className="text-[10px] text-muted-foreground">{rejection.data.rejectedSamples} of {rejection.data.receivedSamples} received</p>
+            )}
           </div>
         </div>
 
@@ -188,22 +236,65 @@ export default function LabCenterDashboard() {
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600">Live</span>
           </div>
           <div>
-            <p className="text-xl font-bold text-foreground">8</p>
+            <p className="text-xl font-bold text-foreground">{homeCollectionsToday}</p>
             <p className="text-[10px] text-muted-foreground uppercase font-semibold">Home Collections Today</p>
           </div>
         </div>
 
-        <div className="bg-card rounded-2xl border p-4 border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/20 cursor-pointer transition-all flex flex-col justify-between" onClick={() => navigate('/lab-business/equipment')}>
+        <div className={`rounded-2xl border p-4 cursor-pointer transition-all flex flex-col justify-between ${calibrationDueList.length > 0 ? 'border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/20' : 'bg-card border-border/60'}`} onClick={() => navigate('/lab-business/equipment')}>
           <div className="flex justify-between items-center mb-2">
-            <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
-              <Activity className="w-4 h-4 text-red-600 dark:text-red-400" />
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${calibrationDueList.length > 0 ? 'bg-red-500/20' : 'bg-success/10'}`}>
+              <Activity className={`w-4 h-4 ${calibrationDueList.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-success'}`} />
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500 text-white animate-pulse">Action Required</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${calibrationDueList.length > 0 ? 'bg-red-500 text-white animate-pulse' : 'bg-success/10 text-success'}`}>
+              {calibrationDueList.length > 0 ? 'Action Required' : 'All Clear'}
+            </span>
           </div>
           <div>
-            <p className="text-xl font-bold text-red-600 dark:text-red-400">1 Machine</p>
-            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Calibration Due</p>
+            <p className={`text-xl font-bold ${calibrationDueList.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`}>
+              {calibrationDueList.length > 0 ? `${calibrationDueList.length} Machine${calibrationDueList.length > 1 ? 's' : ''}` : '0'}
+            </p>
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Calibration Due (30 days)</p>
           </div>
+        </div>
+      </div>
+
+      {/* Quality, QC & inventory pulse */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-card rounded-2xl border border-border/60 p-4">
+          <div className="w-8 h-8 rounded-lg bg-info/10 flex items-center justify-center mb-2">
+            <FileText className="w-4 h-4 text-info" />
+          </div>
+          <p className="text-xl font-bold text-foreground">{stats?.awaitingVerification ?? '—'}</p>
+          <p className="text-[10px] text-muted-foreground uppercase font-semibold">Awaiting Verification</p>
+        </div>
+        <div className="bg-card rounded-2xl border border-border/60 p-4">
+          <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
+            <AlertCircle className="w-4 h-4 text-destructive" />
+          </div>
+          <p className="text-xl font-bold text-foreground">{stats?.critical ?? '—'}</p>
+          <p className="text-[10px] text-muted-foreground uppercase font-semibold">Critical Results</p>
+        </div>
+        <div className="bg-card rounded-2xl border border-border/60 p-4">
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+              <Beaker className="w-4 h-4 text-violet-500" />
+            </div>
+            {qcViolations > 0 && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">Review</span>}
+          </div>
+          <p className="text-xl font-bold text-foreground">{qc ? qcViolations : '—'}</p>
+          <p className="text-[10px] text-muted-foreground uppercase font-semibold">QC Westgard Violations</p>
+        </div>
+        <div className="bg-card rounded-2xl border border-border/60 p-4 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate('/inventory')}>
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
+              <Building2 className="w-4 h-4 text-warning" />
+            </div>
+            {lowStockItems > 0 && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-warning/10 text-warning">Low stock</span>}
+          </div>
+          <p className="text-xl font-bold text-foreground">{invStats ? lowStockItems : '—'}</p>
+          <p className="text-[10px] text-muted-foreground uppercase font-semibold">Low Stock Items</p>
+          <p className="text-[10px] text-muted-foreground">₹{inventoryValue.toLocaleString()} stocked</p>
         </div>
       </div>
 
@@ -530,6 +621,29 @@ export default function LabCenterDashboard() {
             Save Platform Settings
           </button>
           <span className="text-xs text-muted-foreground">Changes apply platform-wide</span>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div>
+        <h2 className="font-heading text-lg font-semibold text-foreground mb-3">Quick Actions</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+          {[
+            { label: 'Register Patient', hint: 'Walk-in UHID', to: '/patient-registration', icon: UserPlus, cls: 'from-primary/10 to-primary/5 border-primary/20', iconCls: 'text-primary' },
+            { label: 'Book a Test', hint: 'Order + slot', to: '/book-test', icon: FlaskConical, cls: 'from-success/10 to-success/5 border-success/20', iconCls: 'text-success' },
+            { label: 'Samples', hint: 'Receive & track', to: '/lab-business/samples', icon: PackageCheck, cls: 'from-violet-500/10 to-violet-500/5 border-violet-500/20', iconCls: 'text-violet-600' },
+            { label: 'Lab Operations', hint: 'Receiving desk', to: '/lab/ops', icon: Microscope, cls: 'from-info/10 to-info/5 border-info/20', iconCls: 'text-info' },
+            { label: 'Reports', hint: 'Analytics & exports', to: '/lab-business/reports', icon: FileBarChart, cls: 'from-warning/10 to-warning/5 border-warning/20', iconCls: 'text-warning' },
+            { label: 'Inventory', hint: 'Stock & reagents', to: '/inventory', icon: Boxes, cls: 'from-destructive/10 to-destructive/5 border-destructive/20', iconCls: 'text-destructive' },
+          ].map(a => (
+            <Link key={a.to} to={a.to} className="block">
+              <motion.div whileHover={{ scale: 1.03 }} className={`h-full bg-gradient-to-br rounded-2xl border p-4 text-center cursor-pointer ${a.cls}`}>
+                <a.icon className={`w-6 h-6 mx-auto mb-1.5 ${a.iconCls}`} />
+                <p className="font-semibold text-sm text-foreground">{a.label}</p>
+                <p className="text-xs text-muted-foreground">{a.hint}</p>
+              </motion.div>
+            </Link>
+          ))}
         </div>
       </div>
 

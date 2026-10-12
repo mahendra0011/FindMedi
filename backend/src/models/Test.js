@@ -22,6 +22,33 @@ const testSchema = new mongoose.Schema({
   unit: { type: String, default: '' },
   mrp: { type: Number, default: 0 },
   discount: { type: Number, default: 0 },
+  // ── §6 commercial / reporting / routing metadata ──
+  corporatePrice: { type: Number, default: 0 },
+  insuranceRate: { type: Number, default: 0 },
+  outsourcingCost: { type: Number, default: 0 },
+  reportTemplate: { type: String, default: '' },
+  resultFormat: { type: String, enum: ['Text', 'Numeric', 'Table', 'Image'], default: 'Text' },
+  verificationRole: { type: String, enum: ['pathologist', 'lab_owner', 'both'], default: 'both' },
+  expectedTatHours: { type: Number, default: 24 },
+  criticalLimits: {
+    low: { type: Number, default: null },
+    high: { type: Number, default: null },
+  },
+  referenceRanges: [{
+    gender: { type: String, enum: ['Male', 'Female', 'All', ''], default: 'All' },
+    ageMin: { type: Number, default: null },
+    ageMax: { type: Number, default: null },
+    low: { type: Number, default: null },
+    high: { type: Number, default: null },
+    unit: { type: String, default: '' },
+  }],
+  // Change log so a price edit is auditable (never a silent overwrite).
+  priceHistory: [{
+    price: { type: Number, required: true },
+    changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    changedAt: { type: Date, default: Date.now },
+  }],
+  fastingRequired: { type: Boolean, default: false },
   reportTime: { type: String, default: '24 hrs' },
   prescriptionReq: { type: Boolean, default: false },
   homeCollection: { type: Boolean, default: false },
