@@ -63,7 +63,12 @@ router.get('/nearby', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const { search, city, type, status } = req.query;
+    const {
+      search, city, type, status,
+      ownership, scheme, system, subType,
+      accreditation, emergency24x7, homeVisit,
+      wheelchair, verified, specialty, openNow,
+    } = req.query;
     const filter = {};
     if (type && type !== 'All') filter.type = type;
 
@@ -84,6 +89,46 @@ router.get('/', async (req, res) => {
       { description: new RegExp(escapeRegex(capSearch(search)), 'i') },
     ];
     if (city) filter.city = new RegExp(escapeRegex(capSearch(city)), 'i');
+
+    // B4 Search facets (rolesmd/subcatogary.md §1 & Part B)
+    if (ownership) filter.ownership = String(ownership).toLowerCase();
+    if (scheme) filter.schemesAccepted = { $in: [String(scheme).toLowerCase()] };
+    if (system) filter.systemOfMedicine = String(system).toLowerCase();
+    if (subType) filter.subType = String(subType).toLowerCase();
+    if (accreditation) {
+      filter.accreditations = { $in: [new RegExp(escapeRegex(String(accreditation)), 'i')] };
+    }
+    if (emergency24x7 === 'true' || emergency24x7 === true || emergency24x7 === '1') {
+      filter.emergency24x7 = true;
+    }
+    if (homeVisit === 'true' || homeVisit === true || homeVisit === '1') {
+      filter.$or = [
+        ...(filter.$or ? [filter.$or] : []),
+        { appointmentModes: { $in: ['home_visit', 'home'] } },
+        { 'amenities.homeVisit': true },
+      ];
+    }
+    if (wheelchair === 'true' || wheelchair === true || wheelchair === '1') {
+      filter['amenities.wheelchairAccess'] = true;
+    }
+    if (specialty) {
+      const { specialtyPattern } = await import('../lib/taxonomy.js');
+      const pattern = specialtyPattern(specialty);
+      if (pattern) {
+        filter.specialties = pattern;
+      } else {
+        filter.specialties = new RegExp(escapeRegex(String(specialty)), 'i');
+      }
+    }
+    if (openNow === 'true' || openNow === true || openNow === '1') {
+      // Calculate current IST day and check timing
+      const now = new Date();
+      const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const istTime = new Date(utcTime + (3600000 * 5.5));
+      const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const currentDay = days[istTime.getDay()];
+      filter[`timing.${currentDay}`] = { $nin: ['Closed', 'closed', '', null] };
+    }
 
     const { page, limit } = req.query;
     const result = await paginatedResults(Facility, filter, { page, limit, sort: { createdAt: -1 } });

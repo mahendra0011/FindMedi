@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { calculatePf, calculateEsi, calculateGratuity, calculateTds } from '../../src/services/statutoryEngine.js';
 import { checkDrugInteractions } from '../../src/services/ddiEngine.js';
 
@@ -72,6 +73,40 @@ describe('Wave 4 Unit Specs — Statutory & DDI Engines', () => {
     test('returns empty array when prescribed drugs have no interactions', () => {
       const results = checkDrugInteractions(['Paracetamol 650mg', 'Amoxicillin 500mg']);
       expect(results).toEqual([]);
+    });
+
+    // Wave 4 hardening: the knowledge base grew from 12 to 145 curated pairs and
+    // matching is symmetric. These tests stop a silent shrink or a one-way key.
+    test('knowledge base stays curated (>= 100 pairs) with a majority of major severity', () => {
+      const db = JSON.parse(readFileSync(new URL('../../src/config/interactions.json', import.meta.url), 'utf8'));
+      expect(db.length).toBeGreaterThanOrEqual(100);
+      const major = db.filter((e) => e.severity === 'major').length;
+      expect(major).toBeGreaterThanOrEqual(60);
+      for (const e of db) {
+        expect(['major', 'moderate', 'minor']).toContain(e.severity);
+        expect(e.drugA && e.drugB && e.effect && e.recommendation).toBeTruthy();
+      }
+    });
+
+    test('matching is symmetric regardless of prescribed order', () => {
+      const forward = checkDrugInteractions(['clarithromycin', 'simvastatin']);
+      const reverse = checkDrugInteractions(['simvastatin', 'clarithromycin']);
+      expect(forward.length).toBe(1);
+      expect(reverse.length).toBe(1);
+      expect(reverse[0].severity).toBe('major');
+      expect(reverse[0].drugA).toBe('simvastatin');
+    });
+
+    test('sorts multi-drug results by severity (major before moderate)', () => {
+      const results = checkDrugInteractions([
+        'warfarin', 'aspirin', 'sertraline', 'phenelzine', 'ibuprofen',
+      ]);
+      const order = results.map((r) => r.severity);
+      expect(order[0]).toBe('major');
+      expect(order[order.length - 1]).toBe('moderate');
+      const idxMajor = order.indexOf('major');
+      const idxModerate = order.indexOf('moderate');
+      expect(idxMajor).toBeLessThan(idxModerate);
     });
   });
 });

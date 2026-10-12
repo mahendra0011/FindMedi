@@ -184,7 +184,7 @@ export async function effectiveStatements(principal) {
     if (a.policyId) policyIds.add(String(a.policyId));
     if (a.roleId) roleIds.add(String(a.roleId));
   }
-  let boundaryIds = new Set();
+  const boundaryIds = new Set();
   if (roleIds.size) {
     const roles = await IamRole.find({ _id: { $in: [...roleIds] } }).select('policyIds boundaryId').lean();
     for (const r of roles) {

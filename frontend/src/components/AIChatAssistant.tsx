@@ -19,28 +19,43 @@ const SYSTEM_PROMPT = `You are FindMedi AI, a helpful health assistant. Your rol
 - You can recommend general wellness tips, first aid, and when to see a doctor
 - When users describe symptoms, suggest which type of specialist they should consult`;
 
+interface ChatMessage {
+  role: string;
+  content: string;
+  image?: string | null;
+  suggestions?: string[];
+  isTyping?: boolean;
+}
+
+interface ChatSession {
+  id: string;
+  title: string;
+  date: string;
+  messages: ChatMessage[];
+}
+
 export default function AIChatAssistant() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [chatSessions, setChatSessions] = useState([]);
-  const [currentSessionId, setCurrentSessionId] = useState(null);
-  const messagesEndRef = useRef(null);
-  const fileInputRef = useRef(null);
-  const cameraInputRef = useRef(null);
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     return () => {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current.getTracks().forEach((t: MediaStreamTrack) => t.stop());
       }
     };
   }, []);
@@ -76,7 +91,7 @@ export default function AIChatAssistant() {
 
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current.getTracks().forEach((t: MediaStreamTrack) => t.stop());
       streamRef.current = null;
     }
     setIsCameraOpen(false);
@@ -88,18 +103,24 @@ export default function AIChatAssistant() {
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(videoRef.current, 0, 0);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-      setSelectedImage(dataUrl);
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setSelectedImage(dataUrl);
+      }
       stopCamera();
     }
   };
 
-  const handleImageSelect = (e) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setSelectedImage(reader.result);
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setSelectedImage(reader.result);
+        }
+      };
       reader.readAsDataURL(file);
     }
   };

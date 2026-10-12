@@ -28,10 +28,12 @@ import {
 interface FormField {
   id: string;
   label: string;
+  labelHi?: string;
   type: string;
   required: boolean;
   options?: string[];
   placeholder?: string;
+  placeholderHi?: string;
   min?: number;
   max?: number;
 }
@@ -39,6 +41,7 @@ interface FormField {
 interface FormSection {
   id: string;
   title: string;
+  titleHi?: string;
   description?: string;
   fields: FormField[];
 }
@@ -46,29 +49,33 @@ interface FormSection {
 export default function FormBuilderStudio() {
   const [templateKey, setTemplateKey] = useState('clinical-admission-assessment');
   const [templateTitle, setTemplateTitle] = useState('Clinical Specialty Assessment');
+  const [templateTitleHi, setTemplateTitleHi] = useState('नैदानिक विशेषता मूल्यांकन');
   const [category, setCategory] = useState('Clinical');
   const [sections, setSections] = useState<FormSection[]>([
     {
       id: 'sec-general',
       title: 'Primary Assessment & Chief Complaints',
+      titleHi: 'प्राथमिक मूल्यांकन एवं मुख्य शिकायतें',
       fields: [
-        { id: 'chief_complaint', label: 'Chief Complaint', type: 'textarea', required: true, placeholder: 'Enter symptoms...' },
-        { id: 'onset_date', label: 'Onset Date', type: 'date', required: true },
-        { id: 'pain_score', label: 'Pain Score (0 to 10)', type: 'scale', min: 0, max: 10, required: false },
+        { id: 'chief_complaint', label: 'Chief Complaint', labelHi: 'मुख्य शिकायत', type: 'textarea', required: true, placeholder: 'Enter symptoms...', placeholderHi: 'लक्षण दर्ज करें...' },
+        { id: 'onset_date', label: 'Onset Date', labelHi: 'आरंभ तिथि', type: 'date', required: true },
+        { id: 'pain_score', label: 'Pain Score (0 to 10)', labelHi: 'दर्द का स्तर (0-10)', type: 'scale', min: 0, max: 10, required: false },
       ],
     },
     {
       id: 'sec-vitals',
       title: 'Initial Vitals & Triage',
+      titleHi: 'प्रारंभिक महत्वपूर्ण संकेत एवं ट्राइएज',
       fields: [
-        { id: 'vitals', label: 'Baseline Vitals Profile', type: 'vitals', required: true },
-        { id: 'consciousness_level', label: 'AVPU Consciousness Level', type: 'select', options: ['Alert', 'Voice', 'Pain', 'Unresponsive'], required: true },
+        { id: 'vitals', label: 'Baseline Vitals Profile', labelHi: 'महत्वपूर्ण संकेत प्रोफ़ाइल', type: 'vitals', required: true },
+        { id: 'consciousness_level', label: 'AVPU Consciousness Level', labelHi: 'चेतना का स्तर', type: 'select', options: ['Alert', 'Voice', 'Pain', 'Unresponsive'], required: true },
       ],
     },
   ]);
 
   const [activeSectionIdx, setActiveSectionIdx] = useState(0);
   const [previewMode, setPreviewMode] = useState(false);
+  const [previewLocale, setPreviewLocale] = useState<'en' | 'hi'>('en');
   const [previewValues, setPreviewValues] = useState<Record<string, any>>({});
 
   const fieldTypesList = [
@@ -162,11 +169,13 @@ export default function FormBuilderStudio() {
     const payload = {
       key: templateKey.toLowerCase().replace(/\s+/g, '-'),
       title: templateTitle,
+      titleHi: templateTitleHi,
       category,
       definition: {
         sections: sections.map((s) => ({
           id: s.id,
           title: s.title,
+          titleHi: s.titleHi,
           description: s.description,
           fields: s.fields,
         })),
@@ -218,9 +227,27 @@ export default function FormBuilderStudio() {
       {previewMode ? (
         /* Preview Tab */
         <Card className="border-border/60 shadow-sm max-w-3xl mx-auto">
-          <CardHeader className="bg-muted/20 border-b p-4">
-            <CardTitle className="text-lg">{templateTitle}</CardTitle>
-            <CardDescription>Live dynamic preview rendering via FormRenderer engine.</CardDescription>
+          <CardHeader className="bg-muted/20 border-b p-4 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">{previewLocale === 'hi' && templateTitleHi ? templateTitleHi : templateTitle}</CardTitle>
+              <CardDescription>Live dynamic preview rendering via FormRenderer engine.</CardDescription>
+            </div>
+            <div className="flex items-center gap-1 border rounded-md p-0.5 text-xs bg-background">
+              <button
+                type="button"
+                className={`px-2 py-0.5 rounded transition-colors ${previewLocale === 'en' ? 'bg-primary text-primary-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => setPreviewLocale('en')}
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                className={`px-2 py-0.5 rounded transition-colors ${previewLocale === 'hi' ? 'bg-primary text-primary-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => setPreviewLocale('hi')}
+              >
+                हिन्दी
+              </button>
+            </div>
           </CardHeader>
           <CardContent className="p-6">
             <FormRenderer
@@ -230,6 +257,7 @@ export default function FormBuilderStudio() {
               values={previewValues}
               onChange={setPreviewValues}
               onSubmit={() => toast.success('Preview submission captured')}
+              locale={previewLocale}
             />
           </CardContent>
         </Card>
@@ -276,10 +304,19 @@ export default function FormBuilderStudio() {
               </CardHeader>
               <CardContent className="p-3 space-y-3 text-xs">
                 <div>
-                  <label className="font-semibold text-muted-foreground">Template Title</label>
+                  <label className="font-semibold text-muted-foreground">Template Title (EN)</label>
                   <Input
                     value={templateTitle}
                     onChange={(e) => setTemplateTitle(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-muted-foreground">Template Title (HI)</label>
+                  <Input
+                    value={templateTitleHi}
+                    placeholder="शीर्षक (हिन्दी)"
+                    onChange={(e) => setTemplateTitleHi(e.target.value)}
                     className="mt-1"
                   />
                 </div>
@@ -320,9 +357,10 @@ export default function FormBuilderStudio() {
             {sections[activeSectionIdx] && (
               <Card className="border-border/60 shadow-sm">
                 <CardHeader className="p-4 bg-muted/20 border-b flex flex-row items-center justify-between">
-                  <div className="flex-1 mr-4">
+                  <div className="flex-1 mr-4 grid grid-cols-2 gap-2">
                     <Input
                       value={sections[activeSectionIdx].title}
+                      placeholder="Section Title (EN)"
                       onChange={(e) => {
                         const val = e.target.value;
                         setSections((prev) => {
@@ -331,7 +369,20 @@ export default function FormBuilderStudio() {
                           return copy;
                         });
                       }}
-                      className="font-semibold text-base h-8 bg-transparent border-dashed"
+                      className="font-semibold text-sm h-8 bg-transparent border-dashed"
+                    />
+                    <Input
+                      value={sections[activeSectionIdx].titleHi || ''}
+                      placeholder="अनुभाग शीर्षक (HI)"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSections((prev) => {
+                          const copy = [...prev];
+                          copy[activeSectionIdx].titleHi = val;
+                          return copy;
+                        });
+                      }}
+                      className="text-sm h-8 bg-transparent border-dashed"
                     />
                   </div>
                   <Badge variant="outline" className="text-xs">
@@ -365,9 +416,10 @@ export default function FormBuilderStudio() {
                           dropIdx === fIdx ? 'border-primary border-dashed shadow-sm ring-2 ring-primary/30' : 'hover:border-primary/40'
                         }`}
                       >
-                        <div className="flex-1 grid grid-cols-3 gap-2 items-center">
+                        <div className="flex-1 grid grid-cols-4 gap-2 items-center">
                           <Input
                             value={f.label}
+                            placeholder="Label (EN)"
                             onChange={(e) => {
                               const val = e.target.value;
                               setSections((prev) => {
@@ -377,6 +429,19 @@ export default function FormBuilderStudio() {
                               });
                             }}
                             className="h-8 text-xs font-medium"
+                          />
+                          <Input
+                            value={f.labelHi || ''}
+                            placeholder="लेबल (HI)"
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setSections((prev) => {
+                                const copy = [...prev];
+                                copy[activeSectionIdx].fields[fIdx].labelHi = val;
+                                return copy;
+                              });
+                            }}
+                            className="h-8 text-xs"
                           />
                           <Badge variant="secondary" className="w-fit text-[10px] font-mono">
                             {f.type}

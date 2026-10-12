@@ -1,3 +1,5 @@
+import { SPECIALTY_NAMES } from '@/data/specialties';
+import { LANGUAGES, COUNSELLOR_CONCERNS, SYSTEMS_OF_MEDICINE } from '@/data/optionLists';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,7 +35,8 @@ const PLATFORM_TYPES = [
   { key: 'psychiatrist', label: 'Psychiatrist (MD)', icon: BrainCircuit, desc: 'Medical doctor — diagnosis, medication & therapy for mental health conditions', color: 'from-cyan-500/20 to-sky-500/5', textColor: 'text-cyan-600', gradient: 'from-cyan-600 to-sky-700' },
 ];
 
-const SPECIALTIES = ['Cardiology','Neurology','Orthopedics','Pediatrics','Dermatology','Oncology','General Medicine','ENT','Psychiatry','Gynecology','Urology','Ophthalmology','Dentistry','Ayurveda','Homeopathy','Physiotherapy'];
+// subcatogary.md Part B — 44 canonical medical specialties
+const SPECIALTIES = SPECIALTY_NAMES;
 
 const STATE_BAR_COUNCILS = [
   'Bar Council of Maharashtra & Goa',
@@ -65,14 +68,14 @@ const COURTS_OPTIONS = [
   'Family Court',
 ];
 
-const LAWYER_LANGUAGES = ['Hindi', 'English', 'Marathi', 'Bengali', 'Tamil', 'Telugu', 'Gujarati', 'Punjabi', 'Urdu', 'Kannada', 'Malayalam'];
+const LAWYER_LANGUAGES = LANGUAGES;
 
 const COUNSELLOR_TYPES = [
   { id: 'professional', label: 'Professional Counsellor', desc: 'Licensed psychologist / therapist with degree & clinical training', icon: GraduationCap },
   { id: 'mentor', label: 'Peer Mentor', desc: 'Lived-experience guide for motivation, habits & emotional support', icon: HeartHandshake },
 ];
 
-const COUNSELLOR_CONCERNS = ['Anxiety', 'Stress', 'Student Pressure', 'Exam pressure', 'Loneliness', 'Mild depression', 'Relationship issues', 'Emotional healing', 'Trauma', 'Sleep', 'Burnout', 'Career Stress', 'Addiction Recovery', 'Meditation', 'Self Confidence', 'Motivation'];
+const COUNSELLOR_CONCERNS = COUNSELLOR_CONCERNS;
 
 const COUNSELLOR_MODES = [
   { id: 'google-meet', label: 'Google Meet (Video)', desc: 'HD video sessions from anywhere' },
@@ -80,7 +83,7 @@ const COUNSELLOR_MODES = [
   { id: 'in-person', label: 'In-Person (Clinic)', desc: 'Meet at your clinic chamber' },
 ];
 
-const COUNSELLOR_LANGUAGES = ['Hindi', 'English', 'Marathi', 'Bengali', 'Tamil', 'Telugu', 'Gujarati', 'Punjabi', 'Urdu', 'Kannada', 'Malayalam'];
+const COUNSELLOR_LANGUAGES = LANGUAGES;
 
 const COUNSELLOR_RESPONSE_TIMES = ['Within 2 hours', 'Within 6 hours', 'Within 24 hours', 'Within 48 hours'];
 

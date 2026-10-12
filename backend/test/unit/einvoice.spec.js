@@ -154,4 +154,52 @@ describe('E-Invoice Service Unit Tests', () => {
     expect(cancelRes.status).toBe('Cancelled');
     expect(cancelRes.irn).toBe(mockIrn);
   });
+
+  it('differentiates B2B and B2C transaction payload branches correctly', () => {
+    process.env.EINVOICE_GSTIN = '27AAPFU0939F1ZV';
+    const billingBase = { invoiceId: 'INV-B101', amount: 1000 };
+    const hospital = { name: 'City Hospital', stateCode: '27' };
+
+    // B2B when buyer has registered GSTIN
+    const b2bPayload = buildEinvoicePayload({
+      billing: billingBase,
+      hospital,
+      patient: { name: 'Corporate TPA', gstin: '27AAPFU0939F1ZV' },
+    });
+    expect(b2bPayload.TranDtls.SupTyp).toBe('B2B');
+    expect(b2bPayload.BuyerDtls.Gstin).toBe('27AAPFU0939F1ZV');
+
+    // B2C when billing specifies B2C
+    const b2cPayload = buildEinvoicePayload({
+      billing: { ...billingBase, supplyType: 'B2C' },
+      hospital,
+      patient: { name: 'Retail Patient' },
+    });
+    expect(b2cPayload.TranDtls.SupTyp).toBe('B2C');
+  });
+
+  it('enforces 24-hour cancel-window boundary per GSTN rules', async () => {
+    process.env.EINVOICE_MODE = 'sandbox';
+    const mockIrn = 'B'.repeat(64);
+    const baseTime = new Date('2026-10-12T10:00:00.000Z');
+
+    // Within window (23 hours later) -> Allowed
+    const within24h = new Date('2026-10-13T09:00:00.000Z');
+    const okRes = await cancelEinvoice(mockIrn, '1', {
+      generatedAt: baseTime,
+      now: within24h,
+    });
+    expect(okRes.success).toBe(true);
+    expect(okRes.status).toBe('Cancelled');
+
+    // Past window (25 hours later) -> Rejected
+    const after24h = new Date('2026-10-13T11:00:00.000Z');
+    const expiredRes = await cancelEinvoice(mockIrn, '1', {
+      generatedAt: baseTime,
+      now: after24h,
+    });
+    expect(expiredRes.success).toBe(false);
+    expect(expiredRes.error).toBe('CANCEL_WINDOW_EXPIRED');
+  });
 });
+

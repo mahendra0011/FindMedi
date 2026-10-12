@@ -63,3 +63,23 @@ export function renderTemplate(body, values = {}, variables = []) {
   }
   return out;
 }
+
+export const DEFAULT_NOTIFY_TEMPLATES = [
+  {
+    key: 'followup_confirm',
+    name: 'Follow-up Appointment Confirmation',
+    channel: 'sms',
+    body: 'Dear {{patientName}}, your follow-up appointment with {{doctorName}} is scheduled on {{date}} at {{time}}. Reply YES to confirm or NO to reschedule.',
+    variables: ['patientName', 'doctorName', 'date', 'time'],
+    dltTemplateId: '1107161234567890123',
+  },
+  {
+    key: 'followup_confirm',
+    name: 'Follow-up Appointment Confirmation (WhatsApp)',
+    channel: 'whatsapp',
+    body: 'Dear {{patientName}}, your follow-up appointment with {{doctorName}} is scheduled on {{date}} at {{time}}. Please confirm your attendance.',
+    variables: ['patientName', 'doctorName', 'date', 'time'],
+    dltTemplateId: '1107161234567890124',
+  },
+];
+

@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect } from '../middleware/auth.js';
+import { protect, restrictTo } from '../middleware/auth.js';
 import ClinicPackage from '../models/ClinicPackage.js';
 
 const router = express.Router();
@@ -12,14 +12,14 @@ router.get('/', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', restrictTo('hospital_admin', 'superadmin', 'clinic_admin'), async (req, res) => {
   try {
     const row = await ClinicPackage.create({ ...req.body, hospitalId: req.user.hospitalId, createdBy: req.user._id });
     res.status(201).json({ package: row });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', restrictTo('hospital_admin', 'superadmin', 'clinic_admin'), async (req, res) => {
   try {
     const row = await ClinicPackage.findOneAndUpdate(
       { _id: req.params.id, hospitalId: req.user.hospitalId },
@@ -30,7 +30,7 @@ router.put('/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', restrictTo('hospital_admin', 'superadmin', 'clinic_admin'), async (req, res) => {
   try {
     await ClinicPackage.deleteOne({ _id: req.params.id, hospitalId: req.user.hospitalId });
     res.json({ deleted: true });

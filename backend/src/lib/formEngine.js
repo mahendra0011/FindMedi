@@ -104,6 +104,7 @@ export function schemaFromTemplate(template) {
 export function localizeTemplate(template, locale = 'en') {
   if (!template || !template.definition || locale !== 'hi') return template;
   const clone = JSON.parse(JSON.stringify(template));
+  if (clone.titleHi) clone.title = clone.titleHi;
   const sections = clone.definition?.sections || [];
   for (const sec of sections) {
     if (sec.titleHi) sec.title = sec.titleHi;

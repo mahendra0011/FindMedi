@@ -9,8 +9,8 @@
  *
  * `supertest` has been in devDependencies the whole time with no test using it.
  */
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { mountApp, query } from '../helpers/appHarness.js';
+import { describe, it, expect, jest, beforeEach, beforeAll, afterAll } from '@jest/globals';
+import { mountApp, query, setEnforceAuthorize } from '../helpers/appHarness.js';
 
 const booking = {
   _id: 'b1',
@@ -31,10 +31,171 @@ jest.unstable_mockModule('../../src/models/AssistantBooking.js', () => ({
   default: { findById: bookingFindById },
 }));
 jest.unstable_mockModule('../../src/models/User.js', () => ({
-  default: { findById: () => query(null), find: () => query([]) },
+  default: {
+    findById: () => query({ _id: '507f191e810c19729de860ea', name: 'Patient A', role: 'patient' }),
+    find: () => query([]),
+  },
+}));
+
+// Mocks for B2 new route families:
+jest.unstable_mockModule('../../src/models/Feedback.js', () => ({
+  default: {
+    find: () => query([]),
+    create: async (d) => ({ _id: 'fb1', ...d }),
+  },
+}));
+
+jest.unstable_mockModule('../../src/models/AmbulanceTrip.js', () => ({
+  AmbulanceTrip: {
+    find: () => query([]),
+    create: async (d) => ({ _id: 'trip1', ...d }),
+  },
+  AmbulanceVehicleLog: {
+    find: () => query([]),
+    create: async (d) => ({ _id: 'log1', ...d }),
+  },
+  VEHICLE_LOG_TYPES: ['fuel', 'maintenance', 'inspection'],
+}));
+
+jest.unstable_mockModule('../../src/models/Ambulance.js', () => ({
+  default: {
+    findOne: () => query({ _id: '507f191e810c19729de860aa', hospitalId: 'h1' }),
+  },
+}));
+
+jest.unstable_mockModule('../../src/models/GatePass.js', () => ({
+  GatePass: {
+    create: async (d) => ({ _id: '507f191e810c19729de860ea', passNo: 'GP-1', ...d }),
+    findById: () => query({ _id: '507f191e810c19729de860ea', status: 'requested', passNo: 'GP-1', save: async () => {} }),
+  },
+  SecurityRound: {
+    create: async (d) => ({ _id: '507f191e810c19729de860eb', roundNo: 'SR-1', ...d }),
+    findById: () => query({ _id: '507f191e810c19729de860eb', status: 'open', roundNo: 'SR-1', checkpoints: [{ ok: true }], save: async () => {} }),
+  },
+  GATE_PASS_TYPES: ['material_outward', 'visitor', 'contractor'],
+  GATE_PASS_STATUS: ['requested', 'approved', 'rejected', 'used', 'expired'],
+}));
+
+jest.unstable_mockModule('../../src/models/H1RegisterEntry.js', () => ({
+  default: {
+    find: () => ({ sort: () => ({ limit: () => ({ lean: async () => [] }) }) }),
+    countDocuments: async () => 0,
+  },
+  REGISTER_SCHEDULES: ['h1', 'x', 'narcotic_ndps'],
+  REGISTER_SCHEDULE_ALIASES: { schedule_h1: 'h1', schedule_x: 'x' },
+}));
+
+jest.unstable_mockModule('../../src/models/Record.js', () => ({
+  default: {
+    find: () => query([]),
+    create: async (d) => ({ _id: 'rec1', ...d }),
+  },
+}));
+
+jest.unstable_mockModule('../../src/models/BiomedicalAsset.js', () => ({
+  default: {
+    find: () => query([]),
+    create: async (d) => ({ _id: 'bio1', ...d }),
+  },
+}));
+
+jest.unstable_mockModule('../../src/models/BiomedicalWorkOrder.js', () => ({
+  default: {
+    find: () => query([]),
+    create: async (d) => ({ _id: 'wo1', ...d }),
+  },
+}));
+
+jest.unstable_mockModule('../../src/models/BmwBag.js', () => ({
+  default: {
+    find: () => query([]),
+    create: async (d) => ({ _id: 'bmw1', ...d }),
+  },
+  BMW_COLOR_CATEGORIES: ['YELLOW', 'RED', 'WHITE', 'BLUE'],
+}));
+
+jest.unstable_mockModule('../../src/models/JobOpening.js', () => ({
+  default: {
+    find: () => query([]),
+    create: async (d) => ({ _id: 'job1', ...d }),
+  },
+}));
+jest.unstable_mockModule('../../src/models/Candidate.js', () => ({
+  default: { find: () => query([]), create: async (d) => ({ _id: 'cand1', ...d }) },
+}));
+jest.unstable_mockModule('../../src/models/OnboardingTask.js', () => ({
+  default: { find: () => query([]), create: async (d) => ({ _id: 'task1', ...d }) },
+}));
+jest.unstable_mockModule('../../src/models/Staff.js', () => ({
+  default: { find: () => query([]), create: async (d) => ({ _id: 'st1', ...d }) },
+}));
+
+jest.unstable_mockModule('../../src/models/CanteenItem.js', () => ({
+  default: {
+    find: () => query([]),
+    create: async (d) => ({ _id: 'item1', ...d }),
+  },
+}));
+jest.unstable_mockModule('../../src/models/CanteenOrder.js', () => ({
+  default: { find: () => query([]), create: async (d) => ({ _id: 'order1', ...d }) },
+}));
+
+jest.unstable_mockModule('../../src/models/ParkingTransaction.js', () => ({
+  default: {
+    find: () => query([]),
+    create: async (d) => ({ _id: 'park1', ...d }),
+  },
+  VEHICLE_TYPES: ['TWO_WHEELER', 'FOUR_WHEELER', 'AMBULANCE', 'STAFF', 'VIP'],
+}));
+
+jest.unstable_mockModule('../../src/models/ClinicPackage.js', () => ({
+  default: {
+    find: () => query([]),
+    create: async (d) => ({ _id: 'pkg1', ...d }),
+    findOneAndUpdate: async () => ({ _id: 'pkg1' }),
+    deleteOne: async () => ({ deletedCount: 1 }),
+  },
+}));
+
+jest.unstable_mockModule('../../src/models/Encounter.js', () => ({
+  default: {
+    find: () => query([]),
+    findOne: () => query({ _id: '507f191e810c19729de860e1', status: 'Open' }),
+    findOneAndUpdate: async () => ({ _id: '507f191e810c19729de860e1', status: 'Open' }),
+  },
+}));
+jest.unstable_mockModule('../../src/lib/encounter.js', () => ({
+  closeEncounter: async () => ({ _id: '507f191e810c19729de860e1', status: 'Closed' }),
+}));
+
+jest.unstable_mockModule('../../src/models/Radiology.js', () => ({
+  default: { findById: () => query(null) },
+}));
+jest.unstable_mockModule('../../src/models/ImagingModality.js', () => ({
+  default: { find: () => query([]) },
+}));
+jest.unstable_mockModule('../../src/models/ImagingAppointment.js', () => ({
+  default: { find: () => query([]) },
+}));
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+  auditLog: async () => {},
 }));
 
 const { as } = await mountApp('assistantBookings', {});
+const feedbackApp = await mountApp('feedback', {}, { enforceAuthorize: true });
+const ambulanceTripsApp = await mountApp('ambulanceTrips', {}, { enforceAuthorize: true });
+const securityApp = await mountApp('security', {}, { enforceAuthorize: true });
+const pharmacyApp = await mountApp('pharmacy', {}, { enforceAuthorize: true });
+const certificatesApp = await mountApp('certificates', {}, { enforceAuthorize: true });
+const biomedicalApp = await mountApp('biomedical', {}, { enforceAuthorize: true });
+const bmwApp = await mountApp('bmw', {}, { enforceAuthorize: true });
+const biometricApp = await mountApp('biometric', {}, { enforceAuthorize: true });
+const recruitmentApp = await mountApp('recruitment', {}, { enforceAuthorize: true });
+const canteenApp = await mountApp('canteen', {}, { enforceAuthorize: true });
+const parkingApp = await mountApp('parking', {}, { enforceAuthorize: true });
+const clinicPackagesApp = await mountApp('clinicPackages', {}, { enforceAuthorize: true });
+const encountersApp = await mountApp('encounters', {}, { enforceAuthorize: true });
+const radiologyApp = await mountApp('radiology', {}, { enforceAuthorize: true });
 
 beforeEach(() => {
   profileFindOne.mockReset().mockReturnValue(query(null));
@@ -121,5 +282,145 @@ describe('HTTP - GET /:id is reachable only by a party to the booking', () => {
     const r = await as({ _id: 'patA', role: 'patient' }).get('/does-not-exist');
     expect(r.status).toBe(404);
   });
+});
+
+describe('HTTP Authorization - New route families enforce 401 unauth and 403 wrong-role (B2)', () => {
+  beforeAll(() => {
+    setEnforceAuthorize(true);
+  });
+  afterAll(() => {
+    setEnforceAuthorize(false);
+  });
+
+  const families = [
+    {
+      name: 'feedback',
+      request: (client) => client.get('/summary'),
+      as: feedbackApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'hospital_admin', hospitalId: '507f191e810c19729de860ed' },
+    },
+    {
+      name: 'ambulance-trips',
+      request: (client) => client.post('/trips').send({ fromLocation: 'Site A', toLocation: 'Hospital B' }),
+      as: ambulanceTripsApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'ambulance', hospitalId: '507f191e810c19729de860ed' },
+    },
+    {
+      name: 'security (gate-pass decide)',
+      request: (client) => client.put('/gate-passes/507f191e810c19729de860ea/decide').send({ action: 'approve' }),
+      as: securityApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'security', hospitalId: '507f191e810c19729de860ed' },
+    },
+    {
+      name: 'security (rounds close)',
+      request: (client) => client.put('/rounds/507f191e810c19729de860eb/close').send({}),
+      as: securityApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'security_admin', hospitalId: '507f191e810c19729de860ed' },
+    },
+    {
+      name: 'h1-register',
+      request: (client) => client.get('/h1-register'),
+      as: pharmacyApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'pharmacist', hospitalId: '507f191e810c19729de860ed' },
+    },
+    {
+      name: 'certificates',
+      request: (client) => client.post('/').send({
+        patientId: '507f191e810c19729de860ea',
+        title: 'Fitness Certificate',
+        type: 'fitness',
+      }),
+      as: certificatesApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'doctor', hospitalId: '507f191e810c19729de860ed' },
+    },
+    {
+      name: 'biomedical',
+      request: (client) => client.get('/assets'),
+      as: biomedicalApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'hospital_admin', hospitalId: '507f191e810c19729de860ed' },
+    },
+    {
+      name: 'bmw',
+      request: (client) => client.get('/bags'),
+      as: bmwApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'hospital_admin', hospitalId: '507f191e810c19729de860ed' },
+    },
+    {
+      name: 'biometric',
+      request: (client) => client.get('/logs'),
+      as: biometricApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'hospital_admin', hospitalId: '507f191e810c19729de860ed' },
+    },
+    {
+      name: 'recruitment',
+      request: (client) => client.get('/jobs'),
+      as: recruitmentApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'hospital_admin', hospitalId: '507f191e810c19729de860ed' },
+    },
+    {
+      name: 'canteen',
+      request: (client) => client.get('/items'),
+      as: canteenApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'hospital_admin', hospitalId: '507f191e810c19729de860ed' },
+    },
+    {
+      name: 'parking',
+      request: (client) => client.get('/vehicles'),
+      as: parkingApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'hospital_admin', hospitalId: '507f191e810c19729de860ed' },
+    },
+    {
+      name: 'clinicPackages',
+      request: (client) => client.post('/').send({ name: 'Health Package', price: 999 }),
+      as: clinicPackagesApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'hospital_admin', hospitalId: '507f191e810c19729de860ed' },
+    },
+    {
+      name: 'encounters',
+      request: (client) => client.get('/'),
+      as: encountersApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'doctor', hospitalId: '507f191e810c19729de860ed' },
+    },
+    {
+      name: 'dicom viewer-url',
+      request: (client) => client.get('/dicom/viewer-url?studyUid=1.2.840.113619.2.55.3.60'),
+      as: radiologyApp.as,
+      wrongRole: { _id: '507f191e810c19729de860e1', role: 'patient' },
+      validRole: { _id: '507f191e810c19729de860e2', role: 'radiologist', hospitalId: '507f191e810c19729de860ed' },
+    },
+  ];
+
+  for (const tc of families) {
+    describe(`${tc.name} authz gates`, () => {
+      it('rejects unauthenticated caller with 401', async () => {
+        const res = await tc.request(tc.as());
+        expect(res.status).toBe(401);
+      });
+
+      it('rejects unauthorized role with 403', async () => {
+        const res = await tc.request(tc.as(tc.wrongRole));
+        expect(res.status).toBe(403);
+      });
+
+      it('allows authorized role past the security gate', async () => {
+        const res = await tc.request(tc.as(tc.validRole));
+        expect([401, 403]).not.toContain(res.status);
+      });
+    });
+  }
 });
 

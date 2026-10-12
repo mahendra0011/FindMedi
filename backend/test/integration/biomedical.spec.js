@@ -52,7 +52,7 @@ const { as } = await mountApp('biomedical', {
   '../../src/middleware/audit.js': () => ({
     auditLog: async () => ({}),
   }),
-});
+}, { enforceAuthorize: true });
 
 describe('Biomedical Engineering & Equipment Asset Integration', () => {
   const engineer = {
@@ -98,4 +98,21 @@ describe('Biomedical Engineering & Equipment Asset Integration', () => {
 
     expect(res.body.status).toBe('RESOLVED');
   });
+
+  it('denies nurse from creating biomedical assets with 403', async () => {
+    const nurse = {
+      _id: '507f191e810c19729de860ee',
+      id: '507f191e810c19729de860ee',
+      role: 'nurse',
+      hospitalId: '507f191e810c19729de860ed',
+    };
+    await as(nurse)
+      .post('/assets')
+      .send({
+        assetTag: 'BME-NURSE-01',
+        equipmentName: 'Defibrillator',
+      })
+      .expect(403);
+  });
 });
+

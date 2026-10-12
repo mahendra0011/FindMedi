@@ -706,11 +706,11 @@ export const HEALTHCARE_CATALOGUE: CatalogueSection[] = [
         icon: Users,
         color: 'from-sky-500/20 to-sky-500/5',
         textColor: 'text-sky-600',
-        route: '/telemedicine',
+        route: '/patient/second-opinion',
         subs: [
-          { label: 'Report Review', route: '/telemedicine' },
-          { label: 'Multi-specialist View', route: '/telemedicine' },
-          { label: 'Written Opinion', route: '/telemedicine' },
+          { label: 'Report Review', route: '/patient/second-opinion' },
+          { label: 'Multi-specialist View', route: '/patient/second-opinion' },
+          { label: 'Written Opinion', route: '/patient/second-opinion' },
         ],
       },
       {

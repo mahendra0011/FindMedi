@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from '@jest/globals';
 import { schemaFromTemplate, evalFormula, evalCondition, bandFor } from '../../src/lib/formEngine.js';
-import { lintTemplate } from '../../src/lib/printEngine.js';
+import { lintTemplate, renderTemplate } from '../../src/lib/printEngine.js';
 import { sealDoc, verifySeal } from '../../src/lib/docSeal.js';
 import { PRIORITY_WEIGHT } from '../../src/models/Queue.js';
 import { parseHl7, isCriticalFlag } from '../../src/lib/hl7.js';
@@ -51,13 +51,15 @@ describe('form engine parity + injection resistance', () => {
   it('localizes form template to Hindi when locale is hi with English fallback', async () => {
     const { localizeTemplate } = await import('../../src/lib/formEngine.js');
     const hindiTemplate = {
+      title: 'Triage Assessment',
+      titleHi: 'ट्राइएज मूल्यांकन',
       definition: {
         sections: [{
           id: 's1',
           title: 'Patient Details',
           titleHi: 'रोगी विवरण',
           fields: [
-            { id: 'age', type: 'number', label: 'Age', labelHi: 'आयु', placeholder: 'Enter age', placeholderHi: 'आयु दर्ज करें' },
+            { id: 'age', type: 'number', label: 'Age', labelHi: 'आयु', placeholder: 'Enter age', placeholderHi: 'आयु दर्ज करें', help: 'Years', helpHi: 'वर्ष' },
             { id: 'gender', type: 'select', label: 'Gender', options: ['Male', 'Female'], optionsHi: ['पुरुष', 'महिला'] },
             { id: 'notes', type: 'text', label: 'Clinical Notes' }, // no Hindi label provided, must fallback
           ],
@@ -66,12 +68,26 @@ describe('form engine parity + injection resistance', () => {
     };
 
     const localized = localizeTemplate(hindiTemplate, 'hi');
+    expect(localized.title).toBe('ट्राइएज मूल्यांकन');
     const s1 = localized.definition.sections[0];
     expect(s1.title).toBe('रोगी विवरण');
     expect(s1.fields[0].label).toBe('आयु');
     expect(s1.fields[0].placeholder).toBe('आयु दर्ज करें');
+    expect(s1.fields[0].help).toBe('वर्ष');
     expect(s1.fields[1].options).toEqual(['पुरुष', 'महिला']);
     expect(s1.fields[2].label).toBe('Clinical Notes'); // fallback to English
+
+    // Non-Hindi locale retains English
+    const en = localizeTemplate(hindiTemplate, 'en');
+    expect(en.title).toBe('Triage Assessment');
+    expect(en.definition.sections[0].title).toBe('Patient Details');
+    expect(en.definition.sections[0].fields[0].label).toBe('Age');
+  });
+
+  it('renders print template with Devanagari font embedding when lang is hi', () => {
+    const rendered = renderTemplate('<h1>{{t "रोगी विवरण"}}</h1>', '', {}, { lang: 'hi' });
+    expect(rendered.html).toContain('lang="hi"');
+    expect(rendered.html).toContain('Noto Sans Devanagari');
   });
 });
 

@@ -44,6 +44,11 @@ const ensureHelpers = () => {
   Handlebars.registerHelper('inWords', (v) => inWordsIndian(v));
   Handlebars.registerHelper('date', (v) => (v ? new Date(v).toLocaleDateString('en-IN') : ''));
   Handlebars.registerHelper('upper', (v) => String(v || '').toUpperCase());
+  Handlebars.registerHelper('t', (key, options) => {
+    const lang = options?.data?.root?.lang || options?.hash?.lang || 'en';
+    if (lang === 'hi' && options?.hash?.hi) return options.hash.hi;
+    return options?.hash?.en || key;
+  });
 };
 
 /** Lint: every {{variable}} must exist in the docType registry. */
@@ -65,16 +70,20 @@ export function lintTemplate(docType, html) {
   return unknown.filter((t) => !helpers.has(t.split('.')[0]));
 }
 
-export function renderTemplate(html, css, data, { duplicate = false } = {}) {
+export function renderTemplate(html, css, data, { duplicate = false, lang = 'en' } = {}) {
   ensureHelpers();
-  const body = Handlebars.compile(html || '')(data || {});
+  const templateData = { lang, ...(data || {}) };
+  const body = Handlebars.compile(html || '')(templateData);
   const safe = sanitizeHtml(body, {
     allowedTags: sanitizeHtml.defaults.allowedTags.concat(['h1', 'h2', 'style', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'div', 'span', 'img', 'br', 'hr', 'p']),
     allowedAttributes: false,
   });
   const mark = duplicate
     ? '<div style="position:fixed;top:40%;width:100%;text-align:center;font-size:64px;color:rgba(0,0,0,.12);transform:rotate(-20deg)">DUPLICATE COPY</div>' : '';
-  const full = `<!doctype html><html><head><meta charset="utf-8"><style>@page{size:A4;margin:12mm} ${css || ''}</style></head><body>${mark}${safe}</body></html>`;
+  const fontStyle = lang === 'hi'
+    ? "@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&display=swap'); body { font-family: 'Noto Sans Devanagari', sans-serif; }"
+    : '';
+  const full = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><style>@page{size:A4;margin:12mm} ${fontStyle} ${css || ''}</style></head><body>${mark}${safe}</body></html>`;
   const hash = crypto.createHash('sha256').update(full).digest('hex');
   return { html: full, hash };
 }

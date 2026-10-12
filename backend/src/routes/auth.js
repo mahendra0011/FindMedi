@@ -1052,7 +1052,7 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
         return ip === r;
       });
       if (!ok) {
-        await auditLog('login_ip_denied', user._id, { ip, ip: req.ip });
+        await auditLog('login_ip_denied', user._id, { ip });
         return res.status(403).json({ message: 'Sign-in from this network is not allowed for this account', code: 'IP_NOT_ALLOWED' });
       }
     }

@@ -14,7 +14,7 @@ export function calculateSofaScore({
   creatinine,    // mg/dL (e.g. 1.1, 4.2)
   urineOutput24h // mL/day (optional)
 }) {
-  let sofa = {
+  const sofa = {
     respiration: 0,
     coagulation: 0,
     liver: 0,

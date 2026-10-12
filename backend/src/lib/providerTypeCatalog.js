@@ -20,6 +20,12 @@
 //     clinical-compliance reviewer) and to `twoPerson` for high-risk types.
 
 import { DOCUMENT_TYPES, APPROVAL_LEVELS } from './providerTypes.js';
+import {
+  FACILITY_SUBTYPES,
+  FACILITY_OWNERSHIP,
+  SYSTEMS_OF_MEDICINE,
+  FACILITY_SCHEMES,
+} from '../models/Facility.js';
 
 // Docs that carry a validity period: the config marks them expiryRequired so
 // join.js refuses an upload without a date, and the 60/30/7 reminder job has
@@ -49,7 +55,7 @@ const SERVICE_OPTIONS = [
   'Massage / therapy', 'Rental', 'Delivery', 'Training / course', 'Camp / screening',
 ];
 
-const SCHEME_OPTIONS = ['cash', 'card', 'upi', 'wallet', 'insurance', 'pmjay', 'cghs', 'esic', 'state_scheme'];
+const SCHEME_OPTIONS = FACILITY_SCHEMES.length ? FACILITY_SCHEMES : ['pmjay', 'cghs', 'esi', 'echs', 'state_scheme', 'insurance_cashless', 'tpa_empanelled', 'corporate_tie_up'];
 
 // Shared field registry. Type-specific fields are passed to the builder and
 // merged over this, so a type can add `chairs` without every other type
@@ -65,6 +71,11 @@ const F = {
   }),
   gstin: field('gstin', 'GSTIN', 'text', { help: 'Optional unless you are registered for GST.' }),
   pan: field('pan', 'PAN', 'text', { required: true, help: 'Format checked; matched against the payout account holder name.' }),
+
+  // subcatogary.md §1 & bug A1 #11: Facility taxonomy fields
+  sub_type: field('sub_type', 'Facility sub-type', 'select', { options: FACILITY_SUBTYPES.filter(Boolean) }),
+  ownership: field('ownership', 'Ownership structure', 'select', { options: FACILITY_OWNERSHIP.filter(Boolean) }),
+  system_of_medicine: field('system_of_medicine', 'System of medicine', 'select', { options: SYSTEMS_OF_MEDICINE.filter(Boolean) }),
 
   address: field('address', 'Address', 'address', { required: true }),
   landmark: field('landmark', 'Landmark', 'text'),
@@ -114,7 +125,7 @@ const F = {
 const STEP_SETS = {
   facility: [
     { key: 'account', label: 'Account', fields: ['referral_code'] },
-    { key: 'business', label: 'Business & identity', fields: ['legal_name', 'display_name', 'owner_name', 'registration_type', 'gstin', 'pan'] },
+    { key: 'business', label: 'Business & identity', fields: ['legal_name', 'display_name', 'owner_name', 'registration_type', 'sub_type', 'ownership', 'system_of_medicine', 'gstin', 'pan'] },
     { key: 'location', label: 'Location', fields: ['address', 'landmark', 'geo'] },
     { key: 'practitioners', label: 'Practitioners & staff', fields: ['practitioner_roster'] },
     { key: 'services', label: 'Services & pricing', fields: ['services', 'base_fee', 'modes', 'schemes_accepted'] },

@@ -311,7 +311,7 @@ router.post('/three-way-match', authorize('inventory:manage', 'billing:read'), a
 });
 
 // Wave 4b: Vendor rating, KYC verification and OTIF performance (#28)
-// authz: inventory:manage
+// authz: role
 router.put('/vendors/:id/rating', requireObjectId, authorize('inventory:manage'), async (req, res) => {
   try {
     const { rating, complianceScore, comments } = req.body || {};
@@ -351,7 +351,7 @@ router.put('/vendors/:id/rating', requireObjectId, authorize('inventory:manage')
   }
 });
 
-// authz: inventory:manage
+// authz: role
 router.put('/vendors/:id/kyc', requireObjectId, authorize('inventory:manage'), async (req, res) => {
   try {
     const { docType, docNumber, docUrl, kycStatus, licenseExpiry } = req.body || {};
@@ -385,7 +385,7 @@ router.put('/vendors/:id/kyc', requireObjectId, authorize('inventory:manage'), a
   }
 });
 
-// authz: inventory:manage
+// authz: role
 router.get('/vendors/:id/performance', requireObjectId, authorize('inventory:manage'), async (req, res) => {
   try {
     const supplier = await Supplier.findOne({ _id: req.params.id, ...tenantFilter(req) }).lean();

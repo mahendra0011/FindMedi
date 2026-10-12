@@ -1,33 +1,49 @@
-/** Wave 2 — FacilityManagerDashboard thin wrapper over RoleDashboardShell. */
+/** Wave 2 — FacilityManagerDashboard: live helpdesk SLA + license/AMC expiries. */
 import RoleDashboardShell, { type RoleDashboardConfig } from './RoleDashboardShell';
+import { useLiveKpis, api } from './useLiveKpis';
 
 const config: RoleDashboardConfig = {
   roleKey: 'facility_manager',
-  title: '🏗️ Facility & Infrastructure Dashboard',
-  subtitle: 'Asset uptime, biomedical preventive maintenance, AMC & work orders',
-  permissions: ['equipment:read', 'inventory:manage', 'staff:view', 'reports:read'],
+  title: 'Facility Manager Dashboard',
+  subtitle: 'Helpdesk SLA, AMC/contract expiries & biomedical work orders',
+  permissions: ['support:read', 'licenses:read', 'biomedical:read', 'reports:read'],
   kpis: [
-    { label: 'Critical Asset Uptime', value: '99.4%', hint: 'Zero unaddressed breakdowns' },
-    { label: 'Open Work Orders', value: '7', hint: '4 biomedical · 3 electrical' },
-    { label: 'AMCs Due in 30 Days', value: '5', hint: 'CT Scanner, UPS, Chiller plant' },
-    { label: 'Biomedical Waste Log', value: '100%', hint: 'All bags barcoded & cleared' },
+    { label: 'Open Tickets', value: '—', hint: 'Helpdesk backlog' },
+    { label: 'In Progress', value: '—', hint: 'Being worked on' },
+    { label: 'Licenses Expiring', value: '—', hint: 'AMC / regulatory' },
+    { label: 'Urgent Tickets', value: '—', hint: 'SLA-critical' },
   ],
   tasks: [
-    { id: 't1', text: 'Approve vendor quote for MRI chiller pump preventive overhaul' },
-    { id: 't2', text: 'Sign off weekly CBWTF hazardous waste manifest handover' },
-    { id: 't3', text: 'Inspect medical gas manifold pressure logs (Oxygen / Nitrous)' },
+    { id: 't1', text: 'Escalate urgent tickets breaching the 4-hour SLA' },
+    { id: 't2', text: 'Initiate AMC renewal for equipment expiring this quarter' },
+    { id: 't3', text: 'Review biomedical preventive-maintenance schedule for the week' },
   ],
   alerts: [
-    { id: 'a1', text: 'DG Set 2 scheduled load test due tomorrow morning at 06:00', level: 'info' },
-    { id: 'a2', text: 'Dialysis RO plant water conductivity sensor recalibration needed', level: 'warn' },
+    { id: 'a1', text: 'Oxygen plant service overdue — schedule biomedical visit', level: 'urgent' },
+    { id: 'a2', text: '2 AMC contracts expiring within 30 days', level: 'warn' },
   ],
   domainModules: [
-    { key: 'biomedical-hub', emoji: '🔧', label: 'Biomedical Engineering Hub', description: 'Equipment registry, breakdown logging, MTBF/MTTR metrics and work orders.', ctaLabel: 'Biomedical Assets', ctaHref: '/hospital/biomedical' },
-    { key: 'enterprise-ops', emoji: '🏢', label: 'Enterprise Hub', description: 'Facility maintenance tickets, electrical infrastructure and asset lifecycle.', ctaLabel: 'Enterprise Console', ctaHref: '/hospital/enterprise' },
-    { key: 'bmw-waste', emoji: '☣️', label: 'Biomedical Waste (BMW)', description: 'Color-coded bag segregation logs, daily weight manifests and CBWTF sync.', ctaLabel: 'BMW Tracker', ctaHref: '/hospital/bmw' },
+    { key: 'helpdesk', emoji: '🎧', label: 'Helpdesk', description: 'Facility tickets with priority, SLA timers and technician assignment.', ctaLabel: 'Open Helpdesk', ctaHref: '/hospital/helpdesk' },
+    { key: 'biomedical', emoji: '🩺', label: 'Biomedical Assets', description: 'PPM calendar, breakdown work orders and calibration records.', ctaLabel: 'Open Biomedical', ctaHref: '/hospital/enterprise' },
+    { key: 'contracts', emoji: '📄', label: 'AMC / CMC', description: 'Vendor contracts with expiry alerts and auto-renewal prompts.', ctaLabel: 'Open Licenses', ctaHref: '/hospital/licenses' },
   ],
 };
 
+async function fetchLive() {
+  const [stats, expiring] = await Promise.all([
+    api.get('/support-tickets/stats').catch(() => null),
+    api.get('/licenses/expiring').catch(() => null),
+  ]);
+  const expCount = Array.isArray(expiring?.licenses) ? expiring.licenses.length : 0;
+  return {
+    openTickets: stats?.open ?? 0,
+    inProgress: stats?.inProgress ?? 0,
+    licensesExpiring: expCount,
+    urgentTickets: stats?.urgent ?? 0,
+  };
+}
+
 export default function FacilityManagerDashboard() {
-  return <RoleDashboardShell config={config} />;
+  const kpis = useLiveKpis(fetchLive, config.kpis);
+  return <RoleDashboardShell config={{ ...config, kpis }} />;
 }

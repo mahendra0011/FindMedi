@@ -15,6 +15,17 @@ const bloodUnitSchema = new mongoose.Schema({
   hcv: { type: String, enum: ['Negative', 'Positive'], default: 'Negative' },
   malaria: { type: String, enum: ['Negative', 'Positive'], default: 'Negative' },
   vdrl: { type: String, enum: ['Negative', 'Positive'], default: 'Negative' },
+  // subcatogary.md P1-1f: additive TTI screening block & preparation badges
+  ttiScreen: {
+    hiv: { type: String, enum: ['positive', 'negative', 'pending'], default: 'negative' },
+    hbv: { type: String, enum: ['positive', 'negative', 'pending'], default: 'negative' },
+    hcv: { type: String, enum: ['positive', 'negative', 'pending'], default: 'negative' },
+    syphilis: { type: String, enum: ['positive', 'negative', 'pending'], default: 'negative' },
+    malaria: { type: String, enum: ['positive', 'negative', 'pending'], default: 'negative' },
+  },
+  apheresis: { type: String, enum: ['SDP', 'RDP', 'None', ''], default: '' },
+  irradiated: { type: Boolean, default: false },
+  leukoreduced: { type: Boolean, default: false },
   crossMatchPatient: { type: String },
   crossMatchResult: { type: String, enum: ['Compatible', 'Incompatible', 'Not Done'], default: 'Not Done' },
   issuedTo: { type: String },

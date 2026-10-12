@@ -63,7 +63,7 @@ export async function requireApproval({ req, policyKey, entityRef, title, amount
     entityRef: entityRef || {}, title: String(title || '').slice(0, 200),
     amount: Number(amount) || 0, requiredRoles: tier.roles || [], steps,
     requestedBy: actorId(req),
-    dueAt: new Date(Date.now() + 48 * 3600 * 1000),
+    dueAt: new Date(Date.now() + (Number(policy.slaHours) || 48) * 3600 * 1000),
   });
   return { required: true, request: row };
 }
@@ -188,15 +188,40 @@ router.post('/sweep', authorize('staff:manage'), async (req, res) => {
     // Level 3: 100%+ overdue threshold -> medical_director / executive
     let escalatedCount = 0;
 
-    // Check all pending requests that are due or reaching thresholds
+    // 1. Expire requests past due window (24h grace post-due before hard-expiry)
+    const expired = await ApprovalRequest.updateMany(
+      {
+        ...tenantFilter(req),
+        status: 'pending',
+        dueAt: { $lte: new Date(now.getTime() - 24 * 3600 * 1000) },
+      },
+      { $set: { status: 'expired' } },
+    );
+
+    // 2. Check all pending requests that are due or reaching thresholds
     const pendingList = await ApprovalRequest.find({
       ...tenantFilter(req),
       status: 'pending',
     });
 
+    let activePolicies = [];
+    if (typeof ApprovalPolicy.find === 'function') {
+      const pFind = ApprovalPolicy.find({ ...tenantFilter(req), active: true });
+      activePolicies = (await (pFind?.lean ? pFind.lean() : pFind)) || [];
+    }
+    const policyMap = new Map((Array.isArray(activePolicies) ? activePolicies : []).map((p) => [p.key, p]));
+
     for (const item of pendingList) {
+      let policy = item.policyKey ? policyMap.get(item.policyKey) : null;
+      if (!policy && item.policyKey && typeof ApprovalPolicy.findOne === 'function') {
+        const pOne = ApprovalPolicy.findOne({ ...tenantFilter(req), key: item.policyKey, active: true });
+        policy = (await (pOne?.lean ? pOne.lean() : pOne)) || null;
+        if (policy) policyMap.set(item.policyKey, policy);
+      }
+
       const created = new Date(item.createdAt || item._id.getTimestamp?.() || now).getTime();
-      const due = item.dueAt ? new Date(item.dueAt).getTime() : created + 48 * 3600 * 1000;
+      const defaultSlaMs = ((policy && Number(policy.slaHours)) || 48) * 3600 * 1000;
+      const due = item.dueAt ? new Date(item.dueAt).getTime() : created + defaultSlaMs;
       const totalWindow = Math.max(due - created, 3600 * 1000);
       const elapsed = now.getTime() - created;
       const pctElapsed = (elapsed / totalWindow) * 100;
@@ -204,20 +229,36 @@ router.post('/sweep', authorize('staff:manage'), async (req, res) => {
       let targetLevel = item.escalationLevel || 0;
       let roleToPush = null;
 
-      if (pctElapsed >= 100 && targetLevel < 3) {
-        targetLevel = 3;
-        roleToPush = 'medical_director';
-      } else if (pctElapsed >= 75 && targetLevel < 2) {
-        targetLevel = 2;
-        roleToPush = 'hospital_admin';
-      } else if (pctElapsed >= 50 && targetLevel < 1) {
-        targetLevel = 1;
-        roleToPush = 'billing_manager';
+      if (policy?.escalation && Array.isArray(policy.escalation) && policy.escalation.length > 0) {
+        const rules = [...policy.escalation].sort((a, b) => a.afterPct - b.afterPct);
+        for (let i = rules.length - 1; i >= 0; i -= 1) {
+          const rule = rules[i];
+          const level = i + 1;
+          if (pctElapsed >= rule.afterPct && targetLevel < level) {
+            targetLevel = level;
+            roleToPush = rule.toRole;
+            break;
+          }
+        }
+      } else {
+        if (pctElapsed >= 100 && targetLevel < 3) {
+          targetLevel = 3;
+          roleToPush = 'medical_director';
+        } else if (pctElapsed >= 75 && targetLevel < 2) {
+          targetLevel = 2;
+          roleToPush = 'hospital_admin';
+        } else if (pctElapsed >= 50 && targetLevel < 1) {
+          targetLevel = 1;
+          roleToPush = 'billing_manager';
+        }
       }
 
       if (roleToPush && targetLevel > (item.escalationLevel || 0)) {
         item.escalationLevel = targetLevel;
         item.escalatedAt = now;
+        if (!item.requiredRoles) {
+          item.requiredRoles = [];
+        }
         if (!item.requiredRoles.includes(roleToPush)) {
           item.requiredRoles.push(roleToPush);
         }
@@ -226,18 +267,8 @@ router.post('/sweep', authorize('staff:manage'), async (req, res) => {
       }
     }
 
-    // Expire requests past 150% or explicit final policy window
-    const expired = await ApprovalRequest.updateMany(
-      {
-        ...tenantFilter(req),
-        status: 'pending',
-        dueAt: { $lte: new Date(now.getTime() - 24 * 3600 * 1000) }, // 24h grace post-due before hard-expiry
-      },
-      { $set: { status: 'expired' } },
-    );
-
     return res.json({
-      expired: expired.modifiedCount || 0,
+      expired: expired?.modifiedCount || 0,
       escalated: escalatedCount,
     });
   } catch (err) {

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags,   Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot, Video, MessageCircle, Phone, CheckCircle2, Car, UserCheck, Scale, Briefcase, QrCode, BookOpen, NotebookPen, Target, Smile, BellRing, Inbox, Siren, Receipt, BrainCircuit, ShieldAlert, Ticket, BedDouble, Scissors, HeartPulse, ScanLine, UtensilsCrossed, Layers
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags,   Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot, Video, MessageCircle, MessageSquare, Phone, CheckCircle2, Car, UserCheck, Scale, Briefcase, QrCode, BookOpen, NotebookPen, Target, Smile, BellRing, Inbox, Siren, Receipt, BrainCircuit, ShieldAlert, Ticket, BedDouble, Scissors, HeartPulse, ScanLine, UtensilsCrossed, Layers
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -240,14 +240,13 @@ const navConfig = {
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',         path: '/dashboard'            },
     { icon: Bot,             labelKey: 'nav.chatWithAI',       path: '/ai-chat'              },
     // Consultation Channels
-    { icon: MapPin,          labelKey: 'nav.inPersonAppointments', path: '/doctor/home-visit' },
+    { icon: MapPin,          labelKey: 'nav.homeVisits',       path: '/doctor/home-visit' },
     { icon: Video,           labelKey: 'nav.videoCalls',        path: '/doctor/video-calls'   },
     { icon: Phone,           labelKey: 'nav.calls',             path: '/doctor/calls'         },
     { icon: MessageCircle,   labelKey: 'nav.messages',          path: '/doctor/chat'          },
     // 3 Offline Appointment Tabs
     { icon: Clock,           labelKey: 'nav.approveOfflineAppointments', path: '/doctor/appointments/approve' },
     { icon: CheckCircle2,    labelKey: 'nav.approvedOfflineAppointments', path: '/doctor/appointments' },
-    { icon: CheckCircle2,    labelKey: 'nav.approvedOfflineAppointments', path: '/doctor/appointments/approved' },
     { icon: History,         labelKey: 'nav.offlineAppointmentHistory', path: '/doctor/appointments/history' },
     { icon: MapPin,          labelKey: 'nav.inPersonAppointments', path: '/doctor/in-person' },
     // 3 Online Appointment Tabs
@@ -268,7 +267,7 @@ const navConfig = {
     { icon: Siren,           labelKey: 'nav.triage',            path: '/triage'               },
     { icon: HeartPulse,      labelKey: 'nav.nursing',           path: '/nursing'              },
     { icon: ScanLine,        labelKey: 'nav.radiology',         path: '/radiology'            },
-    { icon: FileText,        labelKey: 'nav.consultations',     path: '/doctor-consultation'  },
+    { icon: FileText,        labelKey: 'nav.doctorConsultation', path: '/doctor-consultation'  },
     { icon: TestTube,        labelKey: 'nav.lab',               path: '/lab'                  },
     { icon: Download,        labelKey: 'nav.reports',           path: '/reports'              },
     { icon: DollarSign,      labelKey: 'nav.myEarnings',        path: '/doctor/earnings'      },
@@ -934,7 +933,7 @@ const navConfig = {
     { icon: Settings, labelKey: 'nav.settings', path: '/settings' },
   ],
   call_center_agent: [
-    { icon: Headset, labelKey: 'nav.calls', path: '/hospital/calls' },
+    { icon: Headset, labelKey: 'nav.callCenter', path: '/hospital/calls' },
     { icon: Clock, labelKey: 'nav.opdToken', path: '/opd-token' },
     { icon: Bell, labelKey: 'nav.notifications', path: '/notifications' },
     { icon: Settings, labelKey: 'nav.settings', path: '/settings' },
@@ -1676,8 +1675,11 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
 
       {/* Collapse Toggle - desktop only */}
       {onToggleCollapse && (
-        <button onClick={onToggleCollapse}
-          className="absolute -right-3 top-[72px] w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-110 transition-transform z-10 max-md:hidden">
+        <button
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="absolute -right-3 top-[72px] w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-110 transition-transform z-10 max-md:hidden"
+        >
           {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
         </button>
       )}

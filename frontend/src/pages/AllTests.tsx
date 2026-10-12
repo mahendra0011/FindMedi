@@ -17,64 +17,24 @@ import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 
-const TEST_CATEGORIES = [
-  { name:'Blood Tests', icon:Droplets, color:'from-red-500/20 to-red-500/5', textColor:'text-red-500' },
-  { name:'Urine/Stool Tests', icon:Beaker, color:'from-amber-500/20 to-amber-500/5', textColor:'text-amber-500' },
-  { name:'Basic Screening', icon:Activity, color:'from-emerald-500/20 to-emerald-500/5', textColor:'text-emerald-500' },
-  { name:'Cardiac Basic', icon:Heart, color:'from-rose-500/20 to-rose-500/5', textColor:'text-rose-500' },
-  { name:'Basic Imaging', icon:Scan, color:'from-blue-500/20 to-blue-500/5', textColor:'text-blue-500' },
-  { name:'Advanced Imaging', icon:Scan, color:'from-indigo-500/20 to-indigo-500/5', textColor:'text-indigo-500' },
-  { name:'Advanced/Invasive Procedures', icon:Syringe, color:'from-purple-500/20 to-purple-500/5', textColor:'text-purple-500' },
-  { name:'Advanced Cardiac', icon:Heart, color:'from-pink-500/20 to-pink-500/5', textColor:'text-pink-500' },
-  { name:'Advanced Blood/Diagnostic Panels', icon:Dna, color:'from-teal-500/20 to-teal-500/5', textColor:'text-teal-500' },
-  { name:'Neurological', icon:Brain, color:'from-violet-500/20 to-violet-500/5', textColor:'text-violet-500' },
-  { name:'Microbiology/Culture Tests', icon:TestTube, color:'from-lime-500/20 to-lime-500/5', textColor:'text-lime-500' },
-  { name:'Serology/Infectious Disease Panel', icon:ShieldAlert, color:'from-orange-500/20 to-orange-500/5', textColor:'text-orange-500' },
-  { name:'Fertility & Reproductive Hormone Tests', icon:Dna, color:'from-fuchsia-500/20 to-fuchsia-500/5', textColor:'text-fuchsia-500' },
-  { name:'Pulmonology/Respiratory Tests', icon:Wind, color:'from-sky-500/20 to-sky-500/5', textColor:'text-sky-500' },
-  { name:'Arthritis/Autoimmune Panel', icon:ShieldAlert, color:'from-rose-500/20 to-rose-500/5', textColor:'text-rose-500' },
-  { name:'Prenatal/Maternity Tests', icon:Baby, color:'from-pink-500/20 to-pink-500/5', textColor:'text-pink-500' },
-  { name:'Eye (Ophthalmology) Tests', icon:Eye, color:'from-cyan-500/20 to-cyan-500/5', textColor:'text-cyan-500' },
-  { name:'ENT Tests', icon:Ear, color:'from-yellow-500/20 to-yellow-500/5', textColor:'text-yellow-500' },
-  { name:'Dental Tests', icon:Bone, color:'from-stone-500/20 to-stone-500/5', textColor:'text-stone-500' },
-  { name:'Toxicology Tests', icon:Pill, color:'from-red-500/20 to-red-500/5', textColor:'text-red-500' },
-  { name:'Preventive Health Packages', icon:Sparkles, color:'from-emerald-500/20 to-emerald-500/5', textColor:'text-emerald-500' },
-];
+// subcatogary.md Part C §4 — Canonical test categories
+import {
+  FALLBACK_TEST_CATEGORIES,
+  FALLBACK_CATEGORY_TESTS,
+  getTestCategoryVisual,
+} from '@/data/testCategoriesFallback';
+
 
 const INITIAL_VISIBLE = 11;
-
-const CATEGORY_TESTS = {
-  'Blood Tests': ['Blood Sugar (Fasting/PP/Random)', 'Complete Blood Count (CBC)', 'Hemoglobin (Hb) Test', 'Lipid Profile (Cholesterol)', 'Liver Function Test (LFT)', 'Kidney Function Test (KFT)', 'Thyroid Profile (T3, T4, TSH)', 'Blood Group Test', 'HbA1c (Diabetes 3-month average)', 'Vitamin D Test', 'Vitamin B12 Test', 'Uric Acid Test', 'ESR Test'],
-  'Urine/Stool Tests': ['Urine Routine Test', 'Urine Culture Test', 'Stool Routine Test'],
-  'Basic Screening': ['Pregnancy Test', 'COVID-19 RT-PCR / Antigen Test', 'Widal Test (Typhoid)', 'Dengue Test (NS1/IgG/IgM)', 'Malaria Test'],
-  'Cardiac Basic': ['ECG (Electrocardiogram)', 'Blood Pressure Check'],
-  'Basic Imaging': ['Chest X-Ray (basic)'],
-  'Advanced Imaging': ['MRI (Brain, Spine, Knee, etc.)', 'CT Scan', 'PET Scan', 'Ultrasound (Abdomen, Pelvis, etc.)', 'Mammography'],
-  'Advanced/Invasive Procedures': ['Biopsy', 'Endoscopy', 'Colonoscopy', 'Angiography', 'Bone Marrow Test'],
-  'Advanced Cardiac': ['2D Echo (Echocardiogram)', 'TMT (Treadmill Test / Stress Test)', 'Holter Monitoring'],
-  'Advanced Blood/Diagnostic Panels': ['Tumor Marker Tests (Cancer screening)', 'Hormone Panel (Fertility related)', 'Allergy Panel Test', 'Genetic Testing', 'Bone Densitometry (DEXA Scan)'],
-  'Neurological': ['EEG (Electroencephalogram)', 'Nerve Conduction Study (NCS)'],
-  'Microbiology/Culture Tests': ['Urine Culture', 'Blood Culture', 'Sputum Culture', 'Throat Swab Culture', 'Stool Culture'],
-  'Serology/Infectious Disease Panel': ['HIV Test', 'Hepatitis B (HBsAg)', 'Hepatitis C (HCV)', 'VDRL (Syphilis Test)'],
-  'Fertility & Reproductive Hormone Tests': ['FSH, LH', 'Prolactin', 'Testosterone', 'Estrogen, Progesterone', 'AMH (Anti-Mullerian Hormone)'],
-  'Pulmonology/Respiratory Tests': ['Pulmonary Function Test (PFT/Spirometry)', 'Sleep Study (Polysomnography)'],
-  'Arthritis/Autoimmune Panel': ['RA Factor (Rheumatoid Arthritis)', 'ANA Test', 'CRP (C-Reactive Protein)'],
-  'Prenatal/Maternity Tests': ['Double Marker Test', 'Triple Marker Test', 'NT Scan (Nuchal Translucency)', 'Anomaly Scan', 'Amniocentesis'],
-  'Eye (Ophthalmology) Tests': ['Vision Test', 'Eye Pressure Test (Tonometry)', 'Retina Scan'],
-  'ENT Tests': ['Audiometry (Hearing Test)'],
-  'Dental Tests': ['Dental X-Ray', 'OPG (Orthopantomogram)'],
-  'Toxicology Tests': ['Alcohol Blood Test', 'Drug Screening Test'],
-  'Preventive Health Packages': ['Full Body Checkup', 'Executive Health Checkup', 'Senior Citizen Package', 'Women\'s Health Package', 'Cardiac Risk Package'],
-};
-
 
 export default function AllTests() {
   const navigate = useNavigate();
   const { addItem, updateQty, entries } = useCart();
+  const [categories, setCategories] = useState(FALLBACK_TEST_CATEGORIES);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(() => {
     const p = new URLSearchParams(window.location.search).get('category');
-    return p && TEST_CATEGORIES.some(c => c.name === p) ? p : null;
+    return p || null;
   });
   const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('q') || '');
   const [providerFilter, setProviderFilter] = useState('all');
@@ -90,6 +50,18 @@ export default function AllTests() {
   const STORE_ID = 'test-booking';
 
   useEffect(() => {
+    let mounted = true;
+    api.getPublicCategories({ type: 'test', isActive: 'true' })
+      .then(res => {
+        if (mounted && res?.categories && res.categories.length > 0) {
+          setCategories(res.categories);
+        }
+      })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
@@ -103,8 +75,8 @@ export default function AllTests() {
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
-  const visibleCategories = showAllCategories ? TEST_CATEGORIES : TEST_CATEGORIES.slice(0, INITIAL_VISIBLE);
-  const activeTests = selectedCategory ? CATEGORY_TESTS[selectedCategory] : [];
+  const visibleCategories = showAllCategories ? categories : categories.slice(0, INITIAL_VISIBLE);
+  const activeTests = selectedCategory ? (FALLBACK_CATEGORY_TESTS[selectedCategory] || []) : [];
 
   const filteredTests = tests.filter((test) => {
     if (providerFilter !== 'all' && test.providerType !== providerFilter) return false;
@@ -226,10 +198,13 @@ export default function AllTests() {
           </motion.div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-11 gap-2.5">
             {visibleCategories.map((cat, i) => {
-              const Icon = cat.icon;
+              const visual = getTestCategoryVisual(cat.name || cat.code);
+              const Icon = cat.icon || visual.icon;
+              const color = cat.color || visual.color;
+              const textColor = cat.textColor || visual.textColor;
               return (
                 <motion.button
-                  key={cat.name}
+                  key={cat.code || cat.name}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.03 }}
@@ -243,8 +218,8 @@ export default function AllTests() {
                       : 'border-border/60 bg-card hover:border-primary/30 hover:shadow-sm'
                   )}
                 >
-                  <div className={cn('w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center mx-auto mb-1.5', cat.color)}>
-                    <Icon className={cn('w-4 h-4', cat.textColor)} />
+                  <div className={cn('w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center mx-auto mb-1.5', color)}>
+                    <Icon className={cn('w-4 h-4', textColor)} />
                   </div>
                   <h3 className="font-semibold text-[10px] leading-tight text-foreground">{cat.name}</h3>
                 </motion.button>

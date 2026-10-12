@@ -64,7 +64,6 @@ const { as: asHealth } = await mountApp('healthId', {
   '../../src/models/Record.js': () => ({ default: { find: () => query([]) } }),
   '../../src/models/LabOrder.js': () => ({ default: { find: () => query([]) } }),
   '../../src/models/AuditLog.js': () => ({ default: { create: async () => ({}) } }),
-  '../../src/models/AuditLog.js': () => ({ default: { create: async () => ({}) } }),
 });
 
 const admin = { _id: 'a1', id: 'a1', role: 'hospital_admin', hospitalId: 'h1' };

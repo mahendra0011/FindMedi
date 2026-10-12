@@ -109,7 +109,10 @@ export function ocrDocument({ docType, rawText }) {
     }
     case 'prescription': {
       const medicine = text.match(/([A-Za-z][A-Za-z .]{2,40})\s*[:]\s*(\d+)\s*(mg|gm|ml|units)?/i);
-      if (medicine) out.medicine = medicine[1].trim(), out.qty = Number(medicine[2]);
+      if (medicine) {
+        out.medicine = medicine[1].trim();
+        out.qty = Number(medicine[2]);
+      }
       break;
     }
     case 'discharge_summary': {

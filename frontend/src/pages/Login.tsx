@@ -445,6 +445,7 @@ export default function Login() {
                 />
                 <button
                   type="button"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
@@ -587,7 +588,7 @@ export default function Login() {
                 ))}
             </div>
             {demoCategory === 'all' && (
-              <p className="text-[8.5px] text-center text-muted-foreground mt-2 border-t border-border/40 pt-1.5">
+              <p className="text-xs text-center text-foreground font-medium mt-2 border-t border-border/40 pt-1.5">
                 Tip: Click <b>🧠 Counsellors</b>, <b>🩺 Psychiatrists</b>, <b>🧑‍⚕️ Assistants</b>, <b>⚖️ Lawyers</b> or <b>🚗 Riders</b> tabs above to see all 5 test accounts each.
               </p>
             )}

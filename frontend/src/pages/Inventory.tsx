@@ -160,7 +160,7 @@ export default function Inventory() {
               <div><label className="text-xs text-muted-foreground mb-1 block">Department</label>
                 <select value={issueData.department} onChange={e => setIssueData(d => ({ ...d, department: e.target.value }))} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">
                   <option value="">Select...</option>
-                  {['Cardiology', 'Neurology', 'Orthopedics', 'ICU', 'Emergency', 'OT', 'Lab', 'Pharmacy', 'General Ward'].map(d => <option key={d} value={d}>{d}</option>)}
+                  {['Cardiology', 'Neurology', 'Orthopaedics', 'ICU', 'Emergency', 'OT', 'Lab', 'Pharmacy', 'General Ward'].map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">

@@ -34,6 +34,12 @@ const dietOrderSchema = new mongoose.Schema({
     required: true,
   },
   mealTimes: [{ type: String, enum: MEAL_TYPES }],
+  // subcatogary.md P1-1e: additive dietaryPreference
+  dietaryPreference: {
+    type: String,
+    enum: ['veg', 'non_veg', 'eggetarian', 'vegan', 'jain', 'halal', ''],
+    default: '',
+  },
   instructions: { type: String },
   allergies: { type: String },
   status: { type: String, enum: ['Active', 'Completed', 'Cancelled'], default: 'Active' },

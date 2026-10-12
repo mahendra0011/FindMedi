@@ -135,7 +135,7 @@ export default function Reports() {
                     <label className="text-xs text-muted-foreground mb-1 block">Department</label>
                     <select value={department} onChange={e => setDepartment(e.target.value)} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">
                       <option value="">All Departments</option>
-                      {['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Emergency', 'ICU', 'General Medicine', 'Surgery'].map(d => <option key={d} value={d}>{d}</option>)}
+                      {['Cardiology', 'Neurology', 'Orthopaedics', 'Paediatrics', 'Emergency', 'ICU', 'General Medicine', 'Surgery'].map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </div>
                   <div className="flex items-end">

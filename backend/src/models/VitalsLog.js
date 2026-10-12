@@ -50,7 +50,6 @@ const vitalsLogSchema = new mongoose.Schema({
   // Spec 07: link to the originating care booking + who recorded it.
   bookingKind: { type: String, enum: ['assistant', 'appointment', 'ipd', null], default: null },
   bookingId: { type: mongoose.Schema.Types.ObjectId, default: null, index: true },
-  recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   note: {
     type: String,
     trim: true,

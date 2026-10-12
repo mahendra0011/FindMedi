@@ -46,6 +46,11 @@ const { as } = await mountApp('maternity', {
   '../../src/services/pdfService.js': () => ({
     generateBirthCertificatePDF: async () => Buffer.from('%PDF-1.4 Mock Birth Certificate PDF Stream'),
   }),
+  '../../src/models/SignatureEvent.js': () => ({
+    default: {
+      create: async () => ({ _id: 'sig1' }),
+    },
+  }),
 });
 
 describe('Maternity & Statutory Birth Certificate Integration', () => {

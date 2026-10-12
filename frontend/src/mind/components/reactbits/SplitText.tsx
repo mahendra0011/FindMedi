@@ -181,6 +181,7 @@ const SplitText = ({
   return (
     <Tag
       ref={ref}
+      role="text"
       style={{
         textAlign,
         overflow: "hidden",

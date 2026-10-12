@@ -15,7 +15,7 @@ const requireObjectId = (req, res, next) => (
   OBJECT_ID.test(String(req.params.id)) ? next() : res.status(404).json({ message: 'Not found' })
 );
 
-// authz: staff:manage
+// authz: role
 router.get('/documents/verify', authorize('staff:manage'), async (req, res) => {
   try {
     const staffList = await Staff.find({
@@ -51,7 +51,7 @@ router.get('/documents/verify', authorize('staff:manage'), async (req, res) => {
   }
 });
 
-// authz: staff:manage
+// authz: role
 router.put('/documents/verify/:id', requireObjectId, authorize('staff:manage'), async (req, res) => {
   try {
     const { docId, status, remarks } = req.body || {};
@@ -78,7 +78,7 @@ router.put('/documents/verify/:id', requireObjectId, authorize('staff:manage'), 
   }
 });
 
-// authz: staff:manage
+// authz: role
 router.post('/exit-interview', authorize('staff:manage'), async (req, res) => {
   try {
     const { staffId, reasonForLeaving, feedback, handoverCompleted, eligibleForRehire, noDuesCleared } = req.body || {};
@@ -114,7 +114,7 @@ router.post('/exit-interview', authorize('staff:manage'), async (req, res) => {
   }
 });
 
-// authz: staff:manage
+// authz: role
 router.get('/onboarding/:id', requireObjectId, authorize('staff:manage'), async (req, res) => {
   try {
     const staff = await Staff.findOne({ _id: req.params.id, ...tenantFilter(req) }).lean();

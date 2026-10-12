@@ -7,7 +7,7 @@ import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { useCategories } from '@/hooks/useCategories';
 
-const FALLBACK_SPECIALIZATIONS = ['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT'];
+const FALLBACK_SPECIALIZATIONS = ['Cardiology', 'Neurology', 'Orthopaedics', 'Paediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT'];
 
 export default function AdminDoctors() {
   const [doctors, setDoctors] = useState([]);

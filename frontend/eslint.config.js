@@ -8,7 +8,7 @@ import tseslint from "typescript-eslint";
 import noUnsanitized from "eslint-plugin-no-unsanitized";
 
 export default tseslint.config(
-  { ignores: ["dist", "dist-node"] },
+  { ignores: ["dist", "dist-node", "storybook-static", "test-results", "playwright-report"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

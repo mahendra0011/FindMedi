@@ -85,7 +85,7 @@ export default function Staff() {
         </div>
         <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)} className="h-10 px-3 rounded-lg border border-input bg-background text-sm">
           <option value="All">All Departments</option>
-          {['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Emergency', 'ICU', 'Lab', 'Pharmacy', 'hospital_admin'].map(d => <option key={d} value={d}>{d}</option>)}
+          {['Cardiology', 'Neurology', 'Orthopaedics', 'Paediatrics', 'Emergency', 'ICU', 'Lab', 'Pharmacy', 'hospital_admin'].map(d => <option key={d} value={d}>{d}</option>)}
         </select>
         <Button onClick={() => setShowCreate(true)}><Plus className="w-4 h-4 mr-1" /> Add Staff</Button>
       </div>

@@ -6,7 +6,7 @@ import FormResponse from '../models/FormResponse.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { auditLog } from '../middleware/audit.js';
-import { schemaFromTemplate, computeTemplate, FIELD_TYPES } from '../lib/formEngine.js';
+import { schemaFromTemplate, computeTemplate, FIELD_TYPES, localizeTemplate } from '../lib/formEngine.js';
 import logger from '../config/logger.js';
 
 // File 14 §14.1: versioned form templates + pinned responses + sign/amend.
@@ -67,26 +67,50 @@ const validateTemplateShape = (body) => {
 // ─── Templates ──────────────────────────────────────────────────────────────
 router.get('/templates', authorize('staff:manage', 'records:read'), async (req, res) => {
   try {
-    const { status, context } = req.query;
+    const { status, context, locale } = req.query;
     const filter = { ...tenantFilter(req) };
     if (status) filter.status = status;
     if (context) filter.contexts = context;
     const rows = await FormTemplate.find(filter).sort({ key: 1, version: -1 }).limit(200).lean();
-    return res.json({ templates: rows });
+    const templates = locale ? rows.map((r) => localizeTemplate(r, locale)) : rows;
+    return res.json({ templates });
   } catch (err) {
     logger.error(`Forms templates error: ${err.message}`);
     return res.status(500).json({ message: err.message });
   }
 });
 
-router.post('/templates', authorize('staff:manage'), async (req, res) => {  try {
-    const { key, title, category, definition, scoring, printTemplateId, contexts } = req.body || {};
+router.get('/templates/:id', authorize('staff:manage', 'records:read'), async (req, res) => {
+  try {
+    const { locale } = req.query;
+    let template = null;
+    if (OBJECT_ID.test(req.params.id)) {
+      template = await FormTemplate.findById(req.params.id).lean();
+    }
+    if (!template) {
+      template = await FormTemplate.findOne({
+        ...tenantFilter(req),
+        key: req.params.id,
+      }).sort({ version: -1 }).lean();
+    }
+    if (!template) return res.status(404).json({ message: 'Template not found' });
+    const result = locale ? localizeTemplate(template, locale) : template;
+    return res.json({ template: result });
+  } catch (err) {
+    logger.error(`Form template get error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/templates', authorize('staff:manage'), async (req, res) => {
+  try {
+    const { key, title, titleHi, category, definition, scoring, printTemplateId, contexts } = req.body || {};
     if (!key || !title) return res.status(400).json({ message: 'key + title required' });
     const shapeErr = validateTemplateShape(req.body);
     if (shapeErr) return res.status(400).json({ message: shapeErr });
     const latest = await FormTemplate.findOne({ hospitalId: req.user.hospitalId, key }).sort({ version: -1 }).lean();
     const row = await FormTemplate.create({
-      hospitalId: req.user.hospitalId, key, title, category: category || '',
+      hospitalId: req.user.hospitalId, key, title, titleHi: titleHi || '', category: category || '',
       version: (latest?.version || 0) + 1, status: 'Draft',
       definition, scoring: scoring || [], printTemplateId: printTemplateId || null,
       contexts: contexts || [], createdBy: actorId(req),
@@ -193,6 +217,7 @@ router.post('/templates/:id/publish', authorize('staff:manage'), requireObjectId
 
 router.get('/contexts/:context', authorize('staff:manage', 'records:read'), async (req, res) => {
   try {
+    const { locale } = req.query;
     const rows = await FormTemplate.find({
       ...tenantFilter(req), status: 'Published', contexts: req.params.context,
     }).sort({ key: 1, version: -1 }).lean();
@@ -201,7 +226,8 @@ router.get('/contexts/:context', authorize('staff:manage', 'records:read'), asyn
     for (const r of rows) {
       if (!seen.has(r.key)) seen.set(r.key, r);
     }
-    return res.json({ templates: [...seen.values()] });
+    const templates = [...seen.values()].map((r) => (locale ? localizeTemplate(r, locale) : r));
+    return res.json({ templates });
   } catch (err) {
     logger.error(`Form contexts error: ${err.message}`);
     return res.status(500).json({ message: err.message });
@@ -351,17 +377,32 @@ router.get('/responses/:id/chain', authorize('records:read'), requireObjectId, a
 
 router.get('/responses/:id/pdf', authorize('records:read', 'records:read:own'), requireObjectId, async (req, res) => {
   try {
+    const { locale } = req.query;
     const row = await FormResponse.findById(req.params.id).lean();
     if (!row) return res.status(404).json({ message: 'Not found' });
+    let template = await FormTemplate.findOne({
+      hospitalId: row.hospitalId, key: row.templateKey, version: row.templateVersion,
+    }).lean();
+    if (template && locale) {
+      template = localizeTemplate(template, locale);
+    }
+    const fieldLabels = {};
+    for (const sec of (template?.definition?.sections || [])) {
+      for (const f of (sec.fields || [])) {
+        if (f.id) fieldLabels[f.id] = f.label || f.id;
+      }
+    }
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="form-${row.templateKey}-v${row.templateVersion}.pdf"`);
     doc.pipe(res);
-    doc.fontSize(16).text(`Form: ${row.templateKey} (v${row.templateVersion}) — ${row.status}`);
+    const formTitle = template?.title || row.templateKey;
+    doc.fontSize(16).text(`Form: ${formTitle} (v${row.templateVersion}) — ${row.status}`);
     doc.moveDown();
     doc.fontSize(10);
     for (const [k, v] of Object.entries(row.values || {})) {
-      doc.text(`${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')}`);
+      const displayLabel = fieldLabels[k] || k;
+      doc.text(`${displayLabel}: ${typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')}`);
     }
     if (row.signatures?.length) {
       doc.moveDown().fontSize(10).text('Signatures:');

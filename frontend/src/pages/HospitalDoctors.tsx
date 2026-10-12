@@ -13,22 +13,16 @@ import { matchesSpecialty } from '@/lib/specialtyFilter';
 import { useCategories } from '@/hooks/useCategories';
 import BookingModal from '@/components/BookingModal';
 
-const DEFAULT_SPECS = ['All', 'Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT'];
+import { CANONICAL_SPECIALTIES } from '@/data/specialties';
+import { getSpecialtyVisual } from '@/data/specialtyVisuals';
 
-const SPEC_CARD_THEME = {
-  Cardiology:        { icon: Heart,     color: 'from-red-500/20 to-red-500/5',     textColor: 'text-red-600' },
-  Neurology:         { icon: Brain,     color: 'from-purple-500/20 to-purple-500/5',  textColor: 'text-purple-600' },
-  Orthopedics:       { icon: Bone,      color: 'from-blue-500/20 to-blue-500/5',    textColor: 'text-blue-600' },
-  Pediatrics:        { icon: Baby,      color: 'from-green-500/20 to-green-500/5',   textColor: 'text-green-600' },
-  Dermatology:       { icon: Eye,       color: 'from-pink-500/20 to-pink-500/5',    textColor: 'text-pink-600' },
-  Oncology:          { icon: Activity,  color: 'from-orange-500/20 to-orange-500/5',  textColor: 'text-orange-600' },
-  'General Medicine':{ icon: Stethoscope, color: 'from-teal-500/20 to-teal-500/5',  textColor: 'text-teal-600' },
-  ENT:               { icon: Users,     color: 'from-indigo-500/20 to-indigo-500/5',  textColor: 'text-indigo-600' },
-};
+const DEFAULT_SPECS = ['All', ...CANONICAL_SPECIALTIES.map(s => s.name)];
 
 function getSpecCard(spec) {
-  return SPEC_CARD_THEME[spec] || { icon: Stethoscope, color: 'from-slate-500/20 to-slate-500/5', textColor: 'text-slate-600' };
+  const v = getSpecialtyVisual(spec);
+  return { icon: v.icon, color: v.color, textColor: v.textColor };
 }
+
 
 const QUALIFICATIONS = ['MBBS', 'MD', 'MS', 'DM', 'MCh', 'DNB'];
 const LANGUAGES = ['Hindi', 'English', 'Marathi', 'Gujarati', 'Tamil', 'Telugu', 'Kannada', 'Bengali', 'Punjabi'];

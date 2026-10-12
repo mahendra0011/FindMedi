@@ -1,16 +1,17 @@
-/** Wave 2 — HodDashboard (Department Head) thin wrapper over RoleDashboardShell. */
+/** Wave 2 — HodDashboard: live faculty headcount + pending departmental approvals. */
 import RoleDashboardShell, { type RoleDashboardConfig } from './RoleDashboardShell';
+import { useLiveKpis, api } from './useLiveKpis';
 
 const config: RoleDashboardConfig = {
   roleKey: 'hod',
-  title: '🩺 Department Head (HOD) Dashboard',
+  title: 'Department Head (HOD) Dashboard',
   subtitle: 'Clinical outcomes, faculty roster & pending approvals at a glance',
   permissions: ['records:read', 'staff:manage', 'appointments:read', 'reports:read', 'approvals:manage'],
   kpis: [
-    { label: 'Active Faculty', value: '18', hint: '14 on duty · 4 on call' },
-    { label: 'OPD Patients Today', value: '142', hint: 'TAT 24 min avg' },
-    { label: 'Pending Approvals', value: '6', hint: '3 clinical leaves · 3 OT slots' },
-    { label: 'Clinical Quality', value: '98.2%', hint: 'Zero critical incidents' },
+    { label: 'Active Faculty', value: '—', hint: 'Loading roster…' },
+    { label: 'On Leave Today', value: '—', hint: 'From staff stats' },
+    { label: 'Pending Approvals', value: '—', hint: 'Departmental requests' },
+    { label: 'Departments Tracked', value: '—', hint: 'Staff by department' },
   ],
   tasks: [
     { id: 't1', text: 'Sign off on monthly morbidity & mortality review' },
@@ -28,6 +29,22 @@ const config: RoleDashboardConfig = {
   ],
 };
 
+async function fetchLive() {
+  const [staff, approvals] = await Promise.all([
+    api.get('/staff/stats').catch(() => null),
+    api.get('/approvals/requests?status=Pending').catch(() => null),
+  ]);
+  const pending = Array.isArray(approvals) ? approvals.length : (approvals?.requests?.length ?? approvals?.total ?? 0);
+  const deptCount = Array.isArray(staff?.byDepartment) ? staff.byDepartment.length : 0;
+  return {
+    activeFaculty: staff?.total ?? 0,
+    onLeaveToday: staff?.onLeave ?? 0,
+    pendingApprovals: pending,
+    departmentsTracked: deptCount,
+  };
+}
+
 export default function HodDashboard() {
-  return <RoleDashboardShell config={config} />;
+  const kpis = useLiveKpis(fetchLive, config.kpis);
+  return <RoleDashboardShell config={{ ...config, kpis }} />;
 }

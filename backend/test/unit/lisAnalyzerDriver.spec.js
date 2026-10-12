@@ -1,8 +1,17 @@
-import { describe, it, expect } from '@jest/globals';
-import { parseAstmPacket, parseHl7OruR01Packet, processAnalyzerResultUpload } from '../../src/services/lisAnalyzerDriver.js';
+import { describe, it, expect, beforeEach } from '@jest/globals';
+import {
+  parseAstmPacket,
+  parseHl7OruR01Packet,
+  processAnalyzerResultUpload,
+  resetProcessedMessages,
+} from '../../src/services/lisAnalyzerDriver.js';
 import { parseAstmFrame } from '../../src/lib/astm.js';
 
 describe('LIS Analyzer Driver: ASTM E1394 & HL7 Ingestion', () => {
+  beforeEach(() => {
+    resetProcessedMessages();
+  });
+
   const SAMPLE_ASTM = [
     'H|\\^&|||ERBA^XL640||||||||1394-97',
     'P|1||||PATIENT^SAMPLE|||||||',
@@ -74,5 +83,54 @@ describe('LIS Analyzer Driver: ASTM E1394 & HL7 Ingestion', () => {
     expect(parsed.errors).toHaveLength(0);
     expect(parsed.orders[0].sampleId).toBe('ACC-101');
     expect(parsed.results[0].value).toBe('8.0');
+  });
+
+  it('quarantines unknown or unmapped test codes', () => {
+    const ASTM_WITH_UNKNOWN = [
+      'H|\\^&|||ERBA^XL640||||||||1394-97',
+      'P|1||||PATIENT^SAMPLE|||||||',
+      'O|1|SAMP-9988||^^^GLU|R||||||A',
+      'R|1|^^^GLU|105|mg/dL|70-99|N||F||||202610121100',
+      'R|2|^^^UNKNOWN_CODE_999|42|uL|0-10|A||F||||202610121100',
+      'L|1|N',
+    ].join('\r');
+
+    const res = parseAstmPacket(ASTM_WITH_UNKNOWN);
+    expect(res.quarantinedCount).toBe(1);
+    const unk = res.results.find((r) => r.testCode === 'UNKNOWN_CODE_999');
+    expect(unk).toBeDefined();
+    expect(unk.status).toBe('QUARANTINE');
+    expect(unk.isQuarantined).toBe(true);
+
+    // Also verify knownTestCodes whitelist filtering
+    const resFiltered = parseAstmPacket(SAMPLE_ASTM, { knownTestCodes: ['GLU'] });
+    const creat = resFiltered.results.find((r) => r.testCode === 'CREAT');
+    expect(creat.status).toBe('QUARANTINE');
+    expect(creat.isQuarantined).toBe(true);
+  });
+
+  it('guarantees duplicate message idempotence on identical messageId', async () => {
+    const messageId = 'MSG-IDEMP-2026-X1';
+
+    const firstRun = await processAnalyzerResultUpload({
+      analyzerId: 'analyz-01',
+      model: 'Mindray BC-6800',
+      rawPayload: SAMPLE_HL7,
+      protocol: 'HL7',
+      messageId,
+    });
+    expect(firstRun.duplicate).toBe(false);
+    expect(firstRun.parsedRecords).toBe(2);
+
+    const secondRun = await processAnalyzerResultUpload({
+      analyzerId: 'analyz-01',
+      model: 'Mindray BC-6800',
+      rawPayload: SAMPLE_HL7,
+      protocol: 'HL7',
+      messageId,
+    });
+    expect(secondRun.duplicate).toBe(true);
+    expect(secondRun.idempotent).toBe(true);
+    expect(secondRun.parsedRecords).toBe(0);
   });
 });

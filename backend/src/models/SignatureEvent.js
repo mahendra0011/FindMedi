@@ -8,7 +8,7 @@ import mongoose from 'mongoose';
 const signatureEventSchema = new mongoose.Schema({
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   docRef: {
-    kind: { type: String, enum: ['consent', 'discharge', 'ot', 'form', 'other'], default: 'other' },
+    kind: { type: String, enum: ['consent', 'discharge', 'ot', 'form', 'birth', 'other'], default: 'other' },
     id: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
   },
   level: { type: String, enum: ['L1', 'L2'], required: true },

@@ -24,6 +24,12 @@
  */
 import express from 'express';
 import { jest } from '@jest/globals';
+import { roleHasPermission } from '../../src/config/permissions.js';
+
+let globalEnforceAuthorize = false;
+export const setEnforceAuthorize = (val) => {
+  globalEnforceAuthorize = Boolean(val);
+};
 
 /**
  * Mount a real route module with models stubbed and `protect` driven by a
@@ -103,6 +109,12 @@ export async function mountApp(name, models = {}, options = {}) {
   // here (the harness substitutes the guard, exactly like it substitutes protect).
   authStub.authorize = (..._perms) => (req, res, next) => {
     if (!req.user) return res.status(401).json({ message: 'Not authorized' });
+    if (globalEnforceAuthorize || options.enforceAuthorize) {
+      if (req.user.role === 'superadmin') return next();
+      const perms = _perms.flat().filter(Boolean);
+      if (perms.some((p) => roleHasPermission(req.user.role, p) || (Array.isArray(req.user.permissions) && req.user.permissions.includes(p)))) return next();
+      return res.status(403).json({ message: 'Insufficient permissions' });
+    }
     return next();
   };
   // scopeToHospital is the tenant-scoping middleware some routers chain after

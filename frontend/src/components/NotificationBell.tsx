@@ -16,7 +16,12 @@ export default function NotificationBell({ className = '', onClick }: any = {}) 
   };
   
   return (
-    <Link to="/notifications" onClick={handleClick} className={`relative flex items-center justify-center w-9 h-9 rounded-xl hover:bg-sidebar-accent transition-colors ${className}`}>
+    <Link
+      to="/notifications"
+      aria-label="Notifications"
+      onClick={handleClick}
+      className={`relative flex items-center justify-center w-9 h-9 rounded-xl hover:bg-sidebar-accent transition-colors ${className}`}
+    >
       <Bell className="w-[18px] h-[18px]" />
       {count > 0 && (
         <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">

@@ -7,7 +7,8 @@ import { normalizeModes } from '../lib/appointmentModes.js';
 // nursing homes, dental clinics, Jan Aushadhi kendras and PHCs had nowhere to
 // go. catogary.md §1 (rows L29-L42, L182) + subcatogary.md §1.1 supply the row
 // beneath it. Optional: existing facilities simply have no subType yet.
-const FACILITY_SUBTYPES = [
+// subcatogary.md §1.1 Facility subtypes
+export const FACILITY_SUBTYPES = [
   // hospital / primary govt (catogary.md L29, L31-L35, L41-L42, L182)
   'multi_specialty', 'super_specialty', 'single_specialty', 'nursing_home',
   'maternity_hospital', 'day_care_surgery', 'government_hospital',
@@ -38,7 +39,7 @@ const FACILITY_SUBTYPES = [
 
 // subcatogary.md §1.2 ownership — feeds the "government/private/trust"
 // search facet (B4).
-const FACILITY_OWNERSHIP = [
+export const FACILITY_OWNERSHIP = [
   'government', 'private', 'trust_charitable', 'corporate_chain',
   'cooperative', 'ppp', 'military_railway_esi',
   '', // not specified yet
@@ -46,7 +47,7 @@ const FACILITY_OWNERSHIP = [
 
 // subcatogary.md §1.3 system of medicine — a separate dimension from
 // specialty (B1.4), so "Ayurveda clinic" is not smuggled into specialities.
-const SYSTEMS_OF_MEDICINE = [
+export const SYSTEMS_OF_MEDICINE = [
   'allopathy', 'ayurveda', 'homeopathy', 'unani', 'siddha',
   'yoga_naturopathy', 'sowa_rigpa', 'integrative',
   '', // not specified yet
@@ -56,7 +57,7 @@ const SYSTEMS_OF_MEDICINE = [
 // and the catogary.md L330 "TPA / cashless desk" gap. `pmjay`, `cghs` and
 // `state_scheme` reuse the tokens lib/providerTypeCatalog.js already uses so
 // the two vocabularies do not drift.
-const FACILITY_SCHEMES = [
+export const FACILITY_SCHEMES = [
   'pmjay', 'cghs', 'esi', 'echs', 'state_scheme', 'insurance_cashless',
   'tpa_empanelled', 'corporate_tie_up',
 ];

@@ -23,13 +23,13 @@ export function parseAstmFrame(frame) {
     rest = rest.slice(start + 1);
     const endEtX = rest.indexOf(ETX);
     const endEtB = rest.indexOf(ETB);
-    let end = endEtX === -1 ? endEtB : endEtB === -1 ? endEtX : Math.min(endEtX, endEtB);
+    const end = endEtX === -1 ? endEtB : endEtB === -1 ? endEtX : Math.min(endEtX, endEtB);
     if (end === -1) {
       out.errors.push('unterminated frame');
       break;
     }
     const seq = rest[0];
-    let body = rest.slice(1, end);
+    const body = rest.slice(1, end);
     // checksum: two hex chars after ETX/ETB
     const cs = rest.slice(end + 1, end + 3);
     records.push({ seq, body, checksum: cs });

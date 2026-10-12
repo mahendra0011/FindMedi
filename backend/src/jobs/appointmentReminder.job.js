@@ -55,7 +55,7 @@ export const LEASE_MS = 10 * MIN_MS;
 /** After this many failed attempts the milestone is parked (still recorded). */
 export const MAX_ATTEMPTS = 10;
 /** Only live appointments get reminders. */
-export const ACTIVE_STATUSES = ['Pending', 'Confirmed'];
+export const ACTIVE_STATUSES = ['Pending', 'Confirmed', 'Tentative'];
 /** Reasons from `decide()` that mean "this will never succeed" — do not retry. */
 const TERMINAL_SUPPRESSION = new Set(['type-muted', 'marketing-opted-out', 'channel-disabled', 'no-recipient']);
 

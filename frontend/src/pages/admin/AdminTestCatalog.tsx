@@ -6,11 +6,14 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
+// subcatogary.md Part C §4 — Canonical test categories
+import { FALLBACK_TEST_CATEGORIES } from '@/data/testCategoriesFallback';
+
 const DEPARTMENTS = ['Pathology', 'Radiology', 'Cardiology', 'Health Packages'];
-const CATEGORIES = ['Blood Test', 'Urine/Stool', 'Hormone', 'Vitamin', 'Cardiac Basic', 'Basic Imaging', 'Advanced Imaging', 'Health Package', 'Other'];
 const REPORT_TIMES = ['30 mins', '1 hr', '2 hrs', '6 hrs', '12 hrs', '24 hrs', '48 hrs', '72 hrs'];
 
 export default function AdminTestCatalog() {
+  const [categories, setCategories] = useState(FALLBACK_TEST_CATEGORIES);
   const [tests, setTests] = useState([]);
   const [stats, setStats] = useState({ total: 0, popular: 0, homeCollection: 0, prescriptionReq: 0, categories: 0 });
   const [search, setSearch] = useState('');
@@ -20,10 +23,22 @@ export default function AdminTestCatalog() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({
-    name: '', category: 'Blood Test', department: 'Pathology', price: '', mrp: '',
+    name: '', category: 'Blood Tests', categoryCode: 'TEST.BLOOD_BASICS', department: 'Pathology', price: '', mrp: '',
     reportTime: '24 hrs', prescriptionReq: false, homeCollection: false,
     homeCollectionFee: '', popular: false, nablAccredited: false, description: '', preparation: '',
   });
+
+  useEffect(() => {
+    let mounted = true;
+    api.getPublicCategories({ type: 'test', isActive: 'true' })
+      .then(res => {
+        if (mounted && res?.categories && res.categories.length > 0) {
+          setCategories(res.categories);
+        }
+      })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, []);
 
   const loadTests = useCallback(async () => {
     setLoading(true);
@@ -137,7 +152,7 @@ export default function AdminTestCatalog() {
         </select>
         <select value={catFilter} onChange={e => setCatFilter(e.target.value)} className="bg-card border border-border/60 rounded-xl px-3 py-2 text-sm">
           <option value="">All Categories</option>
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          {categories.map(c => <option key={c.code || c.name} value={c.name}>{c.name}</option>)}
         </select>
       </div>
 
@@ -218,8 +233,19 @@ export default function AdminTestCatalog() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">Category</label>
-                  <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full bg-card border border-border/60 rounded-xl px-3 py-2 text-sm">
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  <select
+                    value={form.category}
+                    onChange={e => {
+                      const selected = categories.find(c => c.name === e.target.value);
+                      setForm({
+                        ...form,
+                        category: e.target.value,
+                        categoryCode: selected?.code || '',
+                      });
+                    }}
+                    className="w-full bg-card border border-border/60 rounded-xl px-3 py-2 text-sm"
+                  >
+                    {categories.map(c => <option key={c.code || c.name} value={c.name}>{c.name}</option>)}
                   </select>
                 </div>
               </div>

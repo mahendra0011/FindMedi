@@ -5,6 +5,7 @@ import Notification from '../models/Notification.js';
 import Appointment from '../models/Appointment.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createTokenSchema } from '../utils/validate.js';
+import logger from '../config/logger.js';
 
 const tokenSkipSchema = z.object({ reason: z.string().optional() });
 

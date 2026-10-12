@@ -514,6 +514,7 @@ export default function PublicNavbar() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="outline" size="icon" onClick={() => navigate('/cart')}
+                aria-label="Shopping cart"
                 className="h-9 w-9 rounded-full border-border/70 bg-background/80 shadow-sm relative shrink-0">
                 <ShoppingCart className="w-4 h-4" />
                 {totalItems > 0 && (

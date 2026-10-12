@@ -9,6 +9,16 @@ const emergencySchema = new mongoose.Schema({
   gender: { type: String, enum: ['Male', 'Female', 'Other'] },
   phone: { type: String },
   condition: { type: String, required: true },
+  // subcatogary.md P1-1c: additive emergencyType enum
+  emergencyType: {
+    type: String,
+    enum: [
+      'cardiac', 'stroke', 'trauma', 'burns', 'poisoning', 'obstetric',
+      'paediatric', 'psychiatric', 'snake_bite', 'drowning', 'allergic',
+      'respiratory', 'diabetic', 'seizure', 'fire_disaster', '',
+    ],
+    default: '',
+  },
   severity: { type: String, enum: ['Critical', 'Serious', 'Stable'], default: 'Serious' },
   status: { 
     type: String, 

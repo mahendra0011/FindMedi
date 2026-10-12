@@ -8,7 +8,7 @@ import { formatDisplayDate } from '@/lib/dateUtils';
 import { useCategories } from '@/hooks/useCategories';
 
 const STATUSES = ['All','Confirmed','Cancelled','Completed'];
-const FALLBACK_DEPARTMENTS = ['Cardiology','Neurology','Orthopedics','Pediatrics','Dermatology','Oncology'];
+const FALLBACK_DEPARTMENTS = ['Cardiology','Neurology','Orthopaedics','Paediatrics','Dermatology','Oncology'];
 const empty = { patient:'', doctor:'', department:'Cardiology', date:'', time:'', status:'Confirmed', notes:'' };
 
 const statusColors = {

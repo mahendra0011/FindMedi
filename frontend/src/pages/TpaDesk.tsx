@@ -12,7 +12,7 @@ import InsuranceTpaDeskDashboard from './hospital/InsuranceTpaDeskDashboard';
  * pipeline funnel. Document checklist lives on the insurer master.
  */
 export default function TpaDesk() {
-  const [deskView, setDeskView] = useState<'interactive' | 'master'>('interactive');
+  const [deskView, setDeskView] = useState<'interactive' | 'master'>('master');
   const [insurers, setInsurers] = useState<any[]>([]);
   const [preauths, setPreauths] = useState<any[]>([]);
   const [form, setForm] = useState({ admissionId: '', insurerId: '', estimate: '' });
@@ -54,7 +54,7 @@ export default function TpaDesk() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-slate-900">Hospital TPA & Cashless Claims Desk</h1>
+          <h1 className="text-2xl font-heading font-bold text-slate-900">TPA Desk</h1>
           <p className="text-sm text-slate-500">Live insurer gateway, real-time pre-authorization, enhancements, and PM-JAY package manager</p>
         </div>
         <div className="flex bg-slate-100 p-1 rounded-xl gap-1">

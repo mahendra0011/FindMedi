@@ -1,3 +1,4 @@
+import { getSpecialtyVisual } from '@/data/specialtyVisuals';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -58,32 +59,13 @@ export default function HospitalCard({ hospital, index = 0, distance }) {
     </div>
   );
 
-  const getSpecialtyIcon = (spec) => {
-    const icons = {
-      Cardiology: Heart,
-      Neurology: Brain,
-      Orthopedics: Bone,
-      Pediatrics: Baby,
-      Dermatology: Eye,
-      Oncology: Activity,
-      'General Medicine': Stethoscope,
-      ENT: Users,
-    };
-    return icons[spec] || Stethoscope;
+  const getSpecialtyIcon = (spec: string) => {
+    return getSpecialtyVisual(spec).icon;
   };
 
-  const getSpecialtyColor = (spec) => {
-    const colors = {
-      Cardiology: 'from-red-500/20 to-red-500/5 text-red-500 border-red-500/20',
-      Neurology: 'from-purple-500/20 to-purple-500/5 text-purple-500 border-purple-500/20',
-      Orthopedics: 'from-blue-500/20 to-blue-500/5 text-blue-500 border-blue-500/20',
-      Pediatrics: 'from-green-500/20 to-green-500/5 text-green-500 border-green-500/20',
-      Dermatology: 'from-pink-500/20 to-pink-500/5 text-pink-500 border-pink-500/20',
-      Oncology: 'from-orange-500/20 to-orange-500/5 text-orange-500 border-orange-500/20',
-      'General Medicine': 'from-teal-500/20 to-teal-500/5 text-teal-500 border-teal-500/20',
-      ENT: 'from-indigo-500/20 to-indigo-500/5 text-indigo-500 border-indigo-500/20',
-    };
-    return colors[spec] || 'from-slate-500/20 to-slate-500/5 text-slate-500 border-slate-500/20';
+  const getSpecialtyColor = (spec: string) => {
+    const v = getSpecialtyVisual(spec);
+    return `${v.color} ${v.textColor} border-${v.textColor.replace('text-', '')}/20`;
   };
 
   return (

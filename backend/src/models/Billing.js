@@ -17,7 +17,6 @@ const billingSchema = new mongoose.Schema({
   doctor: { type: String },
   doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor' },
   appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment' },
-  admissionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admission' },
   service: { type: String, required: true },
   services: [{
     id: { type: String, default: '' },
@@ -31,7 +30,15 @@ const billingSchema = new mongoose.Schema({
     hsn: { type: String, default: '' },
     gstRate: { type: Number, default: 0, min: 0, max: 28 },
   }],
-  source: { type: String, enum: ['manual', 'appointment', 'lab', 'pharmacy', 'ipd', 'ot', 'radiology', 'physio', 'diet'], default: 'manual' },
+  // subcatogary.md Part C §8 / P1-1a: additive billing sources
+  source: {
+    type: String,
+    enum: [
+      'manual', 'appointment', 'lab', 'pharmacy', 'ipd', 'ot', 'radiology', 'physio', 'diet',
+      'ambulance', 'blood_bank', 'home_service', 'equipment_rental', 'membership', 'event',
+    ],
+    default: 'manual',
+  },
   amount: { type: Number, required: true },
   subTotal: { type: Number, default: 0 },
   discount: { type: Number, default: 0 },
@@ -47,7 +54,14 @@ const billingSchema = new mongoose.Schema({
   // lands with the Postgres migration (Prisma DateTime).
   date: { type: String, required: true, set: normalizeIsoDate },
   dueDate: { type: String, set: normalizeIsoDate },
-  paymentMethod: { type: String, enum: ['Cash', 'Card', 'UPI', 'Cheque', 'Insurance', 'Online', 'Other'] },
+  // subcatogary.md P1-1b: additive payment methods
+  paymentMethod: {
+    type: String,
+    enum: [
+      'Cash', 'Card', 'UPI', 'Cheque', 'Insurance', 'Online', 'Other',
+      'Wallet', 'NetBanking', 'EMI', 'Govt Scheme',
+    ],
+  },
   transactionId: { type: String },
   insuranceClaimId: { type: String },
   insuranceApprovedAmount: { type: Number, default: 0 },
@@ -70,7 +84,14 @@ const billingSchema = new mongoose.Schema({
   approvalRef: { type: mongoose.Schema.Types.ObjectId, ref: 'ApprovalRequest', default: null },
   // File 22 P1-14: split payments, GST identity, series, package, cancel audit.
   payments: [{
-    mode: { type: String, enum: ['Cash', 'Card', 'UPI', 'Cheque', 'Insurance', 'Online', 'Other'], default: 'Cash' },
+    mode: {
+      type: String,
+      enum: [
+        'Cash', 'Card', 'UPI', 'Cheque', 'Insurance', 'Online', 'Other',
+        'Wallet', 'NetBanking', 'EMI', 'Govt Scheme',
+      ],
+      default: 'Cash',
+    },
     amount: { type: Number, required: true, min: 0 },
     txnRef: { type: String, default: '' },
     at: { type: Date, default: Date.now },

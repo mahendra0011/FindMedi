@@ -33,22 +33,22 @@ Code me aur dhyan se dekha to ye cheezein pehle se hain (maine ❌ bataya tha):
 
 ## A1. Sabse bade problems (🐞) — pehle ye theek karo
 
-| # | Problem | Kahan | Asar | Fix |
-|---|---|---|---|---|
-| 1 | **Specialty spelling/naming inconsistent** | `JoinPlatform.tsx`: Orthopedics, Pediatrics, Gynecology, Dentistry · `HospitalDirectory/ClinicDoctors`: Orthopaedics, Paediatrics, Obstetrics & Gynaecology, Dentist · seed: Orthopedics/Pediatrics · `Home.tsx`: Gynecologist/Pediatricians | Search/filter me doctors miss hote hain ("Orthopedics" doctor "Orthopaedics" filter me nahi dikhega) | Ek canonical specialty list + aliases (Part B) |
-| 2 | **`Doctor.specialization` free-text String (required)** | `models/Doctor.js:7` | Typos, duplicates, analytics kharab | Canonical `specialtyCode` + optional `subSpecialtyCodes[]`, display name alag |
-| 3 | **Test categories 3 alag lists** | seed: Pathology/Imaging/Cardiac (3) · `AdminTestCatalog`: 9 categories + 4 departments · `AllTests.tsx`: 21 categories | Admin jo category banata hai wo patient-side filter me nahi aati | Ek hi `Category(type:'test')` tree, dono UI use karein |
-| 4 | **`Test.category` free-text required** | `models/Test.js:5` | Typo = test kisi filter me nahi | Category `code` se reference |
-| 5 | **Admin `Category` model aur hardcoded UI lists duplicate** | `models/Category.js` vs 6+ frontend files | Superadmin category edit kare to frontend change nahi hota | UI ko API se categories fetch karwao (cache ke saath) |
-| 6 | **`Category` unique index `{name,type}`** | `Category.js` | Same naam do parents ke neeche nahi ban sakta (jaise "Paediatric" Dental ke neeche aur Medicine ke neeche) | Index `{type, parent, name}` ya `{type, code}` |
-| 7 | **`Category.type` sirf 4: test, medicine, department, service** | `Category.js` | Specialty, facility-type, diet, event, wellness jaisi types ke liye jagah nahi | Types extend karo (Part B) |
-| 8 | **Medicine.category me alag-alag dimensions mixed** | `Medicine.js:6` | Antibiotic (therapeutic class) + Prescription/OTC/Generic (sales class) + Baby Care/Ayurvedic/Devices/Personal Care (product line) ek hi enum me. Aur `Vitamin` + `Vitamins` duplicate | 4 alag fields: therapeutic class, Rx schedule, product line, form |
-| 9 | **Rx schedule nahi** | `Medicine.prescriptionReq` sirf boolean | Schedule H / H1 / X / narcotic (NDPS) control nahi — pharmacy compliance ke liye zaruri | `rxSchedule` enum (Part C §5) + H1 register + audit |
-| 10 | **Appointment modes duplicate** | `Hospital/Facility.appointmentModes`: `home` & `home_visit`; `audio`, `voice`, `call` | Ek hi cheez 3-4 naamo se | Normalize: `in_person`, `video`, `audio`, `chat`, `home_visit` |
-| 11 | **Facility `type` sirf 4 (hospital/clinic/lab/pharmacy)**; JoinPlatform me `diagnostic` key hai | `Facility.js:8` vs `JoinPlatform.tsx` | Mapping implicit; sub-type (nursing home, dental clinic, eye hospital) nahi | `type` + `subType` + `ownership` + `systemOfMedicine` (Part C §1) |
-| 12 | **`Psychology` doctor-specialty list me** | `HospitalDirectory/ClinicDoctors` | Psychologist MD nahi hota; counsellor/psychologist alag provider type hai (aapke `MentalHealth` flow me) | Specialty list se hata ke "Mental health professionals" alag group |
-| 13 | **Radiology modality vs Equipment type mismatch** | `Radiology.modality`: 7 · `Equipment.type`: 13 (PET, DEXA, EEG…) | Equipment hai par us par order nahi ban sakta | Modality list ko equipment ke saath align |
-| 14 | **Language list adhoora** | `LAWYER_LANGUAGES`, `COUNSELLOR_LANGUAGES`: 11 languages | Odia, Assamese, Bhojpuri etc. missing — tier-2/3 shehron me zaruri | Part C §26 |
+| # | Problem | Kahan | Asar | Fix | Status |
+|---|---|---|---|---|---|
+| 1 | **Specialty spelling/naming inconsistent** | `JoinPlatform.tsx`, `HospitalDirectory`, `ClinicDoctors`, `Doctors`, `Home` | Search/filter me doctors miss hote hain | Ek canonical specialty list (`CANONICAL_SPECIALTIES` & `taxonomy.js`) + code-keyed visuals | ✅ Fixed (P0-1) |
+| 2 | **`Doctor.specialization` free-text String (required)** | `models/Doctor.js:7` | Typos, duplicates, analytics kharab | Canonical `specialtyCode` + optional `subSpecialtyCodes[]`, resolveSpecialtyCode on write & read | ✅ Fixed |
+| 3 | **Test categories 3 alag lists** | seed: 3 · `AdminTestCatalog`: 9 · `AllTests.tsx`: 21 | Admin jo category banata hai wo patient filter me nahi aati | Ek hi `Category(type:'test')` tree + seed/migration + dynamic UI | ✅ Fixed (P0-2) |
+| 4 | **`Test.category` free-text required** | `models/Test.js:5` | Typo = test kisi filter me nahi | Category `categoryCode` + canonical derive on save | ✅ Fixed (P0-2) |
+| 5 | **Admin `Category` model aur hardcoded UI lists duplicate** | `models/Category.js` vs frontend files | Superadmin category edit kare to frontend change nahi hota | UI fetches categories via `api.getPublicCategories` (cache + fallback) | ✅ Fixed (P0-1/2) |
+| 6 | **`Category` unique index `{name,type}`** | `Category.js` | Same naam do parents ke neeche nahi ban sakta | Index `{type, code}` unique + `{type, parent, name}` | ✅ Fixed |
+| 7 | **`Category.type` sirf 4: test, medicine, department, service** | `Category.js` | Specialty, facility-type, diet etc ke liye jagah nahi | 26 `CATEGORY_TYPES` extended | ✅ Fixed |
+| 8 | **Medicine.category me alag-alag dimensions mixed** | `Medicine.js:6` | Therapeutic class, Rx schedule, product line mix | 4 alag fields: therapeuticClass(55), rxSchedule, productLine(20), forms(22) | ✅ Fixed |
+| 9 | **Rx schedule nahi** | `Medicine.prescriptionReq` sirf boolean | Schedule H / H1 / X / narcotic (NDPS) control nahi | `rxSchedule` enum + statutory checkout gate (422) + H1 register | ✅ Fixed (P1-1g) |
+| 10 | **Appointment modes duplicate** | `Hospital/Facility.appointmentModes` | Ek hi cheez 3-4 naamo se | `SERVICE_MODES` (5 canonical) + `normalizeModes` pre-save rewrite | ✅ Fixed |
+| 11 | **Facility `type` sirf 4 (hospital/clinic/lab/pharmacy)** | `Facility.js:8` vs `JoinPlatform.tsx` | Sub-type, ownership, system nahi | `subType` + `ownership` + `systemOfMedicine` + `schemesAccepted` + join config | ✅ Fixed (P0-4/5) |
+| 12 | **`Psychology` doctor-specialty list me** | `HospitalDirectory/ClinicDoctors` | Psychologist MD nahi hota | Specialty list se hata diya; Mental health separate provider type | ✅ Fixed (P0-1) |
+| 13 | **Radiology modality vs Equipment type mismatch** | `Radiology.modality`: 7 · `Equipment.type`: 13 | Modality order alignment | Expanded 19 modalities + equipment alignment | ✅ Fixed |
+| 14 | **Language list adhoora** | `LAWYER_LANGUAGES`, `COUNSELLOR_LANGUAGES` | Regional languages missing | 24 languages + 41 counsellor concerns in unified `optionLists.ts` | ✅ Fixed (P1-2) |
 
 ## A2. Har current category list ka verdict
 

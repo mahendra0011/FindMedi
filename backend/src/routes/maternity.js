@@ -128,11 +128,43 @@ router.get('/births/:id/certificate', clinicalOnly, async (req, res) => {
       } catch { /* cosmetic */ }
     }
     const { generateBirthCertificatePDF } = await import('../services/pdfService.js');
+    const { sealDoc } = await import('../lib/docSeal.js');
+    const { default: SignatureEvent } = await import('../models/SignatureEvent.js');
+
     const buffer = await generateBirthCertificatePDF({
       ...(row.toObject?.() ?? row), birthId: String(row._id), motherName, hospitalName,
     });
-    await auditLog('birth_certificate_printed', actorId(req), { birthId: row._id, ip: req.ip });
+
+    const seal = sealDoc('birth', String(row._id), buffer);
+    try {
+      await SignatureEvent.create({
+        hospitalId: row.hospitalId,
+        docRef: { kind: 'birth', id: row._id },
+        level: 'L2',
+        signerRole: 'staff',
+        signerId: req.user._id,
+        signerName: req.user.name || 'Clinical Staff',
+        intent: 'Seal statutory birth certificate',
+        digest: seal.digest,
+        signature: seal.signature,
+        nonceHash: seal.nonceHash,
+        ip: req.ip,
+        device: req.get('user-agent') || '',
+      });
+    } catch (sigErr) {
+      logger.warn(`SignatureEvent recording failed for birth certificate: ${sigErr.message}`);
+    }
+
+    await auditLog('birth_certificate_printed', actorId(req), {
+      birthId: row._id,
+      digest: seal.digest,
+      nonce: seal.nonce,
+      ip: req.ip,
+    });
+
     res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('X-Doc-Seal-Nonce', seal.nonce);
+    res.setHeader('X-Doc-Seal-Signature', seal.signature);
     res.setHeader('Content-Disposition', `attachment; filename="birth-certificate-${row.certificateNo || String(row._id)}.pdf"`);
     return res.send(buffer);
   } catch (err) {

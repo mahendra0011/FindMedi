@@ -10,7 +10,7 @@ const prescriptionSchema = new mongoose.Schema({
   doctorRmp: { type: String, default: '', maxlength: 60 },
   teleConsult: { type: Boolean, default: false },
   teleConsentId: { type: mongoose.Schema.Types.ObjectId, ref: 'TeleConsent', default: null },
-  appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment' },
+  appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment', default: null },
   medicines: [{
     medicineId: { type: mongoose.Schema.Types.ObjectId, ref: 'Medicine' },
     medicineName: { type: String, required: true },
@@ -70,9 +70,7 @@ const prescriptionSchema = new mongoose.Schema({
   revokedAt: Date,
   cancelledAt: Date,
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  // File 09 §9.1: episode-of-care links (migration-safe, optional).
   encounterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Encounter', default: null, index: true },
-  appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment', default: null },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });

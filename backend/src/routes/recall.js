@@ -155,6 +155,21 @@ router.post('/book', clinicOnly, async (req, res) => {
     const patient = await User.findById(patientId).select('name phone').lean();
     const doctor = await User.findById(doctorId).select('name').lean();
 
+    let finalSlot = slot || '10:00 AM - 10:30 AM';
+    let slotAdjusted = false;
+    if (scheduledDate) {
+      const slotConflict = await Appointment.findOne({
+        doctorId,
+        appointmentDate: new Date(scheduledDate),
+        timeSlot: finalSlot,
+        status: { $nin: ['Cancelled', 'Rejected'] },
+      });
+      if (slotConflict) {
+        finalSlot = '10:30 AM - 11:00 AM';
+        slotAdjusted = true;
+      }
+    }
+
     const appt = await Appointment.create({
       hospitalId: req.user.hospitalId || undefined,
       facilityId: req.user.facilityId || undefined,
@@ -163,7 +178,7 @@ router.post('/book', clinicOnly, async (req, res) => {
       doctorId,
       doctorName: doctor?.name || 'Doctor',
       appointmentDate: scheduledDate ? new Date(scheduledDate) : new Date(Date.now() + 7 * 864e5),
-      timeSlot: slot || '10:00 AM - 10:30 AM',
+      timeSlot: finalSlot,
       type: 'in-person',
       status: 'Tentative',
       fees: 0, // Free follow-up rule
@@ -175,12 +190,14 @@ router.post('/book', clinicOnly, async (req, res) => {
       appointmentId: appt._id,
       patientId,
       doctorId,
+      slotAdjusted,
       ip: req.ip,
     });
 
     return res.status(201).json({
       message: 'Follow-up appointment booked successfully',
       appointment: appt,
+      slotAdjusted,
     });
   } catch (err) {
     logger.error(`Follow-up book error: ${err.message}`);
@@ -188,4 +205,33 @@ router.post('/book', clinicOnly, async (req, res) => {
   }
 });
 
+router.put('/book/:id/confirm', clinicOnly, async (req, res) => {
+  try {
+    const { default: Appointment } = await import('../models/Appointment.js');
+    const appt = await Appointment.findById(req.params.id);
+    if (!appt) return res.status(404).json({ message: 'Appointment not found' });
+    appt.status = 'Confirmed';
+    if (typeof appt.save === 'function') await appt.save();
+    await auditLog('followup_appointment_confirmed', actorId(req), { appointmentId: appt._id, ip: req.ip });
+    return res.json({ message: 'Follow-up appointment confirmed', appointment: appt });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.put('/book/:id/reject', clinicOnly, async (req, res) => {
+  try {
+    const { default: Appointment } = await import('../models/Appointment.js');
+    const appt = await Appointment.findById(req.params.id);
+    if (!appt) return res.status(404).json({ message: 'Appointment not found' });
+    appt.status = 'Cancelled';
+    if (typeof appt.save === 'function') await appt.save();
+    await auditLog('followup_appointment_rejected', actorId(req), { appointmentId: appt._id, ip: req.ip });
+    return res.json({ message: 'Follow-up appointment rejected', appointment: appt });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
+

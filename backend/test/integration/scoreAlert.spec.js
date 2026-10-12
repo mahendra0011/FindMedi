@@ -11,11 +11,13 @@ const responses = [];
 
 const news2Template = {
   _id: 't1', key: 'news2', version: 1, status: 'Published', hospitalId: 'h1',
+  title: 'NEWS2 (adult deterioration)',
+  titleHi: 'न्यूज २ (वयस्क स्थिति गिरावट)',
   definition: {
     sections: [{
-      id: 's1', title: 'Parameters',
+      id: 's1', title: 'Parameters', titleHi: 'मानदंड',
       fields: [
-        { id: 'resp', type: 'select', label: 'Respiratory rate', required: true, options: ['3 - 8', '0 - 12-20'] },
+        { id: 'resp', type: 'select', label: 'Respiratory rate', labelHi: 'श्वसन दर', required: true, options: ['3 - 8', '0 - 12-20'], optionsHi: ['३ - ८', '० - १२-२०'] },
         { id: 'consc', type: 'select', label: 'Consciousness', required: true, options: ['0 - Alert', '3 - New confusion'] },
       ],
     }],
@@ -103,5 +105,28 @@ describe('P1-20 score → alert linkage', () => {
     const r = await as(nurse).post('/responses').send({ templateKey: 'nope', patientId: 'p1', values: {} });
     expect(r.status).toBe(404);
     expect(raiseAlert).not.toHaveBeenCalled();
+  });
+
+  test('GET /templates?locale=hi localizes template headers and fields with English fallback', async () => {
+    const r = await as(nurse).get('/templates?locale=hi');
+    expect(r.status).toBe(200);
+    const t = r.body.templates.find((tpl) => tpl.key === 'news2');
+    expect(t).toBeDefined();
+    expect(t.title).toBe('न्यूज २ (वयस्क स्थिति गिरावट)');
+    expect(t.definition.sections[0].title).toBe('मानदंड');
+    expect(t.definition.sections[0].fields[0].label).toBe('श्वसन दर');
+    expect(t.definition.sections[0].fields[0].options).toEqual(['३ - ८', '० - १२-२०']);
+    // Fallback field
+    expect(t.definition.sections[0].fields[1].label).toBe('Consciousness');
+  });
+
+  test('GET /templates/:idOrKey supports key lookup and honors locale parameter', async () => {
+    const rHi = await as(nurse).get('/templates/news2?locale=hi');
+    expect(rHi.status).toBe(200);
+    expect(rHi.body.template.title).toBe('न्यूज २ (वयस्क स्थिति गिरावट)');
+
+    const rEn = await as(nurse).get('/templates/news2');
+    expect(rEn.status).toBe(200);
+    expect(rEn.body.template.title).toBe('NEWS2 (adult deterioration)');
   });
 });

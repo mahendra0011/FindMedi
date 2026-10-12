@@ -6,6 +6,7 @@ const mockPatients = [
 ];
 
 const mockRecords = [];
+const mockAuditLogs = [];
 
 const { as } = await mountApp('certificates', {
   '../../src/models/User.js': () => ({
@@ -22,7 +23,7 @@ const { as } = await mountApp('certificates', {
     default: {
       create: async (data) => {
         const doc = {
-          _id: '507f1f77bcf86cd799439011',
+          _id: '507f1f77bcf86cd79943901' + (mockRecords.length + 1),
           ...data,
           populate: async () => doc,
         };
@@ -32,10 +33,18 @@ const { as } = await mountApp('certificates', {
       find: (filter) => query(mockRecords),
       countDocuments: async () => mockRecords.length,
       findOne: (filter) => query(mockRecords[0] || null),
+      findById: (id) => ({
+        populate: () => ({
+          populate: () => Promise.resolve(mockRecords.find((r) => String(r._id) === String(id)) || null),
+        }),
+      }),
     },
   }),
   '../../src/middleware/audit.js': () => ({
-    auditLog: async () => ({}),
+    auditLog: async (action, userId, meta) => {
+      mockAuditLogs.push({ action, userId, meta });
+      return {};
+    },
   }),
 });
 
@@ -47,6 +56,15 @@ describe('Certificates Integration API', () => {
     role: 'doctor',
     doctorProfileId: '507f191e810c19729de860ec',
     hospitalId: '507f191e810c19729de860ed',
+  };
+
+  const otherHospitalDoctor = {
+    _id: '507f191e810c19729de860e9',
+    id: '507f191e810c19729de860e9',
+    name: 'Dr. Stranger',
+    role: 'doctor',
+    doctorProfileId: '507f191e810c19729de860e8',
+    hospitalId: '507f191e810c19729de86099', // Different hospital
   };
 
   const patient = {
@@ -90,10 +108,77 @@ describe('Certificates Integration API', () => {
     expect(res.body.certificate.data.certificateType).toBe('sick_leave');
     expect(res.body.certificate.data.verificationCode).toBeDefined();
     expect(res.body.certificate.data.verificationCode.length).toBe(8);
+
+    const auditEntry = mockAuditLogs.find((a) => a.action === 'create_medical_certificate');
+    expect(auditEntry).toBeDefined();
+    expect(auditEntry.meta.certificateType).toBe('sick_leave');
+    expect(String(auditEntry.userId)).toBe(String(doctor._id));
+  });
+
+  it('allows doctor to create fitness certificate', async () => {
+    const res = await as(doctor)
+      .post('/')
+      .send({
+        patientId: '507f191e810c19729de860ea',
+        type: 'fitness',
+        title: 'General Fitness Certificate',
+        diagnosis: 'No active systemic illness detected',
+        notes: 'Fit for normal physical duties',
+      })
+      .expect(201);
+
+    expect(res.body.certificate.data.certificateType).toBe('fitness');
+    const audit = mockAuditLogs.find((a) => a.meta?.certificateType === 'fitness');
+    expect(audit).toBeDefined();
+  });
+
+  it('allows doctor to create referral letter certificate', async () => {
+    const res = await as(doctor)
+      .post('/')
+      .send({
+        patientId: '507f191e810c19729de860ea',
+        type: 'referral',
+        title: 'Cardiology Referral',
+        diagnosis: 'Suspected Arrhythmia',
+        notes: 'Referred for 24h Holter monitoring',
+      })
+      .expect(201);
+
+    expect(res.body.certificate.data.certificateType).toBe('referral');
+  });
+
+  it('allows doctor to create immunization certificate', async () => {
+    const res = await as(doctor)
+      .post('/')
+      .send({
+        patientId: '507f191e810c19729de860ea',
+        type: 'immunization',
+        title: 'Hepatitis B Vaccination Certificate',
+        notes: 'Completed 3-dose primary immunization series',
+      })
+      .expect(201);
+
+    expect(res.body.certificate.data.certificateType).toBe('immunization');
   });
 
   it('allows patient to query own certificates', async () => {
     const res = await as(patient).get('/').expect(200);
     expect(res.body.data).toBeDefined();
+  });
+
+  it('returns 404 for non-existent certificate PDF', async () => {
+    await as(doctor).get('/507f191e810c19729de86000/pdf').expect(404);
+  });
+
+  it('enforces cross-tenant isolation and blocks foreign hospital doctor from PDF with 403', async () => {
+    const existingCert = mockRecords[0];
+    expect(existingCert).toBeDefined();
+
+    await as(otherHospitalDoctor)
+      .get(`/${existingCert._id}/pdf`)
+      .expect(403);
+
+    const denyAudit = mockAuditLogs.find((a) => a.action === 'access_denied_medical_certificate');
+    expect(denyAudit).toBeDefined();
   });
 });

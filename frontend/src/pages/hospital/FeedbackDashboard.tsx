@@ -237,8 +237,8 @@ export default function FeedbackDashboard() {
               <SelectItem value="Cardiology">Cardiology</SelectItem>
               <SelectItem value="Emergency">Emergency</SelectItem>
               <SelectItem value="General Medicine">General Medicine</SelectItem>
-              <SelectItem value="Pediatrics">Pediatrics</SelectItem>
-              <SelectItem value="Orthopedics">Orthopedics</SelectItem>
+              <SelectItem value="Paediatrics">Paediatrics</SelectItem>
+              <SelectItem value="Orthopaedics">Orthopaedics</SelectItem>
             </SelectContent>
           </Select>
         </CardContent>

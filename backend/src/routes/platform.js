@@ -350,5 +350,24 @@ router.post('/register', platformRegisterLimiter, validate(platformRegisterSchem
   }
 });
 
+// authz: public
+router.get('/specialty-counts', async (req, res) => {
+  try {
+    const counts = await Doctor.aggregate([
+      { $match: { approved: true } },
+      { $group: { _id: '$specialtyCode', count: { $sum: 1 } } },
+    ]);
+    const result = {};
+    for (const item of counts) {
+      if (item._id) result[item._id] = item.count;
+    }
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
+
 

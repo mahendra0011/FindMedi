@@ -52,30 +52,19 @@ const EXPERIENCE_RANGES = [
 ];
 
 // ─── Specialty Theme Colors ────────────────────────────────────────────────
-const SPEC_THEME = {
-  Cardiology:        { bg: 'bg-red-50 dark:bg-red-500/10', text: 'text-red-600',     border: 'border-red-200 dark:border-red-800', icon: Heart },
-  Neurology:         { bg: 'bg-purple-50 dark:bg-purple-500/10', text: 'text-purple-600',  border: 'border-purple-200 dark:border-purple-800', icon: Brain },
-  Orthopedics:       { bg: 'bg-blue-50 dark:bg-blue-500/10', text: 'text-blue-600',     border: 'border-blue-200 dark:border-blue-800', icon: Bone },
-  Pediatrics:        { bg: 'bg-green-50 dark:bg-green-500/10', text: 'text-green-600',   border: 'border-green-200 dark:border-green-800', icon: Baby },
-  Dermatology:       { bg: 'bg-pink-50 dark:bg-pink-500/10', text: 'text-pink-600',    border: 'border-pink-200 dark:border-pink-800', icon: Eye },
-  Oncology:          { bg: 'bg-orange-50 dark:bg-orange-500/10', text: 'text-orange-600',  border: 'border-orange-200 dark:border-orange-800', icon: Activity },
-  'General Medicine':{ bg: 'bg-teal-50 dark:bg-teal-500/10', text: 'text-teal-600',    border: 'border-teal-200 dark:border-teal-800', icon: Stethoscope },
-  ENT:               { bg: 'bg-indigo-50 dark:bg-indigo-500/10', text: 'text-indigo-600',  border: 'border-indigo-200 dark:border-indigo-800', icon: Users },
-};
-function getSpecTheme(spec) {
-  return SPEC_THEME[spec] || { bg: 'bg-slate-50 dark:bg-slate-500/10', text: 'text-slate-600', border: 'border-slate-200', icon: Stethoscope };
+import { getSpecialtyVisual } from '@/data/specialtyVisuals';
+
+function getSpecTheme(spec: string) {
+  const v = getSpecialtyVisual(spec);
+  return { bg: v.bg || 'bg-slate-50 dark:bg-slate-500/10', text: v.textColor, border: v.border || 'border-slate-200', icon: v.icon };
 }
 
-const SPEC_CARD_THEME = {
-  Cardiology:        { icon: Heart,     color: 'from-red-500/20 to-red-500/5',     textColor: 'text-red-600' },
-  Neurology:         { icon: Brain,     color: 'from-purple-500/20 to-purple-500/5',  textColor: 'text-purple-600' },
-  Orthopedics:       { icon: Bone,      color: 'from-blue-500/20 to-blue-500/5',    textColor: 'text-blue-600' },
-  Pediatrics:        { icon: Baby,      color: 'from-green-500/20 to-green-500/5',   textColor: 'text-green-600' },
-  Dermatology:       { icon: Eye,       color: 'from-pink-500/20 to-pink-500/5',    textColor: 'text-pink-600' },
-  Oncology:          { icon: Activity,  color: 'from-orange-500/20 to-orange-500/5',  textColor: 'text-orange-600' },
-  'General Medicine':{ icon: Stethoscope, color: 'from-teal-500/20 to-teal-500/5',  textColor: 'text-teal-600' },
-  ENT:               { icon: Users,     color: 'from-indigo-500/20 to-indigo-500/5',  textColor: 'text-indigo-600' },
-};
+const SPEC_CARD_THEME = new Proxy({} as Record<string, any>, {
+  get: (_, prop: string) => {
+    const v = getSpecialtyVisual(prop);
+    return { icon: v.icon, color: v.color, textColor: v.textColor };
+  }
+});
 
 export default function HospitalProfile() {
   const [showReviewDialog, setShowReviewDialog] = useState(false);

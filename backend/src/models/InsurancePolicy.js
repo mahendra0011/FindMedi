@@ -21,6 +21,16 @@ const insurancePolicySchema = new mongoose.Schema({
   policyNumber: { type: String, required: true, trim: true, maxlength: 60 },
   // "member IDs" (6.md 88): the insured lives listed on the policy.
   memberIds: [{ type: String, trim: true, maxlength: 60 }],
+  // subcatogary.md P1-1d: additive policyType enum
+  policyType: {
+    type: String,
+    enum: [
+      'individual', 'family_floater', 'senior_citizen', 'critical_illness',
+      'top_up', 'group', 'maternity', 'accident', 'government_scheme',
+      'disease_specific', '',
+    ],
+    default: '',
+  },
   // PM-JAY / CGHS / ESI scheme cards (6.md 88); null for a plain commercial
   // policy — a missing scheme is not an error, it is the common case.
   scheme: { type: String, enum: ['PM-JAY', 'CGHS', 'ESI', null], default: null },

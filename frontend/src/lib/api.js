@@ -735,6 +735,7 @@ export const api = {
 
   getCategories:          (p={})    => request('/categories?' + new URLSearchParams(p)),
   getPublicCategories:    (p={})    => request('/categories/public?' + new URLSearchParams(p)),
+  getSpecialtyCounts:     ()        => request('/platform/specialty-counts'),
   createCategory:         (body)    => request('/categories', { method:'POST', body: JSON.stringify(body) }),
   updateCategory:         (id,b)    => request(`/categories/${id}`, { method:'PUT', body: JSON.stringify(b) }),
   deleteCategory:         (id)      => request(`/categories/${id}`, { method:'DELETE' }),
@@ -815,7 +816,13 @@ export const api = {
   sendRecalls:            (body)    => request('/recalls/send', { method:'POST', body: JSON.stringify(body) }),
   callNextToken:         (body)    => request('/tokens/call-next', { method:'POST', body: JSON.stringify(body || {}) }),
   noShowToken:           (id)      => request(`/tokens/${id}/no-show`, { method:'PUT' }),
-  getSecondOpinionInbox: ()        => request('/second-opinions/inbox'),
+  // subcatogary.md P1-3: second opinion patient & doctor endpoints
+  createSecondOpinion:   (body)    => request('/second-opinions', { method: 'POST', body: JSON.stringify(body) }),
+  getMySecondOpinions:   (p={})    => request('/second-opinions/mine' + qs(p)),
+  cancelSecondOpinion:   (id, body={}) => request(`/second-opinions/${id}/cancel`, { method: 'PATCH', body: JSON.stringify(body) }),
+  getSecondOpinionInbox: (p={})    => request('/second-opinions/inbox' + qs(p)),
+  answerSecondOpinion:   (id, body)=> request(`/second-opinions/${id}/answer`, { method: 'PATCH', body: JSON.stringify(body) }),
+  declineSecondOpinion:  (id)      => request(`/second-opinions/${id}/decline`, { method: 'PATCH' }),
   getChemoProtocols:      ()        => request('/oncology/protocols'),
   createChemoProtocol:    (body)    => request('/oncology/protocols', { method:'POST', body: JSON.stringify(body) }),
   getChemoCycles:         (p={})    => request('/oncology/cycles?' + new URLSearchParams(p)),
@@ -1482,7 +1489,6 @@ export const radApi = {
   dicomPing:             ()        => request('/radiology/dicom/ping'),
   dicomWorklist:         (p={})    => request('/radiology/dicom/worklist' + qs(p)),
   dicomStudies:          (orderId) => request('/radiology/dicom/studies' + qs({ orderId })),
-  dicomViewerUrl:        (studyUid)=> request('/radiology/dicom/viewer-url' + qs({ studyUid })),
   dicomLink:             (body)    => request('/radiology/dicom/link', { method: 'POST', body: JSON.stringify(body) }),
   dicomRetry:            (body)    => request('/radiology/dicom/retry', { method: 'POST', body: JSON.stringify(body) }),
 };

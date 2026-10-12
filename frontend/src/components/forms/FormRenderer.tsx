@@ -58,50 +58,88 @@ export interface FormField {
   id: string;
   type: string;
   label?: string;
-  /** Hindi (Devanagari) label — optional; rendered as secondary text when present. */
+  /** Hindi (Devanagari) label — optional; rendered as secondary text when present or primary when locale === 'hi'. */
   labelHi?: string;
+  placeholder?: string;
+  placeholderHi?: string;
+  help?: string;
+  helpHi?: string;
   required?: boolean;
   options?: string[];
+  optionsHi?: string[];
   showIf?: any;
   requiredIf?: any;
 }
 
 export default function FormRenderer({
-  template, values, onChange, onSubmit, submitLabel,
+  template, values, onChange, onSubmit, submitLabel, locale = 'en',
 }: {
   template: any;
   values: Record<string, any>;
   onChange: (values: Record<string, any>) => void;
   onSubmit: () => void;
   submitLabel?: string;
+  locale?: 'en' | 'hi' | string;
 }) {
   const set = (id: string, v: any) => onChange({ ...values, [id]: v });
+  const isHi = locale === 'hi';
   const sections = template?.definition?.sections || [];
   // Hindi label: show Devanagari under the primary label when the template
-  // provides one (checklist item 12 — Hindi labels). `lang` attr set so
-  // screen readers switch pronunciation.
-  const labelWithHi = (f: FormField, required: boolean) => (
-    <span className="font-medium">
-      {f.label}{required ? ' *' : ''}
-      {f.labelHi && <span lang="hi" className="block text-xs font-normal text-muted-foreground">{f.labelHi}</span>}
-    </span>
-  );
+  // provides one (checklist item 12 — Hindi labels). When locale === 'hi',
+  // prioritize Hindi with English fallback.
+  const labelWithHi = (f: FormField, required: boolean) => {
+    if (isHi) {
+      const primary = f.labelHi || f.label;
+      return (
+        <span className="font-medium" lang="hi">
+          {primary}{required ? ' *' : ''}
+          {f.labelHi && f.label && f.labelHi !== f.label && (
+            <span lang="en" className="block text-xs font-normal text-muted-foreground">{f.label}</span>
+          )}
+        </span>
+      );
+    }
+    return (
+      <span className="font-medium">
+        {f.label}{required ? ' *' : ''}
+        {f.labelHi && <span lang="hi" className="block text-xs font-normal text-muted-foreground">{f.labelHi}</span>}
+      </span>
+    );
+  };
+
+  const getPlaceholder = (f: FormField) => (isHi ? (f.placeholderHi || f.placeholder) : f.placeholder);
+  const getOptions = (f: FormField) => (isHi && f.optionsHi?.length ? f.optionsHi : (f.options || []));
+  const getHelp = (f: FormField) => (isHi ? (f.helpHi || f.help) : f.help);
 
   return (
     <div className="space-y-5">
       {sections.map((sec: any) => (
         <div key={sec.id} className="space-y-3">
-          {sec.title && <h3 className="font-bold text-sm">{sec.title}</h3>}
+          {(isHi ? (sec.titleHi || sec.title) : sec.title) && (
+            <h3 className="font-bold text-sm" lang={isHi && sec.titleHi ? 'hi' : undefined}>
+              {isHi ? (sec.titleHi || sec.title) : sec.title}
+            </h3>
+          )}
           {(sec.fields || []).map((f: FormField) => {
             if (!evalRule(f.showIf ?? null, values)) return null;
             const required = f.required || evalRule(f.requiredIf ?? null, values);
             const common = 'w-full';
+            const placeholder = getPlaceholder(f);
+            const options = getOptions(f);
+            const help = getHelp(f);
+
             switch (f.type) {
               case 'textarea':
                 return (
                   <label key={f.id} className="block text-sm">
                     {labelWithHi(f, required)}
-                    <textarea className={`${common} mt-1 rounded-md border border-input bg-background p-2 min-h-20`} value={values[f.id] ?? ''} onChange={(e) => set(f.id, e.target.value)} />
+                    <textarea
+                      className={`${common} mt-1 rounded-md border border-input bg-background p-2 min-h-20`}
+                      placeholder={placeholder}
+                      value={values[f.id] ?? ''}
+                      onChange={(e) => set(f.id, e.target.value)}
+                    />
+                    {help && <p className="text-xs text-muted-foreground mt-1">{help}</p>}
                   </label>
                 );
               case 'number':
@@ -109,7 +147,15 @@ export default function FormRenderer({
                 return (
                   <label key={f.id} className="block text-sm">
                     {labelWithHi(f, required)}
-                    <Input className="mt-1" type="number" inputMode="numeric" value={values[f.id] ?? ''} onChange={(e) => set(f.id, e.target.value === '' ? '' : Number(e.target.value))} />
+                    <Input
+                      className="mt-1"
+                      type="number"
+                      inputMode="numeric"
+                      placeholder={placeholder}
+                      value={values[f.id] ?? ''}
+                      onChange={(e) => set(f.id, e.target.value === '' ? '' : Number(e.target.value))}
+                    />
+                    {help && <p className="text-xs text-muted-foreground mt-1">{help}</p>}
                   </label>
                 );
               case 'select':
@@ -117,10 +163,15 @@ export default function FormRenderer({
                 return (
                   <label key={f.id} className="block text-sm">
                     {labelWithHi(f, required)}
-                    <select className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3" value={values[f.id] ?? ''} onChange={(e) => set(f.id, e.target.value)}>
-                      <option value="">Select</option>
-                      {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
+                    <select
+                      className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3"
+                      value={values[f.id] ?? ''}
+                      onChange={(e) => set(f.id, e.target.value)}
+                    >
+                      <option value="">{isHi ? 'चयन करें' : 'Select'}</option>
+                      {options.map((o: string) => <option key={o} value={o}>{o}</option>)}
                     </select>
+                    {help && <p className="text-xs text-muted-foreground mt-1">{help}</p>}
                   </label>
                 );
               case 'checkbox':
@@ -169,7 +220,14 @@ export default function FormRenderer({
                 return (
                   <label key={f.id} className="block text-sm">
                     {labelWithHi(f, required)}
-                    <Input className="mt-1" type={f.type === 'text' ? 'text' : f.type} value={values[f.id] ?? ''} onChange={(e) => set(f.id, e.target.value)} />
+                    <Input
+                      className="mt-1"
+                      type={f.type === 'text' ? 'text' : f.type}
+                      placeholder={placeholder}
+                      value={values[f.id] ?? ''}
+                      onChange={(e) => set(f.id, e.target.value)}
+                    />
+                    {help && <p className="text-xs text-muted-foreground mt-1">{help}</p>}
                   </label>
                 );
             }

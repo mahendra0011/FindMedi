@@ -473,7 +473,7 @@ export default function DoctorConsultation() {
               className="h-10 px-3 rounded-lg border border-input bg-background text-sm"
             >
               <option value="All">All Departments</option>
-              {['General', 'Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'ENT', 'Ophthalmology', 'Dermatology'].map(d => (
+              {['General', 'Cardiology', 'Neurology', 'Orthopaedics', 'Paediatrics', 'ENT', 'Ophthalmology', 'Dermatology'].map(d => (
                 <option key={d} value={d}>{d}</option>
               ))}
             </select>

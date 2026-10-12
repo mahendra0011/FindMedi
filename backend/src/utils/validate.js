@@ -2250,7 +2250,7 @@ const wizardFieldSchema = z.object({
   type: z.enum(['text', 'textarea', 'number', 'date', 'select', 'multiselect', 'boolean', 'file', 'phone', 'email', 'geo', 'address']),
   required: z.boolean().optional(),
   help: z.string().max(300).optional(),
-  options: z.array(z.string().max(120)).max(50).optional(),
+  options: z.array(z.string().max(120)).max(100).optional(),
   defaultValue: boundedScalar.optional(),
 }).strict();
 

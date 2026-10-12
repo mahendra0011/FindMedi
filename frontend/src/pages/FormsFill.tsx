@@ -15,6 +15,7 @@ export default function FormsFill() {
   const [sel, setSel] = useState<any>(null);
   const [values, setValues] = useState<Record<string, any>>({});
   const [pending, setPending] = useState(0);
+  const [locale, setLocale] = useState<'en' | 'hi'>('en');
 
   useEffect(() => {
     (async () => {
@@ -69,6 +70,22 @@ export default function FormsFill() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <h1 className="text-2xl font-heading font-bold mr-auto">Forms</h1>
+        <div className="flex items-center gap-1 border rounded-md p-0.5 text-xs">
+          <button
+            type="button"
+            className={`px-2 py-0.5 rounded transition-colors ${locale === 'en' ? 'bg-primary text-primary-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+            onClick={() => setLocale('en')}
+          >
+            EN
+          </button>
+          <button
+            type="button"
+            className={`px-2 py-0.5 rounded transition-colors ${locale === 'hi' ? 'bg-primary text-primary-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+            onClick={() => setLocale('hi')}
+          >
+            हिन्दी
+          </button>
+        </div>
         {pending > 0 && <Button size="sm" variant="outline" onClick={sync}>Sync now ({pending})</Button>}
       </div>
       {!sel ? (
@@ -76,9 +93,12 @@ export default function FormsFill() {
           {templates.map((t: any) => (
             <Card key={t._id}>
               <CardContent className="p-4 flex items-center gap-2">
-                <div><p className="font-bold">{t.title}</p><p className="text-xs text-muted-foreground">v{t.version} · {t.category}</p></div>
+                <div>
+                  <p className="font-bold">{locale === 'hi' && t.titleHi ? t.titleHi : t.title}</p>
+                  <p className="text-xs text-muted-foreground">v{t.version} · {t.category}</p>
+                </div>
                 <span className="flex-1" />
-                <Button size="sm" onClick={() => setSel(t)}>Open</Button>
+                <Button size="sm" onClick={() => setSel(t)}>{locale === 'hi' ? 'खोलें' : 'Open'}</Button>
               </CardContent>
             </Card>
           ))}
@@ -86,9 +106,22 @@ export default function FormsFill() {
         </div>
       ) : (
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2">{sel.title}<span className="flex-1" /><Button size="sm" variant="ghost" onClick={() => setSel(null)}>Back</Button></CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <span>{locale === 'hi' && sel.titleHi ? sel.titleHi : sel.title}</span>
+              <span className="flex-1" />
+              <Button size="sm" variant="ghost" onClick={() => setSel(null)}>Back</Button>
+            </CardTitle>
+          </CardHeader>
           <CardContent>
-            <FormRenderer template={sel} values={values} onChange={change} onSubmit={submit} submitLabel="Submit response" />
+            <FormRenderer
+              template={sel}
+              values={values}
+              onChange={change}
+              onSubmit={submit}
+              submitLabel={locale === 'hi' ? 'प्रस्तुत करें' : 'Submit response'}
+              locale={locale}
+            />
           </CardContent>
         </Card>
       )}

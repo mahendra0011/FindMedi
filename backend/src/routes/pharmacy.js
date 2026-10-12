@@ -1332,7 +1332,7 @@ router.post('/orders', protect, authorize('pharmacy:read', 'pharmacy:read:own'),
       isActive: true,
       currentStock: { $gt: 0 },
       expiryDate: { $gt: new Date() },
-    }).select('_id name sellingPrice currentStock facilityId hospitalId prescriptionReq').lean();
+    }).select('_id name sellingPrice currentStock facilityId hospitalId prescriptionReq rxSchedule').lean();
     const medicineById = new Map(medicines.map((medicine) => [String(medicine._id), medicine]));
     if (medicineById.size !== new Set(normalizedItems.map((item) => item.medicineId)).size) {
       return res.status(409).json({ message: 'One or more medicines are unavailable, inactive, expired, or out of stock. Refresh the cart.', code: 'MEDICINE_UNAVAILABLE' });
@@ -1389,7 +1389,11 @@ router.post('/orders', protect, authorize('pharmacy:read', 'pharmacy:read:own'),
       couponCode = code;
     }
     const total = Math.round(Math.max(0, payableBeforeDiscount - discount) * 100) / 100;
-    const needsPrescription = resolved.some(({ medicine }) => medicine.prescriptionReq);
+    // subcatogary.md P1-1g / A1 #9: gate prescription requirement on prescriptionReq OR statutory schedules
+    const RX_SCHEDULES = ['schedule_h', 'h1', 'x', 'schedule_g', 'narcotic_ndps'];
+    const needsPrescription = resolved.some(({ medicine }) =>
+      medicine.prescriptionReq || RX_SCHEDULES.includes(String(medicine.rxSchedule || '').toLowerCase())
+    );
     if (needsPrescription && !req.body.prescriptionUrl) {
       return res.status(422).json({ message: 'A prescription is required for one or more medicines.', code: 'PRESCRIPTION_REQUIRED' });
     }

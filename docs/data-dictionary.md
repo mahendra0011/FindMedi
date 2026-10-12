@@ -14,7 +14,7 @@
 ## Summary
 
 - **329 models** across 321 files (0 skipped)
-- **7205 schema fields**, of which **762 classified as PII** in **233 collections**
+- **7263 schema fields**, of which **762 classified as PII** in **233 collections**
 - **6 collections** carry a TTL index
 - **120 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -59,7 +59,7 @@
 | `apikeys` | ApiKey | 13 | 2 | 5 | — | **UNMAPPED — see gaps** |
 | `appointments` | Appointment | 87 | 11 | 15 | — | Clinical records |
 | `appointmentseries` | AppointmentSeries | 24 | 4 | 3 | — | **UNMAPPED — see gaps** |
-| `approvalpolicies` | ApprovalPolicy | 14 | 1 | 3 | — | **UNMAPPED — see gaps** |
+| `approvalpolicies` | ApprovalPolicy | 18 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `approvalrequests` | ApprovalRequest | 25 | 0 | 2 | — | No PII fields detected |
 | `assetmaintenances` | AssetMaintenance | 14 | 1 | 5 | — | **UNMAPPED — see gaps** |
 | `assetunits` | AssetUnit | 24 | 2 | 7 | — | **UNMAPPED — see gaps** |
@@ -78,7 +78,7 @@
 | `biometriclogs` | BiometricLog | 13 | 2 | 6 | — | **UNMAPPED — see gaps** |
 | `birthrecords` | BirthRecord | 12 | 0 | 1 | — | No PII fields detected |
 | `bloodrequests` | BloodRequest | 35 | 6 | 2 | — | Clinical records |
-| `bloodunits` | BloodUnit | 24 | 1 | 2 | — | Clinical records |
+| `bloodunits` | BloodUnit | 32 | 1 | 2 | — | Clinical records |
 | `bmwbags` | BmwBag | 18 | 0 | 5 | — | No PII fields detected |
 | `bmwlogs` | BmwLog | 16 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `breaches` | Breach | 15 | 1 | 4 | — | **UNMAPPED — see gaps** |
@@ -133,7 +133,7 @@
 | `departments` | Department | 9 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `dialysissessions` | DialysisSession | 22 | 2 | 4 | — | **UNMAPPED — see gaps** |
 | `dialysiswaterqualities` | DialysisWaterQuality | 10 | 1 | 3 | — | **UNMAPPED — see gaps** |
-| `dietorders` | DietOrder | 31 | 6 | 3 | — | Clinical records |
+| `dietorders` | DietOrder | 32 | 6 | 3 | — | Clinical records |
 | `dischargeworkflows` | DischargeWorkflow | 31 | 2 | 4 | — | Clinical records |
 | `discountpolicies` | DiscountPolicy | 10 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `disputes` | Dispute | 36 | 1 | 4 | — | Payment and ledger entries |
@@ -142,7 +142,7 @@
 | `doctors` | Doctor | 117 | 11 | 15 | — | Provider KYC documents |
 | `donorscreenings` | DonorScreening | 17 | 3 | 2 | — | **UNMAPPED — see gaps** |
 | `doselogs` | DoseLog | 18 | 1 | 4 | — | Clinical records |
-| `emergencies` | Emergency | 21 | 7 | 3 | — | Ride and SOS location traces |
+| `emergencies` | Emergency | 22 | 7 | 3 | — | Ride and SOS location traces |
 | `emergencydoctorrequests` | EmergencyDoctorRequest | 75 | 21 | 6 | — | Ride and SOS location traces |
 | `emergencyrequests` | EmergencyRequest | 62 | 17 | 4 | — | Ride and SOS location traces |
 | `encounters` | Encounter | 24 | 2 | 8 | — | Clinical records |
@@ -160,7 +160,7 @@
 | `feedbacks` | Feedback | 15 | 2 | 4 | — | **UNMAPPED — see gaps** |
 | `fertilitycycles` | FertilityCycle | 19 | 3 | 6 | — | **UNMAPPED — see gaps** |
 | `formresponses` | FormResponse | 20 | 3 | 6 | — | Clinical records |
-| `formtemplates` | FormTemplate | 38 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
+| `formtemplates` | FormTemplate | 45 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `gatepasses` | GatePass | 19 | 0 | 4 | — | No PII fields detected |
 | `grns` | GRN | 19 | 0 | 3 | — | Operational config (organization/catalog record — not personal data) |
 | `growthcharts` | GrowthChart | 17 | 3 | 0 | — | Clinical records |
@@ -181,7 +181,7 @@
 | `incidents` | Incident | 19 | 1 | 5 | — | Clinical records |
 | `indents` | Indent | 16 | 0 | 3 | — | Operational config (organization/catalog record — not personal data) |
 | `instrumentsets` | InstrumentSet | 13 | 0 | 3 | — | Operational config (organization/catalog record — not personal data) |
-| `insurancepolicies` | InsurancePolicy | 11 | 1 | 2 | — | **UNMAPPED — see gaps** |
+| `insurancepolicies` | InsurancePolicy | 12 | 1 | 2 | — | **UNMAPPED — see gaps** |
 | `insurances` | Insurance | 42 | 5 | 2 | — | Payment and ledger entries |
 | `insurers` | Insurer | 12 | 2 | 3 | — | **UNMAPPED — see gaps** |
 | `integrationconfigs` | IntegrationConfig | 18 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
@@ -267,7 +267,7 @@
 | `practitionerprofiles` | PractitionerProfile | 31 | 5 | 6 | — | Provider KYC documents |
 | `preauthrequests` | PreAuthRequest | 25 | 3 | 4 | — | Clinical records |
 | `preferredpharmacies` | PreferredPharmacy | 7 | 1 | 2 | — | **UNMAPPED — see gaps** |
-| `prescriptions` | Prescription | 50 | 7 | 3 | — | Clinical records |
+| `prescriptions` | Prescription | 57 | 7 | 3 | — | Clinical records |
 | `printlogs` | PrintLog | 13 | 0 | 3 | — | No PII fields detected |
 | `printtemplates` | PrintTemplate | 17 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `products` | Product | 30 | 0 | 6 | — | No PII fields detected |
@@ -325,14 +325,14 @@
 | `shiftswaps` | ShiftSwap | 12 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `signatureevents` | SignatureEvent | 20 | 1 | 3 | — | Clinical records |
 | `sosvehiclesettings` | SOSVehicleSettings | 8 | 0 | 0 | — | No PII fields detected |
-| `staffs` | Staff | 40 | 6 | 2 | — | Provider KYC documents |
+| `staffs` | Staff | 55 | 6 | 2 | — | Provider KYC documents |
 | `statementimports` | StatementImport | 11 | 0 | 1 | — | No PII fields detected |
 | `sterilisationcycles` | SterilisationCycle | 15 | 0 | 4 | — | No PII fields detected |
 | `sterilisationlogs` | SterilisationLog | 13 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `stockledgers` | StockLedger | 12 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `stores` | Store | 9 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `strikes` | Strike | 25 | 2 | 8 | — | **UNMAPPED — see gaps** |
-| `suppliers` | Supplier | 34 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
+| `suppliers` | Supplier | 48 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `supporttickets` | SupportTicket | 26 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `systemsettings` | SystemSetting | 7 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `tasks` | Task | 17 | 2 | 5 | — | **UNMAPPED — see gaps** |
@@ -1317,6 +1317,10 @@ source `ApprovalPolicy.js` · timestamps: yes · virtuals: 0 · retention: **UNM
 | `tiers.min` | Number |  |  | 0 |  |  |  |
 | `tiers.roles` | Array<Mixed> |  |  |  |  |  |  |
 | `tiers.steps` | Number |  |  | 1 |  |  |  |
+| `escalation` | Array<subdocument> |  |  |  |  |  |  |
+| `escalation.afterPct` | Number | yes |  |  |  |  |  |
+| `escalation.toRole` | String | yes |  |  |  |  |  |
+| `slaHours` | Number |  |  | 48 |  |  |  |
 | `excludedRoles` | Array<Mixed> |  |  |  |  |  |  |
 | `active` | Boolean |  |  | true |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
@@ -1826,7 +1830,6 @@ source `Billing.js` · timestamps: yes · virtuals: 0 · retention: 8 years (sta
 | `doctor` | String |  |  |  |  |  |  |
 | `doctorId` | ObjectId |  |  |  |  | Doctor | Identifier |
 | `appointmentId` | ObjectId |  |  |  |  | Appointment |  |
-| `admissionId` | ObjectId |  |  | null |  | Admission |  |
 | `service` | String | yes |  |  |  |  |  |
 | `services` | Array<subdocument> |  |  |  |  |  |  |
 | `services.id` | String |  |  | "" |  |  |  |
@@ -1838,7 +1841,7 @@ source `Billing.js` · timestamps: yes · virtuals: 0 · retention: 8 years (sta
 | `services.discount` | Number |  |  | 0 |  |  |  |
 | `services.hsn` | String |  |  | "" |  |  |  |
 | `services.gstRate` | Number |  |  | 0 |  |  |  |
-| `source` | String |  |  | "manual" | manual, appointment, lab, pharmacy, ipd, ot, radiology, physio, diet |  |  |
+| `source` | String |  |  | "manual" | manual, appointment, lab, pharmacy, ipd, ot, radiology, physio, diet, ambulance, blood_bank, home_service, equipment_rental, membership, event |  |  |
 | `amount` | Number | yes |  |  |  |  |  |
 | `subTotal` | Number |  |  | 0 |  |  |  |
 | `discount` | Number |  |  | 0 |  |  |  |
@@ -1850,7 +1853,7 @@ source `Billing.js` · timestamps: yes · virtuals: 0 · retention: 8 years (sta
 | `status` | String |  |  | "Pending" | Paid, Pending, Overdue, Partial, Cancelled, Refunded |  |  |
 | `date` | String | yes |  |  |  |  |  |
 | `dueDate` | String |  |  |  |  |  |  |
-| `paymentMethod` | String |  |  |  | Cash, Card, UPI, Cheque, Insurance, Online, Other |  |  |
+| `paymentMethod` | String |  |  |  | Cash, Card, UPI, Cheque, Insurance, Online, Other, Wallet, NetBanking, EMI, Govt Scheme |  |  |
 | `transactionId` | String |  |  |  |  |  |  |
 | `insuranceClaimId` | String |  |  |  |  |  |  |
 | `insuranceApprovedAmount` | Number |  |  | 0 |  |  |  |
@@ -1858,6 +1861,7 @@ source `Billing.js` · timestamps: yes · virtuals: 0 · retention: 8 years (sta
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
 | `facilityId` | ObjectId |  |  |  |  | Facility |  |
 | `encounterId` | ObjectId |  |  | null |  | Encounter |  |
+| `admissionId` | ObjectId |  |  | null |  | Admission |  |
 | `billType` | String |  |  | "Other" | Interim, Final, Pharmacy, Package, Other |  |  |
 | `payerSplit.patient` | Number |  |  | 0 |  |  |  |
 | `payerSplit.insurer` | Number |  |  | 0 |  |  |  |
@@ -1866,7 +1870,7 @@ source `Billing.js` · timestamps: yes · virtuals: 0 · retention: 8 years (sta
 | `shiftId` | ObjectId |  |  | null |  | CashShift |  |
 | `approvalRef` | ObjectId |  |  | null |  | ApprovalRequest |  |
 | `payments` | Array<subdocument> |  |  |  |  |  |  |
-| `payments.mode` | String |  |  | "Cash" | Cash, Card, UPI, Cheque, Insurance, Online, Other |  |  |
+| `payments.mode` | String |  |  | "Cash" | Cash, Card, UPI, Cheque, Insurance, Online, Other, Wallet, NetBanking, EMI, Govt Scheme |  |  |
 | `payments.amount` | Number | yes |  |  |  |  |  |
 | `payments.txnRef` | String |  |  | "" |  |  |  |
 | `payments.at` | Date |  |  | [function] |  |  |  |
@@ -1893,10 +1897,10 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `invoiceId:1` | unique |
-| `admissionId:1` |  |
 | `hospitalId:1` |  |
 | `facilityId:1` |  |
 | `encounterId:1` |  |
+| `admissionId:1` |  |
 
 ### `biomedicalassets` — BiomedicalAsset
 
@@ -2140,6 +2144,14 @@ source `BloodBank.js` · timestamps: yes · virtuals: 0 · retention: Statutory 
 | `hcv` | String |  |  | "Negative" | Negative, Positive |  |  |
 | `malaria` | String |  |  | "Negative" | Negative, Positive |  |  |
 | `vdrl` | String |  |  | "Negative" | Negative, Positive |  |  |
+| `ttiScreen.hiv` | String |  |  | "negative" | positive, negative, pending |  |  |
+| `ttiScreen.hbv` | String |  |  | "negative" | positive, negative, pending |  |  |
+| `ttiScreen.hcv` | String |  |  | "negative" | positive, negative, pending |  |  |
+| `ttiScreen.syphilis` | String |  |  | "negative" | positive, negative, pending |  |  |
+| `ttiScreen.malaria` | String |  |  | "negative" | positive, negative, pending |  |  |
+| `apheresis` | String |  |  | "" | SDP, RDP, None, |  |  |
+| `irradiated` | Boolean |  |  | false |  |  |  |
+| `leukoreduced` | Boolean |  |  | false |  |  |  |
 | `crossMatchPatient` | String |  |  |  |  |  |  |
 | `crossMatchResult` | String |  |  | "Not Done" | Compatible, Incompatible, Not Done |  |  |
 | `issuedTo` | String |  |  |  |  |  |  |
@@ -3983,6 +3995,7 @@ source `DietOrder.js` · timestamps: yes · virtuals: 0 · retention: Statutory 
 | `doctorName` | String | yes |  |  |  |  | Identity |
 | `dietType` | String | yes |  |  | Regular, Diabetic, Low Sodium, Liquid, Soft, High Protein, Low Fat, Renal, NPO, Other, Cardiac, Bland, Low Residue, Clear Liquid, Full Liquid, Pureed/Dysphagia, Tube/Enteral, Gluten Free, Neutropenic, Paediatric, Weight Loss, Keto, Post Surgery, Pregnancy/Lactation, Geriatric |  |  |
 | `mealTimes` | Array<Mixed> |  |  |  |  |  |  |
+| `dietaryPreference` | String |  |  | "" | veg, non_veg, eggetarian, vegan, jain, halal, |  |  |
 | `instructions` | String |  |  |  |  |  |  |
 | `allergies` | String |  |  |  |  |  | Health |
 | `status` | String |  |  | "Active" | Active, Completed, Cancelled |  |  |
@@ -4408,6 +4421,7 @@ source `Emergency.js` · timestamps: yes · virtuals: 0 · retention: Trip durat
 | `gender` | String |  |  |  | Male, Female, Other |  | Demographic |
 | `phone` | String |  |  |  |  |  | Contact |
 | `condition` | String | yes |  |  |  |  | Health |
+| `emergencyType` | String |  |  | "" | cardiac, stroke, trauma, burns, poisoning, obstetric, paediatric, psychiatric, snake_bite, drowning, allergic, respiratory, diabetic, seizure, fire_disaster, |  |  |
 | `severity` | String |  |  | "Serious" | Critical, Serious, Stable |  |  |
 | `status` | String |  |  | "Pending" | Pending, Assigned, Under Treatment, Stable, Transferred, Discharged, Rejected |  |  |
 | `assignedDoctor` | ObjectId |  |  |  |  | User |  |
@@ -5227,20 +5241,27 @@ source `FormTemplate.js` · timestamps: yes · virtuals: 0 · retention: n/a —
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
 | `key` | String | yes |  |  |  |  |  |
 | `title` | String | yes |  |  |  |  |  |
+| `titleHi` | String |  |  | "" |  |  |  |
 | `category` | String |  |  | "" |  |  |  |
 | `version` | Number |  |  | 1 |  |  |  |
 | `status` | String |  |  | "Draft" | Draft, Review, Published, Deprecated |  |  |
 | `definition.sections` | Array<subdocument> |  |  |  |  |  |  |
 | `definition.sections.id` | String |  |  |  |  |  |  |
 | `definition.sections.title` | String |  |  | "" |  |  |  |
+| `definition.sections.titleHi` | String |  |  | "" |  |  |  |
 | `definition.sections.fields` | Array<subdocument> |  |  | [] |  |  |  |
 | `definition.sections.fields.id` | String | yes |  |  |  |  |  |
 | `definition.sections.fields.type` | String | yes |  |  |  |  |  |
 | `definition.sections.fields.label` | String |  |  | "" |  |  |  |
 | `definition.sections.fields.labelHi` | String |  |  | "" |  |  |  |
+| `definition.sections.fields.placeholder` | String |  |  | "" |  |  |  |
+| `definition.sections.fields.placeholderHi` | String |  |  | "" |  |  |  |
+| `definition.sections.fields.help` | String |  |  | "" |  |  |  |
+| `definition.sections.fields.helpHi` | String |  |  | "" |  |  |  |
 | `definition.sections.fields.required` | Boolean |  |  | false |  |  |  |
 | `definition.sections.fields.unit` | String |  |  | "" |  |  |  |
 | `definition.sections.fields.options` | Array<Mixed> |  |  |  |  |  |  |
+| `definition.sections.fields.optionsHi` | Array<Mixed> |  |  |  |  |  |  |
 | `definition.sections.fields.min` | Number |  |  | null |  |  |  |
 | `definition.sections.fields.max` | Number |  |  | null |  |  |  |
 | `definition.sections.fields.showIf` | Mixed |  |  | null |  |  |  |
@@ -5974,6 +5995,7 @@ source `InsurancePolicy.js` · timestamps: yes · virtuals: 0 · retention: **UN
 | `tpa` | String |  |  | "" |  |  |  |
 | `policyNumber` | String | yes |  |  |  |  |  |
 | `memberIds` | Array<Mixed> |  |  |  |  |  |  |
+| `policyType` | String |  |  | "" | individual, family_floater, senior_citizen, critical_illness, top_up, group, maternity, accident, government_scheme, disease_specific, |  |  |
 | `scheme` | String |  |  | null | PM-JAY, CGHS, ESI, null |  |  |
 | `validFrom` | Date | yes |  |  |  |  |  |
 | `validTo` | Date | yes |  |  |  |  |  |
@@ -9265,6 +9287,13 @@ source `Prescription.js` · timestamps: yes · virtuals: 0 · retention: Statuto
 | `medicines.route` | String |  |  | "Oral" | Oral, IV, IM, Topical, Sublingual, Inhalation, Other |  |  |
 | `medicines.instructions` | String |  |  | "" |  |  |  |
 | `medicines.quantity` | Number | yes |  |  |  |  |  |
+| `medicines.noSubstitution` | Boolean |  |  | false |  |  |  |
+| `medicines.substitutedWith.medicineId` | ObjectId |  |  | null |  | Medicine |  |
+| `medicines.substitutedWith.medicineName` | String |  |  | "" |  |  |  |
+| `medicines.substitutedWith.reason` | String |  |  | "" |  |  |  |
+| `medicines.substitutedWith.patientConsent` | Boolean |  |  | false |  |  |  |
+| `medicines.substitutedWith.at` | Date |  |  | null |  |  |  |
+| `medicines.substitutedWith.by` | ObjectId |  |  | null |  | User |  |
 | `medicines.isDispensed` | Boolean |  |  | false |  |  |  |
 | `medicines.dispensedAt` | Date |  |  |  |  |  |  |
 | `medicines.dispensedBy` | String |  |  |  |  |  |  |
@@ -11368,7 +11397,7 @@ source `SignatureEvent.js` · timestamps: yes · virtuals: 0 · retention: Statu
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
-| `docRef.kind` | String |  |  | "other" | consent, discharge, ot, form, other |  |  |
+| `docRef.kind` | String |  |  | "other" | consent, discharge, ot, form, birth, other |  |  |
 | `docRef.id` | ObjectId | yes |  |  |  |  |  |
 | `level` | String | yes |  |  | L1, L2 |  |  |
 | `signerRole` | String | yes |  |  | patient, relative, witness, doctor, staff |  |  |
@@ -11453,6 +11482,21 @@ source `Staff.js` · timestamps: yes · virtuals: 0 · retention: Life of the pr
 | `overtime.reason` | String |  |  |  |  |  |  |
 | `overtime.approvedBy` | String |  |  |  |  |  |  |
 | `overtime.approvedAt` | Date |  |  |  |  |  |  |
+| `verifiedDocs` | Array<subdocument> |  |  |  |  |  |  |
+| `verifiedDocs.docType` | String |  |  | "Other" | Aadhar, PAN, MedicalCouncilReg, Degree, BackgroundCheck, Other |  |  |
+| `verifiedDocs.docNumber` | String |  |  | "" |  |  |  |
+| `verifiedDocs.docUrl` | String |  |  | "" |  |  |  |
+| `verifiedDocs.status` | String |  |  | "Pending" | Pending, Verified, Rejected |  |  |
+| `verifiedDocs.verifiedBy` | ObjectId |  |  | null |  | User |  |
+| `verifiedDocs.verifiedAt` | Date |  |  | null |  |  |  |
+| `verifiedDocs.remarks` | String |  |  | "" |  |  |  |
+| `exitInterview.conductedAt` | Date |  |  | null |  |  |  |
+| `exitInterview.conductedBy` | ObjectId |  |  | null |  | User |  |
+| `exitInterview.reasonForLeaving` | String |  |  | "" |  |  |  |
+| `exitInterview.feedback` | String |  |  | "" |  |  |  |
+| `exitInterview.handoverCompleted` | Boolean |  |  | false |  |  |  |
+| `exitInterview.eligibleForRehire` | Boolean |  |  | true |  |  |  |
+| `exitInterview.noDuesCleared` | Boolean |  |  | false |  |  |  |
 | `status` | String |  |  | "Active" | Active, Inactive, On Leave, Resigned |  |  |
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
 | `createdBy` | ObjectId |  |  |  |  | User | Identifier |
@@ -11680,7 +11724,21 @@ source `Supplier.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `onTimePct` | Number |  |  | null |  |  |  |
 | `qualityPct` | Number |  |  | null |  |  |  |
 | `leadTime` | Number |  |  | 7 |  |  |  |
-| `paymentTerms` | String |  |  | "Net 30" |  |  |  |
+| `ratings` | Array<subdocument> |  |  |  |  |  |  |
+| `ratings.rating` | Number |  |  |  |  |  |  |
+| `ratings.complianceScore` | Number |  |  |  |  |  |  |
+| `ratings.comments` | String |  |  | "" |  |  |  |
+| `ratings.ratedBy` | ObjectId |  |  |  |  | User |  |
+| `ratings.createdAt` | Date |  |  | [function] |  |  |  |
+| `kycDocs` | Array<subdocument> |  |  |  |  |  |  |
+| `kycDocs.docType` | String |  |  | "Other" | GST, PAN, DrugLicense, MSME, CancelledCheque, Other |  |  |
+| `kycDocs.docNumber` | String |  |  | "" |  |  |  |
+| `kycDocs.docUrl` | String |  |  | "" |  |  |  |
+| `kycDocs.verifiedAt` | Date |  |  | null |  |  |  |
+| `kycDocs.verifiedBy` | ObjectId |  |  | null |  | User |  |
+| `kycStatus` | String |  |  | "Pending" | Pending, Verified, Rejected, Expired |  |  |
+| `complianceScore` | Number |  |  | 100 |  |  |  |
+| `licenseExpiry` | Date |  |  | null |  |  |  |
 | `isActive` | Boolean |  |  | true |  |  |  |
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
 | `notes` | String |  |  |  |  |  |  |

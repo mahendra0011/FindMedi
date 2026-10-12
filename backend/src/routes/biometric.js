@@ -98,6 +98,7 @@ router.post('/webauthn/verify-punch', protect, async (req, res) => {
       userId: req.user._id,
       staffName: req.user.name,
       role: req.user.role,
+      hospitalId: req.user.hospitalId || null,
       punchType: punchType.toUpperCase(),
       verifyType: 'WEBAUTHN_BIOMETRIC',
       timestamp: new Date().toISOString()
@@ -119,12 +120,15 @@ router.post('/webauthn/verify-punch', protect, async (req, res) => {
  * Retrieve recent staff punch events for Clinic Admin / HR
  */
 // authz: role
-router.get('/logs', protect, async (req, res) => {
+router.get('/logs', protect, requireRole(['clinic_admin', 'hospital_admin', 'superadmin', 'hr']), async (req, res) => {
   try {
+    const filtered = (req.user.role === 'superadmin' && !req.user.hospitalId)
+      ? attendanceLogs
+      : attendanceLogs.filter((l) => !l.hospitalId || String(l.hospitalId) === String(req.user.hospitalId));
     res.json({
       success: true,
-      total: attendanceLogs.length,
-      logs: attendanceLogs.slice(0, 50)
+      total: filtered.length,
+      logs: filtered.slice(0, 50)
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

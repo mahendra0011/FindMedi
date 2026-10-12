@@ -7,7 +7,7 @@ import logger from '../config/logger.js';
 const router = express.Router();
 router.use(protect);
 
-// authz: prescriptions:write / records:read / pharmacy:read
+// authz: role
 router.post('/check', authorize('prescriptions:write', 'records:read', 'pharmacy:read', 'records:write'), async (req, res) => {
   try {
     const { drugs } = req.body || {};

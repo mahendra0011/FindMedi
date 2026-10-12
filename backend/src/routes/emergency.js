@@ -272,7 +272,8 @@ router.post('/:id/transfer-to-ipd', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ message: 'Already transferred' });
     }
 
-    // Generate admission ID    const admissionId = generateAdmissionId();
+    // Generate admission ID
+    const admissionId = generateAdmissionId();
 
     // Find appropriate bed based on severity
     const bed = await Bed.findOne({

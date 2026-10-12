@@ -79,7 +79,11 @@ router.get('/presence', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const { page, limit, search, available, specialization, location, city, includeAll, hospitalId, facilityId, doctor_type } = req.query;
+    const {
+      page, limit, search, available, specialization, specialty, specialtyCode,
+      location, city, includeAll, hospitalId, facilityId, doctor_type,
+      homeVisit, language, languages,
+    } = req.query;
 
     // AUTH-027: role + user in the key — otherwise an admin-view response
     // cached under bare query params is served to the next role.
@@ -105,14 +109,28 @@ router.get('/', async (req, res) => {
       { name: new RegExp(escapeRegex(capSearch(search)), 'i') },
       { specialization: new RegExp(escapeRegex(capSearch(search)), 'i') },
     ];
-    if (specialization && specialization !== 'All') {
-      const condition = specialtyCondition(specialization);
+    const specTarget = specialization || specialty || specialtyCode;
+    if (specTarget && specTarget !== 'All') {
+      const condition = specialtyCondition(specTarget);
       if (condition) filter.$and = [...(filter.$and || []), condition];
     }
     const locOrCity = city || location;
     if (locOrCity && locOrCity !== 'All') filter.location = new RegExp(escapeRegex(capSearch(locOrCity)), 'i');
     if (available !== undefined) filter.available = available === 'true';
     if (doctor_type) filter.doctor_type = doctor_type;
+
+    // B4 Facets (home visit & language)
+    if (homeVisit === 'true' || homeVisit === true || homeVisit === '1') {
+      filter.$or = [
+        ...(filter.$or ? [filter.$or] : []),
+        { home_visit: true },
+        { appointmentModes: { $in: ['home_visit', 'home'] } },
+      ];
+    }
+    const langTarget = language || languages;
+    if (langTarget) {
+      filter.languages = { $in: [new RegExp(escapeRegex(String(langTarget)), 'i')] };
+    }
 
     const paginateOpts = {
       page, limit,

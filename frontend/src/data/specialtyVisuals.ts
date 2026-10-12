@@ -1,0 +1,357 @@
+// subcatogary.md Part B — Visual styling and icons for specialties, keyed by canonical code and fallback to name/alias
+import {
+  Heart,
+  Brain,
+  Bone,
+  Baby,
+  Eye,
+  Activity,
+  Stethoscope,
+  Users,
+  Smile,
+  Shield,
+  Sparkles,
+  Zap,
+  Scissors,
+  Flame,
+  Radio,
+  Microscope,
+  Siren,
+  Clock,
+  Dumbbell,
+  Bed,
+  Moon,
+  Bug,
+  Dna,
+  type LucideIcon,
+} from 'lucide-react';
+import { resolveSpecialtyCode } from './specialties';
+
+export interface SpecialtyVisual {
+  icon: LucideIcon;
+  color: string;
+  textColor: string;
+  bg?: string;
+  border?: string;
+}
+
+export const SPECIALTY_VISUALS_BY_CODE: Record<string, SpecialtyVisual> = {
+  'SPEC.GENMED': {
+    icon: Stethoscope,
+    color: 'from-blue-500/20 to-blue-500/5',
+    textColor: 'text-blue-600',
+    bg: 'bg-teal-50 dark:bg-teal-500/10',
+    border: 'border-teal-200 dark:border-teal-800',
+  },
+  'SPEC.CARDIO': {
+    icon: Heart,
+    color: 'from-red-500/20 to-red-500/5',
+    textColor: 'text-red-600',
+    bg: 'bg-red-50 dark:bg-red-500/10',
+    border: 'border-red-200 dark:border-red-800',
+  },
+  'SPEC.CTVS': {
+    icon: Heart,
+    color: 'from-red-600/20 to-red-600/5',
+    textColor: 'text-red-700',
+    bg: 'bg-red-50 dark:bg-red-600/10',
+    border: 'border-red-300 dark:border-red-900',
+  },
+  'SPEC.VASC': {
+    icon: Activity,
+    color: 'from-rose-500/20 to-rose-500/5',
+    textColor: 'text-rose-600',
+    bg: 'bg-rose-50 dark:bg-rose-500/10',
+    border: 'border-rose-200 dark:border-rose-800',
+  },
+  'SPEC.ORTHO': {
+    icon: Bone,
+    color: 'from-blue-500/20 to-blue-500/5',
+    textColor: 'text-blue-600',
+    bg: 'bg-blue-50 dark:bg-blue-500/10',
+    border: 'border-blue-200 dark:border-blue-800',
+  },
+  'SPEC.OBGY': {
+    icon: Heart,
+    color: 'from-red-500/20 to-red-500/5',
+    textColor: 'text-red-500',
+    bg: 'bg-red-50 dark:bg-red-500/10',
+    border: 'border-red-200 dark:border-red-800',
+  },
+  'SPEC.PAED': {
+    icon: Baby,
+    color: 'from-green-500/20 to-green-500/5',
+    textColor: 'text-green-600',
+    bg: 'bg-green-50 dark:bg-green-500/10',
+    border: 'border-green-200 dark:border-green-800',
+  },
+  'SPEC.PAEDSURG': {
+    icon: Scissors,
+    color: 'from-emerald-500/20 to-emerald-500/5',
+    textColor: 'text-emerald-600',
+    bg: 'bg-emerald-50 dark:bg-emerald-500/10',
+    border: 'border-emerald-200 dark:border-emerald-800',
+  },
+  'SPEC.NEONATO': {
+    icon: Baby,
+    color: 'from-teal-500/20 to-teal-500/5',
+    textColor: 'text-teal-600',
+    bg: 'bg-teal-50 dark:bg-teal-500/10',
+    border: 'border-teal-200 dark:border-teal-800',
+  },
+  'SPEC.DERM': {
+    icon: Eye,
+    color: 'from-pink-500/20 to-pink-500/5',
+    textColor: 'text-pink-600',
+    bg: 'bg-pink-50 dark:bg-pink-500/10',
+    border: 'border-pink-200 dark:border-pink-800',
+  },
+  'SPEC.ENT': {
+    icon: Users,
+    color: 'from-indigo-500/20 to-indigo-500/5',
+    textColor: 'text-indigo-600',
+    bg: 'bg-indigo-50 dark:bg-indigo-500/10',
+    border: 'border-indigo-200 dark:border-indigo-800',
+  },
+  'SPEC.OPHTH': {
+    icon: Eye,
+    color: 'from-lime-500/20 to-lime-500/5',
+    textColor: 'text-lime-600',
+    bg: 'bg-lime-50 dark:bg-lime-500/10',
+    border: 'border-lime-200 dark:border-lime-800',
+  },
+  'SPEC.DENTAL': {
+    icon: Smile,
+    color: 'from-pink-400/20 to-pink-400/5',
+    textColor: 'text-pink-500',
+    bg: 'bg-pink-50 dark:bg-pink-400/10',
+    border: 'border-pink-200 dark:border-pink-800',
+  },
+  'SPEC.NEURO': {
+    icon: Brain,
+    color: 'from-purple-500/20 to-purple-500/5',
+    textColor: 'text-purple-600',
+    bg: 'bg-purple-50 dark:bg-purple-500/10',
+    border: 'border-purple-200 dark:border-purple-800',
+  },
+  'SPEC.NEUROSURG': {
+    icon: Brain,
+    color: 'from-purple-600/20 to-purple-600/5',
+    textColor: 'text-purple-700',
+    bg: 'bg-purple-50 dark:bg-purple-600/10',
+    border: 'border-purple-300 dark:border-purple-900',
+  },
+  'SPEC.PSYCH': {
+    icon: Brain,
+    color: 'from-violet-500/20 to-violet-500/5',
+    textColor: 'text-violet-600',
+    bg: 'bg-violet-50 dark:bg-violet-500/10',
+    border: 'border-violet-200 dark:border-violet-800',
+  },
+  'SPEC.GASTRO': {
+    icon: Activity,
+    color: 'from-amber-500/20 to-amber-500/5',
+    textColor: 'text-amber-600',
+    bg: 'bg-amber-50 dark:bg-amber-500/10',
+    border: 'border-amber-200 dark:border-amber-800',
+  },
+  'SPEC.HEPAT': {
+    icon: Activity,
+    color: 'from-amber-600/20 to-amber-600/5',
+    textColor: 'text-amber-700',
+    bg: 'bg-amber-50 dark:bg-amber-600/10',
+    border: 'border-amber-300 dark:border-amber-900',
+  },
+  'SPEC.NEPHRO': {
+    icon: Activity,
+    color: 'from-sky-500/20 to-sky-500/5',
+    textColor: 'text-sky-600',
+    bg: 'bg-sky-50 dark:bg-sky-500/10',
+    border: 'border-sky-200 dark:border-sky-800',
+  },
+  'SPEC.URO': {
+    icon: Activity,
+    color: 'from-teal-500/20 to-teal-500/5',
+    textColor: 'text-teal-600',
+    bg: 'bg-teal-50 dark:bg-teal-500/10',
+    border: 'border-teal-200 dark:border-teal-800',
+  },
+  'SPEC.PULMO': {
+    icon: Activity,
+    color: 'from-cyan-500/20 to-cyan-500/5',
+    textColor: 'text-cyan-600',
+    bg: 'bg-cyan-50 dark:bg-cyan-500/10',
+    border: 'border-cyan-200 dark:border-cyan-800',
+  },
+  'SPEC.ENDO': {
+    icon: Zap,
+    color: 'from-yellow-500/20 to-yellow-500/5',
+    textColor: 'text-yellow-600',
+    bg: 'bg-yellow-50 dark:bg-yellow-500/10',
+    border: 'border-yellow-200 dark:border-yellow-800',
+  },
+  'SPEC.RHEUM': {
+    icon: Activity,
+    color: 'from-orange-500/20 to-orange-500/5',
+    textColor: 'text-orange-600',
+    bg: 'bg-orange-50 dark:bg-orange-500/10',
+    border: 'border-orange-200 dark:border-orange-800',
+  },
+  'SPEC.ONCO': {
+    icon: Activity,
+    color: 'from-orange-600/20 to-orange-600/5',
+    textColor: 'text-orange-600',
+    bg: 'bg-orange-50 dark:bg-orange-500/10',
+    border: 'border-orange-200 dark:border-orange-800',
+  },
+  'SPEC.HAEM': {
+    icon: Activity,
+    color: 'from-red-500/20 to-red-500/5',
+    textColor: 'text-red-600',
+    bg: 'bg-red-50 dark:bg-red-500/10',
+    border: 'border-red-200 dark:border-red-800',
+  },
+  'SPEC.GENSURG': {
+    icon: Scissors,
+    color: 'from-slate-500/20 to-slate-500/5',
+    textColor: 'text-slate-600',
+    bg: 'bg-slate-50 dark:bg-slate-500/10',
+    border: 'border-slate-200 dark:border-slate-800',
+  },
+  'SPEC.PLASTSURG': {
+    icon: Sparkles,
+    color: 'from-purple-400/20 to-purple-400/5',
+    textColor: 'text-purple-600',
+    bg: 'bg-purple-50 dark:bg-purple-400/10',
+    border: 'border-purple-200 dark:border-purple-800',
+  },
+  'SPEC.ANAES': {
+    icon: Shield,
+    color: 'from-indigo-400/20 to-indigo-400/5',
+    textColor: 'text-indigo-600',
+    bg: 'bg-indigo-50 dark:bg-indigo-400/10',
+    border: 'border-indigo-200 dark:border-indigo-800',
+  },
+  'SPEC.RADIO': {
+    icon: Radio,
+    color: 'from-blue-600/20 to-blue-600/5',
+    textColor: 'text-blue-700',
+    bg: 'bg-blue-50 dark:bg-blue-600/10',
+    border: 'border-blue-300 dark:border-blue-900',
+  },
+  'SPEC.PATHO': {
+    icon: Microscope,
+    color: 'from-teal-600/20 to-teal-600/5',
+    textColor: 'text-teal-700',
+    bg: 'bg-teal-50 dark:bg-teal-600/10',
+    border: 'border-teal-300 dark:border-teal-900',
+  },
+  'SPEC.EMERG': {
+    icon: Siren,
+    color: 'from-rose-600/20 to-rose-600/5',
+    textColor: 'text-rose-700',
+    bg: 'bg-rose-50 dark:bg-rose-600/10',
+    border: 'border-rose-300 dark:border-rose-900',
+  },
+  'SPEC.GERI': {
+    icon: Clock,
+    color: 'from-stone-500/20 to-stone-500/5',
+    textColor: 'text-stone-600',
+    bg: 'bg-stone-50 dark:bg-stone-500/10',
+    border: 'border-stone-200 dark:border-stone-800',
+  },
+  'SPEC.SPORTS': {
+    icon: Dumbbell,
+    color: 'from-green-600/20 to-green-600/5',
+    textColor: 'text-green-700',
+    bg: 'bg-green-50 dark:bg-green-600/10',
+    border: 'border-green-300 dark:border-green-900',
+  },
+  'SPEC.SEXO': {
+    icon: Heart,
+    color: 'from-fuchsia-600/20 to-fuchsia-600/5',
+    textColor: 'text-fuchsia-700',
+    bg: 'bg-fuchsia-50 dark:bg-fuchsia-600/10',
+    border: 'border-fuchsia-300 dark:border-fuchsia-900',
+  },
+  'SPEC.INFERT': {
+    icon: Baby,
+    color: 'from-pink-600/20 to-pink-600/5',
+    textColor: 'text-pink-700',
+    bg: 'bg-pink-50 dark:bg-pink-600/10',
+    border: 'border-pink-300 dark:border-pink-900',
+  },
+  'SPEC.NUCMED': {
+    icon: Zap,
+    color: 'from-amber-600/20 to-amber-600/5',
+    textColor: 'text-amber-700',
+    bg: 'bg-amber-50 dark:bg-amber-600/10',
+    border: 'border-amber-300 dark:border-amber-900',
+  },
+  'SPEC.PMR': {
+    icon: Dumbbell,
+    color: 'from-cyan-600/20 to-cyan-600/5',
+    textColor: 'text-cyan-700',
+    bg: 'bg-cyan-50 dark:bg-cyan-600/10',
+    border: 'border-cyan-300 dark:border-cyan-900',
+  },
+  'SPEC.OCCMED': {
+    icon: Activity,
+    color: 'from-slate-600/20 to-slate-600/5',
+    textColor: 'text-slate-700',
+    bg: 'bg-slate-50 dark:bg-slate-600/10',
+    border: 'border-slate-300 dark:border-slate-900',
+  },
+  'SPEC.PALLI': {
+    icon: Bed,
+    color: 'from-teal-600/20 to-teal-600/5',
+    textColor: 'text-teal-700',
+    bg: 'bg-teal-50 dark:bg-teal-600/10',
+    border: 'border-teal-300 dark:border-teal-900',
+  },
+  'SPEC.SLEEP': {
+    icon: Moon,
+    color: 'from-indigo-600/20 to-indigo-600/5',
+    textColor: 'text-indigo-700',
+    bg: 'bg-indigo-50 dark:bg-indigo-600/10',
+    border: 'border-indigo-300 dark:border-indigo-900',
+  },
+  'SPEC.ALLERGY': {
+    icon: Shield,
+    color: 'from-yellow-600/20 to-yellow-600/5',
+    textColor: 'text-yellow-700',
+    bg: 'bg-yellow-50 dark:bg-yellow-600/10',
+    border: 'border-yellow-300 dark:border-yellow-900',
+  },
+  'SPEC.INFECT': {
+    icon: Bug,
+    color: 'from-rose-500/20 to-rose-500/5',
+    textColor: 'text-rose-600',
+    bg: 'bg-rose-50 dark:bg-rose-500/10',
+    border: 'border-rose-200 dark:border-rose-800',
+  },
+  'SPEC.GENETICS': {
+    icon: Dna,
+    color: 'from-purple-600/20 to-purple-600/5',
+    textColor: 'text-purple-700',
+    bg: 'bg-purple-50 dark:bg-purple-600/10',
+    border: 'border-purple-300 dark:border-purple-900',
+  },
+};
+
+const DEFAULT_VISUAL: SpecialtyVisual = {
+  icon: Stethoscope,
+  color: 'from-blue-500/20 to-blue-500/5',
+  textColor: 'text-blue-600',
+  bg: 'bg-slate-50 dark:bg-slate-500/10',
+  border: 'border-slate-200 dark:border-slate-800',
+};
+
+export function getSpecialtyVisual(spec: string): SpecialtyVisual {
+  if (!spec) return DEFAULT_VISUAL;
+  const code = resolveSpecialtyCode(spec);
+  if (code && SPECIALTY_VISUALS_BY_CODE[code]) {
+    return SPECIALTY_VISUALS_BY_CODE[code];
+  }
+  return DEFAULT_VISUAL;
+}

@@ -9,32 +9,21 @@ import { Card, CardContent } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import HospitalCard from '@/components/HospitalCard';
 
-const ALL_SPECIALTIES = [
-  { name: 'General Physician/ Internal Medicine', icon: Stethoscope, color: 'from-blue-500/20 to-blue-500/5', textColor: 'text-blue-500' },
-  { name: 'Dermatology', icon: Eye, color: 'from-pink-500/20 to-pink-500/5', textColor: 'text-pink-500' },
-  { name: 'Obstetrics & Gynaecology', icon: Heart, color: 'from-red-500/20 to-red-500/5', textColor: 'text-red-500' },
-  { name: 'Orthopaedics', icon: Bone, color: 'from-blue-500/20 to-blue-500/5', textColor: 'text-blue-500' },
-  { name: 'ENT', icon: Users, color: 'from-indigo-500/20 to-indigo-500/5', textColor: 'text-indigo-500' },
-  { name: 'Neurology', icon: Brain, color: 'from-purple-500/20 to-purple-500/5', textColor: 'text-purple-500' },
-  { name: 'Cardiology', icon: Heart, color: 'from-red-500/20 to-red-500/5', textColor: 'text-red-500' },
-  { name: 'Urology', icon: Activity, color: 'from-teal-500/20 to-teal-500/5', textColor: 'text-teal-500' },
-  { name: 'Gastroenterology/GI medicine', icon: Activity, color: 'from-amber-500/20 to-amber-500/5', textColor: 'text-amber-500' },
-  { name: 'Psychiatry', icon: Brain, color: 'from-violet-500/20 to-violet-500/5', textColor: 'text-violet-500' },
-  { name: 'Paediatrics', icon: Baby, color: 'from-green-500/20 to-green-500/5', textColor: 'text-green-500' },
-  { name: 'Pulmonology/ Respiratory Medicine', icon: Activity, color: 'from-cyan-500/20 to-cyan-500/5', textColor: 'text-cyan-500' },
-  { name: 'Endocrinology', icon: Activity, color: 'from-yellow-500/20 to-yellow-500/5', textColor: 'text-yellow-500' },
-  { name: 'Nephrology', icon: Activity, color: 'from-sky-500/20 to-sky-500/5', textColor: 'text-sky-500' },
-  { name: 'Neurosurgery', icon: Brain, color: 'from-purple-600/20 to-purple-600/5', textColor: 'text-purple-600' },
-  { name: 'Rheumatology', icon: Activity, color: 'from-orange-500/20 to-orange-500/5', textColor: 'text-orange-500' },
-  { name: 'Ophthalmology', icon: Eye, color: 'from-lime-500/20 to-lime-500/5', textColor: 'text-lime-500' },
-  { name: 'Surgical Gastroenterology', icon: Activity, color: 'from-amber-600/20 to-amber-600/5', textColor: 'text-amber-600' },
-  { name: 'Infectious Disease', icon: Activity, color: 'from-rose-500/20 to-rose-500/5', textColor: 'text-rose-500' },
-  { name: 'General & Laparoscopic Surgeon', icon: Stethoscope, color: 'from-slate-500/20 to-slate-500/5', textColor: 'text-slate-500' },
-  { name: 'Psychology', icon: Brain, color: 'from-fuchsia-500/20 to-fuchsia-500/5', textColor: 'text-fuchsia-500' },
-  { name: 'Medical Oncology', icon: Activity, color: 'from-orange-600/20 to-orange-600/5', textColor: 'text-orange-600' },
-  { name: 'Diabetology', icon: Activity, color: 'from-amber-400/20 to-amber-400/5', textColor: 'text-amber-400' },
-  { name: 'Dentist', icon: Activity, color: 'from-pink-400/20 to-pink-400/5', textColor: 'text-pink-400' },
-];
+import { CANONICAL_SPECIALTIES } from '@/data/specialties';
+import { getSpecialtyVisual } from '@/data/specialtyVisuals';
+
+// subcatogary.md Part B — Canonical specialties list derived from taxonomy (Psychology removed)
+const ALL_SPECIALTIES = CANONICAL_SPECIALTIES.map((spec) => {
+  const visual = getSpecialtyVisual(spec.code);
+  return {
+    code: spec.code,
+    name: spec.name,
+    icon: visual.icon,
+    color: visual.color,
+    textColor: visual.textColor,
+  };
+});
+
 
 // Show first 14 by default (2 rows of 7)
 const INITIAL_VISIBLE = 14;

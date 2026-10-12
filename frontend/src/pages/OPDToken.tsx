@@ -75,7 +75,7 @@ export default function OPDToken() {
         <div className="relative flex-1 max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Search tokens..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} /></div>
         <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)} className="h-10 px-3 rounded-lg border border-input bg-background text-sm">
           <option value="All">All Departments</option>
-          {['General', 'Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'ENT', 'Ophthalmology', 'Dermatology'].map(d => <option key={d} value={d}>{d}</option>)}
+          {['General', 'Cardiology', 'Neurology', 'Orthopaedics', 'Paediatrics', 'ENT', 'Ophthalmology', 'Dermatology'].map(d => <option key={d} value={d}>{d}</option>)}
         </select>
         <Button onClick={() => setShowGenerate(true)}><Plus className="w-4 h-4 mr-1" /> Generate Token</Button>
       </div>
@@ -131,7 +131,7 @@ export default function OPDToken() {
             <div className="space-y-4">
               <div><label className="text-sm font-medium mb-1 block">Patient Name *</label><Input value={newToken.patientName} onChange={e => setNewToken({ ...newToken, patientName: e.target.value })} /></div>
               <div><label className="text-sm font-medium mb-1 block">UHID (optional)</label><Input value={newToken.uhid} onChange={e => setNewToken({ ...newToken, uhid: e.target.value })} placeholder="Search existing patient" /></div>
-              <div><label className="text-sm font-medium mb-1 block">Department *</label><select value={newToken.department} onChange={e => setNewToken({ ...newToken, department: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['General', 'Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'ENT', 'Ophthalmology', 'Dermatology'].map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+              <div><label className="text-sm font-medium mb-1 block">Department *</label><select value={newToken.department} onChange={e => setNewToken({ ...newToken, department: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['General', 'Cardiology', 'Neurology', 'Orthopaedics', 'Paediatrics', 'ENT', 'Ophthalmology', 'Dermatology'].map(d => <option key={d} value={d}>{d}</option>)}</select></div>
               <div><label className="text-sm font-medium mb-1 block">Doctor</label><Input value={newToken.doctorName} onChange={e => setNewToken({ ...newToken, doctorName: e.target.value })} placeholder="Doctor name" /></div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="text-sm font-medium mb-1 block">Type</label><select value={newToken.type} onChange={e => setNewToken({ ...newToken, type: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option>OPD</option><option>Follow-up</option><option>Emergency</option></select></div>

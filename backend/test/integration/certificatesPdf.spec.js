@@ -1,11 +1,12 @@
 /**
- * Checklist L9: death + birth certificate PDFs.
+ * Checklist L9: death + birth certificate PDFs with tamper seals and SignatureEvents.
  *
  * Real HTTP through the real routers (appHarness); only models are stubbed.
  * Asserts the statutory PDF bytes actually come out the other end — a
  * handler-level test cannot tell whether the route ever set the headers.
  */
 import { mountApp } from '../helpers/appHarness.js';
+import { verifySeal } from '../../src/lib/docSeal.js';
 
 const deathRow = {
   _id: 'd1', hospitalId: 'h1', patientName: 'Ramesh Kumar',
@@ -18,6 +19,8 @@ const birthRow = {
   _id: 'b1', hospitalId: 'h1', motherId: 'u5', weightKg: 3.2, sex: 'Female',
   timeOfBirth: '2026-02-01T04:10:00Z', deliveryType: 'Normal', certificateNo: 'BC-2026-042',
 };
+
+const signatureEvents = [];
 
 const { as: asMort } = await mountApp('mortuary', {
   '../../src/models/DeathRecord.js': () => ({
@@ -42,6 +45,14 @@ const { as: asMat } = await mountApp('maternity', {
         && (!filter.hospitalId || filter.hospitalId === birthRow.hospitalId) ? birthRow : null),
     },
   }),
+  '../../src/models/SignatureEvent.js': () => ({
+    default: {
+      create: async (data) => {
+        signatureEvents.push(data);
+        return data;
+      },
+    },
+  }),
   '../../src/models/User.js': () => ({
     default: { findById: () => ({ select: async () => ({ name: 'Sunita Devi' }) }) },
   }),
@@ -54,6 +65,7 @@ const { as: asMat } = await mountApp('maternity', {
 const staff = { _id: 'n1', id: 'n1', role: 'nurse', hospitalId: 'h1' };
 const otherTenant = { _id: 'n2', id: 'n2', role: 'nurse', hospitalId: 'h2' };
 const patient = { _id: 'p1', id: 'p1', role: 'patient', hospitalId: 'h1' };
+const doctor = { _id: 'dr1', id: 'dr1', role: 'doctor', hospitalId: 'h1' };
 
 describe('L9 statutory certificate PDFs', () => {
   test('death certificate renders a real PDF', async () => {
@@ -74,13 +86,38 @@ describe('L9 statutory certificate PDFs', () => {
     expect(r.status).toBe(403);
   });
 
-  test('birth certificate renders a real PDF', async () => {
-    const r = await asMat({ _id: 'dr1', id: 'dr1', role: 'doctor', hospitalId: 'h1' })
-      .get('/births/b1/certificate');
+  test('birth certificate renders a sealed PDF and writes SignatureEvent (D3)', async () => {
+    const r = await asMat(doctor).get('/births/b1/certificate');
     expect(r.status).toBe(200);
     expect(r.headers['content-type']).toContain('application/pdf');
     expect(r.headers['content-disposition']).toContain('birth-certificate-BC-2026-042.pdf');
     expect(Buffer.byteLength(r.body)).toBeGreaterThan(500);
+
+    // D3 docSeal headers
+    const nonce = r.headers['x-doc-seal-nonce'];
+    const signature = r.headers['x-doc-seal-signature'];
+    expect(nonce).toBeDefined();
+    expect(signature).toBeDefined();
+
+    // D3 SignatureEvent written with kind: 'birth'
+    const event = signatureEvents.find((e) => e.docRef?.kind === 'birth' && String(e.docRef?.id) === 'b1');
+    expect(event).toBeDefined();
+    expect(event.level).toBe('L2');
+    expect(event.signerRole).toBe('staff');
+
+    // Cryptographic verification via verifySeal
+    const isValid = verifySeal({ digest: event.digest, signature: event.signature, nonce });
+    expect(isValid).toBe(true);
+  });
+
+  test('birth certificate is tenant-scoped', async () => {
+    const r = await asMat(otherTenant).get('/births/b1/certificate');
+    expect(r.status).toBe(404);
+  });
+
+  test('birth certificate is closed to patients', async () => {
+    const r = await asMat(patient).get('/births/b1/certificate');
+    expect(r.status).toBe(403);
   });
 
   test('birth certificate requires authentication', async () => {

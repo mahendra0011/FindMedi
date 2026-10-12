@@ -29,7 +29,11 @@ router.get('/', async (req, res) => {
       return res.json(cached);
     }
 
-    const { search, city, specialty, status } = req.query;
+    const {
+      search, city, specialty, status,
+      ownership, hospitalType, scheme, accreditation,
+      emergency24x7, ambulanceService,
+    } = req.query;
     const filter = {};
 
     if (status && req.headers.authorization) {
@@ -57,6 +61,27 @@ router.get('/', async (req, res) => {
     if (city) filter.city = new RegExp(escapeRegex(capSearch(city)), 'i');
     if (specialty && capSearch(specialty)) {
       filter.specialties = specialtyPattern(specialty) || new RegExp(escapeRegex(capSearch(specialty)), 'i');
+    }
+
+    // B4 Facets
+    const ownTarget = ownership || hospitalType;
+    if (ownTarget) {
+      filter.hospitalType = new RegExp(escapeRegex(String(ownTarget)), 'i');
+    }
+    if (scheme) {
+      filter.$or = [
+        ...(filter.$or ? [filter.$or] : []),
+        { insuranceAccepted: { $in: [new RegExp(escapeRegex(String(scheme)), 'i')] } },
+      ];
+    }
+    if (accreditation) {
+      filter.accreditations = { $in: [new RegExp(escapeRegex(String(accreditation)), 'i')] };
+    }
+    if (emergency24x7 === 'true' || emergency24x7 === true || emergency24x7 === '1') {
+      filter.emergency24x7 = true;
+    }
+    if (ambulanceService === 'true' || ambulanceService === true || ambulanceService === '1') {
+      filter.ambulanceService = true;
     }
 
     const { page, limit } = req.query;

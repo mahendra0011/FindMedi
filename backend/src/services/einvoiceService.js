@@ -58,11 +58,22 @@ export function buildEinvoicePayload({ billing, hospital, patient, lineItems }) 
   const invoiceDate = new Date(billing.createdAt || Date.now());
   const dateStr = invoiceDate.toISOString().slice(0, 10).split('-').reverse().join('/'); // DD/MM/YYYY
 
+  let supTyp = 'B2B';
+  if (billing?.supplyType) {
+    supTyp = billing.supplyType;
+  } else if (patient?.supplyType) {
+    supTyp = patient.supplyType;
+  } else if (patient?.isB2C || billing?.isB2C) {
+    supTyp = 'B2C';
+  } else if (patient?.gstin && patient.gstin !== 'URP') {
+    supTyp = 'B2B';
+  }
+
   return {
     Version: '1.1',
     TranDtls: {
       TaxSch: 'GST',
-      SupTyp: 'B2B',
+      SupTyp: supTyp,
       RegRev: 'N',
       EcmGstin: null,
     },
@@ -215,8 +226,23 @@ function generateEinvoiceQr({ irn, ackNo, invoiceNo, invoiceDate, total }) {
 /**
  * Cancel IRN (within 24 hours of generation per GSTN rules).
  */
-export async function cancelEinvoice(irn, cancellationReason = '1') {
+export async function cancelEinvoice(irn, cancellationReason = '1', options = {}) {
   const config = einvoiceConfig();
+
+  if (options.generatedAt) {
+    const generatedTime = new Date(options.generatedAt).getTime();
+    const currentTime = options.now ? new Date(options.now).getTime() : Date.now();
+    const ageMs = currentTime - generatedTime;
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+    if (ageMs > TWENTY_FOUR_HOURS_MS) {
+      return {
+        success: false,
+        error: 'CANCEL_WINDOW_EXPIRED',
+        message: 'E-Invoice cancellation window (24 hours) expired',
+      };
+    }
+  }
+
   if (config.mode === 'sandbox') {
     return { success: true, mode: 'sandbox', irn, status: 'Cancelled', reason: cancellationReason };
   }

@@ -1,4 +1,4 @@
-﻿All notable changes to this repository are documented here.
+All notable changes to this repository are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -14,6 +14,10 @@ the finding ID â€” the full reported â†’ fixed trail is in
 
 ### Added
 
+- Multi-level SLA escalation (D4): Policy-driven escalation tiers and SLA window in `approvals.js` (`POST /sweep`) querying `ApprovalPolicy.escalation[]` with fallback default tiers, idempotent re-sweep, and grace expiry past due window.
+- Forms Hindi and localized templates (D5): Form template schema extended with `placeholderHi`, `optionsHi`, `titleHi`, `helpHi` in `models/FormTemplate.js`; `?locale=hi` support with `localizeTemplate()` in `routes/forms.js` for templates list, detail, and PDF rendering; Noto Sans Devanagari font embedding in `printEngine.js`; live EN/HI language toggling in `FormRenderer.tsx`, `FormsFill.tsx`, and `FormBuilderStudio.tsx`.
+- Birth certificate seal & QR (D3): Applied `sealDoc('birth', ...)` and created `SignatureEvent` audit records on statutory birth certificates in `routes/maternity.js` with cryptographic verification headers and test assertions.
+- Auto follow-up booking (D2): Added `followup_confirm` SMS/WhatsApp templates in `notifyTemplates.js`, incorporated `Tentative` status in `appointmentReminder.job.js`, and added slot conflict adjustment and confirmation/rejection endpoints in `routes/recall.js`.
 - Health-ID scan receipts: `GET /api/health-id/scans` + a "Scan Activity"
   card on the patient's Health ID page ��� who scanned your card, when, from
   which IP, and what was shared (REC-M-04).
@@ -146,6 +150,8 @@ the finding ID â€” the full reported â†’ fixed trail is in
   (DP-M-01 registry entry + fixtures included).
 
 ### Fixed
+
+- Phase 1 P0 green board: resolved AppSidebar `MessageSquare` import blocker, `accessibility.spec.ts` ESM `__dirname` blocker, all 13 backend lint errors, duplicate keys in `settings.js`, doctor sidebar duplicates, locked in 37-error TS ratchet improvement (11934), and regenerated `authz-manifest.json` and `data-dictionary.md`.
 
 - Creating an insurance claim **always failed**: `claimId` is required + unique
   on the schema, but zod stripped it from the body and the server-side

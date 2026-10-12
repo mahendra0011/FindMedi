@@ -16,9 +16,10 @@ const canManageTests = (req) => ['superadmin', 'hospital_admin', 'clinic_doctor'
 
 router.get('/', async (req, res) => {
   try {
-    const { category, department, popular, hospitalId, facilityId, providerId, search } = req.query;
+    const { category, categoryCode, department, popular, hospitalId, facilityId, providerId, search } = req.query;
     const filter = {};
-    if (category) filter.category = category;
+    if (categoryCode) filter.categoryCode = categoryCode;
+    else if (category) filter.category = category;
     if (department) filter.department = department;
     if (popular === 'true') filter.popular = true;
     if (facilityId) filter.hospitalId = facilityId;

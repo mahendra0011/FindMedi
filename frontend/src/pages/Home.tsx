@@ -60,14 +60,14 @@ const services = [
   { icon: Syringe, name: "Vaccination", price: "₹250" },
 ];
 
-// Static fallback only — live DB counts overwrite these on load (no hardcoded marketing numbers).
+// subcatogary.md Part B — Featured specialties with live counts from API
 const specialties = [
-  { icon: Stethoscope, name: "General Physician", query: "General Physician", color: "bg-emerald-500/10 text-emerald-600", count: "45+" },
-  { icon: Baby, name: "Gynecologist", query: "Obstetrics & Gynaecology", color: "bg-pink-500/10 text-pink-600", count: "32+" },
-  { icon: Smile, name: "Dermatologist", query: "Dermatology", color: "bg-rose-500/10 text-rose-600", count: "28+" },
-  { icon: Heart, name: "Pediatricians", query: "Paediatrics", color: "bg-violet-500/10 text-violet-600", count: "25+" },
-  { icon: Brain, name: "Neurologist", query: "Neurology", color: "bg-blue-500/10 text-blue-600", count: "20+" },
-  { icon: UtensilsCrossed, name: "Gastroenterologist", query: "Gastroenterology", color: "bg-amber-500/10 text-amber-600", count: "18+" },
+  { icon: Stethoscope, name: "General Physician", query: "General Physician", code: "SPEC.GENMED", color: "bg-emerald-500/10 text-emerald-600" },
+  { icon: Baby, name: "Gynecologist", query: "Obstetrics & Gynaecology", code: "SPEC.OBGY", color: "bg-pink-500/10 text-pink-600" },
+  { icon: Smile, name: "Dermatologist", query: "Dermatology", code: "SPEC.DERM", color: "bg-rose-500/10 text-rose-600" },
+  { icon: Heart, name: "Pediatricians", query: "Paediatrics", code: "SPEC.PAED", color: "bg-violet-500/10 text-violet-600" },
+  { icon: Brain, name: "Neurologist", query: "Neurology", code: "SPEC.NEURO", color: "bg-blue-500/10 text-blue-600" },
+  { icon: UtensilsCrossed, name: "Gastroenterologist", query: "Gastroenterology", code: "SPEC.GASTRO", color: "bg-amber-500/10 text-amber-600" },
 ];
 
 const whyChooseUs = [
@@ -177,20 +177,30 @@ const Home = () => {
     load();
   }, []);
 
-  // Live specialty counts from DB (limit=1 + total); fallback keeps static text on failure.
+  // Live specialty counts from DB (platform endpoint or per-specialty count); no fake marketing numbers.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
+        const countsData: any = await api.getSpecialtyCounts().catch(() => null);
+        if (countsData && typeof countsData === 'object' && Object.keys(countsData).length > 0) {
+          const mapped: Record<string, number> = {};
+          for (const s of specialties) {
+            mapped[s.name] = countsData[s.code] ?? 0;
+          }
+          if (!cancelled) setSpecialtyCounts(mapped);
+          return;
+        }
+
         const entries = await Promise.all(specialties.map(async (s) => {
           try {
             const res: any = await api.getDoctors({ specialization: s.query, limit: '1' });
-            const total = res?.total ?? res?.totalCount ?? res?.count ?? (Array.isArray(res?.doctors) ? undefined : undefined);
+            const total = res?.total ?? res?.totalCount ?? res?.count;
             return [s.name, typeof total === 'number' ? total : null] as const;
           } catch { return [s.name, null] as const; }
         }));
         if (!cancelled) setSpecialtyCounts(Object.fromEntries(entries));
-      } catch { /* keep fallback counts */ }
+      } catch { /* fail soft without fake numbers */ }
     })();
     return () => { cancelled = true; };
   }, []);
@@ -553,7 +563,11 @@ const Home = () => {
                   <spec.icon className="w-7 h-7" />
                 </div>
                 <h3 className="font-semibold text-foreground">{spec.name}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{specialtyCounts[spec.name] != null ? `${specialtyCounts[spec.name]} Doctors` : `${spec.count} Doctors`}</p>
+                {specialtyCounts[spec.name] != null ? (
+                  <p className="text-sm text-muted-foreground mt-1">{specialtyCounts[spec.name]} Doctors</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-1 opacity-0">·</p>
+                )}
               </motion.div>
             ))}
           </div>

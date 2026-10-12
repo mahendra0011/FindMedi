@@ -150,8 +150,8 @@ export default function ClinicAdminDashboard() {
           <CardContent className="p-4 space-y-3">
             {[
               { name: 'Dr. Ramesh Sharma', spec: 'General Medicine', room: 'Room 1', waiting: 4, status: 'Consulting' },
-              { name: 'Dr. Priya Patel', spec: 'Pediatrics', room: 'Room 2', waiting: 2, status: 'Consulting' },
-              { name: 'Dr. Vivek Verma', spec: 'Orthopedics', room: 'Room 3', waiting: 0, status: 'Available' },
+              { name: 'Dr. Priya Patel', spec: 'Paediatrics', room: 'Room 2', waiting: 2, status: 'Consulting' },
+              { name: 'Dr. Vivek Verma', spec: 'Orthopaedics', room: 'Room 3', waiting: 0, status: 'Available' },
               { name: 'Dr. Ananya Roy', spec: 'Dermatology', room: 'Room 4', waiting: 3, status: 'Consulting' },
             ].map((doc, idx) => (
               <div key={idx} className="p-3 rounded-2xl bg-muted/20 border flex items-center justify-between text-xs">
