@@ -151,8 +151,8 @@ describe('Wave 3 / T8: Messaging Providers Unit Tests (SMS & WhatsApp)', () => {
         json: async () => ({ type: 'success', message: 'sms-fallback-99' }),
       });
 
-      let sentVia = '';
-      let messageId = '';
+      let sentVia;
+      let messageId;
       try {
         const wa = await sendWhatsApp({ to: '919876543210', text: 'Test alert' });
         sentVia = 'whatsapp';

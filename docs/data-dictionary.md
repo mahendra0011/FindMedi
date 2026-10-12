@@ -13,8 +13,8 @@
 
 ## Summary
 
-- **330 models** across 322 files (0 skipped)
-- **7282 schema fields**, of which **762 classified as PII** in **233 collections**
+- **332 models** across 324 files (0 skipped)
+- **7315 schema fields**, of which **762 classified as PII** in **233 collections**
 - **6 collections** carry a TTL index
 - **120 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -158,7 +158,7 @@
 | `facilities` | Facility | 79 | 0 | 8 | — | Operational config (organization/catalog record — not personal data) |
 | `familymembers` | FamilyMember | 35 | 12 | 3 | — | Clinical records |
 | `featuredlistings` | FeaturedListing | 11 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
-| `feedbacks` | Feedback | 15 | 2 | 4 | — | **UNMAPPED — see gaps** |
+| `feedbacks` | Feedback | 17 | 2 | 7 | — | **UNMAPPED — see gaps** |
 | `fertilitycycles` | FertilityCycle | 19 | 3 | 6 | — | **UNMAPPED — see gaps** |
 | `formresponses` | FormResponse | 20 | 3 | 6 | — | Clinical records |
 | `formtemplates` | FormTemplate | 45 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
@@ -220,6 +220,8 @@
 | `mtpregisters` | MtpRegister | 12 | 3 | 1 | — | **UNMAPPED — see gaps** |
 | `nabhassessments` | NabhAssessment | 10 | 0 | 3 | — | No PII fields detected |
 | `nabhchapters` | NabhChapter | 9 | 0 | 1 | — | No PII fields detected |
+| `narcoticadjustments` | NarcoticAdjustment | 16 | 0 | 5 | — | No PII fields detected |
+| `narcoticcounts` | NarcoticCount | 15 | 0 | 5 | — | No PII fields detected |
 | `needlesticks` | NeedleStick | 20 | 0 | 2 | — | No PII fields detected |
 | `newbornscreenings` | NewbornScreening | 16 | 3 | 1 | — | Clinical records |
 | `nicurecords` | NicuRecord | 26 | 3 | 3 | — | Clinical records |
@@ -5170,6 +5172,8 @@ source `Feedback.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED 
 | `npsScore` | Number |  |  |  |  |  |  |
 | `rating` | Number |  |  |  |  |  |  |
 | `comment` | String |  |  | "" |  |  |  |
+| `refModel` | String |  |  | "" | , Appointment, Admission, PharmacyOrder, LabOrder, Teleconsult, Other |  |  |
+| `refId` | String |  |  | "" |  |  |  |
 | `status` | String |  |  | "new" | new, in_review, resolved |  |  |
 | `response.by` | ObjectId |  |  |  |  | User |  |
 | `response.at` | Date |  |  |  |  |  |  |
@@ -5185,8 +5189,11 @@ Indexes:
 |---|---|
 | `hospitalId:1` |  |
 | `patientId:1` |  |
+| `refModel:1` |  |
+| `refId:1` |  |
 | `status:1` |  |
 | `hospitalId:1, createdAt:-1` |  |
+| `patientId:1, context:1, refId:1` | unique, partial |
 
 ### `fertilitycycles` — FertilityCycle
 
@@ -7585,6 +7592,71 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `code:1` | unique |
+
+### `narcoticadjustments` — NarcoticAdjustment
+
+source `NarcoticAdjustment.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `storeId` | ObjectId |  |  |  |  | Store |  |
+| `medicineId` | ObjectId | yes |  |  |  | Medicine |  |
+| `medicineName` | String | yes |  |  |  |  |  |
+| `batch` | String |  |  | "" |  |  |  |
+| `qty` | Number | yes |  |  |  |  |  |
+| `type` | String | yes |  |  | wastage, breakage, expiry, return-to-supplier |  |  |
+| `reason` | String | yes |  |  |  |  |  |
+| `witnessBy` | ObjectId | yes |  |  |  | User |  |
+| `witnessByName` | String |  |  | "" |  |  |  |
+| `recordedBy` | ObjectId | yes |  |  |  | User |  |
+| `recordedByName` | String |  |  | "" |  |  |  |
+| `at` | Date |  |  | [function] |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `storeId:1` |  |
+| `medicineId:1` |  |
+| `at:1` |  |
+| `hospitalId:1, medicineId:1, at:-1` |  |
+
+### `narcoticcounts` — NarcoticCount
+
+source `NarcoticCount.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `storeId` | ObjectId |  |  |  |  | Store |  |
+| `medicineId` | ObjectId | yes |  |  |  | Medicine |  |
+| `medicineName` | String | yes |  |  |  |  |  |
+| `batch` | String |  |  | "" |  |  |  |
+| `countedQty` | Number | yes |  |  |  |  |  |
+| `countedBy` | ObjectId | yes |  |  |  | User |  |
+| `countedByName` | String |  |  | "" |  |  |  |
+| `witnessBy` | ObjectId | yes |  |  |  | User |  |
+| `witnessByName` | String |  |  | "" |  |  |  |
+| `notes` | String |  |  | "" |  |  |  |
+| `at` | Date |  |  | [function] |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `storeId:1` |  |
+| `medicineId:1` |  |
+| `at:1` |  |
+| `hospitalId:1, medicineId:1, at:-1` |  |
 
 ### `needlesticks` — NeedleStick
 
