@@ -13,8 +13,8 @@
 
 ## Summary
 
-- **329 models** across 321 files (0 skipped)
-- **7263 schema fields**, of which **762 classified as PII** in **233 collections**
+- **330 models** across 322 files (0 skipped)
+- **7282 schema fields**, of which **762 classified as PII** in **233 collections**
 - **6 collections** carry a TTL index
 - **120 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -121,6 +121,7 @@
 | `dailyrcmmetrics` | DailyRcmMetric | 11 | 0 | 3 | — | No PII fields detected |
 | `dashboardalerts` | DashboardAlert | 17 | 0 | 6 | — | No PII fields detected |
 | `datasubjectrequests` | DataSubjectRequest | 18 | 1 | 7 | — | Audit logs |
+| `ddioverrides` | DdiOverride | 14 | 0 | 4 | — | No PII fields detected |
 | `deathrecords` | DeathRecord | 18 | 2 | 1 | — | Clinical records |
 | `debitnotes` | DebitNote | 12 | 2 | 3 | — | Payment and ledger entries |
 | `delegations` | Delegation | 10 | 0 | 1 | — | No PII fields detected |
@@ -332,7 +333,7 @@
 | `stockledgers` | StockLedger | 12 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `stores` | Store | 9 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `strikes` | Strike | 25 | 2 | 8 | — | **UNMAPPED — see gaps** |
-| `suppliers` | Supplier | 48 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
+| `suppliers` | Supplier | 53 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `supporttickets` | SupportTicket | 26 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `systemsettings` | SystemSetting | 7 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `tasks` | Task | 17 | 2 | 5 | — | **UNMAPPED — see gaps** |
@@ -3579,6 +3580,36 @@ Indexes:
 | `dueAt:1` |  |
 | `userId:1, status:1` |  |
 | `status:1, dueAt:1` |  |
+
+### `ddioverrides` — DdiOverride
+
+source `DdiOverride.js` · timestamps: yes · virtuals: 0 · retention: n/a — no personal data detected in this collection
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
+| `prescriptionId` | ObjectId |  |  | null |  | Prescription |  |
+| `prescriptionNo` | String |  |  | "" |  |  |  |
+| `pair.drugA` | String | yes |  |  |  |  |  |
+| `pair.drugB` | String | yes |  |  |  |  |  |
+| `severity` | String | yes |  |  | major, moderate, minor |  |  |
+| `effect` | String |  |  | "" |  |  |  |
+| `reason` | String | yes |  |  |  |  |  |
+| `by` | ObjectId | yes |  |  |  | User |  |
+| `byName` | String |  |  | "" |  |  |  |
+| `at` | Date |  |  | [function] |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `hospitalId:1` |  |
+| `prescriptionId:1` |  |
+| `at:1` |  |
+| `hospitalId:1, at:-1` |  |
 
 ### `deathrecords` — DeathRecord
 
@@ -11734,9 +11765,14 @@ source `Supplier.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `kycDocs.docType` | String |  |  | "Other" | GST, PAN, DrugLicense, MSME, CancelledCheque, Other |  |  |
 | `kycDocs.docNumber` | String |  |  | "" |  |  |  |
 | `kycDocs.docUrl` | String |  |  | "" |  |  |  |
+| `kycDocs.expiry` | Date |  |  | null |  |  |  |
 | `kycDocs.verifiedAt` | Date |  |  | null |  |  |  |
 | `kycDocs.verifiedBy` | ObjectId |  |  | null |  | User |  |
 | `kycStatus` | String |  |  | "Pending" | Pending, Verified, Rejected, Expired |  |  |
+| `kycDecision.status` | String |  |  | "" | , Pending, Verified, Rejected, Expired |  |  |
+| `kycDecision.reason` | String |  |  | "" |  |  |  |
+| `kycDecision.by` | ObjectId |  |  | null |  | User |  |
+| `kycDecision.at` | Date |  |  | null |  |  |  |
 | `complianceScore` | Number |  |  | 100 |  |  |  |
 | `licenseExpiry` | Date |  |  | null |  |  |  |
 | `isActive` | Boolean |  |  | true |  |  |  |
