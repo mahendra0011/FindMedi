@@ -160,7 +160,7 @@ router.put('/preferences', protect, async (req, res) => {
     // Validate rather than trust: quiet-hours minutes out of range would produce
     // a window that silently never matches, and a channel key that is not a real
     // channel would be stored and never consulted.
-    for (const key of ['inApp', 'email', 'sms', 'push']) {
+    for (const key of ['inApp', 'email', 'sms', 'push', 'whatsapp']) {
       if (channels?.[key] !== undefined && typeof channels[key] !== 'boolean') {
         return res.status(400).json({ message: `channels.${key} must be a boolean` });
       }

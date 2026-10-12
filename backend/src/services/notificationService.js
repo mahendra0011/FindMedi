@@ -4,6 +4,8 @@ import Notification from '../models/Notification.js';
 import { redisClient, isRedisReady } from '../config/redis.js';
 import { loadPreference, decide, record } from './notificationPreferences.js';
 import { deliver } from './notificationDelivery.js';
+import { sendSms as providerSendSms } from './smsProvider.js';
+import { sendWhatsApp as providerSendWhatsApp } from './whatsappProvider.js';
 
 /**
  * NOTIF-B-05: the controlled notification writer.
@@ -249,6 +251,54 @@ export const sendEmail = async ({ to, subject, text, html, attachments, notifica
     return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error('Email send error:', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Wave 3: send SMS with bounded retries and delivery tracking.
+ */
+export const sendSms = async ({ to, text, templateId, notificationId, userId }) => {
+  if (!to || !text) return { success: false, error: 'Recipient and text are required' };
+
+  if (notificationId && userId) {
+    const outcome = await deliver({
+      notificationId,
+      userId,
+      channel: 'sms',
+      send: () => providerSendSms({ to, text, templateId, notificationId }),
+    });
+    return { success: outcome.status === 'sent' || outcome.status === 'skipped', status: outcome.status, attempts: outcome.attempts, messageId: outcome.messageId, error: outcome.reason };
+  }
+
+  try {
+    const result = await providerSendSms({ to, text, templateId, notificationId });
+    return { success: true, ...result };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Wave 3: send WhatsApp template message with bounded retries and delivery tracking.
+ */
+export const sendWhatsApp = async ({ to, text, templateName, variables, notificationId, userId }) => {
+  if (!to) return { success: false, error: 'Recipient phone number is required' };
+
+  if (notificationId && userId) {
+    const outcome = await deliver({
+      notificationId,
+      userId,
+      channel: 'whatsapp',
+      send: () => providerSendWhatsApp({ to, text, templateName, variables, notificationId }),
+    });
+    return { success: outcome.status === 'sent' || outcome.status === 'skipped', status: outcome.status, attempts: outcome.attempts, messageId: outcome.messageId, error: outcome.reason };
+  }
+
+  try {
+    const result = await providerSendWhatsApp({ to, text, templateName, variables, notificationId });
+    return { success: true, ...result };
+  } catch (error) {
     return { success: false, error: error.message };
   }
 };
