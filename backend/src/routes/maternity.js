@@ -141,4 +141,36 @@ router.get('/births/:id/certificate', clinicalOnly, async (req, res) => {
   }
 });
 
+// Statutory Civil Registration System (CRS) data export for births (CSV)
+router.get('/crs-export', clinicalOnly, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.query.from || req.query.to) {
+      filter.timeOfBirth = {};
+      if (req.query.from) filter.timeOfBirth.$gte = new Date(req.query.from);
+      if (req.query.to) filter.timeOfBirth.$lte = new Date(req.query.to);
+    }
+    const rows = await BirthRecord.find(filter).lean();
+    const csvHeader = 'BirthRecordId,CertificateNo,Sex,WeightKg,TimeOfBirth,DeliveryType,MotherId,HospitalId\n';
+    const csvRows = rows.map((r) => [
+      String(r._id),
+      r.certificateNo || '',
+      r.sex || '',
+      r.weightKg || '',
+      r.timeOfBirth ? new Date(r.timeOfBirth).toISOString() : '',
+      r.deliveryType || '',
+      String(r.motherId || ''),
+      String(r.hospitalId || ''),
+    ].join(',')).join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="crs-birth-records.csv"');
+    return res.send(csvHeader + csvRows);
+  } catch (err) {
+    logger.error(`CRS export error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

@@ -14,6 +14,11 @@ const approvalPolicySchema = new mongoose.Schema({
     roles: [{ type: String }], // any-of at this tier
     steps: { type: Number, default: 1 },
   }],
+  escalation: [{
+    afterPct: { type: Number, required: true }, // e.g. 50, 75, 100, 150
+    toRole: { type: String, required: true },    // e.g. 'billing_manager', 'hospital_admin', 'medical_director'
+  }],
+  slaHours: { type: Number, default: 48 },
   excludedRoles: [{ type: String }],
   active: { type: Boolean, default: true },
 }, { timestamps: true });

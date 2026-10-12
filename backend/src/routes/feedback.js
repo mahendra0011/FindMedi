@@ -74,6 +74,52 @@ router.get('/', protect, authorize('staff:manage'), async (req, res) => {
   } catch (err) { return res.status(500).json({ message: err.message }); }
 });
 
+// Aggregate summary endpoint for UI metrics (Section C1 requirement)
+router.get('/summary', protect, authorize('staff:manage'), async (req, res) => {
+  try {
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.query.dept) filter.department = String(req.query.dept);
+    if (req.query.from || req.query.to) {
+      filter.createdAt = {};
+      if (req.query.from) filter.createdAt.$gte = new Date(req.query.from);
+      if (req.query.to) filter.createdAt.$lte = new Date(req.query.to);
+    }
+    const rows = await Feedback.find(filter).lean();
+    const scored = rows.filter((r) => typeof r.npsScore === 'number');
+    const rated = rows.filter((r) => typeof r.rating === 'number');
+    const promoters = scored.filter((r) => r.npsScore >= 9).length;
+    const detractors = scored.filter((r) => r.npsScore <= 6).length;
+    const passives = scored.length - promoters - detractors;
+    const nps = scored.length ? Math.round(((promoters - detractors) / scored.length) * 100) : null;
+    const avgRating = rated.length ? Math.round((rated.reduce((acc, r) => acc + r.rating, 0) / rated.length) * 10) / 10 : null;
+
+    // Grouping by department
+    const byDepartment = {};
+    for (const r of rows) {
+      const d = r.department || 'General';
+      if (!byDepartment[d]) byDepartment[d] = { count: 0, sumRating: 0, ratedCount: 0 };
+      byDepartment[d].count += 1;
+      if (r.rating) {
+        byDepartment[d].sumRating += r.rating;
+        byDepartment[d].ratedCount += 1;
+      }
+    }
+
+    return res.json({
+      totalResponses: rows.length,
+      nps,
+      promoters,
+      detractors,
+      passives,
+      avgCsat: avgRating,
+      byDepartment,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 const respondSchema = z.object({
   note: z.string().trim().min(1).max(1000),
   status: z.enum(['in_review', 'resolved']),

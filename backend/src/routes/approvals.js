@@ -181,28 +181,64 @@ router.post('/delegations', authorize('staff:manage'), async (req, res) => {
 
 router.post('/sweep', authorize('staff:manage'), async (req, res) => {
   try {
-    // File 22 P0-left: SLA escalation — pending requests past 75% of their
-    // SLA window escalate to hospital_admin (one level only) instead of
-    // silently expiring. The sweep does both: escalate then expire.
     const now = new Date();
-    const escapeThreshold = new Date(now.getTime() - 0.75 * 48 * 3600 * 1000);
-    const escalated = await ApprovalRequest.updateMany(
-      {
-        ...tenantFilter(req), status: 'pending', escalatedAt: null,
-        createdAt: { $lte: escapeThreshold }, dueAt: { $gt: now },
-      },
-      {
-        $set: { escalatedAt: now, escalationLevel: 1 },
-        $push: { requiredRoles: 'hospital_admin' },
-      },
-    );
+    // Section D4: Multi-level SLA escalation
+    // Level 1: 50% threshold -> billing_manager or department lead
+    // Level 2: 75% threshold -> hospital_admin
+    // Level 3: 100%+ overdue threshold -> medical_director / executive
+    let escalatedCount = 0;
+
+    // Check all pending requests that are due or reaching thresholds
+    const pendingList = await ApprovalRequest.find({
+      ...tenantFilter(req),
+      status: 'pending',
+    });
+
+    for (const item of pendingList) {
+      const created = new Date(item.createdAt || item._id.getTimestamp?.() || now).getTime();
+      const due = item.dueAt ? new Date(item.dueAt).getTime() : created + 48 * 3600 * 1000;
+      const totalWindow = Math.max(due - created, 3600 * 1000);
+      const elapsed = now.getTime() - created;
+      const pctElapsed = (elapsed / totalWindow) * 100;
+
+      let targetLevel = item.escalationLevel || 0;
+      let roleToPush = null;
+
+      if (pctElapsed >= 100 && targetLevel < 3) {
+        targetLevel = 3;
+        roleToPush = 'medical_director';
+      } else if (pctElapsed >= 75 && targetLevel < 2) {
+        targetLevel = 2;
+        roleToPush = 'hospital_admin';
+      } else if (pctElapsed >= 50 && targetLevel < 1) {
+        targetLevel = 1;
+        roleToPush = 'billing_manager';
+      }
+
+      if (roleToPush && targetLevel > (item.escalationLevel || 0)) {
+        item.escalationLevel = targetLevel;
+        item.escalatedAt = now;
+        if (!item.requiredRoles.includes(roleToPush)) {
+          item.requiredRoles.push(roleToPush);
+        }
+        await item.save();
+        escalatedCount += 1;
+      }
+    }
+
+    // Expire requests past 150% or explicit final policy window
     const expired = await ApprovalRequest.updateMany(
-      { ...tenantFilter(req), status: 'pending', dueAt: { $lte: now } },
+      {
+        ...tenantFilter(req),
+        status: 'pending',
+        dueAt: { $lte: new Date(now.getTime() - 24 * 3600 * 1000) }, // 24h grace post-due before hard-expiry
+      },
       { $set: { status: 'expired' } },
     );
+
     return res.json({
       expired: expired.modifiedCount || 0,
-      escalated: escalated.modifiedCount || 0,
+      escalated: escalatedCount,
     });
   } catch (err) {
     logger.error(`Approval sweep error: ${err.message}`);

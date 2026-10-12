@@ -20,6 +20,15 @@ const prescriptionSchema = new mongoose.Schema({
     route: { type: String, enum: ['Oral', 'IV', 'IM', 'Topical', 'Sublingual', 'Inhalation', 'Other'], default: 'Oral' },
     instructions: { type: String, default: '' }, // e.g. "After food", "Empty stomach"
     quantity: { type: Number, required: true },
+    noSubstitution: { type: Boolean, default: false }, // Prescriber 'do not substitute' flag (D1)
+    substitutedWith: {
+      medicineId: { type: mongoose.Schema.Types.ObjectId, ref: 'Medicine', default: null },
+      medicineName: { type: String, default: '' },
+      reason: { type: String, default: '' },
+      patientConsent: { type: Boolean, default: false },
+      at: { type: Date, default: null },
+      by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    },
     isDispensed: { type: Boolean, default: false },
     dispensedAt: { type: Date },
     dispensedBy: { type: String },

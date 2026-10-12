@@ -134,6 +134,10 @@ const QualityBoard = lazy(() => import('./pages/hospital/QualityBoard'));
 const BiomedicalDashboard = lazy(() => import('./pages/hospital/BiomedicalDashboard'));
 const DialysisPage = lazy(() => import('./pages/hospital/DialysisPage'));
 const LinenLaundryPage = lazy(() => import('./pages/hospital/LinenLaundryPage'));
+const FeedbackDashboard = lazy(() => import('./pages/hospital/FeedbackDashboard'));
+const AmbulanceTripsPage = lazy(() => import('./pages/hospital/AmbulanceTripsPage'));
+const SecurityDeskPage = lazy(() => import('./pages/hospital/SecurityDeskPage'));
+const H1RegisterPage = lazy(() => import('./pages/pharmacy/H1RegisterPage'));
 const FormBuilderStudio = lazy(() => import('./pages/hospital/FormBuilderStudio'));
 const BiomedicalWastePage = lazy(() => import('./pages/hospital/BiomedicalWastePage'));
 const TrialBalancePage = lazy(() => import('./pages/hospital/TrialBalancePage'));
@@ -1098,6 +1102,10 @@ const App = () => (
                     <Route path="/hospital/biomedical" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'biomedical_engineer', 'maintenance', 'store_keeper']}><BiomedicalDashboard /></RoleRoute>} />
                     <Route path="/hospital/dialysis" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'doctor', 'nurse']}><DialysisPage /></RoleRoute>} />
                     <Route path="/hospital/linen" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'nurse', 'ward_nurse', 'housekeeping_supervisor', 'ward_boy']}><LinenLaundryPage /></RoleRoute>} />
+                    <Route path="/hospital/feedback" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'quality_officer']}><FeedbackDashboard /></RoleRoute>} />
+                    <Route path="/hospital/ambulance-trips" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'ambulance']}><AmbulanceTripsPage /></RoleRoute>} />
+                    <Route path="/hospital/security" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'security', 'security_admin']}><SecurityDeskPage /></RoleRoute>} />
+                    <Route path="/pharmacy/h1-register" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'pharmacist', 'pharmacy_owner']}><H1RegisterPage /></RoleRoute>} />
                     <Route path="/hospital/forms-builder" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'doctor']}><FormBuilderStudio /></RoleRoute>} />
                     <Route path="/hospital/bmw" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'nurse', 'housekeeping_supervisor', 'ward_boy']}><BiomedicalWastePage /></RoleRoute>} />
                     <Route path="/hospital/trial-balance" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'accountant']}><TrialBalancePage /></RoleRoute>} />

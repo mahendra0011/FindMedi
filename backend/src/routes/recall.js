@@ -126,4 +126,66 @@ router.post('/send', clinicOnly, async (req, res) => {
   }
 });
 
+// Section D2: Auto Follow-up Booking endpoint
+// Books a tentative/confirmed follow-up appointment for patients due from recall/consultation.
+router.post('/book', clinicOnly, async (req, res) => {
+  try {
+    const { patientId, doctorId, followUpForAppointmentId, scheduledDate, slot, notes } = req.body || {};
+    if (!patientId || !doctorId) {
+      return res.status(400).json({ message: 'patientId and doctorId are required' });
+    }
+
+    const { default: Appointment } = await import('../models/Appointment.js');
+    const { default: User } = await import('../models/User.js');
+
+    // Prevent double booking for the same parent appointment
+    if (followUpForAppointmentId) {
+      const existing = await Appointment.findOne({
+        followUpFor: followUpForAppointmentId,
+        status: { $nin: ['Cancelled', 'Rejected'] },
+      });
+      if (existing) {
+        return res.status(409).json({
+          message: 'Follow-up appointment is already booked for this consultation',
+          appointmentId: String(existing._id),
+        });
+      }
+    }
+
+    const patient = await User.findById(patientId).select('name phone').lean();
+    const doctor = await User.findById(doctorId).select('name').lean();
+
+    const appt = await Appointment.create({
+      hospitalId: req.user.hospitalId || undefined,
+      facilityId: req.user.facilityId || undefined,
+      patientId,
+      patientName: patient?.name || 'Patient',
+      doctorId,
+      doctorName: doctor?.name || 'Doctor',
+      appointmentDate: scheduledDate ? new Date(scheduledDate) : new Date(Date.now() + 7 * 864e5),
+      timeSlot: slot || '10:00 AM - 10:30 AM',
+      type: 'in-person',
+      status: 'Tentative',
+      fees: 0, // Free follow-up rule
+      followUpFor: followUpForAppointmentId || null,
+      notes: notes || 'Auto follow-up scheduled from care plan',
+    });
+
+    await auditLog('followup_appointment_booked', actorId(req), {
+      appointmentId: appt._id,
+      patientId,
+      doctorId,
+      ip: req.ip,
+    });
+
+    return res.status(201).json({
+      message: 'Follow-up appointment booked successfully',
+      appointment: appt,
+    });
+  } catch (err) {
+    logger.error(`Follow-up book error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

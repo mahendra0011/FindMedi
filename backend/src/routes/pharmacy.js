@@ -192,7 +192,12 @@ const pharmacyStaffSchema = z.object({
   shift: z.string().trim().max(40).optional(),
   isActive: z.boolean().optional(),
 });
-const pharmacyDispenseSchema = z.object({ medicineIndex: z.number().int().nonnegative() });
+const pharmacyDispenseSchema = z.object({
+  medicineIndex: z.number().int().nonnegative(),
+  substituteMedicineId: z.string().regex(/^[0-9a-f]{24}$/i).optional(),
+  substitutionReason: z.string().trim().max(500).optional(),
+  patientConsent: z.boolean().optional(),
+});
 
 const router = express.Router();
 
@@ -226,6 +231,86 @@ router.get('/medicines/store/:storeId', publicSearchLimiter, async (req, res) =>
     }));
     res.json({ medicines, page, limit, total, totalPages });
   } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// Section D1: Generic substitution finder
+// Returns available medicines with identical genericName/composition and strength,
+// in stock, non-expired, ordered by lowest sellingPrice to show savings.
+router.get('/medicines/:id/substitutes', protect, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
+  try {
+    const med = await Medicine.findById(req.params.id);
+    if (!med) return res.status(404).json({ message: 'Medicine not found' });
+
+    // Look for same genericName or composition
+    const matchTerm = med.genericName || med.composition;
+    if (!matchTerm) {
+      return res.json({ original: med, substitutes: [], message: 'No generic composition recorded' });
+    }
+
+    const filter = {
+      _id: { $ne: med._id },
+      isActive: true,
+      currentStock: { $gt: 0 },
+      $or: [
+        { genericName: new RegExp(`^${escapeRegex(matchTerm.trim())}$`, 'i') },
+        { composition: new RegExp(`^${escapeRegex(matchTerm.trim())}$`, 'i') },
+      ],
+    };
+
+    if (med.dosageForm) filter.dosageForm = med.dosageForm;
+    if (med.strength) filter.strength = med.strength;
+    if (med.facilityId) filter.facilityId = med.facilityId;
+    else if (med.hospitalId) filter.hospitalId = med.hospitalId;
+
+    const candidates = await Medicine.find(filter)
+      .sort({ sellingPrice: 1, expiryDate: 1 })
+      .lean();
+
+    // Filter out expired items (FEFO safety) and Schedule X / Narcotic restrictions
+    const now = new Date();
+    const valid = candidates.filter((c) => {
+      if (c.expiryDate && new Date(c.expiryDate) <= now) return false;
+      const s = String(c.rxSchedule || '').toLowerCase();
+      if (s === 'x' || s === 'narcotic_ndps') return false;
+      return true;
+    });
+
+    const originalPrice = Number(med.sellingPrice || med.price || 0);
+    const substitutes = valid.map((sub) => {
+      const subPrice = Number(sub.sellingPrice || sub.price || 0);
+      const savingsPerUnit = Math.max(0, originalPrice - subPrice);
+      const savingsPct = originalPrice > 0 ? Math.round((savingsPerUnit / originalPrice) * 100) : 0;
+      return {
+        _id: sub._id,
+        name: sub.name,
+        genericName: sub.genericName,
+        composition: sub.composition,
+        strength: sub.strength,
+        dosageForm: sub.dosageForm,
+        sellingPrice: subPrice,
+        currentStock: sub.currentStock,
+        expiryDate: sub.expiryDate,
+        savingsPerUnit,
+        savingsPct,
+      };
+    });
+
+    return res.json({
+      original: {
+        _id: med._id,
+        name: med.name,
+        genericName: med.genericName,
+        composition: med.composition,
+        strength: med.strength,
+        dosageForm: med.dosageForm,
+        sellingPrice: originalPrice,
+      },
+      substitutes,
+    });
+  } catch (err) {
+    logger.error(`Generic substitution error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
 });
 
 // ─── Nearby Pharmacy Stores (H3 discovery, spec expansion-01C) ─────────────
@@ -846,15 +931,58 @@ router.put('/prescriptions/:id/dispense', protect, authorize('pharmacy:dispense'
     if (!med) return res.status(404).json({ message: 'Medicine not found in prescription' });
     if (med.isDispensed) return res.status(400).json({ message: 'Already dispensed' });
 
-    // Check allergies
+    // Section D1: Generic Substitution handling
+    let dispenseMedicineId = med.medicineId;
+    let dispenseMedicineName = med.medicineName;
+    const { substituteMedicineId, substitutionReason, patientConsent } = req.body;
+
+    if (substituteMedicineId && String(substituteMedicineId) !== String(med.medicineId)) {
+      if (med.noSubstitution) {
+        return res.status(409).json({
+          message: 'Prescriber has marked "Do Not Substitute" (noSubstitution) on this medicine',
+          code: 'SUBSTITUTION_PROHIBITED',
+        });
+      }
+      if (!patientConsent) {
+        return res.status(400).json({
+          message: 'Patient consent is required for generic medicine substitution',
+          code: 'PATIENT_CONSENT_REQUIRED',
+        });
+      }
+
+      const subDoc = await Medicine.findById(substituteMedicineId);
+      if (!subDoc || !subDoc.isActive || subDoc.currentStock <= 0) {
+        return res.status(404).json({ message: 'Substitute medicine is not available in active stock' });
+      }
+
+      // Check Schedule restrictions
+      const subSched = String(subDoc.rxSchedule || '').toLowerCase();
+      if (subSched === 'x' || subSched === 'narcotic_ndps') {
+        return res.status(403).json({ message: 'Schedule X or Narcotic medicines cannot be substituted' });
+      }
+
+      dispenseMedicineId = subDoc._id;
+      dispenseMedicineName = subDoc.name;
+
+      med.substitutedWith = {
+        medicineId: subDoc._id,
+        medicineName: subDoc.name,
+        reason: substitutionReason || 'Generic substitution selected at counter',
+        patientConsent: true,
+        at: new Date(),
+        by: req.user._id,
+      };
+    }
+
+    // Check allergies on the medicine to be dispensed
     if (prescription.patientId?.allergies?.length > 0) {
       const allergicMatch = prescription.patientId.allergies.find(a => 
-        a.allergen?.toLowerCase()?.includes(med.medicineName?.toLowerCase()) ||
-        med.medicineName?.toLowerCase()?.includes(a.allergen?.toLowerCase())
+        a.allergen?.toLowerCase()?.includes(dispenseMedicineName?.toLowerCase()) ||
+        dispenseMedicineName?.toLowerCase()?.includes(a.allergen?.toLowerCase())
       );
       if (allergicMatch) {
         return res.status(400).json({ 
-          message: `Patient is allergic to ${med.medicineName}. Reaction: ${allergicMatch.reaction || 'Unknown'}` 
+          message: `Patient is allergic to ${dispenseMedicineName}. Reaction: ${allergicMatch.reaction || 'Unknown'}` 
         });
       }
     }
@@ -862,14 +990,14 @@ router.put('/prescriptions/:id/dispense', protect, authorize('pharmacy:dispense'
     // Check for drug interactions with already dispensed medicines in this prescription
     const dispensedMedicines = prescription.medicines
       .filter(m => m.isDispensed && m.medicineId)
-      .map(m => m.medicineName?.toLowerCase());
+      .map(m => (m.substitutedWith?.medicineName || m.medicineName)?.toLowerCase());
 
-    const medicineDoc = await Medicine.findById(med.medicineId);
+    const medicineDoc = await Medicine.findById(dispenseMedicineId);
     if (medicineDoc?.interactions && dispensedMedicines.length > 0) {
       for (const interaction of medicineDoc.interactions) {
         if (dispensedMedicines.includes(interaction?.toLowerCase())) {
           return res.status(400).json({ 
-            message: `Drug interaction warning: ${med.medicineName} interacts with ${interaction}` 
+            message: `Drug interaction warning: ${dispenseMedicineName} interacts with ${interaction}` 
           });
         }
       }
@@ -880,11 +1008,11 @@ router.put('/prescriptions/:id/dispense', protect, authorize('pharmacy:dispense'
       return res.status(409).json({ message: `Medicine has expired (expiry: ${medicineDoc.expiryDate.toISOString().split('T')[0]}) and cannot be dispensed` });
     }
 
-    if (med.medicineId) {
+    if (dispenseMedicineId) {
       const result = await dispensePrescriptionMedicine({
         prescriptionId: prescription._id,
         medicineLineId: med._id,
-        medicineId: med.medicineId,
+        medicineId: dispenseMedicineId,
         quantity: med.quantity,
         dispensedBy: req.user.name,
         createdBy: req.user._id,
@@ -893,6 +1021,7 @@ router.put('/prescriptions/:id/dispense', protect, authorize('pharmacy:dispense'
       med.isDispensed = true;
       med.dispensedAt = new Date();
       med.dispensedBy = req.user.name;
+      med.medicineName = dispenseMedicineName;
       prescription.status = result.status;
       // File 22 P0-4: true-up the ₹0 placeholder charge with the selling price.
       // If no placeholder exists (direct dispense, no PharmacyOrder), post
@@ -1009,6 +1138,39 @@ router.get('/h1-register/gaps', protect, authorize('pharmacy:manage'), async (re
     }
     res.json({ gaps: gaps.slice(0, 200), checked, totalGaps: gaps.length });
   } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// Statutory inspector export for H1 / Schedule X / Narcotic Register (CSV)
+router.get('/h1-register/export', protect, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
+  try {
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.query.rxSchedule) filter.rxSchedule = String(req.query.rxSchedule).toLowerCase();
+    if (req.query.from || req.query.to) {
+      filter.dispensedAt = {};
+      if (req.query.from) filter.dispensedAt.$gte = new Date(req.query.from);
+      if (req.query.to) filter.dispensedAt.$lte = new Date(req.query.to);
+    }
+    const rows = await H1RegisterEntry.find(filter).sort({ dispensedAt: -1 }).limit(1000).lean();
+    const csvHeader = 'DispensedAt,PrescriptionNo,PatientName,PrescriberName,MedicineName,RxSchedule,Quantity,DispensedByName\n';
+    const csvRows = rows.map((r) => [
+      r.dispensedAt ? new Date(r.dispensedAt).toISOString() : '',
+      `"${r.prescriptionNo || ''}"`,
+      `"${r.patientName || ''}"`,
+      `"${r.prescriberName || ''}"`,
+      `"${r.medicineName || ''}"`,
+      r.rxSchedule || '',
+      r.quantity || 1,
+      `"${r.dispensedByName || ''}"`,
+    ].join(',')).join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="h1-narcotic-register-inspection.csv"');
+    return res.send(csvHeader + csvRows);
+  } catch (err) {
+    logger.error(`H1 export error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
 });
 
 // ─── Admin: Verify Prescription ─────────────────────────────────────────────
