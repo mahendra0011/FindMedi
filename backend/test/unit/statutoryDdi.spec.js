@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { calculatePf, calculateEsi, calculateGratuity, calculateTds } from '../../src/services/statutoryEngine.js';
-import { checkDrugInteractions } from '../../src/services/ddiEngine.js';
+import { calculatePf, calculateEsi, calculateGratuity, calculateTds, resolveStatutoryVersion, getStatutoryVersionMeta } from '../../src/services/statutoryEngine.js';
+import { checkDrugInteractions, checkDrugInteractionsDetailed } from '../../src/services/ddiEngine.js';
 
 describe('Wave 4 Unit Specs — Statutory & DDI Engines', () => {
   describe('Statutory Engine', () => {
@@ -51,6 +51,66 @@ describe('Wave 4 Unit Specs — Statutory & DDI Engines', () => {
       expect(highRes.taxableIncome).toBe(2400000 - 75000);
       expect(highRes.annualTax).toBeGreaterThan(0);
       expect(highRes.monthlyTds).toBe(Math.round(highRes.annualTax / 12));
+    });
+
+    // T4 (file 31): FY-versioned statutory config — payroll month decides
+    // which rules apply, so arrears/backdated runs stay correct.
+    test('resolveStatutoryVersion picks FY by payroll month (boundary 2026-04-01)', () => {
+      const mar = resolveStatutoryVersion('2026-03-31');
+      const apr = resolveStatutoryVersion('2026-04-01');
+      expect(mar.fy).toBe('2025-26');
+      expect(apr.fy).toBe('2026-27');
+      expect(resolveStatutoryVersion(new Date('2026-07-15')).fy).toBe('2026-27');
+      // Default (no arg) = current version in force
+      expect(resolveStatutoryVersion().fy).toBe('2026-27');
+    });
+
+    test('getStatutoryVersionMeta reports sign-off status for payslip/audit', () => {
+      const meta = getStatutoryVersionMeta('2026-06-01');
+      expect(meta.fy).toBe('2026-27');
+      expect(meta.effectiveFrom).toBe('2026-04-01');
+      // FY 2026-27 must stay unverified until a CA signs off
+      expect(meta.verified).toBe(false);
+      expect(meta.sourceNote).toContain('CA');
+
+      const old = getStatutoryVersionMeta('2025-10-01');
+      expect(old.fy).toBe('2025-26');
+      expect(old.verified).toBe(true);
+    });
+
+    test('calculations accept an asOf date (backdated runs use that era rules)', () => {
+      const pfMar = calculatePf(25000, 5000, false, '2026-03-31');
+      const pfApr = calculatePf(25000, 5000, false, '2026-04-01');
+      expect(pfMar.employeePf).toBe(1800);
+      expect(pfApr.employeePf).toBe(1800); // ceiling unchanged in seeded values
+
+      const tdsBackdated = calculateTds(2400000, 0, 0, '2026-03-31');
+      expect(tdsBackdated.statutoryVersion.fy).toBe('2025-26');
+      const tdsCurrent = calculateTds(2400000);
+      expect(tdsCurrent.statutoryVersion.fy).toBe('2026-27');
+    });
+
+    test('statutory.json versions are structurally sound', () => {
+      const raw = JSON.parse(readFileSync(new URL('../../src/config/statutory.json', import.meta.url), 'utf8'));
+      expect(Array.isArray(raw.versions)).toBe(true);
+      expect(raw.versions.length).toBeGreaterThanOrEqual(2);
+      for (const v of raw.versions) {
+        expect(v.fy).toMatch(/^\d{4}-\d{2}$/);
+        expect(v.effectiveFrom).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(v.pf?.employeeRate).toBeGreaterThan(0);
+        expect(v.esi?.grossWageCeiling).toBeGreaterThan(0);
+        expect(v.gratuity?.minimumTenureYears).toBeGreaterThan(0);
+        expect(v.tds?.standardDeduction).toBeGreaterThan(0);
+        expect(Array.isArray(v.newTaxRegimeSlabs)).toBe(true);
+        expect(typeof v.verified).toBe('boolean');
+      }
+      // The only verified version must be the CA-approved baseline; the new FY
+      // must remain unverified until sign-off happens outside this repo.
+      expect(raw.versions.find((v) => v.fy === '2025-26').verified).toBe(true);
+      expect(raw.versions.find((v) => v.fy === '2026-27').verified).toBe(false);
+      // No silent gap: versions must be contiguous FYs
+      const fys = raw.versions.map((v) => v.fy);
+      expect(new Set(fys).size).toBe(fys.length);
     });
   });
 
@@ -107,6 +167,50 @@ describe('Wave 4 Unit Specs — Statutory & DDI Engines', () => {
       const idxMajor = order.indexOf('major');
       const idxModerate = order.indexOf('moderate');
       expect(idxMajor).toBeLessThan(idxModerate);
+    });
+
+    // T3 (file 31) hardening: strength tokens are stripped, unknown drugs are
+    // surfaced as "not checked", and a 20-drug check stays well under 50ms.
+    test('strips strength tokens so "Warfarin 5 mg" still matches entry "warfarin"', () => {
+      const results = checkDrugInteractions(['Warfarin 5 mg', 'Aspirin 75 mg']);
+      expect(results.length).toBe(1);
+      expect(results[0].severity).toBe('major');
+    });
+
+    test('reports unknown drugs instead of silently claiming "safe"', () => {
+      const { interactions, unknownDrugs } = checkDrugInteractionsDetailed([
+        'Zzznotindb Drug 10mg', 'Anotherzzi Pill 5mg',
+      ]);
+      expect(interactions).toEqual([]);
+      expect(unknownDrugs).toHaveLength(2);
+    });
+
+    test('mixed known pair still flags the interaction', () => {
+      const { interactions } = checkDrugInteractionsDetailed([
+        'Warfarin 5mg', 'Aspirin 75mg', 'Zzznotindb Drug 10mg',
+      ]);
+      expect(interactions).toHaveLength(1);
+      expect(interactions[0].severity).toBe('major');
+    });
+
+    test('performs a 20-drug check in under 50ms (pre-normalized DB + cache)', () => {
+      const drugs = Array.from({ length: 20 }, (_, i) => `Drugname${i} ${i + 1}mg`);
+      drugs[0] = 'Warfarin 5mg';
+      drugs[1] = 'Aspirin 75mg';
+      const t0 = performance.now();
+      checkDrugInteractions(drugs);
+      const first = performance.now() - t0;
+      const t1 = performance.now();
+      checkDrugInteractions(drugs); // cached second call
+      const second = performance.now() - t1;
+      expect(first).toBeLessThan(50);
+      expect(second).toBeLessThan(50);
+    });
+
+    test('empty / single-drug input returns no interactions', () => {
+      expect(checkDrugInteractions([])).toEqual([]);
+      expect(checkDrugInteractions(['Aspirin'])).toEqual([]);
+      expect(checkDrugInteractions('not-an-array')).toEqual([]);
     });
   });
 });

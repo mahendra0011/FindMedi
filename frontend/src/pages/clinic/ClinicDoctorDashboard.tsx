@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
+import DdiCheckBanner from '@/components/clinical/DdiCheckBanner';
 
 export default function ClinicDoctorDashboard() {
   const { user } = useAuth();
@@ -26,6 +27,8 @@ export default function ClinicDoctorDashboard() {
   
   // Selected Patient for Active Consultation Workspace
   const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
+  // T3: major DDI un-overridden → "Complete Consultation" (sign) blocked.
+  const [ddiBlocked, setDdiBlocked] = useState(false);
   const [clinicalForm, setClinicalForm] = useState({
     chiefComplaint: '',
     bp: '120/80',
@@ -84,6 +87,10 @@ export default function ClinicDoctorDashboard() {
 
   const handleCompleteConsultation = async () => {
     if (!selectedPatient) return;
+    if (ddiBlocked) {
+      toast.error('Major drug interaction — record an override reason before signing');
+      return;
+    }
     try {
       await api.createRecord({
         patient: selectedPatient.patient,
@@ -288,8 +295,14 @@ export default function ClinicDoctorDashboard() {
                   <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5" onClick={() => navigate('/clinic/patients')}>
                     <FileText className="w-3.5 h-3.5" /> Past Records
                   </Button>
-                  <Button size="sm" className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1.5" onClick={handleCompleteConsultation}>
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Complete & Sign Rx
+                  <Button
+                    size="sm"
+                    className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1.5"
+                    onClick={handleCompleteConsultation}
+                    disabled={ddiBlocked}
+                    title={ddiBlocked ? 'Major drug interaction — record an override reason first' : undefined}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" /> {ddiBlocked ? 'Resolve DDI to sign' : 'Complete & Sign Rx'}
                   </Button>
                 </div>
               </div>
@@ -380,6 +393,12 @@ export default function ClinicDoctorDashboard() {
                       </div>
                     ))}
                   </div>
+
+                  {/* T3: live DDI check — major blocks "Complete & Sign Rx" until override */}
+                  <DdiCheckBanner
+                    drugs={clinicalForm.medicines.map(m => m.name)}
+                    onMajorStateChange={setDdiBlocked}
+                  />
                 </div>
 
                 {/* 4. Investigation Orders & Follow-up */}

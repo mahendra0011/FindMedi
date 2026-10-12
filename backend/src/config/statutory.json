@@ -1,30 +1,81 @@
 {
-  "financialYear": "2025-26",
-  "pf": {
-    "employeeRate": 0.12,
-    "employerRate": 0.12,
-    "wageCeiling": 15000,
-    "maxEmployeeMonthlyContribution": 1800,
-    "employerPensionRate": 0.0833,
-    "employerEpfsRate": 0.0367
-  },
-  "esi": {
-    "grossWageCeiling": 21000,
-    "employeeRate": 0.0075,
-    "employerRate": 0.0325
-  },
-  "gratuity": {
-    "daysFactorNumerator": 15,
-    "daysFactorDenominator": 26,
-    "minimumTenureYears": 5
-  },
-  "newTaxRegimeSlabs": [
-    { "upTo": 400000, "rate": 0.0 },
-    { "upTo": 800000, "rate": 0.05 },
-    { "upTo": 1200000, "rate": 0.10 },
-    { "upTo": 1600000, "rate": 0.15 },
-    { "upTo": 2000000, "rate": 0.20 },
-    { "upTo": 2400000, "rate": 0.25 },
-    { "upTo": null, "rate": 0.30 }
+  "currentFinancialYear": "2026-27",
+  "_warning": "FY 2026-27 values are PENDING CA/payroll-consultant sign-off (verified=false). They are seeded from the FY 2025-26 baseline so payroll runs, but must be confirmed against the latest Income Tax / EPFO / ESI notifications before any live run. Do NOT set verified=true without a signed review.",
+  "versions": [
+    {
+      "fy": "2025-26",
+      "effectiveFrom": "2025-04-01",
+      "verified": true,
+      "verifiedBy": "Baseline (repo history)",
+      "pf": {
+        "employeeRate": 0.12,
+        "employerRate": 0.12,
+        "wageCeiling": 15000,
+        "maxEmployeeMonthlyContribution": 1800,
+        "employerPensionRate": 0.0833,
+        "employerEpfsRate": 0.0367
+      },
+      "esi": {
+        "grossWageCeiling": 21000,
+        "employeeRate": 0.0075,
+        "employerRate": 0.0325
+      },
+      "gratuity": {
+        "daysFactorNumerator": 15,
+        "daysFactorDenominator": 26,
+        "minimumTenureYears": 5
+      },
+      "tds": {
+        "standardDeduction": 75000,
+        "rebate87aTaxableLimit": 1200000
+      },
+      "newTaxRegimeSlabs": [
+        { "upTo": 400000, "rate": 0.0 },
+        { "upTo": 800000, "rate": 0.05 },
+        { "upTo": 1200000, "rate": 0.10 },
+        { "upTo": 1600000, "rate": 0.15 },
+        { "upTo": 2000000, "rate": 0.20 },
+        { "upTo": 2400000, "rate": 0.25 },
+        { "upTo": null, "rate": 0.30 }
+      ]
+    },
+    {
+      "fy": "2026-27",
+      "effectiveFrom": "2026-04-01",
+      "verified": false,
+      "verifiedBy": null,
+      "sourceNote": "PENDING CA VERIFICATION — values seeded from FY 2025-26 baseline. Confirm PF/ESI rates & ceilings, TDS slabs/standard deduction/87A rebate, gratuity & bonus against Gazette notifications for FY 2026-27, then set verified=true + verifiedBy.",
+      "pf": {
+        "employeeRate": 0.12,
+        "employerRate": 0.12,
+        "wageCeiling": 15000,
+        "maxEmployeeMonthlyContribution": 1800,
+        "employerPensionRate": 0.0833,
+        "employerEpfsRate": 0.0367
+      },
+      "esi": {
+        "grossWageCeiling": 21000,
+        "employeeRate": 0.0075,
+        "employerRate": 0.0325
+      },
+      "gratuity": {
+        "daysFactorNumerator": 15,
+        "daysFactorDenominator": 26,
+        "minimumTenureYears": 5
+      },
+      "tds": {
+        "standardDeduction": 75000,
+        "rebate87aTaxableLimit": 1200000
+      },
+      "newTaxRegimeSlabs": [
+        { "upTo": 400000, "rate": 0.0 },
+        { "upTo": 800000, "rate": 0.05 },
+        { "upTo": 1200000, "rate": 0.10 },
+        { "upTo": 1600000, "rate": 0.15 },
+        { "upTo": 2000000, "rate": 0.20 },
+        { "upTo": 2400000, "rate": 0.25 },
+        { "upTo": null, "rate": 0.30 }
+      ]
+    }
   ]
 }

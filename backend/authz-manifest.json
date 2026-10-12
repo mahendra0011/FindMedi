@@ -10,12 +10,12 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1717,
+  "total": 1718,
   "counts": {
     "inherited": 5,
     "object": 437,
     "public": 112,
-    "role": 1100,
+    "role": 1101,
     "self": 63
   },
   "byMechanism": {
@@ -24,7 +24,7 @@
     "assertCallParticipant": 2,
     "assertEhrSearchAccess": 1,
     "assertMentalHealthAccess": 11,
-    "authorize": 769,
+    "authorize": 770,
     "authorizeObject": 76,
     "canAccessPatient": 5,
     "canAccessRecord": 4,
@@ -419,63 +419,63 @@
     },
     {
       "file": "aiFeatures.js",
-      "line": 53,
+      "line": 69,
       "method": "POST",
       "target": "'/claim-check'",
       "tag": "role"
     },
     {
       "file": "aiFeatures.js",
-      "line": 63,
+      "line": 79,
       "method": "POST",
       "target": "'/faq'",
       "tag": "role"
     },
     {
       "file": "aiFeatures.js",
-      "line": 74,
+      "line": 90,
       "method": "POST",
       "target": "'/lab-narrative'",
       "tag": "role"
     },
     {
       "file": "aiFeatures.js",
-      "line": 84,
+      "line": 100,
       "method": "POST",
       "target": "'/discharge-draft'",
       "tag": "role"
     },
     {
       "file": "aiFeatures.js",
-      "line": 95,
+      "line": 111,
       "method": "GET",
       "target": "'/reviews'",
       "tag": "role"
     },
     {
       "file": "aiFeatures.js",
-      "line": 105,
+      "line": 121,
       "method": "PATCH",
       "target": "'/reviews/:id'",
       "tag": "role"
     },
     {
       "file": "aiFeatures.js",
-      "line": 127,
+      "line": 143,
       "method": "GET",
       "target": "'/kill-switch'",
       "tag": "role"
     },
     {
       "file": "aiFeatures.js",
-      "line": 136,
+      "line": 152,
       "method": "POST",
       "target": "'/kill-switch'",
       "tag": "role"
     },
     {
       "file": "aiFeatures.js",
-      "line": 154,
+      "line": 170,
       "method": "GET",
       "target": "'/invocations'",
       "tag": "role"
@@ -2876,9 +2876,16 @@
     },
     {
       "file": "ddi.js",
-      "line": 11,
+      "line": 13,
       "method": "POST",
       "target": "'/check'",
+      "tag": "role"
+    },
+    {
+      "file": "ddi.js",
+      "line": 45,
+      "method": "POST",
+      "target": "'/override'",
       "tag": "role"
     },
     {

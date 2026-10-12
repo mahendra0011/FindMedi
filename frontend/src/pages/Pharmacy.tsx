@@ -14,6 +14,7 @@ import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 import PatientBanner from '@/components/clinical/PatientBanner';
+import DdiCheckBanner from '@/components/clinical/DdiCheckBanner';
 
 const pharmApi = {
   getMedicines: (p = {}) => api.dispatch(() => Promise.resolve({ medicines: [] }), '/pharmacy/medicines?' + new URLSearchParams(p)),
@@ -72,6 +73,10 @@ export default function Pharmacy() {
   const [prescriptions, setPrescriptions] = useState([]);
   const [rxSearch, setRxSearch] = useState('');
   const [newRx, setNewRx] = useState({ patientName: '', diagnosis: '', medicines: [{ medicineName: '', dosage: '', frequency: '1-0-1', duration: '7 days', quantity: 1 }] });
+  // T3: major DDI un-overridden → Create Prescription blocked.
+  const [rxMajorBlocked, setRxMajorBlocked] = useState(false);
+  // T3: major DDI un-overridden → dispense blocked (keyed by prescription id).
+  const [ddiBlockedByRx, setDdiBlockedByRx] = useState<Record<string, boolean>>({});
 
   // Orders
   const [orders, setOrders] = useState([]);
@@ -547,6 +552,17 @@ showToast('Failed to export billing', 'error');
                     </div>
                     {/* File 22 P0-2: flag chips for the selected prescription's patient */}
                     {selectedRxId === rx._id && <div className="mb-2"><PatientBanner patientId={rx.patientId || ''} /></div>}
+                    {/* T3: pharmacist-side DDI check across all drugs on the Rx */}
+                    {selectedRxId === rx._id && (
+                      <div className="mb-2">
+                        <DdiCheckBanner
+                          drugs={(rx.medicines || []).map((m: any) => m.medicineName)}
+                          onMajorStateChange={(b) => setDdiBlockedByRx(prev => ({ ...prev, [rx._id]: b }))}
+                          prescriptionId={rx._id}
+                          prescriptionNo={rx.prescriptionId}
+                        />
+                      </div>
+                    )}
                     <div className="space-y-2">
                       {(rx.medicines || []).map((m, i) => (
                         <div key={i} className="flex items-center justify-between bg-muted/30 rounded-lg p-2">
@@ -555,7 +571,17 @@ showToast('Failed to export billing', 'error');
                             <p className="text-xs text-muted-foreground">{m.frequency} · {m.duration} · Qty: {m.quantity}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            {m.isDispensed ? <CheckCircle className="w-4 h-4 text-success" /> : <Button size="sm" variant="outline" onClick={async () => { await pharmApi.dispense(rx._id, { medicineIndex: i }); loadPrescriptions(); showToast(`${m.medicineName} dispensed`); }}>Dispense</Button>}
+                            {m.isDispensed ? <CheckCircle className="w-4 h-4 text-success" /> : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={!!ddiBlockedByRx[rx._id]}
+                                title={ddiBlockedByRx[rx._id] ? 'Major interaction — override required before dispensing' : undefined}
+                                onClick={async () => { await pharmApi.dispense(rx._id, { medicineIndex: i }); loadPrescriptions(); showToast(`${m.medicineName} dispensed`); }}
+                              >
+                                {ddiBlockedByRx[rx._id] ? 'Blocked (DDI)' : 'Dispense'}
+                              </Button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -939,7 +965,15 @@ showToast('Failed to export billing', 'error');
                 </div>
               ))}
             </div>
-            <Button className="w-full" onClick={async () => { await pharmApi.createPrescription(newRx); showToast('Prescription created'); setShowModal(null); loadPrescriptions(); }} disabled={!newRx.patientName}>Create Prescription</Button>
+            {/* T3: live DDI check — major blocks create until override is logged */}
+            <DdiCheckBanner
+              drugs={newRx.medicines.map(m => m.medicineName)}
+              onMajorStateChange={setRxMajorBlocked}
+              active={showModal === 'add-rx'}
+            />
+            <Button className="w-full" onClick={async () => { await pharmApi.createPrescription(newRx); showToast('Prescription created'); setShowModal(null); setRxMajorBlocked(false); loadPrescriptions(); }} disabled={!newRx.patientName || rxMajorBlocked}>
+              {rxMajorBlocked ? 'Resolve major interaction to continue' : 'Create Prescription'}
+            </Button>
           </div>
         </Modal>
       )}
