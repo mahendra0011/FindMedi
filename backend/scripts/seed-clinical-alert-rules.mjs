@@ -47,6 +47,17 @@ export async function seedClinicalAlertRules(hospitalId) {
         event: 'clinical:mtp', escalation,
       },
     },
+    {
+      key: 'sofa-delta-2',
+      name: 'SOFA acute deterioration (delta ≥ +2 in 24h)',
+      dataset: 'icu_scores',
+      groups: [[{ field: 'sofaDelta', op: '>=', value: 2 }]],
+      cooldownMinutes: 1440,
+      actions: {
+        type: 'alert', severity: 'critical', socket: 'dashboard:alert',
+        event: 'clinical:sofa_delta', escalation, roleQueue: 'doctor',
+      },
+    },
   ];
   const report = { hospitalId: String(hospitalId), created: [], updated: [], unchanged: [] };
   for (const def of defs) {

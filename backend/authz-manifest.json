@@ -1833,21 +1833,21 @@
     },
     {
       "file": "certificates.js",
-      "line": 39,
+      "line": 42,
       "method": "POST",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "certificates.js",
-      "line": 77,
+      "line": 85,
       "method": "GET",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "certificates.js",
-      "line": 222,
+      "line": 244,
       "method": "GET",
       "target": "'/:id/pdf'",
       "tag": "role"

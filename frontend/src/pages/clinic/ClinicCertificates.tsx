@@ -1,14 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   FileCheck2, Download, Loader2, User, Stethoscope, CalendarDays,
-  ClipboardList, PlusCircle, RefreshCw, ShieldCheck
+  ClipboardList, PlusCircle, RefreshCw, ShieldCheck, Eye, QrCode, Copy, Check, ExternalLink
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
+} from '@/components/ui/dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
@@ -34,6 +38,7 @@ interface Certificate {
     validFrom?: string;
     validTo?: string;
     verificationCode?: string;
+    verifyUrl?: string;
   };
 }
 
@@ -58,6 +63,13 @@ export default function ClinicCertificates() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
+
+  // Preview & QR states
+  const [previewCert, setPreviewCert] = useState<Certificate | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [qrCert, setQrCert] = useState<Certificate | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const [patientId, setPatientId] = useState('');
   const [type, setType] = useState<CertType>('sick_leave');
@@ -143,6 +155,42 @@ export default function ClinicCertificates() {
       toast.error('Failed to download certificate PDF');
     }
     setDownloading(null);
+  };
+
+  const handlePreview = async (cert: Certificate) => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    setPreviewCert(cert);
+    setPreviewLoading(true);
+    try {
+      const response = await apiClient.get(`/certificates/${cert._id}/pdf`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+    } catch {
+      toast.error('Failed to load certificate preview');
+      setPreviewCert(null);
+    }
+    setPreviewLoading(false);
+  };
+
+  const handleClosePreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setPreviewCert(null);
+  };
+
+  const copyVerificationCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    toast.success('Verification code copied to clipboard');
+    setTimeout(() => setCopiedCode(null), 3000);
   };
 
   return (
@@ -278,9 +326,22 @@ export default function ClinicCertificates() {
                             <CalendarDays className="w-3 h-3" /> {new Date(cert.createdAt || cert.date || Date.now()).toLocaleDateString('en-IN')}
                           </span>
                           {cert.data?.verificationCode && (
-                            <span className="flex items-center gap-1 text-primary">
-                              <ShieldCheck className="w-3 h-3" /> {cert.data.verificationCode}
-                            </span>
+                            <div className="flex items-center gap-1.5 text-xs text-primary bg-primary/5 px-2 py-0.5 rounded border border-primary/20">
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              <code className="font-mono font-semibold">{cert.data.verificationCode}</code>
+                              <button
+                                type="button"
+                                title="Copy verification code"
+                                className="text-muted-foreground hover:text-primary p-0.5 transition-colors"
+                                onClick={() => copyVerificationCode(cert.data?.verificationCode || '')}
+                              >
+                                {copiedCode === cert.data.verificationCode ? (
+                                  <Check className="w-3 h-3 text-emerald-600" />
+                                ) : (
+                                  <Copy className="w-3 h-3" />
+                                )}
+                              </button>
+                            </div>
                           )}
                         </div>
                         {cert.diagnosis && (
@@ -299,11 +360,36 @@ export default function ClinicCertificates() {
                           ) : null}
                         </div>
                       </div>
-                      <Button size="sm" variant="outline" className="gap-1.5 rounded-lg text-xs h-8 shrink-0"
-                        disabled={isDownloading} onClick={() => handleDownload(cert)}>
-                        {isDownloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                        PDF
-                      </Button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 rounded-lg text-xs h-8"
+                          onClick={() => setQrCert(cert)}
+                        >
+                          <QrCode className="w-3.5 h-3.5" />
+                          QR
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 rounded-lg text-xs h-8"
+                          onClick={() => handlePreview(cert)}
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Preview
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 rounded-lg text-xs h-8"
+                          disabled={isDownloading}
+                          onClick={() => handleDownload(cert)}
+                        >
+                          {isDownloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                          PDF
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -312,6 +398,118 @@ export default function ClinicCertificates() {
           )}
         </div>
       </div>
+
+      {/* Inline PDF Preview Modal */}
+      <Dialog open={Boolean(previewCert)} onOpenChange={(open) => !open && handleClosePreview()}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between gap-4">
+              <span>{previewCert?.data?.title || 'Medical Certificate'}</span>
+              <div className="flex items-center gap-2 mr-6">
+                {previewCert && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs h-8"
+                    onClick={() => handleDownload(previewCert)}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download PDF
+                  </Button>
+                )}
+              </div>
+            </DialogTitle>
+            <DialogDescription>
+              Patient: {previewCert?.patientId?.name || previewCert?.patient || 'Patient'} • Record ID: {previewCert?._id}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-[500px] mt-2 rounded-lg overflow-hidden border bg-muted/20 flex items-center justify-center">
+            {previewLoading ? (
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Rendering certificate PDF...</p>
+              </div>
+            ) : previewUrl ? (
+              <iframe
+                src={previewUrl}
+                title="Certificate Preview"
+                className="w-full h-[650px] border-0"
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">Preview unavailable</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Verification QR Modal */}
+      <Dialog open={Boolean(qrCert)} onOpenChange={(open) => !open && setQrCert(null)}>
+        <DialogContent className="max-w-md p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-primary" />
+              Tamper-Evident Verification QR
+            </DialogTitle>
+            <DialogDescription>
+              Statutory document authenticity seal for {qrCert?.data?.title || 'Medical Certificate'}
+            </DialogDescription>
+          </DialogHeader>
+          {qrCert && (
+            <div className="flex flex-col items-center gap-4 py-4">
+              <div className="p-4 bg-white rounded-2xl shadow-inner border border-border flex items-center justify-center">
+                <QRCodeSVG
+                  value={`${window.location.origin}/verify/doc/certificate/${qrCert._id}`}
+                  size={180}
+                  level="M"
+                />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-xs font-medium text-foreground">
+                  Scan with any smartphone camera or QR scanner
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Directs to FindMedi public doc-seal verification page (File 14 §14.5).
+                </p>
+              </div>
+              <div className="w-full p-3 bg-muted/40 rounded-xl border text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Verification Code:</span>
+                  <span className="font-mono font-bold text-foreground">{qrCert.data?.verificationCode || '-'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Record ID:</span>
+                  <span className="font-mono text-[11px] text-foreground">{qrCert._id}</span>
+                </div>
+              </div>
+              <div className="flex w-full gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1.5 text-xs"
+                  onClick={() => {
+                    const url = `${window.location.origin}/verify/doc/certificate/${qrCert._id}`;
+                    navigator.clipboard.writeText(url);
+                    toast.success('Verification URL copied');
+                  }}
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  Copy Link
+                </Button>
+                <Button
+                  size="sm"
+                  className="flex-1 gap-1.5 text-xs"
+                  onClick={() => {
+                    window.open(`/verify/doc/certificate/${qrCert._id}`, '_blank');
+                  }}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Open Verify Page
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

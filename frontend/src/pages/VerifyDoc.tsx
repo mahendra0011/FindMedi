@@ -22,6 +22,8 @@ const KIND_LABELS: Record<string, string> = {
   prescription: 'Prescription',
   consent: 'Consent form',
   discharge: 'Discharge summary',
+  certificate: 'Medical Certificate',
+  birth: 'Birth Certificate',
   report: 'Report',
   bill: 'Bill',
 };

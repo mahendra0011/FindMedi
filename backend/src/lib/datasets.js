@@ -45,6 +45,56 @@ export const DATASETS = {
       return [{ blockedDischarges: blocked, tpaQueries: tpa, lowStocks: 0, capturedAt: new Date() }];
     },
   },
+  // ICU clinical scores with computed sofaDelta over trailing 24h.
+  icu_scores: {
+    label: 'ICU scores',
+    fields: ['_id', 'hospitalId', 'admissionId', 'patientId', 'score', 'prevScore', 'sofaDelta', 'recordedAt'],
+    async fetch(hospitalId) {
+      const { default: IcuScore } = await import('../models/IcuScore.js');
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const scores = await IcuScore.find({
+        hospitalId,
+        scoreType: 'SOFA',
+        recordedAt: { $gte: since },
+      }).sort({ recordedAt: -1 }).limit(1000).lean();
+
+      const byAdmission = new Map();
+      for (const sc of scores) {
+        const key = String(sc.admissionId || sc._id);
+        if (!byAdmission.has(key)) {
+          byAdmission.set(key, []);
+        }
+        byAdmission.get(key).push(sc);
+      }
+
+      const rows = [];
+      for (const [admId, list] of byAdmission.entries()) {
+        const latest = list[0];
+        let prev = list.length > 1 ? list[1] : null;
+        if (!prev && latest.admissionId) {
+          prev = await IcuScore.findOne({
+            hospitalId,
+            admissionId: latest.admissionId,
+            scoreType: 'SOFA',
+            recordedAt: { $lt: latest.recordedAt },
+          }).sort({ recordedAt: -1 }).lean();
+        }
+        const prevScore = prev ? prev.score : latest.score;
+        const sofaDelta = latest.score - prevScore;
+        rows.push({
+          _id: latest._id,
+          hospitalId: latest.hospitalId,
+          admissionId: latest.admissionId || admId,
+          patientId: latest.patientId,
+          score: latest.score,
+          prevScore,
+          sofaDelta,
+          recordedAt: latest.recordedAt,
+        });
+      }
+      return rows;
+    },
+  },
 };
 
 export function datasetNames() {

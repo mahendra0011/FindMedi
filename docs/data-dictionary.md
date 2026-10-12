@@ -11397,7 +11397,7 @@ source `SignatureEvent.js` · timestamps: yes · virtuals: 0 · retention: Statu
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
-| `docRef.kind` | String |  |  | "other" | consent, discharge, ot, form, birth, other |  |  |
+| `docRef.kind` | String |  |  | "other" | consent, discharge, ot, form, birth, certificate, other |  |  |
 | `docRef.id` | ObjectId | yes |  |  |  |  |  |
 | `level` | String | yes |  |  | L1, L2 |  |  |
 | `signerRole` | String | yes |  |  | patient, relative, witness, doctor, staff |  |  |

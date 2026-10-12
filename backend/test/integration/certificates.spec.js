@@ -1,5 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import { mountApp, query } from '../helpers/appHarness.js';
+import { verifySeal } from '../../src/lib/docSeal.js';
 
 const mockPatients = [
   { _id: '507f191e810c19729de860ea', name: 'John Patient', role: 'patient' },
@@ -7,6 +8,7 @@ const mockPatients = [
 
 const mockRecords = [];
 const mockAuditLogs = [];
+const mockSignatures = [];
 
 const { as } = await mountApp('certificates', {
   '../../src/models/User.js': () => ({
@@ -25,6 +27,7 @@ const { as } = await mountApp('certificates', {
         const doc = {
           _id: '507f1f77bcf86cd79943901' + (mockRecords.length + 1),
           ...data,
+          save: async () => doc,
           populate: async () => doc,
         };
         mockRecords.push(doc);
@@ -38,6 +41,16 @@ const { as } = await mountApp('certificates', {
           populate: () => Promise.resolve(mockRecords.find((r) => String(r._id) === String(id)) || null),
         }),
       }),
+    },
+  }),
+  '../../src/models/SignatureEvent.js': () => ({
+    default: {
+      create: async (data) => {
+        const row = { _id: '507f191e810c19729de860ee', ...data };
+        mockSignatures.push(row);
+        return row;
+      },
+      find: (filter) => query(mockSignatures),
     },
   }),
   '../../src/middleware/audit.js': () => ({
@@ -180,5 +193,42 @@ describe('Certificates Integration API', () => {
 
     const denyAudit = mockAuditLogs.find((a) => a.action === 'access_denied_medical_certificate');
     expect(denyAudit).toBeDefined();
+  });
+
+  it('generates sealed PDF with tamper-evident headers, verify URL, and SignatureEvent', async () => {
+    const existingCert = mockRecords[0];
+    expect(existingCert).toBeDefined();
+
+    const res = await as(doctor)
+      .get(`/${existingCert._id}/pdf`)
+      .expect(200);
+
+    expect(res.headers['content-type']).toBe('application/pdf');
+    expect(res.headers['x-doc-seal-nonce']).toBeDefined();
+    expect(res.headers['x-doc-seal-signature']).toBeDefined();
+    expect(res.headers['x-doc-seal-digest']).toBeDefined();
+    expect(res.headers['x-doc-verify-url']).toContain(`/verify/doc/certificate/${existingCert._id}?nonce=`);
+
+    // Verify cryptographic tamper seal integrity
+    const valid = verifySeal({
+      digest: res.headers['x-doc-seal-digest'],
+      signature: res.headers['x-doc-seal-signature'],
+      nonce: res.headers['x-doc-seal-nonce'],
+    });
+    expect(valid).toBe(true);
+
+    // Verify invalid seal returns false
+    const invalid = verifySeal({
+      digest: res.headers['x-doc-seal-digest'],
+      signature: res.headers['x-doc-seal-signature'],
+      nonce: 'wrong-nonce',
+    });
+    expect(invalid).toBe(false);
+
+    // Verify SignatureEvent was recorded
+    const sig = mockSignatures.find((s) => String(s.docRef?.id) === String(existingCert._id));
+    expect(sig).toBeDefined();
+    expect(sig.docRef.kind).toBe('certificate');
+    expect(sig.level).toBe('L2');
   });
 });
