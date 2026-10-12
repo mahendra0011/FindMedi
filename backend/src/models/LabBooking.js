@@ -23,6 +23,9 @@ const labBookingSchema = new mongoose.Schema({
   visitType: { type: String, enum: ['Walk-in', 'Home Collection', 'Appointment'], default: 'Walk-in' },
   homeCollectionAddress: { type: String },
   homeCollectionFee: { type: Number, default: 0 },
+  // Home-collection assignment: who is dispatched for this visit.
+  phlebotomist: { type: String },
+  phlebotomistId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   prescriptionUrl: { type: String },
   prescriptionVerified: { type: Boolean, default: false },
   isWalkin: { type: Boolean, default: false },

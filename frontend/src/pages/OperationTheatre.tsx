@@ -25,14 +25,29 @@ const statusColors = {
 };
 
 const preOpChecklistItems = [
-  { key: 'consent', label: 'Consent Form Signed' },
-  { key: 'bloodGroup', label: 'Blood Group Confirmed' },
-  { key: 'anesthesiaFitness', label: 'Anesthesia Fitness Done' },
-  { key: 'npoStatus', label: 'NPO Status Confirmed' },
-  { key: 'allergies', label: 'Allergies Checked' },
-  { key: 'implants', label: 'Implants/Instruments Ready' },
-  { key: 'siteMarking', label: 'Site Marking Done' },
-  { key: 'identity', label: 'Patient Identity Verified' },
+  // Phase 1: SIGN IN (Before Induction of Anaesthesia)
+  { key: 'identity', label: '[Sign-In] Patient Identity, Site & Procedure Confirmed', phase: 'Sign In' },
+  { key: 'consent', label: '[Sign-In] Surgical & Anaesthesia Consent Verified', phase: 'Sign In' },
+  { key: 'siteMarking', label: '[Sign-In] Surgical Site Marked / Not Applicable', phase: 'Sign In' },
+  { key: 'anesthesiaFitness', label: '[Sign-In] Anaesthesia Machine & Medication Check Complete', phase: 'Sign In' },
+  { key: 'pulseOximeter', label: '[Sign-In] Pulse Oximeter on Patient & Functioning', phase: 'Sign In' },
+  { key: 'allergies', label: '[Sign-In] Known Allergies Verified', phase: 'Sign In' },
+  { key: 'airwayRisk', label: '[Sign-In] Difficult Airway / Aspiration Risk Assessed', phase: 'Sign In' },
+  { key: 'bloodLossRisk', label: '[Sign-In] Risk of >500ml Blood Loss & Adequate IV Access Ready', phase: 'Sign In' },
+
+  // Phase 2: TIME OUT (Before Skin Incision)
+  { key: 'teamIntro', label: '[Time-Out] Entire Team Introduced by Name & Role', phase: 'Time Out' },
+  { key: 'confirmPatient', label: '[Time-Out] Surgeon, Anaesthetist & Nurse Confirm Patient Name, Procedure & Site', phase: 'Time Out' },
+  { key: 'antibioticProphylaxis', label: '[Time-Out] Antibiotic Prophylaxis Administered within 60 mins', phase: 'Time Out' },
+  { key: 'anticipatedEvents', label: '[Time-Out] Surgeon & Anaesthetist Reviewed Anticipated Critical Events', phase: 'Time Out' },
+  { key: 'sterilityConfirmed', label: '[Time-Out] Sterility Indicators Confirmed by Nursing Team', phase: 'Time Out' },
+
+  // Phase 3: SIGN OUT (Before Patient Leaves Operating Room)
+  { key: 'procedureRecorded', label: '[Sign-Out] Nurse Confirms Name of Procedure Recorded', phase: 'Sign Out' },
+  { key: 'instrumentCountComplete', label: '[Sign-Out] Instrument, Sponge & Needle Counts Complete & Reconciled', phase: 'Sign Out' },
+  { key: 'specimenLabelled', label: '[Sign-Out] Surgical Specimen Correctly Labelled (Patient ID & Pathology)', phase: 'Sign Out' },
+  { key: 'equipmentIssues', label: '[Sign-Out] Any Equipment Problems Addressed & Documented', phase: 'Sign Out' },
+  { key: 'pacuRecoveryPlan', label: '[Sign-Out] Key Concerns for Recovery & Management Reviewed by Surgeon & Anaesthetist', phase: 'Sign Out' },
 ];
 
 export default function OperationTheatre() {

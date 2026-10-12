@@ -4,7 +4,7 @@ import Inventory from '../models/Inventory.js';
 import Supplier from '../models/Supplier.js';
 import PurchaseOrder from '../models/PurchaseOrder.js';
 import Notification from '../models/Notification.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, authorize } from '../middleware/auth.js';
 import { validate, createInventoryItemSchema, updateInventoryItemSchema, createSupplierSchema, createPurchaseOrderSchema } from '../utils/validate.js';
 import { validateGstin } from '../lib/gstin.js';
 import { auditLog } from '../middleware/audit.js';
@@ -15,15 +15,26 @@ const stockUpdateSchema = z.object({ quantity: z.number(), type: z.enum(['add', 
 const updateSupplierSchema = z.object({}).passthrough();
 const poStatusSchema = z.object({ status: z.string().min(1), approvedBy: z.string().optional(), approvalId: z.string().optional() });
 const poReceiveSchema = z.object({ receivedNotes: z.string().optional() });
+const barcodeSchema = z.object({ barcode: z.string().trim().min(1, 'Barcode is required').max(64, 'Barcode too long') });
 
 const router = express.Router();
 
 const generatePONumber = async () => generateTimestampedId('PO');
 
+const generateBarcode = (hospitalId) => {
+  const short = hospitalId ? String(hospitalId).slice(-4).toUpperCase() : 'GEN';
+  const rand = (Math.random().toString(36).slice(2, 8) + '000000').slice(0, 6).toUpperCase();
+  return `INV-${short}-${rand}`;
+};
+
 // Inventory Items
-router.post('/items', protect, adminOnly, validate(createInventoryItemSchema), async (req, res) => {
+router.post('/items', protect, authorize('inventory:manage'), validate(createInventoryItemSchema), async (req, res) => {
   try {
-    const item = await Inventory.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    const item = await Inventory.create({
+      ...req.body,
+      barcode: generateBarcode(req.user.hospitalId),
+      hospitalId: req.user.hospitalId || undefined,
+    });
     await auditLog('create_inventory_item', req.user._id, { recordId: item._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(item);
   } catch (err) { res.status(400).json({ message: err.message }); }
@@ -66,7 +77,7 @@ router.put('/items/:id', protect, validate(updateInventoryItemSchema), async (re
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/items/:id/stock', protect, adminOnly, validate(stockUpdateSchema), async (req, res) => {
+router.put('/items/:id/stock', protect, authorize('inventory:manage'), validate(stockUpdateSchema), async (req, res) => {
   try {
     const { quantity, type, reference, notes } = req.body;
     const item = await Inventory.findById(req.params.id);
@@ -128,6 +139,42 @@ router.get('/items/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+router.post('/items/:id/barcode', protect, validate(barcodeSchema), async (req, res) => {
+  try {
+    const item = await Inventory.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Item not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const barcode = req.body.barcode;
+    const scope = item.hospitalId ? { hospitalId: item.hospitalId } : {};
+    const conflict = await Inventory.findOne({ ...scope, barcode, _id: { $ne: item._id } }).select('_id').lean();
+    if (conflict) return res.status(409).json({ message: 'Barcode already assigned to another item', code: 'BARCODE_CONFLICT' });
+    item.barcode = barcode;
+    await item.save();
+    await auditLog('inventory.barcode.set', req.user._id, { itemId: item._id, barcode, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json({ item });
+  } catch (err) {
+    if (err?.code === 11000) return res.status(409).json({ message: 'Barcode already assigned to another item', code: 'BARCODE_CONFLICT' });
+    res.status(400).json({ message: err.message });
+  }
+});
+
+router.get('/barcode/:code', protect, async (req, res) => {
+  try {
+    const code = String(req.params.code || '').trim();
+    if (!code) return res.status(404).json({ message: 'Item not found' });
+    const scope = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') scope.hospitalId = req.user.hospitalId;
+    let item = await Inventory.findOne({ ...scope, barcode: { $in: [code, code.toUpperCase()] } }).lean();
+    if (!item) {
+      item = await Inventory.findOne({ ...scope, barcode: new RegExp(`^${escapeRegex(code)}$`, 'i') }).lean();
+    }
+    if (!item) return res.status(404).json({ message: 'Item not found' });
+    res.json({ item });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.get('/stats', protect, async (req, res) => {
   try {
     const hFilter = {};
@@ -150,7 +197,7 @@ router.get('/stats', protect, async (req, res) => {
 });
 
 // Suppliers
-router.post('/suppliers', protect, adminOnly, validate(createSupplierSchema), async (req, res) => {
+router.post('/suppliers', protect, authorize('inventory:manage'), validate(createSupplierSchema), async (req, res) => {
   try {
     const gstNumber = (req.body.gstNumber || '').trim();
     let gstValidatedAt = null;
@@ -212,7 +259,7 @@ const onboardingSchema = z.object({
   reason: z.string().max(500).optional(),
 });
 
-router.post('/suppliers/:id/onboarding', protect, adminOnly, validate(onboardingSchema), async (req, res) => {
+router.post('/suppliers/:id/onboarding', protect, authorize('inventory:manage'), validate(onboardingSchema), async (req, res) => {
   try {
     const supplier = await Supplier.findById(req.params.id);
     if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
@@ -243,7 +290,7 @@ router.get('/suppliers/:id', protect, async (req, res) => {
 });
 
 // Purchase Orders
-router.post('/purchase-orders', protect, adminOnly, validate(createPurchaseOrderSchema), async (req, res) => {
+router.post('/purchase-orders', protect, authorize('inventory:manage'), validate(createPurchaseOrderSchema), async (req, res) => {
   try {
     const { supplierId, supplierName, items, expectedDelivery, notes, taxRate } = req.body;
     const poNumber = await generatePONumber();
@@ -351,7 +398,7 @@ router.get('/purchase-orders/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/purchase-orders/:id/status', protect, adminOnly, validate(poStatusSchema), async (req, res) => {
+router.put('/purchase-orders/:id/status', protect, authorize('inventory:manage'), validate(poStatusSchema), async (req, res) => {
   try {
     const { status, approvedBy } = req.body;
     const po = await PurchaseOrder.findById(req.params.id);
@@ -399,7 +446,7 @@ router.put('/purchase-orders/:id/status', protect, adminOnly, validate(poStatusS
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/purchase-orders/:id/receive', protect, adminOnly, validate(poReceiveSchema), async (req, res) => {
+router.put('/purchase-orders/:id/receive', protect, authorize('inventory:manage'), validate(poReceiveSchema), async (req, res) => {
   try {
     const { receivedNotes } = req.body;
     const po = await PurchaseOrder.findById(req.params.id);

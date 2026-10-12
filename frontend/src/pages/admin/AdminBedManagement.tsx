@@ -10,7 +10,7 @@ const WARDS = ['General', 'Semi-Private', 'Private', 'ICU', 'NICU', 'PICU', 'Eme
 const BED_TYPES = ['General', 'Semi-Private', 'Private', 'ICU', 'NICU', 'PICU'];
 
 export default function AdminBedManagement() {
-  const [beds, setBeds] = useState([]);
+  const [beds, setBeds] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, available: 0, occupied: 0, maintenance: 0 });
   const [search, setSearch] = useState('');
   const [wardFilter, setWardFilter] = useState('');
@@ -24,7 +24,7 @@ export default function AdminBedManagement() {
   const loadBeds = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {};
+      const params: any = {};
       if (wardFilter) params.ward = wardFilter;
       if (statusFilter) params.status = statusFilter;
       const [data, statsData] = await Promise.all([
@@ -212,7 +212,30 @@ export default function AdminBedManagement() {
                 )}
               </div>
 
-              <div className="flex gap-2 pt-2 border-t border-border/30">
+              <div className="flex items-center gap-1.5 pt-2 border-t border-border/30 mb-2">
+                <span className="text-[11px] text-muted-foreground">Status:</span>
+                <select
+                  value={bed.status}
+                  onChange={async (e) => {
+                    const newStatus = e.target.value;
+                    try {
+                      await api.updateBed(bed._id, { status: newStatus });
+                      toast.success(`Bed ${bed.bedNumber} marked as ${newStatus}${newStatus === 'Under Cleaning' ? ' (Housekeeping dispatched)' : ''}`);
+                      loadBeds();
+                    } catch {
+                      toast.error('Failed to change bed status');
+                    }
+                  }}
+                  className="text-xs font-semibold bg-background border border-border/60 rounded px-2 py-0.5 flex-1"
+                >
+                  <option value="Available">Available</option>
+                  <option value="Occupied">Occupied</option>
+                  <option value="Under Cleaning">Under Cleaning</option>
+                  <option value="Maintenance">Maintenance</option>
+                </select>
+              </div>
+
+              <div className="flex gap-2 pt-1 border-t border-border/30">
                 <Button variant="outline" size="sm" className="flex-1 gap-1 text-xs h-8" onClick={() => handleEdit(bed)}>
                   <Edit className="w-3 h-3" /> Edit
                 </Button>

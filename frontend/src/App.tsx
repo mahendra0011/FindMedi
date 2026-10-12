@@ -131,6 +131,22 @@ const BedsideScan = lazy(() => import('./pages/hospital/BedsideScan'));
 const NotifyStudio = lazy(() => import('./pages/hospital/NotifyStudio'));
 const WebhookStudio = lazy(() => import('./pages/hospital/WebhookStudio'));
 const QualityBoard = lazy(() => import('./pages/hospital/QualityBoard'));
+const BiomedicalDashboard = lazy(() => import('./pages/hospital/BiomedicalDashboard'));
+const DialysisPage = lazy(() => import('./pages/hospital/DialysisPage'));
+const LinenLaundryPage = lazy(() => import('./pages/hospital/LinenLaundryPage'));
+const FormBuilderStudio = lazy(() => import('./pages/hospital/FormBuilderStudio'));
+const BiomedicalWastePage = lazy(() => import('./pages/hospital/BiomedicalWastePage'));
+const TrialBalancePage = lazy(() => import('./pages/hospital/TrialBalancePage'));
+const ParkingManagementPage = lazy(() => import('./pages/hospital/ParkingManagementPage'));
+const AccountingExportPage = lazy(() => import('./pages/hospital/AccountingExportPage'));
+const RecruitmentPage = lazy(() => import('./pages/hospital/RecruitmentPage'));
+const CanteenPage = lazy(() => import('./pages/hospital/CanteenPage'));
+const PaymentGatewaySettings = lazy(() => import('./pages/hospital/PaymentGatewaySettings'));
+const BiometricAttendancePage = lazy(() => import('./pages/hospital/BiometricAttendancePage'));
+const MultiStoreCheckoutPage = lazy(() => import('./pages/hospital/MultiStoreCheckoutPage'));
+const QueueAgingDashboard = lazy(() => import('./pages/hospital/QueueAgingDashboard'));
+const PackageBillingEngine = lazy(() => import('./pages/hospital/PackageBillingEngine'));
+const LabAnalyzerEmulatorPage = lazy(() => import('./pages/hospital/LabAnalyzerEmulatorPage'));
 const GlobalSearch = lazy(() => import('./components/GlobalSearch'));
 const HealthcarePage = lazy(() => import('./pages/HealthcarePage'));
 const HospitalDirectory = lazy(() => import('./pages/HospitalDirectory'));
@@ -275,6 +291,13 @@ const AIChatPage = lazy(() => import('./pages/AIChatPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 
 const ClinicDashboard = lazy(() => import('./pages/clinic/ClinicDashboard'));
+const ClinicAdminDashboard = lazy(() => import('./pages/clinic/ClinicAdminDashboard'));
+const ClinicDoctorDashboard = lazy(() => import('./pages/clinic/ClinicDoctorDashboard'));
+const ClinicReceptionDashboard = lazy(() => import('./pages/clinic/ClinicReceptionDashboard'));
+const ClinicCashierDashboard = lazy(() => import('./pages/clinic/ClinicCashierDashboard'));
+const ClinicNurseDashboard = lazy(() => import('./pages/clinic/ClinicNurseDashboard'));
+const ClinicBranchManagerDashboard = lazy(() => import('./pages/clinic/ClinicBranchManagerDashboard'));
+const ClinicTelemedCoordinatorDashboard = lazy(() => import('./pages/clinic/ClinicTelemedCoordinatorDashboard'));
 const ClinicOverview = lazy(() => import('./pages/clinic/ClinicOverview'));
 const ClinicAppointments = lazy(() => import('./pages/clinic/ClinicAppointments'));
 const ClinicSchedule = lazy(() => import('./pages/clinic/ClinicSchedule'));
@@ -294,6 +317,8 @@ const ClinicStaff = lazy(() => import('./pages/clinic/ClinicStaff'));
 const ClinicInventory = lazy(() => import('./pages/clinic/ClinicInventory'));
 const ClinicPackages = lazy(() => import('./pages/clinic/ClinicPackages'));
 const ClinicBranches = lazy(() => import('./pages/clinic/ClinicBranches'));
+const ClinicCertificates = lazy(() => import('./pages/clinic/ClinicCertificates'));
+const PurchaseCenter = lazy(() => import('./pages/hospital/PurchaseCenter'));
 const GrowthCharts = lazy(() => import('./pages/paed/GrowthCharts'));
 const VaccinationAlerts = lazy(() => import('./pages/paed/VaccinationAlerts'));
 const Partogram = lazy(() => import('./pages/paed/Partogram'));
@@ -373,6 +398,7 @@ const LabReportsAnalytics = lazy(() => import('./pages/labcenter/LabReportsAnaly
 const LabReviews = lazy(() => import('./pages/labcenter/LabReviews'));
 const LabSampleCollection = lazy(() => import('./pages/labcenter/LabSampleCollection'));
 const LabStaff = lazy(() => import('./pages/labcenter/LabStaff'));
+const PathologistVerificationDashboard = lazy(() => import('./pages/labcenter/PathologistVerificationDashboard'));
 const LabTestCatalog = lazy(() => import('./pages/labcenter/LabTestCatalog'));
 
 // ── MindSupport (merged) — separate /mind/* routes ──
@@ -584,10 +610,10 @@ function StaffDashboard() {
   return <StaffDashboardPage />;
 }
 
-const CLINIC_OPS_ROLES = ['clinic_admin', 'clinic_receptionist', 'clinic_nurse', 'clinic_accountant', 'clinic_pharmacist'];
+const CLINIC_OPS_ROLES = ['clinic_admin', 'clinic_receptionist', 'clinic_nurse', 'clinic_accountant', 'clinic_pharmacist', 'clinic_cashier', 'clinic_branch_manager', 'clinic_telemed_coordinator'];
 // File 22 P2-39: all clinic org roles (incl. clinic_doctor) can reach the clinic
 // console; each page still gates its own actions (only clinic_doctor writes Rx).
-const CLINIC_ROLES = ['clinic_doctor', 'clinic_admin', 'clinic_receptionist', 'clinic_nurse', 'clinic_accountant', 'clinic_pharmacist'];
+const CLINIC_ROLES = ['clinic_doctor', 'clinic_admin', 'clinic_receptionist', 'clinic_nurse', 'clinic_accountant', 'clinic_pharmacist', 'clinic_cashier', 'clinic_branch_manager', 'clinic_telemed_coordinator'];
 
 const SPECIALTY_DASHBOARD_PATHS: Record<string, string> = {
   dentist: '/dashboard/dentist',
@@ -614,7 +640,13 @@ function RoleDashboard() {
   if (defaultPath) return <Navigate to={defaultPath} replace />;
   if (user?.role === 'superadmin') return <Navigate to="/superadmin/overview" replace />;
   if (user?.role === 'doctor') return <DoctorDashboard />;
-  if (user?.role === 'clinic_doctor') return <ClinicDashboard />;
+  if (user?.role === 'clinic_doctor') return <ClinicDoctorDashboard />;
+  if (user?.role === 'clinic_admin') return <ClinicAdminDashboard />;
+  if (user?.role === 'clinic_receptionist') return <ClinicReceptionDashboard />;
+  if (user?.role === 'clinic_cashier' || user?.role === 'clinic_accountant') return <ClinicCashierDashboard />;
+  if (user?.role === 'clinic_nurse') return <ClinicNurseDashboard />;
+  if (user?.role === 'clinic_branch_manager') return <ClinicBranchManagerDashboard />;
+  if (user?.role === 'clinic_telemed_coordinator') return <ClinicTelemedCoordinatorDashboard />;
   // Psychiatrist doctor hai → FindMedi DoctorDashboard; counsellor ka bhi provider dashboard
   if (user?.role === 'psychiatrist') return <DoctorDashboard />;
   if (user?.role === 'counsellor') return <DoctorDashboard />;
@@ -627,7 +659,7 @@ function RoleDashboard() {
   if (['medical_director', 'cmo'].includes(user?.role ?? '')) return <Navigate to="/dashboard/v2" replace />;
   // File 22 P0-8: clinic org staff land on the clinic console (CLINIC_ROLES
   // below admits all five) and specialty roles on their own /dashboard/* page.
-  if (CLINIC_OPS_ROLES.includes(user?.role ?? '')) return <Navigate to="/clinic/dashboard" replace />;
+  if (CLINIC_OPS_ROLES.includes(user?.role ?? '')) return <Navigate to="/clinic/admin" replace />;
   const specialtyPath = SPECIALTY_DASHBOARD_PATHS[user?.role ?? ''];
   if (specialtyPath) return <Navigate to={specialtyPath} replace />;
   if (['nursing_supervisor', 'matron', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse'].includes(user?.role ?? '')) return <StaffDashboard />;
@@ -875,6 +907,7 @@ const App = () => (
                     <Route path="bookings" element={<RoleRoute allowedRoles={['lab_owner']}><LabBookingManagement /></RoleRoute>} />
                     <Route path="prescriptions" element={<RoleRoute allowedRoles={['lab_owner']}><LabPrescriptionQueue /></RoleRoute>} />
                     <Route path="samples" element={<RoleRoute allowedRoles={['lab_owner']}><LabSampleCollection /></RoleRoute>} />
+                    <Route path="verification" element={<RoleRoute allowedRoles={['lab_owner', 'pathologist', 'superadmin']}><PathologistVerificationDashboard /></RoleRoute>} />
                     <Route path="analytics" element={<RoleRoute allowedRoles={['lab_owner']}><LabReportsAnalytics /></RoleRoute>} />
                     <Route path="reviews" element={<RoleRoute allowedRoles={['lab_owner']}><LabReviews /></RoleRoute>} />
                   </Route>
@@ -971,7 +1004,7 @@ const App = () => (
                     <Route path="/ipd" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'nursing_supervisor', 'matron', 'ward_nurse', 'icu_nurse', 'medical_director', 'cmo', 'surgeon', 'anaesthetist', 'billing_executive']}><IPD /></RoleRoute>} />
                     <Route path="/triage" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><TriagePage /></RoleRoute>} />
                     <Route path="/nursing" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'nursing_supervisor', 'matron', 'infection_control_nurse']}><NursingCharts /></RoleRoute>} />
-                    <Route path="/radiology" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'radiologist']}><Radiology /></RoleRoute>} />
+                    <Route path="/radiology" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'radiologist', 'technician']}><Radiology /></RoleRoute>} />
                     <Route path="/insurance" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'patient']}><Insurance /></RoleRoute>} />
                     <Route path="/diet" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'dietician_head', 'kitchen_staff']}><DietKitchen /></RoleRoute>} />
                     <Route path="/ot" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'surgeon', 'anaesthetist', 'ot_nurse']}><OperationTheatre /></RoleRoute>} />
@@ -982,6 +1015,7 @@ const App = () => (
                     <Route path="/staff" element={<RoleRoute allowedRoles={['hospital_admin']}><Staff /></RoleRoute>} />
                     <Route path="/access-control" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><AccessControl /></RoleRoute>} />
                     <Route path="/inventory" element={<RoleRoute allowedRoles={['hospital_admin', 'store_keeper', 'purchase_officer', 'cssd_technician', 'biomedical_engineer', 'maintenance']}><Inventory /></RoleRoute>} />
+                    <Route path="/purchase-center" element={<RoleRoute allowedRoles={['hospital_admin', 'store_keeper', 'purchase_officer', 'accountant', 'clinic_admin', 'clinic_branch_manager', 'superadmin']}><PurchaseCenter /></RoleRoute>} />
                     <Route path="/housekeeping" element={<RoleRoute allowedRoles={['hospital_admin', 'housekeeping_supervisor', 'ward_boy']}><Housekeeping /></RoleRoute>} />
                     <Route path="/opd-token" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'receptionist', 'front_desk', 'call_center_agent']}><OPDToken /></RoleRoute>} />
                     <Route path="/opd-registration" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><OPDRegistration /></RoleRoute>} />
@@ -1018,6 +1052,22 @@ const App = () => (
                     <Route path="/hospital/notify" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><NotifyStudio /></RoleRoute>} />
                     <Route path="/hospital/webhooks" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><WebhookStudio /></RoleRoute>} />
                     <Route path="/hospital/quality" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'quality_officer', 'medical_director', 'cmo']}><QualityBoard /></RoleRoute>} />
+                    <Route path="/hospital/biomedical" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'biomedical_engineer', 'maintenance', 'store_keeper']}><BiomedicalDashboard /></RoleRoute>} />
+                    <Route path="/hospital/dialysis" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'doctor', 'nurse']}><DialysisPage /></RoleRoute>} />
+                    <Route path="/hospital/linen" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'nurse', 'ward_nurse', 'housekeeping_supervisor', 'ward_boy']}><LinenLaundryPage /></RoleRoute>} />
+                    <Route path="/hospital/forms-builder" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'doctor']}><FormBuilderStudio /></RoleRoute>} />
+                    <Route path="/hospital/bmw" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'nurse', 'housekeeping_supervisor', 'ward_boy']}><BiomedicalWastePage /></RoleRoute>} />
+                    <Route path="/hospital/trial-balance" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'accountant']}><TrialBalancePage /></RoleRoute>} />
+                    <Route path="/hospital/parking" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'security', 'security_admin']}><ParkingManagementPage /></RoleRoute>} />
+                    <Route path="/hospital/accounting-export" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'accountant', 'finance_admin']}><AccountingExportPage /></RoleRoute>} />
+                    <Route path="/hospital/recruitment" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'hr_manager']}><RecruitmentPage /></RoleRoute>} />
+                    <Route path="/hospital/canteen" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'nurse', 'dietician_head', 'kitchen_staff']}><CanteenPage /></RoleRoute>} />
+                    <Route path="/hospital/payment-gateway" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'finance_admin']}><PaymentGatewaySettings /></RoleRoute>} />
+                    <Route path="/hospital/biometric" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'hr_manager']}><BiometricAttendancePage /></RoleRoute>} />
+                    <Route path="/hospital/multi-store-checkout" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'pharmacy_owner', 'store_keeper']}><MultiStoreCheckoutPage /></RoleRoute>} />
+                    <Route path="/hospital/queue-aging" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'nurse', 'receptionist', 'front_desk']}><QueueAgingDashboard /></RoleRoute>} />
+                    <Route path="/hospital/package-billing" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'accountant', 'billing_executive']}><PackageBillingEngine /></RoleRoute>} />
+                    <Route path="/hospital/analyzer-emulator" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'lab_technician', 'pathologist']}><LabAnalyzerEmulatorPage /></RoleRoute>} />
 
                     {/* Patient routes */}
                     <Route path="/patient/appointments" element={<RoleRoute allowedRoles={['patient']}><PatientAppointments /></RoleRoute>} />
@@ -1148,6 +1198,13 @@ const App = () => (
 
                     {/* Clinic Doctor routes — CLINIC_ROLES is declared at module scope */}
                     <Route path="/clinic/dashboard" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicDashboard /></RoleRoute>} />
+                    <Route path="/clinic/admin" element={<RoleRoute allowedRoles={['clinic_admin', 'superadmin']}><ClinicAdminDashboard /></RoleRoute>} />
+                    <Route path="/clinic/doctor" element={<RoleRoute allowedRoles={['clinic_doctor', 'doctor', 'superadmin']}><ClinicDoctorDashboard /></RoleRoute>} />
+                    <Route path="/clinic/reception" element={<RoleRoute allowedRoles={['clinic_receptionist', 'receptionist', 'clinic_admin', 'superadmin']}><ClinicReceptionDashboard /></RoleRoute>} />
+                    <Route path="/clinic/cashier" element={<RoleRoute allowedRoles={['clinic_cashier', 'clinic_accountant', 'cashier', 'clinic_admin', 'superadmin']}><ClinicCashierDashboard /></RoleRoute>} />
+                    <Route path="/clinic/nurse" element={<RoleRoute allowedRoles={['clinic_nurse', 'nurse', 'clinic_admin', 'superadmin']}><ClinicNurseDashboard /></RoleRoute>} />
+                    <Route path="/clinic/branch-manager" element={<RoleRoute allowedRoles={['clinic_branch_manager', 'clinic_admin', 'superadmin']}><ClinicBranchManagerDashboard /></RoleRoute>} />
+                    <Route path="/clinic/telemed-coordinator" element={<RoleRoute allowedRoles={['clinic_telemed_coordinator', 'clinic_admin', 'superadmin']}><ClinicTelemedCoordinatorDashboard /></RoleRoute>} />
 <Route path="/clinic/overview" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicOverview /></RoleRoute>} />
 <Route path="/clinic/appointments/approve" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicAppointments /></RoleRoute>} />
 <Route path="/clinic/appointments/upcoming" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicAppointments /></RoleRoute>} />
@@ -1176,6 +1233,7 @@ const App = () => (
                     <Route path="/clinic/inventory" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicInventory /></RoleRoute>} />
                     <Route path="/clinic/packages" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicPackages /></RoleRoute>} />
                     <Route path="/clinic/branches" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicBranches /></RoleRoute>} />
+<Route path="/clinic/certificates" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicCertificates /></RoleRoute>} />
                     <Route path="/paed/growth-charts" element={<RoleRoute allowedRoles={CLINIC_ROLES}><GrowthCharts /></RoleRoute>} />
                     <Route path="/paed/vaccination-alerts" element={<RoleRoute allowedRoles={CLINIC_ROLES}><VaccinationAlerts /></RoleRoute>} />
                     <Route path="/paed/partogram" element={<RoleRoute allowedRoles={CLINIC_ROLES}><Partogram /></RoleRoute>} />

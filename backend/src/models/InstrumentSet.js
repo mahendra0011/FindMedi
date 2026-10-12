@@ -8,6 +8,9 @@ const instrumentSetSchema = new mongoose.Schema({
   code: { type: String, required: true, maxlength: 60 },
   name: { type: String, required: true, maxlength: 200 },
   items: [{ instrument: { type: String }, qty: { type: Number, default: 1 } }],
+  // Load-based recall: a BI/CI Fail quarantines every set in that cycle load
+  status: { type: String, enum: ['Sterile', 'In Use', 'Soiled', 'Quarantined'], default: 'Sterile', index: true },
+  quarantinedByCycle: { type: String, default: '' },
   isActive: { type: Boolean, default: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });

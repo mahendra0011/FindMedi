@@ -65,7 +65,7 @@ router.get('/overview', protect, authorize('billing:read'), async (req, res) => 
 // truncation). One call: KPIs + queue + roster + recalls + money.
 router.get('/dashboard', async (req, res) => {
   try {
-    const allowed = ['clinic_admin', 'clinic_doctor', 'clinic_receptionist', 'clinic_accountant', 'hospital_admin', 'superadmin'];
+    const allowed = ['clinic_admin', 'clinic_doctor', 'clinic_receptionist', 'clinic_accountant', 'clinic_cashier', 'clinic_branch_manager', 'clinic_telemed_coordinator', 'hospital_admin', 'superadmin'];
     if (!allowed.includes(req.user?.role)) return res.status(403).json({ message: 'Clinic access required' });
     const { from, to } = req.query;
     const hf = req.user.facilityId || req.user.hospitalId ? { hospitalId: req.user.facilityId || req.user.hospitalId } : {};
@@ -118,7 +118,7 @@ router.get('/dashboard', async (req, res) => {
 // Doc 12 §5: multi-doctor support — doctors of this clinic (shared reception).
 router.get('/doctors', async (req, res) => {
   try {
-    const allowed = ['clinic_admin', 'clinic_doctor', 'clinic_receptionist', 'hospital_admin', 'superadmin'];
+    const allowed = ['clinic_admin', 'clinic_doctor', 'clinic_receptionist', 'clinic_branch_manager', 'clinic_telemed_coordinator', 'hospital_admin', 'superadmin'];
     if (!allowed.includes(req.user?.role)) return res.status(403).json({ message: 'Clinic access required' });
     const hf = req.user.facilityId || req.user.hospitalId ? { hospitalId: req.user.facilityId || req.user.hospitalId } : {};
     const doctors = await Doctor.find({ ...hf }).select('name specialization experience rating available').lean();
@@ -160,6 +160,8 @@ router.get('/camps', protect, authorize('billing:read'), async (req, res) => {
 // The temp credential is returned ONCE (owner relays it); mustResetPassword
 // forces a change at first login via /set-password.
 const CLINIC_STAFF_INVITE_ROLES = [
+  'clinic_cashier', 'clinic_branch_manager', 'clinic_telemed_coordinator',
+
   'clinic_receptionist', 'clinic_nurse', 'clinic_accountant', 'clinic_pharmacist',
 ];
 router.post('/staff/invite', async (req, res) => {

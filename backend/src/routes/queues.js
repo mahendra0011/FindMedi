@@ -221,6 +221,15 @@ const ticketTransition = async (req, res, from, to, extra = {}) => {
       logger.warn(`ticket encounter auto-create failed: ${e.message}`);
     }
   }
+  // File 22 P0-3: visit end closes the OPD Encounter (idempotent).
+  if (to === 'Done' && t.encounterId) {
+    try {
+      const { closeEncounter } = await import('../lib/encounter.js');
+      await closeEncounter({ encounterId: t.encounterId, hospitalId: q.hospitalId });
+    } catch (e) {
+      logger.warn(`ticket encounter close failed: ${e.message}`);
+    }
+  }
   await emitQueue(String(t.queueId), 'queue:updated', { queueId: String(t.queueId) });
   return res.json({ id: String(t._id), status: t.status });
 };

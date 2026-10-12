@@ -378,6 +378,7 @@ export const api = {
   post:               (path, body) => request(path, { method:'POST', body: JSON.stringify(body) }),
   get:                (path)      => request(path),
   put:                (path, body) => request(path, { method:'PUT', body: JSON.stringify(body) }),
+  patch:              (path, body) => request(path, { method:'PATCH', body: JSON.stringify(body) }),
   del:                (path)      => request(path, { method:'DELETE' }),
   login:              (body)    => request('/auth/login',            { method:'POST', body: JSON.stringify(body) }),
   googleAuth:         (body)    => request('/auth/google',           { method:'POST', body: JSON.stringify(body) }),
@@ -615,6 +616,7 @@ export const api = {
 
   getLabStats:        ()        => request('/lab/stats'),
   getLabBookings:     (p={})    => request('/lab/bookings?' + new URLSearchParams(p)),
+  getLabPhlebotomists:()         => request('/lab/phlebotomists'),
   createLabBooking:   (body)    => request('/lab/bookings', { method:'POST', body: JSON.stringify(body) }),
   updateLabBooking:   (id,body) => request(`/lab/bookings/${id}`, { method:'PUT', body: JSON.stringify(body) }),
   deleteLabBooking:   (id)      => request(`/lab/bookings/${id}`, { method:'DELETE' }),

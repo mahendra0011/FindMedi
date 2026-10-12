@@ -4,66 +4,70 @@ import { MapPin, User, ClipboardList, CheckCircle, Truck, Search, FlaskConical, 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
+// Statuses must match the LabBooking model enum — earlier this page used a
+// private vocabulary (Requested/Assigned/Collected/Received at Lab) that the
+// backend dropped, so every assignment silently no-opped.
 const statusColors = {
-  Requested: 'bg-primary/10 text-primary',
-  Assigned: 'bg-warning/10 text-warning',
-  Collected: 'bg-info/10 text-info',
-  'Received at Lab': 'bg-success/10 text-success',
+  Pending: 'bg-primary/10 text-primary',
+  Confirmed: 'bg-warning/10 text-warning',
+  'Sample Collected': 'bg-info/10 text-info',
+  Processing: 'bg-success/10 text-success',
+  Completed: 'bg-success/10 text-success',
 };
 
-const phlebotomists = ['Rajesh Kumar', 'Priya Sharma', 'Amit Singh', 'Sneha Patel'];
-
-function BarcodeLabel({ code }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="font-mono text-xs border px-2 py-1 rounded">{code}</span>
-      <Button size="sm" variant="outline" onClick={() => window.print()}>Print Zebra/TSV Label</Button>
-    </div>
-  );
-}
+const nextStatus = { Pending: 'Confirmed', Confirmed: 'Sample Collected', 'Sample Collected': 'Processing' };
 
 const mapBooking = (b, i) => ({
   id: b._id || `col_${i}`,
   patient: b.patientName || b.patient || 'Unknown',
-  address: b.address || '',
+  address: b.homeCollectionAddress || b.address || '',
   tests: b.tests || [],
-  status: b.status || 'Requested',
+  status: b.status || 'Pending',
   phlebotomist: b.phlebotomist || '',
-  requestedDate: b.date || b.createdAt?.split('T')[0] || '',
-  time: b.time || '',
+  requestedDate: (b.bookingDate ? String(b.bookingDate).split('T')[0] : '') || b.createdAt?.split('T')[0] || '',
+  time: b.timeSlot || b.time || '',
 });
 
 export default function LabSampleCollection() {
   const [collections, setCollections] = useState([]);
+  const [phlebotomists, setPhlebotomists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [assigning, setAssigning] = useState(null);
 
   useEffect(() => {
-    api.getLabBookings({})
-      .then(res => setCollections((res.bookings || []).map(mapBooking)))
-      .catch(console.error)
+    Promise.all([
+      api.getLabBookings({}),
+      api.getLabPhlebotomists().catch(() => ({ phlebotomists: [] })),
+    ])
+      .then(([res, staff]) => {
+        setCollections((res.bookings || []).map(mapBooking));
+        setPhlebotomists((staff.phlebotomists || []).map(p => p.name).filter(Boolean));
+      })
+      .catch((e) => { console.error(e); toast.error('Failed to load collections'); })
       .finally(() => setLoading(false));
   }, []);
 
   const assignPhlebotomist = async (id, name) => {
     try {
-      await api.updateLabBooking(id, { phlebotomist: name, status: 'Assigned' });
-      setCollections(prev => prev.map(c => c.id === id ? { ...c, phlebotomist: name, status: 'Assigned' } : c));
-    } catch (e) { console.error(e); }
+      await api.updateLabBooking(id, { phlebotomist: name, status: 'Confirmed' });
+      setCollections(prev => prev.map(c => c.id === id ? { ...c, phlebotomist: name, status: 'Confirmed' } : c));
+      toast.success(`Assigned to ${name}`);
+    } catch (e) { console.error(e); toast.error('Assignment failed'); }
     setAssigning(null);
   };
 
   const advanceStatus = async (id) => {
     try {
-      const flow = { Requested: 'Assigned', Assigned: 'Collected', Collected: 'Received at Lab' };
       const c = collections.find(c => c.id === id);
-      const nextStatus = flow[c?.status] || c?.status;
-      await api.updateLabBooking(id, { status: nextStatus });
-      setCollections(prev => prev.map(c => c.id === id ? { ...c, status: nextStatus } : c));
-    } catch (e) { console.error(e); }
+      const next = nextStatus[c?.status] || c?.status;
+      await api.updateLabBooking(id, { status: next });
+      setCollections(prev => prev.map(c => c.id === id ? { ...c, status: next } : c));
+      toast.success(`Status updated to ${next}`);
+    } catch (e) { console.error(e); toast.error('Status update failed'); }
   };
 
   const filtered = collections.filter(c =>
@@ -92,28 +96,28 @@ export default function LabSampleCollection() {
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
             <ClipboardList className="w-5 h-5 text-primary" />
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">{collections.filter(c => c.status === 'Requested').length}</p>
-          <p className="text-sm text-muted-foreground">Pending Collection</p>
+          <p className="font-heading text-2xl font-bold text-foreground">{collections.filter(c => c.status === 'Pending').length}</p>
+          <p className="text-sm text-muted-foreground">Awaiting Assignment</p>
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} className="bg-card rounded-2xl border border-border/60 p-5">
           <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center mb-2">
             <User className="w-5 h-5 text-warning" />
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">{collections.filter(c => c.status === 'Assigned').length}</p>
+          <p className="font-heading text-2xl font-bold text-foreground">{collections.filter(c => c.status === 'Confirmed').length}</p>
           <p className="text-sm text-muted-foreground">Assigned</p>
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} className="bg-card rounded-2xl border border-border/60 p-5">
           <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center mb-2">
             <CheckCircle className="w-5 h-5 text-info" />
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">{collections.filter(c => c.status === 'Collected').length}</p>
+          <p className="font-heading text-2xl font-bold text-foreground">{collections.filter(c => c.status === 'Sample Collected').length}</p>
           <p className="text-sm text-muted-foreground">Collected Today</p>
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} className="bg-card rounded-2xl border border-border/60 p-5">
           <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center mb-2">
             <Truck className="w-5 h-5 text-success" />
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">{collections.filter(c => c.status === 'Received at Lab').length}</p>
+          <p className="font-heading text-2xl font-bold text-foreground">{collections.filter(c => c.status === 'Processing').length}</p>
           <p className="text-sm text-muted-foreground">Received at Lab</p>
         </motion.div>
       </div>
@@ -137,7 +141,7 @@ export default function LabSampleCollection() {
                 <div>
                   <h3 className="font-heading font-semibold text-foreground">{c.patient}</h3>
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                    <MapPin className="w-3 h-3" /> {c.address}
+                    <MapPin className="w-3 h-3" /> {c.address || 'Address not set'}
                   </p>
                 </div>
                 <Badge className={`${statusColors[c.status]} border-0`}>{c.status}</Badge>
@@ -152,38 +156,42 @@ export default function LabSampleCollection() {
                 <span className="flex items-center gap-1"><User className="w-3 h-3" /> {c.phlebotomist || 'Unassigned'}</span>
               </div>
               <div className="flex gap-2">
-                {c.status === 'Requested' && (
+                {c.status === 'Pending' && (
                   <div className="flex gap-2 w-full">
                     <Button size="sm" variant="outline" className="flex-1" onClick={() => setAssigning(assigning === c.id ? null : c.id)}>
                       Assign Phlebotomist
                     </Button>
                   </div>
                 )}
-                {c.status === 'Assigned' && (
+                {c.status === 'Confirmed' && (
                   <Button size="sm" className="flex-1 gap-1" onClick={() => advanceStatus(c.id)}>
                     <CheckCircle className="w-3.5 h-3.5" /> Mark Collected
                   </Button>
                 )}
-                {c.status === 'Collected' && (
+                {c.status === 'Sample Collected' && (
                   <Button size="sm" className="flex-1 gap-1" onClick={() => advanceStatus(c.id)}>
                     <Truck className="w-3.5 h-3.5" /> Receive at Lab
                   </Button>
                 )}
-                {c.status === 'Received at Lab' && (
+                {c.status === 'Processing' && (
                   <span className="flex-1 text-center text-xs text-success font-medium py-2">Received ✓</span>
                 )}
               </div>
               {assigning === c.id && (
                 <div className="mt-3 pt-3 border-t border-border/40">
                   <p className="text-xs font-medium text-foreground mb-2">Select Phlebotomist</p>
-                  <div className="flex flex-wrap gap-2">
-                    {phlebotomists.map(p => (
-                      <button key={p} onClick={() => assignPhlebotomist(c.id, p)}
-                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors">
-                        {p}
-                      </button>
-                    ))}
-                  </div>
+                  {phlebotomists.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No active phlebotomists found — invite users with the Phlebotomist role.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {phlebotomists.map(p => (
+                        <button key={p} onClick={() => assignPhlebotomist(c.id, p)}
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors">
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>

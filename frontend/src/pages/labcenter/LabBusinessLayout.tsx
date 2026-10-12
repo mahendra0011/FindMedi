@@ -4,7 +4,7 @@ import {
   LayoutDashboard, CalendarDays, FileText, Beaker, Microscope,
   Package, Users, Settings, ChevronLeft, ChevronRight,
   LogOut, Home, Menu, CreditCard, FlaskConical, Star,
-  BarChart3, Syringe
+  BarChart3, Syringe, ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -16,6 +16,7 @@ const navItems = [
   { icon: FlaskConical,    label: 'Bookings',        path: '/lab-business/bookings'       },
   { icon: FileText,        label: 'Prescriptions',   path: '/lab-business/prescriptions'  },
   { icon: Syringe,         label: 'Sample Collect',  path: '/lab-business/samples'        },
+  { icon: ShieldCheck,     label: 'Pathologist Desk', path: '/lab-business/verification'  },
   { icon: FileText,        label: 'Reports',         path: '/lab-business/reports'        },
   { icon: Beaker,          label: 'Test Catalog',    path: '/lab-business/tests'          },
   { icon: Microscope,      label: 'Equipment',       path: '/lab-business/equipment'      },

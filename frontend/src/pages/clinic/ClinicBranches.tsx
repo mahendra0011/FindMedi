@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Building2, Plus } from 'lucide-react';
+import { Building2, Plus, Trash2, Power } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +31,16 @@ export default function ClinicBranches() {
     } catch (err: any) { toast.error(err?.response?.data?.message || 'Save failed'); }
   };
 
+  const remove = async (id: string) => {
+    try { await api.del(`/clinic-branches/${id}`); toast.success('Branch deleted'); load(); }
+    catch (err: any) { toast.error(err?.response?.data?.message || 'Delete failed'); }
+  };
+
+  const toggle = async (id: string, active: boolean) => {
+    try { await api.patch(`/clinic-branches/${id}/active`, { active }); load(); }
+    catch (err: any) { toast.error(err?.response?.data?.message || 'Update failed'); }
+  };
+
   return (
     <div className="space-y-3 p-4">
       <h1 className="flex items-center gap-2 text-lg font-bold"><Building2 size={18} /> Clinic branches</h1>
@@ -52,7 +62,15 @@ export default function ClinicBranches() {
           {rows.map((r) => (
             <div key={r._id} className="flex items-center justify-between rounded border p-2 text-xs">
               <span><b>{r.name}</b> · {r.city || '—'} · {r.phone || '—'}</span>
-              <StatusPill status={r.active ? 'active' : 'inactive'} />
+              <span className="flex items-center gap-2">
+                <StatusPill status={r.active ? 'active' : 'inactive'} />
+                <Button size="sm" variant="ghost" onClick={() => toggle(r._id, !r.active)} title="Toggle active">
+                  <Power size={13} />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => remove(r._id)} title="Delete branch">
+                  <Trash2 size={13} className="text-destructive" />
+                </Button>
+              </span>
             </div>
           ))}
           {rows.length === 0 ? <EmptyState title="No branches" hint="Add your first clinic branch." /> : null}

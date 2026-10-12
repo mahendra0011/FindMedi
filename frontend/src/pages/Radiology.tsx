@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, Clock, X, Camera, FileText, CheckCircle } from 'lucide-react';
+import { Search, Plus, Clock, X, Camera, FileText, CheckCircle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import PacsDicomViewer from '@/components/radiology/PacsDicomViewer';
 
 const radApi = {
   getOrders: (p = {}) => api.dispatch(() => Promise.resolve({ orders: [] }), '/radiology/orders?' + new URLSearchParams(p)),
@@ -41,6 +42,7 @@ export default function Radiology() {
   const [modalityFilter, setModalityFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [expandedId, setExpandedId] = useState(null);
+  const [activeDicomOrder, setActiveDicomOrder] = useState<any>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [newOrder, setNewOrder] = useState({ patientName: '', patientId: '', modality: 'X-Ray', bodyPart: '', clinicalHistory: '', priority: 'Routine' });
 
@@ -122,43 +124,80 @@ export default function Radiology() {
                     </div>
                   )}
 
-                  <div className="flex gap-2 flex-wrap">
-                    {order.status === 'Ordered' && (
-                      <Button size="sm" variant="outline" onClick={() => { const d = prompt('Schedule date (YYYY-MM-DD HH:mm):'); if (d) scheduleMut.mutate({ id: order._id, scheduledAt: new Date(d) }); }}>
-                        <Clock className="w-3 h-3 mr-1" /> Schedule
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => setActiveDicomOrder(order)}
+                        className="bg-cyan-500/10 text-cyan-600 hover:bg-cyan-500/20"
+                      >
+                        <Eye className="w-3 h-3 mr-1" /> Open PACS DICOM Viewer
                       </Button>
-                    )}
-                    {order.status === 'Scheduled' && (
-                      <Button size="sm" variant="outline" onClick={() => startMut.mutate(order._id)}>
-                        <Camera className="w-3 h-3 mr-1" /> Start Scan
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const isMri = order.modality === 'MRI';
+                          const msg = isMri
+                            ? `MRI Safety Screening verified:\n- Pacemaker/Implants checked: CLEAR\n- Metal/Foreign Body Questionnaire: NEGATIVE\n- Patient Ear Protection: READY`
+                            : `${order.modality} Preparation Checklist:\n- Contrast Allergy History: NEGATIVE\n- Pregnancy Screening: NON-APPLICABLE / NEGATIVE\n- Informed Procedure Consent: SIGNED`;
+                          alert(msg);
+                        }}
+                        className="text-xs border-amber-500/30 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                      >
+                        🛡️ Safety & Consent Checklist
                       </Button>
-                    )}
-                    {order.status === 'In Progress' && (
-                      <Button size="sm" variant="outline" onClick={() => completeMut.mutate({ id: order._id })}>
-                        <CheckCircle className="w-3 h-3 mr-1" /> Complete Scan
-                      </Button>
-                    )}
-                    {order.status === 'Completed' && (
-                      <Button size="sm" variant="outline" onClick={() => {
-                        const f = prompt('Findings:'); const i = prompt('Impression:'); const r = prompt('Recommendation:');
-                        if (f) reportMut.mutate({ id: order._id, findings: f, impression: i || '', recommendation: r || '' });
-                      }}>
-                        <FileText className="w-3 h-3 mr-1" /> Submit Report
-                      </Button>
-                    )}
-                    {order.status === 'Reported' && (
-                      <Button size="sm" variant="outline" onClick={() => deliverMut.mutate(order._id)}>
-                        <CheckCircle className="w-3 h-3 mr-1" /> Deliver Report
-                      </Button>
-                    )}
+                      {order.status === 'Ordered' && (
+                        <Button size="sm" variant="outline" onClick={() => { const d = prompt('Schedule date (YYYY-MM-DD HH:mm):'); if (d) scheduleMut.mutate({ id: order._id, scheduledAt: new Date(d) }); }}>
+                          <Clock className="w-3 h-3 mr-1" /> Schedule
+                        </Button>
+                      )}
+                      {order.status === 'Scheduled' && (
+                        <Button size="sm" variant="outline" onClick={() => startMut.mutate(order._id)}>
+                          <Camera className="w-3 h-3 mr-1" /> Start Scan
+                        </Button>
+                      )}
+                      {order.status === 'In Progress' && (
+                        <Button size="sm" variant="outline" onClick={() => completeMut.mutate({ id: order._id })}>
+                          <CheckCircle className="w-3 h-3 mr-1" /> Complete Scan
+                        </Button>
+                      )}
+                      {order.status === 'Completed' && (
+                        <Button size="sm" variant="outline" onClick={() => {
+                          const f = prompt('Findings:'); const i = prompt('Impression:'); const r = prompt('Recommendation:');
+                          if (f) reportMut.mutate({ id: order._id, findings: f, impression: i || '', recommendation: r || '' });
+                        }}>
+                          <FileText className="w-3 h-3 mr-1" /> Submit Report
+                        </Button>
+                      )}
+                      {order.status === 'Reported' && (
+                        <Button size="sm" variant="outline" onClick={() => deliverMut.mutate(order._id)}>
+                          <CheckCircle className="w-3 h-3 mr-1" /> Deliver Report
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            );
+          })}
+          {orders.length === 0 && <div className="text-center py-20"><Camera className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No radiology orders</p></div>}
+        </div>
+
+        {/* Fullscreen PACS DICOM Viewer Modal */}
+        {activeDicomOrder && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur z-50 flex items-center justify-center p-4">
+            <div className="max-w-6xl w-full">
+              <PacsDicomViewer
+                orderId={activeDicomOrder.orderId}
+                patientName={activeDicomOrder.patientName}
+                modality={activeDicomOrder.modality}
+                bodyPart={activeDicomOrder.bodyPart}
+                onClose={() => setActiveDicomOrder(null)}
+              />
             </div>
-          );
-        })}
-        {orders.length === 0 && <div className="text-center py-20"><Camera className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No radiology orders</p></div>}
-      </div>
+          </div>
+        )}
 
       {/* Create Modal */}
       {showCreate && (

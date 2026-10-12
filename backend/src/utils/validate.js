@@ -92,6 +92,7 @@ export const USER_ROLE_OPTIONS = [
   // Doc 12 §3 clinic org roles.
   'clinic_admin', 'clinic_receptionist', 'clinic_nurse',
   'clinic_accountant', 'clinic_pharmacist',
+  'clinic_cashier', 'clinic_branch_manager', 'clinic_telemed_coordinator',
   // File 22 P0-8 hospital operations roles (login hint only).
   'front_desk',
   'billing_executive', 'cashier', 'insurance_desk',

@@ -114,6 +114,7 @@ const userSchema = new mongoose.Schema({
       // staff with real logins + RBAC (replacing string-label ClinicStaff).
       'clinic_admin', 'clinic_receptionist', 'clinic_nurse',
       'clinic_accountant', 'clinic_pharmacist',
+      'clinic_cashier', 'clinic_branch_manager', 'clinic_telemed_coordinator',
       // File 22 P0-8 (docs2/08 §8.2): hospital operations roles. What each
       // role may reach lives in config/permissions.js ROLE_PERMISSIONS
       // (assertRoleMatrixComplete enforces the pairing); aliases share

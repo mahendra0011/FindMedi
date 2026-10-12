@@ -62,6 +62,29 @@ export default function ReconWorkbench() {
     } catch (e: any) { toast.error(e?.message || 'Automatch failed'); }
   };
 
+  // CSV file upload: parses date,narration,utr,debit,credit with optional header row.
+  const handleCsvFile = async (file: File) => {
+    if (!accId) { toast.error('Pick an account first'); return; }
+    try {
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      if (!lines.length) { toast.error('File is empty'); return; }
+      // Skip header row if first line is not a date
+      const hasHeader = !/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(lines[0].split(',')[0].trim());
+      const dataLines = hasHeader ? lines.slice(1) : lines;
+      const rows = dataLines.map((l) => {
+        const parts = l.split(',').map((s) => s.trim().replace(/^"|"$/g, ''));
+        const [date, narration, utr, debit, credit] = parts;
+        return { date, narration, utr, debit: Number(debit) || 0, credit: Number(credit) || 0 };
+      }).filter((r) => r.date && (r.debit || r.credit));
+      if (!rows.length) { toast.error('No valid rows found (date + debit/credit required)'); return; }
+      const r: any = await api.importStatement({ bankAccountId: accId, fileName: file.name, rows });
+      setImpId(r?.id);
+      toast.success(`${r?.rows ?? rows.length} rows imported from ${file.name}`);
+      loadTxns(r?.id);
+    } catch (e: any) { toast.error(e?.message || 'CSV import failed'); }
+  };
+
   const matchManual = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -89,7 +112,26 @@ export default function ReconWorkbench() {
               {accounts.map((a) => <option key={a._id} value={a._id}>{a.bankName} ··{String(a.accountNo).slice(-4)}</option>)}
             </select>
             <textarea className="h-32 w-full rounded-md border p-2 font-mono text-xs" placeholder="2026-10-01,NEFT salary,UTR123,0,45000" value={paste} onChange={(e) => setPaste(e.target.value)} />
-            <Button size="sm" onClick={doImport}><Upload size={14} /> Import rows</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={doImport}><Upload size={14} /> Import rows</Button>
+              <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted">
+                <Upload size={14} /> Upload CSV
+                <input
+                  type="file"
+                  accept=".csv,text/csv,text/plain"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleCsvFile(f);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Columns: date, narration, UTR, debit, credit (header row optional).
+              Auto-match tiers: UTR exact → amount ±1 / date ±3d fuzzy → narration rules.
+            </p>
           </CardContent></Card>
         <Card><CardHeader><CardTitle className="text-sm">Manual match</CardTitle></CardHeader>
           <CardContent>

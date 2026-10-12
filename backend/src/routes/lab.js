@@ -700,6 +700,88 @@ router.post('/ingest/astm', async (req, res, next) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// ─── Analyzer Emulator (LIS bridge test drive) ──────────────────────────────
+// Generates a realistic ASTM E1394 / HL7 v2.5 ORU^R01 packet from a named
+// analyzer and previews it through the real parsers, so integrators can test
+// the ingest pipeline without hardware. The returned rawPacket can then be
+// POSTed to /ingest/astm or /ingest/hl7 for full end-to-end ingestion.
+const ANALYZER_PROFILES = {
+  'biochem-xl-640': { model: 'Erba Lachema XL-640', protocol: 'ASTM', panel: [
+    ['GLU', 'Glucose', '5.9', 'mmol/L', '3.9-5.5', 'H'],
+    ['UREA', 'Urea', '4.2', 'mmol/L', '2.5-7.1', 'N'],
+    ['CREA', 'Creatinine', '88', 'umol/L', '62-106', 'N'],
+  ] },
+  'hematology-xn-1000': { model: 'Sysmex XN-1000', protocol: 'HL7', panel: [
+    ['WBC', 'White Blood Count', '8.5', '10*3/uL', '4.0-11.0', 'N'],
+    ['RBC', 'Red Blood Count', '4.8', '10*6/uL', '4.2-5.4', 'N'],
+    ['HGB', 'Hemoglobin', '11.2', 'g/dL', '12.0-16.0', 'L'],
+  ] },
+  'immunoassay-access-2': { model: 'Bio-Rad Access 2', protocol: 'HL7', panel: [
+    ['TSH', 'Thyroid Stimulating Hormone', '5.6', 'mIU/L', '0.4-4.0', 'H'],
+    ['FT4', 'Free Thyroxine', '12.1', 'pmol/L', '12-22', 'N'],
+  ] },
+};
+
+function buildAstmPacket(profile, sampleId) {
+  const seq = (ch, n, body) => `${n}${ch}|${body}`;
+  const lines = [
+    seq('H', 1, '^@\\^&|||||||LIS|||||20261012000000'),
+    seq('P', 2, `1|||${sampleId}||DOE^JOHN|M|19800101`),
+    seq('O', 3, `1|${sampleId}||^^^BIOCHEM^PANEL|||||||||||||||||||20261012`),
+  ];
+  profile.panel.forEach((p, i) => {
+    lines.push(seq('R', 4 + i, `${i + 1}|^^^${p[0]}|${p[2]}|${p[3]}|${p[4]}|${p[5]}||F`));
+  });
+  lines.push(seq('L', 99, '1|N'));
+  return lines.join('\r');
+}
+
+function buildHl7Packet(profile, sampleId) {
+  const now = new Date();
+  const ts = now.getFullYear().toString() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') +
+    String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+  const segs = [
+    `MSH|^~\\&|ANALYZER|${profile.model}|FINDMEDI_LIS|LAB|${ts}||ORU^R01|MSG${Date.now()}|P|2.5`,
+    `PID|1||${sampleId}||DOE^JOHN||19800101|M`,
+    `OBR|1|${sampleId}|${sampleId}|^^^PANEL|||${ts}`,
+  ];
+  profile.panel.forEach((p, i) => {
+    segs.push(`OBX|${i + 1}|NM|${p[0]}^${p[1]}^LN||${p[2]}|${p[3]}|${p[4]}|${p[5]}|F|||F`);
+  });
+  return segs.join('\r');
+}
+
+router.post('/ingest/emulate', protect, async (req, res) => {
+  try {
+    if (!['lab_technician', 'lab_owner', 'hospital_admin', 'superadmin', 'pathologist'].includes(req.user?.role)) {
+      return res.status(403).json({ message: 'Lab access required' });
+    }
+    const { analyzer = 'biochem-xl-640', protocol, sampleId } = req.body || {};
+    const profile = ANALYZER_PROFILES[analyzer];
+    if (!profile) return res.status(400).json({ message: `Unknown analyzer. Available: ${Object.keys(ANALYZER_PROFILES).join(', ')}` });
+
+    const sid = String(sampleId || '').trim() || `ACC${Date.now().toString().slice(-8)}`;
+    const proto = String(protocol || profile.protocol).toUpperCase() === 'HL7' ? 'HL7' : 'ASTM';
+    const rawPacket = proto === 'HL7' ? buildHl7Packet(profile, sid) : buildAstmPacket(profile, sid);
+
+    const { parseAstmPacket, parseHl7OruR01Packet } = await import('../services/lisAnalyzerDriver.js');
+    const preview = proto === 'HL7' ? parseHl7OruR01Packet(rawPacket) : parseAstmPacket(rawPacket);
+
+    await auditLog('analyzer_emulated', req.user?._id, { analyzer, protocol: proto, sampleId: sid, ip: req.ip }).catch(() => {});
+
+    return res.json({
+      analyzerId: analyzer,
+      analyzerModel: profile.model,
+      protocol: proto,
+      sampleId: sid,
+      rawPacket,
+      preview,
+      ingestEndpoint: proto === 'HL7' ? '/api/lab/ingest/hl7' : '/api/lab/ingest/astm',
+      note: 'Dry run — rawPacket not ingested yet. POST it to ingestEndpoint for full ingestion.',
+    });
+  } catch (err) { return res.status(500).json({ message: err.message }); }
+});
+
 // ─── Mark Report Delivered ─────────────────────────────────────────────────
 router.put('/orders/:id/deliver-report', protect, authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('lab:manage'), write: true }), authorize('lab:manage'), validate(labDeliverReportSchema), async (req, res) => {
   try {
@@ -816,6 +898,19 @@ router.get('/tests', publicSearchLimiter, async (req, res) => {
 });
 
 // ─── Lab Bookings ──────────────────────────────────────────────────────────
+// Phlebotomists (home-collection dispatch roster) — replaces the hardcoded
+// collector list the sample-collection UI used to ship with.
+router.get('/phlebotomists', protect, requireRole([...LAB_STAFF_ROLES, 'phlebotomist']), async (req, res) => {
+  try {
+    const filter = { role: 'phlebotomist', status: 'active' };
+    if (req.user.hospitalId && req.user.role !== 'superadmin') {
+      filter.$or = [{ hospitalId: req.user.hospitalId }, { hospitalId: { $exists: false } }];
+    }
+    const list = await User.find(filter).select('name email phone role').sort({ name: 1 }).limit(200).lean();
+    res.json({ phlebotomists: list });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.get('/bookings', protect, async (req, res) => {
   try {
     const { status, date, search } = req.query;
@@ -947,16 +1042,19 @@ router.post('/bookings', protect, validate(labBookingSchema), async (req, res) =
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/bookings/:id', protect, requireRole(LAB_STAFF_ROLES), validate(labBookingSchema), async (req, res) => {
+router.put('/bookings/:id', protect, requireRole([...LAB_STAFF_ROLES, 'phlebotomist']), validate(labBookingSchema), async (req, res) => {
   try {
     const booking = await LabBooking.findById(req.params.id);
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
     if (req.user.hospitalId && req.user.role !== 'superadmin' && booking.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    // AUTH-030: allowlisted fields only — status/payment/report flows have dedicated endpoints.
+    // AUTH-030: allowlisted fields only — payment/report flows have dedicated
+    // endpoints. `status` + `phlebotomist` are the home-collection dispatch
+    // flow (Request → Assign → Collect → Receive): the UI was writing them but
+    // pickBody silently dropped both (values constrained by the model enum).
     const { pickBody } = await import('../utils/pick.js');
-Object.assign(booking, pickBody(req.body, ['patientName', 'patientPhone', 'patientEmail', 'tests', 'testIds', 'totalAmount', 'discountedAmount', 'bookingDate', 'timeSlot', 'visitType', 'homeCollectionAddress', 'homeCollectionFee', 'prescriptionUrl', 'prescriptionVerified', 'notes', 'reportUrl', 'reportDeliveryMode', 'reportDeliveryFee']));
+Object.assign(booking, pickBody(req.body, ['patientName', 'patientPhone', 'patientEmail', 'tests', 'testIds', 'totalAmount', 'discountedAmount', 'bookingDate', 'timeSlot', 'visitType', 'homeCollectionAddress', 'homeCollectionFee', 'prescriptionUrl', 'prescriptionVerified', 'notes', 'reportUrl', 'reportDeliveryMode', 'reportDeliveryFee', 'status', 'phlebotomist', 'phlebotomistId']));
     await booking.save();
     await auditLog('update_lab_booking', req.user._id, { recordId: booking._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(booking);
@@ -1341,6 +1439,33 @@ router.get('/export', protect, adminOnly, async (req, res) => {
 
     res.json({ orders, rowCount: orders.length, cappedAt: LAB_EXPORT_ROW_CAP });
   } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// =========================================================================
+// LIS AUTO-ANALYZER INGEST ENGINE (ASTM E1381/E1394 & HL7 v2.5 ORU^R01)
+// =========================================================================
+router.post('/analyzer-upload', protect, requireRole(...LAB_STAFF_ROLES), async (req, res) => {
+  try {
+    const { rawPayload, protocol = 'auto', deviceModel, orderId } = req.body;
+    if (!rawPayload || typeof rawPayload !== 'string') {
+      return res.status(400).json({ success: false, message: 'rawPayload string is required (ASTM or HL7 packet)' });
+    }
+
+    const { processAnalyzerResultUpload } = await import('../services/lisAnalyzerDriver.js');
+    const result = await processAnalyzerResultUpload({
+      rawPayload,
+      protocol,
+      deviceModel,
+      orderId,
+      facilityId: req.user.facilityId,
+      uploadedBy: req.user._id
+    });
+
+    res.json(result);
+  } catch (err) {
+    logger.error('Analyzer upload failed', { error: err.message });
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 export default router;

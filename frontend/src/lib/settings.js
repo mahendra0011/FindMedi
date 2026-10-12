@@ -151,6 +151,8 @@ const en = {
   'nav.nursing': 'Nursing',
   'nav.pharmacy': 'Pharmacy',
   'nav.inventory': 'Inventory',
+  'nav.branches': 'Branches',
+  'nav.packages': 'Packages',
   'nav.importExport': 'Import/Export',
   'nav.doctorConsultation': 'Doctor Consultation',
   'nav.reports': 'Reports',

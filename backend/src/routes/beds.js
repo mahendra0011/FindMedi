@@ -114,6 +114,40 @@ router.put('/:id', protect, scopeToHospital, validate(updateBedSchema), async (r
       patch.srcStatus = srcByStatus[patch.status] || 'manual';
     }
     const updated = await Bed.findByIdAndUpdate(req.params.id, patch, { new: true });
+
+    // Automation: When bed is marked 'Under Cleaning', auto-dispatch housekeeping task
+    if (patch.status === 'Under Cleaning' && bed) {
+      try {
+        const { default: Housekeeping } = await import('../models/Housekeeping.js');
+        const { generateTimestampedId } = await import('../utils/idGenerator.js');
+        await Housekeeping.create({
+          taskId: generateTimestampedId('HSK'),
+          bedNumber: bed.bedNumber,
+          room: bed.room || bed.bedNumber,
+          ward: bed.ward || 'General',
+          hospitalId: bed.hospitalId,
+          type: 'Terminal Cleaning',
+          priority: 'High',
+          status: 'Pending',
+          checklist: {
+            bedStrip: false,
+            mattressClean: false,
+            pillowClean: false,
+            blanketChange: false,
+            mopFloor: false,
+            disinfectSurfaces: false,
+            bathroomClean: false,
+            wasteDisposal: false,
+            finalInspection: false,
+          },
+          createdBy: req.user._id,
+        });
+      } catch (hkErr) {
+        // Log silently without breaking bed status update
+        console.error('Housekeeping auto-dispatch error:', hkErr.message);
+      }
+    }
+
     res.json(updated);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

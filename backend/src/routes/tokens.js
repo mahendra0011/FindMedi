@@ -201,6 +201,7 @@ router.put('/:id/start-consultation', protect, tokenDeskOnly, async (req, res) =
         const { ensureEncounter } = await import('../lib/encounter.js');
         const enc = await ensureEncounter({
           hospitalId: token.hospitalId, patientId: token.patientId, type: 'OPD',
+          appointmentId: token.appointmentId || null,
           createdBy: req.user._id ?? req.user.id,
         });
         token.encounterId = enc._id;
@@ -232,6 +233,19 @@ router.put('/:id/complete', protect, tokenDeskOnly, async (req, res) => {
     // Update appointment if linked
     if (token.appointmentId) {
       await Appointment.findByIdAndUpdate(token.appointmentId, { status: 'Completed', consultationEndTime: new Date() });
+    }
+    // File 22 P0-3: visit end closes the OPD Encounter (idempotent).
+    if (token.encounterId || token.appointmentId) {
+      try {
+        const { closeEncounter } = await import('../lib/encounter.js');
+        await closeEncounter({ encounterId: token.encounterId, hospitalId: token.hospitalId });
+        if (token.appointmentId) {
+          const appt = await Appointment.findById(token.appointmentId).select('encounterId').lean();
+          if (appt?.encounterId) await closeEncounter({ encounterId: appt.encounterId, hospitalId: token.hospitalId });
+        }
+      } catch (e) {
+        logger.warn(`token encounter close failed: ${e.message}`);
+      }
     }
     void emitQueueUpdate(token);
 

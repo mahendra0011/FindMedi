@@ -18,6 +18,7 @@ const inventorySchema = new mongoose.Schema({
     required: true,
   },
   itemCode: { type: String, unique: true },
+  barcode: { type: String, index: true },
   unit: {
     type: String,
     enum: [
@@ -48,5 +49,10 @@ const inventorySchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
+
+inventorySchema.index(
+  { hospitalId: 1, barcode: 1 },
+  { unique: true, partialFilterExpression: { barcode: { $exists: true, $type: 'string' } } },
+);
 
 export default mongoose.model('Inventory', inventorySchema);

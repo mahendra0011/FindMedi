@@ -598,4 +598,310 @@ router.get('/bank-books', authorize('billing:read'), async (req, res) => {
   }
 });
 
+// Module #25: Double-Entry Trial Balance & Financial Summary
+router.get('/trial-balance', authorize('billing:read', 'admin:read'), async (req, res) => {
+  try {
+    const { default: LedgerEntry } = await import('../models/LedgerEntry.js');
+    const filter = { ...tenantFilter(req) };
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) filter.date.$gte = new Date(req.query.from);
+      if (req.query.to) filter.date.$lte = new Date(req.query.to);
+    }
+
+    const rows = await LedgerEntry.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: '$accountId',
+          totalDebit: { $sum: '$debit' },
+          totalCredit: { $sum: '$credit' },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    const accountsMap = {
+      '1000': { name: 'Cash in Hand (Counter)', type: 'ASSET' },
+      '1010': { name: 'Bank Accounts / Gateways', type: 'ASSET' },
+      '1200': { name: 'Patient Accounts Receivable', type: 'ASSET' },
+      '1300': { name: 'Pharmacy Inventory Stock', type: 'ASSET' },
+      '2100': { name: 'Vendor Accounts Payable', type: 'LIABILITY' },
+      '2200': { name: 'Patient Advance Deposits', type: 'LIABILITY' },
+      '4000': { name: 'Clinical Consultation Revenue', type: 'REVENUE' },
+      '4100': { name: 'IPD Room & Nursing Revenue', type: 'REVENUE' },
+      '4200': { name: 'Pharmacy Medicine Sales', type: 'REVENUE' },
+      '4300': { name: 'Lab & Diagnostic Revenue', type: 'REVENUE' },
+      '5000': { name: 'Doctor Consultation Payouts', type: 'EXPENSE' },
+      '5100': { name: 'Medicine Purchases (COGS)', type: 'EXPENSE' },
+      '5200': { name: 'Facility & Maintenance Costs', type: 'EXPENSE' },
+    };
+
+    let grandDebit = 0;
+    let grandCredit = 0;
+
+    const trialBalance = rows.map((r) => {
+      const code = String(r._id);
+      const accInfo = accountsMap[code] || { name: `General Account ${code}`, type: 'GENERAL' };
+      const netDebit = r.totalDebit > r.totalCredit ? r.totalDebit - r.totalCredit : 0;
+      const netCredit = r.totalCredit > r.totalDebit ? r.totalCredit - r.totalDebit : 0;
+      grandDebit += r.totalDebit;
+      grandCredit += r.totalCredit;
+
+      return {
+        accountCode: code,
+        accountName: accInfo.name,
+        accountType: accInfo.type,
+        totalDebit: r.totalDebit,
+        totalCredit: r.totalCredit,
+        closingDebit: netDebit,
+        closingCredit: netCredit,
+      };
+    });
+
+    const isBalanced = Math.abs(grandDebit - grandCredit) < 0.01;
+
+    return res.json({
+      trialBalance,
+      grandDebit,
+      grandCredit,
+      isBalanced,
+      variance: Math.abs(grandDebit - grandCredit),
+    });
+  } catch (err) {
+    logger.error(`Trial balance error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Module #61 & #62: Bed Category Tariff Multiplier Matrix & Package Inclusions
+const BED_CATEGORY_MULTIPLIERS = {
+  general: 1.0,
+  semi_private: 1.3,
+  deluxe_private: 1.8,
+  super_deluxe: 2.5,
+  icu: 2.0,
+};
+
+router.get('/tariffs/calculate', authorize('billing:read'), async (req, res) => {
+  try {
+    const { serviceCode, bedCategory, basePrice } = req.query;
+    const cat = String(bedCategory || 'general').toLowerCase();
+    const multiplier = BED_CATEGORY_MULTIPLIERS[cat] || 1.0;
+    const base = Number(basePrice) || 1000;
+    const calculatedFee = Math.round(base * multiplier);
+
+    return res.json({
+      serviceCode: serviceCode || 'GEN-SERVICE',
+      bedCategory: cat,
+      multiplier,
+      baseFee: base,
+      calculatedFee,
+      ruleApplied: `Standard Bed Multiplier (${multiplier}x) for ${cat.toUpperCase()}`,
+    });
+  } catch (err) {
+    logger.error(`Tariff calculation error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/packages/evaluate-exclusions', authorize('billing:read'), async (req, res) => {
+  try {
+    const { packageCode, orderedServices } = req.body || {};
+    // Example package definitions (fallback when no DB definition exists)
+    const PACKAGES = {
+      'PKG-MATERNITY-NORMAL': {
+        name: 'Normal Delivery Package',
+        bundledPrice: 30000,
+        includedCodes: ['ROOM-GEN-2D', 'DOC-DELIVERY-FEE', 'NUR-POSTNATAL', 'BABY-FIRST-CHECK'],
+        excludedCodes: ['BLOOD-PRBC', 'NICU-STAY', 'STAPLER-IMPLANT'],
+      },
+      'PKG-CARDIO-ANGIO': {
+        name: 'Coronary Angiography Package',
+        bundledPrice: 15000,
+        includedCodes: ['CATHLAB-RENT', 'DOC-ANGIO-FEE', 'CONTRAST-DYE'],
+        excludedCodes: ['STENT-DRUG-ELUTING', 'ICU-VENT-STAY'],
+      },
+    };
+
+    // Prefer hospital-defined package from DB; fall back to examples/custom.
+    let pkg = null;
+    try {
+      const PackageDefinition = (await import('../models/PackageDefinition.js')).default;
+      const row = await PackageDefinition.findOne({
+        ...tenantFilter(req),
+        code: String(packageCode || ''),
+        active: true,
+      }).lean();
+      if (row) {
+        pkg = {
+          name: row.name,
+          bundledPrice: row.bundledPrice,
+          includedCodes: row.includedCodes || [],
+          excludedCodes: row.excludedCodes || [],
+        };
+      }
+    } catch { /* model unavailable → fallback */ }
+
+    if (!pkg) {
+      pkg = PACKAGES[packageCode] || {
+        name: 'Custom Clinical Bundle',
+        bundledPrice: 25000,
+        includedCodes: ['ROOM-GEN-2D', 'DOC-VISIT'],
+        excludedCodes: ['SPECIAL-IMPLANT', 'NICU-STAY'],
+      };
+    }
+
+    const services = Array.isArray(orderedServices) ? orderedServices : [];
+    const bundledItems = [];
+    const excludedBillableItems = [];
+
+    for (const s of services) {
+      if (pkg.includedCodes.includes(s.code)) {
+        bundledItems.push({ ...s, billingStatus: 'INCLUDED_IN_PACKAGE', charge: 0 });
+      } else {
+        excludedBillableItems.push({ ...s, billingStatus: 'EXCLUDED_BILL_EXTRA', charge: s.price || 500 });
+      }
+    }
+
+    const additionalExtraTotal = excludedBillableItems.reduce((acc, it) => acc + (it.charge || 0), 0);
+
+    return res.json({
+      packageCode,
+      packageName: pkg.name,
+      baseBundleAmount: pkg.bundledPrice,
+      bundledItems,
+      excludedBillableItems,
+      additionalExtraTotal,
+      finalEstimatedTotal: pkg.bundledPrice + additionalExtraTotal,
+    });
+  } catch (err) {
+    logger.error(`Package evaluation error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Module #62: package definition CRUD (drives evaluate-exclusions engine)
+router.get('/packages/definitions', authorize('billing:read'), async (req, res) => {
+  try {
+    const PackageDefinition = (await import('../models/PackageDefinition.js')).default;
+    const rows = await PackageDefinition.find(tenantFilter(req)).sort({ createdAt: -1 }).limit(200).lean();
+    return res.json({ packages: rows });
+  } catch (err) {
+    logger.error(`Package definitions error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/packages/definitions', authorize('billing:write'), async (req, res) => {
+  try {
+    const { code, name, bundledPrice, includedCodes, excludedCodes } = req.body || {};
+    if (!code || !name || bundledPrice == null) {
+      return res.status(400).json({ message: 'code, name, bundledPrice required' });
+    }
+    const PackageDefinition = (await import('../models/PackageDefinition.js')).default;
+    const row = await PackageDefinition.create({
+      hospitalId: req.user.hospitalId,
+      code: String(code).trim().toUpperCase(),
+      name: String(name).trim(),
+      bundledPrice: Number(bundledPrice) || 0,
+      includedCodes: Array.isArray(includedCodes) ? includedCodes.slice(0, 100) : [],
+      excludedCodes: Array.isArray(excludedCodes) ? excludedCodes.slice(0, 100) : [],
+      createdBy: req.user._id ?? req.user.id,
+    });
+    await auditLog('package_definition_created', actorId(req), { packageId: row._id, code: row.code, ip: req.ip });
+    return res.status(201).json({ id: String(row._id), code: row.code });
+  } catch (err) {
+    if (err?.code === 11000) return res.status(409).json({ message: 'Package code already exists' });
+    logger.error(`Package definition create error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Tally XML & Zoho CSV Accounting Software Exporters ─────────────────────
+router.get('/export/tally-xml', async (req, res) => {
+  try {
+    const { fromDate, toDate } = req.query;
+    const filter = { ...tenantFilter(req) };
+    if (fromDate || toDate) {
+      filter.createdAt = {};
+      if (fromDate) filter.createdAt.$gte = new Date(fromDate);
+      if (toDate) filter.createdAt.$lte = new Date(toDate);
+    }
+
+    const bills = await Billing.find(filter).sort({ createdAt: -1 }).limit(1000).lean();
+
+    // Generate Standard Tally XML format (ENVELOPE / TALLYMESSAGE / VOUCHER)
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<ENVELOPE>\n  <HEADER>\n    <TALLYREQUEST>Import Data</TALLYREQUEST>\n  </HEADER>\n  <BODY>\n    <IMPORTDATA>\n      <REQUESTDESC>\n        <REPORTNAME>Vouchers</REPORTNAME>\n      </REQUESTDESC>\n      <REQUESTDATA>\n`;
+
+    for (const b of bills) {
+      const dateStr = (b.createdAt ? new Date(b.createdAt) : new Date()).toISOString().slice(0, 10).replace(/-/g, '');
+      const vchNo = b.invoiceId || String(b._id).slice(-8);
+      const amount = Number(b.amount || 0).toFixed(2);
+      const patientName = (b.patient || 'Cash Patient').replace(/[<>&'"]/g, '');
+
+      xml += `        <TALLYMESSAGE xmlns:UDF="TallyUDF">\n`;
+      xml += `          <VOUCHER VCHTYPE="Sales" ACTION="Create">\n`;
+      xml += `            <DATE>${dateStr}</DATE>\n`;
+      xml += `            <VOUCHERNUMBER>${vchNo}</VOUCHERNUMBER>\n`;
+      xml += `            <PARTYLEDGERNAME>${patientName}</PARTYLEDGERNAME>\n`;
+      xml += `            <NARRATION>Hospital services invoice ${vchNo}</NARRATION>\n`;
+      xml += `            <ALLLEDGERENTRIES.LIST>\n`;
+      xml += `              <LEDGERNAME>${patientName}</LEDGERNAME>\n`;
+      xml += `              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n`;
+      xml += `              <AMOUNT>-${amount}</AMOUNT>\n`;
+      xml += `            </ALLLEDGERENTRIES.LIST>\n`;
+      xml += `            <ALLLEDGERENTRIES.LIST>\n`;
+      xml += `              <LEDGERNAME>Hospital Healthcare Revenue</LEDGERNAME>\n`;
+      xml += `              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
+      xml += `              <AMOUNT>${amount}</AMOUNT>\n`;
+      xml += `            </ALLLEDGERENTRIES.LIST>\n`;
+      xml += `          </VOUCHER>\n`;
+      xml += `        </TALLYMESSAGE>\n`;
+    }
+
+    xml += `      </REQUESTDATA>\n    </IMPORTDATA>\n  </BODY>\n</ENVELOPE>`;
+
+    res.setHeader('Content-Type', 'application/xml');
+    res.setHeader('Content-Disposition', 'attachment; filename=Tally_Hospital_Vouchers.xml');
+    return res.send(xml);
+  } catch (err) {
+    logger.error(`Tally XML export error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/export/zoho-csv', async (req, res) => {
+  try {
+    const { fromDate, toDate } = req.query;
+    const filter = { ...tenantFilter(req) };
+    if (fromDate || toDate) {
+      filter.createdAt = {};
+      if (fromDate) filter.createdAt.$gte = new Date(fromDate);
+      if (toDate) filter.createdAt.$lte = new Date(toDate);
+    }
+
+    const bills = await Billing.find(filter).sort({ createdAt: -1 }).limit(1000).lean();
+
+    // Standard Zoho Books Invoice CSV Header
+    let csv = 'Invoice Number,Invoice Date,Customer Name,Due Date,Total,Status,Item Name,Item Price\n';
+    for (const b of bills) {
+      const invNo = `"${(b.invoiceId || String(b._id)).replace(/"/g, '""')}"`;
+      const invDate = (b.createdAt ? new Date(b.createdAt) : new Date()).toISOString().slice(0, 10);
+      const custName = `"${(b.patient || 'Cash Customer').replace(/"/g, '""')}"`;
+      const total = Number(b.amount || 0).toFixed(2);
+      const status = b.status || 'Paid';
+      const itemName = `"${(b.service || 'Medical Consultation').replace(/"/g, '""')}"`;
+      csv += `${invNo},${invDate},${custName},${invDate},${total},${status},${itemName},${total}\n`;
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=Zoho_Hospital_Invoices.csv');
+    return res.send(csv);
+  } catch (err) {
+    logger.error(`Zoho CSV export error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

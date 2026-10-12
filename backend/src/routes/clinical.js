@@ -202,4 +202,91 @@ router.get('/icu/flowsheet', async (req, res) => {
   }
 });
 
+// ICU SOFA & APACHE II Score Calculators
+router.post('/icu/sofa', async (req, res) => {
+  try {
+    const { calculateSofaScore } = await import('../services/clinicalScoresService.js');
+    const result = calculateSofaScore(req.body || {});
+    return res.json(result);
+  } catch (err) {
+    logger.error(`SOFA calculation error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/icu/apache2', async (req, res) => {
+  try {
+    const { calculateApache2Score } = await import('../services/clinicalScoresService.js');
+    const result = calculateApache2Score(req.body || {});
+    return res.json(result);
+  } catch (err) {
+    logger.error(`APACHE II calculation error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── ICU Score History (save + trend) ───────────────────────────────────────
+router.post('/icu/scores', async (req, res) => {
+  try {
+    const { IcuScore } = await import('../models/IcuScore.js');
+    const { admissionId, patientId, scoreType, inputs, notes } = req.body || {};
+    if (!admissionId || !scoreType) {
+      return res.status(400).json({ message: 'admissionId and scoreType required' });
+    }
+
+    let score, components, mortalityEstimate, interpretation;
+    if (scoreType === 'SOFA') {
+      const { calculateSofaScore } = await import('../services/clinicalScoresService.js');
+      const result = calculateSofaScore(inputs || {});
+      score = result.total ?? result.score ?? 0;
+      components = result.components || result;
+      mortalityEstimate = result.mortalityEstimate || result.mortality;
+      interpretation = result.interpretation || `SOFA ${score}/24`;
+    } else if (scoreType === 'APACHE-II') {
+      const { calculateApache2Score } = await import('../services/clinicalScoresService.js');
+      const result = calculateApache2Score(inputs || {});
+      score = result.total ?? result.score ?? 0;
+      components = result.components || result;
+      mortalityEstimate = result.mortalityEstimate || result.predictedMortality;
+      interpretation = result.interpretation || `APACHE II ${score}`;
+    } else {
+      return res.status(400).json({ message: 'scoreType must be SOFA or APACHE-II' });
+    }
+
+    const record = await IcuScore.create({
+      hospitalId: req.user.hospitalId,
+      admissionId,
+      patientId,
+      scoreType,
+      score,
+      components,
+      inputs,
+      mortalityEstimate,
+      interpretation,
+      recordedBy: actorId(req),
+      notes,
+    });
+
+    await auditLog(req, 'icu.score.record', { scoreId: record._id, scoreType, score });
+    return res.status(201).json(record);
+  } catch (err) {
+    logger.error(`ICU score save error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/icu/scores/:admissionId', async (req, res) => {
+  try {
+    const { IcuScore } = await import('../models/IcuScore.js');
+    const { scoreType } = req.query;
+    const filter = { admissionId: req.params.admissionId };
+    if (scoreType) filter.scoreType = scoreType;
+    const scores = await IcuScore.find(filter).sort({ recordedAt: -1 }).limit(100).lean();
+    return res.json({ total: scores.length, scores });
+  } catch (err) {
+    logger.error(`ICU score history error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

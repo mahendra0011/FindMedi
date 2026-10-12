@@ -75,12 +75,84 @@ router.put('/cycles/:id/indicators', authorize('inventory:manage'), requireObjec
       c.result = 'Released';
     }
     await c.save();
+
+    // Load-based recall: propagate indicator result to every set in the load.
+    const setIds = (c.loadItems || []).map((li) => li.setId).filter(Boolean);
+    let quarantinedSets = 0;
+    let releasedSets = 0;
+    if (setIds.length > 0) {
+      if (c.result === 'Recalled') {
+        const r = await InstrumentSet.updateMany(
+          { _id: { $in: setIds } },
+          { $set: { status: 'Quarantined', quarantinedByCycle: c.cycleNo } }
+        );
+        quarantinedSets = r.modifiedCount ?? 0;
+      } else if (c.result === 'Released') {
+        const r = await InstrumentSet.updateMany(
+          { _id: { $in: setIds }, status: 'Quarantined' },
+          { $set: { status: 'Sterile', quarantinedByCycle: '' } }
+        );
+        releasedSets = r.modifiedCount ?? 0;
+      }
+    }
+
     await auditLog('cssd_indicators', actorId(req), {
-      cycleId: c._id, bi: c.biologicalIndicator, ci: c.chemicalIndicator, result: c.result, ip: req.ip,
+      cycleId: c._id, bi: c.biologicalIndicator, ci: c.chemicalIndicator, result: c.result,
+      quarantinedSets, releasedSets, ip: req.ip,
     });
-    return res.json({ id: String(c._id), result: c.result });
+    return res.json({
+      id: String(c._id), result: c.result,
+      quarantinedSets, releasedSets,
+      message: c.result === 'Recalled'
+        ? `Load recalled — ${quarantinedSets} instrument set(s) quarantined for re-sterilisation`
+        : `Load released — ${releasedSets} set(s) returned to sterile store`,
+    });
   } catch (err) {
     logger.error(`CSSD indicators error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Explicit load-based recall (post-release recall, e.g. retro BI read at 24h)
+router.post('/cycles/:id/recall', authorize('inventory:manage'), requireObjectId, async (req, res) => {
+  try {
+    const { reason } = req.body || {};
+    const c = await SterilisationCycle.findById(req.params.id);
+    if (!c) return res.status(404).json({ message: 'Not found' });
+    c.result = 'Recalled';
+    await c.save();
+    const setIds = (c.loadItems || []).map((li) => li.setId).filter(Boolean);
+    let quarantinedSets = 0;
+    if (setIds.length > 0) {
+      const r = await InstrumentSet.updateMany(
+        { _id: { $in: setIds } },
+        { $set: { status: 'Quarantined', quarantinedByCycle: c.cycleNo } }
+      );
+      quarantinedSets = r.modifiedCount ?? 0;
+    }
+    await auditLog('cssd_load_recalled', actorId(req), {
+      cycleId: c._id, cycleNo: c.cycleNo, reason: reason || '', quarantinedSets, ip: req.ip,
+    });
+    return res.json({
+      id: String(c._id), result: 'Recalled', quarantinedSets,
+      message: `Load ${c.cycleNo} recalled — ${quarantinedSets} set(s) quarantined`,
+    });
+  } catch (err) {
+    logger.error(`CSSD recall error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Indicator results register (BI/CI audit trail)
+router.get('/indicators', authorize('inventory:manage'), async (req, res) => {
+  try {
+    const filter = { ...tenantFilter(req), $or: [{ biologicalIndicator: { $ne: '' } }, { chemicalIndicator: { $ne: '' } }] };
+    const rows = await SterilisationCycle.find(filter)
+      .select('cycleNo method biologicalIndicator chemicalIndicator result createdAt machineId')
+      .sort({ createdAt: -1 }).limit(200).lean();
+    return res.json({ indicators: rows });
+  } catch (err) {
+    logger.error(`CSSD indicator register error: ${err.message}`);
     return res.status(500).json({ message: err.message });
   }
 });

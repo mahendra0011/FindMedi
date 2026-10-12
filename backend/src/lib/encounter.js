@@ -33,3 +33,16 @@ export async function backfillAppointmentPrescription(appointmentId, prescriptio
   const { default: Appointment } = await import('../models/Appointment.js');
   return Appointment.findByIdAndUpdate(appointmentId, { $set: { prescriptionId } });
 }
+
+/** File 22 P0-3 completion leg: visit end closes the open Encounter exactly once. */
+export async function closeEncounter({ encounterId, hospitalId }) {
+  if (!encounterId) return null;
+  const { default: Encounter } = await import('../models/Encounter.js');
+  const filter = { _id: encounterId, status: 'Open' };
+  if (hospitalId) filter.hospitalId = hospitalId;
+  return Encounter.findOneAndUpdate(
+    filter,
+    { $set: { status: 'Closed', closedAt: new Date() } },
+    { new: true },
+  );
+}

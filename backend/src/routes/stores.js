@@ -262,4 +262,51 @@ router.get('/alerts', authorize('inventory:manage'), async (req, res) => {
   }
 });
 
+// Module #27: Procurement 3-Way Matching (PO ↔ GRN ↔ Vendor Invoice)
+router.post('/three-way-match', authorize('inventory:manage', 'billing:read'), async (req, res) => {
+  try {
+    const { poNumber, vendorInvoiceNo, invoiceAmount, invoicedItems } = req.body || {};
+    if (!poNumber || !invoiceAmount) {
+      return res.status(400).json({ message: 'poNumber and invoiceAmount are required' });
+    }
+
+    const grn = await GRN.findOne({
+      ...tenantFilter(req),
+      $or: [{ invoiceNo: vendorInvoiceNo }, { poId: poNumber }],
+    }).lean();
+
+    const expectedAmount = Number(req.body.poTotalAmount) || Number(invoiceAmount);
+    const actualInvoiced = Number(invoiceAmount);
+    const priceVariance = Math.abs(expectedAmount - actualInvoiced);
+    const variancePercentage = (priceVariance / (expectedAmount || 1)) * 100;
+
+    // Tolerance policy: <= 1.0% variance allowed without escalation
+    const isMatched = variancePercentage <= 1.0 && (!grn || grn.qcStatus === 'Passed');
+
+    return res.json({
+      matchStatus: isMatched ? 'MATCHED_AND_VERIFIED' : 'VARIANCE_FLAGGED_FOR_AUDIT',
+      poNumber,
+      vendorInvoiceNo,
+      expectedPoAmount: expectedAmount,
+      actualInvoicedAmount: actualInvoiced,
+      priceVariance,
+      variancePercentage: +variancePercentage.toFixed(2),
+      grnRecord: grn
+        ? {
+            grnId: String(grn._id),
+            qcStatus: grn.qcStatus,
+            receivedItemsCount: grn.items?.length || 0,
+          }
+        : null,
+      autoApprovedForPayment: isMatched,
+      approvalThresholdNote: isMatched
+        ? 'Within 1.0% allowable tolerance. Cleared for Accounts Payable payment voucher.'
+        : 'Discrepancy exceeds tolerance threshold. Routed to Finance Director / Audit Desk.',
+    });
+  } catch (err) {
+    logger.error(`3-Way matching error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

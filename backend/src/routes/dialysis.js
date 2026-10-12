@@ -160,4 +160,49 @@ router.get('/mine', protect, authorize('records:read:own'), async (req, res) => 
   }
 });
 
+// ─── Mathematical Daugirdas single-pool Kt/V & URR Calculation Engine ───────
+router.post('/ktv-calculate', protect, async (req, res) => {
+  try {
+    const { preBUN, postBUN, sessionHours, ultrafiltrationVolumeL, postWeightKg } = req.body || {};
+    const pre = parseFloat(preBUN);
+    const post = parseFloat(postBUN);
+    const t = parseFloat(sessionHours) || 4.0; // hours
+    const uf = parseFloat(ultrafiltrationVolumeL) || 0.0; // Litres
+    const w = parseFloat(postWeightKg);
+
+    if (isNaN(pre) || isNaN(post) || isNaN(w) || pre <= 0 || post <= 0 || w <= 0) {
+      return res.status(400).json({ message: 'Valid preBUN, postBUN, and postWeightKg required' });
+    }
+
+    // Urea Reduction Ratio: URR = (1 - post/pre) * 100
+    const urr = Math.round((1 - (post / pre)) * 1000) / 10;
+
+    // Daugirdas 2nd Generation single-pool Kt/V formula:
+    // spKt/V = -ln(postBUN/preBUN - 0.008 * t) + (4 - 3.5 * (postBUN/preBUN)) * (UF / postWeight)
+    const ratio = post / pre;
+    const lnTerm = Math.max(0.001, ratio - (0.008 * t));
+    const spKtV = -Math.log(lnTerm) + ((4 - (3.5 * ratio)) * (uf / w));
+    const roundedKtV = Math.round(spKtV * 100) / 100;
+
+    // Clinical adequacy check (KDOQI guideline: Target spKt/V >= 1.4, Minimum >= 1.2; Target URR >= 65%)
+    let adequacy = 'Adequate';
+    if (roundedKtV < 1.2 || urr < 65) {
+      adequacy = 'Inadequate (Dose under target)';
+    } else if (roundedKtV >= 1.7) {
+      adequacy = 'Optimal Clearance';
+    }
+
+    return res.json({
+      urrPct: urr,
+      spKtV: roundedKtV,
+      isAdequate: roundedKtV >= 1.2 && urr >= 65,
+      clinicalInterpretation: adequacy,
+      kdoqiMinimumKtV: 1.2,
+      kdoqiTargetKtV: 1.4
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

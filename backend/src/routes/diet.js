@@ -229,4 +229,111 @@ router.get('/stats', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// ─── Clinical Nutrition, BMR & Macro Calculation Engine ──────────────────────
+router.post('/calculate-nutrition', protect, async (req, res) => {
+  try {
+    const {
+      weightKg,
+      heightCm,
+      ageYears,
+      gender = 'male', // 'male' | 'female'
+      activityLevel = 'bedridden', // 'bedridden' | 'sedentary' | 'lightly_active' | 'moderately_active'
+      clinicalStressFactor = 'normal', // 'normal' | 'postop' | 'sepsis' | 'burns_major' | 'trauma'
+      formula = 'harris_benedict', // 'harris_benedict' | 'mifflin'
+      proteinMultiplierGPerKg // optional override e.g. 1.2 or 1.5 g/kg
+    } = req.body || {};
+
+    const w = parseFloat(weightKg);
+    const h = parseFloat(heightCm);
+    const a = parseFloat(ageYears);
+
+    if (isNaN(w) || isNaN(h) || isNaN(a) || w <= 0 || h <= 0 || a <= 0) {
+      return res.status(400).json({ message: 'Valid weightKg, heightCm, and ageYears required' });
+    }
+
+    // Basal Metabolic Rate (BMR)
+    let bmr = 0;
+    if (formula === 'mifflin') {
+      // Mifflin-St Jeor: 10*W + 6.25*H - 5*A + (male ? +5 : -161)
+      bmr = (10 * w) + (6.25 * h) - (5 * a) + (gender.toLowerCase() === 'female' ? -161 : 5);
+    } else {
+      // Harris-Benedict (revised)
+      if (gender.toLowerCase() === 'female') {
+        bmr = 447.593 + (9.247 * w) + (3.098 * h) - (4.330 * a);
+      } else {
+        bmr = 88.362 + (13.397 * w) + (4.799 * h) - (5.677 * a);
+      }
+    }
+
+    // Activity Multiplier
+    const activityMap = {
+      bedridden: 1.15,
+      sedentary: 1.2,
+      lightly_active: 1.375,
+      moderately_active: 1.55
+    };
+    const actMult = activityMap[activityLevel] || 1.15;
+
+    // Clinical Stress Multiplier
+    const stressMap = {
+      normal: 1.0,
+      postop: 1.15,
+      trauma: 1.3,
+      sepsis: 1.4,
+      burns_major: 1.7
+    };
+    const stressMult = stressMap[clinicalStressFactor] || 1.0;
+
+    // Total Daily Energy Expenditure (TDEE / Target Calories)
+    const targetCalories = Math.round(bmr * actMult * stressMult);
+
+    // Protein Prescription (g/day)
+    // Healthy adult: 0.8-1.0 g/kg, Post-op / Hospitalized: 1.2-1.5 g/kg, Sepsis/Burns: 1.5-2.0 g/kg
+    let protPerKg = parseFloat(proteinMultiplierGPerKg);
+    if (isNaN(protPerKg) || protPerKg <= 0) {
+      if (clinicalStressFactor === 'burns_major' || clinicalStressFactor === 'sepsis') protPerKg = 1.8;
+      else if (clinicalStressFactor === 'postop' || clinicalStressFactor === 'trauma') protPerKg = 1.3;
+      else protPerKg = 1.0;
+    }
+    const proteinGrams = Math.round(w * protPerKg);
+    const proteinCalories = proteinGrams * 4;
+
+    // Fat: ~25-30% of total calories (9 kcal/g)
+    const fatCalories = Math.round(targetCalories * 0.28);
+    const fatGrams = Math.round(fatCalories / 9);
+
+    // Carbohydrate: Remaining calories (4 kcal/g)
+    const remainingCalories = Math.max(0, targetCalories - proteinCalories - fatCalories);
+    const carbGrams = Math.round(remainingCalories / 4);
+
+    // Maintenance Fluid Requirement: Holliday-Segar formula
+    // 100 mL/kg for first 10 kg + 50 mL/kg for next 10 kg + 20 mL/kg for remaining
+    let fluidMl = 0;
+    if (w <= 10) fluidMl = w * 100;
+    else if (w <= 20) fluidMl = 1000 + ((w - 10) * 50);
+    else fluidMl = 1500 + ((w - 20) * 20);
+
+    return res.json({
+      bmrKcal: Math.round(bmr),
+      targetCaloriesKcal: targetCalories,
+      macronutrients: {
+        proteinGrams,
+        proteinKcal: proteinCalories,
+        proteinPct: Math.round((proteinCalories / targetCalories) * 100),
+        carbohydrateGrams: carbGrams,
+        carbohydrateKcal: remainingCalories,
+        carbohydratePct: Math.round((remainingCalories / targetCalories) * 100),
+        fatGrams,
+        fatKcal: fatCalories,
+        fatPct: Math.round((fatCalories / targetCalories) * 100)
+      },
+      recommendedFluidMl: Math.round(fluidMl),
+      stressFactorUsed: stressMult,
+      activityFactorUsed: actMult
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

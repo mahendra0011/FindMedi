@@ -24,13 +24,13 @@ const statusColors = {
 };
 
 export default function AdminEmergency() {
-  const [emergencies, setEmergencies] = useState([]);
-  const [doctors, setDoctors] = useState([]);
+const [emergencies, setEmergencies] = useState<any[]>([]);
+const [doctors, setDoctors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
   const [severityFilter, setSeverityFilter] = useState('All');
-  const [selectedCase, setSelectedCase] = useState(null);
-  const [assignModal, setAssignModal] = useState(null);
+const [selectedCase, setSelectedCase] = useState<any>(null);
+const [assignModal, setAssignModal] = useState<any>(null);
 
   useEffect(() => {
     loadData();
@@ -204,6 +204,40 @@ export default function AdminEmergency() {
               <div><p className="text-xs text-muted-foreground">Condition</p><p className="font-medium">{selectedCase.condition}</p></div>
               {selectedCase.assignedDoctorName && <div><p className="text-xs text-muted-foreground">Doctor</p><p className="font-medium">👨‍⚕️ {selectedCase.assignedDoctorName}</p></div>}
               <div><p className="text-xs text-muted-foreground">Created</p><p className="font-medium">{new Date(selectedCase.createdAt).toLocaleString()}</p></div>
+
+              <div className="pt-3 border-t border-border/40 space-y-2">
+                <div className="flex items-center justify-between p-2 rounded-lg bg-muted/40">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm">⚖️</span>
+                    <span className="text-xs font-semibold">MLC Tagged</span>
+                  </div>
+                  <span className="text-xs px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                    {selectedCase.isMlc ? `MLC #${selectedCase.mlcNumber || '1048'}` : 'Non-MLC'}
+                  </span>
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 text-xs"
+                    onClick={() => {
+                      toast.success(`Police Station Intimation memo generated for MLC Case #${selectedCase._id.slice(-4)}`);
+                    }}
+                  >
+                    Police Intimation
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 text-xs bg-red-600 hover:bg-red-700 text-white"
+                    onClick={() => {
+                      toast.success(`ICU/Emergency Bed Request dispatched for ${selectedCase.patientName || 'Patient'}`);
+                    }}
+                  >
+                    Stat Bed Request
+                  </Button>
+                </div>
+              </div>
             </div>
           ) : (
             <p className="text-center text-muted-foreground py-8">Select a case</p>

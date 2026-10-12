@@ -637,6 +637,10 @@ import kioskRoutes from './routes/kiosk.js';
 import printRoutes from './routes/print.js';
 import recallRoutes from './routes/recall.js';
 import cssdRoutes from './routes/cssd.js';
+import biomedicalRoutes from './routes/biomedical.js';
+import linenRoutes from './routes/linen.js';
+import bmwRoutes from './routes/bmw.js';
+import parkingRoutes from './routes/parking.js';
 import clinicalRoutes from './routes/clinical.js';
 import mealSubscriptionRoutes from './routes/mealSubscriptions.js';
 import membershipRoutes from './routes/memberships.js';
@@ -750,8 +754,10 @@ import mindsupportRoutes, { attachMindRealtime } from './routes/mindsupport.js';
 import routingRoutes from './routes/routing.js';
 import webhookRoutes from './routes/webhook.js';
 // File 22 P2-39/40: clinic packages, branches, growth charts, vaccination, partogram, newborn screening
-import clinicPackageRoutes from './routes/clinicBranches.js';
+import clinicPackageRoutes from './routes/clinicPackages.js';
 import clinicBranchRoutes from './routes/clinicBranches.js';
+import encounterRoutes from './routes/encounters.js';
+import certificateRoutes from './routes/certificates.js';
 import growthChartRoutes from './routes/growthCharts.js';
 import vaccinationAlertRoutes from './routes/vaccinationAlerts.js';
 import partogramRoutes from './routes/partograms.js';
@@ -762,8 +768,10 @@ import procedureSuiteRoutes from './routes/procedureSuite.js';
 import aiFeatureRoutes from './routes/aiFeatures.js';
 import feedbackRoutes from './routes/feedback.js';
 import ambulanceTripRoutes from './routes/ambulanceTrips.js';
-import linenRoutes from './routes/linen.js';
 import securityRoutes from './routes/security.js';
+import recruitmentRoutes from './routes/recruitment.js';
+import canteenRoutes from './routes/canteen.js';
+import biometricRoutes from './routes/biometric.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -925,6 +933,16 @@ app.use('/api/queues', queueRoutes);
 app.use('/api/kiosk', kioskRoutes);
 // File 09 §9.7/06.4: CSSD set master + sterilisation cycles.
 app.use('/api/cssd', cssdRoutes);
+// Enterprise Biomedical Engineering (Equipment, PPM, Work Orders, Safety Testing)
+app.use('/api/biomedical', biomedicalRoutes);
+// Linen & Laundry Circulation
+app.use('/api/linen', linenRoutes);
+// Biomedical Waste (BMW) Color Bags & Manifests
+app.use('/api/bmw', bmwRoutes);
+// Automated Parking & RFID Gates
+app.use('/api/parking', parkingRoutes);
+// Biometric Hardware & WebAuthn Fingerprint Attendance
+app.use('/api/biometric', biometricRoutes);
 // File 09 §04: EMR templates + CDSS check + ICU flowsheet.
 app.use('/api/clinical', clinicalRoutes);
 // File 13 §13.1/§13.2/§13.3+§13.5/§13.6: workflows, approvals, rules+tasks, masters+flags.
@@ -1076,6 +1094,8 @@ app.use('/api/routing', routingRoutes);
 // File 22 P2-39/40: clinic packages/branches + paediatric clinical tools
 app.use('/api/clinic-packages', clinicPackageRoutes);
 app.use('/api/clinic-branches', clinicBranchRoutes);
+app.use('/api/encounters', encounterRoutes);
+app.use('/api/certificates', certificateRoutes);
 app.use('/api/growth-charts', growthChartRoutes);
 app.use('/api/vaccinations', vaccinationAlertRoutes);
 app.use('/api/partograms', partogramRoutes);
@@ -1088,6 +1108,9 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/ambulance-trips', ambulanceTripRoutes);
 app.use('/api/linen', linenRoutes);
 app.use('/api/security', securityRoutes);
+app.use('/api/recruitment', recruitmentRoutes);
+app.use('/api/canteen', canteenRoutes);
+app.use('/api/biometric', biometricRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);

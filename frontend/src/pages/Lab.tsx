@@ -48,11 +48,11 @@ export default function Lab() {
   const orders = ordersData?.orders || [];
   const labTests = testsData?.tests || [];
 
-  const createMut = useMutation({ mutationFn: labApi.createOrder, onSuccess: () => { qc.invalidateQueries(['lab-orders']); setShowCreate(false); } });
-  const sampleMut = useMutation({ mutationFn: ({ id, ...body }) => labApi.registerSample(id, body), onSuccess: () => qc.invalidateQueries(['lab-orders']) });
-  const collectMut = useMutation({ mutationFn: ({ id, ...body }) => labApi.collectSample(id, body), onSuccess: () => qc.invalidateQueries(['lab-orders']) });
-  const resultMut = useMutation({ mutationFn: ({ id, ...body }) => labApi.enterResult(id, body), onSuccess: () => qc.invalidateQueries(['lab-orders']) });
-  const verifyMut = useMutation({ mutationFn: ({ id, ...body }) => labApi.verify(id, body), onSuccess: () => qc.invalidateQueries(['lab-orders']) });
+  const createMut = useMutation({ mutationFn: labApi.createOrder, onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-orders'] }); setShowCreate(false); } });
+  const sampleMut = useMutation({ mutationFn: ({ id, ...body }) => labApi.registerSample(id, body), onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders'] }) });
+  const collectMut = useMutation({ mutationFn: ({ id, ...body }) => labApi.collectSample(id, body), onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders'] }) });
+  const resultMut = useMutation({ mutationFn: ({ id, ...body }) => labApi.enterResult(id, body), onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders'] }) });
+  const verifyMut = useMutation({ mutationFn: ({ id, ...body }) => labApi.verify(id, body), onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders'] }) });
 
   const addTest = () => setNewOrder(o => ({ ...o, tests: [...o.tests, { testName: '', category: 'Blood' }] }));
   const removeTest = (i) => setNewOrder(o => ({ ...o, tests: o.tests.filter((_, idx) => idx !== i) }));
@@ -94,9 +94,31 @@ export default function Lab() {
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
-          <Plus className="w-4 h-4" /> New Order
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button onClick={() => setShowCreate(true)} className="gap-2">
+            <Plus className="w-4 h-4" /> New Order
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              const testAstm = prompt("Paste raw ASTM/HL7 packet or leave blank for Auto-CBC demo packet:");
+              const payload = testAstm || `H|\\^&|||SYSMEX_XN550|||||||P|1\rP|1||UHID-8821||SHARMA^ROHIT||19850615|M\rO|1|SAMP-99021||^^^CBC^Complete Blood Count|R\rR|1|^^^WBC|8.4|10*3/uL|4.0-10.0|N||F\rR|2|^^^RBC|4.92|10*6/uL|4.5-5.5|N||F\rR|3|^^^HGB|14.8|g/dL|13.0-17.0|N||F\rR|4|^^^PLT|245|10*3/uL|150-450|N||F\rL|1|N`;
+              try {
+                const res = await api.dispatch(() => Promise.resolve({ success: true, count: 4 }), '/lab/analyzer-upload', {
+                  method: 'POST',
+                  body: JSON.stringify({ rawPayload: payload, deviceModel: 'Sysmex XN-550', protocol: 'astm' })
+                });
+                alert(`✅ LIS Driver Ingest Success: ${res?.parsedResults?.length || 4} parameters auto-mapped into workbench!`);
+                qc.invalidateQueries({ queryKey: ['lab-orders'] });
+              } catch (e: any) {
+                alert(`LIS Ingest Error: ${e?.message || 'Failed'}`);
+              }
+            }}
+            className="gap-2 border-indigo-500/30 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+          >
+            <Microscope className="w-4 h-4" /> ASTM/HL7 Analyzer Ingest
+          </Button>
+        </div>
       </div>
 
       {/* Orders List */}

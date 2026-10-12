@@ -30,6 +30,7 @@ export const TENANT_STAFF_ROLES = [
   // Doc 12 §3: clinic org staff work inside their clinic tenant.
   'clinic_admin', 'clinic_receptionist', 'clinic_nurse',
   'clinic_accountant', 'clinic_pharmacist',
+  'clinic_cashier', 'clinic_branch_manager', 'clinic_telemed_coordinator',
 ];
 
 export const isTenantStaff = (user) => TENANT_STAFF_ROLES.includes(user?.role);

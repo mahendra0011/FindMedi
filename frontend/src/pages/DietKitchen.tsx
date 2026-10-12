@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, Clock, X, UtensilsCrossed, CheckCircle, ThumbsUp, AlertTriangle, User, FileText, ChefHat, Send, Star, Activity } from 'lucide-react';
+import { Search, Plus, Clock, X, UtensilsCrossed, CheckCircle, ThumbsUp, AlertTriangle, User, FileText, ChefHat, Send, Star, Activity, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { toast } from '@/components/ui/sonner';
 
 const dietApi = {
   getOrders: (p) => api.getDietOrders(p),
@@ -44,6 +45,40 @@ export default function DietKitchen() {
     mealTimes: ['Breakfast', 'Lunch', 'Dinner'], instructions: '', allergies: '',
     doctorName: '', referringDoctorId: ''
   });
+
+  // Calorie / macro target calculator (BMR → TDEE with activity + clinical stress)
+  const [nutri, setNutri] = useState({
+    weightKg: '65', heightCm: '170', ageYears: '50', gender: 'male',
+    activityLevel: 'bedridden', clinicalStressFactor: 'postop', formula: 'harris_benedict',
+  });
+  const [nutriResult, setNutriResult] = useState<any>(null);
+  const [nutriLoading, setNutriLoading] = useState(false);
+
+  const calcNutrition = async () => {
+    try {
+      setNutriLoading(true);
+      const r: any = await api.post('/diet/calculate-nutrition', {
+        ...nutri,
+        weightKg: Number(nutri.weightKg),
+        heightCm: Number(nutri.heightCm),
+        ageYears: Number(nutri.ageYears),
+      });
+      setNutriResult(r.data || r);
+      toast.success(`Daily target: ${r.data?.targetCaloriesKcal ?? '—'} kcal`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Nutrition calculation failed');
+    } finally { setNutriLoading(false); }
+  };
+
+  // Standard meal distribution of daily calorie target
+  const mealPlan = nutriResult
+    ? [
+        { meal: 'Breakfast', pct: 0.25 },
+        { meal: 'Lunch', pct: 0.35 },
+        { meal: 'Evening Snack', pct: 0.10 },
+        { meal: 'Dinner', pct: 0.30 },
+      ].map((m) => ({ ...m, kcal: Math.round((nutriResult.targetCaloriesKcal || 0) * m.pct) }))
+    : [];
 
   const { data } = useQuery({ queryKey: ['diet-orders', search, statusFilter], queryFn: () => dietApi.getOrders({ search, status: statusFilter }) });
   const { data: stats } = useQuery({ queryKey: ['diet-stats'], queryFn: dietApi.getStats });
@@ -120,6 +155,65 @@ export default function DietKitchen() {
             <p className="text-xs text-muted-foreground">{s.l}</p>
           </div>
         ))}
+      </div>
+
+      {/* Calorie Target & Meal Planning Engine */}
+      <div className="bg-card rounded-xl border p-4 mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Calculator className="w-4 h-4 text-primary" />
+          <h2 className="text-sm font-semibold">Calorie Target & Meal Planning (BMR → TDEE)</h2>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-7 gap-2 items-end text-xs">
+          <div><label className="text-muted-foreground">Weight (kg)</label>
+            <Input type="number" value={nutri.weightKg} onChange={e => setNutri({ ...nutri, weightKg: e.target.value })} /></div>
+          <div><label className="text-muted-foreground">Height (cm)</label>
+            <Input type="number" value={nutri.heightCm} onChange={e => setNutri({ ...nutri, heightCm: e.target.value })} /></div>
+          <div><label className="text-muted-foreground">Age</label>
+            <Input type="number" value={nutri.ageYears} onChange={e => setNutri({ ...nutri, ageYears: e.target.value })} /></div>
+          <div><label className="text-muted-foreground">Gender</label>
+            <select value={nutri.gender} onChange={e => setNutri({ ...nutri, gender: e.target.value })} className="w-full h-9 px-2 rounded-lg border border-input bg-background text-xs">
+              <option value="male">Male</option><option value="female">Female</option>
+            </select></div>
+          <div><label className="text-muted-foreground">Activity</label>
+            <select value={nutri.activityLevel} onChange={e => setNutri({ ...nutri, activityLevel: e.target.value })} className="w-full h-9 px-2 rounded-lg border border-input bg-background text-xs">
+              <option value="bedridden">Bedridden</option><option value="sedentary">Sedentary</option>
+              <option value="lightly_active">Lightly active</option><option value="moderately_active">Moderate</option>
+            </select></div>
+          <div><label className="text-muted-foreground">Clinical stress</label>
+            <select value={nutri.clinicalStressFactor} onChange={e => setNutri({ ...nutri, clinicalStressFactor: e.target.value })} className="w-full h-9 px-2 rounded-lg border border-input bg-background text-xs">
+              <option value="normal">Normal</option><option value="postop">Post-op</option>
+              <option value="trauma">Trauma</option><option value="sepsis">Sepsis</option><option value="burns_major">Major burns</option>
+            </select></div>
+          <Button size="sm" className="h-9" disabled={nutriLoading} onClick={calcNutrition}>{nutriLoading ? '…' : 'Calculate'}</Button>
+        </div>
+        {nutriResult && (
+          <div className="mt-3 grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+              <p className="text-muted-foreground">Target Calories</p>
+              <p className="text-lg font-bold text-primary">{nutriResult.targetCaloriesKcal} kcal/day</p>
+            </div>
+            <div className="p-2 rounded-lg bg-muted border"><p className="text-muted-foreground">BMR</p>
+              <p className="text-lg font-bold">{nutriResult.bmrKcal} kcal</p></div>
+            <div className="p-2 rounded-lg bg-muted border"><p className="text-muted-foreground">Protein</p>
+              <p className="text-lg font-bold">{nutriResult.macronutrients?.proteinGrams} g</p></div>
+            <div className="p-2 rounded-lg bg-muted border"><p className="text-muted-foreground">Fat</p>
+              <p className="text-lg font-bold">{nutriResult.macronutrients?.fatGrams} g</p></div>
+            <div className="p-2 rounded-lg bg-muted border"><p className="text-muted-foreground">Carbs</p>
+              <p className="text-lg font-bold">{nutriResult.macronutrients?.carbohydrateGrams} g</p></div>
+            <div className="p-2 rounded-lg bg-muted border"><p className="text-muted-foreground">Fluids</p>
+              <p className="text-lg font-bold">{nutriResult.recommendedFluidMl} mL</p></div>
+            {mealPlan.length > 0 && (
+              <div className="col-span-2 md:col-span-6 grid grid-cols-2 md:grid-cols-4 gap-2">
+                {mealPlan.map(m => (
+                  <div key={m.meal} className="p-2 rounded-lg border border-success/30 bg-success/5 flex items-center justify-between">
+                    <span className="text-muted-foreground">{m.meal} <span className="text-[10px]">({Math.round(m.pct * 100)}%)</span></span>
+                    <span className="font-semibold">{m.kcal} kcal</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-3 mb-6">
