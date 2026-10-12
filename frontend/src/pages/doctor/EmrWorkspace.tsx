@@ -3,9 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import PatientBanner from '@/components/clinical/PatientBanner';
+import DdiCheckBanner from '@/components/clinical/DdiCheckBanner';
 
 /**
  * Doc 11 §4 — EMR workspace: patient banner (allergies red), timeline,
@@ -20,6 +21,9 @@ export default function EmrWorkspace() {
   const [tab, setTab] = useState<Tab>('timeline');
   const [draft, setDraft] = useState<any>(null);
   const [note, setNote] = useState({ diagnosis: '', diagnosisIcd: '', soap: '' });
+  const [isDdiBlocked, setIsDdiBlocked] = useState(false);
+  const [prescribedDrugs, setPrescribedDrugs] = useState<string[]>([]);
+  const [newDrugInput, setNewDrugInput] = useState('');
 
   const load = async () => {
     try {
@@ -40,6 +44,8 @@ export default function EmrWorkspace() {
   if (!data) return <p className="text-sm text-muted-foreground p-4">Loading workspace…</p>;
   const p = data.patient || {};
   const allergies = (p.allergies || []).map((a: any) => a.allergen || a);
+  const activeRxDrugs = (data.prescriptions || []).flatMap((pr: any) => (pr.medicines || []).map((m: any) => m.medicineName || m.name)).filter(Boolean);
+  const allCurrentDrugs = Array.from(new Set([...activeRxDrugs, ...prescribedDrugs]));
 
   return (
     <div className="space-y-4">
@@ -59,7 +65,13 @@ export default function EmrWorkspace() {
           {(data.encounter as any)?.status === 'Open' && (
             <Button
               size="sm"
+              disabled={isDdiBlocked}
+              title={isDdiBlocked ? 'Major drug interaction detected. Document clinical override to proceed.' : undefined}
               onClick={async () => {
+                if (isDdiBlocked) {
+                  toast.error('Major drug interaction detected — please record clinical override before signing');
+                  return;
+                }
                 try {
                   await (api as any).signWorkspace(encounterId);
                   toast.success('Visit signed & closed');
@@ -139,14 +151,79 @@ export default function EmrWorkspace() {
         </div>
       )}
       {tab === 'prescriptions' && (
-        <div className="space-y-2">
+        <div className="space-y-3">
+          <Card className="border-border/70 shadow-sm">
+            <CardHeader className="p-3 border-b bg-muted/20">
+              <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                <span>Active Prescriptions in Encounter</span>
+                <span className="text-xs text-muted-foreground font-normal">Real-time DDI screening enabled</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 space-y-3">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Type drug name (e.g. Warfarin 5mg, Aspirin 75mg, Metformin 500mg)"
+                  value={newDrugInput}
+                  onChange={(e) => setNewDrugInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newDrugInput.trim()) {
+                      e.preventDefault();
+                      setPrescribedDrugs((prev) => [...prev, newDrugInput.trim()]);
+                      setNewDrugInput('');
+                    }
+                  }}
+                  className="text-xs"
+                />
+                <Button
+                  size="sm"
+                  type="button"
+                  onClick={() => {
+                    if (newDrugInput.trim()) {
+                      setPrescribedDrugs((prev) => [...prev, newDrugInput.trim()]);
+                      setNewDrugInput('');
+                    }
+                  }}
+                  className="text-xs"
+                >
+                  Add Drug
+                </Button>
+              </div>
+
+              {prescribedDrugs.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {prescribedDrugs.map((d, i) => (
+                    <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium border border-primary/20">
+                      {d}
+                      <button
+                        type="button"
+                        className="text-primary hover:text-red-600 transition-colors"
+                        onClick={() => setPrescribedDrugs((prev) => prev.filter((_, idx) => idx !== i))}
+                        aria-label={`Remove ${d}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {allCurrentDrugs.length >= 2 && (
+                <DdiCheckBanner
+                  drugs={allCurrentDrugs}
+                  onMajorStateChange={setIsDdiBlocked}
+                  prescriptionId={(data.encounter as any)?._id}
+                />
+              )}
+            </CardContent>
+          </Card>
+
           {(data.prescriptions || []).map((x: any) => (
             <Card key={x._id}><CardContent className="p-3 text-sm">
               <p className="font-medium">{(x.medicines || []).map((m: any) => m.medicineName).join(', ')}</p>
               <p className="text-xs text-muted-foreground">{x.diagnosis} {x.diagnosisIcd ? `(${x.diagnosisIcd})` : ''}</p>
             </CardContent></Card>
           ))}
-          {!(data.prescriptions || []).length && <p className="text-sm text-muted-foreground">No prescriptions.</p>}
+          {!(data.prescriptions || []).length && !prescribedDrugs.length && <p className="text-sm text-muted-foreground">No prescriptions.</p>}
         </div>
       )}
       {tab === 'billing' && (
