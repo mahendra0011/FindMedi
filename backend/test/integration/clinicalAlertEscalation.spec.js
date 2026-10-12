@@ -146,13 +146,13 @@ describe('P0-10 clinical alert rules + unacked escalation ladder', () => {
 
   test('seeding code-blue/lab-panic/mtp rules is idempotent', async () => {
     const first = await seedClinicalAlertRules('h1');
-    expect(first.created).toEqual(['code-blue', 'lab-panic', 'mtp']);
-    expect(rules).toHaveLength(3);
+    expect(first.created).toEqual(['code-blue', 'lab-panic', 'mtp', 'sofa-delta-2']);
+    expect(rules).toHaveLength(4);
 
     const second = await seedClinicalAlertRules('h1');
     expect(second.created).toEqual([]);
-    expect(rules).toHaveLength(3);
-    expect(second.unchanged).toEqual(['code-blue', 'lab-panic', 'mtp']);
+    expect(rules).toHaveLength(4);
+    expect(second.unchanged).toEqual(['code-blue', 'lab-panic', 'mtp', 'sofa-delta-2']);
 
     const lab = rules.find((r) => r.key === 'lab-panic');
     expect(lab).toMatchObject({

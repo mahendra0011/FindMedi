@@ -95,6 +95,7 @@ const SAEmergencyWarRoom = lazy(() => import('./pages/superadmin/EmergencyWarRoo
 const SAKycCommand = lazy(() => import('./pages/superadmin/KycCommand'));
 const SATaxLedger = lazy(() => import('./pages/superadmin/TaxLedger'));
 const SAAiSafety = lazy(() => import('./pages/superadmin/AiSafety'));
+const SAAiReviewQueue = lazy(() => import('./pages/superadmin/AiReviewQueue'));
 const SASecurity = lazy(() => import('./pages/superadmin/Security'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
@@ -1007,6 +1008,7 @@ const App = () => (
                     <Route path="/superadmin/kyc-command" element={<RoleRoute allowedRoles={['superadmin', 'kyc_reviewer']}><SAKycCommand /></RoleRoute>} />
                     <Route path="/superadmin/tax-ledger" element={<RoleRoute allowedRoles={['superadmin', 'finance_admin']}><SATaxLedger /></RoleRoute>} />
                     <Route path="/superadmin/ai-safety" element={<RoleRoute allowedRoles={['superadmin']}><SAAiSafety /></RoleRoute>} />
+                    <Route path="/superadmin/ai-reviews" element={<RoleRoute allowedRoles={['superadmin', 'hospital_admin', 'clinical_safety', 'medical_reviewer']}><SAAiReviewQueue /></RoleRoute>} />
                     <Route path="/superadmin/security" element={<RoleRoute allowedRoles={['superadmin', 'security_admin']}><SASecurity /></RoleRoute>} />
 
                     {/* Admin routes */}

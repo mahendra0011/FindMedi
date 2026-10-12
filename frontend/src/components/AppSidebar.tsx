@@ -64,6 +64,7 @@ const navConfig = {
     { icon: ShieldCheck,     labelKey: 'nav.saKyc',            path: '/superadmin/kyc-command', section: 'Command Center' },
     { icon: Receipt,         labelKey: 'nav.saTax',            path: '/superadmin/tax-ledger', section: 'Command Center' },
     { icon: BrainCircuit,    labelKey: 'nav.saAiSafety',       path: '/superadmin/ai-safety', section: 'Command Center' },
+    { icon: FileCheck,       labelKey: 'nav.saAiReviewQueue',  path: '/superadmin/ai-reviews', section: 'Command Center' },
     { icon: ShieldAlert,     labelKey: 'nav.saSecurity',       path: '/superadmin/security', section: 'Command Center' },
   ],
   // 8.md 1: one console section per ops role - the sidebar shows exactly the

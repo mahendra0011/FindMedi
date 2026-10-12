@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { BrainCircuit, AlertOctagon } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { BrainCircuit, AlertOctagon, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -97,11 +98,17 @@ export default function AiSafety() {
       )}
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Human review queue</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Human review queue</CardTitle>
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" asChild>
+            <Link to="/superadmin/ai-reviews">
+              Open Review Workspace <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </Button>
+        </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">
-            Open any red-flag row above, verify the assistant response in the chat logs, and record the clinical verdict
-            in audit notes. Target: review 100% of red flags within 24 hours. (Sampling automation is a follow-up.)
+            Review OCR extractions, clinical drafts, and flagged AI responses with human-in-the-loop verification (File 22 P2-37).
           </p>
         </CardContent>
       </Card>

@@ -35,16 +35,32 @@ const handle = (res, err) => {
   return res.status(500).json({ message: err.message });
 };
 
-// OCR: extract structured fields from a document's text.
+// OCR: extract structured fields from a document's text or image/PDF.
 router.post('/ocr', authorize('records:write'), async (req, res) => {
   try {
-    const { docType = '', rawText = '', documentId = '' } = req.body || {};
-    if (!rawText) return res.status(400).json({ message: 'rawText is required' });
-    const { text } = redactPhi(String(rawText).slice(0, 20000));
-    // Checklist item 4: real provider (Gemini) when GEMINI_API_KEY is set,
-    // honest stub otherwise — PHI was redacted above, before either path.
-    const fields = await ocrDocumentWithProvider({ docType, rawText: text });
-    const review = await enqueue(req, 'ocr', { docType, documentId }, fields, documentId);
+    const {
+      docType = '', rawText = '', documentId = '', fileId = '',
+      fileBase64 = '', imageBase64 = '', mimeType = 'image/jpeg',
+    } = req.body || {};
+
+    const payloadFile = fileBase64 || imageBase64;
+    // 10MB size limit enforcement (~14MB base64 representation)
+    if (payloadFile && payloadFile.length > 14 * 1024 * 1024) {
+      return res.status(400).json({ message: 'File size exceeds 10MB limit' });
+    }
+
+    if (!rawText && !payloadFile && !fileId) {
+      return res.status(400).json({ message: 'rawText or image/file data is required' });
+    }
+
+    const text = rawText ? redactPhi(String(rawText).slice(0, 20000)).text : '';
+    const fields = await ocrDocumentWithProvider({
+      docType, rawText: text, fileBase64: payloadFile, mimeType,
+    });
+    const review = await enqueue(
+      req, 'ocr', { docType, documentId: documentId || fileId, hasFile: Boolean(payloadFile) },
+      fields, documentId || fileId
+    );
     return res.json({ fields, reviewId: String(review?._id || ''), status: review?.status || 'Pending' });
   } catch (err) { return handle(res, err); }
 });
@@ -102,7 +118,7 @@ router.get('/reviews', authorize('records:read'), async (req, res) => {
   } catch (err) { return res.status(500).json({ message: err.message }); }
 });
 
-router.patch('/reviews/:id', authorize('records:amend'), async (req, res) => {
+router.patch('/reviews/:id', authorize('records:amend', 'records:write'), async (req, res) => {
   try {
     const { status, reviewerNote, output } = req.body || {};
     if (!['Approved', 'Rejected', 'Edited'].includes(status)) {
