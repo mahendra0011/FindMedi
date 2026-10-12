@@ -47,6 +47,32 @@ describe('form engine parity + injection resistance', () => {
     expect(bandFor([{ from: 0, to: 3, label: 'Mild' }], 2)?.label).toBe('Mild');
     expect(bandFor([], 2)).toBeNull();
   });
+
+  it('localizes form template to Hindi when locale is hi with English fallback', async () => {
+    const { localizeTemplate } = await import('../../src/lib/formEngine.js');
+    const hindiTemplate = {
+      definition: {
+        sections: [{
+          id: 's1',
+          title: 'Patient Details',
+          titleHi: 'रोगी विवरण',
+          fields: [
+            { id: 'age', type: 'number', label: 'Age', labelHi: 'आयु', placeholder: 'Enter age', placeholderHi: 'आयु दर्ज करें' },
+            { id: 'gender', type: 'select', label: 'Gender', options: ['Male', 'Female'], optionsHi: ['पुरुष', 'महिला'] },
+            { id: 'notes', type: 'text', label: 'Clinical Notes' }, // no Hindi label provided, must fallback
+          ],
+        }],
+      },
+    };
+
+    const localized = localizeTemplate(hindiTemplate, 'hi');
+    const s1 = localized.definition.sections[0];
+    expect(s1.title).toBe('रोगी विवरण');
+    expect(s1.fields[0].label).toBe('आयु');
+    expect(s1.fields[0].placeholder).toBe('आयु दर्ज करें');
+    expect(s1.fields[1].options).toEqual(['पुरुष', 'महिला']);
+    expect(s1.fields[2].label).toBe('Clinical Notes'); // fallback to English
+  });
 });
 
 describe('print lint + doc seal', () => {

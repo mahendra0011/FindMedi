@@ -97,6 +97,29 @@ export function schemaFromTemplate(template) {
 }
 
 /**
+ * Section D5: Forms Hindi & Localized Labels Helper
+ * Transforms template definitions to surface Hindi fields (labelHi, placeholderHi, optionsHi)
+ * when locale === 'hi', falling back seamlessly to English defaults.
+ */
+export function localizeTemplate(template, locale = 'en') {
+  if (!template || !template.definition || locale !== 'hi') return template;
+  const clone = JSON.parse(JSON.stringify(template));
+  const sections = clone.definition?.sections || [];
+  for (const sec of sections) {
+    if (sec.titleHi) sec.title = sec.titleHi;
+    for (const f of (sec.fields || [])) {
+      if (f.labelHi) f.label = f.labelHi;
+      if (f.placeholderHi) f.placeholder = f.placeholderHi;
+      if (f.helpHi) f.help = f.helpHi;
+      if (Array.isArray(f.optionsHi) && f.optionsHi.length) {
+        f.options = f.optionsHi;
+      }
+    }
+  }
+  return clone;
+}
+
+/**
  * Sandboxed arithmetic over field refs. Two gates: (1) charset allowlist,
  * (2) every identifier must be a NUMERIC field from scope — anything else
  * (`process`, `globalThis`, `constructor`, …) refuses. Without gate 2 the
