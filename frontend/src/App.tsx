@@ -358,6 +358,18 @@ const EquipmentVendorDashboard = lazy(() => import('./pages/dashboards/Equipment
 const EventOrganizerDashboard = lazy(() => import('./pages/dashboards/EventOrganizerDashboard'));
 const PhlebotomistDashboard = lazy(() => import('./pages/dashboards/PhlebotomistDashboard'));
 
+// Wave 2: 10 Missing Role Dashboards
+const HodDashboard = lazy(() => import('./pages/dashboards/HodDashboard'));
+const OpdCoordinatorDashboard = lazy(() => import('./pages/dashboards/OpdCoordinatorDashboard'));
+const ResidentDashboard = lazy(() => import('./pages/dashboards/ResidentDashboard'));
+const AdmissionCoordinatorDashboard = lazy(() => import('./pages/dashboards/AdmissionCoordinatorDashboard'));
+const BedManagerDashboard = lazy(() => import('./pages/dashboards/BedManagerDashboard'));
+const CorporateBillingDashboard = lazy(() => import('./pages/dashboards/CorporateBillingDashboard'));
+const PatientRelationsDashboard = lazy(() => import('./pages/dashboards/PatientRelationsDashboard'));
+const FacilityManagerDashboard = lazy(() => import('./pages/dashboards/FacilityManagerDashboard'));
+const AuditorDashboard = lazy(() => import('./pages/dashboards/AuditorDashboard'));
+const MedicalSuperintendentDashboard = lazy(() => import('./pages/dashboards/MedicalSuperintendentDashboard'));
+
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminPrescriptionQueue = lazy(() => import('./pages/admin/AdminPrescriptionQueue'));
 const AdminPrescriptionVerificationQueue = lazy(() => import('./pages/admin/AdminPrescriptionVerificationQueue'));
@@ -653,6 +665,16 @@ const SPECIALTY_DASHBOARD_PATHS: Record<string, string> = {
   event_organizer: '/dashboard/events',
   phlebotomist: '/dashboard/phlebotomist',
   dietitian: '/dashboard/dietitian',
+  hod: '/dashboard/hod',
+  opd_coordinator: '/dashboard/opd-coordinator',
+  resident: '/dashboard/resident',
+  admission_coordinator: '/dashboard/admission-coordinator',
+  bed_manager: '/dashboard/bed-manager',
+  corporate_billing: '/dashboard/corporate-billing',
+  patient_relations: '/dashboard/patient-relations',
+  facility_manager: '/dashboard/facility-manager',
+  auditor: '/dashboard/auditor',
+  medical_superintendent: '/dashboard/medical-superintendent',
 };
 
 function RoleDashboard() {
@@ -1349,6 +1371,18 @@ const App = () => (
                     <Route path="/dashboard/equipment" element={<EquipmentVendorDashboard />} />
                     <Route path="/dashboard/events" element={<EventOrganizerDashboard />} />
                     <Route path="/dashboard/phlebotomist" element={<PhlebotomistDashboard />} />
+
+                    {/* Wave 2: 10 missing role dashboards */}
+                    <Route path="/dashboard/hod" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'surgeon', 'anaesthetist', 'medical_director', 'cmo']}><HodDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/opd-coordinator" element={<RoleRoute allowedRoles={['hospital_admin', 'receptionist', 'front_desk', 'nurse']}><OpdCoordinatorDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/resident" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><ResidentDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/admission-coordinator" element={<RoleRoute allowedRoles={['hospital_admin', 'receptionist', 'front_desk', 'insurance_desk', 'tpa_agent']}><AdmissionCoordinatorDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/bed-manager" element={<RoleRoute allowedRoles={['hospital_admin', 'nursing_supervisor', 'matron', 'receptionist', 'front_desk']}><BedManagerDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/corporate-billing" element={<RoleRoute allowedRoles={['hospital_admin', 'accountant', 'billing_executive', 'insurance_desk', 'finance_admin']}><CorporateBillingDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/patient-relations" element={<RoleRoute allowedRoles={['hospital_admin', 'quality_officer', 'support_agent', 'call_center_agent']}><PatientRelationsDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/facility-manager" element={<RoleRoute allowedRoles={['hospital_admin', 'biomedical_engineer', 'maintenance', 'store_keeper']}><FacilityManagerDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/auditor" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'auditor', 'compliance_officer', 'dpo']}><AuditorDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/medical-superintendent" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'medical_director', 'cmo']}><MedicalSuperintendentDashboard /></RoleRoute>} />
                     </Route>
 
                    <Route path="/register/delivery-partner" element={<DeliveryPartnerRegister />} />
