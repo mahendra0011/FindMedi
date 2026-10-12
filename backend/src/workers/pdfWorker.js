@@ -3,16 +3,35 @@
 // Returns: { filename, base64 } — polled via GET /api/reports/jobs/:id.
 // Validation errors are Unrecoverable (no pointless retries).
 
+import crypto from 'node:crypto';
 import logger from '../config/logger.js';
 import { QUEUE_NAMES } from '../lib/queues.js';
 
 const MAX_PDF_BYTES = 10 * 1024 * 1024;
+const CACHE_TTL_SECONDS = 3600; // 1 hour
 
 let worker = null;
 
-async function generatePdf(kind, data, UnrecoverableError) {
+async function generatePdf(kind, data, UnrecoverableError, job) {
   const pdf = await import('../services/pdfService.js');
   switch (kind) {
+    case 'template': {
+      const { docType, templateVersion, payload, html, css, duplicate, lang } = data || {};
+      const printEngine = await import('../lib/printEngine.js');
+      const pdfRender = await import('../lib/pdfRender.js');
+      try {
+        const rendered = printEngine.renderTemplate(html || '', css || '', payload || {}, { duplicate, lang });
+        const buffer = await pdfRender.renderHtmlToPdf({ html: rendered.html, css });
+        return { buffer, filename: `${docType || 'document'}-${templateVersion || Date.now()}.pdf` };
+      } catch (err) {
+        if (job?.log) job.log(`[pdfWorker] template render failed (${err.message}), falling back to pdfkit`);
+        logger.warn(`[pdfWorker] template render fallback for ${docType}: ${err.message}`);
+        if (docType && ['prescription', 'lab-report', 'discharge-summary', 'invoice'].includes(docType)) {
+          return generatePdf(docType, payload || data, UnrecoverableError, job);
+        }
+        throw err;
+      }
+    }
     case 'prescription':
       return { buffer: await pdf.generatePrescriptionPDF(data), filename: `prescription-${Date.now()}.pdf` };
     case 'lab-report':
@@ -48,10 +67,33 @@ export async function startPdfWorker() {
       async (job) => {
         const { kind, data } = job.data || {};
         if (!kind) throw new UnrecoverableError('pdf job missing kind');
-        const { buffer, filename } = await generatePdf(kind, data || {}, UnrecoverableError);
+
+        // Redis cache check for template jobs
+        let cacheKey = null;
+        if (kind === 'template' && data?.docType) {
+          const rawHash = `${data.docType}|${data.templateVersion || ''}|${JSON.stringify(data.payload || {})}`;
+          const dataHash = crypto.createHash('sha256').update(rawHash).digest('hex');
+          cacheKey = `pdf:cache:${dataHash}`;
+          try {
+            const cached = await connection.get(cacheKey);
+            if (cached) {
+              return { filename: `${data.docType}-${Date.now()}.pdf`, base64: cached, fromCache: true };
+            }
+          } catch {}
+        }
+
+        const { buffer, filename } = await generatePdf(kind, data || {}, UnrecoverableError, job);
         if (!buffer?.length) throw new Error('empty pdf buffer');
         if (buffer.length > MAX_PDF_BYTES) throw new UnrecoverableError('pdf exceeds 10MB result cap');
-        return { filename, base64: Buffer.from(buffer).toString('base64') };
+        const base64 = Buffer.from(buffer).toString('base64');
+
+        if (cacheKey) {
+          try {
+            await connection.setex(cacheKey, CACHE_TTL_SECONDS, base64);
+          } catch {}
+        }
+
+        return { filename, base64 };
       },
       { connection, concurrency: 2 }
     );

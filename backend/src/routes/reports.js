@@ -620,7 +620,7 @@ router.post('/generate', protect, authorize('reports:read'), requireReportScope,
 // Async PDF jobs (BullMQ) — POST returns 202 + jobId, poll GET for result.
 // Sync /generate-* routes below stay untouched (backward compatible).
 // ──────────────────────────────────────────────
-const PDF_JOB_KINDS = ['prescription', 'lab-report', 'discharge-summary', 'invoice'];
+const PDF_JOB_KINDS = ['prescription', 'lab-report', 'discharge-summary', 'invoice', 'template'];
 
 router.post('/jobs', protect, adminOnly, async (req, res) => {
   try {
@@ -633,6 +633,19 @@ router.post('/jobs', protect, adminOnly, async (req, res) => {
     if (r.queued) return res.status(202).json({ jobId: r.jobId, state: 'queued', kind });
     // Fallback when queues are down: generate inline, return completed payload
     const pdf = await import('../services/pdfService.js');
+    if (kind === 'template') {
+      const { docType, templateVersion, payload, html, css, duplicate, lang } = data || {};
+      const printEngine = await import('../lib/printEngine.js');
+      const pdfRender = await import('../lib/pdfRender.js');
+      try {
+        const rendered = printEngine.renderTemplate(html || '', css || '', payload || {}, { duplicate, lang });
+        const buffer = await pdfRender.renderHtmlToPdf({ html: rendered.html, css });
+        return res.json({ state: 'completed', inline: true, result: { filename: `${docType || 'document'}-${templateVersion || Date.now()}.pdf`, base64: Buffer.from(buffer).toString('base64') } });
+      } catch {
+        const buffer = await pdf.generatePrescriptionPDF(payload || data || {});
+        return res.json({ state: 'completed', inline: true, result: { filename: `prescription-${Date.now()}.pdf`, base64: Buffer.from(buffer).toString('base64') } });
+      }
+    }
     const gen = {
       prescription: pdf.generatePrescriptionPDF,
       'lab-report': pdf.generateLabReportPDF,
