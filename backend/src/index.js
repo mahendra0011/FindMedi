@@ -1520,6 +1520,15 @@ if (process.env.NODE_ENV !== 'test') {
       } catch (e) {
         logger.warn('document expiry job failed to start (non-fatal): ' + e.message);
       }
+
+      // T7: vendor KYC expiry sweep (Expired → PO block + audit; 30-day
+      // advance alert to procurement). Daily 06:30, after documentExpiry.
+      try {
+        const { startVendorKycExpiry } = await import('./jobs/vendorKycExpiry.job.js');
+        startVendorKycExpiry(process.env.VENDOR_KYC_EXPIRY_CRON || '30 6 * * *');
+      } catch (e) {
+        logger.warn('vendor KYC expiry job failed to start (non-fatal): ' + e.message);
+      }
     } catch (e) {
       logger.error('⚠️ Failed to sync indexes, seed demo users, or start outbox poller: ' + e.message);
     }

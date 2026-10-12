@@ -62,6 +62,8 @@ const supplierSchema = new mongoose.Schema({
     docType: { type: String, enum: ['GST', 'PAN', 'DrugLicense', 'MSME', 'CancelledCheque', 'Other'], default: 'Other' },
     docNumber: { type: String, default: '' },
     docUrl: { type: String, default: '' },
+    // T7: expiry drives the daily sweep → kycStatus='Expired' + 30-day alert.
+    expiry: { type: Date, default: null },
     verifiedAt: { type: Date, default: null },
     verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   }],
@@ -69,6 +71,13 @@ const supplierSchema = new mongoose.Schema({
     type: String,
     enum: ['Pending', 'Verified', 'Rejected', 'Expired'],
     default: 'Pending',
+  },
+  // T7: why the last KYC decision was taken (audit trail for reviewers).
+  kycDecision: {
+    status: { type: String, enum: ['', 'Pending', 'Verified', 'Rejected', 'Expired'], default: '' },
+    reason: { type: String, default: '', maxlength: 1000 },
+    by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    at: { type: Date, default: null },
   },
   complianceScore: { type: Number, default: 100 },
   licenseExpiry: { type: Date, default: null },

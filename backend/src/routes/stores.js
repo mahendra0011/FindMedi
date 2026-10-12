@@ -352,11 +352,22 @@ router.put('/vendors/:id/rating', requireObjectId, authorize('inventory:manage')
 });
 
 // authz: role
+// T7 (file 31): full KYC decision workflow — status changes are enum-checked,
+// a Rejection REQUIRES a reason, doc expiry is stored for the sweep, and every
+// decision is audit-logged (who/what/why).
+const KYC_STATUS_OPTIONS = ['Pending', 'Verified', 'Rejected', 'Expired'];
 router.put('/vendors/:id/kyc', requireObjectId, authorize('inventory:manage'), async (req, res) => {
   try {
-    const { docType, docNumber, docUrl, kycStatus, licenseExpiry } = req.body || {};
+    const { docType, docNumber, docUrl, expiry, kycStatus, licenseExpiry, reason } = req.body || {};
     const supplier = await Supplier.findOne({ _id: req.params.id, ...tenantFilter(req) });
     if (!supplier) return res.status(404).json({ message: 'Vendor not found' });
+
+    if (kycStatus && !KYC_STATUS_OPTIONS.includes(kycStatus)) {
+      return res.status(400).json({ message: `kycStatus must be one of ${KYC_STATUS_OPTIONS.join(' | ')}` });
+    }
+    if ((kycStatus === 'Rejected' || kycStatus === 'Expired') && !String(reason || '').trim()) {
+      return res.status(400).json({ message: `reason is required when setting kycStatus=${kycStatus}` });
+    }
 
     if (docType && docNumber) {
       supplier.kycDocs = supplier.kycDocs || [];
@@ -364,18 +375,38 @@ router.put('/vendors/:id/kyc', requireObjectId, authorize('inventory:manage'), a
         docType: String(docType),
         docNumber: String(docNumber),
         docUrl: String(docUrl || ''),
-        verifiedAt: new Date(),
-        verifiedBy: actorId(req),
+        expiry: expiry ? new Date(expiry) : null,
+        verifiedAt: kycStatus === 'Verified' ? new Date() : null,
+        verifiedBy: kycStatus === 'Verified' ? actorId(req) : null,
       });
     }
 
-    if (kycStatus) supplier.kycStatus = kycStatus;
+    if (kycStatus) {
+      supplier.kycStatus = kycStatus;
+      supplier.kycDecision = {
+        status: kycStatus,
+        reason: String(reason || '').trim(),
+        by: actorId(req),
+        at: new Date(),
+      };
+    }
     if (licenseExpiry) supplier.licenseExpiry = new Date(licenseExpiry);
     await supplier.save();
+
+    await auditLog('vendor_kyc', actorId(req), {
+      resourceType: 'Supplier',
+      resourceId: String(supplier._id),
+      vendorName: supplier.name,
+      kycStatus: supplier.kycStatus,
+      reason: supplier.kycDecision?.reason || '',
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
 
     return res.json({
       vendorId: String(supplier._id),
       kycStatus: supplier.kycStatus,
+      kycDecision: supplier.kycDecision,
       licenseExpiry: supplier.licenseExpiry,
       kycDocsCount: supplier.kycDocs?.length || 0,
     });

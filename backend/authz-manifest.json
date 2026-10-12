@@ -5760,35 +5760,35 @@
     },
     {
       "file": "inventory.js",
-      "line": 368,
+      "line": 383,
       "method": "GET",
       "target": "'/purchase-orders'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 388,
+      "line": 403,
       "method": "GET",
       "target": "'/purchase-orders/:id'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 401,
+      "line": 416,
       "method": "PUT",
       "target": "'/purchase-orders/:id/status'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 449,
+      "line": 464,
       "method": "PUT",
       "target": "'/purchase-orders/:id/receive'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 485,
+      "line": 500,
       "method": "DELETE",
       "target": "'/purchase-orders/:id'",
       "tag": "object"
@@ -10121,84 +10121,84 @@
     },
     {
       "file": "reports.js",
-      "line": 648,
+      "line": 661,
       "method": "GET",
       "target": "'/jobs/:id'",
       "tag": "role"
     },
     {
       "file": "reports.js",
-      "line": 657,
+      "line": 670,
       "method": "GET",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "reports.js",
-      "line": 680,
+      "line": 693,
       "method": "GET",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "reports.js",
-      "line": 697,
+      "line": 710,
       "method": "GET",
       "target": "'/types/list'",
       "tag": "self"
     },
     {
       "file": "reports.js",
-      "line": 710,
+      "line": 723,
       "method": "GET",
       "target": "'/export/:type'",
       "tag": "role"
     },
     {
       "file": "reports.js",
-      "line": 753,
+      "line": 766,
       "method": "POST",
       "target": "'/import/:type'",
       "tag": "role"
     },
     {
       "file": "reports.js",
-      "line": 817,
+      "line": 830,
       "method": "POST",
       "target": "'/generate-prescription'",
       "tag": "role"
     },
     {
       "file": "reports.js",
-      "line": 826,
+      "line": 839,
       "method": "POST",
       "target": "'/generate-lab-report'",
       "tag": "role"
     },
     {
       "file": "reports.js",
-      "line": 835,
+      "line": 848,
       "method": "POST",
       "target": "'/generate-discharge-summary'",
       "tag": "role"
     },
     {
       "file": "reports.js",
-      "line": 848,
+      "line": 861,
       "method": "POST",
       "target": "'/email/prescription'",
       "tag": "role"
     },
     {
       "file": "reports.js",
-      "line": 868,
+      "line": 881,
       "method": "POST",
       "target": "'/email/lab-result'",
       "tag": "role"
     },
     {
       "file": "reports.js",
-      "line": 888,
+      "line": 901,
       "method": "POST",
       "target": "'/email/discharge-summary'",
       "tag": "role"
@@ -11304,14 +11304,14 @@
     },
     {
       "file": "stores.js",
-      "line": 355,
+      "line": 359,
       "method": "PUT",
       "target": "'/vendors/:id/kyc'",
       "tag": "role"
     },
     {
       "file": "stores.js",
-      "line": 389,
+      "line": 420,
       "method": "GET",
       "target": "'/vendors/:id/performance'",
       "tag": "role"

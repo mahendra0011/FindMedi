@@ -297,12 +297,27 @@ router.post('/purchase-orders', protect, authorize('inventory:manage'), validate
 
     // Checklist L5: onboarding gate — only Approved vendors get purchase
     // orders. Non-ObjectId supplierId (legacy free text) skips the gate.
+    // T7 (file 31): KYC gate on the same lookup — Rejected/Expired vendors are
+    // hard-blocked; Pending blocks only when VENDOR_KYC_STRICT=1 (flip after
+    // the initial vendor base is verified once).
     try {
-      const vendor = await Supplier.findById(supplierId).select('name onboardingStatus').lean();
+      const vendor = await Supplier.findById(supplierId).select('name onboardingStatus kycStatus').lean();
       if (vendor && vendor.onboardingStatus !== 'Approved') {
         return res.status(409).json({
           message: `Supplier "${vendor.name}" is ${vendor.onboardingStatus} — approval required before ordering`,
           code: 'SUPPLIER_ONBOARDING_BLOCK',
+        });
+      }
+      if (vendor && ['Rejected', 'Expired'].includes(vendor.kycStatus)) {
+        return res.status(409).json({
+          message: `Supplier "${vendor.name}" KYC is ${vendor.kycStatus} — complete KYC verification before ordering`,
+          code: 'VENDOR_KYC_BLOCK',
+        });
+      }
+      if (vendor && vendor.kycStatus === 'Pending' && process.env.VENDOR_KYC_STRICT === '1') {
+        return res.status(409).json({
+          message: `Supplier "${vendor.name}" KYC is Pending — verification required (VENDOR_KYC_STRICT=1)`,
+          code: 'VENDOR_KYC_BLOCK',
         });
       }
     } catch { /* legacy free-text supplier id — no supplier record to gate on */ }
