@@ -1223,7 +1223,7 @@ const REPORT_BUILDERS = {
       Task.aggregate([{ $group: { _id: '$ownerId', total: { $sum: 1 }, done: { $sum: { $cond: [{ $eq: ['$status', 'done'] }, 1, 0] } } } }]),
     ]);
     // Name lookup is cosmetic — a failure must never fail the report itself.
-    let users = [];
+    let users;
     try {
       const ids = [...new Set([
         ...leadGroups.map((g) => g._id),
