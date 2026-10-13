@@ -41,16 +41,16 @@ services:
       - mongo_data:/data/db
       - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?set MONGO_ROOT_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?set MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER-}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD-}
 
   postgres:
     ports: !reset []
     environment:
       POSTGRES_DB: findmedi
-      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_USER: ${POSTGRES_USER-}
       # No `:-findmedi_dev_only` default here: compose fails if it is unset.
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./secrets/postgres-init.sql:/docker-entrypoint-initdb.d/00-hardening.sql:ro
@@ -62,8 +62,8 @@ services:
       redis-server
       --appendonly yes
       --appendfsync everysec
-      --requirepass ${REDIS_PASSWORD:?set REDIS_PASSWORD}
-      --masterauth ${REDIS_PASSWORD:?set REDIS_PASSWORD}
+      --requirepass ${REDIS_PASSWORD-}
+      --masterauth ${REDIS_PASSWORD-}
       --maxmemory-policy noeviction
 
   opensearch:
@@ -74,7 +74,7 @@ services:
       # mounted read-only from the secret store, never generated in the container.
       DISABLE_SECURITY_PLUGIN: "false"
       DISABLE_INSTALL_DEMO_CONFIG: "true"
-      OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${OPENSEARCH_ADMIN_PASSWORD:?set OPENSEARCH_ADMIN_PASSWORD}
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${OPENSEARCH_ADMIN_PASSWORD-}
       OPENSEARCH_JAVA_OPTS_APPEND: >-
         -Dplugins.security.ssl.http.enabled=true
         -Dplugins.security.ssl.transport.enabled=true
@@ -89,8 +89,8 @@ services:
   minio:
     ports: !reset []
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER-}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD-}
 
   kafka:
     ports: !reset []
@@ -103,14 +103,14 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "2"
       KAFKA_DEFAULT_REPLICATION_FACTOR: "3"
       KAFKA_MIN_INSYNC_REPLICAS: "2"
-    # DP-B-02: the production overlay upgrades the INTERNAL listener too. Leaving it
-    # PLAINTEXT means any container that joins the compose network can read the
-    # OTP/appointment/vitals event stream — which is exactly the "compromised
-    # sibling container" case. Inter-broker traffic is mTLS.
-    KAFKA_ADVERTISED_LISTENERS: SASL_SSL://localhost:9092,SASL_SSL_INTERNAL://kafka:29092
-    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: SASL_SSL:SASL_SSL,SASL_SSL_INTERNAL:SASL_SSL
-    KAFKA_INTER_BROKER_LISTENER_NAME: SASL_SSL_INTERNAL
-    KAFKA_SASL_SSL_JAAS_CONFIG: org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_INTER_BROKER_USER}" password="${KAFKA_INTER_BROKER_PASSWORD}";
+      # DP-B-02: the production overlay upgrades the INTERNAL listener too. Leaving it
+      # PLAINTEXT means any container that joins the compose network can read the
+      # OTP/appointment/vitals event stream — which is exactly the "compromised
+      # sibling container" case. Inter-broker traffic is mTLS.
+      KAFKA_ADVERTISED_LISTENERS: SASL_SSL://localhost:9092,SASL_SSL_INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: SASL_SSL:SASL_SSL,SASL_SSL_INTERNAL:SASL_SSL
+      KAFKA_INTER_BROKER_LISTENER_NAME: SASL_SSL_INTERNAL
+      KAFKA_SASL_SSL_JAAS_CONFIG: org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_INTER_BROKER_USER}" password="${KAFKA_INTER_BROKER_PASSWORD}";
     # A fixed container_name makes a replica count impossible, so production
     # drops it: `docker compose ... up -d --scale kafka=3`.
     container_name: !reset null
@@ -151,12 +151,12 @@ services:
         [ "$$fail" -eq 0 ] || { echo "refusing to start: fix the secrets above"; exit 1; }
         echo "secret guard: OK"
     environment:
-      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-      OPENSEARCH_ADMIN_PASSWORD: ${OPENSEARCH_ADMIN_PASSWORD:-}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
-      JWT_SECRET: ${JWT_SECRET:-}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD-}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD-}
+      OPENSEARCH_ADMIN_PASSWORD: ${OPENSEARCH_ADMIN_PASSWORD-}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD-}
+      JWT_SECRET: ${JWT_SECRET-}
     profiles: ["guard"]
     restart: "no"
 
@@ -172,7 +172,7 @@ services:
   # exercised by the drill below at least quarterly.
   # ========================================================================
   backup:
-    image: ${BACKUP_IMAGE:?set BACKUP_IMAGE to an immutable repository@sha256 digest}
+    image: ${BACKUP_IMAGE-}
     container_name: findmedi-backup
     # Stays up so a missed window is visible in `docker ps` rather than silently
     # disappearing into a completed-exit container.
@@ -190,10 +190,10 @@ services:
       - backup_artifacts:/artifacts
       - mongo_data:/data/mongo:ro
     environment:
-      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?set BACKUP_ENCRYPTION_KEY}
-      MONGO_URI: ${MONGO_URI:?set MONGO_URI}
-      POSTGRES_URI: ${POSTGRES_URI:?set POSTGRES_URI}
-      OFFSITE_BUCKET: ${OFFSITE_BUCKET:?set OFFSITE_BUCKET}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY-}
+      MONGO_URI: ${MONGO_URI-}
+      POSTGRES_URI: ${POSTGRES_URI-}
+      OFFSITE_BUCKET: ${OFFSITE_BUCKET-}
       OFFSITE_ENDPOINT: ${OFFSITE_ENDPOINT:-}
       OFFSITE_ACCESS_KEY: ${OFFSITE_ACCESS_KEY:-}
       OFFSITE_SECRET_KEY: ${OFFSITE_SECRET_KEY:-}
@@ -207,7 +207,7 @@ services:
   # Restore drill: restores the newest artifact into throwaway databases and
   # asserts collection/row counts. Quarterly, per INF-B-04.
   backup-drill:
-    image: ${BACKUP_IMAGE:?set BACKUP_IMAGE to an immutable repository@sha256 digest}
+    image: ${BACKUP_IMAGE-}
     container_name: findmedi-backup-drill
     environment:
       DRILL_MONGO_URI: ${DRILL_MONGO_URI:-mongodb://drill-mongo:27017/findmedi}

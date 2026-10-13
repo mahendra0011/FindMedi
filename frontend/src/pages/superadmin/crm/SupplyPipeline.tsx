@@ -422,7 +422,6 @@ export default function SupplyPipeline() {
                 <Label className="text-xs font-semibold">Provider Type</Label>
                 <Select
                   value={newLead.typeKey}
-                  onChange={(e: any) => setNewLead({ ...newLead, typeKey: e.target.value })}
                   onValueChange={(v) => setNewLead({ ...newLead, typeKey: v })}
                 >
                   <SelectTrigger className="mt-1">

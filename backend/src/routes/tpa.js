@@ -3,6 +3,7 @@ import Insurer from '../models/Insurer.js';
 import PreAuthRequest from '../models/PreAuthRequest.js';
 import Claim from '../models/Claim.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { safeSearchRegex } from '../utils/escapeRegex.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 
@@ -287,7 +288,8 @@ router.get('/pmjay', authorize('billing:read'), async (req, res) => {
   try {
     const { default: PmjayPackage } = await import('../models/PmjayPackage.js');
     const filter = { active: true };
-    if (req.query.q) filter.$or = [{ code: new RegExp(req.query.q, 'i') }, { name: new RegExp(req.query.q, 'i') }];
+    const q = safeSearchRegex(req.query.q);
+    if (q) filter.$or = [{ code: q }, { name: q }];
     const rows = await PmjayPackage.find(filter).sort({ code: 1 }).limit(200).lean();
     return res.json({ packages: rows });
   } catch (err) {

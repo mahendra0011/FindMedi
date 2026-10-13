@@ -40,3 +40,24 @@ export function hasRegexMeta(value) {
   REGEX_META.lastIndex = 0;
   return REGEX_META.test(String(value ?? ''));
 }
+
+// REC-006 hardening for admin-authored recon-rule patterns. Unlike a search
+// box, a recon rule IS a real regex by design (billing:write), so it cannot be
+// escaped into a literal — but a catastrophic pattern such as `((a+)+)+$`
+// would stall the import worker that runs it against every bank line. Cap
+// the length and reject the classic nested-quantifier shapes up front; this is
+// a heuristic safety net, not a regex-safety proof.
+const RULE_MAX_LENGTH = 200;
+const CATASTROPHIC = /(\([^)]*[+*][^)]*\)[+*])|(\[\^?[^\]]*\][+*][+*])|([+*][+*])/;
+
+/** Validate an admin-supplied rule pattern. Returns the trimmed, length-capped
+ *  pattern, or throws a 400 when it contains nested quantifiers. */
+export function safeRulePattern(value) {
+  const pattern = String(value ?? '').trim().slice(0, RULE_MAX_LENGTH);
+  if (CATASTROPHIC.test(pattern)) {
+    const err = new Error('Pattern rejected: nested quantifiers can cause catastrophic backtracking');
+    err.status = 400;
+    throw err;
+  }
+  return pattern;
+}

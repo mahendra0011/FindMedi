@@ -131,7 +131,9 @@ services:
       retries: 3
       start_period: 20s
     depends_on:
-      - valhalla
+      valhalla:
+        condition: service_started
+        required: false
     restart: unless-stopped
     profiles: ["edge"]
 

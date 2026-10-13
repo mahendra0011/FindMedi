@@ -7,6 +7,7 @@ import ReconMatch from '../models/ReconMatch.js';
 import ReconRule from '../models/ReconRule.js';
 import Payment from '../models/Payment.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { safeRulePattern } from '../utils/escapeRegex.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 
@@ -172,7 +173,7 @@ router.get('/rules', authorize('billing:read'), async (req, res) => {
 router.post('/rules', authorize('billing:write'), async (req, res) => {
   try {
     // Validate the regex server-side so a bad pattern can't break automatch.
-    if (req.body?.pattern) new RegExp(req.body.pattern, 'i');
+    if (req.body?.pattern) new RegExp(safeRulePattern(req.body.pattern), 'i');
     const row = await ReconRule.create({ ...tenant(req), ...req.body });
     return res.status(201).json({ id: String(row._id) });
   } catch (err) {
