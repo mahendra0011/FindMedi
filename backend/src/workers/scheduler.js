@@ -133,6 +133,13 @@ export function startScheduler() {
     } catch (e) {
       logger.warn(`[scheduler:breach] ${e.message}`);
     }
+    // File 24 §5: CRM automation rules sweep (platform-scoped, never throws).
+    try {
+      const { runCrmAutomation } = await import('../lib/crmAutomation.js');
+      await runCrmAutomation({});
+    } catch (e) {
+      logger.warn(`[scheduler:crmAutomation] ${e.message}`);
+    }
   }));
   // Nightly 01:30: daily metrics + report schedules due.
   tasks.push(cron.schedule('30 1 * * *', async () => {
@@ -157,6 +164,23 @@ export function startScheduler() {
       } catch (e) {
         logger.warn(`[scheduler:reports] ${e.message}`);
       }
+    }
+    // File 24 §4.12: due CRM report schedule emails (aggregates only).
+    try {
+      const { runCrmReportSchedules } = await import('../routes/crm.js');
+      const out = await runCrmReportSchedules();
+      if (out?.sent) logger.info(`[scheduler:crmReports] sent ${out.sent} report email(s)`);
+    } catch (e) {
+      logger.warn(`[scheduler:crmReports] ${e.message}`);
+    }
+    // File 25 §10: quarterly IAM access-certification campaigns.
+    // Idempotent (one per tenant per calendar quarter) — a daily check is safe.
+    try {
+      const { runIamReviewCampaigns } = await import('../lib/iamReviewSweep.js');
+      const out = await runIamReviewCampaigns();
+      if (out?.created) logger.info(`[scheduler:iamReviews] created ${out.created} campaign(s) for ${out.cycle}`);
+    } catch (e) {
+      logger.warn(`[scheduler:iamReviews] ${e.message}`);
     }
   }));
   logger.info('[scheduler] started (rules/rcm 15m, hourly sweeps, nightly metrics)');

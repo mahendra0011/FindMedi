@@ -76,6 +76,14 @@ const recordSchema = new mongoose.Schema({
     enum: ['standard', 'sensitive', 'restricted', 'vip', 'minor'],
     default: 'standard', index: true,
   },
+  // File 25 §3.2: query-scope dimensions. Optional by design — old records
+  // simply don't carry them, which means an assignment scoped to a
+  // ward/dept/care-team narrows to the records that DO (fail-closed until
+  // admission/ward workflows backfill these). Strings match
+  // IamAssignment.scope.deptIds/wardIds exactly (no casts).
+  deptId: { type: String, default: null },
+  wardId: { type: String, default: null },
+  careTeam: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 

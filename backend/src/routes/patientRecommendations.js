@@ -13,6 +13,7 @@ import { getISTDateString } from '../utils/dateUtils.js';
 import { carePlanRecommendations } from '../lib/carePlanRecommendations.js';
 import { seasonalAlertsForMonth } from '../lib/seasonalAlerts.js';
 import { resolveProfileAccess } from '../services/profileAccess.js';
+import { filterSensitiveForDiscovery } from '../lib/sensitiveCategories.js';
 
 const router = express.Router();
 
@@ -81,7 +82,7 @@ router.get('/', protect, authorize('profile:read:own'), async (req, res) => {
           start: e.schedule?.start?.toISOString?.() ?? '',
           city: e.venue?.city, mode: e.venue?.mode,
         })),
-        facilities: facilities.map((f) => ({
+        facilities: filterSensitiveForDiscovery(facilities).map((f) => ({
           id: String(f._id), name: f.name, type: f.type, city: f.city, slug: f.slug,
         })),
       },
@@ -91,7 +92,7 @@ router.get('/', protect, authorize('profile:read:own'), async (req, res) => {
       packages: packages.map((p) => ({
         id: String(p._id), name: p.name, price: p.packagePrice, discount: p.discount,
       })),
-      trending: doctors.map((d) => ({
+      trending: filterSensitiveForDiscovery(doctors).map((d) => ({
         id: String(d._id), name: d.name, specialization: d.specialization,
         rating: d.rating, reviewsCount: d.reviews_count,
       })),

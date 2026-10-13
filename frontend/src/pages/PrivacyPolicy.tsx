@@ -89,6 +89,21 @@ export default function PrivacyPolicy() {
 
           <section className="bg-card rounded-2xl border p-6 space-y-3">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Lock className="w-4 h-4 text-primary" /> 5.1 Provider Tiering & Hospital Fine-Grained Access Control
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              FindMedi enforces zero-trust, fine-grained access control within all healthcare tenant organizations:
+            </p>
+            <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+              <li><strong>Provider Regulatory Tiers:</strong> Organizations are strictly partitioned. Tier 1 (Hospitals, Clinics, Doctors) process primary health records; Tier 2 (Diagnostic Labs, Pharmacies) process lab orders and medicine dispensing; Tier 3 (Gyms, Fitness, Wellness, Stores) are <em>technically blocked</em> from accessing any clinical diagnoses, prescriptions, or patient medical histories.</li>
+              <li><strong>Ward & Department Boundary Isolation:</strong> In hospital settings, access is restricted to operational scopes (e.g. Ward-3 nurses can only record vitals for beds in Ward-3; treating doctors only access charts of patients under their active care).</li>
+              <li><strong>Restricted Category Safeguards:</strong> Highly sensitive medical categories (mental health therapy, HIV/STD, substance use, sexual health) require explicit justification reason codes and step-up verification.</li>
+              <li><strong>Patient Access Logs:</strong> Any emergency or break-glass access outside the treating care-team generates a transparent log entry visible in the patient's Privacy Centre.</li>
+            </ul>
+          </section>
+
+          <section className="bg-card rounded-2xl border p-6 space-y-3">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-emerald-500" /> 6. Your Rights as a Data Principal
             </h2>
             <p className="text-muted-foreground text-sm">

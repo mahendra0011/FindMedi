@@ -16,6 +16,7 @@ import { auditLog } from '../middleware/audit.js';
 import { validate, iamPolicySchema } from '../utils/validate.js';
 import { can, clearIamCache, isClinicalAction } from '../lib/iamEvaluator.js';
 import { MANAGED_TEMPLATES, templateByKey } from '../lib/iamTemplates.js';
+import { ACTION_CATALOG, SENSITIVITY_CLASSES } from '../lib/iamCatalog.js';
 import logger from '../config/logger.js';
 
 // File 25: tenant Access Control Center API. Gated by staff:manage (existing
@@ -40,6 +41,29 @@ const bumpTv = (userId) => User.updateOne({ _id: userId }, { $inc: { tokenVersio
 const ADMIN_CRITICAL = ['iam:', 'audit:', 'export:'];
 const touchesCritical = (statements) => (statements || []).some((s) =>
   (s.actions || []).some((a) => ADMIN_CRITICAL.some((p) => String(a).startsWith(p))));
+
+// ─── Catalog & Principals ──────────────────────────────────────────────────
+router.get('/catalog', requireTenant, (req, res) => {
+  return res.json({
+    actions: ACTION_CATALOG,
+    sensitivityClasses: SENSITIVITY_CLASSES,
+  });
+});
+
+router.get('/principals', requireTenant, async (req, res) => {
+  try {
+    const tenantId = tenantOf(req);
+    const filter = tenantId ? { $or: [{ hospitalId: tenantId }, { facilityId: tenantId }] } : {};
+    const [users, groups] = await Promise.all([
+      User.find(filter).select('_id name email role mfaEnabled').limit(200).lean(),
+      IamGroup.find(tenantId ? { tenantId } : {}).select('_id name memberIds').limit(100).lean(),
+    ]);
+    return res.json({ users, groups });
+  } catch (err) {
+    logger.error(`IAM principals error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
 
 // ─── Policies ───────────────────────────────────────────────────────────────
 router.get('/policies', requireTenant, async (req, res) => {
@@ -118,6 +142,43 @@ router.post('/roles', requireTenant, requireStepUp('iam:role-change'), async (re
 });
 
 // ─── Assignments (no self-grant; critical needs approver) ───────────────────
+router.get('/assignments', requireTenant, async (req, res) => {
+  try {
+    const filter = req.user.role === 'superadmin' && !tenantOf(req) ? {} : { tenantId: tenantOf(req) };
+    const rows = await IamAssignment.find(filter)
+      .populate('roleId', 'name type')
+      .populate('policyId', 'name type')
+      .populate('grantedBy', 'name email')
+      .populate('approvedBy', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(300)
+      .lean();
+
+    const userIds = rows.filter((r) => r.principalType === 'user').map((r) => r.principalId);
+    const groupIds = rows.filter((r) => r.principalType === 'group').map((r) => r.principalId);
+
+    const [users, groups] = await Promise.all([
+      User.find({ _id: { $in: userIds } }).select('name email role').lean(),
+      IamGroup.find({ _id: { $in: groupIds } }).select('name').lean(),
+    ]);
+
+    const userMap = new Map(users.map((u) => [String(u._id), u]));
+    const groupMap = new Map(groups.map((g) => [String(g._id), g]));
+
+    const populatedRows = rows.map((r) => ({
+      ...r,
+      principal: r.principalType === 'user'
+        ? userMap.get(String(r.principalId)) || { name: 'Unknown User' }
+        : groupMap.get(String(r.principalId)) || { name: 'Unknown Group' },
+    }));
+
+    return res.json({ assignments: populatedRows });
+  } catch (err) {
+    logger.error(`IAM assignments error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 router.post('/assignments', requireTenant, requireStepUp('iam:role-change'), async (req, res) => {
   try {
     const { principalType, principalId, roleId, policyId, scope, conditions, expiresAt, approvedBy, reason } = req.body || {};
@@ -267,6 +328,24 @@ router.post('/simulate', requireTenant, async (req, res) => {
 });
 
 // ─── Access requests ────────────────────────────────────────────────────────
+router.get('/requests', requireTenant, async (req, res) => {
+  try {
+    const filter = req.user.role === 'superadmin' && !tenantOf(req) ? {} : { tenantId: tenantOf(req) };
+    const rows = await AccessRequest.find(filter)
+      .populate('requesterId', 'name email role')
+      .populate('decidedBy', 'name email')
+      .populate('requested.roleId', 'name type')
+      .populate('requested.policyId', 'name type')
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean();
+    return res.json({ requests: rows });
+  } catch (err) {
+    logger.error(`IAM requests error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 router.post('/requests', requireTenant, async (req, res) => {
   try {
     const q = req.body?.requested || {};
@@ -440,6 +519,315 @@ router.post('/apikeys/:id/revoke', requireTenant, requireStepUp('iam:role-change
     return res.json({ id: String(k._id), revoked: true });
   } catch (err) {
     logger.error(`IAM apikey revoke error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Access reviews (§10) ──────────────────────────────────────────────────
+router.get('/reviews', requireTenant, async (req, res) => {
+  try {
+    const filter = req.user.role === 'superadmin' && !tenantOf(req) ? {} : { tenantId: tenantOf(req) };
+    const rows = await AccessReview.find(filter)
+      .populate('reviewerId', 'name email role')
+      .populate({
+        path: 'items.assignmentId',
+        populate: [
+          { path: 'roleId', select: 'name' },
+          { path: 'policyId', select: 'name' },
+        ],
+      })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+    return res.json({ reviews: rows });
+  } catch (err) {
+    logger.error(`IAM reviews list error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/reviews', requireTenant, requireStepUp('iam:role-change'), async (req, res) => {
+  try {
+    const { cycle } = req.body || {};
+    const tenantId = tenantOf(req);
+    const activeAssignments = await IamAssignment.find({
+      ...(tenantId ? { tenantId } : {}),
+      status: 'active',
+    }).select('_id');
+
+    const items = activeAssignments.map((a) => ({
+      assignmentId: a._id,
+      decision: 'pending',
+      note: '',
+    }));
+
+    const cycleName = String(cycle || `${new Date().getFullYear()}-Q${Math.floor(new Date().getMonth() / 3) + 1}-Certification`).slice(0, 40);
+    const review = await AccessReview.create({
+      tenantId: tenantOf(req),
+      cycle: cycleName,
+      reviewerId: actorId(req),
+      items,
+    });
+
+    await auditLog('iam_access_review_created', actorId(req), {
+      reviewId: review._id, cycle: cycleName, itemCount: items.length, ip: req.ip,
+    });
+    return res.status(201).json({ id: String(review._id), cycle: cycleName, totalItems: items.length });
+  } catch (err) {
+    logger.error(`IAM review create error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.patch('/reviews/:id', requireTenant, requireStepUp('iam:role-change'), requireObjectId, async (req, res) => {
+  try {
+    const review = await AccessReview.findById(req.params.id);
+    if (!review) return res.status(404).json({ message: 'Review not found' });
+    const { decisions, complete } = req.body || {};
+
+    if (Array.isArray(decisions)) {
+      for (const d of decisions) {
+        const item = review.items.find((it) => String(it._id) === String(d.itemId) || String(it.assignmentId) === String(d.assignmentId));
+        if (item && ['keep', 'revoke'].includes(d.decision)) {
+          item.decision = d.decision;
+          if (d.note) item.note = String(d.note).slice(0, 500);
+
+          if (d.decision === 'revoke') {
+            const asgn = await IamAssignment.findById(item.assignmentId);
+            if (asgn && asgn.status === 'active') {
+              asgn.status = 'revoked';
+              await asgn.save();
+              await bumpTv(asgn.principalType === 'user' ? asgn.principalId : null);
+            }
+          }
+        }
+      }
+      clearIamCache();
+    }
+
+    if (complete || (review.items.length > 0 && review.items.every((it) => it.decision !== 'pending'))) {
+      review.completedAt = new Date();
+    }
+
+    await review.save();
+    await auditLog('iam_access_review_updated', actorId(req), {
+      reviewId: review._id, completed: !!review.completedAt, ip: req.ip,
+    });
+    return res.json({ id: String(review._id), completedAt: review.completedAt });
+  } catch (err) {
+    logger.error(`IAM review patch error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Access Analyzer (§7.3) ────────────────────────────────────────────────
+router.get('/analyzer', requireTenant, async (req, res) => {
+  try {
+    const tenantId = tenantOf(req);
+    const filter = req.user.role === 'superadmin' && !tenantId ? {} : { tenantId };
+
+    const assignments = await IamAssignment.find({ ...filter, status: 'active' })
+      .populate({ path: 'roleId', populate: { path: 'policyIds' } })
+      .populate('policyId')
+      .lean();
+
+    const users = await User.find(tenantId ? { $or: [{ hospitalId: tenantId }, { facilityId: tenantId }] } : {})
+      .select('_id name email role mfaEnabled')
+      .lean();
+
+    const userMap = new Map(users.map((u) => [String(u._id), u]));
+    const userActions = new Map();
+    const userAssignments = new Map();
+
+    for (const a of assignments) {
+      if (a.principalType !== 'user' || !a.principalId) continue;
+      const uId = String(a.principalId);
+      if (!userActions.has(uId)) userActions.set(uId, new Set());
+      if (!userAssignments.has(uId)) userAssignments.set(uId, []);
+      userAssignments.get(uId).push(a);
+
+      const statements = [];
+      if (a.roleId && a.roleId.policyIds) {
+        statements.push(...a.roleId.policyIds.flatMap((p) => p.statements || []));
+      }
+      if (a.policyId && a.policyId.statements) {
+        statements.push(...a.policyId.statements);
+      }
+      for (const st of statements) {
+        if (st.effect === 'Allow') {
+          for (const act of st.actions || []) {
+            userActions.get(uId).add(act);
+          }
+        }
+      }
+    }
+
+    const findings = [];
+    const SOD_RULES = [
+      {
+        id: 'SOD_PO_PROCUREMENT',
+        title: 'Procurement SoD: Create & Approve PO',
+        actions: ['po:create', 'po:approve'],
+        severity: 'high',
+        description: 'User has permissions to both create and approve purchase orders.',
+      },
+      {
+        id: 'SOD_LAB_VERIFY',
+        title: 'Laboratory SoD: Enter & Verify Results',
+        actions: ['lab:result:enter', 'lab:result:verify'],
+        severity: 'high',
+        description: 'User has permissions to both enter and verify laboratory results.',
+      },
+      {
+        id: 'SOD_BILLING_REFUND',
+        title: 'Financial SoD: Write Invoice & Issue Refund',
+        actions: ['billing:invoice:write', 'billing:refund:issue'],
+        severity: 'critical',
+        description: 'User has permissions to both create billing invoices and issue refunds.',
+      },
+      {
+        id: 'SOD_PHARMACY_H1',
+        title: 'Pharmacy SoD: Dispense & Write H1 Register',
+        actions: ['pharmacy:dispense', 'pharmacy:h1register:write'],
+        severity: 'high',
+        description: 'User has permissions to both dispense controlled drugs and modify Schedule H1 register.',
+      },
+    ];
+
+    for (const [uId, actions] of userActions.entries()) {
+      const u = userMap.get(uId);
+      const userName = u ? `${u.name} (${u.email})` : `User ${uId}`;
+
+      for (const sod of SOD_RULES) {
+        const hasAll = sod.actions.every((act) => actions.has(act) || actions.has('*') || actions.has(`${act.split(':')[0]}:*`));
+        if (hasAll) {
+          findings.push({
+            id: `${sod.id}_${uId}`,
+            rule: sod.id,
+            category: 'sod',
+            title: sod.title,
+            severity: sod.severity,
+            principalId: uId,
+            principalName: userName,
+            description: `${userName} violates Segregation of Duties: ${sod.description}`,
+            remediation: 'Separate create and approve/verify duties into distinct roles.',
+          });
+        }
+      }
+
+      const hasSensitiveActions = [...actions].some((act) =>
+        act.startsWith('iam:') || act.startsWith('records:') || act.startsWith('billing:') || act === '*');
+      if (hasSensitiveActions && u && !u.mfaEnabled) {
+        const uAssigns = userAssignments.get(uId) || [];
+        const enforcesMfa = uAssigns.length > 0 && uAssigns.every((as) => as.conditions?.mfa === true);
+        if (!enforcesMfa) {
+          findings.push({
+            id: `MFA_MISSING_${uId}`,
+            rule: 'MFA_ENFORCEMENT',
+            category: 'security',
+            title: 'MFA Missing on Privileged/Clinical User',
+            severity: 'medium',
+            principalId: uId,
+            principalName: userName,
+            description: `${userName} holds sensitive clinical/financial permissions without mandatory MFA enabled.`,
+            remediation: 'Enforce MFA in assignment conditions or require passkey/TOTP on user profile.',
+          });
+        }
+      }
+    }
+
+    const now = new Date();
+    for (const a of assignments) {
+      if (a.expiresAt && new Date(a.expiresAt) < now) {
+        const u = userMap.get(String(a.principalId));
+        findings.push({
+          id: `EXPIRED_ASSIGNMENT_${a._id}`,
+          rule: 'EXPIRED_GRANTS',
+          category: 'hygiene',
+          title: 'Expired Access Assignment Pending Revocation',
+          severity: 'low',
+          assignmentId: a._id,
+          principalName: u ? u.name : 'Unknown',
+          description: `Assignment ${a._id} passed expiry date (${new Date(a.expiresAt).toLocaleDateString()}) but is still active.`,
+          remediation: 'Revoke or renew the temporary assignment.',
+        });
+      }
+    }
+
+    const apiKeys = await ApiKey.find({ ...filter, revokedAt: null }).lean();
+    for (const key of apiKeys) {
+      if (!key.ipBinding || key.ipBinding.length === 0) {
+        findings.push({
+          id: `APIKEY_NO_IP_${key._id}`,
+          rule: 'API_KEY_IP_BINDING',
+          category: 'security',
+          title: 'API Key Without IP Allowlist Binding',
+          severity: 'medium',
+          keyId: key._id,
+          description: `API Key "${key.name}" (${key.prefix}...) has no IP restriction.`,
+          remediation: 'Bind API key to specific hospital/PACS/LIS machine IP addresses.',
+        });
+      }
+    }
+
+    return res.json({
+      summary: {
+        totalFindings: findings.length,
+        critical: findings.filter((f) => f.severity === 'critical').length,
+        high: findings.filter((f) => f.severity === 'high').length,
+        medium: findings.filter((f) => f.severity === 'medium').length,
+        low: findings.filter((f) => f.severity === 'low').length,
+      },
+      findings,
+    });
+  } catch (err) {
+    logger.error(`IAM analyzer error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Tenant emergency grants (§8) ──────────────────────────────────────────
+router.get('/grants', requireTenant, async (req, res) => {
+  try {
+    const filter = req.user.role === 'superadmin' && !tenantOf(req) ? {} : { tenantId: tenantOf(req) };
+    const rows = await TenantGrant.find(filter)
+      .populate('principalId', 'name email role')
+      .populate('approvedBy', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean();
+    return res.json({ grants: rows });
+  } catch (err) {
+    logger.error(`IAM grants error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Metrics (§12 observability) ───────────────────────────────────────────
+router.get('/metrics', requireTenant, async (_req, res) => {
+  try {
+    const { getIamMetrics } = await import('../services/iamAccessLogService.js');
+    return res.json(getIamMetrics());
+  } catch (err) {
+    logger.error(`IAM metrics error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── API keys (hashed at rest, show once) ───────────────────────────────────
+router.get('/apikeys', requireTenant, async (req, res) => {
+  try {
+    const filter = req.user.role === 'superadmin' && !tenantOf(req) ? {} : { tenantId: tenantOf(req) };
+    const rows = await ApiKey.find(filter)
+      .populate('policyId', 'name')
+      .populate('createdBy', 'name email')
+      .select('-hash')
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+    return res.json({ apiKeys: rows });
+  } catch (err) {
+    logger.error(`IAM apikeys error: ${err.message}`);
     return res.status(500).json({ message: err.message });
   }
 });

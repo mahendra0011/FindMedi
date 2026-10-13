@@ -24,7 +24,8 @@
     "docs:dictionary": "node scripts/gen-data-dictionary.mjs",
     "docs:dictionary:check": "node scripts/gen-data-dictionary.mjs --check",
     "retention:gaps": "node scripts/check-retention-gaps.mjs",
-    "migrate:category-taxonomy": "node scripts/migrate-category-taxonomy.mjs"
+    "migrate:category-taxonomy": "node scripts/migrate-category-taxonomy.mjs",
+    "seed:categories": "node scripts/seed-category-tree.mjs --apply"
   },
   "dependencies": {
     "@bull-board/api": "^6.11.0",

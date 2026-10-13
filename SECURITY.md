@@ -81,10 +81,42 @@ through `services/mentalHealthAccess.js` rather than a generic role check.
 | Threat | Mitigation | Where |
 |---|---|---|
 | **EoP** — hospital admin sees another hospital's patients | `applyTenantScope()` / `authorizeObject()`, **fail-closed** — a missing tenant on either side DENIES | `utils/tenantScope.js` |
+| **EoP** — hospital staff snoop on unassigned patients/wards | Fine-grained IAM Evaluator `can()` checks Resource Scope (`ward/<id>`, `careTeamOnly`) | `lib/iamEvaluator.js`, `routes/iam.js` |
 | **Tampering** — doctor self-approves their own profile | `updateDoctorSchema` rejects `DOCTOR_SERVER_OWNED_FIELDS` with a 400; handler writes an allowlist | `utils/validate.js`, `routes/doctors.js` |
 | **Tampering** — create a resource inside another tenant | Tenant derived from the session, never the body | `routes/doctors.js`, `routes/staff.js` |
+| **Privilege Escalation** — admin grants self extra powers | Anti-escalation boundary; self-grants blocked; dual-approver needed for admin-critical | `routes/iam.js`, `models/IamAssignment.js` |
 | **Disclosure** — bulk export exfiltrates PHI | 10k row cap, `X-Export-Truncated`, a `bulk_export` audit row per export | `routes/export.js` |
 | **Disclosure** — logs leak PHI or credentials | pino redacts cookies, auth headers, tokens, OTPs and Mongo URIs **at the writer** | `config/logger.js` |
+
+---
+
+### 3.1 Tenant Access Control Center & IAM Architecture
+
+FindMedi implements an AWS IAM-equivalent fine-grained authorization layer within each tenant organization (hospitals, clinics, labs, pharmacies):
+
+1. **Layered Evaluation Pipeline (Fail-Closed):**
+   * **L0 Platform Guardrails:** Global ceilings that tenants cannot bypass. **Provider Tier Rule:** Tier 3 tenants (gyms, yoga studios, wellness and equipment stores) are strictly prevented from holding clinical or prescription actions (`isActionAllowedForTier`).
+   * **L1 Tenant Isolation:** Mandatory `tenantId` match. Cross-tenant queries fail with 404/403.
+   * **L2 Identity Policies:** Policy statements evaluated with standard AWS precedence (`Explicit Deny > Allow > Default Deny`).
+   * **L3 Resource Scopes:** Scopes enforce horizontal ward/department isolation (e.g., Ward-3 nurses cannot inspect Ward-5 charts; care-team filtering).
+   * **L4 Zero-Trust Conditions:** Context checks verifying mandatory MFA, active shift schedule, and hospital IP network CIDRs.
+   * **L5 Sensitivity & Consent:** Dedicated restricted classifications (`restricted`) for mental health, HIV/STD, substance use, and sexual health. Requires reason code and step-up authentication.
+   * **L6 Session Synchronization:** Role and policy edits immediately bump the user's `tokenVersion`, invalidating stale JWT claims and disconnecting rogue sessions.
+
+2. **Segregation of Duties (SoD) & Access Analyzer:**
+   Automated scans detect and flag risky dual-permission combinations:
+   * Purchase Order creation (`po:create`) vs Approval (`po:approve`).
+   * Lab result entry (`lab:result:enter`) vs Verification (`lab:result:verify`).
+   * Cashier billing (`billing:invoice:write`) vs Refund issuance (`billing:refund:issue`).
+   * Pharmacy dispensing (`pharmacy:dispense`) vs Schedule H1 register amendment (`pharmacy:h1register:write`).
+
+3. **Emergency Break-Glass (§8):**
+   Time-boxed (30–60 min) emergency grants (`TenantGrant`) for clinicians treating unassigned patients in critical situations. All route interactions write to `TenantGrant.accessLog` and are surfaced on the patient's privacy dashboard under DPDP Act transparency guidelines.
+
+4. **Service Accounts (API Keys):**
+   HL7 interfaces and PACS DICOM machine keys are hashed with SHA-256 (show-once), restricted to explicit IP bindings, and subject to automatic expiration.
+
+---
 
 ### Flow C — Money movement
 
@@ -256,6 +288,7 @@ post-mortem template — is
 
 ## 8. Related documents
 
+- `docs/iam-admin-guide.md` — hospital/clinic access control center admin guide (least-privilege roles, ward scopes, SoD)
 - `docs/incident-response.md` — incident & breach-notification playbook
   (severity, clocks, templates, post-mortem)
 - `docs/privacy/DPIA.md` — data protection impact assessment

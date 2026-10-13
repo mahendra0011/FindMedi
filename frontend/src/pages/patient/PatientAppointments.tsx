@@ -413,7 +413,7 @@ export default function PatientAppointments() {
           <DialogContent className="max-w-xl p-0 border-0 bg-transparent shadow-none">
             <DialogTitle className="sr-only">Feedback Survey</DialogTitle>
             <FeedbackPrompt
-              context="visit"
+              context={feedbackApt.mode === 'video' ? 'teleconsult' : 'visit'}
               refModel="Appointment"
               refId={feedbackApt._id}
               department={feedbackApt.department || 'Consultation'}

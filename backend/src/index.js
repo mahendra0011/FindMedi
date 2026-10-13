@@ -618,6 +618,7 @@ import adminDsrRoutes from './routes/adminDsr.js';
 import breakGlassRoutes from './routes/breakGlass.js';
 import crmRoutes from './routes/crm.js';
 import iamRoutes from './routes/iam.js';
+import accessLogRoutes from './routes/accessLog.js';
 import financeRoutes from './routes/finance.js';
 import tpaRoutes from './routes/tpa.js';
 import orderRoutes from './routes/orders.js';
@@ -898,6 +899,9 @@ app.use('/api/admin/break-glass', breakGlassRoutes);
 app.use('/api/crm', crmRoutes);
 // File 25: tenant Access Control Center (staff:manage gate inside).
 app.use('/api/iam', iamRoutes);
+// File 25 §11/§12: activity & audit log (self view for patients, audit:read
+// for the full trail — patients never pass through the iam staff:manage gate).
+app.use('/api/access-log', accessLogRoutes);
 // File 09 §9.5: tariff/discount/credit-notes/cash-counter finance surface.
 app.use('/api/finance', financeRoutes);
 // File 09 §9.6: TPA desk (insurers, pre-auth, claims, pipeline).

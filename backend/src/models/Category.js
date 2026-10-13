@@ -29,6 +29,9 @@ const categorySchema = new mongoose.Schema({
   icon: { type: String, default: '' },
   isActive: { type: Boolean, default: true },
   displayOrder: { type: Number, default: 0 },
+  kind: { type: String, enum: ['Facility', 'Practitioner', 'Service', 'Product', 'Event', 'Info', 'Filter', 'Other', ''], default: '' },
+  isSensitive: { type: Boolean, default: false },
+  soon: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 

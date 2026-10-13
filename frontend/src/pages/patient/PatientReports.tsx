@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Calendar, User, Stethoscope, Loader2, Pill, TestTube, FlaskConical, HeartPulse, Eye, ChevronRight, Sparkles, Printer, ChevronDown, AlertTriangle } from 'lucide-react';
+import { FileText, Download, Calendar, User, Stethoscope, Loader2, Pill, TestTube, FlaskConical, HeartPulse, Eye, ChevronRight, Sparkles, Printer, ChevronDown, AlertTriangle, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import FeedbackPrompt from '@/components/feedback/FeedbackPrompt';
 import { api, resolveFileUrl, getServerOrigin } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -22,6 +24,7 @@ export default function MyReports() {
   const [reports, setReports] = useState({ prescriptions: [], labReports: [], dischargeSummaries: [] });
   const [activeTab, setActiveTab] = useState('prescriptions');
   const [openOrder, setOpenOrder] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<any | null>(null);
 
   const { data: labOrdersData, isLoading: labLoading } = useQuery({
     queryKey: ['lab-orders', 'patient-reports'],
@@ -170,6 +173,12 @@ export default function MyReports() {
               <Eye className="w-3.5 h-3.5" /> View Report
             </Button>
           )}
+          {type === 'discharge_summary' && (
+            <Button size="sm" variant="outline" className="gap-1.5 rounded-xl text-xs"
+              onClick={() => setFeedback({ context: 'admission', refModel: 'Admission', refId: report.data?.admissionId || report.admissionId || report.refId, department: 'Inpatient', title: 'How was your discharge & care experience?' })}>
+              <MessageSquare className="w-3.5 h-3.5" /> Rate
+            </Button>
+          )}
         </div>
       </div>
     </motion.div>
@@ -304,6 +313,12 @@ export default function MyReports() {
                         {o.updatedAt && o.updatedAt !== o.createdAt ? ` · updated ${formatDate(o.updatedAt)}` : ''}
                       </span>
                       <div className="ml-auto flex gap-2">
+                        {verified > 0 && (
+                          <Button size="sm" variant="outline" className="gap-1.5 rounded-xl text-xs"
+                            onClick={() => setFeedback({ context: 'lab', refModel: 'LabOrder', refId: o._id, department: 'Pathology', title: `How was your lab experience for ${o.orderId}?` })}>
+                            <MessageSquare className="w-3.5 h-3.5" /> Rate
+                          </Button>
+                        )}
                         <Button size="sm" variant="outline" className="gap-1.5 rounded-xl text-xs"
                           onClick={() => {
                             if (o.reportUrl) window.open(resolveFileUrl(o.reportUrl), '_blank');
@@ -388,6 +403,23 @@ export default function MyReports() {
               : <div className="col-span-full"><EmptyState type="Discharge Summaries" icon={HeartPulse} color="rose" /></div>
           )}
         </div>
+      )}
+
+      {feedback && (
+        <Dialog open onOpenChange={(open) => !open && setFeedback(null)}>
+          <DialogContent className="max-w-xl p-0 border-0 bg-transparent shadow-none">
+            <DialogTitle className="sr-only">Feedback Survey</DialogTitle>
+            <FeedbackPrompt
+              context={feedback.context}
+              refModel={feedback.refModel}
+              refId={feedback.refId}
+              department={feedback.department}
+              title={feedback.title}
+              onDone={() => setFeedback(null)}
+              onSkip={() => setFeedback(null)}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

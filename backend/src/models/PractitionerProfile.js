@@ -20,7 +20,14 @@ const practitionerProfileSchema = new mongoose.Schema({
     // bookable practitioner kinds the original nine could not model. Anything
     // beyond these needs its own spec row, not a drive-by enum push.
     type: String,
-    enum: ['doctor', 'dentist', 'physio', 'dietitian', 'nurse', 'counsellor', 'yoga_teacher', 'trainer', 'lawyer', 'ayush_practitioner', 'phlebotomist'],
+    enum: [
+      'doctor', 'dentist', 'physio', 'dietitian', 'nurse', 'counsellor',
+      'yoga_teacher', 'trainer', 'lawyer', 'ayush_practitioner', 'phlebotomist',
+      'occupational_therapist', 'speech_therapist', 'prosthetist_orthotist',
+      'lactation_consultant', 'doula', 'audiologist', 'psychologist', 'optometrist',
+      'acupuncturist', 'radiographer', 'sonographer', 'lab_technician',
+      'pharmacist', 'paramedic_emt', 'psychotherapist', 'meditation_teacher', 'peer_mentor',
+    ],
     required: true,
     index: true,
   },

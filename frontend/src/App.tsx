@@ -97,6 +97,20 @@ const SATaxLedger = lazy(() => import('./pages/superadmin/TaxLedger'));
 const SAAiSafety = lazy(() => import('./pages/superadmin/AiSafety'));
 const SAAiReviewQueue = lazy(() => import('./pages/superadmin/AiReviewQueue'));
 const SASecurity = lazy(() => import('./pages/superadmin/Security'));
+// File 24: Ops CRM & Team Management
+const CrmCommandCenter = lazy(() => import('./pages/superadmin/crm/CrmCommandCenter'));
+const SupplyPipeline = lazy(() => import('./pages/superadmin/crm/SupplyPipeline'));
+const Provider360 = lazy(() => import('./pages/superadmin/crm/Provider360'));
+const Partnerships = lazy(() => import('./pages/superadmin/crm/Partnerships'));
+const FieldOps = lazy(() => import('./pages/superadmin/crm/FieldOps'));
+const CrmTasks = lazy(() => import('./pages/superadmin/crm/CrmTasks'));
+const TeamManagement = lazy(() => import('./pages/superadmin/crm/TeamManagement'));
+const GoalsOkrs = lazy(() => import('./pages/superadmin/crm/GoalsOkrs'));
+const CrmCampaigns = lazy(() => import('./pages/superadmin/crm/CrmCampaigns'));
+const CrmReports = lazy(() => import('./pages/superadmin/crm/CrmReports'));
+const CrmPlaybooks = lazy(() => import('./pages/superadmin/crm/Playbooks'));
+const CrmProjectsRoadmap = lazy(() => import('./pages/superadmin/crm/ProjectsRoadmap'));
+const CrmSettings = lazy(() => import('./pages/superadmin/crm/CrmSettings'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const Disclaimer = lazy(() => import('./pages/Disclaimer'));
@@ -1010,6 +1024,20 @@ const App = () => (
                     <Route path="/superadmin/ai-safety" element={<RoleRoute allowedRoles={['superadmin']}><SAAiSafety /></RoleRoute>} />
                     <Route path="/superadmin/ai-reviews" element={<RoleRoute allowedRoles={['superadmin', 'hospital_admin', 'clinical_safety', 'medical_reviewer']}><SAAiReviewQueue /></RoleRoute>} />
                     <Route path="/superadmin/security" element={<RoleRoute allowedRoles={['superadmin', 'security_admin']}><SASecurity /></RoleRoute>} />
+                    {/* File 24 Ops CRM & Team Management */}
+                    <Route path="/superadmin/crm" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin', 'city_manager']}><CrmCommandCenter /></RoleRoute>} />
+                    <Route path="/superadmin/crm/pipeline" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin', 'city_manager']}><SupplyPipeline /></RoleRoute>} />
+                    <Route path="/superadmin/crm/accounts" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin', 'city_manager']}><Provider360 /></RoleRoute>} />
+                    <Route path="/superadmin/crm/partnerships" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin', 'city_manager']}><Partnerships /></RoleRoute>} />
+                    <Route path="/superadmin/crm/field-ops" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin', 'city_manager']}><FieldOps /></RoleRoute>} />
+                    <Route path="/superadmin/crm/tasks" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin', 'city_manager']}><CrmTasks /></RoleRoute>} />
+                    <Route path="/superadmin/crm/team" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin', 'city_manager']}><TeamManagement /></RoleRoute>} />
+                    <Route path="/superadmin/crm/okrs" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin', 'city_manager']}><GoalsOkrs /></RoleRoute>} />
+                    <Route path="/superadmin/crm/campaigns" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin', 'city_manager']}><CrmCampaigns /></RoleRoute>} />
+                    <Route path="/superadmin/crm/reports" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin', 'city_manager']}><CrmReports /></RoleRoute>} />
+                    <Route path="/superadmin/crm/playbooks" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin', 'city_manager']}><CrmPlaybooks /></RoleRoute>} />
+                    <Route path="/superadmin/crm/projects" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin', 'city_manager']}><CrmProjectsRoadmap /></RoleRoute>} />
+                    <Route path="/superadmin/crm/settings" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin']}><CrmSettings /></RoleRoute>} />
 
                     {/* Admin routes */}
                     <Route path="/admin/users" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'platform_admin']}><AdminUsers /></RoleRoute>} />

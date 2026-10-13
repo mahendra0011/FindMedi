@@ -6,13 +6,13 @@ const CATEGORY_TYPES_LIST = [
   'medicine_class', 'medicine_form', 'rx_schedule', 'product_line', 'diet',
   'condition', 'event_type', 'program', 'wellness', 'device', 'language',
   'accreditation', 'scheme', 'insurance_policy', 'legal_practice_area',
-  'record_type', 'emergency_type',
+  'record_type', 'emergency_type', 'info',
 ];
 
 export const CATEGORY_TYPES = Object.freeze(CATEGORY_TYPES_LIST);
 export const CATEGORY_TIERS = Object.freeze(['T1', 'T2', 'T3']);
 
-export const CATEGORY_CODE_RE = /^[A-Z]+(\.[A-Z0-9_]+)+$/;
+export const CATEGORY_CODE_RE = /^[A-Z0-9]+(\.[A-Z0-9_]+)+$/;
 
 const SPECIALTIES_LIST = [
   { code: 'SPEC.GENMED', name: 'General Medicine', aliases: ['General Physician', 'Family Medicine', 'Family Doctor', 'Physician', 'General Practice'] },
@@ -58,6 +58,73 @@ const SPECIALTIES_LIST = [
   { code: 'SPEC.ALLERGY', name: 'Allergy & Immunology', aliases: ['Allergy', 'Immunology', 'Immunology & Allergy'] },
   { code: 'SPEC.INFECT', name: 'Infectious Disease', aliases: ['Infectious Diseases', 'Infection Specialist'] },
   { code: 'SPEC.GENETICS', name: 'Clinical Genetics', aliases: ['Genetics', 'Genetic Counselling'] },
+
+  // Canonical sub-specialties (pruned catalogue SPEC.*)
+  { code: 'SPEC.CARDIO.INTERVENTIONAL', name: 'Interventional Cardiology', aliases: ['Interventional Cardiologist', 'Coronary Angioplasty', 'Angioplasty Specialist'] },
+  { code: 'SPEC.CARDIO.EP', name: 'Electrophysiology', aliases: ['Cardiac Electrophysiology', 'Arrhythmia Specialist', 'Pacemaker Specialist'] },
+  { code: 'SPEC.CARDIO.PAED', name: 'Paediatric Cardiology', aliases: ['Pediatric Cardiology', 'Pediatric Cardiologist', 'Child Heart Specialist'] },
+  { code: 'SPEC.CARDIO.HEART_FAILURE', name: 'Heart Failure & Transplant', aliases: ['Heart Failure Specialist'] },
+  { code: 'SPEC.CTVS.CARDIAC', name: 'Adult Cardiac Surgery', aliases: ['Bypass Surgery', 'Open Heart Surgery'] },
+  { code: 'SPEC.CTVS.THORACIC', name: 'Thoracic Surgery', aliases: ['Chest Surgery', 'Lung Surgery'] },
+  { code: 'SPEC.CTVS.VASCULAR', name: 'Vascular & Endovascular Surgery', aliases: ['Endovascular Surgery', 'Vein Specialist'] },
+  { code: 'SPEC.ORTHO.JOINT', name: 'Joint Replacement', aliases: ['Knee Replacement', 'Hip Replacement', 'Arthroplasty'] },
+  { code: 'SPEC.ORTHO.SPORTS', name: 'Sports Medicine & Arthroscopy', aliases: ['Sports Arthroscopy', 'Ligament Surgery', 'ACL Specialist'] },
+  { code: 'SPEC.ORTHO.SPINE', name: 'Spine Surgery', aliases: ['Spine Specialist', 'Back Pain Surgery'] },
+  { code: 'SPEC.ORTHO.TRAUMA', name: 'Orthopaedic Trauma', aliases: ['Fracture Specialist', 'Bone Trauma'] },
+  { code: 'SPEC.ORTHO.PAED', name: 'Paediatric Orthopaedics', aliases: ['Pediatric Orthopedics', 'Child Bone Specialist'] },
+  { code: 'SPEC.OBGY.HIGH_RISK', name: 'High-Risk Obstetrics & Maternal Fetal Medicine', aliases: ['High Risk Pregnancy', 'Fetal Medicine'] },
+  { code: 'SPEC.OBGY.INFERT_IVF', name: 'Infertility & Reproductive Medicine', aliases: ['IVF Specialist', 'Fertility Specialist'] },
+  { code: 'SPEC.OBGY.LAPAROSCOPY', name: 'Gynaecological Laparoscopy & Endoscopy', aliases: ['Gynae Laparoscopic Surgeon'] },
+  { code: 'SPEC.OBGY.ONCO', name: 'Gynaecological Oncology', aliases: ['Gynae Onco', 'Cervical Cancer Specialist'] },
+  { code: 'SPEC.PAED.NEONATO', name: 'Neonatology & Newborn Care', aliases: ['Neonatal Intensive Care', 'NICU Specialist'] },
+  { code: 'SPEC.PAED.CARDIOLOGY', name: 'Paediatric Cardiology Specialist', aliases: ['Child Heart Disease'] },
+  { code: 'SPEC.PAED.SURGERY', name: 'Paediatric Surgery Specialist', aliases: ['Pediatric Surgeon Care'] },
+  { code: 'SPEC.DERM.COSMETIC', name: 'Cosmetic Dermatology & Aesthetics', aliases: ['Aesthetic Dermatologist', 'Laser Skin Specialist'] },
+  { code: 'SPEC.DERM.TRICHOLOGY', name: 'Trichology & Hair Transplant', aliases: ['Hair Specialist', 'Hair Transplant Surgeon'] },
+  { code: 'SPEC.ENT.OTOLOGY', name: 'Otology & Neurotology', aliases: ['Ear Specialist', 'Hearing Specialist', 'Cochlear Implant'] },
+  { code: 'SPEC.ENT.RHINOLOGY', name: 'Rhinology & Sinus Surgery', aliases: ['Sinus Specialist', 'Nose Specialist'] },
+  { code: 'SPEC.ENT.AUDIOLOGY', name: 'Audiology & Hearing Sciences', aliases: ['Audiologist Specialist', 'Hearing Aid Specialist'] },
+  { code: 'SPEC.OPHTH.CATARACT', name: 'Cataract & Refractive Surgery', aliases: ['Cataract Surgeon', 'Phaco Surgeon'] },
+  { code: 'SPEC.OPHTH.RETINA', name: 'Vitreoretinal Surgery', aliases: ['Retina Specialist', 'Diabetic Retinopathy'] },
+  { code: 'SPEC.OPHTH.CORNEA', name: 'Cornea & External Disease', aliases: ['Cornea Specialist', 'Eye Transplant'] },
+  { code: 'SPEC.OPHTH.GLAUCOMA', name: 'Glaucoma Surgery', aliases: ['Glaucoma Specialist'] },
+  { code: 'SPEC.OPHTH.LASIK', name: 'LASIK & Vision Correction', aliases: ['LASIK Surgeon', 'Refractive Surgery'] },
+  { code: 'SPEC.DENTAL.ORTHO', name: 'Orthodontics & Dentofacial Orthopaedics', aliases: ['Orthodontist', 'Braces Specialist', 'Aligners Specialist'] },
+  { code: 'SPEC.DENTAL.ENDO', name: 'Endodontics & Conservative Dentistry', aliases: ['Endodontist', 'Root Canal Specialist', 'RCT Specialist'] },
+  { code: 'SPEC.DENTAL.IMPLANT', name: 'Oral Implantology & Periodontics', aliases: ['Dental Implant Specialist', 'Periodontist', 'Gum Specialist'] },
+  { code: 'SPEC.DENTAL.PAEDO', name: 'Paediatric & Preventive Dentistry', aliases: ['Pedodontist', 'Pediatric Dentist', 'Child Dentist'] },
+  { code: 'SPEC.NEURO.STROKE', name: 'Stroke & Neurovascular Medicine', aliases: ['Stroke Specialist'] },
+  { code: 'SPEC.NEURO.EPILEPSY', name: 'Epilepsy & Seizure Disorders', aliases: ['Epileptologist', 'Seizure Specialist'] },
+  { code: 'SPEC.NEURO.MOVEMENT', name: 'Movement Disorders & Parkinson\'s', aliases: ['Parkinson Specialist'] },
+  { code: 'SPEC.NEUROSURG.SPINE', name: 'Spine Neurosurgery', aliases: ['Neuro Spine Surgeon'] },
+  { code: 'SPEC.NEUROSURG.BRAIN_TUMOR', name: 'Neuro-Oncology & Skull Base Surgery', aliases: ['Brain Tumor Surgeon'] },
+  { code: 'SPEC.PSYCH.CHILD', name: 'Child & Adolescent Psychiatry', aliases: ['Child Psychiatrist'] },
+  { code: 'SPEC.PSYCH.ADDICTION', name: 'Addiction Psychiatry & De-addiction', aliases: ['Deaddiction Specialist', 'Substance Abuse Specialist'] },
+  { code: 'SPEC.PSYCH.GERIATRIC', name: 'Geriatric Psychiatry', aliases: ['Elderly Mental Health'] },
+  { code: 'SPEC.GASTRO.HEPATOLOGY', name: 'Hepatology & Liver Medicine', aliases: ['Hepatologist Specialist', 'Liver Disease'] },
+  { code: 'SPEC.GASTRO.ENDOSCOPY', name: 'Therapeutic GI Endoscopy', aliases: ['Endoscopy Specialist', 'ERCP Specialist'] },
+  { code: 'SPEC.GASTRO.IBD', name: 'Inflammatory Bowel Disease (IBD)', aliases: ['Crohns Colitis Specialist'] },
+  { code: 'SPEC.PULMO.CRITICAL_CARE', name: 'Pulmonary Critical Care', aliases: ['ICU Pulmonologist'] },
+  { code: 'SPEC.PULMO.SLEEP', name: 'Sleep Pulmonology', aliases: ['Sleep Apnea Specialist'] },
+  { code: 'SPEC.PULMO.ASTHMA', name: 'Asthma & Allergy Respiratory', aliases: ['Chest Allergy Specialist'] },
+  { code: 'SPEC.ENDO.DIABETES', name: 'Diabetology & Metabolic Disorders', aliases: ['Advanced Diabetes Specialist'] },
+  { code: 'SPEC.ENDO.THYROID', name: 'Thyroid Disorders & Endocrine Oncology', aliases: ['Thyroid Specialist'] },
+  { code: 'SPEC.ENDO.OBESITY', name: 'Obesity & Metabolic Medicine', aliases: ['Weight Management Specialist'] },
+  { code: 'SPEC.NEPHRO.DIALYSIS', name: 'Clinical Nephrology & Dialysis', aliases: ['Dialysis Specialist'] },
+  { code: 'SPEC.NEPHRO.TRANSPLANT', name: 'Kidney Transplant Medicine', aliases: ['Renal Transplant Specialist'] },
+  { code: 'SPEC.URO.ANDROLOGY', name: 'Andrology & Men\'s Health', aliases: ['Male Fertility Specialist', 'Andrologist Specialist'] },
+  { code: 'SPEC.URO.LITHOTRIPSY', name: 'Endourology & Lithotripsy (Stone Surgery)', aliases: ['Kidney Stone Specialist', 'Lithotripsy Specialist'] },
+  { code: 'SPEC.URO.SEXUAL_HEALTH', name: 'Urological Sexual Medicine', aliases: ['Men Sexual Health Specialist'] },
+  { code: 'SPEC.ONCO.MEDICAL', name: 'Medical Oncology & Chemotherapy', aliases: ['Chemotherapy Specialist', 'Medical Oncologist Specialist'] },
+  { code: 'SPEC.ONCO.SURGICAL', name: 'Surgical Oncology', aliases: ['Cancer Surgeon', 'Surgical Oncologist Specialist'] },
+  { code: 'SPEC.ONCO.RADIATION', name: 'Radiation Oncology', aliases: ['Radiotherapy Specialist', 'Radiation Oncologist Specialist'] },
+  { code: 'SPEC.HAEM.BMT', name: 'Bone Marrow Transplant & Stem Cell', aliases: ['BMT Specialist', 'Stem Cell Transplant'] },
+  { code: 'SPEC.HAEM.CLINICAL', name: 'Clinical Haematology & Bleeding Disorders', aliases: ['Thalassemia Specialist', 'Coagulation Specialist'] },
+  { code: 'SPEC.GENSURG.LAPAROSCOPIC', name: 'Minimal Access & Laparoscopic Surgery', aliases: ['Laparoscopic Surgeon Specialist'] },
+  { code: 'SPEC.GENSURG.BARIATRIC', name: 'Bariatric & Metabolic Surgery', aliases: ['Weight Loss Surgeon', 'Bariatric Surgeon'] },
+  { code: 'SPEC.GENSURG.COLORECTAL', name: 'Colorectal Surgery & Proctology', aliases: ['Proctologist', 'Piles Fissure Surgeon'] },
+  { code: 'SPEC.PLASTSURG.COSMETIC', name: 'Aesthetic & Cosmetic Surgery', aliases: ['Cosmetic Surgeon', 'Rhinoplasty Specialist'] },
+  { code: 'SPEC.PLASTSURG.RECONSTRUCTIVE', name: 'Reconstructive Microsurgery & Burns', aliases: ['Microvascular Surgeon', 'Burn Care Specialist'] },
 ];
 
 export const SPECIALTIES = Object.freeze(SPECIALTIES_LIST.map((s) => Object.freeze({ ...s, aliases: Object.freeze([...s.aliases]) })));
@@ -104,3 +171,25 @@ export function deriveCategoryCode(type, name) {
   const slug = String(name ?? '').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 48);
   return `${prefix}.${slug || 'ITEM'}`;
 }
+
+// ─── Reference Lists (§26) ──────────────────────────────────────────────────
+export const SUPPORTED_LANGUAGES = Object.freeze([
+  'Hindi', 'English', 'Marathi', 'Bengali', 'Tamil', 'Telugu', 'Gujarati',
+  'Punjabi', 'Urdu', 'Kannada', 'Malayalam', 'Odia', 'Assamese', 'Bhojpuri',
+  'Rajasthani', 'Maithili', 'Konkani', 'Kashmiri', 'Sindhi', 'Nepali',
+  'Bundeli', 'Malvi', 'Chhattisgarhi', 'Sanskrit', 'Indian Sign Language',
+]);
+
+export const CONSULTATION_MODES = Object.freeze([
+  'in_person', 'video', 'audio', 'chat', 'home_visit',
+]);
+
+export const ACCESSIBILITY_AMENITIES = Object.freeze([
+  'wheelchair_access', 'ramp_lift', 'braille_audio', 'sign_language_support',
+  'large_font_ui', 'voice_navigation',
+]);
+
+export const VERIFICATION_BADGES = Object.freeze([
+  'licence_verified', 'registration_verified', 'nabh_nabl', 'background_checked',
+  'police_verified', 'doctor_reviewed_content',
+]);

@@ -69,6 +69,30 @@ The most sensitive processing in the system is **mental health**.
 Clinical PHI (appointments, prescriptions, labs, EHR, ABDM consents) is handled
 under the same access model, without the special-category marker.
 
+### 4.1 Fine-Grained Access Control & Provider Taxonomy Boundaries
+
+To comply with the DPDP Act 2023 principles of purpose limitation and data minimisation, FindMedi applies fine-grained access control mapped against its 24-category provider taxonomy:
+
+1. **Provider Tier Guardrails (Platform Hard Ceilings):**
+   * **Tier 1 (Clinical Providers):** Hospitals, Nursing Homes, Day-Care Centers, Clinics, Registered Practitioners. Permitted to process primary Electronic Health Records (EHR), surgical chartings, diagnostic notes, and prescriptions.
+   * **Tier 2 (Health-Adjacent Providers):** Diagnostic Pathology Labs, Imaging/Radiology Centers, Retail Pharmacies. Permitted to process lab requisitions, test results, and drug dispensing records. Clinical diagnosis amends and raw mental health therapy notes are restricted.
+   * **Tier 3 (General Health & Wellness Providers):** Gyms, Fitness Centers, Yoga Studios, Physiotherapy Wellness Centers, Medical Equipment Stores, Nutrition Outlets. **Engine-enforced platform guardrail:** T3 providers are strictly blocked from requesting or receiving any clinical, prescription, or diagnostic actions (`records:clinical:*`, `prescriptions:*`, `lab:result:*`).
+
+2. **Horizontal Snooping Mitigation (Ward & Department Scoping):**
+   * Access within a hospital is scoped down to operational units (e.g., `ward/ward-3`, `dept/cardiology`). A nurse in Ward-3 cannot inspect patient charts or vitals in other wards without an explicit assignment.
+   * **Treating Care-Team Enforcement:** Clinicians must have a current treating relationship (admitted ward, assigned consultation, or active appointment) to access non-deidentified patient charts.
+
+3. **Restricted Category Protocols & Reason Codes:**
+   * High-sensitivity data (psychiatric therapy, HIV/STD, sexual health, substance use) carries the `restricted` sensitivity tag.
+   * Access requires step-up re-authentication, selection of a valid clinical justification reason code, and generates an alert to the hospital compliance officer.
+
+4. **Data Principal Transparency & Access Audit Logs:**
+   * In compliance with DPDP Act 2023 transparency mandates, every emergency break-glass grant (`TenantGrant`) logs every accessed route to `accessLog`.
+   * Patients can inspect which hospital staff member opened their file, at what timestamp, and under what reason code directly from their patient privacy centre.
+
+5. **Quarterly Access Certification (Anti-Privilege Creep):**
+   * Periodic certification reviews (`AccessReview`) require tenant administrators to explicitly audit active assignments. Flagged privileges are revoked immediately with instant tokenVersion bumps to invalidate active JWTs.
+
 ## 5. Data flows
 
 ```

@@ -45,6 +45,34 @@ const createNotification = async (userId, title, message, type = 'records') => {
   await Notification.create({ title, message, type, read: false, userId: userId.toString(), date: getISTDateString() });
 };
 
+// File 25 §11: append-only activity log. Fire-and-forget — the log is a
+// witness, never a gate: a failed write must not break a clinical read.
+const logRecordAccess = async (req, entry) => {
+  try {
+    const { logAccess } = await import('../services/iamAccessLogService.js');
+    await logAccess({
+      tenantId: req.user?.hospitalId || req.user?.facilityId || null,
+      actorId: req.user?._id ?? req.user?.id,
+      actorRole: req.user?.role || '',
+      ip: req?.ip || '',
+      ...entry,
+    });
+  } catch { /* witness, not a gate */ }
+};
+
+// File 25 §3: reason-for-access travels as `x-access-reason` or ?reason=.
+// Captured into the activity log + shadow ctx; enforcement lands with the
+// evaluator flip (§11 step 4), so no behavior change for legacy callers.
+const accessReasonOf = (req) =>
+  String(req.query?.reason || req.get?.('x-access-reason') || '').slice(0, 300);
+
+// Highest sensitivity wins when a fetch mixes labels (§8).
+const SENSITIVITY_RANK = { standard: 0, sensitive: 1, minor: 2, vip: 3, restricted: 4 };
+const worstSensitivity = (rows) => (rows || []).reduce(
+  (m, r) => ((SENSITIVITY_RANK[r?.sensitivity] ?? 0) > (SENSITIVITY_RANK[m] ?? 0) ? (r?.sensitivity || m) : m),
+  'standard',
+);
+
 const findPatientByName = async (name) => {
   if (!name) return null;
   const patient = await User.findOne({ name, role: 'patient' });
@@ -56,6 +84,7 @@ router.get('/', protect, authorize('records:read', 'records:read:own'), async (r
     const { page, limit, search, type, patient } = req.query;
     const filter = { deletedAt: { $exists: false } };
     let scoped = false;
+    const accessReason = accessReasonOf(req);
 
     // Build the tenant/ownership predicate FIRST.
     if (req.user.role === 'patient') {
@@ -75,6 +104,11 @@ router.get('/', protect, authorize('records:read', 'records:read:own'), async (r
 
     // Default-deny: if the role didn't set a tenant scope, return empty (no data leak).
     if (!scoped) {
+      void logRecordAccess(req, {
+        action: 'records:read', resourceType: 'record-list', resourceId: 'list',
+        decision: 'deny', reason: 'no-tenant-scope', accessReason,
+        route: 'GET /api/records',
+      });
       return res.json({ data: [], total: 0, page: 1, limit: parseInt(limit, 10) || 50, totalPages: 0 });
     }
 
@@ -109,10 +143,33 @@ router.get('/', protect, authorize('records:read', 'records:read:own'), async (r
       if (req.user.role !== 'patient' && req.user.role !== 'doctor' && req.user.role !== 'counsellor' && req.user.role !== 'psychiatrist' && req.user.role !== 'hospital_admin') {
         const patientId = filter.patientId || (filter.$or ? filter.$or.find(f => f.patientId)?.patientId : null);
         if (patientId && !(await canReadRecords(req, patientId))) {
+          void logRecordAccess(req, {
+            action: 'records:read', resourceType: 'record-list', resourceId: 'list',
+            patientId,
+            decision: 'deny', reason: 'consent', accessReason,
+            route: 'GET /api/records',
+          });
           return res.json({ data: [], total: 0, page: 1, limit: parseInt(limit, 10) || 50, totalPages: 0 });
         }
       }
     }
+
+    // File 25 §3.2 — query-level scope injection. Only ever NARROWS the
+    // legacy predicate: dimensions an IAM assignment actually scopes
+    // (dept/ward/care-team) are merged in; unscoped staff keep the legacy
+    // view. scopeFilter() itself fails closed on error.
+    try {
+      const { principalFromRequest, scopeFilter } = await import('../lib/iamEvaluator.js');
+      const iamScope = await scopeFilter(principalFromRequest(req), 'records');
+      for (const k of ['deptId', 'wardId']) {
+        if (iamScope && iamScope[k] !== undefined && iamScope[k] !== null) filter[k] = iamScope[k];
+      }
+      // careTeam holds ObjectIds — only merge a hex-safe id (a cast error
+      // here would 500 the clinical list).
+      if (typeof iamScope?.careTeam === 'string' && /^[0-9a-f]{24}$/i.test(iamScope.careTeam)) {
+        filter.careTeam = iamScope.careTeam;
+      }
+    } catch { /* legacy filter stays binding */ }
 
     // File 25 §11 step 3 — shadow mode: new IAM evaluator runs log-only;
     // the legacy scoped decision above stays binding until migration flips.
@@ -122,7 +179,7 @@ router.get('/', protect, authorize('records:read', 'records:read:own'), async (r
         principal: principalFromRequest(req),
         action: 'records:read',
         resource: { type: 'record', id: 'list', tenantId: String(filter.hospitalId || '') },
-        ctx: {}, oldDecision: true, route: 'GET /api/records',
+        ctx: { reason: accessReason }, oldDecision: true, route: 'GET /api/records',
       }).catch(() => {});
     } catch { /* shadow must never break the request */ }
 
@@ -134,6 +191,11 @@ router.get('/', protect, authorize('records:read', 'records:read:own'), async (r
         { path: 'doctorId', select: 'name specialization' },
       ],
     });
+    void logRecordAccess(req, {
+      action: 'records:read', resourceType: 'record-list', resourceId: 'list',
+      decision: 'allow', reason: 'legacy-allow', accessReason,
+      route: 'GET /api/records',
+    });
     res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -142,6 +204,7 @@ router.get('/patient/:patientId', protect, authorize('records:read', 'records:re
   try {
     const filter = { patientId: req.params.patientId };
     let scoped = false;
+    const accessReason = accessReasonOf(req);
 
     if (req.user.role === 'patient') {
       filter.patientId = req.user._id;
@@ -157,12 +220,24 @@ router.get('/patient/:patientId', protect, authorize('records:read', 'records:re
 
     // Default-deny for any other role.
     if (!scoped) {
+      void logRecordAccess(req, {
+        action: 'records:read', resourceType: 'record', resourceId: String(req.params.patientId),
+        patientId: req.params.patientId,
+        decision: 'deny', reason: 'no-tenant-scope', accessReason,
+        route: 'GET /api/records/patient/:patientId',
+      });
       return res.json({ records: [] });
     }
 
     // F2: consent enforcement for non-staff
     if (req.user.role !== 'patient' && req.user.role !== 'doctor' && req.user.role !== 'counsellor' && req.user.role !== 'psychiatrist' && req.user.role !== 'hospital_admin') {
       if (!(await canReadRecords(req, req.params.patientId))) {
+        void logRecordAccess(req, {
+          action: 'records:read', resourceType: 'record', resourceId: String(req.params.patientId),
+          patientId: req.params.patientId,
+          decision: 'deny', reason: 'consent', accessReason,
+          route: 'GET /api/records/patient/:patientId',
+        });
         return res.json({ records: [] });
       }
     }
@@ -181,6 +256,17 @@ router.get('/patient/:patientId', protect, authorize('records:read', 'records:re
       count: records.length,
       ip: req.ip,
       userAgent: req.get('user-agent'),
+    });
+
+    // File 25 §11: patient-visible activity row — the label of the most
+    // sensitive record fetched rides along so the log view can surface
+    // restricted/vip/minor reads (and missing reasons) distinctly.
+    void logRecordAccess(req, {
+      action: 'records:read', resourceType: 'record', resourceId: String(req.params.patientId),
+      patientId: req.params.patientId,
+      sensitivity: worstSensitivity(records),
+      decision: 'allow', reason: 'legacy-allow', accessReason,
+      route: 'GET /api/records/patient/:patientId',
     });
 
     res.json({ records });

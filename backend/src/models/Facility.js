@@ -33,7 +33,18 @@ export const FACILITY_SUBTYPES = [
   // wellness / rehab / long-term care (subcatogary.md §1.1)
   'wellness_centre', 'fitness_centre', 'elder_care_home', 'assisted_living',
   'hospice_palliative', 'de_addiction_centre', 'child_development_centre',
-  'rehabilitation_centre',
+  'rehabilitation_centre', 'geriatric_daycare', 'sports_academy_turf',
+  // specialty centres & AYUSH (pruned catalogue §6, §7, §15)
+  'dialysis_centre', 'optical_shop', 'panchakarma_centre', 'naturopathy_hospital',
+  'acupuncture_centre', 'audiology_hearing_aid_centre', 'cardiac_cath_lab',
+  'diabetes_clinic', 'skin_hair_clinic', 'pain_clinic', 'wound_care_clinic',
+  'diabetic_foot_clinic', 'urology_centre', 'lithotripsy_centre',
+  'plastic_cosmetic_surgery', 'sexual_health_clinic', 'travel_medicine_clinic',
+  'transplant_centre', 'trichology_clinic', 'laser_aesthetics_clinic',
+  'dental_diagnostic', 'community_health_centre', 'teaching_hospital',
+  'ortho_spine_clinic', 'ent_clinic', 'paediatric_clinic', 'women_clinic',
+  'sleep_clinic', 'travel_vaccination_clinic', 'eye_diagnostic',
+  'audiology_lab', 'yoga_studio', 'hearing_aid_centre',
   '', // house convention for an optional enum: '' = not specified yet
 ];
 
@@ -60,6 +71,26 @@ export const SYSTEMS_OF_MEDICINE = [
 export const FACILITY_SCHEMES = [
   'pmjay', 'cghs', 'esi', 'echs', 'state_scheme', 'insurance_cashless',
   'tpa_empanelled', 'corporate_tie_up',
+];
+
+// subcatogary.md §1.9 Accreditations
+export const FACILITY_ACCREDITATIONS = [
+  'nabh_full', 'nabh_entry', 'nabl', 'jci', 'nqas', 'kayakalp', 'iso_9001',
+  'aerb_registered', 'art_registered',
+];
+
+// subcatogary.md §1.11 Amenities
+export const FACILITY_AMENITIES = [
+  'twenty_four_seven', 'icu', 'nicu_picu', 'emergency_trauma', 'blood_bank',
+  'in_house_pharmacy', 'ambulance', 'parking', 'wheelchair_access', 'lift',
+  'cafeteria', 'pickup_drop', 'prayer_room', 'visitor_lodging', 'female_staff', 'wifi',
+];
+
+// subcatogary.md §1.12 Services offered tags
+export const FACILITY_SERVICES_OFFERED = [
+  'opd', 'ipd', 'day_care', 'emergency', 'surgery', 'dialysis', 'chemo',
+  'ivf', 'vaccination', 'home_collection', 'home_visit', 'telemedicine',
+  'health_packages', 'second_opinion',
 ];
 
 // A1 #10 — `home` duplicated `home_visit` and `voice`/`call` duplicated
@@ -100,6 +131,7 @@ const facilitySchema = new mongoose.Schema({
   establishedYear: { type: Number, default: null },
   totalDoctors: { type: Number, default: 0 },
   accreditations: [{ type: String }],
+  servicesOffered: [{ type: String }],
   hospitalType: { type: String, default: 'Private' },
   emergency24x7: { type: Boolean, default: false },
   emergencySupport: { type: Boolean, default: false },

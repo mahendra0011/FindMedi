@@ -10,8 +10,8 @@ const router = express.Router();
 
 const PUBLIC_CACHE_PREFIX = 'categories_public';
 const PUBLIC_CACHE_TTL = 300;
-const PUBLIC_FIELDS = 'code name nameHi aliases type parent path level tier icon displayOrder adClaimsRestricted';
-const WRITABLE_FIELDS = ['name', 'nameHi', 'type', 'aliases', 'description', 'parent', 'icon', 'isActive', 'displayOrder', 'tier', 'regulatedBy', 'adClaimsRestricted', 'externalCodes'];
+const PUBLIC_FIELDS = 'code name nameHi aliases type parent path level tier icon displayOrder adClaimsRestricted kind isSensitive soon';
+const WRITABLE_FIELDS = ['name', 'nameHi', 'type', 'aliases', 'description', 'parent', 'icon', 'isActive', 'displayOrder', 'tier', 'regulatedBy', 'adClaimsRestricted', 'externalCodes', 'kind', 'isSensitive', 'soon'];
 
 const invalidatePublicCache = () => flushCachePattern(`${PUBLIC_CACHE_PREFIX}:*`);
 

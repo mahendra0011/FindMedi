@@ -1698,6 +1698,9 @@ export const createCategorySchema = z.object({
   tier: z.enum(CATEGORY_TIERS).optional(),
   regulatedBy: z.array(z.string().trim().min(1).max(60)).max(20).optional(),
   adClaimsRestricted: z.boolean().optional(),
+  isSensitive: z.boolean().optional(),
+  soon: z.boolean().optional(),
+  kind: z.enum(['Facility', 'Practitioner', 'Service', 'Product', 'Event', 'Info', 'Filter', 'Other', '']).optional(),
   externalCodes: categoryExternalCodesSchema.optional(),
 });
 

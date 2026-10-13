@@ -52,7 +52,7 @@ jestApi.unstable_mockModule('../../src/config/redis.js', () => ({
 
 const { as } = await mountApp('categories', {});
 
-const PUBLIC_DTO_FIELDS = 'code name nameHi aliases type parent path level tier icon displayOrder adClaimsRestricted';
+const PUBLIC_DTO_FIELDS = 'code name nameHi aliases type parent path level tier icon displayOrder adClaimsRestricted kind isSensitive soon';
 
 beforeEach(() => {
   lastSelect = null;

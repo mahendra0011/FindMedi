@@ -292,6 +292,8 @@ export async function iamShadow({ principal, action, resource, ctx, oldDecision,
   try {
     const next = await can(principal, action, resource, ctx);
     if (Boolean(next.allow) !== Boolean(oldDecision)) {
+      const { noteShadowMismatch } = await import('../services/iamAccessLogService.js');
+      noteShadowMismatch();
       const { default: logger } = await import('../config/logger.js');
       logger.warn(
         `IAM-SHADOW mismatch route=${route} action=${action} `

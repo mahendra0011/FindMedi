@@ -658,6 +658,101 @@ const CATALOG = [
     extraStepFields: { identity: ['coverage_area', 'vehicle_available', 'cold_bag'] },
   },
 
+  // ── Allied & Rehabilitation Practitioners (pruned catalogue §2, §6, §9, §10) ────
+  {
+    typeKey: 'occupational_therapist', kind: 'practitioner', group: 'clinical', tier: 'T1',
+    label: 'Occupational Therapist', icon: 'Activity', template: 'practitioner',
+    description: 'Occupational therapist registered with RCI/Allied Health Council.',
+    requiredDocs: [
+      rq('rci_reg', 'RCI / Allied Health Council registration'),
+      rq('degree', 'BOT / MOT degree certificate'),
+      rq('owner_id', 'Government photo ID'),
+    ],
+    optionalDocs: [opt('training_cert', 'Specialised therapy certification')],
+    approval: APPROVAL.clinical,
+    extraFields: [
+      field('ot_focus', 'Specialty focus', 'multiselect', { options: ['sensory', 'neurological', 'paediatric', 'geriatric', 'orthopaedic', 'ergonomics'] }),
+    ],
+    extraStepFields: { identity: ['ot_focus'] },
+  },
+  {
+    typeKey: 'prosthetist_orthotist', kind: 'practitioner', group: 'clinical', tier: 'T2',
+    label: 'Prosthetist & Orthotist', icon: 'Bone', template: 'practitioner',
+    description: 'Prosthetics and orthotics rehabilitation professional, RCI registered.',
+    requiredDocs: [
+      rq('rci_reg', 'RCI registration certificate'),
+      rq('degree', 'BPO / MPO degree certificate'),
+      rq('owner_id', 'Government photo ID'),
+    ],
+    optionalDocs: [],
+    approval: APPROVAL.single,
+    extraFields: [
+      field('po_focus', 'Clinical focus', 'multiselect', { options: ['mobility_aids', 'prosthetics', 'orthotics', 'diabetic_footwear', 'spinal_braces'] }),
+    ],
+    extraStepFields: { identity: ['po_focus'] },
+  },
+  {
+    typeKey: 'lactation_consultant', kind: 'practitioner', group: 'clinical', tier: 'T2',
+    label: 'Lactation Consultant', icon: 'Baby', template: 'practitioner',
+    description: 'Certified lactation consultant / IBCLC for infant feeding and nursing support.',
+    requiredDocs: [
+      rq('degree', 'IBCLC / Lactation education certificate'),
+      rq('owner_id', 'Government photo ID'),
+    ],
+    optionalDocs: [opt('training_cert', 'Prenatal education certification')],
+    approval: APPROVAL.single,
+    extraFields: [
+      field('lactation_mode', 'Consultation modes', 'multiselect', { options: ['clinic', 'home_visit', 'video'] }),
+    ],
+    extraStepFields: { identity: ['lactation_mode'] },
+  },
+  {
+    typeKey: 'doula', kind: 'practitioner', group: 'clinical', tier: 'T2',
+    label: 'Birth Doula & Prenatal Educator', icon: 'HeartHandshake', template: 'practitioner',
+    description: 'Trained birth doula, labor coach, and childbirth educator.',
+    requiredDocs: [
+      rq('degree', 'Doula certification / childbirth education credential'),
+      rq('owner_id', 'Government photo ID'),
+    ],
+    optionalDocs: [],
+    approval: APPROVAL.single,
+    extraFields: [
+      field('doula_services', 'Services offered', 'multiselect', { options: ['prenatal', 'labor_support', 'postpartum', 'lactation_support'] }),
+    ],
+    extraStepFields: { identity: ['doula_services'] },
+  },
+  {
+    typeKey: 'audiologist', kind: 'practitioner', group: 'clinical', tier: 'T1',
+    label: 'Audiologist', icon: 'Ear', template: 'practitioner',
+    description: 'Audiology and speech-language hearing specialist, RCI registered.',
+    requiredDocs: [
+      rq('rci_reg', 'RCI registration certificate'),
+      rq('degree', 'BASLP / MASLP degree'),
+      rq('owner_id', 'Government photo ID'),
+    ],
+    optionalDocs: [opt('training_cert', 'Hearing aid dispenser certification')],
+    approval: APPROVAL.clinical,
+    extraFields: [
+      field('audio_tests', 'Diagnostic tests provided', 'multiselect', { options: ['pure_tone_audiometry', 'tympanometry', 'bera', 'oae', 'hearing_aid_trial'] }),
+    ],
+    extraStepFields: { identity: ['audio_tests'] },
+  },
+  {
+    typeKey: 'acupuncturist', kind: 'practitioner', group: 'clinical', tier: 'T2',
+    label: 'Acupuncturist & Acupressure Specialist', icon: 'Sparkles', template: 'practitioner',
+    description: 'Certified practitioner for acupuncture, acupressure and cupping therapy.',
+    requiredDocs: [
+      rq('degree', 'Acupuncture diploma / state board registration'),
+      rq('owner_id', 'Government photo ID'),
+    ],
+    optionalDocs: [],
+    approval: APPROVAL.single,
+    extraFields: [
+      field('acu_modalities', 'Modalities practiced', 'multiselect', { options: ['acupuncture', 'acupressure', 'cupping', 'moxibustion'] }),
+    ],
+    extraStepFields: { identity: ['acu_modalities'] },
+  },
+
   // ── 2.md 4.3 Wellness & fitness (T3) ───────────────────────────────────
   {
     typeKey: 'yoga_studio', kind: 'facility', group: 'wellness', tier: 'T3',

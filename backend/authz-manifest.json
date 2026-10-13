@@ -10,12 +10,12 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1724,
+  "total": 1777,
   "counts": {
     "inherited": 5,
     "object": 437,
     "public": 112,
-    "role": 1107,
+    "role": 1160,
     "self": 63
   },
   "byMechanism": {
@@ -24,7 +24,7 @@
     "assertCallParticipant": 2,
     "assertEhrSearchAccess": 1,
     "assertMentalHealthAccess": 11,
-    "authorize": 776,
+    "authorize": 819,
     "authorizeObject": 76,
     "canAccessPatient": 5,
     "canAccessRecord": 4,
@@ -39,14 +39,14 @@
     "platformAdminOnly": 15,
     "requireConversationMember": 18,
     "requireMetricsToken": 1,
-    "requireObjectId": 89,
+    "requireObjectId": 109,
     "requirePatientGrant": 4,
     "requireReportScope": 2,
     "requireRole": 82,
     "requireSosAccess": 7,
     "requireStaff": 4,
-    "requireStepUp": 31,
-    "requireTenant": 19,
+    "requireStepUp": 33,
+    "requireTenant": 29,
     "resolvePartner": 6,
     "restrictTo": 11,
     "roleOnly": 5,
@@ -2680,86 +2680,387 @@
     },
     {
       "file": "crm.js",
-      "line": 73,
+      "line": 70,
       "method": "GET",
       "target": "'/command-center'",
       "tag": "role"
     },
     {
       "file": "crm.js",
-      "line": 98,
+      "line": 155,
       "method": "GET",
       "target": "'/leads'",
-      "tag": "role"
-    },
-    {
-      "file": "crm.js",
-      "line": 121,
-      "method": "POST",
-      "target": "'/leads'",
-      "tag": "role"
-    },
-    {
-      "file": "crm.js",
-      "line": 145,
-      "method": "PATCH",
-      "target": "'/leads/:id/stage'",
-      "tag": "role"
-    },
-    {
-      "file": "crm.js",
-      "line": 174,
-      "method": "POST",
-      "target": "'/leads/:id/convert'",
       "tag": "role"
     },
     {
       "file": "crm.js",
       "line": 193,
       "method": "GET",
+      "target": "'/leads/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 216,
+      "method": "POST",
+      "target": "'/leads'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 247,
+      "method": "PATCH",
+      "target": "'/leads/:id/stage'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 281,
+      "method": "POST",
+      "target": "'/leads/:id/convert'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 304,
+      "method": "GET",
+      "target": "'/accounts'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 357,
+      "method": "GET",
+      "target": "'/accounts/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 422,
+      "method": "PATCH",
+      "target": "'/accounts/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 455,
+      "method": "GET",
       "target": "'/partners'",
       "tag": "role"
     },
     {
       "file": "crm.js",
-      "line": 208,
+      "line": 483,
+      "method": "GET",
+      "target": "'/partners/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 502,
       "method": "POST",
       "target": "'/partners'",
       "tag": "role"
     },
     {
       "file": "crm.js",
-      "line": 227,
+      "line": 536,
+      "method": "PATCH",
+      "target": "'/partners/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 569,
+      "method": "GET",
+      "target": "'/territories'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 584,
+      "method": "POST",
+      "target": "'/territories'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 605,
+      "method": "GET",
+      "target": "'/visits'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 626,
+      "method": "POST",
+      "target": "'/visits'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 647,
+      "method": "PATCH",
+      "target": "'/visits/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 672,
+      "method": "GET",
+      "target": "'/team'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 708,
+      "method": "POST",
+      "target": "'/team'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 740,
+      "method": "PATCH",
+      "target": "'/team/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 764,
+      "method": "GET",
+      "target": "'/okrs'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 785,
+      "method": "POST",
+      "target": "'/okrs'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 807,
+      "method": "PATCH",
+      "target": "'/okrs/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 826,
+      "method": "GET",
+      "target": "'/campaigns'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 848,
+      "method": "POST",
+      "target": "'/campaigns'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 874,
+      "method": "PATCH",
+      "target": "'/campaigns/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 896,
       "method": "GET",
       "target": "'/tasks'",
       "tag": "role"
     },
     {
       "file": "crm.js",
-      "line": 241,
+      "line": 917,
       "method": "POST",
       "target": "'/tasks'",
       "tag": "role"
     },
     {
       "file": "crm.js",
-      "line": 258,
+      "line": 940,
       "method": "PATCH",
       "target": "'/tasks/:id'",
       "tag": "role"
     },
     {
       "file": "crm.js",
-      "line": 279,
+      "line": 962,
       "method": "GET",
       "target": "'/activities'",
       "tag": "role"
     },
     {
       "file": "crm.js",
-      "line": 293,
+      "line": 982,
       "method": "POST",
       "target": "'/activities'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1008,
+      "method": "GET",
+      "target": "'/settings'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1042,
+      "method": "PUT",
+      "target": "'/settings'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1083,
+      "method": "GET",
+      "target": "'/automation/rules'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1109,
+      "method": "POST",
+      "target": "'/automation/rules'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1134,
+      "method": "PATCH",
+      "target": "'/automation/rules/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1160,
+      "method": "DELETE",
+      "target": "'/automation/rules/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1173,
+      "method": "POST",
+      "target": "'/automation/run'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1322,
+      "method": "GET",
+      "target": "'/reports'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1336,
+      "method": "GET",
+      "target": "'/reports/:key'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1349,
+      "method": "GET",
+      "target": "'/reports/:key/export'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1372,
+      "method": "POST",
+      "target": "'/reports/schedules'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1386,
+      "method": "PATCH",
+      "target": "'/reports/schedules/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1403,
+      "method": "DELETE",
+      "target": "'/reports/schedules/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1457,
+      "method": "GET",
+      "target": "'/playbooks'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1474,
+      "method": "GET",
+      "target": "'/playbooks/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1496,
+      "method": "POST",
+      "target": "'/playbooks'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1515,
+      "method": "PATCH",
+      "target": "'/playbooks/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1544,
+      "method": "DELETE",
+      "target": "'/playbooks/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1557,
+      "method": "GET",
+      "target": "'/projects'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1593,
+      "method": "POST",
+      "target": "'/projects'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1614,
+      "method": "PATCH",
+      "target": "'/projects/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1636,
+      "method": "POST",
+      "target": "'/projects/:id/decisions'",
+      "tag": "role"
+    },
+    {
+      "file": "crm.js",
+      "line": 1662,
+      "method": "DELETE",
+      "target": "'/projects/:id'",
       "tag": "role"
     },
     {
@@ -5263,22 +5564,22 @@
     },
     {
       "file": "iam.js",
-      "line": 45,
+      "line": 46,
       "method": "GET",
-      "target": "'/policies'",
+      "target": "'/catalog'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 57,
+      "line": 53,
       "method": "GET",
-      "target": "'/policies/templates'",
+      "target": "'/principals'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 61,
-      "method": "POST",
+      "line": 69,
+      "method": "GET",
       "target": "'/policies'",
       "tag": "role"
     },
@@ -5286,112 +5587,182 @@
       "file": "iam.js",
       "line": 81,
       "method": "GET",
+      "target": "'/policies/templates'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 85,
+      "method": "POST",
+      "target": "'/policies'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 105,
+      "method": "GET",
       "target": "'/roles'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 92,
+      "line": 116,
       "method": "POST",
       "target": "'/roles'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 121,
+      "line": 145,
+      "method": "GET",
+      "target": "'/assignments'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 182,
       "method": "POST",
       "target": "'/assignments'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 172,
+      "line": 233,
       "method": "DELETE",
       "target": "'/assignments/:id'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 189,
+      "line": 250,
       "method": "GET",
       "target": "'/groups'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 199,
+      "line": 260,
       "method": "POST",
       "target": "'/groups'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 219,
+      "line": 280,
       "method": "GET",
       "target": "'/scopes'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 229,
+      "line": 290,
       "method": "POST",
       "target": "'/scopes'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 248,
+      "line": 309,
       "method": "POST",
       "target": "'/simulate'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 270,
+      "line": 331,
+      "method": "GET",
+      "target": "'/requests'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 349,
       "method": "POST",
       "target": "'/requests'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 292,
+      "line": 371,
       "method": "POST",
       "target": "'/requests/:id/decision'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 329,
+      "line": 408,
       "method": "POST",
       "target": "'/grants'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 357,
+      "line": 436,
       "method": "POST",
       "target": "'/grants/:id/decision'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 396,
+      "line": 475,
       "method": "POST",
       "target": "'/grants/:id/revoke'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 412,
+      "line": 491,
       "method": "POST",
       "target": "'/apikeys'",
       "tag": "role"
     },
     {
       "file": "iam.js",
-      "line": 433,
+      "line": 512,
       "method": "POST",
       "target": "'/apikeys/:id/revoke'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 527,
+      "method": "GET",
+      "target": "'/reviews'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 549,
+      "method": "POST",
+      "target": "'/reviews'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 582,
+      "method": "PATCH",
+      "target": "'/reviews/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 624,
+      "method": "GET",
+      "target": "'/analyzer'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 790,
+      "method": "GET",
+      "target": "'/grants'",
+      "tag": "role"
+    },
+    {
+      "file": "iam.js",
+      "line": 807,
+      "method": "GET",
+      "target": "'/apikeys'",
       "tag": "role"
     },
     {
@@ -8021,7 +8392,7 @@
     },
     {
       "file": "patientRecommendations.js",
-      "line": 37,
+      "line": 38,
       "method": "GET",
       "target": "'/'",
       "tag": "object"
