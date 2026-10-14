@@ -609,7 +609,6 @@ export const CATEGORY_TREE = Object.freeze([
     type: 'service',
     tier: 'T1',
     regulatedBy: ['DL'],
-    soon: true,
     kind: 'Service',
   },
   {
@@ -621,7 +620,6 @@ export const CATEGORY_TREE = Object.freeze([
     type: 'medicine',
     tier: 'T1',
     regulatedBy: ['DL'],
-    soon: true,
     kind: 'Product',
   },
   {
@@ -746,7 +744,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'EMG.SERVICE',
     type: 'service',
     tier: 'T2',
-    soon: true,
     kind: 'Service',
   },
 
@@ -806,7 +803,6 @@ export const CATEGORY_TREE = Object.freeze([
     type: 'provider_type',
     tier: 'T2',
     regulatedBy: [],
-    soon: true,
     kind: 'Practitioner',
   },
 
@@ -1095,7 +1091,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'MH.SERVICE',
     type: 'service',
     tier: 'T2',
-    soon: true,
     kind: 'Service',
   },
   {
@@ -1188,7 +1183,6 @@ export const CATEGORY_TREE = Object.freeze([
     type: 'facility_type',
     tier: 'T2',
     regulatedBy: ['RCI'],
-    soon: true,
     kind: 'Facility',
   },
 
@@ -1281,7 +1275,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'WCH.SERVICE',
     type: 'provider_type',
     tier: 'T2',
-    soon: true,
     kind: 'Practitioner',
   },
   {
@@ -1292,7 +1285,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'WCH.SERVICE',
     type: 'service',
     tier: 'T1',
-    soon: true,
     kind: 'Service',
   },
 
@@ -1384,7 +1376,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'ELDER.SERVICE',
     type: 'service',
     tier: 'T1',
-    soon: true,
     kind: 'Service',
   },
   {
@@ -1396,7 +1387,6 @@ export const CATEGORY_TREE = Object.freeze([
     type: 'device',
     tier: 'T2',
     regulatedBy: ['CDSCO'],
-    soon: true,
     kind: 'Product',
   },
   {
@@ -1407,7 +1397,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'ELDER.SERVICE',
     type: 'facility_type',
     tier: 'T2',
-    soon: true,
     kind: 'Facility',
   },
 
@@ -1477,7 +1466,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'PROG.SERVICE',
     type: 'program',
     tier: 'T1',
-    soon: true,
     kind: 'Service',
   },
 
@@ -1571,7 +1559,6 @@ export const CATEGORY_TREE = Object.freeze([
     type: 'product_line',
     tier: 'T3',
     regulatedBy: ['FSSAI'],
-    soon: true,
     kind: 'Product',
   },
 
@@ -1883,7 +1870,6 @@ export const CATEGORY_TREE = Object.freeze([
     type: 'device',
     tier: 'T2',
     regulatedBy: ['CDSCO', 'RCI'],
-    soon: true,
     kind: 'Product',
   },
   {
@@ -2008,7 +1994,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'EVENT.COMMUNITY',
     type: 'event_type',
     tier: 'T2',
-    soon: true,
     kind: 'Event',
   },
   {
@@ -2100,7 +2085,39 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'GOV.INFO',
     type: 'info',
     tier: 'T3',
-    soon: true,
+    kind: 'Info',
+  },
+  {
+    code: 'GOV.INFO.IMMUNISATION_UIP',
+    name: 'National Immunisation Programme (UIP) & Free Vaccines',
+    nameHi: 'राष्ट्रीय टीकाकरण कार्यक्रम (यूआईपी)',
+    aliases: ['UIP Schedule', 'Immunisation Schedule', 'Free Vaccination List'],
+    parent: 'GOV.INFO',
+    type: 'info',
+    tier: 'T3',
+    regulatedBy: [],
+    kind: 'Info',
+  },
+  {
+    code: 'GOV.INFO.NATIONAL_PROGRAMS',
+    name: 'National Health Programmes (TB, NCD, Mental Health)',
+    nameHi: 'राष्ट्रीय स्वास्थ्य कार्यक्रम',
+    aliases: ['National TB Program', 'NCD Program', 'National Mental Health Program'],
+    parent: 'GOV.INFO',
+    type: 'info',
+    tier: 'T3',
+    regulatedBy: [],
+    kind: 'Info',
+  },
+  {
+    code: 'GOV.INFO.FREE_MEDICINES',
+    name: 'Free Medicine Lists & Government Drug Distribution',
+    nameHi: 'निःशुल्क दवा सूची एवं सरकारी वितरण',
+    aliases: ['Free Medicine', 'Government Free Drugs'],
+    parent: 'GOV.INFO',
+    type: 'info',
+    tier: 'T3',
+    regulatedBy: [],
     kind: 'Info',
   },
   {
@@ -2273,7 +2290,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'CONTENT.INFO',
     type: 'event_type',
     tier: 'T3',
-    soon: true,
     kind: 'Product',
   },
   {
@@ -2284,7 +2300,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'CONTENT.INFO',
     type: 'service',
     tier: 'T2',
-    soon: true,
     kind: 'Service',
   },
   {
@@ -2295,7 +2310,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'CONTENT.INFO',
     type: 'info',
     tier: 'T3',
-    soon: true,
     kind: 'Info',
   },
   {
@@ -2387,7 +2401,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'HOME.SERVICE',
     type: 'service',
     tier: 'T1',
-    soon: true,
     kind: 'Service',
   },
   {
@@ -2398,7 +2411,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'HOME.SERVICE',
     type: 'service',
     tier: 'T1',
-    soon: true,
     kind: 'Service',
   },
   {
@@ -2468,7 +2480,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'TRANS.SERVICE',
     type: 'service',
     tier: 'T2',
-    soon: true,
     kind: 'Service',
   },
   {
@@ -2479,7 +2490,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'TRANS.SERVICE',
     type: 'service',
     tier: 'T2',
-    soon: true,
     kind: 'Service',
   },
 
@@ -2549,7 +2559,6 @@ export const CATEGORY_TREE = Object.freeze([
     parent: 'B2B.SERVICE',
     type: 'service',
     tier: 'T2',
-    soon: true,
     kind: 'Service',
   },
 ]);

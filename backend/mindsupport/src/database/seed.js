@@ -506,14 +506,14 @@ const supportPlanSeeds = {
     supportPlanName: "Short-Term Support",
     supportPlanDuration: "4-8 sessions",
     supportPlanCadence: "One session every two days",
-    supportPlanBestFor: ["Stress", "Anxiety", "Exam pressure", "Loneliness"],
+    supportPlanBestFor: ["Stress", "Anxiety", "Student Pressure", "Loneliness"],
   },
   medium: {
     supportPlanId: "medium-term",
     supportPlanName: "Medium-Term Support",
     supportPlanDuration: "8-15 sessions",
     supportPlanCadence: "Weekly or bi-weekly",
-    supportPlanBestFor: ["Mild depression", "Relationship issues", "Emotional healing"],
+    supportPlanBestFor: ["Mild depression", "Relationship issues"],
   },
   long: {
     supportPlanId: "long-term",

@@ -521,8 +521,8 @@ function TypeDetails({ place, route }: { place: MapPlace; route: RouteSummary | 
   }
 
   if (place.type === 'lab') {
-    const specialist = displayValue(raw.pathologistName || raw.technicianName || raw.specialistName);
-    const qualification = displayValue(raw.pathologistQualification || raw.technicianQualification || raw.qualification);
+    const specialist = displayValue(raw.pathologistName || raw.specialistName);
+    const qualification = displayValue(raw.pathologistQualification || raw.qualification);
     const testCount = raw.testsAvailable || raw.testsCount || raw.tests?.length || raw.details?.testsAvailable;
     const turnaround = displayValue(raw.reportTurnaroundTime || raw.reportTime || raw.details?.reportTime || raw.details?.turnaroundTime);
     return (

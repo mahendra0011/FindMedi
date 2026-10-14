@@ -58,6 +58,8 @@ function pairKeyOf(i: DdiInteraction) {
 export default function DdiCheckBanner({ drugs, onMajorStateChange, prescriptionId, prescriptionNo, debounceMs = 300, active = true }: Props) {
   const [interactions, setInteractions] = useState<DdiInteraction[]>([]);
   const [unknownDrugs, setUnknownDrugs] = useState<string[]>([]);
+  // Knowledge-base provenance (version + clinical review status) from /ddi/check.
+  const [kb, setKb] = useState<{ version?: string; reviewStatus?: string } | null>(null);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState('');
   // pairKey -> { reason, freeText }
@@ -90,6 +92,7 @@ export default function DdiCheckBanner({ drugs, onMajorStateChange, prescription
       const ints: DdiInteraction[] = r?.interactions || [];
       setInteractions(ints);
       setUnknownDrugs(r?.unknownDrugs || []);
+      setKb(r?.knowledgeBase || null);
       setError('');
       const blocked = ints
         .filter((i) => i.severity === 'major')
@@ -243,7 +246,11 @@ export default function DdiCheckBanner({ drugs, onMajorStateChange, prescription
       {majorCount > 0 && overriddenCount === majorCount && (
         <p className="text-[11px] text-emerald-700 flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> All major interactions overridden (audit-logged).</p>
       )}
-      <p className="text-[10px] text-muted-foreground italic">Clinical decision support — not a substitute for professional judgement.</p>
+      <p className="text-[10px] text-muted-foreground italic">
+        Clinical decision support — not a substitute for professional judgement.
+        {kb?.version ? ` · KB v${kb.version}` : ''}
+        {kb?.reviewStatus ? ` (${kb.reviewStatus})` : ''}
+      </p>
     </div>
   );
 }

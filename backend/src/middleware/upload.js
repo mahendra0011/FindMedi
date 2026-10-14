@@ -284,6 +284,33 @@ export const upload = (fieldName, options = {}) => {
   };
 };
 
+// T10: memory-storage upload for pipelines that transcode in-process (OCR).
+// The buffer must exist for the magic-byte + ClamAV scans, and medical
+// documents must NOT be written to disk — they pass through once, get
+// base64'd for the vision gateway, and are dropped with the request.
+export const uploadMemory = (fieldName, options = {}) => {
+  const { types = ALLOWED_ALL_TYPES, maxSize = MAX_ALL_SIZE } = options;
+  const uploader = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: maxSize },
+    fileFilter: fileFilter(types),
+  }).single(fieldName);
+
+  return (req, res, next) => {
+    uploader(req, res, (err) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            message: `File too large. Maximum size is ${maxSize / 1024 / 1024}MB`,
+          });
+        }
+        return res.status(400).json({ message: err.message });
+      }
+      next();
+    });
+  };
+};
+
 // Multer error handler middleware
 export const handleMulterError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {

@@ -27,7 +27,7 @@ const featuredCounsellors = [
   { name: "Sana Qureshi", image: "https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=400&h=400&fit=crop&crop=face&auto=format", role: "Relationship and Breakup Recovery", rating: "4.7", reviews: "63", bio: "Community mentor supporting breakup recovery, relationship boundaries, loneliness, and rebuilding daily stability.", tags: ["Relationships", "Loneliness", "Self Confidence"], exp: "4 years exp", location: "Delhi NCR", language: "English / Hindi", price: "₹599" },
 ];
 
-const allCategories = ["All", "Anxiety", "Stress", "Student Pressure", "Exam pressure", "Loneliness", "Mild depression", "Relationship issues", "Emotional healing", "Trauma", "Sleep", "Burnout", "Career Stress", "Addiction Recovery", "Meditation", "Self Confidence", "Motivation"];
+const allCategories = ["All", "Anxiety", "Stress", "Student Pressure", "Loneliness", "Mild depression", "Relationship issues", "Trauma", "Sleep", "Burnout", "Career Stress", "Addiction Recovery", "Self Confidence"];
 
 const steps = [
   { title: "Choose a counsellor", text: "Filter by specialty, language, location, and experience.", icon: Search },

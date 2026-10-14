@@ -1,0 +1,224 @@
+FAC.HOSPITAL || Hospital
+FAC.HOSPITAL.MULTI || Multi-Specialty Hospital
+FAC.HOSPITAL.SUPER || Super-Specialty Hospital
+FAC.HOSPITAL.SINGLE || Single-Specialty Hospital
+FAC.HOSPITAL.NURSING_HOME || Nursing Home / Maternity Home
+FAC.HOSPITAL.DAYCARE || Day-Care / Surgery Centre
+FAC.HOSPITAL.GOVT || Government / District Hospital
+FAC.HOSPITAL.TRAUMA || Trauma Centre / TB-Chest / Infectious Disease
+FAC.HOSPITAL.PSYCH_REHAB || Psychiatric & Rehabilitation Hospital
+FAC.HOSPITAL.CANCER || Cancer Centre / Institute
+FAC.HOSPITAL.MEDICAL_COLLEGE || Medical College & Teaching Hospital
+FAC.HOSPITAL.RAILWAY_DEFENCE || Railway / ESI / CGHS / Defence Hospital
+FAC.CLINIC || Clinic
+FAC.CLINIC.SINGLE_DOCTOR || Single-Doctor Clinic
+FAC.CLINIC.POLYCLINIC || Polyclinic
+FAC.CLINIC.SPECIALTY || Specialty Clinic
+FAC.CLINIC.URGENT_CARE || Urgent-Care / 24x7 Clinic
+FAC.CLINIC.CORPORATE || Corporate / Industrial Clinic
+FAC.CLINIC.CAMPUS || Campus / School / College Clinic
+FAC.CLINIC.MOHALLA || Mohalla / Community Clinic
+PRO.PRACTITIONER || Healthcare Practitioner
+PRO.PRACTITIONER.DOCTOR || Doctor (OPD / Consultation)
+PRO.PRACTITIONER.DENTIST || Dentist
+PRO.PRACTITIONER.PHYSIO || Physiotherapist
+PRO.PRACTITIONER.DIETITIAN || Dietitian / Clinical Nutritionist
+PRO.PRACTITIONER.NURSE || Nurse (Clinical & Home Nursing)
+PRO.PRACTITIONER.COUNSELLOR || Psychologist & Counsellor
+PRO.PRACTITIONER.PHLEBOTOMIST || Phlebotomist / Lab Technician
+FAC.DIAG || Diagnostic Facility
+FAC.DIAG.PATHOLOGY || Pathology Lab
+FAC.DIAG.IMAGING || Imaging / Radiology Centre
+FAC.DIAG.INTEGRATED || Integrated Diagnostic Centre
+FAC.DIAG.COLLECTION || Collection Centre / Franchise
+FAC.DIAG.MOBILE_VAN || Mobile Diagnostic Van / Camp Lab
+FAC.DIAG.CARDIAC || Cardiac Diagnostics (ECG, Echo, TMT, Holter)
+FAC.DIAG.SLEEP_LAB || Sleep Lab / PFT / Neuro Diagnostics
+FAC.DIAG.GENETIC || Genetic / Molecular / NIPT Lab
+DIAG.SERVICE || Diagnostic Services & Packages
+DIAG.SERVICE.HOME_COLLECTION || Home Sample Collection
+DIAG.SERVICE.PACKAGES || Health Packages (Full-Body, Senior, Cardiac, Women)
+DIAG.SERVICE.ORDERS_REPORTS || Lab Booking, Orders & Digital Reports
+FAC.PHARM || Pharmacy & Medical Store
+FAC.PHARM.RETAIL || Retail Pharmacy / Medical Store
+FAC.PHARM.HOSPITAL || Hospital Pharmacy
+FAC.PHARM.JAN_AUSHADHI || Jan Aushadhi Kendra
+FAC.PHARM.GENERIC || Generic Store / 24x7 / Chain / Online Pharmacy
+FAC.PHARM.AYUSH_STORE || Ayurvedic & Homeopathic Medicine Store
+FAC.PHARM.SURGICAL_ORTHO || Surgical & Ortho Store
+FAC.PHARM.WHOLESALE || Wholesale / Stockist / Distributor
+MED.SERVICE || Medicine Ordering & Medication Care
+MED.SERVICE.CATALOGUE_RX || Medicine Catalogue & Prescription Orders
+MED.SERVICE.REMINDERS || Medicine Reminders & Dose Log
+MED.SERVICE.REFILL_SUBSCRIPTION || Chronic-Medicine Refill Subscription
+MED.SERVICE.COLD_CHAIN || Cold-Chain Medicines (Insulin, Vaccines)
+MED.SERVICE.SCHEDULE_H1 || Schedule H1 Register & Narcotic Count
+MED.SERVICE.DDI_CHECK || Drug-Interaction & ADR Safety Checks
+EMG.SERVICE || Emergency & Critical Care
+EMG.SERVICE.SOS || SOS Emergency Request & Doctor Dispatch
+EMG.SERVICE.AMBULANCE || Ambulance (BLS / ALS / NICU) & Live Tracking
+EMG.SERVICE.PATIENT_TRANSPORT || Non-Emergency Patient Transport (Ambulance Type)
+EMG.FAC.BLOOD_BANK || Blood Bank, Blood Request & Donor Screening
+EMG.SERVICE.BED_ICU_AVAILABILITY || ICU, Bed & OT Live Availability
+EMG.PROD.OXYGEN || Oxygen Cylinder & Concentrator Supply
+EMG.INFO.HELPLINES || Emergency Helpline Directory (112, 108, Tele-MANAS)
+EMG.SERVICE.CPR_VOLUNTEER || First-Responder & CPR Volunteers Network
+AYUSH.FAC || AYUSH & Integrative Medicine
+AYUSH.FAC.CLINIC || Ayurveda / Homeopathy / Unani / Siddha Clinic
+AYUSH.FAC.PANCHAKARMA || Panchakarma Centre
+AYUSH.FAC.NATUROPATHY || Naturopathy & Yoga Hospital
+AYUSH.PRO.ACUPUNCTURE || Acupuncture, Acupressure & Cupping
+CENTRE.FAC || Specialty Healthcare Centres
+CENTRE.FAC.DENTAL || Dental Clinic & Oral Implant Centre
+CENTRE.FAC.EYE || Eye Hospital & Clinic (Ophthalmology)
+CENTRE.FAC.OPTICAL_SHOP || Optical Shop (Job Cards & Spectacles)
+CENTRE.FAC.DIALYSIS || Dialysis Centre
+CENTRE.FAC.CANCER || Cancer / Chemotherapy / Radiotherapy Centre
+CENTRE.FAC.ENT_AUDIOLOGY || ENT / Audiology / Hearing-Aid Centre
+CENTRE.FAC.CARDIAC_CATH || Cardiac Cath-Lab & Heart Institute
+CENTRE.FAC.ORTHO_SPINE || Orthopaedic, Joint Replacement & Spine Centre
+CENTRE.FAC.DIABETES_ENDO || Diabetes, Thyroid & Endocrine Centre
+CENTRE.FAC.SKIN_HAIR || Skin, Hair & Laser Clinic
+CENTRE.FAC.PAIN_WOUND || Pain Clinic / Wound-Care / Diabetic-Foot Clinic
+CENTRE.FAC.URO_LITHO || Urology & Lithotripsy Centre
+CENTRE.FAC.COSMETIC_SURGERY || Plastic & Cosmetic Surgery Centre
+CENTRE.FAC.SEXUAL_HEALTH || Sexual-Health Clinic (Discreet)
+CENTRE.FAC.TRAVEL_VACCINE || Travel-Medicine & Vaccination Clinic
+CENTRE.FAC.TRANSPLANT || Transplant Centre (Renal, Liver, Cornea)
+MH.SERVICE || Mental & Emotional Health
+MH.PRO.PSYCHIATRIST || Psychiatrist Consultation
+MH.PRO.PSYCHOLOGIST || Psychologist, Counsellor & Therapist
+MH.FAC.DE_ADDICTION || De-addiction & Rehabilitation Centre
+MH.PRO.FAMILY_COUNSELLING || Child, Couple & Family Counselling
+MH.SERVICE.SUPPORT_GROUPS || Support Groups (Cancer, Grief, AA/NA, Caregivers)
+MH.SERVICE.MINDFULNESS || Meditation & Mindfulness Programs
+MH.SERVICE.WORKPLACE_STRESS || Student & Workplace Stress Programs
+MH.PRO.GRIEF_COUNSELLING || Grief & Bereavement Counselling
+REHAB.SERVICE || Rehabilitation & Physical Therapy
+REHAB.FAC.PHYSIO || Physiotherapy Clinic & Home Physio
+REHAB.FAC.CENTRE || Comprehensive Rehabilitation Centre
+REHAB.FAC.CHILD_DEV || Child Development & Autism Centre
+REHAB.SERVICE.SPECIALISED || Sports, Neuro & Cardiac-Pulmonary Rehab
+REHAB.PRO.OT_ST || Occupational Therapy & Speech Therapy
+REHAB.FAC.PROSTHETICS || Prosthetics & Orthotics Fitment Centre
+WCH.SERVICE || Women's Health, Maternity & Child Care
+WCH.SERVICE.MATERNITY || Maternity: Antenatal Care, Labour & Partogram
+WCH.FAC.IVF_FERTILITY || IVF & Reproductive Fertility Clinic
+WCH.SERVICE.VACCINATION || Childhood Vaccination Schedule & Alerts
+WCH.SERVICE.GROWTH_CHARTS || Child Growth Charts & Milestones
+WCH.SERVICE.WOMENS_TRACKING || Women's Health Tracking (Cycle, PCOS, Menopause)
+WCH.SERVICE.NEWBORN_SCREENING || Newborn Screening & Birth Records
+WCH.PRO.LACTATION_DOULA || Lactation Consultant, Doula & Prenatal Classes
+WCH.SERVICE.SCHOOL_HEALTH || Adolescent & School Health Programs
+ELDER.SERVICE || Elderly & Long-Term Care
+ELDER.PRO.CAREGIVER || Caregiver & Attendant Booking
+ELDER.SERVICE.FAMILY_DASHBOARD || Family Members Shared Care Dashboard
+ELDER.SERVICE.HOME_NURSING || Home Nursing Care
+ELDER.FAC.HOME_ASSISTED || Elder-Care Home & Assisted Living
+ELDER.FAC.PALLIATIVE_HOSPICE || Palliative Care & Hospice Facility
+ELDER.SERVICE.REMOTE_VITALS || Remote Vitals & Medication Monitoring
+ELDER.SERVICE.DEMENTIA || Dementia & Alzheimer's Care Programs
+ELDER.PROD.FALL_DEVICES || Fall-Detection & Emergency Response Devices
+ELDER.FAC.GERIATRIC_DAYCARE || Geriatric Day-Care Centre
+PROG.SERVICE || Chronic Disease Management Programs
+PROG.SERVICE.CHRONIC_CARE || Chronic Care Plans, Vitals Logging & Reminders
+PROG.SERVICE.DIABETES_HEART || Diabetes, Hypertension & Heart Care Program
+PROG.SERVICE.THYROID_PCOS_RESP || Thyroid, PCOS, Obesity & Respiratory Programs
+PROG.SERVICE.CANCER_SURVIVORSHIP || Cancer Survivorship & Follow-Up Protocols
+PROG.SERVICE.QUIT_SMOKING_ALCOHOL || Quit-Smoking & Quit-Alcohol Programs
+NUT.SERVICE || Nutrition, Diet & Health Foods
+NUT.PROD.DIET_KITCHEN || Diet Kitchen & Meal Subscriptions
+NUT.SERVICE.HOSPITAL_DIET || Hospital Dietary & Canteen Services
+NUT.PRO.DIETITIAN || Clinical Dietitian Consultation
+NUT.PROD.HEALTHY_TIFFIN || Healthy Tiffin & Cloud Kitchen
+NUT.PROD.ORGANIC_STORE || Organic, Millet & Health Food Stores
+NUT.PROD.SUPPLEMENTS || Supplements, Protein & Vitamins
+NUT.PROD.BABY_FOOD || Baby Food & Infant Nutrition (IMS Act Compliant)
+FIT.FAC || Fitness & Wellness Centres
+FIT.FAC.GYM || Gym & Fitness Centre (Memberships & Plans)
+FIT.FAC.YOGA || Yoga Studio & Certified Instructors
+FIT.FAC.WELLNESS_RETREAT || Wellness Centre, Retreat & Medical Spa
+FIT.PRO.TRAINER || Personal Trainer & Online Fitness Coach
+FIT.SERVICE.CLASSES || Zumba, Pilates, Dance & Martial Arts Classes
+FIT.FAC.SPORTS_TURF || Sports Academy, Swimming & Turf Facility
+FIT.SERVICE.CORPORATE_WELLNESS || Corporate Wellness Programs
+FIT.SERVICE.WELLNESS_PROFILE || Wellness Profile, Steps & Workout Logs
+FIT.EVENT.RUNNING_CHALLENGE || Running Clubs, Walkathons & Fitness Challenges
+CARE.DERM || Skin, Hair & Personal Care
+CARE.DERM.CLINIC || Dermatologist & Medical Skin Clinic
+CARE.DERM.TRICHOLOGY || Hair-Fall, Trichology & Hair Transplant
+CARE.DERM.PRODUCTS || Dermatology & Clinical Skincare Products
+CARE.DERM.PERSONAL_HYGIENE || Baby Care, Feminine Hygiene & Oral Care Products
+CARE.DERM.AYURVEDIC_CARE || Ayurvedic & Herbal Personal Care
+CARE.DERM.AESTHETICS || Cosmetology, Laser & Aesthetic Procedures
+DEV.PROD || Medical Devices & Equipment
+DEV.PROD.RENTALS || Equipment Rental & Sale (Wheelchair, Hospital Bed, CPAP, Oxygen)
+DEV.PROD.HOME_MONITORING || Home Monitoring Devices (BP, Glucometer, Oximeter, Nebuliser)
+DEV.PROD.MOBILITY_AIDS || Mobility Aids (Walker, Crutches, Commode Chairs)
+DEV.PROD.OPTICAL || Spectacles, Frames & Contact Lenses
+DEV.PROD.ORTHO_BRACES || Ortho Braces, Belts, Diabetic Footwear & Compression Stockings
+DEV.PROD.WOUND_INCONTINENCE || Wound Care, Adult Diapers & Incontinence Supplies
+DEV.PROD.HOME_TEST_KITS || Home-Test Kits (Pregnancy, COVID, Ovulation, Urine Strips)
+DEV.PROD.FIRST_AID_PPE || First-Aid Kits, Masks, Sanitiser & PPE
+DEV.PROD.HEARING_AIDS || Digital Hearing Aids & Audiometry Accessories
+DEV.PROD.OT_CONSUMABLES || Surgical & OT Consumables (Institutional B2B)
+EVENT.COMMUNITY || Health Camps & Preventive Events
+EVENT.COMMUNITY.HEALTH_CAMP || Health Camps (General, Eye, Dental, Diabetes)
+EVENT.COMMUNITY.VACCINATION_DRIVE || Vaccination Drives (Flu, HPV, UIP Drives)
+EVENT.COMMUNITY.BLOOD_DONATION || Blood-Donation Drives
+EVENT.COMMUNITY.WORKSHOPS || Awareness Workshops, Webinars & Live Q&A
+EVENT.COMMUNITY.YOGA_DAY || Yoga Day & Wellness Community Events
+EVENT.COMMUNITY.CPR_TRAINING || CPR, First-Aid & BLS Training Workshops
+EVENT.COMMUNITY.SCREENING || Screening Programs (Cancer, TB, Anaemia, BP)
+EVENT.COMMUNITY.PARTNER_CAMP || Corporate, RWA & NGO Community Camps
+EVENT.COMMUNITY.SCHOOL_DRIVE || School & College Health Screening Drives
+EVENT.COMMUNITY.SEASONAL_ALERT || Seasonal & Environmental Alerts (Dengue, Heatwave, AQI)
+GOV.INFO || Government Facilities & Public Schemes
+GOV.INFO.PRIMARY_HEALTH || PHC / CHC / UPHC / Ayushman Arogya Mandir
+GOV.INFO.PMJAY_FILTER || Ayushman Bharat PM-JAY Empanelled Hospitals & Packages
+GOV.INFO.SCHEMES_FILTER || CGHS / ESI / ECHS / State-Scheme Filter
+GOV.SERVICE.ABDM || ABHA & ABDM Consent & Records Integration
+GOV.SERVICE.GOVT_OPD_TOKEN || Government Hospital OPD Queue & Digital Token
+GOV.INFO.STATE_SCHEMES_ELIGIBILITY || State Schemes Eligibility Info (JSY, PMMVY, State Health)
+GOV.INFO.IMMUNISATION_UIP || National Immunisation Programme (UIP) & Free Vaccines
+GOV.INFO.NATIONAL_PROGRAMS || National Health Programmes (TB, NCD, Mental Health)
+GOV.INFO.FREE_MEDICINES || Free Medicine Lists & Government Drug Distribution
+GOV.INFO.REGISTRATION_LOOKUP || Medical Council & Practitioner Registration Lookup
+GOV.SERVICE.GRIEVANCE || Patient Grievance Redressal & Helpdesk
+FIN.SERVICE || Healthcare Insurance & Billing
+FIN.SERVICE.HEALTH_INSURANCE || Health Insurance (Insurers, Policies, Claims, Pre-Auth)
+FIN.SERVICE.TPA_CASHLESS || TPA Desk & Cashless Hospitalization Support
+FIN.SERVICE.BILLING_PAYMENTS || Billing, Payments, Refunds, Wallet & Coupons
+LEGAL.SERVICE || Medico-Legal & Patient Rights
+LEGAL.PRO.LAWYER || Medical Lawyer & Consumer Court Legal Assistance
+LEGAL.INFO.PATIENT_RIGHTS || Charter of Patient Rights Information
+LEGAL.SERVICE.MLC || Medico-Legal Case (MLC) Protocol & Documentation
+CONTENT.INFO || Health Education, Content & Triage
+CONTENT.INFO.ARTICLES || Doctor-Reviewed Health Articles & Educational Videos
+CONTENT.SERVICE.REVIEWS || Verified Patient Reviews & Moderation
+CONTENT.SERVICE.AI_TRIAGE || AI Symptom Triage & Red-Flag Alerts
+CONTENT.PROD.COURSES || Certified Courses (First-Aid, Nutrition, Caregiver Training)
+CONTENT.SERVICE.COMMUNITY || Moderated Community Forums & Patient Groups
+CONTENT.INFO.FACT_CHECK || Medical Myth-Busting & Fact-Check Content
+CONTENT.INFO.MULTILINGUAL || Multilingual Health Content (Hindi & Regional)
+HOME.SERVICE || Home Healthcare Services
+HOME.SERVICE.SAMPLE_COLLECTION || Doorstep Lab Sample Collection
+HOME.SERVICE.NURSING_ATTENDANT || Home Nursing & Trained Bedside Attendant
+HOME.SERVICE.DOCTOR_VISIT || Doctor Home Visit (Primary & Palliative)
+HOME.SERVICE.PHYSIO || Home Physiotherapy & Rehabilitation
+HOME.SERVICE.DELIVERY || Doorstep Delivery (Medicines, Reports & Equipment)
+HOME.SERVICE.VACCINATION || Doorstep Vaccination (Adult & Pediatric)
+HOME.SERVICE.ICU_SETUP || Home ICU Setup & Critical Equipment
+HOME.SERVICE.TELEHEALTH || Remote Telehealth & Continuous Vitals Monitoring
+TRANS.SERVICE || Medical Transport & Logistics
+TRANS.SERVICE.AMBULANCE_TRACKING || Emergency Ambulance Booking & GPS Tracking
+TRANS.SERVICE.PATIENT_RIDE || Patient Ride & Wheelchair-Accessible Cab Booking
+TRANS.SERVICE.RIDERS || Delivery Partners & Medicine Riders
+TRANS.SERVICE.SAMPLE_COURIER || Biological Sample Courier & Temperature Log
+TRANS.SERVICE.COLD_CHAIN || Cold-Chain Transport & Refrigerated Transit
+B2B.SERVICE || Institutional & Corporate Health Solutions
+B2B.SERVICE.CORP_HEALTH || Corporate Employee Health, Annual Checks & Billing
+B2B.SERVICE.INSURERS_TPA || Insurer & TPA Network Integration
+B2B.SERVICE.NGO_PARTNERS || NGO, CSR Trusts & Community Campaign Ties
+B2B.SERVICE.DIAG_FRANCHISE || Diagnostic Franchise & Sample Collection Network
+B2B.SERVICE.INSTITUTIONAL_CAMPUS || Schools, Colleges & Hostels Health Contracts

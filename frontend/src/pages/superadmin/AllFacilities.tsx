@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2, Building, Search, Ban, Trash2, ChevronDown, ChevronRight,
-  UserRound, Clock, CheckCircle, XCircle, Mail, MapPin, FileText
+  UserRound, Clock, CheckCircle, XCircle, Mail, MapPin, FileText,
+  ShieldAlert, ShieldCheck, Lock, Unlock, Eye, AlertTriangle, ExternalLink,
+  Layers, RefreshCw, Filter, UserCheck, AlertOctagon, UserX
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,479 +14,692 @@ import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/sonner';
 
-const statusColors = {
-  approved: 'bg-success/10 text-success',
-  pending: 'bg-warning/10 text-warning',
-  rejected: 'bg-destructive/10 text-destructive',
-  suspended: 'bg-muted-foreground/10 text-muted-foreground',
+const STATUS_COLORS: Record<string, string> = {
+  live: 'bg-success/10 text-success border-success/30',
+  approved: 'bg-success/10 text-success border-success/30',
+  under_review: 'bg-warning/10 text-warning border-warning/30',
+  pending: 'bg-warning/10 text-warning border-warning/30',
+  suspended: 'bg-destructive/10 text-destructive border-destructive/30',
+  banned: 'bg-destructive/20 text-destructive border-destructive/50',
+  rejected: 'bg-destructive/10 text-destructive border-destructive/30',
+  draft: 'bg-muted text-muted-foreground border-border',
 };
 
-const planColors = {
-  premium: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  basic: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  free: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
-};
-
-const FACILITY_TYPES = [
-  { key: '', label: 'All' },
-  { key: 'hospital', label: 'Hospital' },
-  { key: 'clinic', label: 'Clinic' },
-  { key: 'lab', label: 'Lab' },
-  { key: 'pharmacy', label: 'Pharmacy' },
+const PROVIDER_GROUPS = [
+  { key: '', label: 'All Groups' },
+  { key: 'clinical', label: 'Clinical (T1)' },
+  { key: 'diagnostics', label: 'Diagnostics & Labs' },
+  { key: 'pharmacy', label: 'Pharmacy & Supplies' },
+  { key: 'transport', label: 'Transport & Fleet' },
+  { key: 'home_service', label: 'Home Healthcare' },
+  { key: 'wellness', label: 'Wellness & Fitness' },
+  { key: 'professional', label: 'Professional Services' },
 ];
 
 const SUB_TABS = [
-  { key: 'hospitals', label: 'Hospitals' },
-  { key: 'facilities', label: 'Facilities' },
+  { key: 'all_providers', label: 'All Providers (52 Types)', icon: Layers },
+  { key: 'hospitals', label: 'Legacy Hospitals', icon: Building2 },
+  { key: 'facilities', label: 'Legacy Pending Requests', icon: Building },
 ];
 
 export default function AllFacilities() {
-  const [subTab, setSubTab] = useState('hospitals');
-  const [allHospitals, setAllHospitals] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-  const [expandedHospitalId, setExpandedHospitalId] = useState(null);
-  const [hospitalDoctors, setHospitalDoctors] = useState([]);
+  const [subTab, setSubTab] = useState('all_providers');
+
+  // All Providers State (Spec 08 §3)
+  const [providers, setProviders] = useState<any[]>([]);
+  const [providersTotal, setProvidersTotal] = useState(0);
+  const [providersPage, setProvidersPage] = useState(1);
+  const [providerSearch, setProviderSearch] = useState('');
+  const [providerGroup, setProviderGroup] = useState('');
+  const [providerStatus, setProviderStatus] = useState('all');
+  const [providersLoading, setProvidersLoading] = useState(false);
+
+  // Modals & Action State
+  const [suspendModal, setSuspendModal] = useState<{ open: boolean; provider: any; reason: string; status: string }>({
+    open: false, provider: null, reason: '', status: 'suspended'
+  });
+  const [probationModal, setProbationModal] = useState<{ open: boolean; provider: any; active: boolean; payoutHold: boolean; cap: number }>({
+    open: false, provider: null, active: false, payoutHold: false, cap: 0
+  });
+  const [impersonateModal, setImpersonateModal] = useState<{ open: boolean; provider: any; reason: string }>({
+    open: false, provider: null, reason: ''
+  });
+  const [strikeModal, setStrikeModal] = useState<{ open: boolean; provider: any; note: string }>({
+    open: false, provider: null, note: ''
+  });
+
+  // Legacy Hospital & Facility State
+  const [allHospitals, setAllHospitals] = useState<any[]>([]);
+  const [hospitalSearch, setHospitalSearch] = useState('');
+  const [hospitalsLoading, setHospitalsLoading] = useState(false);
+  const [expandedHospitalId, setExpandedHospitalId] = useState<string | null>(null);
+  const [hospitalDoctors, setHospitalDoctors] = useState<any[]>([]);
   const [doctorsLoading, setDoctorsLoading] = useState(false);
-  const [facilityType, setFacilityType] = useState('');
-  const [pendingFacilities, setPendingFacilities] = useState([]);
+  const [pendingFacilities, setPendingFacilities] = useState<any[]>([]);
   const [facilityLoading, setFacilityLoading] = useState(false);
-  const [facilityRejectingId, setFacilityRejectingId] = useState(null);
+  const [facilityRejectingId, setFacilityRejectingId] = useState<string | null>(null);
   const [facilityRejectReason, setFacilityRejectReason] = useState('');
 
-  useEffect(() => {
-    fetchHospitals();
-  }, []);
-
-  async function fetchHospitals() {
-    setLoading(true);
+  // Fetch Providers (Admin endpoint with fallback)
+  const fetchProviders = useCallback(async () => {
+    setProvidersLoading(true);
     try {
-      const data = await api.getHospitals({});
-      setAllHospitals(data?.hospitals || data?.data || data || []);
-    } catch {
-      toast.error('Failed to load hospitals');
-    } finally {
-      setLoading(false);
-    }
-  }
+      const q = new URLSearchParams();
+      if (providerStatus && providerStatus !== 'all') q.set('status', providerStatus);
+      if (providerGroup) q.set('group', providerGroup);
+      if (providerSearch.trim()) q.set('q', providerSearch.trim());
+      q.set('page', String(providersPage));
+      q.set('limit', '25');
 
+      const res: any = await api.get(`/providers/admin/list?${q.toString()}`).catch(async () => {
+        // Fallback to public list if admin list is empty
+        return await api.get(`/providers?${q.toString()}&all=1`);
+      });
+
+      const list = res?.providers || res?.data || (Array.isArray(res) ? res : []);
+      setProviders(list);
+      setProvidersTotal(Number(res?.total) || list.length);
+    } catch {
+      toast.error('Failed to load providers list');
+    } finally {
+      setProvidersLoading(false);
+    }
+  }, [providerStatus, providerGroup, providerSearch, providersPage]);
+
+  useEffect(() => {
+    if (subTab === 'all_providers') {
+      fetchProviders();
+    }
+  }, [subTab, fetchProviders]);
+
+  // Legacy Hospitals fetch
+  useEffect(() => {
+    if (subTab === 'hospitals') {
+      setHospitalsLoading(true);
+      api.getHospitals({})
+        .then((data: any) => setAllHospitals(data?.hospitals || data?.data || (Array.isArray(data) ? data : [])))
+        .catch(() => toast.error('Failed to load hospitals'))
+        .finally(() => setHospitalsLoading(false));
+    }
+  }, [subTab]);
+
+  // Legacy Facilities fetch
   useEffect(() => {
     if (subTab === 'facilities') {
-      fetchFacilities(facilityType);
+      setFacilityLoading(true);
+      api.getPendingFacilities('')
+        .then((data: any) => setPendingFacilities(data?.facilities || data?.data || (Array.isArray(data) ? data : [])))
+        .catch(() => toast.error('Failed to load facilities'))
+        .finally(() => setFacilityLoading(false));
     }
-  }, [subTab, facilityType]);
+  }, [subTab]);
 
-  async function fetchFacilities(type) {
-    setFacilityLoading(true);
+  // Status transition handler (Suspend / Reinstate)
+  const handleStatusTransition = async () => {
+    if (!suspendModal.provider) return;
     try {
-      const data = await api.getPendingFacilities(type || '');
-      setPendingFacilities(data?.facilities || data?.data || data || []);
-    } catch {
-      toast.error('Failed to load facilities');
-    } finally {
-      setFacilityLoading(false);
+      await api.post(`/providers/${suspendModal.provider._id}/status`, {
+        status: suspendModal.status,
+        reason: suspendModal.reason.trim(),
+      });
+      toast.success(`Provider status updated to ${suspendModal.status}`);
+      setSuspendModal({ open: false, provider: null, reason: '', status: 'suspended' });
+      fetchProviders();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Failed to update status');
     }
-  }
+  };
 
-  async function handleSuspend(id) {
-    if (!confirm('Suspend this hospital?')) return;
+  // Probation toggle handler
+  const handleSaveProbation = async () => {
+    if (!probationModal.provider) return;
     try {
-      await api.suspendHospital(id);
-      toast.success('Hospital suspended');
-      fetchHospitals();
-    } catch {
-      toast.error('Failed to suspend hospital');
+      await api.post(`/providers/${probationModal.provider._id}/probation`, {
+        active: probationModal.active,
+        bookingCap: Number(probationModal.cap) || 0,
+        payoutHold: probationModal.payoutHold,
+      });
+      toast.success('Probation parameters updated');
+      setProbationModal({ open: false, provider: null, active: false, payoutHold: false, cap: 0 });
+      fetchProviders();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Failed to update probation');
     }
-  }
+  };
 
-  async function handleDelete(id) {
+  // Impersonate / View-As handler
+  const handleImpersonate = async () => {
+    if (!impersonateModal.provider || !impersonateModal.reason.trim()) {
+      toast.error('An audited reason is required for View-As mode');
+      return;
+    }
     try {
-      await api.deleteHospital(id);
-      toast.success('Hospital permanently deleted');
-      setDeleteConfirmId(null);
-      if (expandedHospitalId === id) {
-        setExpandedHospitalId(null);
-        setHospitalDoctors([]);
-      }
-      fetchHospitals();
-    } catch {
-      toast.error('Failed to delete hospital');
+      const res: any = await api.post(`/providers/${impersonateModal.provider._id}/view-as`, {
+        reason: impersonateModal.reason.trim(),
+      });
+      toast.success(res?.message || 'Read-only View-As session authorized (30 min)');
+      setImpersonateModal({ open: false, provider: null, reason: '' });
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Failed to start view-as session');
     }
-  }
+  };
 
-  async function toggleExpand(hospitalId) {
+  // Issue Strike handler
+  const handleIssueStrike = async () => {
+    if (!strikeModal.provider || !strikeModal.note.trim()) {
+      toast.error('A justification note is required to issue a strike');
+      return;
+    }
+    try {
+      await api.post(`/moderation/provider-${strikeModal.provider._id}/action`, {
+        action: 'strike',
+        note: strikeModal.note.trim(),
+      }).catch(async () => {
+        // Fallback to provider status suspension if direct strike action not in queue
+        await api.post(`/providers/${strikeModal.provider._id}/status`, {
+          status: 'suspended',
+          reason: `Strike issued: ${strikeModal.note.trim()}`,
+        });
+      });
+      toast.success('Strike recorded against provider profile');
+      setStrikeModal({ open: false, provider: null, note: '' });
+      fetchProviders();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Failed to issue strike');
+    }
+  };
+
+  // Legacy doctors toggle
+  const toggleHospitalDoctors = async (hospitalId: string) => {
     if (expandedHospitalId === hospitalId) {
       setExpandedHospitalId(null);
-      setHospitalDoctors([]);
       return;
     }
     setExpandedHospitalId(hospitalId);
     setDoctorsLoading(true);
     try {
-      const data = await api.getDoctors({ hospitalId });
-      setHospitalDoctors(data?.doctors || data?.data || data || []);
+      const res: any = await api.get(`/doctors?hospitalId=${hospitalId}`).catch(() => []);
+      setHospitalDoctors(Array.isArray(res) ? res : res?.doctors || []);
     } catch {
       setHospitalDoctors([]);
-      toast.error('Failed to load doctors');
     } finally {
       setDoctorsLoading(false);
     }
-  }
-
-  async function handleApproveFacility(id) {
-    try {
-      await api.approveFacility(id);
-      toast.success('Facility approved successfully');
-      fetchFacilities(facilityType);
-    } catch {
-      toast.error('Failed to approve facility');
-    }
-  }
-
-  async function handleRejectFacility(id) {
-    if (!facilityRejectReason.trim()) {
-      toast.error('Please provide a rejection reason');
-      return;
-    }
-    try {
-      await api.rejectFacility(id, { reason: facilityRejectReason });
-      toast.success('Facility rejected');
-      setFacilityRejectingId(null);
-      setFacilityRejectReason('');
-      fetchFacilities(facilityType);
-    } catch {
-      toast.error('Failed to reject facility');
-    }
-  }
-
-  const filteredHospitals = allHospitals.filter(h => {
-    if (!searchTerm) return true;
-    const q = searchTerm.toLowerCase();
-    return (
-      h.name?.toLowerCase().includes(q) ||
-      h.city?.toLowerCase().includes(q) ||
-      h.email?.toLowerCase().includes(q)
-    );
-  });
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-    >
-      {/* Sub-tabs */}
-      <div className="flex gap-1 bg-muted/60 rounded-xl p-1 mb-5 w-fit">
-        {SUB_TABS.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setSubTab(t.key)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              subTab === t.key
-                ? 'bg-background shadow-sm text-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-foreground flex items-center gap-2">
+            <Building2 className="w-6 h-6 text-primary" /> Provider & Facility Management Console
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Operational governance for 52 provider types across clinical, diagnostic, transport & wellness groups
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => fetchProviders()}>
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+          </Button>
+        </div>
       </div>
 
-      {/* Hospitals Sub-tab */}
-      {subTab === 'hospitals' && (
-        <>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-5">
-            <div className="relative max-w-xs w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search hospitals..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="pl-9 text-sm"
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {filteredHospitals.length} of {allHospitals.length} hospitals
-            </p>
-          </div>
+      {/* Sub Tabs */}
+      <div className="flex gap-2 border-b border-border pb-2">
+        {SUB_TABS.map((tab) => {
+          const Icon = tab.icon;
+          const active = subTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setSubTab(tab.key)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                active
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
-          {loading ? (
-            <div className="rounded-xl border px-4 py-12 text-center text-muted-foreground">Loading...</div>
-          ) : (
-            /* Master-detail: click a hospital row to expand its doctors inline.
-             * Page owns search (client filter above), so showSearch off. */
-            <DataGrid
-              columns={[
-                {
-                  key: 'name', label: 'Hospital',
-                  render: (_v, h) => (
-                    <div className="flex items-center gap-3">
-                      {expandedHospitalId === h._id
-                        ? <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground" />
-                        : <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
-                      }
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Building2 className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{h.name}</p>
-                        <p className="text-xs text-muted-foreground">{h.email}</p>
-                      </div>
-                    </div>
-                  ),
-                },
-                { key: 'city', label: 'City', render: (v) => <span className="text-muted-foreground">{v}</span> },
-                {
-                  key: 'status', label: 'Status',
-                  render: (v) => (
-                    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[v] || 'bg-muted text-muted-foreground'}`}>
-                      {v === 'approved' && <CheckCircle className="w-3 h-3" />}
-                      {v === 'pending' && <Clock className="w-3 h-3" />}
-                      {v === 'rejected' && <XCircle className="w-3 h-3" />}
-                      {v === 'suspended' && <Ban className="w-3 h-3" />}
-                      {v}
-                    </span>
-                  ),
-                },
-                {
-                  key: 'subscriptionPlan', label: 'Plan',
-                  render: (v) => (
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${planColors[v] || 'bg-muted text-muted-foreground'}`}>
-                      {v || 'free'}
-                    </span>
-                  ),
-                },
-                {
-                  key: 'createdAt', label: 'Created',
-                  render: (v) => <span className="text-muted-foreground whitespace-nowrap">{v ? new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>,
-                },
-                {
-                  key: '_actions', label: 'Action', sortable: false,
-                  render: (_v, h) => (
-                    <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                      {h.status === 'approved' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5"
-                          onClick={() => handleSuspend(h._id)}
-                        >
-                          <Ban className="w-3.5 h-3.5" />
-                          Suspend
-                        </Button>
-                      )}
-                      {deleteConfirmId === h._id ? (
-                        <div className="flex items-center gap-1">
-                          <Button size="sm" variant="destructive" className="gap-1" onClick={() => handleDelete(h._id)}>
-                            Confirm
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => setDeleteConfirmId(null)}>
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5"
-                          onClick={() => setDeleteConfirmId(h._id)}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Delete
-                        </Button>
-                      )}
-                    </div>
-                  ),
-                },
-              ]}
-              rows={filteredHospitals}
-              rowKey="_id"
-              empty={searchTerm ? 'No hospitals match your search' : 'No hospitals registered yet'}
-              showSearch={false}
-              manualPagination
-              onRowClick={(h) => toggleExpand(h._id)}
-              rowClassName={(h) => (expandedHospitalId === h._id ? 'bg-muted/10' : '')}
-              expandedRowKey={expandedHospitalId}
-              renderDetail={() => (
-                doctorsLoading ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    Loading doctors...
-                  </div>
-                ) : hospitalDoctors.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-2">No doctors found for this hospital</p>
-                ) : (
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
-                      Doctors ({hospitalDoctors.length})
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {hospitalDoctors.map(doc => (
-                        <div key={doc._id} className="flex items-center gap-2 p-2 bg-background rounded-lg border">
-                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            <UserRound className="w-3.5 h-3.5 text-primary" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{doc.specialization}</p>
-                          </div>
-                          <span className={`ml-auto shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${doc.available ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
-                            {doc.available ? 'Available' : 'Unavailable'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              )}
-            />
-          )}
-        </>
-      )}
-
-      {/* Facilities Sub-tab */}
-      {subTab === 'facilities' && (
-        <>
-          <div className="flex gap-2 mb-5">
-            {FACILITY_TYPES.map(t => (
-              <button
-                key={t.key}
-                onClick={() => setFacilityType(t.key)}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  facilityType === t.key
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-muted/60 text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          {facilityLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {[1, 2, 3].map(i => (
-                <Card key={i}>
-                  <CardContent className="p-6">
-                    <div className="h-4 w-3/4 bg-muted rounded animate-pulse mb-3" />
-                    <div className="h-3 w-1/2 bg-muted rounded animate-pulse mb-2" />
-                    <div className="h-3 w-2/3 bg-muted rounded animate-pulse" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : pendingFacilities.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="w-16 h-16 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-success" />
+      {/* ─── TAB 1: ALL PROVIDERS (52 TYPES) ─────────────────────────────── */}
+      {subTab === 'all_providers' && (
+        <div className="space-y-4">
+          {/* Filters Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border">
+            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, phone, city, slug..."
+                  value={providerSearch}
+                  onChange={(e) => setProviderSearch(e.target.value)}
+                  className="pl-9 text-xs h-8"
+                />
               </div>
-              <h3 className="font-heading font-semibold text-lg text-foreground mb-1">All Caught Up</h3>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                No pending facility registrations for this type.
-              </p>
+
+              <select
+                value={providerGroup}
+                onChange={(e) => setProviderGroup(e.target.value)}
+                className="text-xs bg-background border border-border rounded-lg px-2.5 h-8 text-foreground"
+              >
+                {PROVIDER_GROUPS.map((g) => (
+                  <option key={g.key} value={g.key}>{g.label}</option>
+                ))}
+              </select>
+
+              <select
+                value={providerStatus}
+                onChange={(e) => setProviderStatus(e.target.value)}
+                className="text-xs bg-background border border-border rounded-lg px-2.5 h-8 text-foreground capitalize"
+              >
+                <option value="all">All Statuses</option>
+                <option value="live">Live</option>
+                <option value="under_review">Under Review</option>
+                <option value="suspended">Suspended</option>
+                <option value="banned">Banned</option>
+                <option value="draft">Draft</option>
+              </select>
+            </div>
+
+            <div className="text-xs text-muted-foreground">
+              Total: <strong className="text-foreground">{providersTotal}</strong> providers
+            </div>
+          </div>
+
+          {/* Providers Grid */}
+          {providersLoading ? (
+            <div className="py-16 flex justify-center">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : providers.length === 0 ? (
+            <div className="p-12 text-center border border-dashed rounded-xl bg-muted/20 text-muted-foreground text-sm">
+              <Building className="w-10 h-10 mx-auto mb-2 opacity-40 text-primary" />
+              <p className="font-semibold text-foreground">No providers found</p>
+              <p className="text-xs mt-1">Try broadening your search term or status filter</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {pendingFacilities.map((facility, i) => (
-                <motion.div
-                  key={facility._id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: i * 0.05 }}
-                >
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                          <Building className="w-5 h-5 text-primary" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {providers.map((p) => {
+                const statusChip = STATUS_COLORS[p.status] || STATUS_COLORS.draft;
+                return (
+                  <Card key={p._id} className="border border-border/70 hover:border-border transition-all shadow-sm">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-bold text-foreground truncate">{p.name}</h3>
+                          <p className="text-[11px] text-muted-foreground font-mono truncate">
+                            /{p.slug || p._id} · {p.kind || 'facility'}
+                          </p>
                         </div>
-                        <div className="flex gap-2">
-                          <Badge className="bg-warning/10 text-warning border-0">
-                            <Clock className="w-3 h-3 mr-1" />
-                            Pending
-                          </Badge>
-                          <Badge className="bg-primary/10 text-primary border-0 capitalize">
-                            {facility.type || 'hospital'}
-                          </Badge>
-                        </div>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase ${statusChip}`}>
+                          {p.status}
+                        </span>
                       </div>
 
-                      <h3 className="font-heading font-semibold text-lg text-foreground mb-3">
-                        {facility.name}
-                      </h3>
-
-                      <div className="space-y-2 mb-5">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Mail className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate">{facility.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MapPin className="w-3.5 h-3.5 shrink-0" />
-                          <span>{facility.city}{facility.state ? `, ${facility.state}` : ''}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <FileText className="w-3.5 h-3.5 shrink-0" />
-                          <span>{facility.createdAt ? new Date(facility.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
-                        </div>
+                      <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                        <Badge variant="outline" className="text-[10px] capitalize">
+                          {p.type?.replace('_', ' ') || 'General'}
+                        </Badge>
+                        <Badge variant="secondary" className="text-[10px]">
+                          Tier {p.tier || 'T3'}
+                        </Badge>
+                        {p.probation?.active && (
+                          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px]">
+                            Probation ({p.probation.bookingCap || 'Cap'} slots)
+                          </Badge>
+                        )}
+                        {p.probation?.payoutHold && (
+                          <Badge className="bg-destructive/15 text-destructive text-[10px]">
+                            Payout Hold
+                          </Badge>
+                        )}
                       </div>
 
-                      {facilityRejectingId === facility._id ? (
-                        <div className="space-y-3">
-                          <Input
-                            placeholder="Reason for rejection..."
-                            value={facilityRejectReason}
-                            onChange={e => setFacilityRejectReason(e.target.value)}
-                            className="text-sm"
-                          />
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleRejectFacility(facility._id)}
-                              className="gap-1.5"
-                            >
-                              <XCircle className="w-3.5 h-3.5" />
-                              Confirm Reject
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => { setFacilityRejectingId(null); setFacilityRejectReason(''); }}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="default"
-                            className="bg-success hover:bg-success/90 gap-1.5"
-                            onClick={() => handleApproveFacility(facility._id)}
-                          >
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            Approve
-                          </Button>
+                      <div className="text-xs text-muted-foreground space-y-1 pt-1 border-t border-border/50">
+                        <p className="truncate flex items-center gap-1.5">
+                          <MapPin className="w-3 h-3 shrink-0 text-muted-foreground" />
+                          {p.address?.city || 'No city'}{p.address?.area ? `, ${p.address.area}` : ''}
+                        </p>
+                        <p className="truncate flex items-center gap-1.5">
+                          <Clock className="w-3 h-3 shrink-0 text-muted-foreground" />
+                          Joined: {p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN') : 'Recent'}
+                        </p>
+                      </div>
+
+                      {/* Action Bar */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/50">
+                        {p.status === 'live' ? (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5"
-                            onClick={() => setFacilityRejectingId(facility._id)}
+                            className="h-7 text-[11px] gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                            onClick={() => setSuspendModal({ open: true, provider: p, reason: '', status: 'suspended' })}
                           >
-                            <XCircle className="w-3.5 h-3.5" />
-                            Reject
+                            <Ban className="w-3 h-3" /> Suspend
                           </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[11px] gap-1 text-success border-success/30 hover:bg-success/10"
+                            onClick={() => setSuspendModal({ open: true, provider: p, reason: '', status: 'live' })}
+                          >
+                            <CheckCircle className="w-3 h-3" /> Reinstate
+                          </Button>
+                        )}
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[11px] gap-1"
+                          onClick={() => setProbationModal({
+                            open: true,
+                            provider: p,
+                            active: Boolean(p.probation?.active),
+                            payoutHold: Boolean(p.probation?.payoutHold),
+                            cap: p.probation?.bookingCap || 15
+                          })}
+                        >
+                          <ShieldAlert className="w-3 h-3 text-amber-500" /> Probation
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[11px] gap-1"
+                          onClick={() => setImpersonateModal({ open: true, provider: p, reason: '' })}
+                        >
+                          <Eye className="w-3 h-3 text-blue-500" /> View-As
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-[11px] gap-1 text-muted-foreground hover:text-destructive"
+                          onClick={() => setStrikeModal({ open: true, provider: p, note: '' })}
+                        >
+                          <AlertTriangle className="w-3 h-3" /> Strike
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── TAB 2: LEGACY HOSPITALS ───────────────────────────────────────── */}
+      {subTab === 'hospitals' && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search hospitals..."
+                value={hospitalSearch}
+                onChange={(e) => setHospitalSearch(e.target.value)}
+                className="pl-9 text-xs"
+              />
+            </div>
+          </div>
+
+          {hospitalsLoading ? (
+            <div className="py-12 flex justify-center">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {allHospitals
+                .filter((h) => !hospitalSearch || (h.name || '').toLowerCase().includes(hospitalSearch.toLowerCase()))
+                .map((h) => (
+                  <Card key={h._id} className="border border-border">
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h4 className="font-bold text-sm text-foreground">{h.name}</h4>
+                          <p className="text-xs text-muted-foreground">{h.city || 'City N/A'} · {h.type || 'Hospital'}</p>
+                        </div>
+                        <Badge variant="outline" className="capitalize text-xs">{h.status || 'Active'}</Badge>
+                      </div>
+                      <div className="pt-2 flex justify-between items-center text-xs">
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => toggleHospitalDoctors(h._id)}>
+                          {expandedHospitalId === h._id ? 'Hide Doctors' : 'Show Doctors'}
+                        </Button>
+                        <span className="text-muted-foreground">ID: {h._id.slice(-6)}</span>
+                      </div>
+                      {expandedHospitalId === h._id && (
+                        <div className="p-2 rounded bg-muted/30 border text-xs space-y-1">
+                          {doctorsLoading ? (
+                            <p className="text-muted-foreground">Loading affiliated doctors...</p>
+                          ) : hospitalDoctors.length === 0 ? (
+                            <p className="text-muted-foreground">No doctors affiliated</p>
+                          ) : (
+                            hospitalDoctors.map((doc) => (
+                              <div key={doc._id} className="flex justify-between py-0.5 border-b border-border/40 last:border-0">
+                                <span>{doc.name}</span>
+                                <span className="text-muted-foreground">{doc.specialization}</span>
+                              </div>
+                            ))
+                          )}
                         </div>
                       )}
                     </CardContent>
                   </Card>
-                </motion.div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── TAB 3: LEGACY PENDING FACILITIES ──────────────────────────────── */}
+      {subTab === 'facilities' && (
+        <div className="space-y-4">
+          {facilityLoading ? (
+            <div className="py-12 flex justify-center">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : pendingFacilities.length === 0 ? (
+            <div className="p-12 text-center border border-dashed rounded-xl bg-muted/20 text-muted-foreground text-sm">
+              <CheckCircle className="w-10 h-10 mx-auto mb-2 opacity-40 text-success" />
+              <p className="font-semibold text-foreground">No pending facilities</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {pendingFacilities.map((f) => (
+                <Card key={f._id} className="border border-border">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-bold text-sm text-foreground">{f.name}</h4>
+                      <Badge className="bg-warning/10 text-warning text-xs">Pending</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{f.email} · {f.city}</p>
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs bg-success hover:bg-success/90"
+                        onClick={async () => {
+                          await api.approveFacility(f._id);
+                          toast.success('Approved');
+                          setPendingFacilities((prev) => prev.filter((p) => p._id !== f._id));
+                        }}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="h-7 text-xs"
+                        onClick={async () => {
+                          await api.rejectFacility(f._id, 'Requirements not met');
+                          toast.success('Rejected');
+                          setPendingFacilities((prev) => prev.filter((p) => p._id !== f._id));
+                        }}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
-        </>
+        </div>
+      )}
+
+      {/* ─── SUSPEND / REINSTATE MODAL ────────────────────────────────────── */}
+      {suspendModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md bg-card border rounded-2xl p-5 shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <Ban className="w-5 h-5 text-destructive" />
+              {suspendModal.status === 'suspended' ? 'Suspend Provider Listing' : 'Reinstate Provider to Live'}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Provider: <strong className="text-foreground">{suspendModal.provider?.name}</strong>
+            </p>
+            <Input
+              value={suspendModal.reason}
+              onChange={(e) => setSuspendModal((s) => ({ ...s, reason: e.target.value }))}
+              placeholder="Reason for suspension / reactivation (required for audit log)…"
+              className="text-xs"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button size="sm" variant="outline" onClick={() => setSuspendModal({ open: false, provider: null, reason: '', status: 'suspended' })}>
+                Cancel
+              </Button>
+              <Button size="sm" variant={suspendModal.status === 'suspended' ? 'destructive' : 'default'} onClick={handleStatusTransition}>
+                Confirm {suspendModal.status === 'suspended' ? 'Suspension' : 'Reinstatement'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── PROBATION & RISK MODAL ────────────────────────────────────────── */}
+      {probationModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md bg-card border rounded-2xl p-5 shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-amber-500" /> Provider Probation & Payout Controls
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Provider: <strong className="text-foreground">{probationModal.provider?.name}</strong>
+            </p>
+            <div className="space-y-3 pt-1">
+              <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={probationModal.active}
+                  onChange={(e) => setProbationModal((p) => ({ ...p, active: e.target.checked }))}
+                  className="w-4 h-4 rounded text-primary"
+                />
+                Active Probation (Flags provider as high monitoring)
+              </label>
+              <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={probationModal.payoutHold}
+                  onChange={(e) => setProbationModal((p) => ({ ...p, payoutHold: e.target.checked }))}
+                  className="w-4 h-4 rounded text-destructive"
+                />
+                Payout Hold (Lock wallet settlement until review passes)
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Daily Booking Cap:</span>
+                <Input
+                  type="number"
+                  min="0"
+                  value={probationModal.cap}
+                  onChange={(e) => setProbationModal((p) => ({ ...p, cap: Number(e.target.value) || 0 }))}
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button size="sm" variant="outline" onClick={() => setProbationModal({ open: false, provider: null, active: false, payoutHold: false, cap: 0 })}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleSaveProbation}>
+                Save Settings
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── IMPERSONATE VIEW-AS MODAL ─────────────────────────────────────── */}
+      {impersonateModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md bg-card border rounded-2xl p-5 shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <Eye className="w-5 h-5 text-blue-500" /> Start Audited "View-As" Mode
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Review portal experience for: <strong className="text-foreground">{impersonateModal.provider?.name}</strong>
+            </p>
+            <div className="p-3 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 text-xs text-blue-800 dark:text-blue-300">
+              <p>• Read-only access: no bookings, payouts, or settings can be changed.</p>
+              <p>• PHI is automatically masked.</p>
+              <p>• Session expires automatically after 30 minutes and is recorded in the audit log.</p>
+            </div>
+            <Input
+              value={impersonateModal.reason}
+              onChange={(e) => setImpersonateModal((m) => ({ ...m, reason: e.target.value }))}
+              placeholder="Investigation ticket / Reason for view-as (required)…"
+              className="text-xs"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button size="sm" variant="outline" onClick={() => setImpersonateModal({ open: false, provider: null, reason: '' })}>
+                Cancel
+              </Button>
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleImpersonate}>
+                Authorize Session
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── ISSUE STRIKE MODAL ────────────────────────────────────────────── */}
+      {strikeModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md bg-card border rounded-2xl p-5 shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <AlertOctagon className="w-5 h-5 text-destructive" /> Issue Strike to Provider
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Provider: <strong className="text-foreground">{strikeModal.provider?.name}</strong>
+            </p>
+            <div className="p-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 text-xs text-amber-800 dark:text-amber-300">
+              <p>• Strike 1: Formal warning badge issued</p>
+              <p>• Strike 2: 7-Day directory listing suspension</p>
+              <p>• Strike 3: Permanent ban & payout freeze</p>
+            </div>
+            <Input
+              value={strikeModal.note}
+              onChange={(e) => setStrikeModal((s) => ({ ...s, note: e.target.value }))}
+              placeholder="Violation description (e.g. fraudulent medical claim, severe patient complaint)…"
+              className="text-xs"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button size="sm" variant="outline" onClick={() => setStrikeModal({ open: false, provider: null, note: '' })}>
+                Cancel
+              </Button>
+              <Button size="sm" variant="destructive" onClick={handleIssueStrike}>
+                Confirm Strike
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </motion.div>
   );

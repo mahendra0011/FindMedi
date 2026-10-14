@@ -40,8 +40,8 @@ for (const c of testCats) {
 const FALLBACK_MAP = {
   'blood test': 'TEST.BLOOD_BASICS',
   'blood tests': 'TEST.BLOOD_BASICS',
-  'urine/stool': 'TEST.STOOL_URINE',
-  'urine/stool tests': 'TEST.STOOL_URINE',
+  'urine/stool': 'TEST.KIDNEY',
+  'urine/stool tests': 'TEST.KIDNEY',
   'basic screening': 'TEST.BLOOD_BASICS',
   'cardiac basic': 'TEST.LIPID_HEART',
   'basic imaging': 'TEST.IMAGING_BASIC',
@@ -53,12 +53,12 @@ const FALLBACK_MAP = {
   'microbiology/culture tests': 'TEST.MICROBIOLOGY',
   'serology/infectious disease panel': 'TEST.INFECTION_SEROLOGY',
   'fertility & reproductive hormone tests': 'TEST.THYROID_HORMONES',
-  'pulmonology/respiratory tests': 'TEST.PULMONOLOGY',
+  'pulmonology/respiratory tests': 'TEST.NEURO_CARDIAC_FUNC',
   'arthritis/autoimmune panel': 'TEST.AUTOIMMUNE',
   'prenatal/maternity tests': 'TEST.WOMENS_HEALTH',
-  'eye (ophthalmology) tests': 'TEST.OTHER',
-  'ent tests': 'TEST.OTHER',
-  'dental tests': 'TEST.OTHER',
+  'eye (ophthalmology) tests': 'TEST.NEURO_CARDIAC_FUNC',
+  'ent tests': 'TEST.NEURO_CARDIAC_FUNC',
+  'dental tests': 'TEST.IMAGING_BASIC',
   'toxicology tests': 'TEST.TOXICOLOGY',
   'preventive health packages': 'TEST.HEALTH_PACKAGES',
   'health package': 'TEST.HEALTH_PACKAGES',
@@ -68,7 +68,6 @@ const FALLBACK_MAP = {
   'cardiac': 'TEST.LIPID_HEART',
   'hormone': 'TEST.THYROID_HORMONES',
   'vitamin': 'TEST.VITAMINS_MINERALS',
-  'other': 'TEST.OTHER',
 };
 
 const tests = await Test.find({}).lean();

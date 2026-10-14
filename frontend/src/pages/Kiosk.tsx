@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import FeedbackPrompt from '@/components/feedback/FeedbackPrompt';
 
 /**
  * File 15 §15.3 — self-service kiosk (touch, isolated bundle via route).
@@ -27,6 +28,10 @@ export default function Kiosk() {
   const [reports, setReports] = useState<any[]>([]);
   const [tokenForm, setTokenForm] = useState({ token: '', department: 'General' });
   const [tokenInfo, setTokenInfo] = useState<any>(null);
+  // T5: feedback prompt on the post-check-in screen. POST /feedback requires a
+  // session (shared receptionist login on this device) — probe /auth/me so an
+  // anonymous kiosk never shows a prompt that would 401 on submit.
+  const [canFeedback, setCanFeedback] = useState(false);
 
   const reset = () => {
     setStep('home');
@@ -38,6 +43,7 @@ export default function Kiosk() {
     setTokenInfo(null);
     setResult(null);
     setError('');
+    setCanFeedback(false);
     setIdle(IDLE_SECS);
   };
 
@@ -79,6 +85,10 @@ export default function Kiosk() {
       }
       setResult(body);
       setStep('done');
+      // T5: offer the NPS prompt only when this device has a live session.
+      fetch('/api/auth/me', { credentials: 'include' })
+        .then((r) => setCanFeedback(r.ok))
+        .catch(() => setCanFeedback(false));
     } catch {
       setError('Network error — please see reception.');
     }
@@ -244,6 +254,18 @@ export default function Kiosk() {
                   <p className="text-slate-300">Position {result?.queuePosition} · ~{result?.estimatedWaitTime} min</p>
                   {result?.unifiedDisplay && <p className="text-slate-400 text-sm">Unified: {result.unifiedDisplay}</p>}
                 </>
+              ) : null}
+              {canFeedback && result?.tokenNumber ? (
+                <div className="mt-4 text-left">
+                  <FeedbackPrompt
+                    inline
+                    context="visit"
+                    department={form.department}
+                    title="How likely are you to recommend us?"
+                    onDone={() => setCanFeedback(false)}
+                    onSkip={() => setCanFeedback(false)}
+                  />
+                </div>
               ) : null}
               {result?.registeredId ? (
                 <p className="text-slate-300">Registered (provisional).<br />Please complete KYC at reception.</p>

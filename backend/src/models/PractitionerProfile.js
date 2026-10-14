@@ -17,8 +17,10 @@ const practitionerProfileSchema = new mongoose.Schema({
 
   roleType: {
     // 7.md:40 (AYUSH modules) + 7.md:42/103 (phlebotomist assignment): the two
-    // bookable practitioner kinds the original nine could not model. Anything
-    // beyond these needs its own spec row, not a drive-by enum push.
+    // bookable practitioner kinds the original nine could not model. The
+    // allied-health kinds below came with the provider-type catalogue
+    // expansion and are pinned by categoryCatalogue.spec; anything further
+    // needs its own spec row, not a drive-by enum push.
     type: String,
     enum: [
       'doctor', 'dentist', 'physio', 'dietitian', 'nurse', 'counsellor',

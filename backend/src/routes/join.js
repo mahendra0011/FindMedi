@@ -4,11 +4,19 @@ import { createHash } from 'node:crypto';
 import ProviderApplication from '../models/ProviderApplication.js';
 import ProviderDocument from '../models/ProviderDocument.js';
 import ProviderTypeConfig from '../models/ProviderTypeConfig.js';
+import Provider from '../models/Provider.js';
+import User from '../models/User.js';
+import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
+import logger from '../config/logger.js';
 import { generalLimiter } from '../middleware/rateLimit.js';
 import { validateFileContent, scanBufferForMalware } from '../middleware/upload.js';
 import { saveApplicationDocument } from '../services/applicationDocumentStore.js';
+import { runAutoChecks, hashIp } from '../lib/applicationAutoChecks.js';
+import { buildActivationChecklist } from '../lib/activationChecklist.js';
+import { recordPolicyAcceptance } from '../lib/policyAcceptance.js';
+import { encryptJoinDraftStep, decryptJoinDraftStep } from '../utils/phiFields.js';
 import {
   validate, createApplicationSchema, updateApplicationDraftSchema, joinDocumentSchema,
 } from '../utils/validate.js';
@@ -83,6 +91,21 @@ async function loadOwnApplication(req, res) {
 }
 
 const activeConfig = (typeKey) => ProviderTypeConfig.findOne({ typeKey, isActive: true });
+
+// P2-9: the applicant reads their own draft secrets back as plaintext (the
+// wizard re-fills its form from GET /:id and PATCH's response); the HMAC
+// `phiIndexes` are server-side and leave with the response.
+const applicantView = (application) => {
+  const app = typeof application.toObject === 'function'
+    ? application.toObject()
+    : { ...application };
+  if (app.draft) {
+    app.draft = { ...app.draft, stepData: decryptJoinDraftStep(app.draft.stepData ?? {}) };
+  }
+  delete app.phiIndexes;
+  return app;
+};
+
 const configuredDocKeys = (config) => [
   ...(config?.requiredDocs ?? []),
   ...(config?.optionalDocs ?? []),
@@ -181,7 +204,30 @@ router.get('/:id', async (req, res) => {
     const documents = await ProviderDocument.find({ applicationId: application._id })
       .select('docType status version expiryDate rejectionReason updatedAt')
       .lean();
-    return res.json({ application, documents });
+    return res.json({ application: applicantView(application), documents });
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+});
+
+// authz: self
+//
+// 2.md 7 activation checklist — the six items between "approved" and "fully
+// live", read-only and computed from data the applicant already saved plus the
+// two reviewer-stamped flags on the listing. Same ownership rule as every
+// other join read: a foreign id answers 404.
+router.get('/:id/activation', requireObjectId, async (req, res) => {
+  try {
+    const application = await loadOwnApplication(req, res);
+    if (!application) return null;
+    const [config, user, provider] = await Promise.all([
+      activeConfig(application.typeKey),
+      User.findById(application.applicantUserId).select('twoFactorEnabled').lean(),
+      application.providerId
+        ? Provider.findById(application.providerId).select('onboarding status').lean()
+        : Promise.resolve(null),
+    ]);
+    return res.json(buildActivationChecklist({ application, user, provider, config }));
   } catch (err) {
     return res.status(400).json({ message: err.message });
   }
@@ -208,9 +254,23 @@ router.patch('/:id', requireObjectId, validate(updateApplicationDraftSchema), as
       ...(application.draft?.stepData ?? {}),
       ...incoming,
     };
-    application.draft = { ...(application.draft ?? {}), stepData };
+    // P2-9: tax + payout secrets in the draft are encrypted at rest here —
+    // routes/join is the write layer — and the duplicate scans match their
+    // blind indexes in `phiIndexes` instead of the ciphertext. A masked echo
+    // (`****1234`) or an untouched step keeps the stored value.
+    const sealed = encryptJoinDraftStep(
+      stepData,
+      application.draft?.stepData ?? {},
+      {
+        pan: application.phiIndexes?.pan ?? null,
+        gstin: application.phiIndexes?.gstin ?? null,
+        registration_number: application.phiIndexes?.registration_number ?? null,
+      },
+    );
+    application.draft = { ...(application.draft ?? {}), stepData: sealed.stepData };
+    application.phiIndexes = sealed.phiIndexes;
     await application.save();
-    return res.json({ application });
+    return res.json({ application: applicantView(application) });
   } catch (err) {
     return res.status(400).json({ message: err.message });
   }
@@ -230,6 +290,22 @@ router.post('/:id/submit', requireObjectId, async (req, res) => {
       return res.status(409).json({ message: `Application is ${application.status} and cannot be submitted` });
     }
 
+    // 2.md 10 — submit is an ATTESTATION: it pins a policy-acceptance row
+    // (user, template, version, IP/UA) and hands the row to human review, so
+    // the route re-reads the applicant's OTP-verification state instead of
+    // trusting the token alone. `protect` already refuses unverified sessions
+    // globally; this is the JOIN-specific answer the wizard renders
+    // (`code` + `requiresVerification`), and it holds even if middleware
+    // ordering ever changes.
+    const applicant = await User.findById(application.applicantUserId).select('isVerified').lean();
+    if (!applicant?.isVerified) {
+      return res.status(403).json({
+        message: 'Verify your account with the OTP we emailed you before submitting',
+        code: 'JOIN_UNVERIFIED',
+        requiresVerification: true,
+      });
+    }
+
     const config = await activeConfig(application.typeKey);
     if (!config) return res.status(409).json({ message: 'The configuration for this provider type is unavailable' });
 
@@ -244,6 +320,21 @@ router.post('/:id/submit', requireObjectId, async (req, res) => {
     }
 
     const resubmitting = application.status === 'needs_info';
+
+    // 2.md 11 anti-fraud screen. Fail-soft by design (a query error becomes an
+    // `error` check, never a 500 on submit), runs on every submit including
+    // resubmits so a corrected draft is re-screened, and is STORED not acted on
+    // beyond one tightening: a conflict verdict forces the second approver so a
+    // duplicate identity can never be waved through by a single reviewer.
+    // The submit IP is hashed in BEFORE the screen so ip_cluster can compare
+    // this attempt against the in-flight rows (raw IP stays in the audit row).
+    application.submitIpHash = hashIp(req.ip);
+    const autoChecks = await runAutoChecks({ application });
+    application.autoChecks = autoChecks;
+    if (autoChecks.forceTwoPerson && !application.twoPersonApproval) {
+      application.twoPersonApproval = true;
+    }
+
     application.status = resubmitting ? 'resubmitted' : 'submitted';
     application.submittedAt = new Date();
     if (resubmitting) {
@@ -254,13 +345,66 @@ router.post('/:id/submit', requireObjectId, async (req, res) => {
     }
     await application.save();
 
+    // 2.md 10 — versioned acceptance of the group's provider agreement, the
+    // exact template the wizard's agreement step showed (`tmpl_${group}` off
+    // the config). Recorded at submit, because that is the moment the
+    // applicant attests; the row pins (user, template, version, timestamp,
+    // IP/UA) so a later version bump re-prompts and records again (see
+    // docs/legal/ACCEPTANCE-LOG.md). Fail-soft like the auto-checks: the
+    // submission above already committed, so a ledger outage must not 400 it
+    // — and the helper is idempotent per (user, template, version), so a
+    // resubmit never duplicates the row.
+    try {
+      await recordPolicyAcceptance({
+        userId: application.applicantUserId,
+        providerId: application.providerId ?? null,
+        templateId: config.agreementTemplateId ?? `tmpl_${config.group}`,
+        templateVersion: `v${config.version ?? 1}`,
+        context: 'provider_agreement',
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+    } catch (err) {
+      logger.warn(`join submit: policy acceptance not recorded app=${application._id}: ${err.message}`);
+    }
+
     await auditLog('submit_provider_application', req.user._id ?? req.user.id, {
       applicationId: String(application._id),
       typeKey: application.typeKey,
       status: application.status,
+      autoCheckVerdict: autoChecks.verdict,
       ip: req.ip,
       userAgent: req.get('user-agent'),
     });
+
+    // 2.md 14 — the in-app pings the flow owes someone: a PII-free receipt to
+    // the applicant on every submit (the SLA starts here), and on a resubmit a
+    // heads-up to whoever currently holds the row (last reviewerAssignments
+    // line) so a corrected draft does not sit behind a stale claim. Fail-soft
+    // like the decision notifications in adminApplications — a notification
+    // outage must not 400 a submission that already committed.
+    await Notification.create({
+      userId: String(application.applicantUserId),
+      title: resubmitting ? 'Application updated' : 'Application submitted',
+      message: resubmitting
+        ? 'Your updated provider application was received and is back in the review queue.'
+        : 'We received your provider application. Track its progress any time from your applications list.',
+      type: 'system',
+      referenceId: String(application._id),
+    }).catch(() => {});
+    if (resubmitting) {
+      const assignments = Array.isArray(application.reviewerAssignments) ? application.reviewerAssignments : [];
+      const holder = assignments[assignments.length - 1];
+      if (holder && String(holder.reviewerId) !== String(application.applicantUserId)) {
+        await Notification.create({
+          userId: String(holder.reviewerId),
+          title: 'Applicant resubmitted',
+          message: 'An application in your review queue was updated by the applicant and is ready for a fresh look.',
+          type: 'system',
+          referenceId: String(application._id),
+        }).catch(() => {});
+      }
+    }
     return res.json({ application });
   } catch (err) {
     return res.status(400).json({ message: err.message });

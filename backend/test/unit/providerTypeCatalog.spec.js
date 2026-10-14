@@ -18,8 +18,6 @@ describe('providerTypeCatalog', () => {
       'blood_bank', 'ambulance_operator',
       'doctor', 'dentist', 'physiotherapist', 'dietitian', 'home_nurse', 'counsellor',
       'psychiatrist', 'ayush_practitioner', 'speech_therapist', 'phlebotomist',
-      'occupational_therapist', 'prosthetist_orthotist', 'lactation_consultant', 'doula',
-      'audiologist', 'acupuncturist',
       'yoga_studio', 'gym', 'wellness_centre', 'sports_academy', 'personal_trainer',
       'equipment_rental', 'health_food_store', 'supplement_store', 'skincare_brand',
       'medical_device_seller',
@@ -30,7 +28,7 @@ describe('providerTypeCatalog', () => {
     ];
     const missing = required.filter((key) => !TYPE_KEYS.includes(key));
     expect(missing).toEqual([]);
-    expect(TYPE_KEYS.length).toBeGreaterThanOrEqual(40);
+    expect(TYPE_KEYS.length).toBe(46);
   });
 
   it('keeps the legacy typeKeys the old JoinPlatform already used', () => {
@@ -107,6 +105,6 @@ describe('providerTypeCatalog', () => {
       'clinical', 'commerce', 'community', 'home_service', 'professional', 'transport', 'wellness',
     ]);
     for (const group of groups) expect(group.count).toBe(group.types.length);
-    expect(groups.find((group) => group.group === 'clinical').count).toBe(29);
+    expect(groups.find((group) => group.group === 'clinical').count).toBe(23);
   });
 });

@@ -13,7 +13,7 @@ import { userFacingError } from '@/lib/errorCopy';
  * Props:
  * - open: boolean
  * - onOpenChange: (open) => void
- * - entityType: 'doctor' | 'hospital' | 'clinic' | 'lab' | 'pharmacy' | 'technician'
+ * - entityType: 'doctor' | 'hospital' | 'clinic' | 'lab' | 'pharmacy'
  * - entityId: string (doctorId or hospitalId)
  * - entityName: string (name shown in dialog)
  * - onReviewSubmitted: (review) => void (callback after successful submission)

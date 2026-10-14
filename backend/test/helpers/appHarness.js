@@ -128,12 +128,15 @@ export async function mountApp(name, models = {}, options = {}) {
   // stub) reads the account's 2FA state on guarded routes. The harness user
   // has no 2FA, so step-up SKIPS by design and each spec still tests its own
   // feature. A spec modelling a specific user overrides this (registered
-  // below, so it wins).
+  // below, so it wins). `isVerified: true` because verification (email OTP) is
+  // an account precondition — routes that gate on it (e.g. join submit's
+  // JOIN_UNVERIFIED guard) get a verified-by-default caller; a spec modelling
+  // an UNverified account overrides User the same way.
   jest.unstable_mockModule('../../src/models/User.js', () => ({
     default: {
       // Chainable like a real mongoose query (select/lean) AND thenable, so
       // routes can use production-shaped chains without每条 spec restubbing.
-      findById: () => query({ _id: '64b0000000000000000ee', twoFactorEnabled: false }),
+      findById: () => query({ _id: '64b0000000000000000ee', twoFactorEnabled: false, isVerified: true }),
     },
     // P2-11: routes/auth.js imports this named helper (history checks).
     passwordMatchesHash: async () => ({ ok: false, legacy: false }),

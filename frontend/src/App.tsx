@@ -52,6 +52,8 @@ const SetPassword = lazy(() => import('./pages/SetPassword'));
 const OTPVerification = lazy(() => import('./pages/OTPVerification'));
 const PendingApproval = lazy(() => import('./pages/PendingApproval'));
 const DoctorSetup = lazy(() => import('./pages/DoctorSetup'));
+// 2.md 9 — staff invitation redemption (public, code from the email link).
+const ProviderStaffSetup = lazy(() => import('./pages/ProviderStaffSetup'));
 const JoinPlatform = lazy(() => import('./pages/JoinPlatform'));
 // R1: config-driven join wizard (parallel run — JoinPlatform.tsx stays intact)
 const JoinWizard = lazy(() => import('./pages/join/JoinWizard'));
@@ -69,6 +71,8 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 
 const SAPlatformKPIs = lazy(() => import('./pages/superadmin/PlatformKPIs'));
 const SAPendingApprovals = lazy(() => import('./pages/superadmin/PendingApprovals'));
+const SAJoinApplications = lazy(() => import('./pages/superadmin/JoinApplications'));
+const SAOnboardingMetrics = lazy(() => import('./pages/superadmin/OnboardingMetrics'));
 const SAAllFacilities = lazy(() => import('./pages/superadmin/AllFacilities'));
 const SAPlatformStats = lazy(() => import('./pages/superadmin/PlatformStats'));
 const SAUserManagement = lazy(() => import('./pages/superadmin/UserManagement'));
@@ -92,11 +96,14 @@ const SACities = lazy(() => import('./pages/superadmin/Cities'));
 const SALegal = lazy(() => import('./pages/superadmin/Legal'));
 const SAIntegrations = lazy(() => import('./pages/superadmin/Integrations'));
 const SAEmergencyWarRoom = lazy(() => import('./pages/superadmin/EmergencyWarRoom'));
+const SAIncidentCommand = lazy(() => import('./pages/superadmin/IncidentCommand'));
 const SAKycCommand = lazy(() => import('./pages/superadmin/KycCommand'));
+const SAKycReviewWorkspace = lazy(() => import('./pages/superadmin/KycReviewWorkspace'));
 const SATaxLedger = lazy(() => import('./pages/superadmin/TaxLedger'));
 const SAAiSafety = lazy(() => import('./pages/superadmin/AiSafety'));
 const SAAiReviewQueue = lazy(() => import('./pages/superadmin/AiReviewQueue'));
 const SASecurity = lazy(() => import('./pages/superadmin/Security'));
+const SADsrQueue = lazy(() => import('./pages/superadmin/SADsrQueue'));
 // File 24: Ops CRM & Team Management
 const CrmCommandCenter = lazy(() => import('./pages/superadmin/crm/CrmCommandCenter'));
 const SupplyPipeline = lazy(() => import('./pages/superadmin/crm/SupplyPipeline'));
@@ -174,12 +181,13 @@ const HospitalDoctors = lazy(() => import('./pages/HospitalDoctors'));
 const HospitalDoctor = lazy(() => import('./pages/HospitalDoctor'));
 const ClinicDoctor = lazy(() => import('./pages/ClinicDoctor'));
 const ClinicDetail = lazy(() => import('./pages/ClinicDetail'));
+const FacilityDetailPage = lazy(() => import('./pages/facility/FacilityDetailPage'));
+const PractitionerProfilePage = lazy(() => import('./pages/practitioner/PractitionerProfilePage'));
 const HospitalTestBooking = lazy(() => import('./pages/HospitalTestBooking'));
 const ClinicDoctors = lazy(() => import('./pages/ClinicDoctors'));
 const DiagnosticCenters = lazy(() => import('./pages/DiagnosticCenters'));
 const AllTests = lazy(() => import('./pages/AllTests'));
 const DiagnosticCenterDetail = lazy(() => import('./pages/DiagnosticCenterDetail'));
-const TechnicianDetail = lazy(() => import('./pages/TechnicianDetail'));
 const ImagingCenterDetail = lazy(() => import('./pages/ImagingCenterDetail'));
 const BuyMedicine = lazy(() => import('./pages/BuyMedicine'));
 const MedicineStoreDetail = lazy(() => import('./pages/MedicineStoreDetail'));
@@ -240,6 +248,14 @@ const PatientDashboard = lazy(() => import('./pages/patient/PatientDashboard'));
 const PatientDashboardV2 = lazy(() => import('./pages/patient/PatientDashboardV2'));
 const PatientTimeline = lazy(() => import('./pages/patient/Timeline'));
 const PatientPrivacyCentre = lazy(() => import('./pages/patient/PrivacyCentre'));
+const PatientPrograms = lazy(() => import('./pages/patient/PatientPrograms'));
+const PatientRentals = lazy(() => import('./pages/patient/PatientRentals'));
+const PatientEvents = lazy(() => import('./pages/patient/PatientEvents'));
+const PatientVaccinations = lazy(() => import('./pages/patient/PatientVaccinations'));
+const PatientInsurance = lazy(() => import('./pages/patient/PatientInsurance'));
+const PatientWellness = lazy(() => import('./pages/patient/PatientWellness'));
+const PatientConsents = lazy(() => import('./pages/patient/PatientConsents'));
+const PatientEmergencyCard = lazy(() => import('./pages/patient/EmergencyCard'));
 const PatientAppointments = lazy(() => import('./pages/patient/PatientAppointments'));
 const PatientRecords = lazy(() => import('./pages/patient/PatientRecords'));
 const PatientReviews = lazy(() => import('./pages/patient/PatientReviews'));
@@ -385,6 +401,24 @@ const PatientRelationsDashboard = lazy(() => import('./pages/dashboards/PatientR
 const FacilityManagerDashboard = lazy(() => import('./pages/dashboards/FacilityManagerDashboard'));
 const AuditorDashboard = lazy(() => import('./pages/dashboards/AuditorDashboard'));
 const MedicalSuperintendentDashboard = lazy(() => import('./pages/dashboards/MedicalSuperintendentDashboard'));
+
+// File 07: Specialty & Platform Role Dashboards
+const OpticianDashboard = lazy(() => import('./pages/dashboards/OpticianDashboard'));
+const HomeNursingDashboard = lazy(() => import('./pages/dashboards/HomeNursingDashboard'));
+const WellnessDashboard = lazy(() => import('./pages/dashboards/WellnessDashboard'));
+const ProductVendorDashboard = lazy(() => import('./pages/dashboards/ProductVendorDashboard'));
+const SupportGroupHostDashboard = lazy(() => import('./pages/dashboards/SupportGroupHostDashboard'));
+const TrainerOrgDashboard = lazy(() => import('./pages/dashboards/TrainerOrgDashboard'));
+const BloodBankAdminDashboard = lazy(() => import('./pages/dashboards/BloodBankAdminDashboard'));
+const DialysisAdminDashboard = lazy(() => import('./pages/dashboards/DialysisAdminDashboard'));
+const IvfMaternityDashboard = lazy(() => import('./pages/dashboards/IvfMaternityDashboard'));
+const RehabAdminDashboard = lazy(() => import('./pages/dashboards/RehabAdminDashboard'));
+const GovtFacilityDashboard = lazy(() => import('./pages/dashboards/GovtFacilityDashboard'));
+const TpaAgentDashboard = lazy(() => import('./pages/dashboards/TpaAgentDashboard'));
+const ContentEditorDashboard = lazy(() => import('./pages/dashboards/ContentEditorDashboard'));
+const ModeratorDashboard = lazy(() => import('./pages/dashboards/ModeratorDashboard'));
+const FinanceAdminDashboard = lazy(() => import('./pages/dashboards/FinanceAdminDashboard'));
+const ComplianceKycDashboard = lazy(() => import('./pages/dashboards/ComplianceKycDashboard'));
 
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminPrescriptionQueue = lazy(() => import('./pages/admin/AdminPrescriptionQueue'));
@@ -691,6 +725,28 @@ const SPECIALTY_DASHBOARD_PATHS: Record<string, string> = {
   facility_manager: '/dashboard/facility-manager',
   auditor: '/dashboard/auditor',
   medical_superintendent: '/dashboard/medical-superintendent',
+  optician: '/dashboard/optician',
+  optical_shop_owner: '/dashboard/optician',
+  home_nursing_admin: '/dashboard/home-nursing',
+  wellness_admin: '/dashboard/wellness',
+  therapist: '/dashboard/wellness',
+  product_vendor: '/dashboard/product-vendor',
+  group_host: '/dashboard/support-group',
+  trainer_org: '/dashboard/trainer-org',
+  blood_bank_admin: '/dashboard/blood-bank-admin',
+  dialysis_admin: '/dashboard/dialysis-admin',
+  fertility_admin: '/dashboard/ivf-maternity',
+  maternity_admin: '/dashboard/ivf-maternity',
+  rehab_admin: '/dashboard/rehab-admin',
+  govt_facility_staff: '/dashboard/govt-facility',
+  tpa_agent: '/dashboard/tpa-agent',
+  content_editor: '/dashboard/content-editor',
+  medical_reviewer: '/dashboard/content-editor',
+  moderator: '/dashboard/moderator',
+  support_agent: '/dashboard/moderator',
+  finance_admin: '/dashboard/finance-admin',
+  compliance_officer: '/dashboard/compliance-kyc',
+  kyc_reviewer: '/dashboard/compliance-kyc',
 };
 
 function RoleDashboard() {
@@ -833,7 +889,7 @@ const App = () => (
                   <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
                     <Route path="/join-platform" element={<JoinPlatform />} />
-                    {/* R1: config-driven wizard — parallel run, old page intact */}
+                    <Route path="/join" element={<Navigate to="/join-platform" replace />} />
                     <Route path="/join/new" element={<JoinWizard />} />
                     <Route path="/terms" element={<TermsOfService />} />
                     <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -856,6 +912,7 @@ const App = () => (
                   <Route path="/pending-approval" element={<PendingApproval />} />
                   <Route path="/doctor-setup" element={<DoctorSetup />} />
                   <Route path="/ambulance-setup" element={<AmbulanceSetup />} />
+                  <Route path="/provider-staff-setup" element={<ProviderStaffSetup />} />
 <Route path="/healthcare" element={<PublicLayout><HealthcarePage /></PublicLayout>} />
 <Route path="/hospitals" element={<PublicLayout><HospitalDirectory /></PublicLayout>} />
                    <Route path="/hospitals/:id" element={<PublicLayout><HospitalProfile /></PublicLayout>} />
@@ -864,11 +921,55 @@ const App = () => (
                       <Route path="/hospital-doctors/:id" element={<PublicLayout><HospitalDoctor /></PublicLayout>} />
                      <Route path="/clinic-doctors/:id" element={<PublicLayout><ClinicDoctor /></PublicLayout>} />
                      <Route path="/clinic/:clinicId" element={<PublicLayout><ClinicDetail /></PublicLayout>} />
+                      {/* File 03: Universal Facility Detail Page with Section Registry */}
+                      <Route path="/facility/:type/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/facility/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/dental/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/eye/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/optical/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/ayush/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/dialysis/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/gym/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/yoga/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/equipment/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/blood-bank/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/govt-facility/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/ambulance-service/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/wellness-centre/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/event/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/maternity/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/ivf/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/rehab/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/deaddiction/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/program/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/support-group/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/health-store/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/eldercare/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/assisted-living/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/hospice/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/vaccinations/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/vaccination/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/meals/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/diet-kitchen/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/specialty-centre/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/cancer/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/corporate-wellness/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      {/* File 04: Universal Practitioner Profile with Adaptive Section Registry */}
+                      <Route path="/practitioner/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/practitioner/:type/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/doctors/:specialty/:city/:slug" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/dentist/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/ayush-doctor/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/physio/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/dietitian/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/psychologist/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/counsellor/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/nurse/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/yoga-trainer/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
 <Route path="/book-test/:entityId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
                       <Route path="/diagnostic-centers" element={<PublicLayout><DiagnosticCenters /></PublicLayout>} />
                       <Route path="/all-tests" element={<PublicLayout><AllTests /></PublicLayout>} />
                        <Route path="/lab/:clinicId" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
-                        <Route path="/technician/:id" element={<PublicLayout><TechnicianDetail /></PublicLayout>} />
 
                       <Route path="/imaging/:clinicId" element={<PublicLayout><ImagingCenterDetail /></PublicLayout>} />
                     <Route path="/buy-medicine" element={<PublicLayout><BuyMedicine /></PublicLayout>} />
@@ -993,7 +1094,13 @@ const App = () => (
                     <Route path="/superadmin" element={<Navigate to="/superadmin/overview" replace />} />
                     <Route path="/superadmin/overview" element={<RoleRoute allowedRoles={['superadmin']}><SAPlatformKPIs /></RoleRoute>} />
                     <Route path="/superadmin/pending" element={<RoleRoute allowedRoles={['superadmin', 'kyc_reviewer']}><SAPendingApprovals /></RoleRoute>} />
+                    <Route path="/superadmin/join-applications" element={<RoleRoute allowedRoles={['superadmin', 'kyc_reviewer']}><SAJoinApplications /></RoleRoute>} />
+                    <Route path="/superadmin/onboarding-metrics" element={<RoleRoute allowedRoles={['superadmin']}><SAOnboardingMetrics /></RoleRoute>} />
+                    <Route path="/superadmin/kyc-workspace" element={<RoleRoute allowedRoles={['superadmin', 'kyc_reviewer']}><SAKycReviewWorkspace /></RoleRoute>} />
+                    <Route path="/superadmin/kyc-workspace/:id" element={<RoleRoute allowedRoles={['superadmin', 'kyc_reviewer']}><SAKycReviewWorkspace /></RoleRoute>} />
                     <Route path="/superadmin/facilities" element={<RoleRoute allowedRoles={['superadmin']}><SAAllFacilities /></RoleRoute>} />
+                    <Route path="/superadmin/providers" element={<RoleRoute allowedRoles={['superadmin']}><SAAllFacilities /></RoleRoute>} />
+                    <Route path="/superadmin/incident-command" element={<RoleRoute allowedRoles={['superadmin', 'clinical_safety', 'security_admin']}><SAIncidentCommand /></RoleRoute>} />
                     <Route path="/superadmin/stats" element={<RoleRoute allowedRoles={['superadmin']}><SAPlatformStats /></RoleRoute>} />
                     <Route path="/superadmin/users" element={<RoleRoute allowedRoles={['superadmin']}><SAUserManagement /></RoleRoute>} />
                     <Route path="/superadmin/moderation" element={<RoleRoute allowedRoles={['superadmin', 'moderator']}><SAContentModeration /></RoleRoute>} />
@@ -1024,6 +1131,7 @@ const App = () => (
                     <Route path="/superadmin/ai-safety" element={<RoleRoute allowedRoles={['superadmin']}><SAAiSafety /></RoleRoute>} />
                     <Route path="/superadmin/ai-reviews" element={<RoleRoute allowedRoles={['superadmin', 'hospital_admin', 'clinical_safety', 'medical_reviewer']}><SAAiReviewQueue /></RoleRoute>} />
                     <Route path="/superadmin/security" element={<RoleRoute allowedRoles={['superadmin', 'security_admin']}><SASecurity /></RoleRoute>} />
+                    <Route path="/superadmin/dsr" element={<RoleRoute allowedRoles={['superadmin', 'compliance_officer', 'dpo']}><SADsrQueue /></RoleRoute>} />
                     {/* File 24 Ops CRM & Team Management */}
                     <Route path="/superadmin/crm" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin', 'city_manager']}><CrmCommandCenter /></RoleRoute>} />
                     <Route path="/superadmin/crm/pipeline" element={<RoleRoute allowedRoles={['superadmin', 'platform_admin', 'city_manager']}><SupplyPipeline /></RoleRoute>} />
@@ -1214,8 +1322,19 @@ const App = () => (
                     <Route path="/patient/lawyers" element={<RoleRoute allowedRoles={['patient']}><PatientLawyers /></RoleRoute>} />
                     {/* R1: patient dashboard v2 + timeline + privacy (old /patient/* intact) */}
                     <Route path="/patient/home-v2" element={<RoleRoute allowedRoles={['patient']}><PatientDashboardV2 /></RoleRoute>} />
+                    <Route path="/patient/home" element={<RoleRoute allowedRoles={['patient']}><PatientDashboard /></RoleRoute>} />
                     <Route path="/patient/timeline" element={<RoleRoute allowedRoles={['patient']}><PatientTimeline /></RoleRoute>} />
                     <Route path="/patient/privacy" element={<RoleRoute allowedRoles={['patient']}><PatientPrivacyCentre /></RoleRoute>} />
+                    <Route path="/patient/programs" element={<RoleRoute allowedRoles={['patient']}><PatientPrograms /></RoleRoute>} />
+                    <Route path="/patient/rentals" element={<RoleRoute allowedRoles={['patient']}><PatientRentals /></RoleRoute>} />
+                    <Route path="/patient/meals" element={<RoleRoute allowedRoles={['patient']}><PatientPrograms /></RoleRoute>} />
+                    <Route path="/patient/events" element={<RoleRoute allowedRoles={['patient']}><PatientEvents /></RoleRoute>} />
+                    <Route path="/patient/vaccinations" element={<RoleRoute allowedRoles={['patient']}><PatientVaccinations /></RoleRoute>} />
+                    <Route path="/patient/insurance" element={<RoleRoute allowedRoles={['patient']}><PatientInsurance /></RoleRoute>} />
+                    <Route path="/patient/wellness" element={<RoleRoute allowedRoles={['patient']}><PatientWellness /></RoleRoute>} />
+                    <Route path="/patient/consents" element={<RoleRoute allowedRoles={['patient']}><PatientConsents /></RoleRoute>} />
+                    <Route path="/patient/emergency-card" element={<RoleRoute allowedRoles={['patient']}><PatientEmergencyCard /></RoleRoute>} />
+                    <Route path="/patient/saved" element={<RoleRoute allowedRoles={['patient']}><PatientFavorites /></RoleRoute>} />
 
                     {/* Doctor routes */}
                     <Route path="/doctor/appointments/approve" element={<RoleRoute allowedRoles={['doctor', 'hospital_admin']}><DoctorAppointments /></RoleRoute>} />
@@ -1415,6 +1534,24 @@ const App = () => (
                     <Route path="/dashboard/facility-manager" element={<RoleRoute allowedRoles={['hospital_admin', 'biomedical_engineer', 'maintenance', 'store_keeper']}><FacilityManagerDashboard /></RoleRoute>} />
                     <Route path="/dashboard/auditor" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'auditor', 'compliance_officer', 'dpo']}><AuditorDashboard /></RoleRoute>} />
                     <Route path="/dashboard/medical-superintendent" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'medical_director', 'cmo']}><MedicalSuperintendentDashboard /></RoleRoute>} />
+
+                    {/* File 07: Specialty & Platform Role Dashboards */}
+                    <Route path="/dashboard/optician" element={<RoleRoute allowedRoles={['optician', 'optical_shop_owner', 'doctor', 'hospital_admin', 'superadmin']}><OpticianDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/home-nursing" element={<RoleRoute allowedRoles={['home_nursing_admin', 'nurse', 'hospital_admin', 'superadmin']}><HomeNursingDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/wellness" element={<RoleRoute allowedRoles={['wellness_admin', 'therapist', 'hospital_admin', 'superadmin']}><WellnessDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/product-vendor" element={<RoleRoute allowedRoles={['product_vendor', 'pharmacy_owner', 'superadmin']}><ProductVendorDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/support-group" element={<RoleRoute allowedRoles={['group_host', 'counsellor', 'psychiatrist', 'doctor', 'superadmin']}><SupportGroupHostDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/trainer-org" element={<RoleRoute allowedRoles={['trainer_org', 'hospital_admin', 'superadmin']}><TrainerOrgDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/blood-bank-admin" element={<RoleRoute allowedRoles={['blood_bank_admin', 'hospital_admin', 'superadmin']}><BloodBankAdminDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/dialysis-admin" element={<RoleRoute allowedRoles={['dialysis_admin', 'hospital_admin', 'superadmin']}><DialysisAdminDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/ivf-maternity" element={<RoleRoute allowedRoles={['fertility_admin', 'maternity_admin', 'hospital_admin', 'superadmin']}><IvfMaternityDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/rehab-admin" element={<RoleRoute allowedRoles={['rehab_admin', 'psychiatrist', 'counsellor', 'hospital_admin', 'superadmin']}><RehabAdminDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/govt-facility" element={<RoleRoute allowedRoles={['govt_facility_staff', 'hospital_admin', 'superadmin']}><GovtFacilityDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/tpa-agent" element={<RoleRoute allowedRoles={['tpa_agent', 'hospital_admin', 'superadmin']}><TpaAgentDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/content-editor" element={<RoleRoute allowedRoles={['content_editor', 'medical_reviewer', 'superadmin']}><ContentEditorDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/moderator" element={<RoleRoute allowedRoles={['moderator', 'support_agent', 'support_l1', 'support_l2', 'superadmin']}><ModeratorDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/finance-admin" element={<RoleRoute allowedRoles={['finance_admin', 'accountant', 'superadmin']}><FinanceAdminDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/compliance-kyc" element={<RoleRoute allowedRoles={['compliance_officer', 'kyc_reviewer', 'superadmin']}><ComplianceKycDashboard /></RoleRoute>} />
                     </Route>
 
                    <Route path="/register/delivery-partner" element={<DeliveryPartnerRegister />} />

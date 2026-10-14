@@ -90,6 +90,12 @@ jestApi.unstable_mockModule('../../src/models/Patient.js', () => ({
 jestApi.unstable_mockModule('../../src/models/Service.js', () => ({
   default: { findById: (id) => chain(globalThis.__serviceRow ?? null) },
 }));
+// The probation cap (lib/probation.js) reads the Provider row whenever a
+// booking carries a providerId. Default: no listing, no probation — the guard
+// steps aside and this spec keeps asserting plain attribution.
+jestApi.unstable_mockModule('../../src/models/Provider.js', () => ({
+  default: { findById: () => chain(null) },
+}));
 
 const USER_STUB = () => {
   const doc = { _id: 'u-admin-1', twoFactorEnabled: false };

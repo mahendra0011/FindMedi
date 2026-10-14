@@ -71,3 +71,87 @@ describe('phiFields helpers', () => {
     expect(phi.looksMasked('1234567890')).toBe(false);
   });
 });
+
+// P2-9 join draft: tax + payout secrets inside ProviderApplication's
+// stepData — encrypted at rest, queried through their blind indexes.
+describe('join draft (encryptJoinDraftStep / decryptJoinDraftStep)', () => {
+  let phi;
+  let fle;
+  beforeEach(async () => {
+    phi = await import('../../src/utils/phiFields.js');
+    fle = await import('../../src/utils/fieldEncryption.js');
+  });
+
+  it('encrypts secrets wherever a step keeps them, keeps holder/display plaintext, rebuilds indexes', () => {
+    const { stepData, phiIndexes } = phi.encryptJoinDraftStep({
+      business: { pan: 'ABCDE1234F', gstin: '27ABCDE1234F1Z5', display_name: 'Smile' },
+      payout: { account_number: '123456789012', ifsc: 'HDFC0001234', account_holder: 'Ramesh' },
+      identity: { registration_number: 'A-12345' },
+    });
+    expect(fle.isEncrypted(stepData.business.pan)).toBe(true);
+    expect(fle.isEncrypted(stepData.business.gstin)).toBe(true);
+    expect(fle.isEncrypted(stepData.payout.account_number)).toBe(true);
+    expect(fle.isEncrypted(stepData.payout.ifsc)).toBe(true);
+    expect(stepData.business.display_name).toBe('Smile');
+    expect(stepData.payout.account_holder).toBe('Ramesh');
+    expect(phiIndexes).toEqual({
+      pan: phi.joinPhiIndex('pan', 'ABCDE1234F'),
+      gstin: phi.joinPhiIndex('gstin', '27ABCDE1234F1Z5'),
+      registration_number: phi.joinPhiIndex('registration_number', 'A-12345'),
+    });
+    const back = phi.decryptJoinDraftStep(stepData);
+    expect(back.business.pan).toBe('ABCDE1234F');
+    expect(back.business.gstin).toBe('27ABCDE1234F1Z5');
+    expect(back.payout.account_number).toBe('123456789012');
+    expect(back.identity.registration_number).toBe('A-12345');
+    expect(back.business.display_name).toBe('Smile');
+  });
+
+  it('a masked echo keeps the stored ciphertext and its index (never stores stars)', () => {
+    const { stepData, phiIndexes } = phi.encryptJoinDraftStep(
+      { business: { pan: '****1234' } },
+      { business: { pan: 'CIPHER-PAN' } },
+      { pan: 'IDX1', gstin: null, registration_number: null },
+    );
+    expect(stepData.business.pan).toBe('CIPHER-PAN');
+    expect(phiIndexes.pan).toBe('IDX1');
+  });
+
+  it('an already-encrypted value is never double-encrypted and keeps a live index', () => {
+    const real = phi.encryptPhi('ProviderApplication', 'draft.stepData.pan', 'ABCDE1234F');
+    const { stepData, phiIndexes } = phi.encryptJoinDraftStep(
+      { business: { pan: real } },
+      {},
+      { pan: null, gstin: null, registration_number: null },
+    );
+    expect(stepData.business.pan).toBe(real);
+    expect(phiIndexes.pan).toBe(phi.joinPhiIndex('pan', 'ABCDE1234F'));
+    expect(phi.decryptJoinDraftStep(stepData).business.pan).toBe('ABCDE1234F');
+  });
+
+  it('a field the shallow step merge dropped clears its index (index never outlives value)', () => {
+    const { stepData, phiIndexes } = phi.encryptJoinDraftStep(
+      { business: { display_name: 'x' } },
+      { business: { pan: 'CIPHER-PAN' } },
+      { pan: 'IDX1', gstin: null, registration_number: null },
+    );
+    expect(stepData.business.pan).toBeUndefined();
+    expect(phiIndexes.pan).toBeNull();
+  });
+
+  it('an explicitly cleared field nulls its index too', () => {
+    const { stepData, phiIndexes } = phi.encryptJoinDraftStep({ business: { pan: '' } }, {}, {});
+    expect(stepData.business.pan).toBe('');
+    expect(phiIndexes.pan).toBeNull();
+  });
+
+  it('joinPhiIndex normalizes like the duplicate scan and salts per field', () => {
+    expect(phi.joinPhiIndex('pan', 'abcde 1234f')).toBe(phi.joinPhiIndex('pan', 'ABCDE1234F'));
+    expect(phi.joinPhiIndex('pan', '')).toBeNull();
+    expect(phi.joinPhiIndex('pan', 'ABCDE1234F')).not.toBe(phi.joinPhiIndex('gstin', 'ABCDE1234F'));
+  });
+
+  it('legacy plaintext rows pass through decrypt untouched (no flag day)', () => {
+    expect(phi.decryptJoinDraftStep({ account: { pan: 'ABCDE1234F' } }).account.pan).toBe('ABCDE1234F');
+  });
+});

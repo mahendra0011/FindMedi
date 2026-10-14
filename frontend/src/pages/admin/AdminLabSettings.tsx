@@ -41,10 +41,6 @@ export default function AdminLabSettings() {
           radiologistQualification: f.radiologistQualification || '',
           cardiologistName: f.cardiologistName || '',
           cardiologistQualification: f.cardiologistQualification || '',
-          technicianName: f.technicianName || '',
-          technicianRole: f.technicianRole || '',
-          technicianQualification: f.technicianQualification || '',
-          technicianExperience: f.technicianExperience || '',
           accreditations: f.accreditations || [],
           amenities: f.amenities || { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, drinkingWater: false, wifi: false },
           socialLinks: f.socialLinks || { facebook: '', instagram: '', youtube: '' },
@@ -182,14 +178,6 @@ export default function AdminLabSettings() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={form.cardiologistName} onChange={e => update('cardiologistName', e.target.value)} placeholder="Dr. name" /></div>
             <div className="space-y-1"><Label className="text-xs">Qualification</Label><Input value={form.cardiologistQualification} onChange={e => update('cardiologistQualification', e.target.value)} placeholder="MD Cardiology" /></div>
-          </div>
-          <Separator />
-          <p className="text-xs text-muted-foreground mb-2">Technician</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={form.technicianName} onChange={e => update('technicianName', e.target.value)} placeholder="Technician name" /></div>
-            <div className="space-y-1"><Label className="text-xs">Role</Label><Input value={form.technicianRole} onChange={e => update('technicianRole', e.target.value)} placeholder="Lab Technician / Phlebotomist" /></div>
-            <div className="space-y-1"><Label className="text-xs">Qualification</Label><Input value={form.technicianQualification} onChange={e => update('technicianQualification', e.target.value)} placeholder="B.Sc, MLT" /></div>
-            <div className="space-y-1"><Label className="text-xs">Experience</Label><Input value={form.technicianExperience} onChange={e => update('technicianExperience', e.target.value)} placeholder="e.g. 3 years" /></div>
           </div>
         </CardContent>
       </Card>

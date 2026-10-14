@@ -98,7 +98,7 @@ export const canonicalRxSchedule = (raw) => {
 const PRODUCT_LINES = [
   'Prescription', 'OTC', 'Generic', 'Branded', 'Ayurvedic', 'Homeopathic',
   'Unani/Siddha', 'Supplements', 'Baby Care', 'Personal Care',
-  'Sexual Wellness', "Women's Hygiene", 'Elder Care', 'Diabetic Care',
+  "Women's Hygiene", 'Elder Care', 'Diabetic Care',
   'Surgical/Ortho', 'Medical Devices', 'First Aid', 'Hygiene',
   'Health Foods', 'Other',
 ];

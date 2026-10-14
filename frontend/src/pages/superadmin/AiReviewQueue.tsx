@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   BrainCircuit, CheckCircle2, XCircle, Edit3, RefreshCw, FileText,
-  Search, ShieldCheck, AlertCircle, Clock, Eye, Copy, Check, Filter, Sparkles
+  Search, ShieldCheck, AlertCircle, Clock, Eye, Copy, Check, Filter, Sparkles,
+  Upload, ScanLine
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +54,42 @@ export default function AiReviewQueue() {
   const [reviewerNote, setReviewerNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [copiedInput, setCopiedInput] = useState(false);
+
+  // T10: OCR file upload — multipart POST /ai/ocr/file (scanned server-side,
+  // memory-only), result lands in this review queue.
+  const [ocrFile, setOcrFile] = useState<File | null>(null);
+  const [ocrDocType, setOcrDocType] = useState('prescription');
+  const [ocrBusy, setOcrBusy] = useState(false);
+  const ocrInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleOcrUpload = async () => {
+    if (!ocrFile) return;
+    setOcrBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', ocrFile);
+      fd.append('docType', ocrDocType);
+      // Vision rounds can take up to 2×15s server-side; default 20s client timeout is too tight.
+      const res = await apiClient.post('/ai/ocr/file', fd, { timeout: 60000 });
+      const fields = (res.data?.fields || {}) as Record<string, unknown>;
+      const provider = String(fields.provider || '');
+      if (provider === 'gemini') {
+        toast.success('OCR complete — extraction queued for human review');
+      } else {
+        toast.info('Offline schema extraction (vision provider not configured) — queued for review');
+      }
+      setOcrFile(null);
+      if (ocrInputRef.current) ocrInputRef.current.value = '';
+      await loadReviews();
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (err instanceof Error ? err.message : 'OCR upload failed');
+      toast.error(msg);
+    } finally {
+      setOcrBusy(false);
+    }
+  };
 
   const loadReviews = useCallback(async () => {
     setLoading(true);
@@ -161,6 +198,53 @@ export default function AiReviewQueue() {
           </Button>
         </div>
       </div>
+
+      {/* T10: OCR file upload */}
+      <Card>
+        <CardHeader className="p-4 pb-2">
+          <CardTitle className="text-sm font-heading flex items-center gap-2">
+            <Upload className="w-4 h-4 text-primary" />
+            Extract fields from a document (OCR)
+          </CardTitle>
+          <CardDescription className="text-xs">
+            JPEG / PNG / PDF up to 10 MB. Files are malware-scanned, processed in memory (never
+            written to disk), then queued below for human verification.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 pt-2 flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+          <Input
+            ref={ocrInputRef}
+            id="ocr-file-input"
+            type="file"
+            accept="image/jpeg,image/png,application/pdf"
+            className="text-xs h-9 flex-1"
+            onChange={(e) => setOcrFile(e.target.files?.[0] || null)}
+          />
+          <select
+            aria-label="OCR document type"
+            className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+            value={ocrDocType}
+            onChange={(e) => setOcrDocType(e.target.value)}
+          >
+            {['prescription', 'lab_result', 'insurance_card', 'id_card', 'invoice', 'discharge_summary', 'general'].map((t) => (
+              <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
+            ))}
+          </select>
+          <Button
+            size="sm"
+            className="h-9 text-xs gap-1.5"
+            disabled={!ocrFile || ocrBusy}
+            onClick={handleOcrUpload}
+          >
+            {ocrBusy ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <ScanLine className="w-3.5 h-3.5" />
+            )}
+            {ocrBusy ? 'Extracting…' : 'Run OCR'}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* KPI Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

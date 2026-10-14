@@ -29,6 +29,9 @@ import { loyaltyService } from '../services/loyaltyService.js';
 // asserted here before any write, and the single refund issuer used after.
 import { assertAppointmentTransition, computeCancellation } from '../lib/appointmentLifecycle.js';
 import { issueRefund } from '../services/refundService.js';
+// 2.md §6: probation booking cap — a listing approved yesterday books only up
+// to its daily cap until an operator clears probation.
+import { probationBookingBlock } from '../lib/probation.js';
 // A5 (5.md §15): the server owns the price. The walk-in fee comes from the
 // doctor's listed consultation fee, never from the request body.
 import { resolveAuthoritativeAmount } from '../services/pricingService.js';
@@ -765,7 +768,18 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), authori
       serviceId = svc._id;
       providerId = svc.providerId || null;
     }
-    
+
+    // 2.md §6: the provider's probation cap. Checked here — where the booking
+    // carries a providerId — so every provider-attributed booking counts
+    // against the same day cap, and an operator can tighten or clear it
+    // (POST /providers/:id/probation) without a deploy.
+    if (providerId) {
+      const probationBlock = await probationBookingBlock({ providerId, date });
+      if (probationBlock) {
+        return res.status(probationBlock.status).json({ message: probationBlock.message, code: probationBlock.code });
+      }
+    }
+
     if (patientId && date && time) {
       // Check if THIS patient already has an appointment at this slot
       const ownFilter = { patientId, doctorId: doctorId || null, date, time, status: { $nin: ['Cancelled', 'Completed', 'Missed'] } };

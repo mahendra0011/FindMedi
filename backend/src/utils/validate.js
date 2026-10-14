@@ -11,6 +11,9 @@ import { APPOINTMENT_STATUSES } from '../lib/appointmentLifecycle.js';
 // 8.md §5/§6 queue vocabulary. moderationRules.js is PURE (no model), which is
 // exactly why the import is safe here — see its header.
 import { MODERATION_ACTIONS, MODERATION_TARGET_TYPES, MODERATION_CATEGORIES, MODERATION_SEVERITIES } from '../lib/moderationRules.js';
+// 2.md 9 staff-invite templates. Pure config module (no model import), same
+// reason as the moderation import above.
+import { PROVIDER_STAFF_TEMPLATE_KEYS } from '../lib/providerStaffRoles.js';
 
 export const validate = (schema) => (req, res, next) => {
   try {
@@ -205,7 +208,7 @@ export {
 export const MEDICINE_PRODUCT_LINES = [
   'Prescription', 'OTC', 'Generic', 'Branded', 'Ayurvedic', 'Homeopathic',
   'Unani/Siddha', 'Supplements', 'Baby Care', 'Personal Care',
-  'Sexual Wellness', "Women's Hygiene", 'Elder Care', 'Diabetic Care',
+  "Women's Hygiene", 'Elder Care', 'Diabetic Care',
   'Surgical/Ortho', 'Medical Devices', 'First Aid', 'Hygiene',
   'Health Foods', 'Other',
 ];
@@ -215,7 +218,7 @@ export const FACILITY_OWNERSHIP_OPTIONS = [
 ];
 export const FACILITY_SYSTEMS_OF_MEDICINE = [
   'allopathy', 'ayurveda', 'homeopathy', 'unani', 'siddha', 'yoga_naturopathy',
-  'sowa_rigpa', 'integrative', '',
+  'integrative', '',
 ];
 export const FACILITY_SCHEME_OPTIONS = [
   'pmjay', 'cghs', 'esi', 'echs', 'state_scheme', 'insurance_cashless',
@@ -1614,10 +1617,6 @@ export const registerFacilitySchema = z.object({
   radiologistQualification: z.string().optional(),
   cardiologistName: z.string().optional(),
   cardiologistQualification: z.string().optional(),
-  technicianName: z.string().optional(),
-  technicianRole: z.string().optional(),
-  technicianQualification: z.string().optional(),
-  technicianExperience: z.string().optional(),
   timing: z.union([z.string().trim().max(500), z.record(z.string().max(100), z.string().trim().max(100))]).optional(),
   amenities: z.union([z.string().trim().max(2000), z.array(z.string().trim().max(200)).max(100)]).optional(),
   socialLinks: z.record(z.string().max(100), z.string().trim().max(500)).optional(),
@@ -1658,10 +1657,6 @@ export const updateFacilitySchema = z.object({
   radiologistQualification: z.string().optional(),
   cardiologistName: z.string().optional(),
   cardiologistQualification: z.string().optional(),
-  technicianName: z.string().optional(),
-  technicianRole: z.string().optional(),
-  technicianQualification: z.string().optional(),
-  technicianExperience: z.string().optional(),
   timing: z.union([z.string().trim().max(500), z.record(z.string().max(100), z.string().trim().max(100))]).optional(),
   amenities: z.union([z.string().trim().max(2000), z.array(z.string().trim().max(200)).max(100)]).optional(),
   socialLinks: z.record(z.string().max(100), z.string().trim().max(500)).optional(),
@@ -2475,6 +2470,44 @@ export const joinDocumentSchema = z.object({
   // Form fields arrive as strings, and an empty box means "no expiry".
   expiryDate: z.union([z.string().max(0), z.coerce.date()]).optional()
     .transform((value) => (value === undefined || value === '' ? undefined : value)),
+}).strict();
+
+// 2.md 7 — reviewer stamps for the two activation items only the platform can
+// vouch for (test booking, training walkthrough).
+export const applicationActivationSchema = z.object({
+  item: z.enum(['test_booking', 'training']),
+  done: z.boolean(),
+}).strict();
+
+// 2.md 6 — review-queue ownership: a reviewer CLAIMS the row they are working
+// (optional closed-set queue, default handled in the route), a superadmin
+// ASSIGNS it to a named reviewer. Which roles qualify as the assignee is
+// checked against the DB in the route — never taken from the body.
+export const applicationClaimSchema = z.object({
+  queue: z.string().trim().min(1).max(60).optional(),
+}).strict().default({});
+
+export const applicationAssignSchema = z.object({
+  reviewerId: objectIdSchema,
+  queue: z.string().trim().min(1).max(60).optional(),
+}).strict();
+
+// 2.md 9 — provider-scoped staff invitation. The CLIENT picks a template key;
+// the ROLE comes from PROVIDER_STAFF_TEMPLATES server-side (no role from client).
+export const providerStaffInviteSchema = z.object({
+  template: z.enum(PROVIDER_STAFF_TEMPLATE_KEYS),
+  email: emailSchema,
+  name: z.string().trim().min(2).max(120).optional(),
+  providerId: objectIdSchema.optional(),
+}).strict();
+
+// Redemption of the single-use invite link (public, rate-limited in the route).
+// The code is a bearer secret, so it is the only thing that identifies the
+// invite — email is taken FROM the invite row, never from the request.
+export const providerStaffSetupSchema = z.object({
+  code: z.string().trim().min(16).max(120),
+  password: passwordSchema,
+  name: z.string().trim().min(2).max(120).optional(),
 }).strict();
 
 // ==============================================================================

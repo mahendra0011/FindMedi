@@ -4,39 +4,10 @@ import {
   Star, ShieldCheck, Home, Clock, MapPin, Phone, Mail,
   FlaskConical, Eye, BadgeCheck, Zap,
   ChevronRight, Sparkles, Calendar,
-  GraduationCap, Briefcase, Award, PhoneCall, Microscope
+  Award, PhoneCall
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-const TECHNICIAN_DATA = {
-  'Pathology Lab': {
-    name: 'Ramesh Kumar',
-    role: 'Lab Technician',
-    qualifications: ['DMLT', 'BMLT'],
-    experience: '5 years',
-    regNo: 'MLT-2021-00452',
-  },
-  'Diagnostic Center': {
-    name: 'Amit Sharma',
-    role: 'Phlebotomist',
-    qualifications: ['B.Sc MLT', 'Phlebotomy Certified'],
-    experience: '4 years',
-    regNo: 'DMLT-2020-00321',
-  },
-  'Imaging Center': {
-    name: 'Suresh Patel',
-    role: 'Radiographer',
-    qualifications: ['B.Sc Radiography', 'RDMS'],
-    experience: '6 years',
-    regNo: 'AERB-RT-2022-00317',
-    subTech: { name: 'Priya Verma', role: 'Sonographer', qualifications: ['Ultrasound Certified', 'ARDMS'], experience: '4 years', regNo: 'SDMS-2021-00128' },
-  },
-};
-
-function getFallbackTech(type) {
-  return TECHNICIAN_DATA[type] || TECHNICIAN_DATA['Diagnostic Center'];
-}
 
 const renderStars = (rating) => (
   <div className="flex items-center gap-0.5">
@@ -90,19 +61,8 @@ export default function DiagnosticCenterCard({ clinic, index = 0 }) {
     reportTime = 'Within 6 hrs', distance = '1.2 km',
     phone = '9876543210', email = '', address = '',
     startingPrice = 150, workingHours = '8:00 AM - 8:00 PM',
-    technicianName, technicianRole, technicianQualification, technicianExperience,
   } = clinic || {};
 
-  const tech = technicianName
-    ? {
-        name: technicianName,
-        role: technicianRole || getFallbackTech(type).role,
-        qualifications: technicianQualification ? technicianQualification.split(', ') : getFallbackTech(type).qualifications,
-        experience: technicianExperience || getFallbackTech(type).experience,
-        regNo: '',
-      }
-    : getFallbackTech(type);
-  const techInitials = tech.name.split(' ').map(n => n[0]).join('').slice(0, 2);
   const labInitials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
 
   return (
@@ -144,13 +104,13 @@ export default function DiagnosticCenterCard({ clinic, index = 0 }) {
       {/* ─── Body ─── */}
       <div className="px-4 pt-3 pb-4 space-y-2.5 flex-1 flex flex-col">
 
-        {/* Identity: Lab Name + Technician Name + Designation */}
+        {/* Identity: Lab Name */}
         <div className="flex items-start gap-3">
           <div className={cn(
             'w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center font-bold text-white shrink-0 shadow-sm border border-white/20',
             avatarGradients[(index + 1) % avatarGradients.length]
           )}>
-            {techInitials}
+            {labInitials}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -158,19 +118,6 @@ export default function DiagnosticCenterCard({ clinic, index = 0 }) {
               {verified && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
             </div>
             <p className="text-xs font-medium text-muted-foreground">{type}</p>
-            <p className="text-sm font-semibold text-foreground truncate mt-0.5">{tech.name}</p>
-            <p className="text-xs text-muted-foreground">{tech.role}</p>
-            {tech.subTech && (
-              <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-border/20">
-                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-purple-400/30 to-purple-500/10 flex items-center justify-center text-[9px] font-bold text-purple-600 shrink-0">
-                  {tech.subTech.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                </div>
-                <div className="min-w-0 flex-1 flex items-center gap-1.5">
-                  <span className="text-xs font-medium text-foreground truncate">{tech.subTech.name}</span>
-                  <span className="text-[10px] text-muted-foreground">{tech.subTech.role}</span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -195,26 +142,9 @@ export default function DiagnosticCenterCard({ clinic, index = 0 }) {
           )}
         </div>
 
-        {/* Qualification Badges */}
-        <div className="flex flex-wrap gap-1.5">
-          {tech.qualifications.map(q => (
-            <span key={q} className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full border border-border/30">
-              <GraduationCap className="w-3 h-3 text-primary" />
-              {q}
-            </span>
-          ))}
-          {tech.regNo && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full border border-border/30">
-              <ShieldCheck className="w-3 h-3 text-blue-500" />
-              {tech.regNo}
-            </span>
-          )}
-        </div>
-
         {/* Info Grid */}
         <div className="bg-gradient-to-br from-muted/50 to-muted/5 rounded-xl border border-border/40 p-3 space-y-1.5">
-          <div className="grid grid-cols-2 gap-1">
-            <InfoRow icon={Briefcase} label="Experience" value={tech.experience} />
+          <div className="grid grid-cols-1 gap-1">
             <InfoRow icon={FlaskConical} label="Tests" value={`${testsAvailable}+`} />
           </div>
           <Divider />
@@ -275,14 +205,6 @@ export default function DiagnosticCenterCard({ clinic, index = 0 }) {
           >
             <Eye className="w-3.5 h-3.5" />
             View Lab
-          </Button>
-          <Button
-            variant="outline"
-            className="gap-1.5 rounded-xl h-10 text-xs font-semibold"
-            onClick={() => navigate(`/technician/${_id}`)}
-          >
-            <Microscope className="w-3.5 h-3.5" />
-            View Technician
           </Button>
           <Button
             className="gap-1.5 rounded-xl h-10 text-xs font-semibold shadow-lg shadow-primary/20 group/btn"

@@ -97,8 +97,33 @@ const providerSchema = new mongoose.Schema({
     payoutHold: { type: Boolean, default: false },
   },
   trusted: { type: Boolean, default: false },
+  discreetMode: { type: Boolean, default: false, index: true },
+  emergencyCapable: { type: Boolean, default: false, index: true },
+  privacySettings: {
+    hideExactAddress: { type: Boolean, default: false },
+    showAreaOnly: { type: Boolean, default: false },
+    maskedPhone: { type: Boolean, default: false },
+  },
   plan: { type: String, enum: PROVIDER_PLANS, default: 'free' },
   commissionConfigId: { type: mongoose.Schema.Types.ObjectId, ref: 'CommissionConfig', default: null },
+
+  // 2.md 7 activation checklist — the two items only the platform can vouch
+  // for (test booking + onboarding training), stamped by a reviewer via
+  // POST /api/admin/applications/:id/activation.
+  onboarding: {
+    testBookingAt: { type: Date, default: null },
+    trainingCompletedAt: { type: Date, default: null },
+  },
+
+  // 2.md 9 staff invitation: users attached to this listing through the
+  // provider-scoped invite flow (routes/providerStaff.js). The owner is NOT in
+  // here — they are `ownerUserId`.
+  staff: [{
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    role: { type: String, required: true, maxlength: 60 },
+    invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    addedAt: { type: Date, default: Date.now },
+  }],
 
   stats: {
     ratingAvg: { type: Number, min: 0, max: 5, default: 0 },

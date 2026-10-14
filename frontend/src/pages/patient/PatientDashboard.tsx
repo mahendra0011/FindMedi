@@ -8,7 +8,8 @@ import {
   X, Download, Syringe, CreditCard,
   Smartphone, Landmark, Wallet, RotateCcw, Sparkles, CheckCircle2,
   RefreshCw, Video, MapPin, Building2, CalendarClock,
-  Siren, Stethoscope, Activity, Users, Leaf
+  Siren, Stethoscope, Activity, Users, Leaf,
+  Search, Eye, EyeOff, Lock, Truck, ShieldCheck, Flame, Droplets, ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,14 +80,21 @@ const statCards = [
 
 const quickActions = [
   { label: 'Find Doctors', icon: Building2, link: '/patient/doctors', desc: 'In Clinic / Hospital' },
-  { label: 'Home Visits', icon: MapPin, link: '/patient/home-visit', desc: 'Live map tracking' },
-  { label: 'Video Consult', icon: Video, link: '/patient/video-calls', desc: 'Full HD 1080p' },
-  { label: 'Voice Calls', icon: Phone, link: '/patient/calls', desc: 'Audio consults' },
-  { label: 'Doctor Chat', icon: MessageCircle, link: '/patient/chat', desc: 'Instant messaging' },
-  { label: 'Book Lab Test', icon: Syringe, link: '/patient/services', desc: 'Home collection' },
+  { label: 'Dentist', icon: Sparkles, link: '/healthcare?category=dentist', desc: 'Teeth cleaning & RCT' },
+  { label: 'Eye Care', icon: Eye, link: '/healthcare?category=eye', desc: 'Vision & Lasik' },
+  { label: 'Physiotherapy', icon: Activity, link: '/patient/programs', desc: 'Rehab & home visits' },
+  { label: 'Diet & Nutrition', icon: Leaf, link: '/healthcare?category=dietitian', desc: 'Custom meal plans' },
+  { label: 'Mental Wellbeing', icon: Heart, link: '/patient/wellness', desc: 'Discreet counselling' },
+  { label: 'Book Lab Test', icon: Syringe, link: '/patient/services', desc: 'Home blood sample' },
   { label: 'Buy Medicine', icon: Pill, link: '/buy-medicine', desc: 'Doorstep delivery' },
-  { label: 'Upload Report', icon: Upload, link: '/upload', desc: 'Store securely' },
-  { label: 'Saved Doctors', icon: Heart, link: '/patient/favorites', desc: 'Quick access' },
+  { label: 'Rent Equipment', icon: Truck, link: '/patient/rentals', desc: 'Beds & Oxygen' },
+  { label: 'Gym & Yoga', icon: Flame, link: '/patient/programs', desc: 'CultPass & studios' },
+  { label: 'Health Camps', icon: Users, link: '/patient/events', desc: 'Free screenings' },
+  { label: 'Vaccinations', icon: ShieldCheck, link: '/patient/vaccinations', desc: 'Child UIP & Adult' },
+  { label: 'Insurance & Claims', icon: FileText, link: '/patient/insurance', desc: 'Cashless pre-auth' },
+  { label: 'Video Consult', icon: Video, link: '/patient/video-calls', desc: 'Full HD 1080p' },
+  { label: 'Doctor Chat', icon: MessageCircle, link: '/patient/chat', desc: 'Instant messaging' },
+  { label: 'Upload Report', icon: Upload, link: '/upload', desc: 'ABDM Health Locker' },
 ];
 
 const healthTips = [
@@ -115,6 +123,25 @@ export default function PatientDashboard() {
   const [payments, setPayments] = useState([]);
   const [apptTab, setApptTab] = useState('upcoming');
   const [doctorSosModalOpen, setDoctorSosModalOpen] = useState(false);
+  const [discreetMode, setDiscreetMode] = useState<boolean>(() => {
+    try { return window.localStorage.getItem('findmedi:discreet') === '1'; } catch { return false; }
+  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentCity, setCurrentCity] = useState('Delhi NCR');
+  const [familyMembers, setFamilyMembers] = useState<any[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState('self');
+
+  useEffect(() => {
+    try { window.localStorage.setItem('findmedi:discreet', discreetMode ? '1' : '0'); } catch {}
+  }, [discreetMode]);
+
+  useEffect(() => {
+    if (user?.id) {
+      api.dispatch(null, '/patient/family')
+        .then(res => setFamilyMembers(res?.members || []))
+        .catch(() => setFamilyMembers([]));
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     const h = new Date().getHours();
@@ -281,6 +308,129 @@ export default function PatientDashboard() {
 
   return (
     <div>
+      {/* ── Global Patient Hub Controls (Profile Switcher, Location, Search, Discreet Mode) ── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-5 p-3 rounded-2xl bg-card border border-border/60 shadow-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Profile Switcher */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/40 border border-border/40 text-xs font-semibold">
+            <User className="w-3.5 h-3.5 text-primary" />
+            <select
+              value={selectedProfile}
+              onChange={(e) => {
+                setSelectedProfile(e.target.value);
+                toast.success(e.target.value === 'self' ? 'Switched to Self profile' : 'Switched to Family Member profile');
+              }}
+              className="bg-transparent border-none text-foreground font-semibold focus:outline-none cursor-pointer text-xs pr-1"
+            >
+              <option value="self">Self ({user?.name?.split(' ')[0] || 'Patient'})</option>
+              {familyMembers.map((m: any) => (
+                <option key={m.id || m._id} value={m.id || m._id}>
+                  {m.name} ({m.relation || 'Dependent'})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* City / Location Chip */}
+          <button
+            type="button"
+            onClick={() => {
+              const cities = ['Delhi NCR', 'Mumbai', 'Bengaluru', 'Hyderabad', 'Chennai', 'Pune'];
+              const nextCity = cities[(cities.indexOf(currentCity) + 1) % cities.length];
+              setCurrentCity(nextCity);
+              toast.success(`Location set to ${nextCity}`);
+            }}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-muted/40 border border-border/40 text-xs font-semibold text-foreground hover:border-primary/40 transition-colors"
+          >
+            <MapPin className="w-3.5 h-3.5 text-primary" />
+            <span>{currentCity}</span>
+          </button>
+
+          {/* Discreet Mode Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              setDiscreetMode((prev) => !prev);
+              toast.info(!discreetMode ? 'Discreet Mode enabled: Sensitive health labels masked.' : 'Discreet Mode disabled.');
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors ${
+              discreetMode
+                ? 'bg-primary/10 border-primary/30 text-primary font-bold'
+                : 'bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {discreetMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            <span>Discreet {discreetMode ? 'ON' : 'OFF'}</span>
+          </button>
+        </div>
+
+        {/* Universal Search */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (searchQuery.trim()) {
+              navigate(`/healthcare?q=${encodeURIComponent(searchQuery.trim())}`);
+            }
+          }}
+          className="relative min-w-[240px] flex-1 max-w-sm"
+        >
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search doctors, tests, medicines..."
+            className="h-9 pl-9 pr-3 rounded-xl text-xs bg-muted/20 border-border/40"
+          />
+        </form>
+      </div>
+
+      {/* ── Urgent Health Alerts Strip ── */}
+      {(upcomingAppts.length > 0 || readyReportsCount > 0 || pendingBills.length > 0) && (
+        <div className="flex flex-col gap-2 mb-5">
+          {upcomingAppts.length > 0 && (
+            <div className="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs flex items-center justify-between text-blue-900 dark:text-blue-200">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>
+                  <strong>Appointment scheduled:</strong> With {upcomingAppts[0]?.doctorName || 'Doctor'} on {upcomingAppts[0]?.date} ({upcomingAppts[0]?.timeSlot || 'Scheduled'})
+                </span>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => navigate('/patient/appointments')} className="h-7 text-xs font-bold text-blue-600 hover:text-blue-700">
+                View <ArrowRight className="w-3 h-3 ml-1" />
+              </Button>
+            </div>
+          )}
+
+          {readyReportsCount > 0 && (
+            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs flex items-center justify-between text-emerald-900 dark:text-emerald-200">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  <strong>Diagnostic report ready:</strong> {readyReportsCount} verified lab or radiology report ready for download.
+                </span>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => navigate('/patient/reports')} className="h-7 text-xs font-bold text-emerald-600 hover:text-emerald-700">
+                View Reports <ArrowRight className="w-3 h-3 ml-1" />
+              </Button>
+            </div>
+          )}
+
+          {pendingBills.length > 0 && (
+            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs flex items-center justify-between text-amber-900 dark:text-amber-200">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  <strong>Pending hospital invoice:</strong> {pendingBills.length} unpaid bill awaiting settlement.
+                </span>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => setShowModal('add-payment')} className="h-7 text-xs font-bold text-amber-600 hover:text-amber-700">
+                Pay Bill <ArrowRight className="w-3 h-3 ml-1" />
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Welcome Banner */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 p-6 text-white mb-6">
@@ -1111,6 +1261,179 @@ export default function PatientDashboard() {
         </div>
       </motion.div>
 
+      {/* ── Specialized Health Hubs & Program Subscriptions (File 06) ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.18 }}
+        className="mb-6 space-y-4"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-heading font-black text-lg text-foreground">Programs, Subscriptions & Health Records</h3>
+            <p className="text-xs text-muted-foreground font-medium">Manage memberships, equipment rentals, registered health camps, and insurance</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* Card 1: Programs & Memberships */}
+          <Link
+            to="/patient/programs"
+            className="p-4 rounded-2xl border border-border/60 bg-card hover:border-primary/40 hover:shadow-md transition-all flex flex-col justify-between group"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-heading font-bold text-sm text-foreground group-hover:text-primary transition-colors">
+                  Programs & Memberships
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Gym/Yoga passes, diabetes reversal, therapy packs.
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 pt-2 border-t border-border/40 flex items-center justify-between text-xs text-primary font-semibold">
+              <span>View Active Passes</span>
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Card 2: Equipment Rentals */}
+          <Link
+            to="/patient/rentals"
+            className="p-4 rounded-2xl border border-border/60 bg-card hover:border-emerald-500/40 hover:shadow-md transition-all flex flex-col justify-between group"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Truck className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-heading font-bold text-sm text-foreground group-hover:text-emerald-600 transition-colors">
+                  Equipment Rentals
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  ICU beds, O2 concentrators, deposit tracking.
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 pt-2 border-t border-border/40 flex items-center justify-between text-xs text-emerald-600 font-semibold">
+              <span>Rental Orders & Pickups</span>
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Card 3: Health Camps & Events */}
+          <Link
+            to="/patient/events"
+            className="p-4 rounded-2xl border border-border/60 bg-card hover:border-amber-500/40 hover:shadow-md transition-all flex flex-col justify-between group"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-heading font-bold text-sm text-foreground group-hover:text-amber-600 transition-colors">
+                  Camps & Events
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Registered screening camps, QR entry passes.
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 pt-2 border-t border-border/40 flex items-center justify-between text-xs text-amber-600 font-semibold">
+              <span>View QR Passes</span>
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Card 4: Insurance & Cashless Desk */}
+          <Link
+            to="/patient/insurance"
+            className="p-4 rounded-2xl border border-border/60 bg-card hover:border-indigo-500/40 hover:shadow-md transition-all flex flex-col justify-between group"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-heading font-bold text-sm text-foreground group-hover:text-indigo-600 transition-colors">
+                  Insurance & Pre-Auth
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  PM-JAY, CGHS, private cashless claim tracking.
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 pt-2 border-t border-border/40 flex items-center justify-between text-xs text-indigo-600 font-semibold">
+              <span>TPA Claims Desk</span>
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+        </div>
+
+        {/* Second Row of Hubs */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          {/* Card 5: Vaccinations */}
+          <Link
+            to="/patient/vaccinations"
+            className="p-4 rounded-2xl border border-border/60 bg-card hover:border-rose-500/40 hover:shadow-md transition-all flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                <Syringe className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-heading font-bold text-sm text-foreground group-hover:text-rose-600 transition-colors">
+                  Vaccination Schedule
+                </h4>
+                <p className="text-xs text-muted-foreground">Child UIP doses & adult boosters</p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-rose-600 transition-transform" />
+          </Link>
+
+          {/* Card 6: Holistic Wellness */}
+          <Link
+            to="/patient/wellness"
+            className="p-4 rounded-2xl border border-border/60 bg-card hover:border-violet-500/40 hover:shadow-md transition-all flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-600 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                <Heart className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-heading font-bold text-sm text-foreground group-hover:text-violet-600 transition-colors">
+                  Daily Wellness & Mood
+                </h4>
+                <p className="text-xs text-muted-foreground">Steps, hydration, private emotional check-in</p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-violet-600 transition-transform" />
+          </Link>
+
+          {/* Card 7: Consents & DPDP */}
+          <Link
+            to="/patient/consents"
+            className="p-4 rounded-2xl border border-border/60 bg-card hover:border-cyan-500/40 hover:shadow-md transition-all flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-600 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-heading font-bold text-sm text-foreground group-hover:text-cyan-600 transition-colors">
+                  Consent Manager
+                </h4>
+                <p className="text-xs text-muted-foreground">ABDM sync & record access audit log</p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-cyan-600 transition-transform" />
+          </Link>
+        </div>
+      </motion.div>
+
       {/* Refund Section */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
         className="bg-card rounded-2xl border border-border/60 p-5 mb-6">
@@ -1195,6 +1518,19 @@ export default function PatientDashboard() {
         onClose={() => setDoctorSosModalOpen(false)}
         currentUser={user}
       />
+
+      {/* Floating 24x7 SOS Button */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <button
+          type="button"
+          onClick={() => setDoctorSosModalOpen(true)}
+          className="group relative flex items-center gap-2 px-4 py-3 rounded-full bg-rose-600 text-white font-bold text-xs shadow-2xl hover:bg-rose-700 hover:scale-105 active:scale-95 transition-all border-2 border-white/40 ring-4 ring-rose-500/20"
+        >
+          <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping absolute -top-0.5 -right-0.5" />
+          <Siren className="w-4 h-4 text-white animate-bounce" />
+          <span>24x7 Emergency SOS</span>
+        </button>
+      </div>
     </div>
   );
 }

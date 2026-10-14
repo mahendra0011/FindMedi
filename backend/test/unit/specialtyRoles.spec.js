@@ -121,12 +121,15 @@ describe('7.md 3 specialty roles', () => {
     }
   });
 
-  it('extends PractitionerProfile.roleType by exactly the spec-grounded two', async () => {
+  it('locks PractitionerProfile.roleType to the catalogue practitioner kinds', async () => {
     const PractitionerProfile = await importModel('../../src/models/PractitionerProfile.js', 'PractitionerProfile');
     expect(new Set(enumValues(PractitionerProfile, 'roleType'))).toEqual(new Set([
-      'doctor', 'dentist', 'physio', 'dietitian', 'nurse', 'counsellor',
-      'yoga_teacher', 'trainer', 'lawyer',
-      'ayush_practitioner', 'phlebotomist',
+      'acupuncturist', 'audiologist', 'ayush_practitioner', 'counsellor', 'dentist',
+      'dietitian', 'doctor', 'doula', 'lab_technician', 'lactation_consultant',
+      'lawyer', 'meditation_teacher', 'nurse', 'occupational_therapist', 'optometrist',
+      'paramedic_emt', 'peer_mentor', 'pharmacist', 'phlebotomist', 'physio',
+      'prosthetist_orthotist', 'psychologist', 'psychotherapist', 'radiographer',
+      'sonographer', 'speech_therapist', 'trainer', 'yoga_teacher',
     ]));
   });
 

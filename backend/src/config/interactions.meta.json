@@ -1,0 +1,16 @@
+{
+  "_purpose": "Knowledge-base provenance for interactions.json. Kept in a SEPARATE file because interactions.json must stay a pure array of pair objects (the 145-pair data-lint test iterates every entry).",
+  "version": "1.0.0",
+  "updatedAt": "2026-10-13",
+  "pairCount": null,
+  "sources": [
+    "Standard drug-interaction reference pair set curated via scripts/merge-ddi.mjs",
+    "See scripts/merge-ddi.mjs header for the update workflow"
+  ],
+  "reviewStatus": "pending-clinical-review",
+  "reviewedBy": null,
+  "reviewedAt": null,
+  "reviewCadence": "quarterly, or immediately after any pair addition",
+  "owner": "clinical-pharmacy",
+  "disclaimer": "Clinical decision support — not a substitute for professional judgement. Verify against the current formulary and clinical context before acting."
+}

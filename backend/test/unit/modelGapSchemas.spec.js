@@ -123,7 +123,7 @@ describe('Product catalogue (10.md §2.7)', () => {
 describe('Practitioner profile (10.md §2.5) keeps Doctor honest', () => {
   it('models non-Doctor role types, per-mode fees and encrypted registration', () => {
     expect(enumOf(PractitionerProfile.schema, 'roleType')).toEqual(
-      ['ayush_practitioner', 'counsellor', 'dentist', 'dietitian', 'doctor', 'lawyer', 'nurse', 'phlebotomist', 'physio', 'trainer', 'yoga_teacher'],
+      ['acupuncturist', 'audiologist', 'ayush_practitioner', 'counsellor', 'dentist', 'dietitian', 'doctor', 'doula', 'lab_technician', 'lactation_consultant', 'lawyer', 'meditation_teacher', 'nurse', 'occupational_therapist', 'optometrist', 'paramedic_emt', 'peer_mentor', 'pharmacist', 'phlebotomist', 'physio', 'prosthetist_orthotist', 'psychologist', 'psychotherapist', 'radiographer', 'sonographer', 'speech_therapist', 'trainer', 'yoga_teacher'],
     );
     expect(enumOf(PractitionerProfile.schema, 'modes.mode')).toEqual(
       ['audio', 'chat', 'home_visit', 'in_person', 'video'],

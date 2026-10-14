@@ -207,10 +207,6 @@ export default function DiagnosticCenterDetail() {
     radiologistQualification: facility.radiologistQualification || '',
     cardiologist: facility.cardiologistName || '',
     cardiologistQualification: facility.cardiologistQualification || '',
-    technicianName: facility.technicianName || '',
-    technicianRole: facility.technicianRole || '',
-    technicianQualification: facility.technicianQualification || '',
-    technicianExperience: facility.technicianExperience || '',
     timing: facility.timing || null,
     amenities: facility.amenities || null,
     socialLinks: facility.socialLinks || null,
@@ -261,10 +257,6 @@ export default function DiagnosticCenterDetail() {
     radiologistQualification: '',
     cardiologist: '',
     cardiologistQualification: '',
-    technicianName: '',
-    technicianRole: '',
-    technicianQualification: '',
-    technicianExperience: '',
     timing: null,
     amenities: null,
     socialLinks: null,
@@ -840,32 +832,6 @@ export default function DiagnosticCenterDetail() {
                           </div>
                         </div>
                       ))}
-                      {clinic.technicianName && (
-                        <div className="bg-card rounded-2xl border border-border/50 p-5 hover:shadow-md hover:border-primary/20 transition-all flex items-start gap-4 cursor-pointer group" onClick={() => navigate(`/technician/${clinic._id}`)}>
-                          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0 border-2 border-border/30">
-                            <Briefcase className="w-7 h-7 text-amber-500" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">{clinic.technicianName}</p>
-                              <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-primary" />
-                            </div>
-                            <p className="text-xs text-primary font-medium">{clinic.technicianRole || 'Lab Technician'}</p>
-                            {clinic.technicianQualification && (
-                              <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-                                <GraduationCap className="w-3 h-3 shrink-0" />
-                                {clinic.technicianQualification}
-                              </p>
-                            )}
-                            {clinic.technicianExperience && (
-                              <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                                <Briefcase className="w-3 h-3 shrink-0" />
-                                {clinic.technicianExperience}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -1168,20 +1134,15 @@ export default function DiagnosticCenterDetail() {
                       { label:'Radiologist', value:clinic.radiologist || 'N/A', icon:Eye },
                       { label:'Cardiologist', value:clinic.cardiologist || 'N/A', icon:Heart },
                       { label:'Established', value:clinic.established, icon:CalendarDays },
-                      clinic.technicianName ? { label:'Lab Technician', value:clinic.technicianName, icon:Users, link:true } : null,
                     ].filter(Boolean).map((item, i) => (
-                      <div key={i} onClick={() => item.link ? navigate(`/technician/${clinic._id}`) : null}
-                        className={cn(
-                          'bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-4 border border-border/40 hover:border-primary/20 transition-all',
-                          item.link && 'cursor-pointer hover:bg-primary/[0.02]'
-                        )}>
+                      <div key={i}
+                        className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-4 border border-border/40 hover:border-primary/20 transition-all">
                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2.5">
                           <item.icon className="w-4 h-4 text-primary" />
                         </div>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-0.5">{item.label}</p>
                         <div className="flex items-center gap-1">
                           <p className="text-sm font-bold text-foreground">{item.value}</p>
-                          {item.link && <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />}
                         </div>
                       </div>
                     ))}

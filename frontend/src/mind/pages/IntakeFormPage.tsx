@@ -14,7 +14,7 @@ import { sanitizeInput } from "@/mind/lib/sanitize";
 
 const concernOptions = [
   "Stress", "Anxiety", "Depression", "Relationship issues", "Trauma",
-  "Loneliness", "Exam pressure", "Career confusion", "Grief", "Anger management",
+  "Loneliness", "Student Pressure", "Career confusion", "Grief", "Anger management",
   "Self-esteem", "Sleep issues", "Family conflict", "Addiction", "Other",
 ];
 

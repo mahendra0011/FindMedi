@@ -75,10 +75,12 @@ import {
   googleAuthSchema,
   googleRegisterSchema,
   doctorSetupSchema,
+  providerStaffSetupSchema,
   refreshTokenSchema,
   profileUpdateSchema,
   passwordSchema,
 } from '../utils/validate.js';
+import { roleRequiresTwoFactor } from '../lib/providerStaffRoles.js';
 import { isPwnedPassword } from '../utils/pwnedPassword.js';
 import { checkPasswordStrength, strongPasswordMessage } from '../utils/passwordStrength.js';
 import { enforceConcurrentCap, enforceRefreshTimeouts } from '../utils/sessionPolicy.js';
@@ -1782,6 +1784,96 @@ router.post('/ambulance-setup', authLimiter, validate(doctorSetupSchema), async 
         ? err.message
         : 'This setup link is invalid, already used, or has expired.',
     });
+  }
+});
+
+// POST /api/auth/provider-staff-setup (2.md 9 — staff invitation redemption)
+//
+// Same contract as ambulance-setup: an OPAQUE SINGLE-USE CODE (128 bits, 48h)
+// consumed by ONE atomic findOneAndUpdate, so concurrent redemptions cannot
+// both win and the code stops being worth anything after the first use. The
+// EMAIL and ROLE come from the invite row — never from the request body, so a
+// holder of the link cannot aim it at another mailbox or escalate to a role the
+// owner did not pick.
+router.post('/provider-staff-setup', authLimiter, validate(providerStaffSetupSchema), async (req, res) => {
+  try {
+    const { code, password, name } = req.body;
+    const { default: ProviderStaffInvite } = await import('../models/ProviderStaffInvite.js');
+    const { default: Provider } = await import('../models/Provider.js');
+
+    const invite = await ProviderStaffInvite.findOneAndUpdate(
+      { code, usedAt: null, revokedAt: null, expiresAt: { $gt: new Date() } },
+      { $set: { usedAt: new Date() } },
+      { new: true },
+    );
+    if (!invite) {
+      // One uniform answer for invalid / used / expired / revoked: distinguishing
+      // them would only help someone probing codes.
+      return res.status(400).json({
+        message: 'This invitation link is invalid, already used, or has expired. Ask the provider owner for a new one.',
+      });
+    }
+
+    let user = await User.findOne({ email: invite.email });
+    if (user && user.status === 'blocked') {
+      return res.status(403).json({ message: 'Your account has been blocked. Contact administrator.' });
+    }
+    let accountExists = true;
+    if (!user) {
+      accountExists = false;
+      user = await User.create({
+        name: invite.name || name || invite.email.split('@')[0],
+        email: invite.email,
+        password,
+        role: invite.role,
+        phone: '',
+        isVerified: false,
+        status: 'active',
+        approvalStatus: 'approved',
+      });
+    }
+    // An EXISTING account keeps its password — the link proves mailbox control
+    // and grants the team role, it is not a password-reset token.
+
+    const provider = await Provider.findById(invite.providerId);
+    if (!provider) {
+      return res.status(410).json({ message: 'The listing this invitation points at no longer exists' });
+    }
+    const alreadyOnTeam = (provider.staff ?? []).some((row) => String(row.userId) === String(user._id));
+    if (!alreadyOnTeam) {
+      provider.staff.push({
+        userId: user._id,
+        role: invite.role,
+        invitedBy: invite.invitedBy,
+        addedAt: new Date(),
+      });
+      await provider.save();
+    }
+    invite.usedBy = user._id;
+    await invite.save();
+
+    try {
+      await auditLog('provider_staff_joined', user._id, {
+        providerId: String(provider._id),
+        inviteId: String(invite._id),
+        role: invite.role,
+        accountCreated: !accountExists,
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+    } catch (e) { /* audit must not block the join */ }
+
+    return res.json({
+      message: accountExists
+        ? 'You are now on the team. Log in with your existing account to open this listing.'
+        : 'Account created for this listing. Log in with the password you just set.',
+      accountExists,
+      role: invite.role,
+      requiresTwoFactor: roleRequiresTwoFactor(invite.role),
+    });
+  } catch (err) {
+    logger.warn(`Provider staff setup rejected: ${err.message}`);
+    res.status(400).json({ message: 'This setup link is invalid, already used, or has expired.' });
   }
 });
 

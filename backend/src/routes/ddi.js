@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect, authorize } from '../middleware/auth.js';
-import { checkDrugInteractionsDetailed } from '../services/ddiEngine.js';
+import { checkDrugInteractionsDetailed, getKnowledgeBase } from '../services/ddiEngine.js';
 import DdiOverride from '../models/DdiOverride.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
@@ -21,6 +21,11 @@ router.post('/check', authorize('prescriptions:write', 'records:read', 'pharmacy
     const hasMajor = interactions.some((i) => i.severity === 'major');
     const hasModerate = interactions.some((i) => i.severity === 'moderate');
 
+    // T3: every check carries its knowledge-base provenance + disclaimer so
+    // API consumers (and audit logs of a check) can tell WHICH data version
+    // was in force and that this is decision support, not a clinical order.
+    const knowledgeBase = getKnowledgeBase();
+
     return res.json({
       checkedCount: drugs.length,
       interactionsCount: interactions.length,
@@ -30,6 +35,8 @@ router.post('/check', authorize('prescriptions:write', 'records:read', 'pharmacy
       // "not checked" rather than implying they are safe.
       unknownDrugs,
       interactions,
+      knowledgeBase,
+      disclaimer: knowledgeBase.disclaimer,
     });
   } catch (err) {
     logger.error(`DDI check error: ${err.message}`);

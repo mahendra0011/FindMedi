@@ -67,8 +67,26 @@ router.post('/', protect, validate(feedbackSchema), async (req, res) => {
     });
     await auditLog('feedback_submitted', req.user._id, { recordId: row._id, ip: req.ip });
 
-    // Detractor alert: score <= 6 notifies patient relations / hospital admin
+    // T5 · nps_detractor: score <= 6 opens a Patient Relations follow-up task
+    // with a 24h SLA (the tracked work item), then notifies the same queue.
+    // Two separate try blocks: a notification failure must never lose the task
+    // and vice versa — both are non-fatal to the 201 response.
     if (typeof req.body.npsScore === 'number' && req.body.npsScore <= 6 && req.user.hospitalId) {
+      try {
+        const WorkTask = (await import('../models/WorkTask.js')).default;
+        await WorkTask.create({
+          hospitalId: req.user.hospitalId,
+          title: `NPS detractor follow-up (${req.body.npsScore}/10)`,
+          detail: `Feedback ${String(row._id)} in ${req.body.department || req.body.context || 'general'}: "${(req.body.comment || 'No comment').slice(0, 200)}". SLA: reach out to the patient within 24 hours.`,
+          entityRef: { model: 'Feedback', id: row._id },
+          roleQueue: 'patient_relations',
+          priority: 'P1',
+          dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          tags: ['feedback', 'nps_detractor'],
+          createdBy: req.user._id,
+        }).catch(() => null);
+      } catch { /* non-fatal task creation */ }
+
       try {
         const { createNotification } = await import('../services/notificationService.js');
         const User = (await import('../models/User.js')).default;

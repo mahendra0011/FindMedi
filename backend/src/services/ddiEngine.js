@@ -13,6 +13,36 @@ try {
   interactionDb = [];
 }
 
+// T3: knowledge-base provenance lives NEXT TO the pair data (not inside it —
+// interactions.json must remain a pure array for the data-lint test).
+const metaPath = path.join(__dirname, '../config/interactions.meta.json');
+let knowledgeBaseMeta;
+try {
+  knowledgeBaseMeta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+} catch {
+  knowledgeBaseMeta = null;
+}
+
+/**
+ * Provenance for /ddi/check consumers: version, review status and the
+ * clinical disclaimer. `pairCount` is computed live so it can never drift
+ * from the actual knowledge base.
+ */
+export function getKnowledgeBase() {
+  return {
+    version: knowledgeBaseMeta?.version || 'unversioned',
+    updatedAt: knowledgeBaseMeta?.updatedAt || null,
+    pairCount: NORMALIZED_DB.length,
+    reviewStatus: knowledgeBaseMeta?.reviewStatus || 'unknown',
+    reviewedBy: knowledgeBaseMeta?.reviewedBy || null,
+    reviewedAt: knowledgeBaseMeta?.reviewedAt || null,
+    reviewCadence: knowledgeBaseMeta?.reviewCadence || null,
+    disclaimer:
+      knowledgeBaseMeta?.disclaimer
+      || 'Clinical decision support — not a substitute for professional judgement.',
+  };
+}
+
 // Pre-compute normalized keys once at load — the hot loop below used to
 // re-normalize every entry for every (drug_i, drug_j) pair: O(n² · db).
 const NORMALIZED_DB = interactionDb.map((entry) => ({
@@ -136,4 +166,5 @@ export function checkDrugInteractions(drugs = []) {
 export default {
   checkDrugInteractions,
   checkDrugInteractionsDetailed,
+  getKnowledgeBase,
 };

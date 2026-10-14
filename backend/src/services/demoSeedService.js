@@ -802,7 +802,7 @@ export async function ensureDemoUsers() {
         rating: 4.7,
         reviews_count: 86,
         patients: 890,
-        areas_of_expertise: ['Career Stress', 'Self Confidence', 'Motivation'],
+        areas_of_expertise: ['Career Stress', 'Self Confidence'],
         profile_photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face&auto=format',
         supportPlanPrices: { oneTime: 299, shortTerm: 899, mediumTerm: 1499, longTerm: 2399 },
       },

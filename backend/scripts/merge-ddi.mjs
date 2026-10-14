@@ -1,3 +1,28 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// DDI knowledge-base update workflow (T3 · file 31)
+//
+// WHAT THIS IS: the data-update pipeline for src/config/interactions.json —
+// the pair knowledge base behind POST /ddi/check and the doctor/pharmacy
+// DdiCheckBanner.
+//
+// WORKFLOW (any pair addition/removal):
+//   1. Add/curate pairs in EXTRA below with a verifiable source for each
+//      (standard interaction reference + edition/date noted in the PR).
+//   2. Run:  node scripts/merge-ddi.mjs
+//      (dedupes on sorted drugA::drugB, appends only new pairs)
+//   3. Run:  npm test -- statutoryDdi.spec.js ddiCheck.spec.js
+//      (145-pair data lint: no dupes, severity enum, non-empty effect+
+//      recommendation; symmetric matching; API behaviour)
+//   4. Bump version + updatedAt in src/config/interactions.meta.json and set
+//      reviewStatus back to "pending-clinical-review".
+//   5. Clinical pharmacist/pharmacologist reviews the DIFF (not the whole
+//      file) and signs off: reviewStatus -> "reviewed", reviewedBy/reviewedAt
+//      filled. Until then /ddi/check reports reviewStatus so the UI/audit
+//      trail is honest about data currency.
+//
+// OWNER: clinical-pharmacy.  CADENCE: quarterly review of the whole file,
+// plus immediate review on every addition (step 5 above).
+// ─────────────────────────────────────────────────────────────────────────────
 // One-shot merge: appends clinically curated DDI pairs into interactions.json
 // (dedupes on sorted drugA::drugB key). Run: node scripts/merge-ddi.mjs
 import fs from 'node:fs';

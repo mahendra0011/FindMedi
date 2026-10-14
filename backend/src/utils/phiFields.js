@@ -81,3 +81,118 @@ export function mergeBankDetails(model, stored = {}, incoming = {}) {
 
 // Display helper: decrypt-then-mask in the caller's existing mask format.
 export const revealPhi = (model, field, value) => decryptPhi(model, field, value);
+
+// --- Join draft (P2-9: ProviderApplication.draft.stepData) ------------------
+//
+// The wizard draft carries tax IDs (pan/gstin/registration_number) and payout
+// bank details (account_number/ifsc) from the applicant's own browser into
+// the DB. Duplicate detection needs the tax fields, so plaintext equality
+// alone is not enough: values are encrypted at rest and the HMAC blind
+// indexes in `application.phiIndexes` are what the duplicate queries match.
+// Legacy plaintext rows keep matching through the plaintext branch of the
+// same query (applicationAutoChecks builds $or), so deploy needs no flag day.
+// Keys live in a server-owned schema path — the draft PATCH payload cannot
+// poison an index it does not write to.
+
+export const JOIN_PHI_FIELDS = ['pan', 'gstin', 'registration_number', 'account_number', 'ifsc'];
+export const JOIN_INDEXED_FIELDS = ['pan', 'gstin', 'registration_number'];
+
+const joinPhiFieldPath = (field) => `draft.stepData.${field}`;
+
+// Normalizes exactly like applicationAutoChecks.normalizeTaxId (strip + upper)
+// so a plaintext row and its indexed twin hash identically.
+export const joinPhiIndex = (field, value) => {
+  const normalized = String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!normalized) return null;
+  return blindIndex(normalized, `join_${field}_v1`);
+};
+
+// Encrypt every PHI field inside a merged stepData — wherever a step keeps
+// them — and rebuild the blind indexes from the plaintext. `stored` is the
+// previously-saved stepData (masked echo / already-encrypted values keep the
+// stored ciphertext) and `existingIndexes` preserves the index of a field the
+// masked echo preserved. Never throws: a field that fails to encrypt is left
+// as the caller's plaintext rather than dropping the applicant's input.
+export function encryptJoinDraftStep(stepData = {}, stored = {}, existingIndexes = {}) {
+  const storedCipher = {};
+  for (const data of Object.values(stored || {})) {
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      for (const field of JOIN_PHI_FIELDS) {
+        if (typeof data[field] === 'string' && data[field]) storedCipher[field] = data[field];
+      }
+    }
+  }
+
+  const out = {};
+  const phiIndexes = { ...existingIndexes };
+  const seen = new Set();
+
+  for (const [stepKey, data] of Object.entries(stepData || {})) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      out[stepKey] = data;
+      continue;
+    }
+    const copy = { ...data };
+    for (const field of JOIN_PHI_FIELDS) {
+      const v = copy[field];
+      if (v === undefined) continue;
+      seen.add(field);
+      if (v === null || v === '') {
+        copy[field] = v;
+        if (JOIN_INDEXED_FIELDS.includes(field)) phiIndexes[field] = null;
+        continue;
+      }
+      const str = String(v);
+      if (looksMasked(str)) {
+        // Masked echo: keep the stored secret (and its index), never the stars.
+        if (storedCipher[field]) {
+          copy[field] = storedCipher[field];
+        } else {
+          delete copy[field];
+          if (JOIN_INDEXED_FIELDS.includes(field)) phiIndexes[field] = null;
+        }
+        continue;
+      }
+      try {
+        const plain = isEncrypted(str)
+          ? decryptPhi('ProviderApplication', joinPhiFieldPath(field), str)
+          : str;
+        copy[field] = isEncrypted(str)
+          ? str
+          : encryptPhi('ProviderApplication', joinPhiFieldPath(field), str);
+        if (JOIN_INDEXED_FIELDS.includes(field)) phiIndexes[field] = joinPhiIndex(field, plain);
+      } catch {
+        /* keep plaintext rather than losing input — see header */
+      }
+    }
+    out[stepKey] = copy;
+  }
+
+  // A field the shallow step-merge dropped carries no value any more — its
+  // index must not outlive it.
+  for (const field of JOIN_INDEXED_FIELDS) {
+    if (!seen.has(field)) phiIndexes[field] = null;
+  }
+  return { stepData: out, phiIndexes };
+}
+
+// Owner-side read: the wizard re-fills its form from GET /join/applications/:id,
+// so the applicant sees their own secrets as plaintext. Legacy plaintext and
+// non-PHI values pass through untouched.
+export function decryptJoinDraftStep(stepData = {}) {
+  const out = {};
+  for (const [stepKey, data] of Object.entries(stepData || {})) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      out[stepKey] = data;
+      continue;
+    }
+    const copy = { ...data };
+    for (const field of JOIN_PHI_FIELDS) {
+      if (typeof copy[field] === 'string') {
+        copy[field] = decryptPhi('ProviderApplication', joinPhiFieldPath(field), copy[field]);
+      }
+    }
+    out[stepKey] = copy;
+  }
+  return out;
+}

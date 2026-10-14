@@ -68,10 +68,6 @@ export default function DiagnosticCenters() {
       pathologistName: f.pathologistName || '',
       radiologistName: f.radiologistName || '',
       cardiologistName: f.cardiologistName || '',
-      technicianName: f.technicianName || '',
-      technicianRole: f.technicianRole || '',
-      technicianQualification: f.technicianQualification || '',
-      technicianExperience: f.technicianExperience || '',
       nablNumber: f.nablNumber || '',
       aerbNumber: f.aerbNumber || '',
     };

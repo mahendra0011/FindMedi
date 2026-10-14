@@ -1,8 +1,9 @@
 import express from 'express';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { publicSearchLimiter } from '../middleware/rateLimit.js';
 import { searchProviders, searchDrugs, searchEhr, isOpenSearchConfigured } from '../services/opensearchIndexer.js';
 import { toSearchCard } from '../utils/searchDto.js';
+import { expandSearchQuery } from '../config/searchTaxonomy.js';
 import logger from '../config/logger.js';
 import mongoose from 'mongoose';
 import { assertEhrSearchAccess } from '../services/ehrSearchAccess.js';
@@ -290,6 +291,253 @@ router.get('/all', protect, async (req, res) => {
   } catch (err) {
     logger.error(`Master search error: ${err.message}`);
     return res.status(500).json({ groups: [], message: err.message });
+  }
+});
+
+// ─── GET /api/search/unified — Multi-vertical, taxonomy-expanded directory search ───
+// authz: public
+router.get('/unified', publicSearchLimiter, async (req, res) => {
+  try {
+    const {
+      q = '',
+      category = '',
+      vertical = '',
+      city = '',
+      lat,
+      lng,
+      lon,
+      radiusKm = 15,
+      openNow,
+      homeVisit,
+      online,
+      verified,
+      limit = 20,
+    } = req.query;
+
+    const taxonomy = expandSearchQuery(q);
+    const targetCategory = category || vertical || taxonomy.matchedTaxonomy?.category || '';
+    const targetSpecialty = taxonomy.matchedTaxonomy?.specialty || '';
+    const rx = q.trim() ? new RegExp(q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
+
+    const results = [];
+    const maxItems = Math.min(Number(limit) || 20, 50);
+
+    // 1. Search Facilities (hospitals, clinics, labs, pharmacies, etc.)
+    const facilityFilter = { status: 'approved' };
+    if (city && city.toLowerCase() !== 'all') {
+      facilityFilter.city = new RegExp(`^${city.trim()}$`, 'i');
+    }
+    if (targetCategory && ['hospital', 'clinic', 'lab', 'pharmacy'].includes(targetCategory)) {
+      facilityFilter.type = targetCategory;
+    } else if (targetCategory) {
+      facilityFilter.$or = [
+        { type: targetCategory },
+        { subType: targetCategory },
+      ];
+    }
+    if (rx) {
+      const orConditions = [
+        { name: rx },
+        { description: rx },
+        { specialties: rx },
+        { servicesOffered: rx },
+      ];
+      if (targetSpecialty) {
+        orConditions.push({ specialties: new RegExp(targetSpecialty, 'i') });
+      }
+      if (facilityFilter.$or) {
+        facilityFilter.$and = [{ $or: facilityFilter.$or }, { $or: orConditions }];
+        delete facilityFilter.$or;
+      } else {
+        facilityFilter.$or = orConditions;
+      }
+    }
+
+    const { default: Facility } = await import('../models/Facility.js');
+    const matchedFacilities = await Facility.find(facilityFilter)
+      .select('name slug type subType city address rating reviewsCount emergency24x7 appointmentModes logo')
+      .limit(maxItems)
+      .lean()
+      .catch(() => []);
+
+    for (const f of matchedFacilities) {
+      results.push({
+        id: String(f._id),
+        providerId: String(f._id),
+        fullName: f.name,
+        slug: f.slug || String(f._id),
+        vertical: f.type || 'facility',
+        subType: f.subType,
+        city: f.city,
+        address: f.address,
+        rating: f.rating || 0,
+        reviewCount: f.reviewsCount || 0,
+        verified: true,
+        openNow: Boolean(f.emergency24x7),
+        image: f.logo || '',
+        category: f.subType || f.type,
+      });
+    }
+
+    // 2. Search Doctors if remaining slots
+    if (results.length < maxItems && (!targetCategory || ['doctor', 'clinic', 'hospital'].includes(targetCategory))) {
+      const { default: Doctor } = await import('../models/Doctor.js');
+      const docFilter = {};
+      if (city && city.toLowerCase() !== 'all') docFilter.city = new RegExp(`^${city.trim()}$`, 'i');
+      if (rx || targetSpecialty) {
+        const docOr = [];
+        if (rx) docOr.push({ name: rx }, { specialization: rx });
+        if (targetSpecialty) docOr.push({ specialization: new RegExp(targetSpecialty, 'i') });
+        docFilter.$or = docOr;
+      }
+      const matchedDocs = await Doctor.find(docFilter)
+        .select('name specialization city fee experience rating reviewsCount photo emergencySupport')
+        .limit(maxItems - results.length)
+        .lean()
+        .catch(() => []);
+
+      for (const d of matchedDocs) {
+        results.push({
+          id: String(d._id),
+          providerId: String(d._id),
+          fullName: d.name ? `Dr. ${d.name}` : 'Practitioner',
+          vertical: 'doctor',
+          specialization: d.specialization,
+          city: d.city,
+          rating: d.rating || 4.5,
+          reviewCount: d.reviewsCount || 0,
+          verified: true,
+          fee: d.fee,
+          image: d.photo || '',
+          emergency: Boolean(d.emergencySupport),
+        });
+      }
+    }
+
+    // 3. Search Medicines if search query matches drug or pharmacy category
+    if (results.length < maxItems && (targetCategory === 'pharmacy' || (!targetCategory && rx))) {
+      const { default: Medicine } = await import('../models/Medicine.js');
+      const medFilter = rx ? { $or: [{ name: rx }, { genericName: rx }] } : {};
+      const matchedMeds = await Medicine.find(medFilter)
+        .select('name genericName category form sellingPrice currentStock')
+        .limit(Math.min(5, maxItems - results.length))
+        .lean()
+        .catch(() => []);
+
+      for (const m of matchedMeds) {
+        results.push({
+          id: String(m._id),
+          providerId: String(m._id),
+          fullName: m.name,
+          specialization: m.genericName,
+          vertical: 'medicine',
+          category: 'pharmacy',
+          fee: m.sellingPrice,
+          inStock: (m.currentStock ?? 0) > 0,
+        });
+      }
+    }
+
+    // 4. Log unmet demand if zero results and search text was provided
+    let unmetDemandLogged = false;
+    if (results.length === 0 && q.trim()) {
+      try {
+        const { default: UnmetDemand } = await import('../models/UnmetDemand.js');
+        await UnmetDemand.findOneAndUpdate(
+          { query: q.trim().toLowerCase(), city: city || 'All' },
+          {
+            $inc: { count: 1 },
+            $set: {
+              lastRequestedAt: new Date(),
+              category: targetCategory,
+              ip: req.ip || '',
+            },
+          },
+          { upsert: true }
+        );
+        unmetDemandLogged = true;
+      } catch (err) {
+        logger.warn(`Failed to log unmet demand: ${err.message}`);
+      }
+    }
+
+    res.set('Cache-Control', 'public, max-age=60');
+    res.removeHeader('Pragma');
+
+    return res.json({
+      success: true,
+      taxonomy: {
+        isEmergency: taxonomy.isEmergency,
+        emergencyMessage: taxonomy.emergencyMessage,
+        isSensitive: taxonomy.isSensitive,
+        crisisHotline: taxonomy.crisisHotline,
+        matchedSpecialty: taxonomy.matchedTaxonomy?.specialty || null,
+        suggestedQuery: taxonomy.matchedTaxonomy?.suggestedQuery || null,
+        synonyms: taxonomy.synonyms || [],
+      },
+      total: results.length,
+      results,
+      unmetDemandLogged,
+    });
+  } catch (err) {
+    logger.error(`Unified search error: ${err.message}`);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── POST /api/search/unmet-demand — Record unserved search request / request service in area ──
+// authz: public
+router.post('/unmet-demand', async (req, res) => {
+  try {
+    const { query, category, city, userContact, location } = req.body;
+    if (!query) {
+      return res.status(400).json({ success: false, message: 'query is required' });
+    }
+    const { default: UnmetDemand } = await import('../models/UnmetDemand.js');
+    const doc = await UnmetDemand.findOneAndUpdate(
+      { query: String(query).trim().toLowerCase(), city: String(city || 'All').trim() },
+      {
+        $inc: { count: 1 },
+        $set: {
+          category: category || '',
+          userContact: userContact || '',
+          location: location || {},
+          lastRequestedAt: new Date(),
+          ip: req.ip || '',
+        },
+      },
+      { upsert: true, new: true }
+    );
+    return res.json({
+      success: true,
+      message: 'Demand recorded successfully. Our ops team prioritizes onboarding providers in high-demand zones.',
+      data: doc,
+    });
+  } catch (err) {
+    logger.error(`Record unmet demand error: ${err.message}`);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── GET /api/search/unmet-demand — Aggregated unmet demand analytics for ops ───
+// authz: role
+router.get('/unmet-demand', protect, adminOnly, async (req, res) => {
+  try {
+    const { default: UnmetDemand } = await import('../models/UnmetDemand.js');
+    const { status, city, limit = 50 } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+    if (city) filter.city = new RegExp(city, 'i');
+
+    const rows = await UnmetDemand.find(filter)
+      .sort({ count: -1, lastRequestedAt: -1 })
+      .limit(Math.min(Number(limit) || 50, 200))
+      .lean();
+
+    return res.json({ success: true, count: rows.length, data: rows });
+  } catch (err) {
+    logger.error(`Get unmet demand error: ${err.message}`);
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 

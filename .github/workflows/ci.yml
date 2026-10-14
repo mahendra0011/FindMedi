@@ -874,10 +874,12 @@ jobs:
 
     # Node 22+ is required: this app runs Vitest 5 (engines: ^22.12.0 || ^24.0.0 || >=26)
     # and @testing-library/jest-dom 7 (engines: >=22), unlike the api job.
-    - name: Use Node.js 22.x
+    # Node 24 (not 22): single version across api/frontend/e2e jobs AND the
+    # production image (node:24-bookworm-slim) — version skew is its own bug class.
+    - name: Use Node.js 24.x
       uses: actions/setup-node@v7
       with:
-        node-version: 22.x
+        node-version: 24.x
         cache: 'npm'
         cache-dependency-path: frontend/package-lock.json
 
@@ -928,10 +930,10 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
-    - name: Use Node.js 22.x
+    - name: Use Node.js 24.x
       uses: actions/setup-node@v7
       with:
-        node-version: 22.x
+        node-version: 24.x
         cache: 'npm'
         cache-dependency-path: frontend/package-lock.json
 

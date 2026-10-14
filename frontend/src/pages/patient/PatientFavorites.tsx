@@ -43,7 +43,7 @@ const statsConfig = {
   pharmacy: { icon: Pill,         label: 'Pharmacies', color: 'text-rose-600',    bg: 'bg-rose-500/10' },
 };
 
-// Generic fallback card (used for technician/anything unmapped).
+// Generic fallback card (used for anything unmapped).
 function GenericCard({ favorite }) {
   const p = favorite?.profile || {};
   return (

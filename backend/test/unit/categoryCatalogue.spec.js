@@ -129,14 +129,15 @@ describe('FindMedi Final Category Catalogue (Pruned)', () => {
     expect(filtered[0].specialtyCode).toBe('SPEC.GENMED');
   });
 
-  it('contains allied practitioner roles in providerTypeCatalog', () => {
+  it('contains strictly 46 approved provider types in providerTypeCatalog', () => {
     const typeKeys = PROVIDER_TYPE_CATALOG.map((p) => p.typeKey);
-    const alliedKeys = [
+    expect(typeKeys.length).toBe(46);
+    const prunedKeys = [
       'occupational_therapist', 'prosthetist_orthotist', 'lactation_consultant',
       'doula', 'audiologist', 'acupuncturist',
     ];
-    for (const key of alliedKeys) {
-      expect(typeKeys).toContain(key);
+    for (const key of prunedKeys) {
+      expect(typeKeys).not.toContain(key);
     }
   });
 

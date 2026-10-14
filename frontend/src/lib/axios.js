@@ -219,6 +219,8 @@ const NO_AUTO_REFRESH_PATHS = [
   '/auth/login', '/auth/register', '/auth/google', '/auth/verify-otp',
   '/auth/resend-otp', '/auth/forgot-password', '/auth/reset-password',
   '/auth/doctor-setup', '/auth/ambulance-setup', '/auth/refresh', '/auth/logout',
+  // 2.md 9 — public staff-invite redemption (no session exists to refresh).
+  '/auth/provider-staff-setup',
 ];
 
 const isNoAutoRefresh = (url = '') => NO_AUTO_REFRESH_PATHS.some(p => url.startsWith(p));

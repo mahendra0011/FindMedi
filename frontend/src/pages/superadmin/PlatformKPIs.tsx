@@ -361,17 +361,25 @@ export default function PlatformKPIs() {
                 <Gavel className="w-5 h-5 text-yellow-600" />
                 <span className="text-sm font-medium text-yellow-800 dark:text-yellow-300">Disputes{openDisputes > 0 && ` (${openDisputes})`}</span>
               </Link>
-              <Link to="/superadmin/emergency" className="flex items-center gap-2.5 p-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors">
+              <Link to="/superadmin/join-applications" className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 transition-colors">
+                <FileCheck className="w-5 h-5 text-emerald-600" />
+                <span className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Join Applications</span>
+              </Link>
+              <Link to="/superadmin/onboarding-metrics" className="flex items-center gap-2.5 p-3 rounded-xl bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-900/30 hover:bg-cyan-100 dark:hover:bg-cyan-950/40 transition-colors">
+                <BarChart3 className="w-5 h-5 text-cyan-600" />
+                <span className="text-sm font-medium text-cyan-800 dark:text-cyan-300">Onboarding Funnel</span>
+              </Link>
+              <Link to="/superadmin/kyc-workspace" className="flex items-center gap-2.5 p-3 rounded-xl bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-900/30 hover:bg-teal-100 dark:hover:bg-teal-950/40 transition-colors">
+                <FileCheck className="w-5 h-5 text-teal-600" />
+                <span className="text-sm font-medium text-teal-800 dark:text-teal-300">KYC Review Desk</span>
+              </Link>
+              <Link to="/superadmin/incident-command" className="flex items-center gap-2.5 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-950/40 transition-colors">
+                <Siren className="w-5 h-5 text-rose-600" />
+                <span className="text-sm font-medium text-rose-800 dark:text-rose-300">Incident Command</span>
+              </Link>
+              <Link to="/superadmin/emergency-war-room" className="flex items-center gap-2.5 p-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors">
                 <Siren className="w-5 h-5 text-red-600" />
                 <span className="text-sm font-medium text-red-800 dark:text-red-300">Emergency War Room</span>
-              </Link>
-              <Link to="/superadmin/kyc" className="flex items-center gap-2.5 p-3 rounded-xl bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-900/30 hover:bg-teal-100 dark:hover:bg-teal-950/40 transition-colors">
-                <FileCheck className="w-5 h-5 text-teal-600" />
-                <span className="text-sm font-medium text-teal-800 dark:text-teal-300">KYC Verification</span>
-              </Link>
-              <Link to="/superadmin/delivery-partners" className="flex items-center gap-2.5 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-950/40 transition-colors">
-                <Truck className="w-5 h-5 text-indigo-600" />
-                <span className="text-sm font-medium text-indigo-800 dark:text-indigo-300">Delivery Partners</span>
               </Link>
             </div>
           </CardContent>

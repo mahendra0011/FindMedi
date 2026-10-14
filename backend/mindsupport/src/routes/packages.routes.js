@@ -30,8 +30,8 @@ function supportPlanPriceKey(planId = "") {
 function supportPlans() {
   return [
     { id: "one-time", name: "One-Time Session", duration: "Single session", cadence: "One-time consultation", summary: "A single counselling session for immediate support", bestFor: ["Immediate support", "One-off guidance", "Quick check-in"], multiplier: 1, modeOptions: ["video-chat", "chat-only", "voice-call", "in-person"] },
-    { id: "short-term", name: "Short-Term Support", duration: "4-8 sessions", cadence: "One session every two days", summary: "Quick emotional support and guidance", bestFor: ["Stress", "Anxiety", "Exam pressure", "Loneliness"], multiplier: 3, modeOptions: ["video-chat", "chat-only", "voice-call", "in-person"] },
-    { id: "medium-term", name: "Medium-Term Support", duration: "8-15 sessions", cadence: "Weekly or bi-weekly", summary: "Emotional recovery and personal growth", bestFor: ["Mild depression", "Relationship issues", "Emotional healing"], multiplier: 5, modeOptions: ["video-chat", "chat-only", "voice-call", "in-person"] },
+    { id: "short-term", name: "Short-Term Support", duration: "4-8 sessions", cadence: "One session every two days", summary: "Quick emotional support and guidance", bestFor: ["Stress", "Anxiety", "Student Pressure", "Loneliness"], multiplier: 3, modeOptions: ["video-chat", "chat-only", "voice-call", "in-person"] },
+    { id: "medium-term", name: "Medium-Term Support", duration: "8-15 sessions", cadence: "Weekly or bi-weekly", summary: "Emotional recovery and personal growth", bestFor: ["Mild depression", "Relationship issues"], multiplier: 5, modeOptions: ["video-chat", "chat-only", "voice-call", "in-person"] },
     { id: "long-term", name: "Long-Term Therapy", duration: "3-6+ months", cadence: "Weekly or bi-weekly sessions", summary: "Ongoing therapy and steady progress", bestFor: ["Trauma", "Severe anxiety", "Chronic depression"], multiplier: 8, modeOptions: ["video-chat", "chat-only", "voice-call", "in-person"] },
   ];
 }

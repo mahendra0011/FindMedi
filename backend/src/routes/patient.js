@@ -89,7 +89,7 @@ const addressSchema = z.object({
   isDefault: z.boolean().optional(),
 });
 const favoriteSchema = z.object({
-  refType: z.enum(['doctor', 'hospital', 'clinic', 'lab', 'pharmacy', 'technician']).optional(),
+  refType: z.enum(['doctor', 'hospital', 'clinic', 'lab', 'pharmacy']).optional(),
   refId: z.string().max(64).optional(),
   refName: z.string().max(200).optional(),
   notes: z.string().max(1000).optional(),
@@ -213,7 +213,7 @@ router.get('/favorites', protect, authorize('profile:read:own'), async (req, res
 
     // Full-card selects so the favorites page can reuse the listing-page cards
     const DOCTOR_SELECT = 'name specialization qualifications experience consultation_fees rating reviews_count patients available phone email location profile_photo bio languages areas_of_expertise education department doctor_type';
-    const FACILITY_SELECT = 'name type slug email phone address city state pincode logo image description specialties status rating reviewsCount establishedYear totalDoctors accreditations hospitalType emergency24x7 bedAvailability ambulanceService workingHours nablNumber aerbNumber technicianName technicianRole technicianQualification technicianExperience amenities';
+    const FACILITY_SELECT = 'name type slug email phone address city state pincode logo image description specialties status rating reviewsCount establishedYear totalDoctors accreditations hospitalType emergency24x7 bedAvailability ambulanceService workingHours nablNumber aerbNumber amenities';
 
     const enriched = await Promise.all(favorites.map(async (fav) => {
       let profile = null;

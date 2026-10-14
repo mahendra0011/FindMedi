@@ -90,9 +90,48 @@ router.get('/', async (req, res) => {
     res.removeHeader('Pragma');
     res.json({ providers, total, page, pages: Math.ceil(total / limit) || 1, limit });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.status(500).json({ message: err.message });
   }
 });
+
+// authz: role
+//
+// Admin provider directory (Spec 08 §3). Unscoped view across all statuses
+// (live, under_review, suspended, banned, draft) with filtering by type, group, city, and status.
+router.get('/admin/list', protect, requireRole(['superadmin', 'compliance_officer', 'city_manager']), async (req, res) => {
+  try {
+    const { status, type, group, city, q } = req.query;
+    const filter = {};
+    if (status && status !== 'all') filter.status = String(status);
+    if (type && type !== 'all') filter.type = String(type).toLowerCase();
+    if (group && group !== 'all') filter.group = String(group);
+    if (city) {
+      const cityRe = safeSearchRegex(city, { max: 80 });
+      if (cityRe) filter['address.city'] = cityRe;
+    }
+    const search = safeSearchRegex(q);
+    if (search) {
+      filter.$or = [{ name: search }, { slug: search }, { 'contact.publicPhone': search }, { 'address.pincode': search }];
+    }
+    const limit = toPositiveInt(req.query.limit, 25, 100);
+    const page = toPositiveInt(req.query.page, 1, 10000);
+
+    const [providers, total] = await Promise.all([
+      Provider.find(filter)
+        .select('name slug kind type group tier status address verification stats probation trusted plan createdAt')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Provider.countDocuments(filter),
+    ]);
+
+    return res.json({ providers, total, page, pages: Math.ceil(total / limit) || 1, limit });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 
 // Detail page DTO (10.md 4.1). 404 (not 403) for anything not live, so a slug
 // cannot be used to probe which drafts and suspended listings exist. The
@@ -327,5 +366,58 @@ router.post('/:id/status', protect, requireRole(['superadmin']), requireObjectId
     return res.status(400).json({ message: err.message });
   }
 });
+
+const probationSchema = z.object({
+  active: z.boolean(),
+  bookingCap: z.number().min(0).optional(),
+  payoutHold: z.boolean().optional(),
+}).strict();
+
+// authz: role
+router.post('/:id/probation', protect, requireRole(['superadmin', 'compliance_officer']), requireObjectId, validate(probationSchema), async (req, res) => {
+  try {
+    const provider = await Provider.findById(req.params.id);
+    if (!provider) return res.status(404).json({ message: 'Provider not found' });
+    provider.probation = {
+      active: req.body.active,
+      bookingCap: req.body.bookingCap ?? provider.probation?.bookingCap ?? 0,
+      payoutHold: req.body.payoutHold ?? provider.probation?.payoutHold ?? false,
+    };
+    await provider.save();
+    await auditLog('provider_probation_updated', req.user._id ?? req.user.id, {
+      providerId: provider._id, probation: provider.probation, ip: req.ip,
+    });
+    return res.json({ _id: provider._id, probation: provider.probation });
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+});
+
+const impersonateSchema = z.object({
+  reason: z.string().trim().min(5).max(500),
+}).strict();
+
+// authz: role
+router.post('/:id/view-as', protect, requireRole(['superadmin']), requireObjectId, validate(impersonateSchema), async (req, res) => {
+  try {
+    const provider = await Provider.findById(req.params.id).lean();
+    if (!provider) return res.status(404).json({ message: 'Provider not found' });
+    await auditLog('provider_impersonate_view_as', req.user._id ?? req.user.id, {
+      providerId: provider._id, reason: req.body.reason, ip: req.ip,
+    });
+    return res.json({
+      success: true,
+      providerId: String(provider._id),
+      name: provider.name,
+      type: provider.type,
+      readOnly: true,
+      expiresInSeconds: 1800,
+      message: 'Audited read-only session authorized (PHI masked)',
+    });
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+});
+
 
 export default router;

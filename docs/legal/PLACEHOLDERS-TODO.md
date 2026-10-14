@@ -25,7 +25,7 @@ bhar sakte hain. Inke bina legal **final** nahi hoga (draft ~50% hi rahega).
 - [ ] Lawyer review: ToS, Privacy, Provider Agreement + type addenda, Refund policy,
       Community guidelines, Claims policy, Grievance policy (healthcare + data-protection + consumer + IT)
 - [ ] Fee-splitting/advertising/IRDAI/e-pharmacy opinion (business model)
-- [ ] Policy acceptance records versioned (user/provider id, version, timestamp, IP) — helper `backend/src/lib/policyAcceptance.js` maujood
+- [x] Policy acceptance records versioned (user/provider id, version, timestamp, IP) — helper `backend/src/lib/policyAcceptance.js` maujood; join submit ab `tmpl_<group>` × `v<configVersion>` record karta hai (`routes/join.js`), ledger `docs/legal/ACCEPTANCE-LOG.md` me
 - [ ] Compliance register (regulation → owner → evidence → review date)
 
 ## Code se bahar (is repo me complete nahi ho sakta)

@@ -232,7 +232,7 @@ router.get('/:id', async (req, res) => {
 router.post('/register', validate(registerFacilitySchema), async (req, res) => {
   try {
     const { account, facility: facilityData, doctors: doctorsData, services: servicesData, specialist: specialistData } = req.body;
-    const { type, name, email, phone, address, city, state, licenseNumber, description, establishedYear, logo, image, nablNumber, aerbNumber, workingHours, pathologistName, pathologistQualification, radiologistName, radiologistQualification, cardiologistName, cardiologistQualification, technicianName, technicianRole, technicianQualification, technicianExperience, timing, amenities, socialLinks, details, location } = facilityData || req.body;
+    const { type, name, email, phone, address, city, state, licenseNumber, description, establishedYear, logo, image, nablNumber, aerbNumber, workingHours, pathologistName, pathologistQualification, radiologistName, radiologistQualification, cardiologistName, cardiologistQualification, timing, amenities, socialLinks, details, location } = facilityData || req.body;
     const adminName = account?.name || req.body.adminName;
     const adminEmail = account?.email || req.body.adminEmail;
     const adminPhone = account?.phone || req.body.adminPhone;
@@ -254,8 +254,6 @@ router.post('/register', validate(registerFacilitySchema), async (req, res) => {
       pathologistName: pathologistName || '', pathologistQualification: pathologistQualification || '',
       radiologistName: radiologistName || '', radiologistQualification: radiologistQualification || '',
       cardiologistName: cardiologistName || '', cardiologistQualification: cardiologistQualification || '',
-      technicianName: technicianName || '', technicianRole: technicianRole || '',
-      technicianQualification: technicianQualification || '', technicianExperience: technicianExperience || '',
       timing: timing || {}, amenities: amenities || {}, socialLinks: socialLinks || {},
       location: location || undefined,
       status: 'pending', details: details || {},
@@ -342,7 +340,6 @@ router.put('/:id', protect, validate(updateFacilitySchema), async (req, res) => 
       'pathologistName', 'pathologistQualification',
       'radiologistName', 'radiologistQualification',
       'cardiologistName', 'cardiologistQualification',
-      'technicianName', 'technicianRole', 'technicianQualification', 'technicianExperience',
       'timing', 'amenities', 'socialLinks', 'location'
     ];
     const update = {};

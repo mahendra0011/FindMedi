@@ -188,10 +188,6 @@ router.post('/register', platformRegisterLimiter, validate(platformRegisterSchem
         radiologistQualification: specialist?.radiologistQualification || '',
         cardiologistName: specialist?.cardiologistName || '',
         cardiologistQualification: specialist?.cardiologistQualification || '',
-        technicianName: specialist?.technicianName || '',
-        technicianRole: specialist?.technicianRole || '',
-        technicianQualification: specialist?.technicianQualification || '',
-        technicianExperience: specialist?.technicianExperience || '',
       });
 
       const clinicUser = await User.create({

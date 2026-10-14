@@ -36,7 +36,7 @@ export const FACILITY_SUBTYPES = [
   'rehabilitation_centre', 'geriatric_daycare', 'sports_academy_turf',
   // specialty centres & AYUSH (pruned catalogue §6, §7, §15)
   'dialysis_centre', 'optical_shop', 'panchakarma_centre', 'naturopathy_hospital',
-  'acupuncture_centre', 'audiology_hearing_aid_centre', 'cardiac_cath_lab',
+  'audiology_hearing_aid_centre', 'cardiac_cath_lab',
   'diabetes_clinic', 'skin_hair_clinic', 'pain_clinic', 'wound_care_clinic',
   'diabetic_foot_clinic', 'urology_centre', 'lithotripsy_centre',
   'plastic_cosmetic_surgery', 'sexual_health_clinic', 'travel_medicine_clinic',
@@ -60,7 +60,7 @@ export const FACILITY_OWNERSHIP = [
 // specialty (B1.4), so "Ayurveda clinic" is not smuggled into specialities.
 export const SYSTEMS_OF_MEDICINE = [
   'allopathy', 'ayurveda', 'homeopathy', 'unani', 'siddha',
-  'yoga_naturopathy', 'sowa_rigpa', 'integrative',
+  'yoga_naturopathy', 'integrative',
   '', // not specified yet
 ];
 
@@ -163,11 +163,6 @@ const facilitySchema = new mongoose.Schema({
   radiologistQualification: { type: String, default: '' },
   cardiologistName: { type: String, default: '' },
   cardiologistQualification: { type: String, default: '' },
-
-  technicianName: { type: String, default: '' },
-  technicianRole: { type: String, default: '' },
-  technicianQualification: { type: String, default: '' },
-  technicianExperience: { type: String, default: '' },
 
   timing: {
     monday: { type: String, default: '8:00 AM - 8:00 PM' },

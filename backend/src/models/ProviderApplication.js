@@ -44,6 +44,16 @@ const reviewerAssignmentSchema = new mongoose.Schema({
   queue: { type: String, maxlength: 60, default: 'default' },
 }, { _id: false });
 
+// 2.md 6/11 — the submit-time automatic screen (lib/applicationAutoChecks.js):
+// one row per check, append-replaced on every submit so a corrected resubmit is
+// re-screened rather than inheriting a stale verdict.
+const autoCheckSchema = new mongoose.Schema({
+  key: { type: String, required: true, maxlength: 60 },
+  status: { type: String, enum: ['pass', 'flag', 'skip', 'error'], required: true },
+  severity: { type: String, enum: ['info', 'review', 'conflict'], default: 'info' },
+  note: { type: String, maxlength: 500, default: '' },
+}, { _id: false });
+
 const providerApplicationSchema = new mongoose.Schema({
   // Human reference for the ops queue and support tickets - never an authz id.
   applicationId: { type: String, unique: true, sparse: true },
@@ -69,10 +79,31 @@ const providerApplicationSchema = new mongoose.Schema({
     stepData: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
   },
 
+  // P2-9 join draft: HMAC blind indexes over the encrypted tax fields in
+  // stepData (utils/phiFields.js encryptJoinDraftStep) — the duplicate scans
+  // query THESE, never the ciphertext. Server-owned: the draft PATCH payload
+  // writes step values only, so an applicant cannot poison an index. Indexed:
+  // the duplicate query's `$or` arm is an equality on a hash, and without
+  // these it degrades into a collection scan as the application table grows.
+  phiIndexes: {
+    pan: { type: String, maxlength: 128, default: null, index: true },
+    gstin: { type: String, maxlength: 128, default: null, index: true },
+    registration_number: { type: String, maxlength: 128, default: null, index: true },
+  },
+
   status: { type: String, enum: APPLICATION_STATUSES, default: 'draft', index: true },
   submittedAt: { type: Date, default: null },
   decidedAt: { type: Date, default: null },
+  // Set by jobs/joinDraftExpiry.job.js when the 30-day expiry + 30-day purge
+  // window has completed: the row survives for the audit trail, its wizard
+  // payload and uploaded documents do not (data minimisation).
+  purgedAt: { type: Date, default: null },
   resubmissionCount: { type: Number, min: 0, default: 0 },
+  // 2.md 11 ip_cluster check: truncated SHA-256 of the submit IP (see
+  // lib/applicationAutoChecks.hashIp). Equality-only clustering needs no raw
+  // address — that already lives in the audit row — and the hash is set at
+  // every submit so a resubmit from a new network re-clusters correctly.
+  submitIpHash: { type: String, maxlength: 64, default: null, index: true },
   escalated: { type: Boolean, default: false },
   rejectionReason: { type: String, maxlength: 1000, default: '' },
 
@@ -80,6 +111,16 @@ const providerApplicationSchema = new mongoose.Schema({
   checklistResults: [checklistResultSchema],
   decisions: [decisionSchema],
   needsInfo: [needsInfoSchema],
+
+  // 2.md 11 anti-fraud screen, run on every submit (lib/applicationAutoChecks).
+  // `verdict` drives the reviewer's `flagged` queue; `forceTwoPerson` records
+  // that a conflict was found and is folded into twoPersonApproval at submit.
+  autoChecks: {
+    verdict: { type: String, enum: ['unchecked', 'clear', 'review', 'conflict', 'error'], default: 'unchecked' },
+    forceTwoPerson: { type: Boolean, default: false },
+    runAt: { type: Date, default: null },
+    checks: { type: [autoCheckSchema], default: [] },
+  },
 
   // Two-person approval (2.md 6 "tiered approval", 8.md 2 high-risk lane):
   // the first `approve` parks the application in under_review with the approver

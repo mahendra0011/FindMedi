@@ -479,6 +479,7 @@ import User from './models/User.js';
 import Record from './models/Record.js';
 import ChatMessage from './models/ChatMessage.js';
 import ChatConversation from './models/ChatConversation.js';
+import { verifyFileUrlSignature } from './utils/signedFileUrl.js';
 
 const SENSITIVE_UPLOAD_DIRS = new Set(['documents', 'reports', 'call-recordings']);
 const CHAT_UPLOAD_DIRS = new Set(['chat']);
@@ -516,6 +517,23 @@ app.use('/uploads', async (req, res, next) => {
     }
   } catch {
     return res.status(401).json({ message: 'Authentication required for file access' });
+  }
+
+  // Signed, short-lived URL (utils/signedFileUrl.js): an authorized route —
+  // the KYC review workspace, for example — already did the authz and minted
+  // THIS user a link to THIS exact path. A valid signature is that proof, so
+  // it skips the directory rules below; anything else (missing, expired,
+  // foreign, tampered) falls through to the normal session + ownership
+  // checks as if the signature were not there.
+  const signedPath = `${req.baseUrl}${req.path}`;
+  if (req.query.sig
+    && verifyFileUrlSignature({
+      path: signedPath,
+      exp: req.query.exp,
+      sig: req.query.sig,
+      userId: String(user._id),
+    })) {
+    return next();
   }
 
   const [dir, fileName] = req.path.split('/').filter(Boolean);
@@ -687,6 +705,9 @@ import providerCatalogRoutes from './routes/providerCatalog.js';
 import joinRoutes from './routes/join.js';
 import adminApplicationRoutes from './routes/adminApplications.js';
 import onboardingMetricsRoutes from './routes/onboardingMetrics.js';
+// 2.md 9 — provider-scoped staff invitation (owner side; redemption lives in
+// routes/auth.js as POST /api/auth/provider-staff-setup).
+import providerStaffRoutes from './routes/providerStaff.js';
 // rolesmd 5.md flows B (quote), E (events) and G (rental) + 8.md §5/§6 queue.
 import quoteRoutes from './routes/quotes.js';
 import eventRoutes from './routes/events.js';
@@ -1044,6 +1065,8 @@ app.use('/api/products', productRoutes);
 app.use('/api/config/provider-types', providerTypeRoutes);
 app.use('/api/admin/provider-type-configs', adminProviderTypeRoutes);
 app.use('/api/join', joinRoutes);
+// 2.md 9: owner-side staff invites for a listing.
+app.use('/api/provider-staff', providerStaffRoutes);
 app.use('/api/admin/applications', adminApplicationRoutes);
 // 2.md 13: onboarding funnel metrics. Superadmin only, no-store - see the
 // route file for why neither the data nor a cached copy of it is public.
@@ -1532,6 +1555,16 @@ if (process.env.NODE_ENV !== 'test') {
         startVendorKycExpiry(process.env.VENDOR_KYC_EXPIRY_CRON || '30 6 * * *');
       } catch (e) {
         logger.warn('vendor KYC expiry job failed to start (non-fatal): ' + e.message);
+      }
+
+      // Join drafts: idle 30 days → expired (applicant notified); expired 30
+      // more days → payload + uploaded documents purged, row kept for audit
+      // (platform-expansion-plan.md:189). Daily 07:00, after the sweeps above.
+      try {
+        const { startJoinDraftExpiry } = await import('./jobs/joinDraftExpiry.job.js');
+        startJoinDraftExpiry(process.env.JOIN_DRAFT_EXPIRY_CRON || '0 7 * * *');
+      } catch (e) {
+        logger.warn('join draft expiry job failed to start (non-fatal): ' + e.message);
       }
     } catch (e) {
       logger.error('⚠️ Failed to sync indexes, seed demo users, or start outbox poller: ' + e.message);

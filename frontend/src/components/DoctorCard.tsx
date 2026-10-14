@@ -99,11 +99,6 @@ export default function DoctorCard({ doctor, index = 0 }) {
               <span className="text-xs text-muted-foreground">({reviews_count})</span>
             )}
           </div>
-          {patients > 0 && (
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <User className="w-3 h-3" /> {patients}+ patients
-            </span>
-          )}
         </div>
 
         {/* Quick facts row */}

@@ -531,7 +531,7 @@ const sendAnnouncement = async () => {
                       <Input
                         value={newPackage.bestFor.join(", ")}
                         onChange={(e) => setNewPackage({ ...newPackage, bestFor: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
-                        placeholder="Stress, Anxiety, Exam pressure, Loneliness"
+                        placeholder="Stress, Anxiety, Student Pressure, Loneliness"
                       />
                       <p className="text-xs text-foreground/50">Enter tags separated by commas</p>
                     </div>

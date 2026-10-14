@@ -237,16 +237,17 @@ describe('File 24 §4.13 CRM Settings', () => {
   test('PUT /settings rejects unknown lead stage keys with 400', async () => {
     const res = await as(superadmin)
       .put('/settings')
-      .send({ leadStages: [{ key: 'not_a_stage', slaHours: 5 }] })
+      .send({ leadStages: [{ key: 'not_a_stage', slaHours: 5 }, { key: 'identified', slaHours: 5 }] })
       .expect(400);
     expect(res.body.message).toMatch(/Unknown lead stages/);
   });
 
   test('PUT /settings rejects unknown partner stage keys with 400', async () => {
-    await as(superadmin)
+    const res = await as(superadmin)
       .put('/settings')
-      .send({ partnerStages: [{ key: 'bogus_stage', slaHours: 5 }] })
+      .send({ partnerStages: [{ key: 'bogus_stage', slaHours: 5 }, { key: 'active', slaHours: 5 }] })
       .expect(400);
+    expect(res.body.message).toMatch(/Unknown partner stages/);
   });
 
   test('PUT /settings accepts valid stages and audits the change', async () => {

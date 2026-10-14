@@ -7,6 +7,7 @@ import {
   ocrDocumentWithProvider, checkClaim, ragAnswer, labTrendNarrative,
   draftDischargeSummary, redactPhi,
 } from '../lib/aiGateway.js';
+import { uploadMemory, requireValidatedFile } from '../middleware/upload.js';
 
 // File 22 P2-37: AI features as first-class routes. Every output is queued
 // for human review (nothing AI-generated is final until a reviewer approves),
@@ -33,6 +34,19 @@ const enqueue = async (req, feature, input, output, sourceId = '') => {
 const handle = (res, err) => {
   if (err.code === 'AI_DISABLED') return res.status(423).json({ message: err.message, code: 'AI_DISABLED' });
   return res.status(500).json({ message: err.message });
+};
+
+// T10: multipart file OCR policy — memory-only multer (nothing hits disk),
+// strict MIME allowlist, then magic-byte sniff + ClamAV scan. JSON bodies on
+// /ocr skip this entirely (they carry no file).
+const OCR_FILE_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
+const OCR_MAX_BYTES = 10 * 1024 * 1024;
+const ocrFileUpload = (req, res, next) => {
+  if (!req.is('multipart/form-data')) return next();
+  uploadMemory('file', { types: OCR_FILE_TYPES, maxSize: OCR_MAX_BYTES })(req, res, (err) => {
+    if (err) return res.status(400).json({ message: err.message });
+    requireValidatedFile(OCR_FILE_TYPES, OCR_MAX_BYTES)(req, res, next);
+  });
 };
 
 // OCR: extract structured fields from a document's text or image/PDF.
@@ -172,6 +186,37 @@ router.get('/invocations', authorize('staff:manage'), async (req, res) => {
     const rows = await AiInvocation.find(tenantFilter(req)).sort({ createdAt: -1 }).limit(200).lean();
     return res.json({ invocations: rows });
   } catch (err) { return res.status(500).json({ message: err.message }); }
+});
+
+// T10: file OCR — real multipart upload (jpeg/png/pdf, ≤10MB) scanned and
+// held in memory, then routed through the same vision gateway as /ocr. Kept
+// on its own path so a base64 JSON body cannot masquerade as a scanned file.
+router.post('/ocr/file', authorize('records:write'), ocrFileUpload, async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'file is required' });
+    const docType = String(req.body?.docType || '').slice(0, 40);
+    const documentId = String(req.body?.documentId || '').slice(0, 100);
+    const fileBase64 = req.file.buffer.toString('base64');
+    const fields = await ocrDocumentWithProvider({
+      docType, rawText: '', fileBase64, mimeType: req.file.mimetype,
+    });
+    const review = await enqueue(req, 'ocr', {
+      docType,
+      documentId,
+      source: 'upload',
+      fileName: String(req.file.originalname || '').replace(/[^\w.-]/g, '_').slice(0, 120),
+      mimeType: req.file.mimetype,
+      sizeBytes: req.file.size,
+    }, fields, documentId);
+    return res.json({
+      fields,
+      reviewId: String(review?._id || ''),
+      status: review?.status || 'Pending',
+      // Honest signal: without a key + vision opt-in the gateway falls back
+      // to the schema stub, and the UI must not present that as OCR.
+      visionEnabled: Boolean(process.env.GEMINI_API_KEY) && process.env.GEMINI_VISION_ENABLED === 'true',
+    });
+  } catch (err) { return handle(res, err); }
 });
 
 export default router;

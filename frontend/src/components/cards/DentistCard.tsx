@@ -13,7 +13,6 @@ export default function DentistCard({ item, onPrimary, onSecondary }: any) {
   const trust: string[] = [];
   if (item.verified || item.status === 'approved') trust.push('Verified');
   if (item.sterilisation) trust.push('Sterilised');
-  if (item.emiAvailable) trust.push('EMI available');
   if (item.emergencyDental) trust.push('Emergency dental');
   return (
     <ProviderCardBase

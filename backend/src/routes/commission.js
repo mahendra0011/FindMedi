@@ -10,6 +10,9 @@ import { validate } from '../utils/validate.js';
 import { paymentLimiter } from '../middleware/rateLimit.js';
 import { idempotencyGuard } from '../middleware/idempotency.js';
 import { requireStepUp } from '../middleware/stepUpAuth.js';
+// 2.md §6: payout hold — a provider-linked config pays nothing while its
+// listing is on probation (lib/probation.js is the single reading of the flag).
+import { heldProviderForCommissionConfig } from '../lib/probation.js';
 import { reconcilePayouts } from '../services/payoutReconcile.js';
 import logger from '../config/logger.js';
 
@@ -194,6 +197,14 @@ router.post('/payouts', protect, paymentLimiter, requireStepUp('payouts:add'), i
     const config = await CommissionConfig.findOne({ facilityId });
     if (!config) return res.status(404).json({ message: 'Commission config not found for this facility' });
 
+    // 2.md §6: payout hold — refuse to CREATE money-out for a provider-linked
+    // config while its listing holds payouts. (The pay transition re-checks, so
+    // a hold set between create and pay still stops the transfer.)
+    const heldAtCreate = await heldProviderForCommissionConfig(config._id);
+    if (heldAtCreate) {
+      return res.status(heldAtCreate.status).json({ message: heldAtCreate.message, code: heldAtCreate.code });
+    }
+
     const dateFilter = {};
     if (periodStart) dateFilter.$gte = new Date(periodStart);
     if (periodEnd) dateFilter.$lte = new Date(periodEnd);
@@ -290,12 +301,22 @@ router.put('/payouts/:id/pay', protect, paymentLimiter, idempotencyGuard({ prefi
         });
       }
     }
+    // Config + 2.md §6 payout hold are resolved BEFORE any state moves: a hold
+    // set between create and pay must still stop the transfer, and a rejected
+    // pay must leave the payout `pending` for a retry after the hold clears.
+    const config = await CommissionConfig.findOne({ facilityId: payout.facilityId });
+    if (config) {
+      const heldAtPay = await heldProviderForCommissionConfig(config._id);
+      if (heldAtPay) {
+        return res.status(heldAtPay.status).json({ message: heldAtPay.message, code: heldAtPay.code });
+      }
+    }
+
     payout.status = 'paid';
     payout.paidAt = new Date();
     payout.transactionRef = req.body.transactionRef || '';
     await payout.save();
 
-    const config = await CommissionConfig.findOne({ facilityId: payout.facilityId });
     if (config) {
       config.totalEarnings = (config.totalEarnings || 0) + payout.commissionAmount;
       config.pendingPayout = Math.max(0, (config.pendingPayout || 0) - payout.netPayout);

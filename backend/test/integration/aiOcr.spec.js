@@ -200,3 +200,149 @@ describe('D7 AI OCR Vision & Human Review Queue API', () => {
       .expect(400);
   });
 });
+
+// ── T10: POST /ai/ocr/file — multipart upload (scanned, memory-only) ────────
+const pngBuffer = () => Buffer.concat([
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+  Buffer.from('fake-ihdr-payload-ocr-file-spec'),
+]);
+const pdfBuffer = () => Buffer.concat([
+  Buffer.from('%PDF-1.4\n'),
+  Buffer.from('fake pdf body for the ocr file spec'),
+]);
+
+describe('POST /ai/ocr/file (T10)', () => {
+  beforeEach(() => {
+    mockAiReviews.length = 0;
+    mockAuditLogs.length = 0;
+  });
+
+  it('rejects unauthenticated uploads with 401', async () => {
+    await as()
+      .post('/ocr/file')
+      .attach('file', pngBuffer(), { filename: 'scan.png', contentType: 'image/png' })
+      .expect(401);
+  });
+
+  it('rejects a patient without records:write with 403', async () => {
+    await as(patient)
+      .post('/ocr/file')
+      .attach('file', pngBuffer(), { filename: 'scan.png', contentType: 'image/png' })
+      .field('docType', 'prescription')
+      .expect(403);
+  });
+
+  it('rejects a disallowed MIME type with 400', async () => {
+    const res = await as(doctor)
+      .post('/ocr/file')
+      .attach('file', Buffer.from('plain text is not a scan'), { filename: 'notes.txt', contentType: 'text/plain' })
+      .expect(400);
+    expect(res.body.message).toContain('not allowed');
+  });
+
+  it('rejects content that does not match its claimed MIME with 400', async () => {
+    const res = await as(doctor)
+      .post('/ocr/file')
+      .attach('file', Buffer.from('this is definitely not a png header'), { filename: 'fake.png', contentType: 'image/png' })
+      .expect(400);
+    expect(res.body.message).toMatch(/does not match|corrupted|malicious/i);
+  });
+
+  it('rejects files over the 10MB limit with 400', async () => {
+    const oversize = Buffer.alloc(11 * 1024 * 1024, 0x41);
+    const res = await as(doctor)
+      .post('/ocr/file')
+      .attach('file', oversize, { filename: 'big.png', contentType: 'image/png' })
+      .expect(400);
+    expect(res.body.message).toContain('too large');
+  });
+
+  it('rejects a multipart request with no file field with 400', async () => {
+    const res = await as(doctor)
+      .post('/ocr/file')
+      .field('docType', 'prescription')
+      .expect(400);
+    expect(res.body.message).toMatch(/file/i);
+  });
+
+  it('extracts from an uploaded PNG, enqueues the review, and flags vision as off', async () => {
+    const res = await as(doctor)
+      .post('/ocr/file')
+      .attach('file', pngBuffer(), { filename: 'rx scan.png', contentType: 'image/png' })
+      .field('docType', 'prescription')
+      .field('documentId', 'doc-upload-1')
+      .expect(200);
+
+    expect(res.body.fields).toBeDefined();
+    expect(res.body.fields.provider).toBe('stub');
+    expect(res.body.visionEnabled).toBe(false);
+    expect(res.body.reviewId).toBeDefined();
+    expect(res.body.status).toBe('Pending');
+
+    expect(mockAiReviews.length).toBe(1);
+    const row = mockAiReviews[0];
+    expect(row.feature).toBe('ocr');
+    expect(row.input.source).toBe('upload');
+    expect(row.input.mimeType).toBe('image/png');
+    expect(row.input.fileName).toBe('rx_scan.png');
+    expect(row.sourceId).toBe('doc-upload-1');
+  });
+
+  it('accepts a PDF upload through the same path', async () => {
+    const res = await as(doctor)
+      .post('/ocr/file')
+      .attach('file', pdfBuffer(), { filename: 'discharge.pdf', contentType: 'application/pdf' })
+      .field('docType', 'discharge_summary')
+      .expect(200);
+
+    expect(res.body.fields.provider).toBe('stub');
+    expect(mockAiReviews[0].input.mimeType).toBe('application/pdf');
+  });
+
+  it('routes the uploaded bytes to Gemini inlineData when vision is enabled', async () => {
+    const origKey = process.env.GEMINI_API_KEY;
+    const origVision = process.env.GEMINI_VISION_ENABLED;
+    const origFetch = global.fetch;
+    const seen = [];
+    process.env.GEMINI_API_KEY = 'test-key';
+    process.env.GEMINI_VISION_ENABLED = 'true';
+    global.fetch = async (_url, init) => {
+      seen.push(JSON.parse(init.body));
+      return {
+        ok: true,
+        json: async () => ({
+          candidates: [{
+            content: { parts: [{ text: JSON.stringify({ medicine: 'Azithromycin', qty: 5, confidence: { medicine: 0.97 } }) }] },
+          }],
+        }),
+      };
+    };
+
+    try {
+      const res = await as(doctor)
+        .post('/ocr/file')
+        .attach('file', pngBuffer(), { filename: 'rx.png', contentType: 'image/png' })
+        .field('docType', 'prescription')
+        .expect(200);
+
+      expect(res.body.fields.provider).toBe('gemini');
+      expect(res.body.fields.medicine).toBe('Azithromycin');
+      expect(res.body.visionEnabled).toBe(true);
+
+      expect(seen).toHaveLength(1);
+      const body = seen[0];
+      expect(body.generationConfig.temperature).toBe(0);
+      expect(body.generationConfig.responseMimeType).toBe('application/json');
+      const inline = body.contents[0].parts.find((p) => p.inlineData);
+      expect(inline).toBeDefined();
+      expect(inline.inlineData.mimeType).toBe('image/png');
+      expect(inline.inlineData.data).toBe(pngBuffer().toString('base64'));
+    } finally {
+      global.fetch = origFetch;
+      if (origKey === undefined) delete process.env.GEMINI_API_KEY;
+      else process.env.GEMINI_API_KEY = origKey;
+      if (origVision === undefined) delete process.env.GEMINI_VISION_ENABLED;
+      else process.env.GEMINI_VISION_ENABLED = origVision;
+    }
+  });
+});

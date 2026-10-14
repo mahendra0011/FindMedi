@@ -88,8 +88,8 @@ const fadeUp = {
 
 const fallbackPlans = [
   { id: "one-time", name: "One-Time Session", duration: "Single session", cadence: "One-time consultation", summary: "A single counselling session for immediate support", bestFor: ["Immediate support", "One-off guidance", "Quick check-in"], bookingPrice: 599, perSessionPrice: 599 },
-  { id: "short-term", name: "Short-Term Support", duration: "4-8 sessions", cadence: "One session every two days", summary: "Quick emotional support and guidance", bestFor: ["Stress", "Anxiety", "Exam pressure", "Loneliness"], bookingPrice: 1499, perSessionPrice: 1499 },
-  { id: "medium-term", name: "Medium-Term Support", duration: "8-15 sessions", cadence: "Weekly or bi-weekly", summary: "Emotional recovery and personal growth", bestFor: ["Mild depression", "Relationship issues", "Emotional healing"], bookingPrice: 2499, perSessionPrice: 2499 },
+  { id: "short-term", name: "Short-Term Support", duration: "4-8 sessions", cadence: "One session every two days", summary: "Quick emotional support and guidance", bestFor: ["Stress", "Anxiety", "Student Pressure", "Loneliness"], bookingPrice: 1499, perSessionPrice: 1499 },
+  { id: "medium-term", name: "Medium-Term Support", duration: "8-15 sessions", cadence: "Weekly or bi-weekly", summary: "Emotional recovery and personal growth", bestFor: ["Mild depression", "Relationship issues"], bookingPrice: 2499, perSessionPrice: 2499 },
   { id: "long-term", name: "Long-Term Therapy", duration: "3-6+ months", cadence: "Weekly or bi-weekly sessions", summary: "Ongoing therapy and steady progress", bestFor: ["Trauma", "Severe anxiety", "Chronic depression"], bookingPrice: 3999, perSessionPrice: 3999 },
 ];
 
@@ -103,7 +103,7 @@ const CONCERN_CARDS = [
   { name: "Trauma", icon: ShieldAlert, color: "from-orange-500/20 to-orange-500/5", textColor: "text-orange-500" },
   { name: "Relationship", icon: HeartHandshake, color: "from-pink-500/20 to-pink-500/5", textColor: "text-pink-500" },
   { name: "Loneliness", icon: Users, color: "from-blue-500/20 to-blue-500/5", textColor: "text-blue-500" },
-  { name: "Exam pressure", icon: GraduationCap, color: "from-indigo-500/20 to-indigo-500/5", textColor: "text-indigo-500" },
+  { name: "Student Pressure", icon: GraduationCap, color: "from-indigo-500/20 to-indigo-500/5", textColor: "text-indigo-500" },
   { name: "Career", icon: BriefcaseBusiness, color: "from-emerald-500/20 to-emerald-500/5", textColor: "text-emerald-500" },
   { name: "Addiction", icon: Pill, color: "from-cyan-500/20 to-cyan-500/5", textColor: "text-cyan-500" },
   { name: "Grief", icon: Sparkles, color: "from-teal-500/20 to-teal-500/5", textColor: "text-teal-500" },
@@ -213,8 +213,8 @@ const Counselling = () => {
 
   const concernToPlan = useMemo(() => ({
     "Immediate support": "one-time", "One-off guidance": "one-time", "Quick check-in": "one-time",
-    "Stress": "short-term", "Anxiety": "short-term", "Exam pressure": "short-term", "Loneliness": "short-term",
-    "Mild depression": "medium-term", "Relationship issues": "medium-term", "Emotional healing": "medium-term",
+    "Stress": "short-term", "Anxiety": "short-term", "Student Pressure": "short-term", "Loneliness": "short-term",
+    "Mild depression": "medium-term", "Relationship issues": "medium-term",
     "Trauma": "long-term", "Severe anxiety": "long-term", "Chronic depression": "long-term",
   }), []);
 
@@ -1625,7 +1625,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
                 {/* Concern Tags */}
                 <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">What brings you here?</p>
                 <div className="flex flex-wrap gap-1.5 mb-4">
-                  {["Stress", "Anxiety", "Depression", "Trauma", "Relationship", "Loneliness", "Exam pressure", "Career"].map((tag) => {
+                  {["Stress", "Anxiety", "Depression", "Trauma", "Relationship", "Loneliness", "Student Pressure", "Career"].map((tag) => {
                     const active = concernTags.includes(tag);
                     return (
                       <button key={tag} type="button" onClick={() => setConcernTags((prev) => active ? prev.filter((t) => t !== tag) : [...prev, tag])}
