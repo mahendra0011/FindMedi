@@ -90,7 +90,7 @@ jobs:
       - name: Check STAGING_URL configured
         id: cfg
         run: test -n "${{ secrets.STAGING_URL }}" && echo "ready=true" >> "$GITHUB_OUTPUT" || echo "ready=false" >> "$GITHUB_OUTPUT"
-      - uses: zaproxy/action-baseline@v0.14.0
+      - uses: zaproxy/action-baseline@v0.15.0
         if: steps.cfg.outputs.ready == 'true'
         with:
           target: ${{ secrets.STAGING_URL }}
