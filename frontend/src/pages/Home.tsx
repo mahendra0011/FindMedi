@@ -15,6 +15,9 @@ import ScrollVelocity from "@/components/reactbits/ScrollVelocity";
 import SplitText from "@/components/reactbits/SplitText";
 import BlurText from "@/components/reactbits/BlurText";
 import AIChatAssistant from "@/components/AIChatAssistant";
+import UnifiedSearch from "@/components/search/UnifiedSearch";
+import NationalHelplinesModal from "@/components/emergency/NationalHelplinesModal";
+import AccessibilityControls from "@/components/accessibility/AccessibilityControls";
 
 const heroImage = "https://cdn.hms.hospital/123/01KNC4WSYHF1637VJ39K3KVJ2M.png";
 const doctorImage = "https://alliedsoftech89.wordpress.com/wp-content/uploads/2013/06/medical-doctor-jobs-in-china-expat-jobs-in-china.jpg";
@@ -238,6 +241,8 @@ const Home = () => {
     return () => observer.disconnect();
   }, [countersVisible, counters]);
 
+  const [helplineModalOpen, setHelplineModalOpen] = useState(false);
+
   useScroll();
   const dashboardLabel = user?.role === 'hospital_admin'
     ? 'Admin Dashboard'
@@ -256,12 +261,19 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
-      {/* Emergency Banner */}
-      <div className="bg-red-600 text-white py-2 px-4 text-center text-sm">
-        <span className="flex items-center justify-center gap-2">
+      {/* Emergency Banner with National Helplines Dialog */}
+      <div className="bg-red-600 text-white py-2 px-4 text-center text-sm flex items-center justify-center gap-3 flex-wrap">
+        <span className="flex items-center gap-2">
           <Ambulance className="w-4 h-4" />
-          <span className="font-semibold">Emergency:</span> Call +91 8299431275 for 24/7 medical assistance
+          <span className="font-semibold">24/7 Emergency Assistance:</span> Dial 108 (Ambulance) or +91 8299431275
         </span>
+        <button
+          type="button"
+          onClick={() => setHelplineModalOpen(true)}
+          className="text-xs bg-white text-red-700 px-3 py-1 rounded-full font-bold hover:bg-red-50 transition-colors shadow-xs flex items-center gap-1"
+        >
+          National Helplines (112, 108, 14416) →
+        </button>
       </div>
 
       {/* Animated Background */}
@@ -355,6 +367,11 @@ const Home = () => {
                     <span>{item.text}</span>
                   </div>
                 ))}
+              </div>
+
+              {/* Unified Discovery Search Bar (Spec 09 §1.1) */}
+              <div className="mt-6 max-w-xl">
+                <UnifiedSearch />
               </div>
 
               <div className="flex flex-wrap gap-4 mt-8">
@@ -920,6 +937,8 @@ const Home = () => {
 
       <PublicFooter />
       <AIChatAssistant />
+      <NationalHelplinesModal open={helplineModalOpen} onClose={() => setHelplineModalOpen(false)} />
+      <AccessibilityControls />
     </div>
   );
 };

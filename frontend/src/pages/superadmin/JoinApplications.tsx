@@ -27,6 +27,16 @@ const LANES = [
   { key: 'all', label: 'All', icon: ClipboardList },
 ];
 
+export const KINDS = [
+  { key: '', label: 'All Kinds' },
+  { key: 'facility', label: 'Facility' },
+  { key: 'practitioner', label: 'Practitioner' },
+  { key: 'service', label: 'Service' },
+  { key: 'product', label: 'Product' },
+  { key: 'event', label: 'Event' },
+  { key: 'info', label: 'Info' },
+];
+
 const VERDICT_CHIP: Record<string, string> = {
   conflict: 'bg-destructive/10 text-destructive',
   review: 'bg-warning/10 text-warning',
@@ -53,6 +63,7 @@ function rowSub(row: any): string {
 
 export default function JoinApplications() {
   const [lane, setLane] = useState('pending');
+  const [kindFilter, setKindFilter] = useState('');
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -63,7 +74,13 @@ export default function JoinApplications() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const d: any = await api.get(`/admin/applications?queue=${encodeURIComponent(lane)}&page=${page}&limit=${LIMIT}`);
+      const q = new URLSearchParams();
+      q.set('queue', lane);
+      q.set('page', String(page));
+      q.set('limit', String(LIMIT));
+      if (kindFilter) q.set('kind', kindFilter);
+
+      const d: any = await api.get(`/admin/applications?${q.toString()}`);
       setRows(Array.isArray(d?.applications) ? d.applications : []);
       setTotal(Number(d?.total) || 0);
       setError('');
@@ -72,12 +89,12 @@ export default function JoinApplications() {
     } finally {
       setLoading(false);
     }
-  }, [lane, page]);
+  }, [lane, kindFilter, page]);
 
   useEffect(() => { load(); }, [load]);
-  // Lane change always returns to the list — a stale workspace for a row that
-  // is no longer in this lane would be misleading.
-  useEffect(() => { setSelected(null); }, [lane]);
+  // Lane or kind change always returns to the list — a stale workspace for a row that
+  // is no longer in this lane/kind would be misleading.
+  useEffect(() => { setSelected(null); }, [lane, kindFilter]);
 
   const pages = Math.max(1, Math.ceil(total / LIMIT));
 
@@ -108,6 +125,24 @@ export default function JoinApplications() {
             </Button>
           ))}
         </div>
+      </div>
+
+      {/* Kind Filter Strip (Spec 08 §17: Kind-wise queues) */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+        <span className="text-muted-foreground font-medium shrink-0">Kind:</span>
+        {KINDS.map((k) => (
+          <button
+            key={k.key}
+            onClick={() => { setKindFilter(k.key); setPage(1); }}
+            className={`px-2.5 py-1 rounded-md transition-colors font-medium shrink-0 ${
+              kindFilter === k.key
+                ? 'bg-primary text-primary-foreground shadow-xs'
+                : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+          >
+            {k.label}
+          </button>
+        ))}
       </div>
 
       {error && (
@@ -164,8 +199,13 @@ export default function JoinApplications() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-2 gap-2">
-                    <Badge variant="outline" className="text-[10px] capitalize">{row?.status || 'draft'}</Badge>
-                    <span className="text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Badge variant="outline" className="text-[10px] capitalize">{row?.status || 'draft'}</Badge>
+                      {row?.kind ? (
+                        <Badge variant="secondary" className="text-[10px] capitalize font-medium">{row.kind}</Badge>
+                      ) : null}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground truncate">
                       {row?.typeKey || ''}
                       {row?.submittedAt ? ` · ${new Date(row.submittedAt).toLocaleDateString()}` : ''}
                     </span>

@@ -14,7 +14,7 @@
 ## Summary
 
 - **341 models** across 333 files (0 skipped)
-- **7495 schema fields**, of which **780 classified as PII** in **240 collections**
+- **7501 schema fields**, of which **781 classified as PII** in **240 collections**
 - **7 collections** carry a TTL index
 - **127 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -161,7 +161,7 @@
 | `expenses` | Expense | 15 | 1 | 4 | — | Payment and ledger entries |
 | `eyeexams` | EyeExam | 21 | 3 | 3 | — | **UNMAPPED — see gaps** |
 | `eyesurgeryleads` | EyeSurgeryLead | 10 | 2 | 5 | — | **UNMAPPED — see gaps** |
-| `facilities` | Facility | 80 | 0 | 8 | — | Operational config (organization/catalog record — not personal data) |
+| `facilities` | Facility | 76 | 0 | 8 | — | Operational config (organization/catalog record — not personal data) |
 | `familymembers` | FamilyMember | 35 | 12 | 3 | — | Clinical records |
 | `featuredlistings` | FeaturedListing | 11 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `feedbacks` | Feedback | 17 | 2 | 7 | — | **UNMAPPED — see gaps** |
@@ -283,7 +283,7 @@
 | `products` | Product | 30 | 0 | 6 | — | No PII fields detected |
 | `providerapplications` | ProviderApplication | 57 | 3 | 14 | — | Provider KYC documents |
 | `providerdocuments` | ProviderDocument | 29 | 1 | 7 | — | Provider KYC documents |
-| `providers` | Provider | 81 | 11 | 17 | — | Provider KYC documents |
+| `providers` | Provider | 82 | 11 | 18 | — | Provider KYC documents |
 | `providerstaffinvites` | ProviderStaffInvite | 14 | 3 | 4 | 0s | **UNMAPPED — see gaps** |
 | `providertypeconfigs` | ProviderTypeConfig | 45 | 0 | 6 | — | No PII fields detected |
 | `purchaseorders` | PurchaseOrder | 25 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
@@ -313,7 +313,7 @@
 | `reports` | Report | 15 | 1 | 2 | — | Clinical records |
 | `reportschedules` | ReportSchedule | 11 | 0 | 1 | — | No PII fields detected |
 | `resourcescopes` | ResourceScope | 9 | 0 | 3 | — | Operational config (organization/catalog record — not personal data) |
-| `reviews` | Review | 19 | 4 | 6 | — | **UNMAPPED — see gaps** |
+| `reviews` | Review | 28 | 5 | 9 | — | **UNMAPPED — see gaps** |
 | `rewardcatalogitems` | RewardCatalogItem | 15 | 0 | 2 | — | No PII fields detected |
 | `rewardredemptions` | RewardRedemption | 11 | 1 | 4 | — | Payment and ledger entries |
 | `ridebookings` | RideBooking | 72 | 13 | 9 | — | Ride and SOS location traces |
@@ -5207,7 +5207,7 @@ source `Facility.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `type` | String | yes |  |  | hospital, clinic, lab, pharmacy |  |  |
 | `subType` | String |  |  | "" | multi_specialty, super_specialty, single_specialty, nursing_home, maternity_hospital, day_care_surgery, government_hospital, district_hospital, medical_college, phc, chc, uphc, sub_centre, arogya_mandir, mohalla_community_clinic, trauma_centre, rehabilitation_hospital, psychiatri… (1775 chars) |  |  |
 | `ownership` | String |  |  | "" | government, private, trust_charitable, corporate_chain, cooperative, ppp, military_railway_esi, |  |  |
-| `systemOfMedicine` | String |  |  | "" | allopathy, ayurveda, homeopathy, unani, siddha, yoga_naturopathy, sowa_rigpa, integrative, |  |  |
+| `systemOfMedicine` | String |  |  | "" | allopathy, ayurveda, homeopathy, unani, siddha, yoga_naturopathy, integrative, |  |  |
 | `schemesAccepted` | Array<Mixed> |  |  |  |  |  |  |
 | `email` | String | yes |  |  |  |  |  |
 | `phone` | String | yes |  |  |  |  |  |
@@ -5251,10 +5251,6 @@ source `Facility.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `radiologistQualification` | String |  |  | "" |  |  |  |
 | `cardiologistName` | String |  |  | "" |  |  |  |
 | `cardiologistQualification` | String |  |  | "" |  |  |  |
-| `technicianName` | String |  |  | "" |  |  |  |
-| `technicianRole` | String |  |  | "" |  |  |  |
-| `technicianQualification` | String |  |  | "" |  |  |  |
-| `technicianExperience` | String |  |  | "" |  |  |  |
 | `timing.monday` | String |  |  | "8:00 AM - 8:00 PM" |  |  |  |
 | `timing.tuesday` | String |  |  | "8:00 AM - 8:00 PM" |  |  |  |
 | `timing.wednesday` | String |  |  | "8:00 AM - 8:00 PM" |  |  |  |
@@ -9934,6 +9930,7 @@ source `Provider.js` · timestamps: yes · virtuals: 0 · retention: Life of the
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|
 | `providerId` | String |  | yes |  |  |  | Identifier |
+| `tenantId` | String |  |  | null |  |  |  |
 | `ownerUserId` | ObjectId |  |  |  |  | User |  |
 | `kind` | String | yes |  |  | facility, practitioner, vendor, organizer |  |  |
 | `type` | String | yes |  |  |  |  |  |
@@ -10020,6 +10017,7 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `providerId:1` | unique, sparse |
+| `tenantId:1` |  |
 | `ownerUserId:1` |  |
 | `kind:1` |  |
 | `type:1` |  |
@@ -11076,6 +11074,15 @@ source `Review.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED �
 | `patientId` | ObjectId |  |  |  |  | User | Identifier |
 | `repliedBy` | ObjectId |  |  |  |  | User |  |
 | `isVerifiedVisit` | Boolean |  |  | false |  |  |  |
+| `bookingRef` | ObjectId |  |  | null |  | Appointment |  |
+| `providerId` | ObjectId |  |  | null |  | Provider | Identifier |
+| `subRatings.bedsideManner` | Number |  |  |  |  |  |  |
+| `subRatings.waitTime` | Number |  |  |  |  |  |  |
+| `subRatings.facilityCleanliness` | Number |  |  |  |  |  |  |
+| `subRatings.treatmentExplanation` | Number |  |  |  |  |  |  |
+| `helpfulCount` | Number |  |  | 0 |  |  |  |
+| `isPrivate` | Boolean |  |  | false |  |  |  |
+| `editedAt` | Date |  |  | null |  |  |  |
 | `moderationStatus` | String |  |  | "visible" | visible, hidden, shadow_hidden, removed |  |  |
 | `createdAt` | Date |  |  | [function] |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
@@ -11087,6 +11094,9 @@ Indexes:
 |---|---|
 | `hospitalId:1` |  |
 | `patientId:1` |  |
+| `bookingRef:1` |  |
+| `providerId:1` |  |
+| `isPrivate:1` |  |
 | `moderationStatus:1` |  |
 | `doctorId:1, patientId:1` | unique, partial |
 | `doctorId:1, createdAt:-1` |  |
@@ -11489,7 +11499,7 @@ source `SavedFavorite.js` · timestamps: yes · virtuals: 0 · retention: **UNMA
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|
 | `patientId` | ObjectId | yes |  |  |  | User | Identifier |
-| `refType` | String | yes |  |  | doctor, hospital, clinic, lab, pharmacy, technician |  |  |
+| `refType` | String | yes |  |  | doctor, hospital, clinic, lab, pharmacy |  |  |
 | `refId` | String | yes |  |  |  |  |  |
 | `refName` | String |  |  |  |  |  |  |
 | `notes` | String |  |  |  |  |  |  |
@@ -12658,7 +12668,7 @@ source `User.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — 
 | `passwordHistory` | Array<Mixed> |  |  | [] |  |  |  |
 | `mustResetPassword` | Boolean |  |  | false |  |  |  |
 | `tokenVersion` | Number |  |  | 0 |  |  |  |
-| `role` | String |  |  | "patient" | superadmin, hospital_admin, doctor, clinic_doctor, patient, lab_owner, lab_receptionist, lab_technician, pathologist, pharmacy_owner, pharmacist, nurse, radiologist, dietitian, physiotherapist, counsellor, counselor, mid_level_counselor, senior_counselor, psychiatrist, accountant… (2016 chars) |  |  |
+| `role` | String |  |  | "patient" | superadmin, hospital_admin, doctor, clinic_doctor, patient, lab_owner, lab_receptionist, lab_technician, pathologist, pharmacy_owner, pharmacist, nurse, radiologist, dietitian, physiotherapist, counsellor, counselor, mid_level_counselor, senior_counselor, psychiatrist, accountant… (2131 chars) |  |  |
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
 | `facilityId` | ObjectId |  |  |  |  | Facility |  |
 | `facilityType` | String |  |  | "" | hospital, clinic, lab, pharmacy, |  |  |

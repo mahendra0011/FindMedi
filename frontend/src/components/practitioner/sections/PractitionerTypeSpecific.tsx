@@ -1,8 +1,8 @@
-import React from 'react';
 import {
   Stethoscope, ShieldCheck, AlertTriangle, Sparkles, CheckCircle2,
   FileText, Activity, Heart, Scale, Clock, Lock, PhoneCall,
-  UserCheck, Award, Zap, Building2, BookOpen, AlertCircle
+  UserCheck, Award, Zap, Building2, BookOpen, AlertCircle,
+  Eye, Headphones, Droplets, Home, Users
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { PractitionerDTO } from './PractitionerHeader';
@@ -391,6 +391,164 @@ export default function PractitionerTypeSpecific({ practitioner }: PractitionerT
               <p className="text-muted-foreground leading-relaxed">
                 Participants recovering from recent surgery, spinal conditions, or cardiovascular history are required to obtain medical clearance from their treating doctor before enrolling in high-intensity training.
               </p>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'speech_occupational':
+      return (
+        <div className="bg-card rounded-3xl border border-border/60 p-6 space-y-6 shadow-xs">
+          <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+            <BookOpen className="w-5 h-5 text-indigo-600" />
+            <h2 className="font-heading text-lg font-bold text-foreground">Speech, Language & Occupational Rehabilitation</h2>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4 text-xs">
+            <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-2">
+              <h3 className="font-bold text-indigo-700 dark:text-indigo-400 text-sm">Focus Areas & Therapeutic Interventions</h3>
+              <ul className="space-y-1.5 text-muted-foreground">
+                <li>• Stuttering, Stammering & Voice Modulation Therapy</li>
+                <li>• Pediatric Speech Delay, Autism & Aphasia Rehabilitation</li>
+                <li>• Sensory Integration & Fine Motor Skill Training</li>
+                <li>• Activities of Daily Living (ADL) & Ergonomic Independence</li>
+              </ul>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 space-y-2">
+              <h3 className="font-bold text-foreground text-sm">IEP & Progress Assessment</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Every client receives an Individualized Education Program (IEP) with milestone tracking, periodic caregiver counseling, and objective baseline assessment scores.
+              </p>
+              <div className="flex items-center gap-2 pt-1 text-emerald-600 font-semibold text-[11px]">
+                <ShieldCheck className="w-4 h-4" />
+                <span>RCI Registered Professional (Rehabilitation Council of India)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'attendant':
+      return (
+        <div className="bg-card rounded-3xl border border-border/60 p-6 space-y-6 shadow-xs">
+          <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+            <Home className="w-5 h-5 text-emerald-600" />
+            <h2 className="font-heading text-lg font-bold text-foreground">Caregiver & Bedside Attendant Profile</h2>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-3 text-xs">
+            <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/40 space-y-1.5">
+              <span className="font-bold text-foreground block">Caregiving Tasks</span>
+              <ul className="space-y-1 text-muted-foreground text-[11px]">
+                <li>• Bedside mobility & transfer</li>
+                <li>• Sponge bath & personal hygiene</li>
+                <li>• Oral feeding & medication reminders</li>
+                <li>• Basic vitals (BP/Pulse/Temp) log</li>
+              </ul>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/40 space-y-1.5">
+              <span className="font-bold text-foreground block">Shift Durations</span>
+              <ul className="space-y-1 text-muted-foreground text-[11px]">
+                <li>• 4-Hour Daytime Support</li>
+                <li>• 12-Hour Day / Night Shift</li>
+                <li>• 24-Hour Live-in Attendant</li>
+                <li>• 1-Day Trial Booking Available</li>
+              </ul>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 space-y-1.5">
+              <span className="font-bold text-emerald-700 dark:text-emerald-400 block">Trust & Verification</span>
+              <p className="text-muted-foreground text-[11px]">
+                Background verified by local police authority · Aadhaar identity validated · Hospital & agency certified training.
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'phlebotomist':
+      return (
+        <div className="bg-card rounded-3xl border border-border/60 p-6 space-y-6 shadow-xs">
+          <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+            <Droplets className="w-5 h-5 text-rose-600" />
+            <h2 className="font-heading text-lg font-bold text-foreground">Doorstep Sample Collection Standards</h2>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-3 text-xs">
+            <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/40 space-y-1">
+              <span className="font-bold text-foreground block">Cold-Chain Kit</span>
+              <p className="text-muted-foreground">Certified gel-pack insulated carry kit maintaining strictly 2°C – 8°C during sample transit.</p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/40 space-y-1">
+              <span className="font-bold text-foreground block">Vacutainer Protocols</span>
+              <p className="text-muted-foreground">Pre-labeled barcode tubes, sterile disposable needles opened in front of patient.</p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-rose-500/5 border border-rose-500/20 space-y-1">
+              <span className="font-bold text-rose-700 dark:text-rose-400 block">Doorstep Verification</span>
+              <p className="text-muted-foreground">Phlebotomist presents digital FindMedi QR Badge with matching photo ID before entry.</p>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'optometrist_audiologist':
+      return (
+        <div className="bg-card rounded-3xl border border-border/60 p-6 space-y-6 shadow-xs">
+          <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+            <Eye className="w-5 h-5 text-blue-600" />
+            <h2 className="font-heading text-lg font-bold text-foreground">Vision & Hearing Diagnostic Services</h2>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4 text-xs">
+            <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20 space-y-2">
+              <h3 className="font-bold text-blue-700 dark:text-blue-400 text-sm">Optometry & Vision Care</h3>
+              <ul className="space-y-1.5 text-muted-foreground">
+                <li>• Comprehensive Computerized Eye Testing & Refraction</li>
+                <li>• Contact Lens Fitting, Evaluation & Toric Solutions</li>
+                <li>• Low-Vision Assessment & Pediatric Vision Screening</li>
+                <li>• Digital Prescription Sync with FindMedi Records</li>
+              </ul>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 space-y-2">
+              <h3 className="font-bold text-foreground text-sm">Audiology & Hearing Health</h3>
+              <ul className="space-y-1.5 text-muted-foreground">
+                <li>• Pure Tone Audiometry (PTA) & Tympanometry</li>
+                <li>• Digital Hearing Aid Trial, Programming & Fitting</li>
+                <li>• Tinnitus Management & Hearing Protection Consulting</li>
+                <li>• Council / RCI certified audiologist supervision</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'tpa_executive':
+      return (
+        <div className="bg-card rounded-3xl border border-border/60 p-6 space-y-6 shadow-xs">
+          <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+            <ShieldCheck className="w-5 h-5 text-teal-600" />
+            <h2 className="font-heading text-lg font-bold text-foreground">Cashless Mediclaim & TPA Helpdesk</h2>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-3 text-xs">
+            <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/40 space-y-1">
+              <span className="font-bold text-foreground block">Pre-Auth Coordination</span>
+              <p className="text-muted-foreground">Rapid drafting and submission of initial pre-authorization paperwork within 2 hours of hospital admission.</p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/40 space-y-1">
+              <span className="font-bold text-foreground block">All Major Insurers & TPAs</span>
+              <p className="text-muted-foreground">Empanelled with Star, Care, HDFC ERGO, Medi Assist, Vidal, Paramount, and Raksha TPA networks.</p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-teal-500/5 border border-teal-500/20 space-y-1">
+              <span className="font-bold text-teal-700 dark:text-teal-400 block">Transparent Advisory</span>
+              <p className="text-muted-foreground">Guidance on non-payable expenses, co-pay clauses, and deduction limits under IRDAI guidelines.</p>
             </div>
           </div>
         </div>

@@ -67,6 +67,7 @@ router.get('/', async (req, res) => {
     }
     if (req.query.typeKey) filter.typeKey = String(req.query.typeKey);
     if (req.query.group) filter.group = String(req.query.group);
+    if (req.query.kind) filter.kind = String(req.query.kind);
 
     const [applications, total] = await Promise.all([
       // Oldest submitted first: the queue is an SLA (2.md 6), not a feed.

@@ -9,7 +9,8 @@ import {
   Smartphone, Landmark, Wallet, RotateCcw, Sparkles, CheckCircle2,
   RefreshCw, Video, MapPin, Building2, CalendarClock,
   Siren, Stethoscope, Activity, Users, Leaf,
-  Search, Eye, EyeOff, Lock, Truck, ShieldCheck, Flame, Droplets, ArrowRight
+  Search, Eye, EyeOff, Lock, Truck, ShieldCheck, Flame, Droplets, ArrowRight,
+  UtensilsCrossed, Compass, Gift, QrCode, Share2, LifeBuoy, HelpCircle, ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -80,21 +81,26 @@ const statCards = [
 
 const quickActions = [
   { label: 'Find Doctors', icon: Building2, link: '/patient/doctors', desc: 'In Clinic / Hospital' },
+  { label: 'Video Consult', icon: Video, link: '/patient/video-calls', desc: 'Full HD 1080p' },
+  { label: 'Doctor Chat', icon: MessageCircle, link: '/patient/chat', desc: 'Instant messaging' },
+  { label: 'Book Lab Test', icon: Syringe, link: '/patient/services', desc: 'Home blood sample' },
+  { label: 'Buy Medicine', icon: Pill, link: '/buy-medicine', desc: 'Doorstep delivery' },
+  { label: 'Upload Report', icon: Upload, link: '/upload', desc: 'ABDM Health Locker' },
   { label: 'Dentist', icon: Sparkles, link: '/healthcare?category=dentist', desc: 'Teeth cleaning & RCT' },
   { label: 'Eye Care', icon: Eye, link: '/healthcare?category=eye', desc: 'Vision & Lasik' },
   { label: 'Physiotherapy', icon: Activity, link: '/patient/programs', desc: 'Rehab & home visits' },
   { label: 'Diet & Nutrition', icon: Leaf, link: '/healthcare?category=dietitian', desc: 'Custom meal plans' },
-  { label: 'Mental Wellbeing', icon: Heart, link: '/patient/wellness', desc: 'Discreet counselling' },
-  { label: 'Book Lab Test', icon: Syringe, link: '/patient/services', desc: 'Home blood sample' },
-  { label: 'Buy Medicine', icon: Pill, link: '/buy-medicine', desc: 'Doorstep delivery' },
+  { label: 'Diet Meals', icon: UtensilsCrossed, link: '/patient/meals', desc: 'Therapeutic meal plans' },
+  { label: 'Mental Wellbeing', icon: Heart, link: '/patient/wellness', desc: 'Discreet counselling', sensitive: true },
   { label: 'Rent Equipment', icon: Truck, link: '/patient/rentals', desc: 'Beds & Oxygen' },
   { label: 'Gym & Yoga', icon: Flame, link: '/patient/programs', desc: 'CultPass & studios' },
   { label: 'Health Camps', icon: Users, link: '/patient/events', desc: 'Free screenings' },
   { label: 'Vaccinations', icon: ShieldCheck, link: '/patient/vaccinations', desc: 'Child UIP & Adult' },
   { label: 'Insurance & Claims', icon: FileText, link: '/patient/insurance', desc: 'Cashless pre-auth' },
-  { label: 'Video Consult', icon: Video, link: '/patient/video-calls', desc: 'Full HD 1080p' },
-  { label: 'Doctor Chat', icon: MessageCircle, link: '/patient/chat', desc: 'Instant messaging' },
-  { label: 'Upload Report', icon: Upload, link: '/upload', desc: 'ABDM Health Locker' },
+  { label: 'AYUSH Holistic', icon: Leaf, link: '/healthcare?category=ayush', desc: 'Ayurveda, Homeo & Siddha' },
+  { label: 'Elder & Home Care', icon: Building2, link: '/patient/home-visit', desc: 'Assisted living & nurses' },
+  { label: 'Govt & PM-JAY', icon: Landmark, link: '/healthcare?category=govt_facility', desc: 'PHC, CHC & Ayushman' },
+  { label: 'Emergency SOS', icon: Siren, link: '/emergency', desc: 'Ambulance 108 & Blood' },
 ];
 
 const healthTips = [
@@ -130,6 +136,7 @@ export default function PatientDashboard() {
   const [currentCity, setCurrentCity] = useState('Delhi NCR');
   const [familyMembers, setFamilyMembers] = useState<any[]>([]);
   const [selectedProfile, setSelectedProfile] = useState('self');
+  const [showAllActions, setShowAllActions] = useState(false);
 
   useEffect(() => {
     try { window.localStorage.setItem('findmedi:discreet', discreetMode ? '1' : '0'); } catch {}
@@ -761,7 +768,7 @@ export default function PatientDashboard() {
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
           <div onClick={() => navigate('/patient/family')} className="bg-card rounded-2xl border p-3 hover:border-blue-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
             <div className="flex justify-between items-center mb-2">
               <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
@@ -770,31 +777,31 @@ export default function PatientDashboard() {
             </div>
             <div>
               <p className="text-sm font-bold text-foreground">Family</p>
-              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Health Dashboard</p>
+              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Dependents</p>
             </div>
           </div>
 
-          <div onClick={() => navigate('/patient/prescriptions')} className="bg-card rounded-2xl border p-3 hover:border-rose-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+          <div onClick={() => navigate('/patient/emergency-card')} className="bg-card rounded-2xl border p-3 hover:border-rose-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
             <div className="flex justify-between items-center mb-2">
               <div className="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center">
-                <Pill className="w-3.5 h-3.5 text-rose-500" />
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
               </div>
             </div>
             <div>
-              <p className="text-sm font-bold text-foreground">Rx Safety</p>
-              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Interaction Check</p>
+              <p className="text-sm font-bold text-foreground">SOS Card</p>
+              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Blood & Allergies</p>
             </div>
           </div>
 
-          <div onClick={() => navigate('/patient/appointments')} className="bg-card rounded-2xl border p-3 hover:border-amber-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+          <div onClick={() => navigate('/patient/vitals')} className="bg-card rounded-2xl border p-3 hover:border-amber-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
             <div className="flex justify-between items-center mb-2">
               <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                <CalendarDays className="w-3.5 h-3.5 text-amber-500" />
+                <Activity className="w-3.5 h-3.5 text-amber-500" />
               </div>
             </div>
             <div>
-              <p className="text-sm font-bold text-foreground">Schedules</p>
-              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Reschedule & Waits</p>
+              <p className="text-sm font-bold text-foreground">Vitals Log</p>
+              <p className="text-[9px] text-muted-foreground uppercase font-semibold">BP & Glucose</p>
             </div>
           </div>
 
@@ -805,12 +812,48 @@ export default function PatientDashboard() {
               </div>
             </div>
             <div>
-              <p className="text-sm font-bold text-foreground">Diet & Rehab</p>
-              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Physio Logs & Meals</p>
+              <p className="text-sm font-bold text-foreground">Care Plans</p>
+              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Diet & Rehab</p>
             </div>
           </div>
 
-          <div onClick={() => navigate('/patient/records')} className="bg-card rounded-2xl border p-3 hover:border-violet-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+          <div onClick={() => navigate('/patient/prescriptions')} className="bg-card rounded-2xl border p-3 hover:border-pink-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+            <div className="flex justify-between items-center mb-2">
+              <div className="w-7 h-7 rounded-lg bg-pink-500/10 flex items-center justify-center">
+                <Pill className="w-3.5 h-3.5 text-pink-500" />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">Rx Safety</p>
+              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Check & Refills</p>
+            </div>
+          </div>
+
+          <div onClick={() => navigate('/patient/vaccinations')} className="bg-card rounded-2xl border p-3 hover:border-cyan-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+            <div className="flex justify-between items-center mb-2">
+              <div className="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                <ShieldCheck className="w-3.5 h-3.5 text-cyan-600" />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">Vaccines</p>
+              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Child & Adult</p>
+            </div>
+          </div>
+
+          <div onClick={() => navigate('/patient/meals')} className="bg-card rounded-2xl border p-3 hover:border-teal-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+            <div className="flex justify-between items-center mb-2">
+              <div className="w-7 h-7 rounded-lg bg-teal-500/10 flex items-center justify-center">
+                <UtensilsCrossed className="w-3.5 h-3.5 text-teal-600" />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">Diet Kitchen</p>
+              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Daily Meal Plans</p>
+            </div>
+          </div>
+
+          <div onClick={() => navigate('/patient/insurance')} className="bg-card rounded-2xl border p-3 hover:border-violet-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
             <div className="flex justify-between items-center mb-2">
               <div className="w-7 h-7 rounded-lg bg-violet-500/10 flex items-center justify-center">
                 <FileText className="w-3.5 h-3.5 text-violet-500" />
@@ -818,7 +861,7 @@ export default function PatientDashboard() {
             </div>
             <div>
               <p className="text-sm font-bold text-foreground">Insurance</p>
-              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Claims Tracker</p>
+              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Cashless Pre-Auth</p>
             </div>
           </div>
         </div>
@@ -1232,32 +1275,64 @@ export default function PatientDashboard() {
         </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions (15 Canonical Categories) */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
         className="bg-card rounded-3xl border border-border/50 p-5 sm:p-6 mb-6 shadow-sm">
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 flex items-center justify-center shadow-sm">
               <Zap className="w-5 h-5 text-amber-500" />
             </div>
             <div>
-              <h3 className="font-heading font-semibold text-foreground">Quick Actions</h3>
-              <p className="text-xs text-muted-foreground">Tasks at your fingertips</p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-heading font-semibold text-foreground">Health Ecosystem Quick Actions</h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                  {quickActions.length} Services
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">Direct access across clinical care, diagnostics, wellness, and logistics</p>
             </div>
           </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAllActions(prev => !prev)}
+              className="text-xs font-semibold h-8 rounded-xl"
+            >
+              {showAllActions ? 'Show Top 10' : `View All (${quickActions.length})`}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/patient/services')}
+              className="text-xs font-semibold h-8 text-primary hover:text-primary hover:bg-primary/5"
+            >
+              Services Directory <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+            </Button>
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {quickActions.map(a => (
-            <Link key={a.label} to={a.link}
-              className="group relative flex flex-col items-center gap-2.5 p-5 rounded-2xl border border-border/40 bg-gradient-to-br from-muted/10 to-muted/5 hover:from-primary/5 hover:to-primary/10 hover:border-primary/30 hover:shadow-md transition-all duration-300">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-300">
-                <a.icon className="w-6 h-6 text-primary" />
-              </div>
-              <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{a.label}</span>
-              <span className="text-[10px] text-muted-foreground text-center leading-tight">{a.desc}</span>
-              <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-border/0 group-hover:ring-primary/20 transition-all" />
-            </Link>
-          ))}
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3.5">
+          {(showAllActions ? quickActions : quickActions.slice(0, 10)).map(a => {
+            const displayLabel = a.sensitive && discreetMode ? 'Consultation' : a.label;
+            const displayDesc = a.sensitive && discreetMode ? 'Confidential care' : a.desc;
+
+            return (
+              <Link key={a.label} to={a.link}
+                className="group relative flex flex-col items-center gap-2.5 p-4 rounded-2xl border border-border/40 bg-gradient-to-br from-muted/10 to-muted/5 hover:from-primary/5 hover:to-primary/10 hover:border-primary/30 hover:shadow-md transition-all duration-300 text-center">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-300">
+                  <a.icon className="w-5 h-5 text-primary" />
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors block line-clamp-1">{displayLabel}</span>
+                  <span className="text-[10px] text-muted-foreground block line-clamp-1 leading-tight">{displayDesc}</span>
+                </div>
+                <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-border/0 group-hover:ring-primary/20 transition-all" />
+              </Link>
+            );
+          })}
         </div>
       </motion.div>
 
@@ -1473,6 +1548,269 @@ export default function PatientDashboard() {
             <p className="text-sm text-muted-foreground">No refunds yet</p>
           </div>
         )}
+      </motion.div>
+
+      {/* ── Section 11: Discover & Preventive Health (Recommendations) ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.22 }}
+        className="bg-card rounded-3xl border border-border/60 p-5 sm:p-6 mb-6 shadow-sm space-y-4"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 text-emerald-600 flex items-center justify-center shadow-sm">
+              <Compass className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-heading font-bold text-base sm:text-lg text-foreground">
+                  Discover Healthcare Near You
+                </h3>
+                <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                  Curated & Verified
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Free health camps, age-specific checkup packages, and local public health programs. No third-party ad tracking.
+              </p>
+            </div>
+          </div>
+
+          <Link to="/patient/events">
+            <Button variant="ghost" size="sm" className="text-xs text-primary font-semibold h-8 gap-1">
+              Explore All Camps <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
+          </Link>
+        </div>
+
+        {/* Discover Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
+          {/* Card 1: Free Health Camp */}
+          <div className="p-4 rounded-2xl border border-border/60 bg-muted/15 space-y-3 flex flex-col justify-between hover:border-emerald-500/30 transition-all">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] font-bold">
+                  Free Camp
+                </Badge>
+                <span className="text-[11px] text-muted-foreground">This Sunday</span>
+              </div>
+              <h4 className="font-heading font-bold text-sm text-foreground">Community Diabetes & BP Screening</h4>
+              <p className="text-xs text-muted-foreground">Free random glucose, blood pressure check, and doctor consult at Green Park Community Hall.</p>
+            </div>
+            <Link to="/patient/events">
+              <Button size="sm" className="w-full h-8 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white">
+                Register Free Pass
+              </Button>
+            </Link>
+          </div>
+
+          {/* Card 2: Health Package */}
+          <div className="p-4 rounded-2xl border border-border/60 bg-muted/15 space-y-3 flex flex-col justify-between hover:border-primary/30 transition-all">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold">
+                  Annual Checkup
+                </Badge>
+                <span className="text-xs font-extrabold text-foreground">₹1,499</span>
+              </div>
+              <h4 className="font-heading font-bold text-sm text-foreground">Comprehensive Full Body Profile (64 Tests)</h4>
+              <p className="text-xs text-muted-foreground">Lipid profile, liver function, HbA1c, thyroid panel & free home sample collection.</p>
+            </div>
+            <Link to="/patient/services">
+              <Button size="sm" variant="outline" className="w-full h-8 text-xs font-semibold">
+                Book Test Package
+              </Button>
+            </Link>
+          </div>
+
+          {/* Card 3: Seasonal Health Alert */}
+          <div className="p-4 rounded-2xl border border-border/60 bg-muted/15 space-y-3 flex flex-col justify-between hover:border-amber-500/30 transition-all">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Badge className="bg-amber-500/10 text-amber-700 border-amber-500/20 text-[10px] font-bold">
+                  Seasonal Health Alert
+                </Badge>
+                <span className="text-[11px] text-muted-foreground">Doctor-Verified</span>
+              </div>
+              <h4 className="font-heading font-bold text-sm text-foreground">Air Quality & Respiratory Protection</h4>
+              <p className="text-xs text-muted-foreground">PM2.5 precautions, N95 mask advisory, and asthma inhaler refill reminders for Delhi-NCR.</p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full h-8 text-xs font-semibold"
+              onClick={() => toast.info('Advisory: Keep windows closed during peak morning traffic; wear N95 outdoors.')}
+            >
+              Read Health Advisory
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── Section 12: Wallet · Rewards · Referral ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.24 }}
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"
+      >
+        {/* Wallet Balance */}
+        <div className="bg-card rounded-3xl border border-border/60 p-5 space-y-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <Wallet className="w-4.5 h-4.5" />
+            </div>
+            <Badge variant="outline" className="text-[10px]">Instant Checkout</Badge>
+          </div>
+          <div>
+            <span className="text-[11px] text-muted-foreground block">FindMedi Cash Balance</span>
+            <div className="text-2xl font-black text-foreground">₹450</div>
+          </div>
+          <div className="pt-2 border-t flex items-center justify-between text-xs">
+            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs font-bold text-primary" onClick={() => setShowModal('add-payment')}>
+              + Add Balance
+            </Button>
+            <Link to="/patient/history" className="text-muted-foreground hover:text-foreground">Invoices</Link>
+          </div>
+        </div>
+
+        {/* Loyalty Points */}
+        <div className="bg-card rounded-3xl border border-border/60 p-5 space-y-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+              <Sparkles className="w-4.5 h-4.5" />
+            </div>
+            <Badge variant="outline" className="text-[10px]">Silver Tier</Badge>
+          </div>
+          <div>
+            <span className="text-[11px] text-muted-foreground block">FindMedi Health Coins</span>
+            <div className="text-2xl font-black text-foreground">320 Coins</div>
+          </div>
+          <div className="pt-2 border-t flex items-center justify-between text-xs">
+            <Link to="/patient/rewards">
+              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs font-bold text-amber-600">
+                Redeem Rewards
+              </Button>
+            </Link>
+            <span className="text-muted-foreground">100 coins = ₹50 off</span>
+          </div>
+        </div>
+
+        {/* Referral Program */}
+        <div className="bg-card rounded-3xl border border-border/60 p-5 space-y-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center">
+              <Gift className="w-4.5 h-4.5" />
+            </div>
+            <Badge variant="outline" className="text-[10px]">Invite Family</Badge>
+          </div>
+          <div>
+            <span className="text-[11px] text-muted-foreground block">Refer & Earn</span>
+            <div className="text-sm font-bold text-foreground">Give ₹200 · Get ₹200</div>
+          </div>
+          <div className="pt-2 border-t flex items-center justify-between text-xs">
+            <Link to="/patient/referral">
+              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs font-bold text-rose-600">
+                Share Code
+              </Button>
+            </Link>
+            <span className="text-muted-foreground font-mono">HEALTH200</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── Section 13: 24x7 Emergency Helplines & Patient Support ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.26 }}
+        className="bg-card rounded-3xl border border-rose-500/30 p-5 sm:p-6 mb-6 shadow-sm bg-gradient-to-br from-rose-500/5 via-card to-card space-y-4"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-600 flex items-center justify-center">
+              <Siren className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-heading font-bold text-base sm:text-lg text-foreground">
+                  24x7 National Emergency & Helplines Directory
+                </h3>
+                <Badge className="bg-rose-600 text-white text-[10px]">Toll-Free</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Immediate government and medical assistance numbers. Direct one-tap telephone connect.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowModal('support-ticket')}
+              className="text-xs font-semibold h-8 rounded-xl"
+            >
+              Submit Support Ticket
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setDoctorSosModalOpen(true)}
+              className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold h-8 rounded-xl gap-1"
+            >
+              <Siren className="w-3.5 h-3.5" /> Emergency SOS
+            </Button>
+          </div>
+        </div>
+
+        {/* Helplines Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1 text-xs">
+          <a
+            href="tel:112"
+            className="p-3 rounded-2xl bg-muted/40 border hover:border-rose-500/40 hover:bg-rose-500/5 transition-all text-center block"
+          >
+            <span className="text-[10px] uppercase font-bold text-muted-foreground block">National Emergency</span>
+            <div className="text-base font-extrabold text-rose-600 font-mono mt-0.5">112</div>
+            <span className="text-[10px] text-muted-foreground">All-in-one helpline</span>
+          </a>
+
+          <a
+            href="tel:108"
+            className="p-3 rounded-2xl bg-muted/40 border hover:border-rose-500/40 hover:bg-rose-500/5 transition-all text-center block"
+          >
+            <span className="text-[10px] uppercase font-bold text-muted-foreground block">Ambulance Dispatch</span>
+            <div className="text-base font-extrabold text-foreground font-mono mt-0.5">108</div>
+            <span className="text-[10px] text-muted-foreground">State medical emergency</span>
+          </a>
+
+          <a
+            href="tel:14416"
+            className="p-3 rounded-2xl bg-muted/40 border hover:border-rose-500/40 hover:bg-rose-500/5 transition-all text-center block"
+          >
+            <span className="text-[10px] uppercase font-bold text-muted-foreground block">Tele-MANAS (Mental)</span>
+            <div className="text-base font-extrabold text-foreground font-mono mt-0.5">14416</div>
+            <span className="text-[10px] text-muted-foreground">Confidential 24x7 support</span>
+          </a>
+
+          <a
+            href="tel:1098"
+            className="p-3 rounded-2xl bg-muted/40 border hover:border-rose-500/40 hover:bg-rose-500/5 transition-all text-center block"
+          >
+            <span className="text-[10px] uppercase font-bold text-muted-foreground block">Child Helpline</span>
+            <div className="text-base font-extrabold text-foreground font-mono mt-0.5">1098</div>
+            <span className="text-[10px] text-muted-foreground">Child care & distress</span>
+          </a>
+
+          <a
+            href="tel:181"
+            className="p-3 rounded-2xl bg-muted/40 border hover:border-rose-500/40 hover:bg-rose-500/5 transition-all text-center block"
+          >
+            <span className="text-[10px] uppercase font-bold text-muted-foreground block">Women Helpline</span>
+            <div className="text-base font-extrabold text-foreground font-mono mt-0.5">181</div>
+            <span className="text-[10px] text-muted-foreground">24x7 safety assistance</span>
+          </a>
+        </div>
       </motion.div>
 
       {/* Modals */}

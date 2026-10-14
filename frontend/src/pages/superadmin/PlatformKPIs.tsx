@@ -4,13 +4,29 @@ import { motion } from 'framer-motion';
 import {
   TrendingUp, Users, Stethoscope, Activity, DollarSign, Building2, FlaskConical, Pill,
   Clock, AlertTriangle, CalendarDays, BarChart3, Hospital, ShieldCheck,
-  Headset, Siren, Gavel, UserPlus, ShieldAlert, Truck, FileCheck
+  Headset, Siren, Gavel, UserPlus, ShieldAlert, Truck, FileCheck, Calculator,
+  Scale, Layers, CheckCircle2, Info
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import OpsHealthCard from '@/components/OpsHealthCard';
+import {
+  BUSINESS_MODEL_CANVAS,
+  REVENUE_STREAMS,
+  CATEGORY_BENCHMARKS,
+  LEGAL_COMMERCIAL_GUARDRAILS,
+  calculateContributionMargin,
+  calculatePatientLtv,
+  calculateBreakEvenBookings,
+  calculateLtvCacRatio,
+} from '@/lib/unitEconomics';
 
 const AnimatedCard = ({ children, delay = 0 }) => (
   <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, duration: 0.35 }}>
@@ -21,6 +37,14 @@ const AnimatedCard = ({ children, delay = 0 }) => (
 export default function PlatformKPIs() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isUnitEconomicsOpen, setIsUnitEconomicsOpen] = useState(false);
+
+  // Unit Economics Simulator live state
+  const [calcAov, setCalcAov] = useState(800);
+  const [calcTakeRate, setCalcTakeRate] = useState(12);
+  const [calcFixedCosts, setCalcFixedCosts] = useState(800000);
+  const [calcSubRevenue, setCalcSubRevenue] = useState(199800);
+  const [calcCac, setCalcCac] = useState(120);
 
   const activeRef = useRef(true);
   const load = useCallback(async (silent = false) => {
@@ -134,10 +158,21 @@ export default function PlatformKPIs() {
           <h1 className="text-2xl font-heading font-bold text-foreground">Platform Overview</h1>
           <p className="text-sm text-muted-foreground mt-1">Live platform KPIs at a glance</p>
         </div>
-        <Badge variant="outline" className="text-xs gap-1.5 px-3 py-1.5">
-          <Clock className="w-3.5 h-3.5" />
-          Updated {data?.fetchedAt ? data.fetchedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "just now"}
-        </Badge>
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsUnitEconomicsOpen(true)}
+            className="gap-1.5 h-8 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+            data-testid="unit-economics-btn"
+          >
+            <DollarSign className="w-3.5 h-3.5" /> Unit Economics (Doc 16)
+          </Button>
+          <Badge variant="outline" className="text-xs gap-1.5 px-3 py-1.5">
+            <Clock className="w-3.5 h-3.5" />
+            Updated {data?.fetchedAt ? data.fetchedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "just now"}
+          </Badge>
+        </div>
       </motion.div>
 
       {/* Row 1: Core platform metrics */}
@@ -385,6 +420,209 @@ export default function PlatformKPIs() {
           </CardContent>
         </Card>
       </motion.div>
+      {/* Document 16 — Business Model & Unit Economics Console */}
+      <Dialog open={isUnitEconomicsOpen} onOpenChange={setIsUnitEconomicsOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto" data-testid="unit-economics-dialog">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 border-emerald-300">
+                Document 16
+              </Badge>
+              <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-emerald-600" />
+                Business Model & Unit Economics Console
+              </DialogTitle>
+            </div>
+            <DialogDescription>
+              Platform commercial canvas, category take rates, contribution margin simulator & statutory guardrails.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Tabs defaultValue="simulator" className="mt-2">
+            <TabsList className="grid grid-cols-4 w-full h-9">
+              <TabsTrigger value="simulator" className="text-xs">Live Simulator</TabsTrigger>
+              <TabsTrigger value="benchmarks" className="text-xs">Category Benchmarks</TabsTrigger>
+              <TabsTrigger value="streams" className="text-xs">Revenue Streams</TabsTrigger>
+              <TabsTrigger value="guardrails" className="text-xs">Legal Guardrails</TabsTrigger>
+            </TabsList>
+
+            {/* Tab 1: Live Simulator */}
+            <TabsContent value="simulator" className="space-y-4 pt-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Calculator className="w-3.5 h-3.5 text-primary" /> Inputs (Simulated Booking)
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs font-semibold">Average Order Value (AOV ₹)</Label>
+                      <Input
+                        type="number"
+                        value={calcAov}
+                        onChange={(e) => setCalcAov(Number(e.target.value))}
+                        className="mt-1 h-8 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold">Take Rate (%)</Label>
+                      <Input
+                        type="number"
+                        value={calcTakeRate}
+                        onChange={(e) => setCalcTakeRate(Number(e.target.value))}
+                        className="mt-1 h-8 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold">Monthly Fixed Costs (₹)</Label>
+                      <Input
+                        type="number"
+                        value={calcFixedCosts}
+                        onChange={(e) => setCalcFixedCosts(Number(e.target.value))}
+                        className="mt-1 h-8 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold">Subscription Revenue (₹)</Label>
+                      <Input
+                        type="number"
+                        value={calcSubRevenue}
+                        onChange={(e) => setCalcSubRevenue(Number(e.target.value))}
+                        className="mt-1 h-8 text-xs"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs font-semibold">Patient Acquisition Cost (CAC ₹)</Label>
+                      <Input
+                        type="number"
+                        value={calcCac}
+                        onChange={(e) => setCalcCac(Number(e.target.value))}
+                        className="mt-1 h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Outputs */}
+                <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-600" /> Unit Economics Outputs
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-2.5 rounded-lg border bg-card">
+                      <div className="text-[10px] text-muted-foreground uppercase">Contribution / Booking</div>
+                      <div className="text-lg font-bold text-foreground">₹{calculateContributionMargin({ aov: calcAov, takeRatePercent: calcTakeRate }).contribution}</div>
+                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                        {calculateContributionMargin({ aov: calcAov, takeRatePercent: calcTakeRate }).contributionMarginPercent}% margin
+                      </div>
+                    </div>
+                    <div className="p-2.5 rounded-lg border bg-card">
+                      <div className="text-[10px] text-muted-foreground uppercase">Patient LTV (2-Yr)</div>
+                      <div className="text-lg font-bold text-foreground">
+                        ₹{calculatePatientLtv({ contributionPerBooking: calculateContributionMargin({ aov: calcAov, takeRatePercent: calcTakeRate }).contribution, bookingsPerYear: 3, retentionYears: 2 })}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">3 bookings/yr</div>
+                    </div>
+                    <div className="p-2.5 rounded-lg border bg-card">
+                      <div className="text-[10px] text-muted-foreground uppercase">LTV : CAC Ratio</div>
+                      <div className="text-lg font-bold text-foreground flex items-center gap-1.5">
+                        {calculateLtvCacRatio({ ltv: calculatePatientLtv({ contributionPerBooking: calculateContributionMargin({ aov: calcAov, takeRatePercent: calcTakeRate }).contribution, bookingsPerYear: 3, retentionYears: 2 }), cac: calcCac }).ratio}x
+                        <Badge variant="outline" className={`text-[9px] uppercase ${calculateLtvCacRatio({ ltv: calculatePatientLtv({ contributionPerBooking: calculateContributionMargin({ aov: calcAov, takeRatePercent: calcTakeRate }).contribution, bookingsPerYear: 3, retentionYears: 2 }), cac: calcCac }).status === 'healthy' || calculateLtvCacRatio({ ltv: calculatePatientLtv({ contributionPerBooking: calculateContributionMargin({ aov: calcAov, takeRatePercent: calcTakeRate }).contribution, bookingsPerYear: 3, retentionYears: 2 }), cac: calcCac }).status === 'excellent' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-amber-50 text-amber-700 border-amber-300'}`}>
+                          {calculateLtvCacRatio({ ltv: calculatePatientLtv({ contributionPerBooking: calculateContributionMargin({ aov: calcAov, takeRatePercent: calcTakeRate }).contribution, bookingsPerYear: 3, retentionYears: 2 }), cac: calcCac }).status}
+                        </Badge>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">Target ≥ 3.0x</div>
+                    </div>
+                    <div className="p-2.5 rounded-lg border bg-card">
+                      <div className="text-[10px] text-muted-foreground uppercase">Monthly Break-even</div>
+                      <div className="text-lg font-bold text-foreground">
+                        {calculateBreakEvenBookings({ fixedCostsMonthly: calcFixedCosts, subscriptionRevenueMonthly: calcSubRevenue, blendedContributionPerBooking: calculateContributionMargin({ aov: calcAov, takeRatePercent: calcTakeRate }).contribution }).toLocaleString()}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">bookings / month</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Tab 2: Category Benchmarks */}
+            <TabsContent value="benchmarks" className="space-y-3 pt-3">
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-muted text-muted-foreground uppercase text-[10px]">
+                    <tr>
+                      <th className="p-2.5">Category</th>
+                      <th className="p-2.5">AOV</th>
+                      <th className="p-2.5">Take Rate</th>
+                      <th className="p-2.5">Variable Costs</th>
+                      <th className="p-2.5">Contribution</th>
+                      <th className="p-2.5">Frequency/Yr</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {Object.entries(CATEGORY_BENCHMARKS).map(([key, cat]) => {
+                      const res = calculateContributionMargin({ aov: cat.aov, takeRatePercent: cat.takeRatePercent, gatewayFeePercent: cat.gatewayFeePercent, notifCost: cat.notifCost, supportCost: cat.supportCost, refundLeakagePercent: cat.refundLeakagePercent });
+                      return (
+                        <tr key={key} className="hover:bg-muted/30">
+                          <td className="p-2.5 font-medium text-foreground">{cat.name}</td>
+                          <td className="p-2.5">₹{cat.aov}</td>
+                          <td className="p-2.5 font-semibold text-primary">{cat.takeRatePercent}%</td>
+                          <td className="p-2.5 text-muted-foreground">₹{res.variableCosts}</td>
+                          <td className="p-2.5 font-bold text-emerald-600 dark:text-emerald-400">₹{res.contribution} ({res.contributionMarginPercent}%)</td>
+                          <td className="p-2.5">{cat.targetFrequencyYr}x</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+
+            {/* Tab 3: Revenue Streams */}
+            <TabsContent value="streams" className="space-y-2.5 pt-3">
+              {REVENUE_STREAMS.map((s, idx) => (
+                <div key={idx} className="p-3 rounded-lg border border-border/70 bg-card space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-foreground">{s.stream}</span>
+                    <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+                      Active Stream
+                    </Badge>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    <strong className="text-foreground">Structure: </strong>{s.structure}
+                  </div>
+                  <div className="text-[11px] text-emerald-700 dark:text-emerald-300 flex items-start gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-600" />
+                    <span><strong>Safeguard: </strong>{s.regulatorySafeguard}</span>
+                  </div>
+                </div>
+              ))}
+            </TabsContent>
+
+            {/* Tab 4: Legal & Statutory Guardrails */}
+            <TabsContent value="guardrails" className="space-y-2.5 pt-3">
+              {LEGAL_COMMERCIAL_GUARDRAILS.map((g, idx) => (
+                <div key={idx} className="p-3 rounded-lg border border-border/70 bg-card space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-foreground">{g.rule}</span>
+                    <Badge variant="outline" className="text-[10px] text-amber-700 bg-amber-50 dark:bg-amber-950/30 border-amber-300">
+                      {g.regulation}
+                    </Badge>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground leading-relaxed">
+                    {g.requirement}
+                  </div>
+                </div>
+              ))}
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter className="pt-3 border-t border-border/60">
+            <Button variant="outline" onClick={() => setIsUnitEconomicsOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

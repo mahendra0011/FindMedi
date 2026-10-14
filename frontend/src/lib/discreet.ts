@@ -23,6 +23,8 @@ export const SENSITIVE_CATEGORY_PATTERNS: RegExp[] = [
   /sti\b/i,
   /abortion/i,
   /contracept/i,
+  /palliative/i,
+  /hospice/i,
 ];
 
 export function isSensitiveCategory(category?: string | null): boolean {

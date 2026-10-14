@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Tags } from 'lucide-react';
+import { Search, Tags, AlertTriangle, Lock, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,17 @@ import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
 const FALLBACK_TYPES = ['test', 'medicine', 'department', 'service'];
-const EMPTY_FORM = { name: '', type: 'test', code: '', aliases: '', description: '', displayOrder: 0 };
+const EMPTY_FORM = {
+  name: '',
+  type: 'test',
+  code: '',
+  aliases: '',
+  description: '',
+  displayOrder: 0,
+  tier: 'T1',
+  adClaimsRestricted: false,
+  isSensitive: false,
+};
 
 type CategoryRow = {
   _id: string;
@@ -19,6 +29,8 @@ type CategoryRow = {
   description?: string;
   displayOrder?: number;
   tier?: string;
+  adClaimsRestricted?: boolean;
+  isSensitive?: boolean;
   isActive?: boolean;
 };
 
@@ -50,14 +62,29 @@ function CategoriesTab() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [typeFilter]);
 
+  // Duplicate detection for taxonomy hygiene (§17)
+  const duplicateAlerts = React.useMemo(() => {
+    const nameMap = new Map<string, number>();
+    categories.forEach((c) => {
+      const n = (c.name || '').trim().toLowerCase();
+      if (n) nameMap.set(n, (nameMap.get(n) || 0) + 1);
+    });
+    return Array.from(nameMap.entries()).filter(([_, count]) => count > 1).map(([name]) => name);
+  }, [categories]);
+
   const buildPayload = () => {
     const payload: {
       name: string; type: string; description: string; displayOrder: number;
-      aliases: string[]; code?: string;
+      aliases: string[]; tier: string; adClaimsRestricted: boolean; isSensitive: boolean; code?: string;
     } = {
-      name: form.name, type: form.type, description: form.description,
+      name: form.name,
+      type: form.type,
+      description: form.description,
       displayOrder: Number(form.displayOrder) || 0,
       aliases: form.aliases.split(',').map(a => a.trim()).filter(Boolean),
+      tier: form.tier || 'T1',
+      adClaimsRestricted: Boolean(form.adClaimsRestricted),
+      isSensitive: Boolean(form.isSensitive),
     };
     if (!editId && form.code.trim()) payload.code = form.code.trim();
     return payload;
@@ -77,8 +104,15 @@ function CategoriesTab() {
 
   const handleEdit = (cat: CategoryRow) => {
     setForm({
-      name: cat.name, type: cat.type, code: cat.code || '', aliases: (cat.aliases || []).join(', '),
-      description: cat.description || '', displayOrder: cat.displayOrder || 0,
+      name: cat.name,
+      type: cat.type,
+      code: cat.code || '',
+      aliases: (cat.aliases || []).join(', '),
+      description: cat.description || '',
+      displayOrder: cat.displayOrder || 0,
+      tier: cat.tier || 'T1',
+      adClaimsRestricted: Boolean(cat.adClaimsRestricted),
+      isSensitive: Boolean(cat.isSensitive),
     });
     setEditId(cat._id);
     setShowForm(true);
@@ -97,6 +131,16 @@ function CategoriesTab() {
         </div>
         <Button size="sm" onClick={() => { setShowForm(!showForm); setEditId(null); setForm({ ...EMPTY_FORM, type: typeFilter }); }}>{showForm ? 'Cancel' : 'Add Category'}</Button>
       </div>
+
+      {duplicateAlerts.length > 0 && (
+        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-800 dark:text-amber-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>Taxonomy Hygiene: Potential duplicate category names found: <strong>{duplicateAlerts.join(', ')}</strong></span>
+          </div>
+        </div>
+      )}
+
       {showForm && (
         <div className="bg-card rounded-xl border border-border/60 p-4 flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-[160px]">
@@ -111,6 +155,18 @@ function CategoriesTab() {
             <label className="text-xs text-muted-foreground mb-1 block">Code {editId && '(immutable)'}</label>
             <Input value={form.code} disabled={!!editId} onChange={e => setForm({ ...form, code: e.target.value })} placeholder="SPEC.CARDIO" />
           </div>
+          <div className="w-24">
+            <label className="text-xs text-muted-foreground mb-1 block">Tier</label>
+            <select
+              value={form.tier}
+              onChange={e => setForm({ ...form, tier: e.target.value })}
+              className="w-full text-xs h-9 rounded-md border border-input bg-background px-2"
+            >
+              <option value="T1">T1 (Clinical)</option>
+              <option value="T2">T2 (Allied)</option>
+              <option value="T3">T3 (Wellness)</option>
+            </select>
+          </div>
           <div className="flex-1 min-w-[160px]">
             <label className="text-xs text-muted-foreground mb-1 block">Description</label>
             <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Optional" />
@@ -118,6 +174,26 @@ function CategoriesTab() {
           <div className="w-20">
             <label className="text-xs text-muted-foreground mb-1 block">Order</label>
             <Input type="number" value={form.displayOrder} onChange={e => setForm({ ...form, displayOrder: Number(e.target.value) })} />
+          </div>
+          <div className="flex items-center gap-4 text-xs">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.adClaimsRestricted}
+                onChange={e => setForm({ ...form, adClaimsRestricted: e.target.checked })}
+                className="rounded"
+              />
+              <span className="text-muted-foreground">adClaimsRestricted</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.isSensitive}
+                onChange={e => setForm({ ...form, isSensitive: e.target.checked })}
+                className="rounded"
+              />
+              <span className="text-muted-foreground">Sensitive 🔒</span>
+            </label>
           </div>
           <Button onClick={handleSave} className="shrink-0">{editId ? 'Update' : 'Create'}</Button>
         </div>
@@ -138,16 +214,30 @@ function CategoriesTab() {
               className="bg-card rounded-xl border border-border/60 p-4 hover:shadow-md transition-all">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-medium text-foreground text-sm">{c.name}</h4>
-                <Badge variant="outline" className="text-[10px]">{c.type}</Badge>
+                <div className="flex items-center gap-1">
+                  {c.tier && <Badge variant="secondary" className="text-[10px]">{c.tier}</Badge>}
+                  <Badge variant="outline" className="text-[10px]">{c.type}</Badge>
+                </div>
               </div>
               {c.code && <p className="text-[11px] font-mono text-primary/80 mb-1">{c.code}</p>}
               {c.description && <p className="text-xs text-muted-foreground">{c.description}</p>}
               {Array.isArray(c.aliases) && c.aliases.length > 0 && (
                 <p className="text-[11px] text-muted-foreground mt-1">Also: {c.aliases.join(', ')}</p>
               )}
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {c.adClaimsRestricted && (
+                  <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] border-amber-500/30">
+                    Claims Restricted
+                  </Badge>
+                )}
+                {c.isSensitive && (
+                  <Badge className="bg-purple-500/15 text-purple-700 dark:text-purple-300 text-[10px] border-purple-500/30 flex items-center gap-1">
+                    <Lock className="w-2.5 h-2.5" /> Sensitive 🔒
+                  </Badge>
+                )}
+              </div>
               <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                 <span>Order: {c.displayOrder || 0}</span>
-                {c.tier && <span>Tier: {c.tier}</span>}
                 <span className={c.isActive ? 'text-success' : 'text-destructive'}>{c.isActive ? 'Active' : 'Inactive'}</span>
               </div>
               <div className="flex gap-1 mt-2">

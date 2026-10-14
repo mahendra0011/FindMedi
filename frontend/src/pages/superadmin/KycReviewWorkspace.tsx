@@ -12,6 +12,15 @@ import { api } from '@/lib/api';
 /** High-risk provider types: approval needs TWO different reviewers. */
 export const HIGH_RISK_TYPES = ['ambulance', 'ivf', 'fertility', 'de-addiction', 'deaddiction', 'peer_mentor', 'peer-mentor'];
 
+/** Standard rejection templates (File 08 §17 Catalogue alignment) */
+export const STANDARD_REJECTION_REASONS = [
+  { code: 'OUT_OF_SCOPE', label: 'Out of Scope', text: 'OUT_OF_SCOPE: Application is outside FindMedi\'s 24 canonical health categories and approved provider types.' },
+  { code: 'INVALID_COUNCIL_REGISTRATION', label: 'Invalid Council Reg', text: 'INVALID_REGISTRATION: Registration or statutory council credentials could not be verified on the official registry portal.' },
+  { code: 'DOCUMENT_FORGERY_OR_MISMATCH', label: 'Doc Mismatch / Fraud', text: 'DOCUMENT_MISMATCH: Uploaded establishment documents do not match applicant identity or registered business name.' },
+  { code: 'INCOMPLETE_MANDATORY_DOCS', label: 'Missing Mandatory Docs', text: 'INCOMPLETE_DOCS: Mandatory statutory documents (Clinical establishment, Drug license, or Fire/Pollution NOC) are missing or expired.' },
+  { code: 'BANNED_AD_OR_CLINICAL_CLAIMS', label: 'Banned Claims', text: 'RESTRICTED_CLAIMS: Listing makes unsubstantiated or prohibited clinical claims under Drugs and Magic Remedies Act.' },
+];
+
 /** Lanes a reviewer may claim — mirrors the API's claimable set (2.md 6). */
 const CLAIMABLE_STATUSES = new Set(['submitted', 'resubmitted', 'under_review', 'needs_info']);
 
@@ -503,8 +512,36 @@ export default function KycReviewWorkspace({ applicationId, onDecided }: Props) 
 
       <Card>
         <CardContent className="p-4 space-y-3">
-          <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Decision notes / Resubmission reason (required for reject & needs-info)…" className="text-sm" />
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Decision notes / Justification:</span>
+              <span className="text-[11px] font-medium">Quick reason templates:</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {STANDARD_REJECTION_REASONS.map((r) => (
+                <button
+                  key={r.code}
+                  type="button"
+                  onClick={() => setReason(r.text)}
+                  className={`text-[11px] px-2 py-0.5 rounded border transition-colors ${
+                    reason.startsWith(r.code)
+                      ? 'bg-destructive/15 text-destructive border-destructive/40 font-medium'
+                      : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border-border/60'
+                  }`}
+                  title={r.text}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <Input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Decision notes / Resubmission reason (required for reject & needs-info)…"
+              className="text-sm mt-1.5"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2 pt-1">
             <Button size="sm" className="gap-1.5 bg-success hover:bg-success/90" disabled={acting} onClick={() => decide('approve')}>
               <CheckCircle className="w-3.5 h-3.5" /> Approve{highRisk && !awaitingSecond ? ' (1st of 2)' : ''}
             </Button>

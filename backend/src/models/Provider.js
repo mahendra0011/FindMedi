@@ -14,6 +14,7 @@ import {
 // working while listings migrate onto Provider.
 const providerSchema = new mongoose.Schema({
   providerId: { type: String, unique: true, sparse: true, index: true },
+  tenantId: { type: String, maxlength: 64, index: true, default: null },
   ownerUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
   kind: { type: String, enum: PROVIDER_KINDS, required: true, index: true },
   type: { type: String, required: true, trim: true, lowercase: true, index: true },

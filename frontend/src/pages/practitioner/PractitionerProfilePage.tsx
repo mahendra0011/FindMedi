@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import SeoHead, { aggregateRating } from '@/components/SeoHead';
-import BookingModal from '@/components/BookingModal';
+import { UniversalBookingModal } from '@/components/booking';
 import ReviewDialog from '@/components/ReviewDialog';
 import PractitionerProfileLayout from '@/components/practitioner/PractitionerProfileLayout';
 import { PractitionerDTO } from '@/components/practitioner/sections/PractitionerHeader';
@@ -64,6 +64,12 @@ export default function PractitionerProfilePage() {
             : location.pathname.includes('/psychologist') ? 'psychologist'
             : location.pathname.includes('/counsellor') ? 'counsellor'
             : location.pathname.includes('/lawyer') ? 'lawyer'
+            : location.pathname.includes('/speech') || location.pathname.includes('/therapist') ? 'speech_occupational'
+            : location.pathname.includes('/attendant') || location.pathname.includes('/caregiver') ? 'attendant'
+            : location.pathname.includes('/phlebo') ? 'phlebotomist'
+            : location.pathname.includes('/optomet') || location.pathname.includes('/audiolog') ? 'optometrist_audiologist'
+            : location.pathname.includes('/trainer') ? 'trainer'
+            : location.pathname.includes('/tpa') ? 'tpa_executive'
             : 'doctor');
 
           const formattedSpecialty = specialty
@@ -84,6 +90,18 @@ export default function PractitionerProfilePage() {
             ? 'Counseling Psychologist'
             : roleFromType === 'lawyer'
             ? 'Healthcare Legal Counsel'
+            : roleFromType === 'speech_occupational'
+            ? 'Speech & Occupational Therapist'
+            : roleFromType === 'attendant'
+            ? 'Certified Bedside Caregiver'
+            : roleFromType === 'phlebotomist'
+            ? 'Certified Phlebotomist & Lab Tech'
+            : roleFromType === 'optometrist_audiologist'
+            ? 'Optometrist & Audiologist'
+            : roleFromType === 'trainer'
+            ? 'Fitness & Transformation Coach'
+            : roleFromType === 'tpa_executive'
+            ? 'Cashless Mediclaim Executive'
             : 'Senior Consultant Physician';
 
           fetchedData = {
@@ -91,11 +109,21 @@ export default function PractitionerProfilePage() {
             name: identifier?.includes('-')
               ? identifier.split('-').map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
               : 'Dr. Aarav Sharma',
-            title: roleFromType === 'lawyer' ? 'Adv.' : roleFromType === 'yoga_teacher' ? 'Yogi' : 'Dr.',
+            title: roleFromType === 'lawyer' ? 'Adv.'
+              : roleFromType === 'yoga_teacher' ? 'Yogi'
+              : ['attendant', 'phlebotomist', 'trainer', 'tpa_executive'].includes(roleFromType) ? ''
+              : 'Dr.',
             roleType: roleFromType,
             specialty: formattedSpecialty,
             subSpecialties: ['Internal Medicine', 'Preventive Health', 'Lifestyle Disease Care'],
-            qualifications: roleFromType === 'dentist' ? 'BDS, MDS (Oral & Maxillofacial)' : roleFromType === 'lawyer' ? 'BA LLB (Hons), LLM' : 'MBBS, MD (Medicine), Fellowship in Clinical Diabetology',
+            qualifications: roleFromType === 'dentist' ? 'BDS, MDS (Oral & Maxillofacial)'
+              : roleFromType === 'lawyer' ? 'BA LLB (Hons), LLM'
+              : roleFromType === 'speech_occupational' ? 'BASLP, MASLP, RCI Certified'
+              : roleFromType === 'attendant' ? 'Certified Patient Care Assistant (CPCA)'
+              : roleFromType === 'phlebotomist' ? 'DMLT / BMLT (Clinical Pathology)'
+              : roleFromType === 'optometrist_audiologist' ? 'B.Optom, Fellow in Clinical Refraction'
+              : roleFromType === 'trainer' ? 'ACE / ACSM Certified Personal Trainer'
+              : 'MBBS, MD (Medicine), Fellowship in Clinical Diabetology',
             experienceYears: 12,
             experience: '12+ years experience',
             languages: ['English', 'Hindi', 'Punjabi'],
@@ -269,13 +297,15 @@ export default function PractitionerProfilePage() {
         onReport={handleReport}
       />
 
-      {/* Booking Modal Integration */}
-      <BookingModal
+      {/* Universal Booking & Order Flow Modal */}
+      <UniversalBookingModal
         open={showBookingModal}
         onOpenChange={setShowBookingModal}
         doctor={practitioner}
         facility={practitioner.clinic ? { name: practitioner.clinic } : null}
+        service={selectedBookingContext}
         initialContext={selectedBookingContext}
+        onSuccess={() => setShowBookingModal(false)}
       />
 
       {/* Review Dialog Integration */}

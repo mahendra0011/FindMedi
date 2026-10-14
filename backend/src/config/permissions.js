@@ -33,10 +33,13 @@ export const ROLE_ALIASES = {
 export const ROLE_EQUIVALENTS = {
   counsellor: ['counsellor', 'psychiatrist'],
   psychiatrist: ['counsellor', 'psychiatrist'],
-  doctor: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist'],
-  clinic_doctor: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist'],
-  surgeon: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist'],
-  anaesthetist: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist'],
+  doctor: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist', 'resident_doctor', 'icu_doctor', 'doctor_portal'],
+  clinic_doctor: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist', 'resident_doctor', 'icu_doctor', 'doctor_portal'],
+  surgeon: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist', 'resident_doctor', 'icu_doctor', 'doctor_portal'],
+  anaesthetist: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist', 'resident_doctor', 'icu_doctor', 'doctor_portal'],
+  resident_doctor: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist', 'resident_doctor', 'icu_doctor', 'doctor_portal'],
+  icu_doctor: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist', 'resident_doctor', 'icu_doctor', 'doctor_portal'],
+  doctor_portal: ['doctor', 'clinic_doctor', 'surgeon', 'anaesthetist', 'resident_doctor', 'icu_doctor', 'doctor_portal'],
   nurse: ['nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse', 'nursing_supervisor', 'matron'],
   ward_nurse: ['nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse', 'nursing_supervisor', 'matron'],
   icu_nurse: ['nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse', 'nursing_supervisor', 'matron'],
@@ -46,8 +49,12 @@ export const ROLE_EQUIVALENTS = {
   matron: ['nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse', 'nursing_supervisor', 'matron'],
   receptionist: ['receptionist', 'front_desk'],
   front_desk: ['receptionist', 'front_desk'],
-  medical_director: ['medical_director', 'cmo'],
-  cmo: ['medical_director', 'cmo'],
+  medical_director: ['medical_director', 'cmo', 'hospital_owner', 'medical_superintendent'],
+  cmo: ['medical_director', 'cmo', 'hospital_owner', 'medical_superintendent'],
+  hospital_owner: ['medical_director', 'cmo', 'hospital_owner', 'medical_superintendent'],
+  medical_superintendent: ['medical_director', 'cmo', 'hospital_owner', 'medical_superintendent'],
+  maintenance: ['maintenance', 'facility_manager'],
+  facility_manager: ['maintenance', 'facility_manager'],
   store_keeper: ['store_keeper', 'purchase_officer'],
   purchase_officer: ['store_keeper', 'purchase_officer'],
 };
@@ -129,6 +136,9 @@ export const CANONICAL_ROLES = [
   'blood_bank_admin', 'dialysis_admin', 'fertility_admin',
   'maternity_admin', 'rehab_admin', 'govt_facility_staff',
   'tpa_agent', 'medical_reviewer',
+  // File 07 §3.25 to §3.30 specialty vertical roles
+  'elder_care_admin', 'vaccination_admin', 'diet_kitchen_admin',
+  'corporate_admin', 'child_dev_admin', 'specialty_centre_admin',
   // PATHOLOGY/LAB §9: department-scoped lab roles (one console section each,
   // least privilege over the lab:* strings the lab routes actually gate on).
   'lab_supervisor', 'lab_receiving', 'biochem_tech', 'hematology_tech',
@@ -141,6 +151,11 @@ export const CANONICAL_ROLES = [
   'radiology_manager', 'radiology_scheduler', 'radiology_prep_staff',
   'mri_technician', 'xray_technician', 'ct_technician', 'us_technician',
   'mammo_technician', 'reporting_assistant', 'pacs_admin',
+  // HMS Blueprint 6-layer operational roles
+  'hospital_owner', 'medical_superintendent', 'hod', 'resident_doctor',
+  'emergency', 'icu_doctor', 'ot_coordinator', 'radiology_technician',
+  'opd_coordinator', 'admission_coordinator', 'bed_manager', 'facility_manager',
+  'patient_relations', 'discharge_coordinator', 'mis_reporting', 'doctor_portal',
 ];
 
 /**
@@ -218,7 +233,9 @@ export const ROLE_PERMISSIONS = {
     'pharmacy:manage', 'pharmacy:read', 'pharmacy:dispense',
     'lab:manage', 'lab:read', 'lab:book', 'lab:enter_result', 'lab:verify',
     'reports:read', 'notifications:send', 'notifications:read',
-    'appointments:read', 'appointments:write', 'inventory:manage',
+    'appointments:read', 'appointments:write', 'inventory:manage', 'inventory:read',
+    'operations:read', 'operations:write', 'admin:read', 'admin:manage', 'nursing:read',
+    'housekeeping:manage', 'security:read', 'security:manage',
     'commission:read', 'loyalty:manage', 'insurance:read', 'insurance:write',
     'legal:read', 'legal:write', 'audit:read', 'reviews:read', 'reviews:write',
     'support:read', 'support:write', 'support:manage', 'chat:read', 'chat:write',
@@ -240,7 +257,7 @@ export const ROLE_PERMISSIONS = {
   ],
   counsellor: ['records:read', 'appointments:read', 'patients:read', 'chat:read', 'chat:write'],
   psychiatrist: ['records:read', 'records:write', 'appointments:read', 'patients:read', 'chat:read', 'chat:write'],
-  nurse: ['records:read', 'vitals:write', 'patients:read', 'beds:read', 'notifications:read'],
+  nurse: ['records:read', 'vitals:write', 'patients:read', 'beds:read', 'notifications:read', 'nursing:read'],
   lab_owner: ['lab:manage', 'lab:read', 'lab:book', 'lab:verify', 'reports:read'],
   lab_receptionist: ['lab:read', 'lab:book', 'notifications:read'],
   lab_technician: ['lab:read', 'lab:enter_result', 'notifications:read'],
@@ -310,7 +327,7 @@ export const ROLE_PERMISSIONS = {
   dietitian: ['diet:read', 'diet:write'],
   physiotherapist: ['physio:read', 'physio:write'],
   accountant: ['billing:read', 'commission:read', 'reports:read', 'notifications:read'],
-  security: ['audit:read'],
+  security: ['audit:read', 'security:read', 'security:manage'],
   technician: ['beds:read', 'equipment:read', 'radiology:read'],
   helper: [],
   delivery_boy: ['delivery:read', 'delivery:write', 'chat:read', 'chat:write'],
@@ -461,6 +478,31 @@ export const ROLE_PERMISSIONS = {
     'chat:read', 'chat:write', 'notifications:read',
   ],
   medical_reviewer: ['content:read', 'content:write', 'notifications:read'],
+  // ── File 07 §3.25 to §3.30 specialty vertical roles ───────────────────────
+  elder_care_admin: [
+    'appointments:read', 'appointments:write', 'patients:read', 'billing:read',
+    'staff:manage', 'reports:read', 'notifications:read', 'chat:read', 'chat:write',
+  ],
+  vaccination_admin: [
+    'appointments:read', 'appointments:write', 'patients:read', 'billing:read',
+    'inventory:manage', 'reports:read', 'notifications:read', 'chat:read', 'chat:write',
+  ],
+  diet_kitchen_admin: [
+    'appointments:read', 'appointments:write', 'inventory:manage', 'billing:read',
+    'reports:read', 'notifications:read', 'chat:read', 'chat:write',
+  ],
+  corporate_admin: [
+    'appointments:read', 'appointments:write', 'billing:read', 'reports:read',
+    'notifications:read', 'chat:read', 'chat:write',
+  ],
+  child_dev_admin: [
+    'appointments:read', 'appointments:write', 'patients:read', 'billing:read',
+    'staff:manage', 'reports:read', 'notifications:read', 'chat:read', 'chat:write',
+  ],
+  specialty_centre_admin: [
+    'appointments:read', 'appointments:write', 'patients:read', 'billing:read',
+    'staff:manage', 'reports:read', 'notifications:read', 'chat:read', 'chat:write',
+  ],
   // ── File 23 §2 scoped platform roles (god-mode split) ───────────────────
   // None carries clinical PHI permissions (records:read, patients:read,
   // mentalhealth/chat reads). PHI reads go through BreakGlassGrant even for
@@ -624,11 +666,11 @@ export const ROLE_PERMISSIONS = {
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   store_keeper: [
-    'inventory:manage', 'reports:read',
+    'inventory:manage', 'inventory:read', 'reports:read',
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   purchase_officer: [
-    'inventory:manage', 'reports:read', 'billing:read',
+    'inventory:manage', 'inventory:read', 'reports:read', 'billing:read',
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   hr_manager: [
@@ -636,15 +678,16 @@ export const ROLE_PERMISSIONS = {
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   biomedical_engineer: [
-    'equipment:read', 'beds:read',
+    'equipment:read', 'beds:read', 'inventory:read', 'operations:read', 'operations:write',
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   maintenance: [
-    'equipment:read', 'beds:read',
+    'equipment:read', 'beds:read', 'operations:read', 'operations:write',
     'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   housekeeping_supervisor: [
-    'beds:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+    'beds:read', 'housekeeping:manage', 'operations:read', 'operations:write',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   ward_boy: [
     'beds:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
@@ -674,6 +717,73 @@ export const ROLE_PERMISSIONS = {
     'appointments:read', 'appointments:write', 'patients:read',
     'chat:read', 'chat:write', 'notifications:read', 'staff:view',
     'profile:read:own', 'profile:write:own',
+  ],
+  // HMS Blueprint 6-layer operational roles
+  hospital_owner: [
+    'reports:read', 'billing:read', 'operations:read', 'staff:manage', 'staff:view',
+    'patients:read', 'appointments:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  medical_superintendent: [
+    'clinical:manage', 'records:read', 'quality:manage', 'reports:read', 'staff:view',
+    'patients:read', 'appointments:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  hod: [
+    'clinical:manage', 'appointments:read', 'appointments:write', 'staff:read', 'staff:view',
+    'reports:read', 'records:read', 'patients:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  resident_doctor: [
+    'records:write', 'records:read', 'orders:write', 'vitals:read', 'vitals:write',
+    'consultation:write', 'prescriptions:write', 'appointments:read', 'patients:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  emergency: [
+    'emergency:manage', 'clinical:write', 'records:write', 'records:read', 'admissions:write',
+    'vitals:read', 'vitals:write', 'patients:read', 'patients:create', 'notifications:read',
+    'profile:read:own', 'profile:write:own',
+  ],
+  icu_doctor: [
+    'icu:manage', 'clinical:write', 'records:write', 'records:read', 'orders:write',
+    'vitals:read', 'vitals:write', 'patients:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  ot_coordinator: [
+    'ot:manage', 'operations:manage', 'operations:read', 'records:read', 'staff:read', 'staff:view',
+    'patients:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  radiology_technician: [
+    'radiology:write', 'radiology:read', 'operations:read', 'patients:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  opd_coordinator: [
+    'appointments:manage', 'appointments:read', 'appointments:write', 'staff:read', 'staff:view',
+    'operations:read', 'patients:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  admission_coordinator: [
+    'admissions:manage', 'beds:read', 'beds:manage', 'insurance:read', 'billing:create', 'billing:read',
+    'patients:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  bed_manager: [
+    'beds:manage', 'beds:read', 'housekeeping:read', 'reports:read', 'operations:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  facility_manager: [
+    'maintenance:manage', 'operations:read', 'operations:manage',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  patient_relations: [
+    'support:manage', 'operations:read', 'patients:read', 'chat:read', 'chat:write',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  discharge_coordinator: [
+    'discharges:manage', 'operations:read', 'billing:read', 'records:read', 'patients:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  mis_reporting: [
+    'reports:read', 'billing:read', 'operations:read', 'clinical:read', 'records:read', 'staff:view',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  doctor_portal: [
+    'consultation:write', 'records:read', 'records:write', 'prescriptions:write', 'appointments:read',
+    'patients:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
 };
 

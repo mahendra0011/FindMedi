@@ -98,6 +98,13 @@ const userSchema = new mongoose.Schema({
       'blood_bank_admin', 'dialysis_admin', 'fertility_admin',
       'maternity_admin', 'rehab_admin', 'govt_facility_staff',
       'tpa_agent', 'medical_reviewer',
+      'elder_care_admin', 'vaccination_admin', 'diet_kitchen_admin',
+      'corporate_admin', 'child_dev_admin', 'specialty_centre_admin',
+      // HMS Blueprint 6-layer operational roles
+      'hospital_owner', 'medical_superintendent', 'hod', 'resident_doctor',
+      'emergency', 'icu_doctor', 'ot_coordinator', 'radiology_technician',
+      'opd_coordinator', 'admission_coordinator', 'bed_manager', 'facility_manager',
+      'patient_relations', 'discharge_coordinator', 'mis_reporting', 'doctor_portal',
       // 8.md 1: ops-console roles. Each one is least-privilege — the matrix in
       // config/permissions.js (not this enum) decides what they may reach, and
       // MANDATORY_TWO_FACTOR_ROLES makes 2FA non-optional for all of them.

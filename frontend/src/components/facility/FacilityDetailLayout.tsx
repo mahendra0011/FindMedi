@@ -16,6 +16,7 @@ import FacilityLocation from './sections/FacilityLocation';
 import FacilityFaqPolicies from './sections/FacilityFaqPolicies';
 import FacilityRightRail from './sections/FacilityRightRail';
 import FacilitySimilar, { SimilarFacility } from './sections/FacilitySimilar';
+import { getFlowForCategory, getFlowActionLabel } from '@/components/booking';
 
 export interface FacilityDetailLayoutProps {
   facilityType: string;
@@ -48,6 +49,8 @@ export default function FacilityDetailLayout({
   const [activeTab, setActiveTab] = useState<string>('all');
 
   const categoryLabel = facility.subType || facility.category || facilityType.replaceAll('_', ' ');
+  const flow = getFlowForCategory(facility.subType || facility.category || facilityType);
+  const primaryActionLabel = getFlowActionLabel(flow);
 
   // Tab definitions
   const tabs = [
@@ -89,7 +92,7 @@ export default function FacilityDetailLayout({
         {/* Floating Desktop & Mobile Action Bar */}
         <FacilityActionBar
           facility={facility}
-          primaryLabel={facilityType === 'pharmacy' ? 'Order Medicines' : facilityType === 'gym' ? 'Get Trial Pass' : 'Book Appointment'}
+          primaryLabel={primaryActionLabel}
           onPrimary={onBook}
           isSaved={isSaved}
           onToggleSave={onToggleSave}
@@ -220,7 +223,7 @@ export default function FacilityDetailLayout({
           <div className="hidden lg:block lg:col-span-4">
             <FacilityRightRail
               facility={facility}
-              primaryLabel={facilityType === 'pharmacy' ? 'Order Medicines' : facilityType === 'gym' ? 'Get Trial Pass' : 'Book Appointment'}
+              primaryLabel={primaryActionLabel}
               onPrimary={onBook}
             />
           </div>

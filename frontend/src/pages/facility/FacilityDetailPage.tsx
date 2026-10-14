@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import FacilityDetailLayout from '@/components/facility/FacilityDetailLayout';
-import BookingModal from '@/components/BookingModal';
+import { UniversalBookingModal } from '@/components/booking';
 import ReviewDialog from '@/components/ReviewDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -75,6 +75,7 @@ export default function FacilityDetailPage() {
   const params = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const id = params.id || params.slug || params.facilityId || params.clinicId || 'facility-1';
 
@@ -159,6 +160,18 @@ export default function FacilityDetailPage() {
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [showClaimDialog, setShowClaimDialog] = useState(false);
+
+  // Auto-open modal on search query (?quote=1, ?book=1, ?rent=1, ?enroll=1)
+  useEffect(() => {
+    if (
+      searchParams.get('quote') === '1' ||
+      searchParams.get('book') === '1' ||
+      searchParams.get('rent') === '1' ||
+      searchParams.get('enroll') === '1'
+    ) {
+      setShowBookingModal(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -245,15 +258,18 @@ export default function FacilityDetailPage() {
         similarFacilities={facility.similar || DEMO_SIMILAR[facilityType]}
       />
 
-      {/* Booking Modal */}
-      {showBookingModal && (
-        <BookingModal
-          isOpen={showBookingModal}
-          onClose={() => setShowBookingModal(false)}
-          hospital={facility}
-          preselectedDoctor={selectedDoctor}
-        />
-      )}
+      {/* Universal Booking & Order Flow Modal (8 Flows) */}
+      <UniversalBookingModal
+        open={showBookingModal}
+        onOpenChange={setShowBookingModal}
+        facility={facility}
+        facilityType={facilityType}
+        doctor={selectedDoctor}
+        service={selectedService}
+        onSuccess={() => {
+          setShowBookingModal(false);
+        }}
+      />
 
       {/* Review Dialog */}
       {showReviewDialog && (

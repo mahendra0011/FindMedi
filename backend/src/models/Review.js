@@ -30,6 +30,23 @@ const reviewSchema = new mongoose.Schema({
   // REV-B-01: one review per patient per doctor. Without it the same account can
   // post repeatedly and a doctor's average is whatever the loudest poster chose.
   isVerifiedVisit: { type: Boolean, default: false },
+
+  // 10.md §2.14: verified booking reference and generic provider linkage
+  bookingRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment', default: null, index: true },
+  providerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Provider', default: null, index: true },
+
+  // Sub-dimension ratings (bedside manner, wait time, cleanliness, treatment explanation)
+  subRatings: {
+    bedsideManner: { type: Number, min: 1, max: 5 },
+    waitTime: { type: Number, min: 1, max: 5 },
+    facilityCleanliness: { type: Number, min: 1, max: 5 },
+    treatmentExplanation: { type: Number, min: 1, max: 5 },
+  },
+
+  helpfulCount: { type: Number, min: 0, default: 0 },
+  isPrivate: { type: Boolean, default: false, index: true }, // sensitive treatment reviews mask patient identity
+  editedAt: { type: Date, default: null },
+
   // 8.md §5: what the moderation queue (routes/moderation.js via
   // lib/moderationActions.js) decided about this row. The public list serves
   // only 'visible' (and rows that predate the field, which have no verdict

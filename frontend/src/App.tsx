@@ -249,6 +249,7 @@ const PatientDashboardV2 = lazy(() => import('./pages/patient/PatientDashboardV2
 const PatientTimeline = lazy(() => import('./pages/patient/Timeline'));
 const PatientPrivacyCentre = lazy(() => import('./pages/patient/PrivacyCentre'));
 const PatientPrograms = lazy(() => import('./pages/patient/PatientPrograms'));
+const PatientMeals = lazy(() => import('./pages/patient/PatientMeals'));
 const PatientRentals = lazy(() => import('./pages/patient/PatientRentals'));
 const PatientEvents = lazy(() => import('./pages/patient/PatientEvents'));
 const PatientVaccinations = lazy(() => import('./pages/patient/PatientVaccinations'));
@@ -283,6 +284,9 @@ const PatientRewards = lazy(() => import('./pages/patient/PatientRewards'));
 const PatientReferral = lazy(() => import('./pages/patient/PatientReferral'));
 const PatientHealthId = lazy(() => import('./pages/patient/PatientHealthId'));
 const PatientSecondOpinion = lazy(() => import('./pages/patient/SecondOpinion'));
+const MedicalExpenseStatement = lazy(() => import('./pages/patient/MedicalExpenseStatement'));
+const NotificationPreferences = lazy(() => import('./pages/patient/NotificationPreferences'));
+const SearchPage = lazy(() => import('./pages/search/SearchPage'));
 const SALoyaltyRewards = lazy(() => import('./pages/superadmin/LoyaltyRewards'));
 const SAReferralSettings = lazy(() => import('./pages/superadmin/ReferralSettings'));
 
@@ -419,6 +423,12 @@ const ContentEditorDashboard = lazy(() => import('./pages/dashboards/ContentEdit
 const ModeratorDashboard = lazy(() => import('./pages/dashboards/ModeratorDashboard'));
 const FinanceAdminDashboard = lazy(() => import('./pages/dashboards/FinanceAdminDashboard'));
 const ComplianceKycDashboard = lazy(() => import('./pages/dashboards/ComplianceKycDashboard'));
+const ElderCareDashboard = lazy(() => import('./pages/dashboards/ElderCareDashboard'));
+const VaccinationCentreDashboard = lazy(() => import('./pages/dashboards/VaccinationCentreDashboard'));
+const DietKitchenDashboard = lazy(() => import('./pages/dashboards/DietKitchenDashboard'));
+const CorporateWellnessDashboard = lazy(() => import('./pages/dashboards/CorporateWellnessDashboard'));
+const ChildDevDashboard = lazy(() => import('./pages/dashboards/ChildDevDashboard'));
+const SpecialtyCentreDashboard = lazy(() => import('./pages/dashboards/SpecialtyCentreDashboard'));
 
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminPrescriptionQueue = lazy(() => import('./pages/admin/AdminPrescriptionQueue'));
@@ -913,6 +923,7 @@ const App = () => (
                   <Route path="/doctor-setup" element={<DoctorSetup />} />
                   <Route path="/ambulance-setup" element={<AmbulanceSetup />} />
                   <Route path="/provider-staff-setup" element={<ProviderStaffSetup />} />
+                  <Route path="/search" element={<PublicLayout><SearchPage /></PublicLayout>} />
 <Route path="/healthcare" element={<PublicLayout><HealthcarePage /></PublicLayout>} />
 <Route path="/hospitals" element={<PublicLayout><HospitalDirectory /></PublicLayout>} />
                    <Route path="/hospitals/:id" element={<PublicLayout><HospitalProfile /></PublicLayout>} />
@@ -966,6 +977,15 @@ const App = () => (
                       <Route path="/counsellor/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
                       <Route path="/nurse/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
                       <Route path="/yoga-trainer/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/therapist/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/speech-therapist/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/attendant/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/caregiver/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/phlebotomist/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/optometrist/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/audiologist/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/trainer/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
+                      <Route path="/tpa-executive/:id" element={<PublicLayout><PractitionerProfilePage /></PublicLayout>} />
 <Route path="/book-test/:entityId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
                       <Route path="/diagnostic-centers" element={<PublicLayout><DiagnosticCenters /></PublicLayout>} />
                       <Route path="/all-tests" element={<PublicLayout><AllTests /></PublicLayout>} />
@@ -1327,7 +1347,7 @@ const App = () => (
                     <Route path="/patient/privacy" element={<RoleRoute allowedRoles={['patient']}><PatientPrivacyCentre /></RoleRoute>} />
                     <Route path="/patient/programs" element={<RoleRoute allowedRoles={['patient']}><PatientPrograms /></RoleRoute>} />
                     <Route path="/patient/rentals" element={<RoleRoute allowedRoles={['patient']}><PatientRentals /></RoleRoute>} />
-                    <Route path="/patient/meals" element={<RoleRoute allowedRoles={['patient']}><PatientPrograms /></RoleRoute>} />
+                    <Route path="/patient/meals" element={<RoleRoute allowedRoles={['patient']}><PatientMeals /></RoleRoute>} />
                     <Route path="/patient/events" element={<RoleRoute allowedRoles={['patient']}><PatientEvents /></RoleRoute>} />
                     <Route path="/patient/vaccinations" element={<RoleRoute allowedRoles={['patient']}><PatientVaccinations /></RoleRoute>} />
                     <Route path="/patient/insurance" element={<RoleRoute allowedRoles={['patient']}><PatientInsurance /></RoleRoute>} />
@@ -1335,6 +1355,8 @@ const App = () => (
                     <Route path="/patient/consents" element={<RoleRoute allowedRoles={['patient']}><PatientConsents /></RoleRoute>} />
                     <Route path="/patient/emergency-card" element={<RoleRoute allowedRoles={['patient']}><PatientEmergencyCard /></RoleRoute>} />
                     <Route path="/patient/saved" element={<RoleRoute allowedRoles={['patient']}><PatientFavorites /></RoleRoute>} />
+                    <Route path="/patient/medical-expenses" element={<RoleRoute allowedRoles={['patient', 'superadmin']}><MedicalExpenseStatement /></RoleRoute>} />
+                    <Route path="/patient/notification-preferences" element={<RoleRoute allowedRoles={['patient', 'superadmin']}><NotificationPreferences /></RoleRoute>} />
 
                     {/* Doctor routes */}
                     <Route path="/doctor/appointments/approve" element={<RoleRoute allowedRoles={['doctor', 'hospital_admin']}><DoctorAppointments /></RoleRoute>} />
@@ -1552,6 +1574,12 @@ const App = () => (
                     <Route path="/dashboard/moderator" element={<RoleRoute allowedRoles={['moderator', 'support_agent', 'support_l1', 'support_l2', 'superadmin']}><ModeratorDashboard /></RoleRoute>} />
                     <Route path="/dashboard/finance-admin" element={<RoleRoute allowedRoles={['finance_admin', 'accountant', 'superadmin']}><FinanceAdminDashboard /></RoleRoute>} />
                     <Route path="/dashboard/compliance-kyc" element={<RoleRoute allowedRoles={['compliance_officer', 'kyc_reviewer', 'superadmin']}><ComplianceKycDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/elder-care" element={<RoleRoute allowedRoles={['elder_care_admin', 'nurse', 'hospital_admin', 'superadmin']}><ElderCareDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/vaccination-centre" element={<RoleRoute allowedRoles={['vaccination_admin', 'nurse', 'doctor', 'hospital_admin', 'superadmin']}><VaccinationCentreDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/diet-kitchen" element={<RoleRoute allowedRoles={['diet_kitchen_admin', 'dietitian', 'hospital_admin', 'superadmin']}><DietKitchenDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/corporate-wellness" element={<RoleRoute allowedRoles={['corporate_admin', 'hospital_admin', 'superadmin']}><CorporateWellnessDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/child-development" element={<RoleRoute allowedRoles={['child_dev_admin', 'doctor', 'hospital_admin', 'superadmin']}><ChildDevDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/specialty-centre" element={<RoleRoute allowedRoles={['specialty_centre_admin', 'doctor', 'hospital_admin', 'superadmin']}><SpecialtyCentreDashboard /></RoleRoute>} />
                     </Route>
 
                    <Route path="/register/delivery-partner" element={<DeliveryPartnerRegister />} />

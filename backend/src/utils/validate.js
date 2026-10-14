@@ -82,6 +82,13 @@ export const USER_ROLE_OPTIONS = [
   'product_vendor', 'event_organizer', 'ngo_admin', 'group_host', 'trainer_org',
   'blood_bank_admin', 'dialysis_admin', 'fertility_admin', 'maternity_admin',
   'rehab_admin', 'govt_facility_staff', 'tpa_agent', 'medical_reviewer',
+  'elder_care_admin', 'vaccination_admin', 'diet_kitchen_admin',
+  'corporate_admin', 'child_dev_admin', 'specialty_centre_admin',
+  // HMS Blueprint 6-layer operational roles
+  'hospital_owner', 'medical_superintendent', 'hod', 'resident_doctor',
+  'emergency', 'icu_doctor', 'ot_coordinator', 'radiology_technician',
+  'opd_coordinator', 'admission_coordinator', 'bed_manager', 'facility_manager',
+  'patient_relations', 'discharge_coordinator', 'mis_reporting', 'doctor_portal',
   // Ops-console roles were missing from the old inline list (any login
   // sending role:'support_agent' 400d) — the hint is optional, so widening
   // it cannot lock anyone out.
@@ -1099,6 +1106,15 @@ export const createReviewSchema = z.object({
   rating: z.number().int().min(1, 'Rating must be at least 1').max(5, 'Rating must be at most 5'),
   comment: z.string().min(2, 'Comment is required'),
   date: z.string().trim().max(20).optional(),
+  bookingRef: z.string().trim().optional(),
+  providerId: z.string().trim().optional(),
+  subRatings: z.object({
+    bedsideManner: z.number().int().min(1).max(5).optional(),
+    waitTime: z.number().int().min(1).max(5).optional(),
+    facilityCleanliness: z.number().int().min(1).max(5).optional(),
+    treatmentExplanation: z.number().int().min(1).max(5).optional(),
+  }).optional(),
+  isPrivate: z.boolean().optional(),
 });
 
 // â”€â”€â”€ Department Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

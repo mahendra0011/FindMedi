@@ -20,6 +20,109 @@ import CrmAutomationRule, { CRM_AUTOMATION_TRIGGERS_LIST } from '../models/CrmAu
 import CrmPlaybook, { PLAYBOOK_CATEGORIES } from '../models/CrmPlaybook.js';
 import CrmProject from '../models/CrmProject.js';
 import CrmReportSchedule from '../models/CrmReportSchedule.js';
+import { ROADMAP_PHASES, DEFINITION_OF_DONE, INITIALLY_EXCLUDED_FEATURES, TOP_RISKS_REGISTER } from '../config/roadmap.js';
+import {
+  BUSINESS_MODEL_CANVAS,
+  REVENUE_STREAMS,
+  CATEGORY_BENCHMARKS,
+  LEGAL_COMMERCIAL_GUARDRAILS,
+} from '../config/unitEconomics.js';
+import {
+  ANALYTICS_EVENT_CATALOG,
+  ANALYTICS_FUNNELS,
+  SENSITIVE_CATEGORIES_MASK,
+  GLOBAL_ANALYTICS_PROPERTIES,
+} from '../config/analyticsEvents.js';
+import {
+  TEST_PYRAMID,
+  TEST_ENVIRONMENTS,
+  CRITICAL_E2E_JOURNEYS,
+  FEATURE_TEST_MATRICES,
+  NON_FUNCTIONAL_TRACKS,
+  CLINICAL_SAFETY_QA,
+  RELEASE_GATES,
+  UAT_PLAN,
+  DEFECT_SEVERITIES,
+  QA_RELEASE_CHECKLIST,
+  CATALOGUE_SPECIFIC_FLOWS,
+} from '../config/qaTestPlan.js';
+import {
+  MOBILE_ARCHITECTURE_DECISION,
+  APP_PORTFOLIO,
+  PWA_SPECIFICATIONS,
+  NATIVE_CAPABILITY_MATRIX,
+  MOBILE_SECURITY_CONTROLS,
+  MOBILE_PERFORMANCE_TARGETS,
+  MOBILE_ROLLOUT_PLAN,
+} from '../config/mobileStrategy.js';
+import {
+  INFRA_STAGES,
+  ENV_TOPOLOGY,
+  CI_CD_PIPELINE,
+  SLO_DEFINITIONS,
+  ALERTING_RULES,
+  COST_BUCKETS,
+  DISASTER_RECOVERY_TIERS,
+  SRE_RUNBOOKS,
+  HARDENING_GUARDRAILS,
+} from '../config/devOpsScaling.js';
+import {
+  OPERATING_MODEL,
+  SUPPORT_CHANNELS_SLAS,
+  TICKET_TAXONOMY,
+  CORE_SOPS,
+  ESCALATION_MATRIX,
+  STAFFING_MODEL,
+  COMMUNICATION_TEMPLATES,
+  OPS_LAUNCH_CHECKLIST,
+} from '../config/supportOperations.js';
+import {
+  BRAND_FOUNDATION,
+  HEALTHCARE_MARKETING_PRINCIPLES,
+  CHANNEL_STRATEGY,
+  SEO_SITE_ARCHITECTURE,
+  KEYWORD_CLUSTERS,
+  HEALTH_CALENDAR_CAMPAIGNS,
+  LIFECYCLE_CRM_JOURNEYS,
+  PARTNERSHIP_PLAYBOOK,
+  MARKETING_COMPLIANCE_CHECKLIST,
+  NINETY_DAY_LAUNCH_PLAN,
+} from '../config/marketingSeo.js';
+import {
+  PITCH_DECK_SLIDES,
+  THREE_MINUTE_PITCH,
+  NARRATIVE_SCRIPT,
+  MARKET_SIZING_FRAMEWORK,
+  INVESTOR_QA_MATRIX,
+  DUE_DILIGENCE_DATA_ROOM,
+  FUNDING_PATH_ALTERNATIVES,
+  GTM_THREE_PHASE_ROADMAP,
+  calculateCityMarketPotential,
+} from '../config/pitchDeck.js';
+import {
+  SCOPED_ADMIN_ROLES,
+  DATA_ACCESS_MATRIX,
+  BREAK_GLASS_POLICY,
+  MASKING_CONFIG,
+  ADMIN_SIDEBAR_SPEC,
+  PRIVACY_GUARANTEES,
+  maskPatientPii,
+  validateBreakGlassRequest,
+} from '../config/superAdminGovernance.js';
+import {
+  CRM_NAV_MODULES,
+  HYBRID_ARCHITECTURE_DECISION,
+  SUPPLY_PIPELINE_STAGES,
+  LOST_REASONS,
+  PARTNERSHIP_STAGES,
+  LEAD_SCORING_WEIGHTS,
+  PROVIDER_HEALTH_WEIGHTS,
+  ROLE_BASED_KPIS,
+  AUTOMATION_WORKFLOW_RULES,
+  CRM_ROLE_PERMISSIONS_MATRIX,
+  calculateLeadScore,
+  calculateProviderHealthScore,
+} from '../config/crmOpsTeam.js';
 import { runCrmAutomation } from '../lib/crmAutomation.js';
 import { sendEmail } from '../services/notificationService.js';
 import Appointment from '../models/Appointment.js';
@@ -1559,7 +1662,166 @@ router.delete('/playbooks/:id', authorize('crm:write'), requireObjectId, async (
   }
 });
 
-// ─── Projects & Roadmap (File 24 §4.10) ─────────────────────────────────────
+// ─── Projects & Roadmap (File 24 §4.10 / Document 14) ──────────────────────
+// authz: role (crm:read)
+router.get('/roadmap-spec', authorize('crm:read'), (req, res) => {
+  return res.json({
+    phases: ROADMAP_PHASES,
+    definitionOfDone: DEFINITION_OF_DONE,
+    initiallyExcluded: INITIALLY_EXCLUDED_FEATURES,
+    topRisks: TOP_RISKS_REGISTER,
+  });
+});
+
+// ─── Business Model & Unit Economics (Document 16) ─────────────────────────
+// authz: role (crm:read)
+router.get('/unit-economics-spec', authorize('crm:read'), (req, res) => {
+  return res.json({
+    canvas: BUSINESS_MODEL_CANVAS,
+    revenueStreams: REVENUE_STREAMS,
+    categoryBenchmarks: CATEGORY_BENCHMARKS,
+    legalCommercialGuardrails: LEGAL_COMMERCIAL_GUARDRAILS,
+  });
+});
+
+// ─── Analytics Event Taxonomy (Document 17) ────────────────────────────────
+// authz: role (crm:read)
+router.get('/analytics-spec', authorize('crm:read'), (req, res) => {
+  return res.json({
+    catalog: ANALYTICS_EVENT_CATALOG,
+    funnels: ANALYTICS_FUNNELS,
+    sensitiveCategoriesMask: SENSITIVE_CATEGORIES_MASK,
+    globalProperties: GLOBAL_ANALYTICS_PROPERTIES,
+  });
+});
+
+// ─── QA & Test Plan (Document 18) ──────────────────────────────────────────
+// authz: role (crm:read)
+router.get('/qa-test-plan-spec', authorize('crm:read'), (req, res) => {
+  return res.json({
+    testPyramid: TEST_PYRAMID,
+    testEnvironments: TEST_ENVIRONMENTS,
+    criticalE2eJourneys: CRITICAL_E2E_JOURNEYS,
+    featureMatrices: FEATURE_TEST_MATRICES,
+    nonFunctionalTracks: NON_FUNCTIONAL_TRACKS,
+    clinicalSafetyQa: CLINICAL_SAFETY_QA,
+    releaseGates: RELEASE_GATES,
+    uatPlan: UAT_PLAN,
+    defectSeverities: DEFECT_SEVERITIES,
+    qaChecklist: QA_RELEASE_CHECKLIST,
+    catalogueSpecificFlows: CATALOGUE_SPECIFIC_FLOWS,
+  });
+});
+
+// ─── Mobile App Strategy (Document 15) ────────────────────────────────────
+// authz: role (crm:read)
+router.get('/mobile-spec', authorize('crm:read'), (req, res) => {
+  return res.json({
+    architectureDecision: MOBILE_ARCHITECTURE_DECISION,
+    appPortfolio: APP_PORTFOLIO,
+    pwaSpecifications: PWA_SPECIFICATIONS,
+    nativeCapabilities: NATIVE_CAPABILITY_MATRIX,
+    securityControls: MOBILE_SECURITY_CONTROLS,
+    performanceTargets: MOBILE_PERFORMANCE_TARGETS,
+    rolloutPlan: MOBILE_ROLLOUT_PLAN,
+  });
+});
+
+// ─── DevOps, Scaling & Cost Plan (Document 19) ───────────────────────────
+// authz: role (crm:read)
+router.get('/devops-scaling-spec', authorize('crm:read'), (req, res) => {
+  return res.json({
+    infraStages: INFRA_STAGES,
+    envTopology: ENV_TOPOLOGY,
+    ciCdPipeline: CI_CD_PIPELINE,
+    sloDefinitions: SLO_DEFINITIONS,
+    alertingRules: ALERTING_RULES,
+    costBuckets: COST_BUCKETS,
+    disasterRecoveryTiers: DISASTER_RECOVERY_TIERS,
+    sreRunbooks: SRE_RUNBOOKS,
+    hardeningGuardrails: HARDENING_GUARDRAILS,
+  });
+});
+
+// ─── Support & Operations Playbooks (Document 20) ────────────────────────
+// authz: role (crm:read)
+router.get('/support-operations-spec', authorize('crm:read'), (req, res) => {
+  return res.json({
+    operatingModel: OPERATING_MODEL,
+    supportChannelsSlas: SUPPORT_CHANNELS_SLAS,
+    ticketTaxonomy: TICKET_TAXONOMY,
+    coreSops: CORE_SOPS,
+    escalationMatrix: ESCALATION_MATRIX,
+    staffingModel: STAFFING_MODEL,
+    communicationTemplates: COMMUNICATION_TEMPLATES,
+    opsLaunchChecklist: OPS_LAUNCH_CHECKLIST,
+  });
+});
+
+// ─── Marketing, Brand & SEO Plan (Document 21) ───────────────────────────
+// authz: role (crm:read)
+router.get('/marketing-seo-spec', authorize('crm:read'), (req, res) => {
+  return res.json({
+    brandFoundation: BRAND_FOUNDATION,
+    principles: HEALTHCARE_MARKETING_PRINCIPLES,
+    channelStrategy: CHANNEL_STRATEGY,
+    seoSiteArchitecture: SEO_SITE_ARCHITECTURE,
+    keywordClusters: KEYWORD_CLUSTERS,
+    healthCalendar: HEALTH_CALENDAR_CAMPAIGNS,
+    lifecycleCrm: LIFECYCLE_CRM_JOURNEYS,
+    partnershipPlaybook: PARTNERSHIP_PLAYBOOK,
+    complianceChecklist: MARKETING_COMPLIANCE_CHECKLIST,
+    ninetyDayLaunchPlan: NINETY_DAY_LAUNCH_PLAN,
+  });
+});
+
+// ─── Pitch / Investor Deck Outline (+ Q&A prep) (Document 22) ───────────
+// authz: role (crm:read)
+router.get('/pitch-deck-spec', authorize('crm:read'), (req, res) => {
+  return res.json({
+    pitchDeckSlides: PITCH_DECK_SLIDES,
+    threeMinutePitch: THREE_MINUTE_PITCH,
+    narrativeScript: NARRATIVE_SCRIPT,
+    marketSizing: MARKET_SIZING_FRAMEWORK,
+    investorQaMatrix: INVESTOR_QA_MATRIX,
+    dueDiligenceDataRoom: DUE_DILIGENCE_DATA_ROOM,
+    fundingPathAlternatives: FUNDING_PATH_ALTERNATIVES,
+    gtmThreePhaseRoadmap: GTM_THREE_PHASE_ROADMAP,
+  });
+});
+
+// ─── Super Admin Governance & Privacy Architecture (Document 23) ─────────
+// authz: role (crm:read)
+router.get('/superadmin-governance-spec', authorize('crm:read'), (req, res) => {
+  return res.json({
+    scopedAdminRoles: SCOPED_ADMIN_ROLES,
+    dataAccessMatrix: DATA_ACCESS_MATRIX,
+    breakGlassPolicy: BREAK_GLASS_POLICY,
+    maskingConfig: MASKING_CONFIG,
+    adminSidebarSpec: ADMIN_SIDEBAR_SPEC,
+    privacyGuarantees: PRIVACY_GUARANTEES,
+  });
+});
+
+// ─── Ops CRM & Team Management Specification (Document 24) ─────────────
+// authz: role (crm:read)
+router.get('/ops-team-spec', authorize('crm:read'), (req, res) => {
+  return res.json({
+    modules: CRM_NAV_MODULES,
+    hybridArchitecture: HYBRID_ARCHITECTURE_DECISION,
+    supplyStages: SUPPLY_PIPELINE_STAGES,
+    lostReasons: LOST_REASONS,
+    partnershipStages: PARTNERSHIP_STAGES,
+    leadScoringWeights: LEAD_SCORING_WEIGHTS,
+    providerHealthWeights: PROVIDER_HEALTH_WEIGHTS,
+    roleKpis: ROLE_BASED_KPIS,
+    automationRules: AUTOMATION_WORKFLOW_RULES,
+    permissionsMatrix: CRM_ROLE_PERMISSIONS_MATRIX,
+  });
+});
+
+
+
 // authz: role (crm:read)
 router.get('/projects', authorize('crm:read'), async (req, res) => {
   try {

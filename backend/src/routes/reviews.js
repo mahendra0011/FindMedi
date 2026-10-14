@@ -35,6 +35,7 @@ router.get('/', async (req, res) => {
   try {
     const filter = {};
     if (req.query.doctorId) filter.doctorId = req.query.doctorId;
+    if (req.query.providerId) filter.providerId = req.query.providerId;
     if (req.query.hospitalId) filter.hospitalId = req.query.hospitalId;
     if (req.query.minRating) filter.rating = { $gte: Number(req.query.minRating) || 1 };
     // 8.md §5: actioned content stops being served IMMEDIATELY — the queue's
@@ -45,17 +46,25 @@ router.get('/', async (req, res) => {
 
     // REV-B-01 (d): the list is public BY DESIGN (it is the reputation
     // catalogue), but it is paginated and capped — an unbounded public find({})
-    // is both a data-volume problem and a scraping surface. The projection also
-    // omits the author's id and the internal flag fields.
+    // is both a data-volume problem and a scraping surface.
     const result = await paginatedResults(Review, filter, {
       page: req.query.page || 1,
       limit: req.query.limit || 20,
       sort: { createdAt: -1 },
-      select: 'doctorId doctorName rating comment date reply repliedAt createdAt',
+      select: 'doctorId doctorName patientName rating comment date reply repliedAt isVerifiedVisit subRatings helpfulCount isPrivate bookingRef createdAt',
+    });
+
+    // 10.md §2.14 / Spec 09: Mask patientName for sensitive/isPrivate reviews
+    const sanitizedReviews = (result.data || []).map((rev) => {
+      const doc = typeof rev.toObject === 'function' ? rev.toObject() : { ...rev };
+      if (doc.isPrivate) {
+        doc.patientName = 'Anonymous Patient';
+      }
+      return doc;
     });
 
     res.json({
-      reviews: result.data,
+      reviews: sanitizedReviews,
       total: result.total,
       page: result.page,
       limit: result.limit,
@@ -86,17 +95,33 @@ router.post('/', protect, authorize('reviews:write', 'reviews:write:own'), revie
       });
     }
 
-    // 8.md §5 "verified-visit gate": the badge is SERVER-owned — a completed
-    // appointment with this doctor, looked up by ids from the session. A client
-    // claiming a verified visit changes nothing. Posting without one is still
-    // allowed (the fake-review lane of §6 catches bursts via the queue), it is
-    // simply not marked.
+    // 8.md §5 & 10.md §2.14 "verified-visit gate": server-verified via completed appointment or explicit bookingRef
     let isVerifiedVisit = false;
-    if (mongoose.isValidObjectId(doctorId)) {
+    let verifiedBookingRef = null;
+
+    if (req.body.bookingRef && mongoose.isValidObjectId(req.body.bookingRef)) {
       try {
-        isVerifiedVisit = Boolean(await Appointment.exists({
+        const appt = await Appointment.exists({
+          _id: req.body.bookingRef,
+          patientId,
+          status: 'Completed',
+        });
+        if (appt) {
+          isVerifiedVisit = true;
+          verifiedBookingRef = appt._id || req.body.bookingRef;
+        }
+      } catch {
+        isVerifiedVisit = false;
+      }
+    } else if (mongoose.isValidObjectId(doctorId)) {
+      try {
+        const appt = await Appointment.exists({
           patientId, doctorId, status: 'Completed',
-        }));
+        });
+        if (appt) {
+          isVerifiedVisit = true;
+          verifiedBookingRef = appt._id || null;
+        }
       } catch {
         isVerifiedVisit = false;
       }
@@ -113,7 +138,11 @@ router.post('/', protect, authorize('reviews:write', 'reviews:write:own'), revie
       comment: req.body.comment || '',
       date: req.body.date,
       hospitalId: req.user.hospitalId || undefined,
+      providerId: req.body.providerId && mongoose.isValidObjectId(req.body.providerId) ? req.body.providerId : undefined,
+      bookingRef: verifiedBookingRef,
       isVerifiedVisit,
+      subRatings: req.body.subRatings || undefined,
+      isPrivate: Boolean(req.body.isPrivate),
     });
 
     // 8.md §5 auto-filters: abuse / PII / medical-claim / crisis text goes into
@@ -230,6 +259,26 @@ router.delete('/:id', protect, authorize('reviews:write'), async (req, res) => {
   } catch (err) {
     logger.error(`review delete error: ${err.message}`);
     sendServerError(res, err, 'Could not delete the review');
+  }
+});
+
+// 10.md §2.14: POST /api/reviews/:id/helpful — mark review as helpful
+// authz: self
+router.post('/:id/helpful', protect, async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid review id' });
+    }
+    const updated = await Review.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { helpfulCount: 1 } },
+      { new: true }
+    ).select('helpfulCount');
+    if (!updated) return res.status(404).json({ message: 'Review not found' });
+    return res.json({ success: true, helpfulCount: updated.helpfulCount });
+  } catch (err) {
+    logger.error(`review helpful error: ${err.message}`);
+    return sendServerError(res, err, 'Could not register helpful vote');
   }
 });
 

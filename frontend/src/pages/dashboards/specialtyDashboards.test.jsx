@@ -27,6 +27,14 @@ import ModeratorDashboard from './ModeratorDashboard';
 import FinanceAdminDashboard from './FinanceAdminDashboard';
 import ComplianceKycDashboard from './ComplianceKycDashboard';
 
+// File 07 §3.25 to §3.30 additions
+import ElderCareDashboard from './ElderCareDashboard';
+import VaccinationCentreDashboard from './VaccinationCentreDashboard';
+import DietKitchenDashboard from './DietKitchenDashboard';
+import CorporateWellnessDashboard from './CorporateWellnessDashboard';
+import ChildDevDashboard from './ChildDevDashboard';
+import SpecialtyCentreDashboard from './SpecialtyCentreDashboard';
+
 const SPECIALTY_DASHBOARDS = [
   { name: 'Optician', Comp: OpticianDashboard, title: "Eye Care & Optical Shop Dashboard", kpi: "Today's Eye Exams" },
   { name: 'HomeNursing', Comp: HomeNursingDashboard, title: 'Home Nursing & Care Agency Dashboard', kpi: 'Active Care Plans' },
@@ -44,6 +52,14 @@ const SPECIALTY_DASHBOARDS = [
   { name: 'Moderator', Comp: ModeratorDashboard, title: 'Community Moderation & User Support Dashboard', kpi: 'Pending Review Flags' },
   { name: 'FinanceAdmin', Comp: FinanceAdminDashboard, title: 'Platform Finance, TDS & Payouts Dashboard', kpi: "Today's Payout Batch" },
   { name: 'ComplianceKyc', Comp: ComplianceKycDashboard, title: 'Compliance, Council Registry & KYC Dashboard', kpi: 'Pending Provider Verifications' },
+
+  // Sections 3.25 to 3.30
+  { name: 'ElderCare', Comp: ElderCareDashboard, title: 'Elder-Care Home & Hospice Dashboard', kpi: 'Active Residents' },
+  { name: 'VaccinationCentre', Comp: VaccinationCentreDashboard, title: 'Vaccination Centre & Cold-Chain Dashboard', kpi: "Today's Vaccinations" },
+  { name: 'DietKitchen', Comp: DietKitchenDashboard, title: 'Therapeutic Diet Kitchen Dashboard', kpi: 'Active Meal Plans' },
+  { name: 'CorporateWellness', Comp: CorporateWellnessDashboard, title: 'Corporate Wellness & B2B Admin Dashboard', kpi: 'Enrolled Corporates' },
+  { name: 'ChildDev', Comp: ChildDevDashboard, title: 'Child Development & Therapy Centre Dashboard', kpi: 'Active Therapy Children' },
+  { name: 'SpecialtyCentre', Comp: SpecialtyCentreDashboard, title: 'Specialty Daycare Centre Dashboard', kpi: 'Daycare Procedures Today' },
 ];
 
 afterEach(() => {

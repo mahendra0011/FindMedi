@@ -371,4 +371,33 @@ router.get('/queue', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// HMS Blueprint: 6-layer role dashboard specification master catalog
+// authz: self
+router.get('/hms-spec', protect, async (req, res) => {
+  try {
+    const { HMS_LAYERS, HMS_ROLE_SPECS, getAllHmsRoles } = await import('../config/hmsDashboardSpec.js');
+    return res.json({
+      layers: HMS_LAYERS,
+      roles: getAllHmsRoles(),
+      specs: HMS_ROLE_SPECS,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// authz: self
+router.get('/hms-spec/:roleKey', protect, async (req, res) => {
+  try {
+    const { getHmsDashboardSpec } = await import('../config/hmsDashboardSpec.js');
+    const spec = getHmsDashboardSpec(req.params.roleKey);
+    if (!spec) {
+      return res.status(404).json({ message: `HMS dashboard spec for role '${req.params.roleKey}' not found` });
+    }
+    return res.json({ spec });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

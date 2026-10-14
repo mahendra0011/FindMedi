@@ -52,4 +52,35 @@ describe('JoinApplications lanes (10.md 4.4 queue console)', () => {
     expect(await screen.findByRole('button', { name: 'Escalated' })).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: 'Drafts' })).toBeInTheDocument();
   });
+
+  it('filters applications by kind (Spec 08 §17: Kind-wise queues)', async () => {
+    api.get.mockResolvedValue({
+      applications: [
+        {
+          _id: 'app-fac-1',
+          applicationId: 'APP-FAC-1',
+          kind: 'facility',
+          typeKey: 'nursing_home',
+          status: 'submitted',
+          draft: { stepData: { account: { name: 'Care Nursing Home', city: 'Delhi' } } },
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 25,
+    });
+
+    render(<JoinApplications />);
+
+    // Check kind buttons exist
+    expect(await screen.findByRole('button', { name: 'Facility' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Practitioner' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Service' })).toBeInTheDocument();
+
+    // Click Practitioner kind filter
+    fireEvent.click(screen.getByRole('button', { name: 'Practitioner' }));
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith(expect.stringContaining('kind=practitioner'));
+    });
+  });
 });

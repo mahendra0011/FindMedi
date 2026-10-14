@@ -34,7 +34,26 @@ const PROVIDER_GROUPS = [
   { key: 'home_service', label: 'Home Healthcare' },
   { key: 'wellness', label: 'Wellness & Fitness' },
   { key: 'professional', label: 'Professional Services' },
+  { key: 'info', label: 'Info & Helplines' },
 ];
+
+const SENSITIVE_KEYWORDS = ['ivf', 'fertility', 'de-addiction', 'deaddiction', 'palliative', 'hospice', 'sexual', 'cosmetic', 'transplant', 'organ', 'hiv', 'std', 'mental_health', 'psych'];
+
+export function isSensitiveProvider(provider: any): boolean {
+  if (provider?.isSensitive || provider?.sensitive) return true;
+  const t = `${provider?.type || ''} ${provider?.category || ''} ${provider?.name || ''}`.toLowerCase();
+  return SENSITIVE_KEYWORDS.some((kw) => t.includes(kw));
+}
+
+export function isInfoOnlyProvider(provider: any): boolean {
+  return Boolean(
+    provider?.isInfoOnly ||
+    provider?.kind === 'info' ||
+    provider?.type === 'helpline' ||
+    provider?.type === 'govt_facility' ||
+    provider?.type === 'info'
+  );
+}
 
 const SUB_TABS = [
   { key: 'all_providers', label: 'All Providers (52 Types)', icon: Layers },
@@ -350,6 +369,16 @@ export default function AllFacilities() {
                         <Badge variant="secondary" className="text-[10px]">
                           Tier {p.tier || 'T3'}
                         </Badge>
+                        {isInfoOnlyProvider(p) && (
+                          <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-300 text-[10px] border-sky-500/30">
+                            Info-Only · No Booking CTA
+                          </Badge>
+                        )}
+                        {isSensitiveProvider(p) && (
+                          <Badge className="bg-purple-500/15 text-purple-700 dark:text-purple-300 text-[10px] border-purple-500/30 flex items-center gap-1">
+                            <Lock className="w-2.5 h-2.5" /> Sensitive 🔒
+                          </Badge>
+                        )}
                         {p.probation?.active && (
                           <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px]">
                             Probation ({p.probation.bookingCap || 'Cap'} slots)
@@ -371,6 +400,12 @@ export default function AllFacilities() {
                           <Clock className="w-3 h-3 shrink-0 text-muted-foreground" />
                           Joined: {p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN') : 'Recent'}
                         </p>
+                        {(p.sourceVerifiedDate || p.lastVerifiedAt) && (
+                          <p className="truncate flex items-center gap-1.5 text-sky-600 dark:text-sky-400 font-medium">
+                            <CheckCircle className="w-3 h-3 shrink-0" />
+                            Source verified: {new Date(p.sourceVerifiedDate || p.lastVerifiedAt).toLocaleDateString('en-IN')}
+                          </p>
+                        )}
                       </div>
 
                       {/* Action Bar */}
