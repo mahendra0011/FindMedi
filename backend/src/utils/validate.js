@@ -2872,6 +2872,22 @@ export const createMembershipSchema = z.object({
   paymentId: objectIdSchema.optional(),
 }).strict();
 
+// Membership lifecycle (5.md Flow D + flowStates MEMBERSHIP_TRANSITIONS).
+// STRICT: the client names only a reason / window / payment — never a status,
+// never a price. The route asserts the move against MEMBERSHIP_TRANSITIONS.
+export const cancelMembershipSchema = z.object({
+  reason: z.string().trim().max(500).optional(),
+}).strict();
+
+export const freezeMembershipSchema = z.object({
+  days: z.number().int().min(1).max(30),
+  reason: z.string().trim().max(300).optional(),
+}).strict();
+
+export const renewMembershipSchema = z.object({
+  paymentId: objectIdSchema.optional(),
+}).strict();
+
 // 6.md 2.13/140: the patient adds THEIR OWN policy — insurer/TPA, member IDs,
 // validity, PM-JAY/CGHS/ESI scheme card. STRICT because patientId, status and
 // expiry are not client-shaped inputs: the session owns the row and expiry is

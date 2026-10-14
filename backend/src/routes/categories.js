@@ -130,7 +130,7 @@ router.get('/specialties', (req, res) => {
   });
 });
 
-// authz: superadmin / catalog_manager - Idempotently seed/sync full CATEGORY_TREE into MongoDB
+// authz: role / catalog_manager - Idempotently seed/sync full CATEGORY_TREE into MongoDB
 router.post('/seed', protect, requireRole(['superadmin', 'catalog_manager']), async (req, res) => {
   try {
     const parentCodeToId = new Map();

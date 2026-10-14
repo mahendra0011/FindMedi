@@ -473,6 +473,7 @@ router.get('/cms-workflow', protect, async (req, res) => {
 });
 
 // LIS Blueprint: 46-Section, 8-Department, 20-Role complete Pathology / LIS specification
+// authz: self
 router.get('/lis-spec', protect, async (req, res) => {
   try {
     const { LIS_SECTIONS, LIS_MODULES_46, LIS_ROLE_SPECS, getAllLisRoles } = await import('../config/lisDashboardSpec.js');
@@ -488,6 +489,7 @@ router.get('/lis-spec', protect, async (req, res) => {
   }
 });
 
+// authz: self
 router.get('/lis-spec/:roleKey', protect, async (req, res) => {
   try {
     const { getLisDashboardSpec } = await import('../config/lisDashboardSpec.js');
@@ -502,6 +504,7 @@ router.get('/lis-spec/:roleKey', protect, async (req, res) => {
 });
 
 // RIS / PACS Blueprint: 41-Section, 8-Modality, 18-Role complete Radiology / Imaging specification
+// authz: self
 router.get('/ris-spec', protect, async (req, res) => {
   try {
     const { RIS_MODALITIES, RIS_MODULES_41, RIS_ROLE_SPECS, getAllRisRoles } = await import('../config/risDashboardSpec.js');
@@ -517,6 +520,7 @@ router.get('/ris-spec', protect, async (req, res) => {
   }
 });
 
+// authz: self
 router.get('/ris-spec/:roleKey', protect, async (req, res) => {
   try {
     const { getRisDashboardSpec } = await import('../config/risDashboardSpec.js');

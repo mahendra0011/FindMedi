@@ -10,13 +10,13 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1810,
+  "total": 1826,
   "counts": {
     "inherited": 5,
-    "object": 441,
-    "public": 114,
-    "role": 1183,
-    "self": 67
+    "object": 444,
+    "public": 116,
+    "role": 1184,
+    "self": 77
   },
   "byMechanism": {
     "adminOnly": 99,
@@ -39,10 +39,10 @@
     "platformAdminOnly": 15,
     "requireConversationMember": 18,
     "requireMetricsToken": 1,
-    "requireObjectId": 115,
+    "requireObjectId": 119,
     "requirePatientGrant": 4,
     "requireReportScope": 2,
-    "requireRole": 86,
+    "requireRole": 87,
     "requireSosAccess": 7,
     "requireStaff": 4,
     "requireStepUp": 33,
@@ -111,7 +111,7 @@
         "routes": 1
       }
     ],
-    "unnamedHandlerGuard": 330,
+    "unnamedHandlerGuard": 333,
     "note": "AUTHZ-M-01 is OPEN. The alternatives are not necessarily wrong - several predate authorizeObject and carry domain rules it does not model - but the split was previously invisible, and a route can be guarded twice by two mechanisms whose rules were never reconciled."
   },
   "unrecognised": [],
@@ -1847,42 +1847,63 @@
     },
     {
       "file": "categories.js",
-      "line": 70,
+      "line": 72,
       "method": "GET",
       "target": "'/public'",
       "tag": "public"
     },
     {
       "file": "categories.js",
-      "line": 104,
+      "line": 116,
+      "method": "GET",
+      "target": "'/tree'",
+      "tag": "public"
+    },
+    {
+      "file": "categories.js",
+      "line": 125,
+      "method": "GET",
+      "target": "'/specialties'",
+      "tag": "public"
+    },
+    {
+      "file": "categories.js",
+      "line": 134,
+      "method": "POST",
+      "target": "'/seed'",
+      "tag": "role"
+    },
+    {
+      "file": "categories.js",
+      "line": 212,
       "method": "GET",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "categories.js",
-      "line": 118,
+      "line": 226,
       "method": "POST",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "categories.js",
-      "line": 139,
+      "line": 247,
       "method": "PUT",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "categories.js",
-      "line": 189,
+      "line": 297,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "categories.js",
-      "line": 201,
+      "line": 309,
       "method": "POST",
       "target": "'/merge'",
       "tag": "role"
@@ -3321,6 +3342,62 @@
       "method": "GET",
       "target": "'/hms-spec/:roleKey'",
       "tag": "self"
+    },
+    {
+      "file": "dashboard.js",
+      "line": 405,
+      "method": "GET",
+      "target": "'/cms-spec'",
+      "tag": "self"
+    },
+    {
+      "file": "dashboard.js",
+      "line": 421,
+      "method": "GET",
+      "target": "'/cms-spec/:roleKey'",
+      "tag": "self"
+    },
+    {
+      "file": "dashboard.js",
+      "line": 436,
+      "method": "GET",
+      "target": "'/cms-workflow'",
+      "tag": "object"
+    },
+    {
+      "file": "dashboard.js",
+      "line": 477,
+      "method": "GET",
+      "target": "'/lis-spec'",
+      "tag": "self"
+    },
+    {
+      "file": "dashboard.js",
+      "line": 493,
+      "method": "GET",
+      "target": "'/lis-spec/:roleKey'",
+      "tag": "self"
+    },
+    {
+      "file": "dashboard.js",
+      "line": 508,
+      "method": "GET",
+      "target": "'/ris-spec'",
+      "tag": "self"
+    },
+    {
+      "file": "dashboard.js",
+      "line": 524,
+      "method": "GET",
+      "target": "'/ris-spec/:roleKey'",
+      "tag": "self"
+    },
+    {
+      "file": "dashboard.js",
+      "line": 538,
+      "method": "GET",
+      "target": "'/diagnostic-workflow'",
+      "tag": "object"
     },
     {
       "file": "ddi.js",
@@ -7643,16 +7720,44 @@
     },
     {
       "file": "memberships.js",
-      "line": 51,
+      "line": 72,
       "method": "GET",
       "target": "'/'",
       "tag": "self"
     },
     {
       "file": "memberships.js",
-      "line": 67,
+      "line": 88,
       "method": "POST",
       "target": "'/'",
+      "tag": "self"
+    },
+    {
+      "file": "memberships.js",
+      "line": 179,
+      "method": "POST",
+      "target": "'/:id/cancel'",
+      "tag": "self"
+    },
+    {
+      "file": "memberships.js",
+      "line": 205,
+      "method": "POST",
+      "target": "'/:id/freeze'",
+      "tag": "self"
+    },
+    {
+      "file": "memberships.js",
+      "line": 242,
+      "method": "POST",
+      "target": "'/:id/unfreeze'",
+      "tag": "self"
+    },
+    {
+      "file": "memberships.js",
+      "line": 273,
+      "method": "POST",
+      "target": "'/:id/renew'",
       "tag": "self"
     },
     {
@@ -8735,21 +8840,28 @@
     },
     {
       "file": "payments.js",
-      "line": 78,
+      "line": 73,
+      "method": "POST",
+      "target": "'/create-order'",
+      "tag": "object"
+    },
+    {
+      "file": "payments.js",
+      "line": 166,
       "method": "POST",
       "target": "'/'",
       "tag": "object"
     },
     {
       "file": "payments.js",
-      "line": 150,
+      "line": 238,
       "method": "PUT",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "payments.js",
-      "line": 182,
+      "line": 270,
       "method": "PUT",
       "target": "'/:id/refund'",
       "tag": "role"
