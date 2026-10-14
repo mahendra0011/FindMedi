@@ -627,6 +627,349 @@ export const ROLE_QUEUE_DATA: Record<string, Record<string, WorkQueueItem[]>> = 
       { id: 'GRN-401', name: 'MedSource India Delivery: IV Fluids Batch #9', meta: 'PO #PO-2026-88 · 50 Bottles RL & DNS', detail: 'Shipment delivered to clinic stock room Gate 2', timeOrWait: 'Delivered Today', status: 'Verify & Stock', statusColor: 'success', primaryActionLabel: 'Acknowledge GRN', primaryActionRoute: '/clinic/inventory' },
     ],
   },
+
+  // ══════════════════════════════════════════════════════════════
+  // LIS — PATHOLOGY & LABORATORY MANAGEMENT SYSTEM WORK QUEUES
+  // ══════════════════════════════════════════════════════════════
+  pathologist: {
+    'Results Awaiting Verification': [
+      { id: 'LAB-901', name: 'Rohit Verma · Complete Blood Count & ESR', meta: 'Sample: EDTA Blood · Ref: Dr. Sharma', detail: 'Hb: 8.4 g/dL (Low), Platelets: 95,000 /uL (Low) · Smear review recommended', timeOrWait: 'Awaiting 22m', status: 'Verification Pending', statusColor: 'warn', primaryActionLabel: 'Verify Report', primaryActionRoute: '/lab/verify' },
+      { id: 'LAB-904', name: 'Kavita Joshi · Comprehensive Metabolic Panel (KFT/LFT)', meta: 'Sample: Plain Serum · Ref: Dr. Mehta', detail: 'Serum Creatinine: 2.4 mg/dL (Elevated), SGPT: 68 U/L', timeOrWait: 'Awaiting 14m', status: 'Verification Pending', statusColor: 'warn', primaryActionLabel: 'Verify Report', primaryActionRoute: '/lab/verify' },
+      { id: 'LAB-910', name: 'Ananya Roy · Thyroid Profile (T3, T4, TSH)', meta: 'Sample: Serum · Ref: Dr. Chawla', detail: 'TSH: 8.9 uIU/mL (Hypothyroid range) · Free T4: 0.9 ng/dL', timeOrWait: 'Awaiting 35m', status: 'Routine Review', statusColor: 'info', primaryActionLabel: 'Verify Report', primaryActionRoute: '/lab/verify' },
+    ],
+    'Critical Panic Values': [
+      { id: 'CRIT-01', name: 'Sanjay Dutt · Arterial Blood Gas & Electrolytes', meta: 'ICU Bed 4 · Potassium: 6.8 mEq/L (PANIC HIGH)', detail: 'Severe hyperkalemia flagged by analyzer · Critical telephonic notification required', timeOrWait: 'STAT 4m', status: 'Immediate Alert', statusColor: 'urgent', primaryActionLabel: 'Telephone Alert', primaryActionRoute: '/lab/verify' },
+      { id: 'CRIT-02', name: 'Meena Saxena · Coagulation Profile (PT/INR)', meta: 'Emergency Bay 2 · INR: 5.4 (PANIC HIGH)', detail: 'Bleeding risk critical · Attending physician intimation pending', timeOrWait: 'STAT 8m', status: 'Immediate Alert', statusColor: 'urgent', primaryActionLabel: 'Telephone Alert', primaryActionRoute: '/lab/verify' },
+    ],
+    'Urgent STAT Reports': [
+      { id: 'STAT-101', name: 'Vikram Seth · Cardiac Troponin-I & CK-MB', meta: 'ER Trauma · Positive (0.42 ng/mL)', detail: 'Atypical chest discomfort · STAT clearance required', timeOrWait: 'Overdue 6m', status: 'STAT Pending', statusColor: 'urgent', primaryActionLabel: 'Sign & Release', primaryActionRoute: '/lab/verify' },
+    ],
+    'Corrected Reports for Review': [
+      { id: 'AMEND-01', name: 'Sunita Rao · Lipid Profile Addendum', meta: 'Original Report #REP-4091', detail: 'Fasting status amended from non-fasting to 12h overnight fast · Version 2 draft', timeOrWait: 'Draft Ready', status: 'Addendum Review', statusColor: 'info', primaryActionLabel: 'Approve Addendum', primaryActionRoute: '/lab/verify' },
+    ],
+    'QC Warning Worklist': [
+      { id: 'QC-01', name: 'Biochemistry Analyzer #1 · Control Level 2', meta: 'Parameter: Serum Sodium (Westgard 1:3s breach)', detail: 'Run suspended; recalibration and repeat test recommended', timeOrWait: 'Action Needed', status: 'Calibration Flag', statusColor: 'urgent', primaryActionLabel: 'Review QC Run', primaryActionRoute: '/lab/qc' },
+    ],
+  },
+
+  lab_technician: {
+    'Assigned Samples Queue': [
+      { id: 'SMP-201', name: 'Deepak Chopra · EDTA Tube #ED-8821', meta: 'Test: CBC with Differential · Section: Hematology', detail: 'Sample accessioned and mixed; ready for Sysmex analyzer load', timeOrWait: 'Received 8m', status: 'Ready for Load', statusColor: 'info', primaryActionLabel: 'Run Analyzer', primaryActionRoute: '/lab/worklist/hematology' },
+      { id: 'SMP-204', name: 'Pooja Bhatia · Serum Gel Tube #SST-9912', meta: 'Test: Liver Function Test (LFT) · Section: Biochemistry', detail: 'Centrifugation completed (3000 RPM, 10 min); clear serum separated', timeOrWait: 'Separated 12m', status: 'Ready for Load', statusColor: 'info', primaryActionLabel: 'Run Analyzer', primaryActionRoute: '/lab/worklist/biochemistry' },
+      { id: 'SMP-209', name: 'Mohit Agarwal · Sterile Urine Cup #UR-1044', meta: 'Test: Urine Routine & Microscopy · Section: Clinical Path', detail: 'Physical examination complete: Pale yellow, slightly turbid', timeOrWait: 'In Queue', status: 'Microscopy Due', statusColor: 'info', primaryActionLabel: 'Perform Microscopy', primaryActionRoute: '/lab/worklist/clinical_pathology' },
+    ],
+    'Pending Result Entry': [
+      { id: 'RES-101', name: 'Alok Nath · Lipid Profile Panel', meta: 'Architect c4000 Analyzer Auto-Feed', detail: 'Total Cholesterol: 242 mg/dL, Triglycerides: 198 mg/dL · Review & submit', timeOrWait: 'Analyzer Done', status: 'Verify & Submit', statusColor: 'warn', primaryActionLabel: 'Submit Results', primaryActionRoute: '/lab/worklist/biochemistry' },
+      { id: 'RES-102', name: 'Geeta Kumari · Dengue Serology (NS1 / IgM / IgG)', meta: 'Rapid Chromatographic Card', detail: 'NS1 Antigen: Positive, IgM: Negative, IgG: Negative', timeOrWait: 'Read at 15m', status: 'Enter Findings', statusColor: 'urgent', primaryActionLabel: 'Submit Results', primaryActionRoute: '/lab/worklist/serology' },
+    ],
+    'Repeat Analysis Worklist': [
+      { id: 'RPT-01', name: 'Kamal Nayan · Serum Glucose Random (440 mg/dL)', meta: 'Out of linear range (> 400 mg/dL)', detail: '1:2 dilution required to confirm high glucose reading', timeOrWait: 'Dilution Due', status: 'Dilution Required', statusColor: 'urgent', primaryActionLabel: 'Perform Dilution', primaryActionRoute: '/lab/worklist/biochemistry' },
+    ],
+    'QC Warning Worklist': [
+      { id: 'QC-TECH-1', name: 'Hematology 3-Part Differential Daily QC', meta: 'Coulter Principle · 8:00 AM Run', detail: 'Leukocyte count within 1 SD; normal run verified', timeOrWait: 'Verified Today', status: 'QC Passed', statusColor: 'success', primaryActionLabel: 'Log QC Entry', primaryActionRoute: '/lab/qc' },
+    ],
+    'Outsourced Dispatch': [
+      { id: 'OUT-101', name: 'Ramesh Sen · Serum Free Light Chains', meta: 'Reference Lab: Metropolis Diagnostic Central', detail: 'Serum aliquot frozen at -20°C with cold-pack dry ice courier manifest', timeOrWait: 'Courier Due 14:00', status: 'Dispatch Ready', statusColor: 'info', primaryActionLabel: 'Dispatch Batch', primaryActionRoute: '/lab/outsource' },
+    ],
+  },
+
+  phlebotomist: {
+    'Pending Collection Queue': [
+      { id: 'COL-101', name: 'Aarav Malhotra · Fasting Blood Sugar & Lipid Profile', meta: 'UHID-8812 · Phlebotomy Counter 2', detail: '12h Overnight Fast verified · Fluoride + SST Vials required', timeOrWait: 'Waiting 6m', status: 'Seated in Bay', statusColor: 'urgent', primaryActionLabel: 'Collect Sample', primaryActionRoute: '/lab/collection' },
+      { id: 'COL-102', name: 'Meena Sundaram · Thyroid Profile & CBC', meta: 'UHID-8819 · Phlebotomy Counter 1', detail: 'Patient verified · EDTA Lavender + SST Gold Top tubes prepared', timeOrWait: 'Waiting 12m', status: 'Waiting Call', statusColor: 'info', primaryActionLabel: 'Collect Sample', primaryActionRoute: '/lab/collection' },
+      { id: 'COL-103', name: 'Rajesh Khanna · Glycated Hemoglobin (HbA1c)', meta: 'UHID-8824 · Walk-in OPD', detail: 'Non-fasting routine draw · Lavender top tube', timeOrWait: 'Waiting 15m', status: 'Waiting Call', statusColor: 'info', primaryActionLabel: 'Collect Sample', primaryActionRoute: '/lab/collection' },
+    ],
+    'Urgent STAT Collections': [
+      { id: 'STAT-COL-1', name: 'Bed 204 (ICU) · Serum Troponin-T STAT', meta: 'Ward Phlebotomy Request', detail: 'Suspected acute coronary syndrome · Immediate bedside draw', timeOrWait: 'STAT Immediate', status: 'STAT Request', statusColor: 'urgent', primaryActionLabel: 'Bedside Draw', primaryActionRoute: '/lab/collection' },
+    ],
+    'Home Visits Assigned': [
+      { id: 'HMC-01', name: 'Shanti Swaroop (78y) · Complete Geriatric Panel', meta: 'B-12, Sector 14, Noida · Slot: 09:30 AM', detail: 'Fasting sample · Patient immobile · Home cold-chain kit #04', timeOrWait: 'On Route', status: 'En Route', statusColor: 'warn', primaryActionLabel: 'Log Visit', primaryActionRoute: '/lab/collection' },
+    ],
+    'Recollection Requests': [
+      { id: 'RCL-01', name: 'Pankaj Verma · CBC EDTA Sample Hemolyzed', meta: 'Order #ORD-7712 · Rejected by Hematology Lab', detail: 'Sample gross hemolysis noted on centrifugation · Recollection needed', timeOrWait: 'Contacted Patient', status: 'Recollect Due', statusColor: 'urgent', primaryActionLabel: 'Recollect Blood', primaryActionRoute: '/lab/collection' },
+    ],
+    'Collection Issues': [
+      { id: 'ISSUE-01', name: 'Sunil Gavaskar · Difficult Venous Access', meta: 'Chemotherapy patient · Collapsed peripheral veins', detail: 'Paediatric butterfly needle 23G requested with warm compress', timeOrWait: 'Action Needed', status: 'Technique Alert', statusColor: 'warn', primaryActionLabel: 'Assisted Draw', primaryActionRoute: '/lab/collection' },
+    ],
+  },
+
+  biochem_tech: {
+    'Biochemistry Analyzer Worklist': [
+      { id: 'BIO-101', name: 'Anil Kapoor · Liver Function Test (LFT)', meta: 'Analyzer: Cobas c311 · Tray Position 12', detail: 'Bilirubin (T/D), SGOT, SGPT, Alkaline Phosphatase, Total Protein, Albumin', timeOrWait: 'Running 8m', status: 'In Analyzer', statusColor: 'info', primaryActionLabel: 'View Run', primaryActionRoute: '/lab/worklist/biochemistry' },
+      { id: 'BIO-102', name: 'Sunita Sharma · Renal Function Test (KFT)', meta: 'Analyzer: Cobas c311 · Tray Position 13', detail: 'Urea, BUN, Creatinine, Uric Acid, Calcium, Phosphorus', timeOrWait: 'Awaiting Load', status: 'Ready for Run', statusColor: 'info', primaryActionLabel: 'Load Sample', primaryActionRoute: '/lab/worklist/biochemistry' },
+    ],
+    'Glucose & HbA1c Batches': [
+      { id: 'GLU-01', name: 'Morning Fasting Blood Sugar Batch (18 Samples)', meta: 'Hexokinase Photometric Method', detail: 'Controls Level 1 & Level 2 within 1.2 SD · Batch ready to run', timeOrWait: 'Batch Ready', status: 'Start Batch', statusColor: 'success', primaryActionLabel: 'Run Batch', primaryActionRoute: '/lab/worklist/biochemistry' },
+    ],
+    'Critical Electrolytes': [
+      { id: 'ISE-01', name: 'ICU Patient Bed 8 · Na+/K+/Cl- Panel', meta: 'Direct Ion-Selective Electrode (ISE)', detail: 'K+: 2.8 mEq/L (Moderate Hypokalemia) · Confirm and alert', timeOrWait: 'Flagged 2m', status: 'Critical Value', statusColor: 'urgent', primaryActionLabel: 'Confirm & Report', primaryActionRoute: '/lab/worklist/biochemistry' },
+    ],
+    'Dilution Repeat Tests': [
+      { id: 'DIL-01', name: 'Serum Amylase > 2000 U/L (Acute Pancreatitis)', meta: 'Automated 1:5 Saline Dilution', detail: 'Re-running with diluted sample to obtain precise endpoint value', timeOrWait: 'Diluted', status: 'Re-running', statusColor: 'warn', primaryActionLabel: 'Log Dilution', primaryActionRoute: '/lab/worklist/biochemistry' },
+    ],
+    'QC Out-of-Range Alerts': [
+      { id: 'QC-BIO-1', name: 'Alkaline Phosphatase Reagent Lot #882', meta: 'Calibration Expiry: Tomorrow', detail: 'Two-point calibration required with Calibrator C.f.a.s.', timeOrWait: 'Due Today', status: 'Calibrate Due', statusColor: 'warn', primaryActionLabel: 'Calibrate', primaryActionRoute: '/lab/qc' },
+    ],
+  },
+
+  hematology_tech: {
+    'CBC Worklist Queue': [
+      { id: 'HEM-101', name: 'Ritu Sen · Complete Blood Count + ESR', meta: 'Automated 5-Part Hematology Analyzer', detail: 'RBC, WBC, Hb, Hct, MCV, MCH, MCHC, Platelet count, Differential', timeOrWait: 'Run Completed', status: 'Results Ready', statusColor: 'success', primaryActionLabel: 'Verify Curve', primaryActionRoute: '/lab/worklist/hematology' },
+      { id: 'HEM-102', name: 'Vikas Dubey · Complete Blood Count', meta: 'Analyzer Flag: NRBC Present & Platelet Clumps?', detail: 'Automated flag triggered; requires manual blood film correlation', timeOrWait: 'Smear Due', status: 'Flagged by Machine', statusColor: 'urgent', primaryActionLabel: 'Prepare Smear', primaryActionRoute: '/lab/worklist/hematology' },
+    ],
+    'Peripheral Smear Reviews': [
+      { id: 'SMR-01', name: 'Priyanka Chopra · Leishman Stained Smear', meta: 'Indication: Severe Anemia (Hb 6.2 g/dL)', detail: 'Microcytic hypochromic RBCs with marked anisopoikilocytosis and pencil cells', timeOrWait: 'Stained', status: 'Microscopy Ready', statusColor: 'warn', primaryActionLabel: 'Microscope Exam', primaryActionRoute: '/lab/worklist/hematology' },
+    ],
+    'Coagulation PT/INR Queue': [
+      { id: 'COAG-01', name: 'Harish Chandra · Prothrombin Time (PT / INR)', meta: 'Coagulometer: Mechanical Clot Detection', detail: 'Patient on oral Warfarin anticoagulant therapy · INR expected', timeOrWait: 'Incubating 37°C', status: 'Processing', statusColor: 'info', primaryActionLabel: 'Record Seconds', primaryActionRoute: '/lab/worklist/hematology' },
+    ],
+    'Reticulocyte Counts': [
+      { id: 'RETIC-01', name: 'Baby Aarush (4m) · Reticulocyte Count', meta: 'Supravital Brilliant Cresyl Blue Stain', detail: 'Hemolytic anemia evaluation · Manual count per 1000 RBCs', timeOrWait: 'Staining 20m', status: 'Count Due', statusColor: 'info', primaryActionLabel: 'Enter Count', primaryActionRoute: '/lab/worklist/hematology' },
+    ],
+    'Analyzer Flagged Runs': [
+      { id: 'FLAG-01', name: 'Sample #9902 · Leukocytosis (> 50,000 /uL)', meta: 'Suspected leukemoid reaction vs CML', detail: 'Scattergram shows high-fluorescence lymphocyte/monocyte cloud', timeOrWait: 'Pathologist Alert', status: 'Pathologist Review', statusColor: 'urgent', primaryActionLabel: 'Forward to Path', primaryActionRoute: '/lab/verify' },
+    ],
+  },
+
+  microbiology_tech: {
+    'Active Culture Incubations': [
+      { id: 'MIC-101', name: 'Urine Culture & Sensitivity (Clean Catch Midstream)', meta: 'Incubation: 24h at 37°C · CLED Agar', detail: 'Significant colony growth > 10^5 CFU/mL; yellow colonies (lactose fermenter)', timeOrWait: 'Day 2 Incubation', status: 'Significant Growth', statusColor: 'urgent', primaryActionLabel: 'ID & Sensitivity', primaryActionRoute: '/lab/worklist/microbiology' },
+      { id: 'MIC-102', name: 'Blood Culture Bottle Pair (Aerobic/Anaerobic)', meta: 'Automated Bact/ALERT System · Bottle #BC-4412', detail: 'Vial signaled positive at 18 hours · Subculture and Gram stain urgent', timeOrWait: 'Bottle Positive', status: 'STAT Positive', statusColor: 'urgent', primaryActionLabel: 'Gram Stain & Plate', primaryActionRoute: '/lab/worklist/microbiology' },
+    ],
+    'Preliminary Gram Stains': [
+      { id: 'GRM-01', name: 'Sputum for Gram Stain & Culture', meta: 'Purulent specimen · Geckler criteria valid', detail: 'Gram-positive lancet-shaped diplococci surrounded by clear capsule halos', timeOrWait: 'Immediate Read', status: 'Pneumococcus Susp', statusColor: 'warn', primaryActionLabel: 'Log Prelim Report', primaryActionRoute: '/lab/worklist/microbiology' },
+    ],
+    'Antibiotic Susceptibility Testing': [
+      { id: 'AST-01', name: 'E. coli Isolate · Kirby-Bauer Disc Diffusion', meta: 'Mueller-Hinton Agar · CLSI 2026 Guidelines', detail: 'Zone measurement: Resistant to Ampicillin, Sensitive to Meropenem, Amikacin', timeOrWait: '18h Zones Ready', status: 'Measure Zones', statusColor: 'info', primaryActionLabel: 'Record Zone mm', primaryActionRoute: '/lab/worklist/microbiology' },
+    ],
+    'Organism Identification Desk': [
+      { id: 'ID-01', name: 'Pus Swab Isolate · Golden Yellow Pigment', meta: 'Catalase: Positive · Slide Coagulase: Positive', detail: 'Staphylococcus aureus confirmed · Cefoxitin disc set for MRSA screen', timeOrWait: 'Screen Ready', status: 'MRSA Screening', statusColor: 'warn', primaryActionLabel: 'Verify MRSA', primaryActionRoute: '/lab/worklist/microbiology' },
+    ],
+    'Delayed Cultures': [
+      { id: 'DEL-01', name: 'Fungal Culture (Nail Clippings on SDA)', meta: 'Incubation Day 14 at 25°C', detail: 'Slow growing dermatophyte colony emerging · Awaiting conidia formation', timeOrWait: 'Hold 7 more days', status: 'Hold Incubation', statusColor: 'info', primaryActionLabel: 'Update Status', primaryActionRoute: '/lab/worklist/microbiology' },
+    ],
+  },
+
+  histopathology_tech: {
+    'Grossing Worklist': [
+      { id: 'HST-101', name: 'Gallbladder Specimen (Laparoscopic Cholecystectomy)', meta: 'Container #BX-8801 · 10% Neutral Buffered Formalin', detail: 'Specimen dimensions 8x4x3 cm · Gross examination with attending pathologist', timeOrWait: 'Fixed 24h', status: 'Ready for Grossing', statusColor: 'info', primaryActionLabel: 'Grossing Desk', primaryActionRoute: '/lab/worklist/histopathology' },
+      { id: 'HST-102', name: 'Skin Punch Biopsy (Forearm Lesion, 4mm)', meta: 'Container #BX-8804 · Suspected Basal Cell Carcinoma', detail: 'Entire punch bisected and submitted in single cassette #A1', timeOrWait: 'Ready', status: 'Grossed', statusColor: 'success', primaryActionLabel: 'Process Cassette', primaryActionRoute: '/lab/worklist/histopathology' },
+    ],
+    'Block Embedding Queue': [
+      { id: 'EMB-01', name: 'Tissue Processor Overnight Run (14 Cassettes)', meta: 'Dehydration, Clearing & Paraffin Infiltration complete', detail: 'Orient tissue at embedding center with molten paraffin wax at 60°C', timeOrWait: 'Processor Done', status: 'Embed in Wax', statusColor: 'warn', primaryActionLabel: 'Embed Blocks', primaryActionRoute: '/lab/worklist/histopathology' },
+    ],
+    'Staining & Slide Mounts': [
+      { id: 'STN-01', name: 'Microtome Sectioned Ribbons (4 Micron Thickness)', meta: 'Automated Hematoxylin & Eosin (H&E) Staining Station', detail: 'Sections dried at 58°C; staining protocol running (clearing to DPX coverslip)', timeOrWait: 'In Stainer', status: 'H&E Running', statusColor: 'info', primaryActionLabel: 'Coverslip & Label', primaryActionRoute: '/lab/worklist/histopathology' },
+    ],
+    'Pathologist Slide Handover': [
+      { id: 'HND-HISTO-1', name: 'Case BX-8798: Appendix Sections (3 Slides)', meta: 'Acute suppurative appendicitis suspected', detail: 'Slides stained, labeled with 2D barcode and matched with requisition form', timeOrWait: 'Ready on Tray', status: 'Ready for Review', statusColor: 'success', primaryActionLabel: 'Handover to Path', primaryActionRoute: '/lab/verify' },
+    ],
+    'Special Staining Requests': [
+      { id: 'SPEC-STN-1', name: 'Gastric Antral Biopsy · Giemsa Stain for H. pylori', meta: 'Pathologist request: Dr. Mehra', detail: 'Special staining for spiral bacilli identification in foveolar mucus', timeOrWait: 'Stain Today', status: 'Special Stain Due', statusColor: 'warn', primaryActionLabel: 'Perform Giemsa', primaryActionRoute: '/lab/worklist/histopathology' },
+    ],
+  },
+
+  lab_manager: {
+    'Overdue TAT Lab Orders': [
+      { id: 'TAT-01', name: 'Serum Troponin-I STAT · Overdue by 14m', meta: 'Order #ORD-9912 · Target TAT: 45 min', detail: 'Analyzer rerun caused delay · Escalate to emergency biochemistry bay', timeOrWait: 'TAT Breach', status: 'Breached', statusColor: 'urgent', primaryActionLabel: 'Expedite Result', primaryActionRoute: '/lab/verify' },
+    ],
+    'Critical Panic Values': [
+      { id: 'PAN-01', name: 'Serum Potassium 6.8 mEq/L · ICU Bed 4', meta: 'Phoned to Dr. Sen · Acknowledgement Pending', detail: 'Automated SMS and red dashboard alarm active', timeOrWait: '6 min active', status: 'Ack Pending', statusColor: 'urgent', primaryActionLabel: 'Confirm Call', primaryActionRoute: '/lab/verify' },
+    ],
+    'Sample Rejection Escalations': [
+      { id: 'REJ-01', name: 'Hemolyzed Blood Sample · Phlebotomy Counter 3', meta: 'Rejection Rate for shift: 2.8% (Target < 1.5%)', detail: 'Vacuum tube drawing technique refresher recommended for phlebotomist team', timeOrWait: 'Review Log', status: 'Investigation', statusColor: 'warn', primaryActionLabel: 'Review Rejection', primaryActionRoute: '/lab/analytics' },
+    ],
+    'Reagent Low Stock Warnings': [
+      { id: 'STK-01', name: 'Creatinine Jaffe Kinetic Reagent Pack', meta: 'Current: 2 Kits · Avg Daily Usage: 1 Kit', detail: 'Reorder point reached · Purchase requisition generated', timeOrWait: '2 Days Stock', status: 'Low Stock', statusColor: 'urgent', primaryActionLabel: 'Approve PO', primaryActionRoute: '/purchase-center' },
+    ],
+    'Pending Equipment Service': [
+      { id: 'EQ-01', name: 'Cobas e411 Chemiluminescence Analyzer', meta: 'Monthly Preventative Maintenance Due in 48 Hours', detail: 'Roche biomedical service engineer visit confirmed for Saturday 18:00', timeOrWait: 'Service Due', status: 'PM Scheduled', statusColor: 'info', primaryActionLabel: 'Equipment Log', primaryActionRoute: '/hospital/biomedical' },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // RIS / PACS — RADIOLOGY & IMAGING MANAGEMENT SYSTEM WORK QUEUES
+  // ══════════════════════════════════════════════════════════════
+  radiologist: {
+    'STAT Emergency Queue': [
+      { id: 'STAT-RAD-1', name: 'Ravi Teja · CT Brain Plain (Trauma)', meta: 'UHID-9081 · ER Bay 1 · GCS: 11/15', detail: 'Acute subdural hematoma vs contusion · Immediate interpretation requested', timeOrWait: 'STAT 6m in PACS', status: 'Immediate Reading', statusColor: 'urgent', primaryActionLabel: 'Report Now', primaryActionRoute: '/radiology/reports' },
+      { id: 'STAT-RAD-2', name: 'Sumitra Devi · CT Pulmonary Angiography (CTPA)', meta: 'UHID-9088 · ICU Bed 2 · Severe Dyspnea', detail: 'Rule out acute pulmonary embolism (PE) · S1Q3T3 on ECG', timeOrWait: 'STAT 12m', status: 'Immediate Reading', statusColor: 'urgent', primaryActionLabel: 'Report Now', primaryActionRoute: '/radiology/reports' },
+    ],
+    'CT Scan Reporting Queue': [
+      { id: 'CT-REP-01', name: 'Karan Mehra · HRCT Chest (High Resolution)', meta: 'UHID-8812 · Ref: Dr. Joshi (Pulmonology)', detail: 'Persistent dry cough & exertional breathlessness · Interstitial lung disease evaluation', timeOrWait: 'Scanned 28m', status: 'Awaiting Report', statusColor: 'warn', primaryActionLabel: 'Open in Viewer', primaryActionRoute: '/radiology/reports' },
+      { id: 'CT-REP-02', name: 'Anita Saxena · CECT Abdomen & Pelvis (Triple Phase)', meta: 'UHID-8820 · Ref: Dr. Rao (Gastroenterology)', detail: 'Liver cirrhosis follow-up · Evaluation of arterial-enhancing focal lesion', timeOrWait: 'Scanned 42m', status: 'Awaiting Report', statusColor: 'warn', primaryActionLabel: 'Open in Viewer', primaryActionRoute: '/radiology/reports' },
+    ],
+    'MRI Reporting Queue': [
+      { id: 'MRI-REP-01', name: 'Siddharth Roy · MRI Brain with Contrast & Spectroscopy', meta: 'UHID-7912 · Ref: Dr. Mehra (Neurology)', detail: 'Intracranial space occupying lesion (SOL) evaluation · MR Perfusion series acquired', timeOrWait: 'Scanned 35m', status: 'Awaiting Report', statusColor: 'info', primaryActionLabel: 'Open in Viewer', primaryActionRoute: '/radiology/reports' },
+      { id: 'MRI-REP-02', name: 'Pooja Hegde · MRI Right Knee Joint', meta: 'UHID-8114 · Sports Injury (Twisting trauma)', detail: 'Anterior cruciate ligament (ACL) tear and medial meniscus tear evaluation', timeOrWait: 'Scanned 50m', status: 'Routine Queue', statusColor: 'info', primaryActionLabel: 'Open in Viewer', primaryActionRoute: '/radiology/reports' },
+    ],
+    'Radiography Review Worklist': [
+      { id: 'XR-REP-01', name: 'Manish Rawat · Digital Chest X-Ray PA View', meta: 'UHID-9211 · Routine pre-op clearance', detail: 'Bilateral lung fields clear, cardiothoracic ratio normal', timeOrWait: 'Scanned 15m', status: 'Ready to Sign', statusColor: 'success', primaryActionLabel: 'Sign Report', primaryActionRoute: '/radiology/reports' },
+      { id: 'XR-REP-02', name: 'Deepak Verma · Right Ankle AP & Lateral Views', meta: 'UHID-9218 · Skeletal trauma evaluation', detail: 'Distal fibular hairline fracture vs ligamentous avulsion', timeOrWait: 'Scanned 20m', status: 'Report Drafted', statusColor: 'info', primaryActionLabel: 'Verify & Sign', primaryActionRoute: '/radiology/reports' },
+    ],
+    'Addendum Request Desk': [
+      { id: 'ADD-01', name: 'Case RAD-8821 · MRI Spine Lumbar Addendum', meta: 'Referring Surgeon: Dr. Bansal (Ortho)', detail: 'Clarification requested regarding L4-L5 exit nerve root compression severity', timeOrWait: 'Surgeon Request', status: 'Addendum Due', statusColor: 'warn', primaryActionLabel: 'Create Addendum', primaryActionRoute: '/radiology/reports' },
+    ],
+  },
+
+  radiology_technician: {
+    'Pending Acquisition Queue': [
+      { id: 'RAD-ACQ-1', name: 'Alok Gupta · Digital X-Ray Chest PA View', meta: 'UHID-4011 · DR Room 1', detail: 'Patient verified and gown provided · Collimation 14x17 inches set', timeOrWait: 'Patient Ready', status: 'Ready for Exposure', statusColor: 'urgent', primaryActionLabel: 'Acquire X-Ray', primaryActionRoute: '/radiology/xray' },
+      { id: 'RAD-ACQ-2', name: 'Meena Sharma · CT Abdomen Plain & Contrast', meta: 'UHID-4022 · CT Scanner 1', detail: 'IV Cannula 18G verified · Oral contrast administered 45 mins prior', timeOrWait: 'Ready on Gantry', status: 'Ready to Scan', statusColor: 'urgent', primaryActionLabel: 'Start CT Scan', primaryActionRoute: '/radiology/ct' },
+    ],
+    'In-Progress Exam Desk': [
+      { id: 'RAD-PROG-1', name: 'Vikram Seth · MRI Brain Neuro Suite', meta: '3.0T MRI Magnet Room · Sequence 3 of 6 (T2 FLAIR)', detail: 'Patient tolerating scan well · Head coil positioned with ear protection', timeOrWait: '14 min remaining', status: 'In Magnet Bore', statusColor: 'info', primaryActionLabel: 'Monitor Scan', primaryActionRoute: '/radiology/mri' },
+    ],
+    'DICOM Push Verification': [
+      { id: 'DCM-PUSH-1', name: 'Suresh Raina · CT Chest HRCT (Series 1-4)', meta: '1,420 DICOM slices acquired', detail: 'Auto-routing to PACS Server node 192.168.1.100 · Transferring...', timeOrWait: 'Transfer 88%', status: 'Pushing to PACS', statusColor: 'info', primaryActionLabel: 'Verify Push', primaryActionRoute: '/radiology/pacs' },
+    ],
+    'Reject / Repeat Logs': [
+      { id: 'REJ-RAD-1', name: 'X-Ray Lumbar Spine Lateral · Patient Motion Artifact', meta: 'Reject Reason: Blurring during exposure', detail: 'Repeat exposure authorized with breath-hold coaching (Dose logged)', timeOrWait: 'Repeat Done', status: 'Logged for QA', statusColor: 'warn', primaryActionLabel: 'Log QA Reject', primaryActionRoute: '/radiology/mis' },
+    ],
+  },
+
+  mri_technician: {
+    'MRI Queue Today': [
+      { id: 'MRI-Q-1', name: 'Harish Chandra · MRI Lumbar Spine with Contrast', meta: 'UHID-5512 · 3T Scanner · Slot: 11:30 AM', detail: 'Metal screening cleared · Creatinine 0.9 mg/dL · Contrast consent signed', timeOrWait: 'Next Patient', status: 'Screening Passed', statusColor: 'urgent', primaryActionLabel: 'Start MRI', primaryActionRoute: '/radiology/mri' },
+      { id: 'MRI-Q-2', name: 'Pooja Nair · MRI Brain Epilepsy Protocol', meta: 'UHID-5519 · High-resolution coronal oblique T2 & FLAIR', detail: 'Specialized 1mm thin volumetric acquisitions scheduled', timeOrWait: 'Slot: 12:15 PM', status: 'Patient Arrived', statusColor: 'info', primaryActionLabel: 'Position Patient', primaryActionRoute: '/radiology/mri' },
+    ],
+    'Contrast-Enhanced MRI Waiting': [
+      { id: 'MRI-CONT-1', name: 'Sunita Devi · MRI Pelvis for Endometriosis', meta: 'Gadolinium IV Contrast 10 mL', detail: 'Power injector loaded · Anti-spasmodic agent administered by nursing staff', timeOrWait: 'Ready in Prep Bay', status: 'Contrast Ready', statusColor: 'warn', primaryActionLabel: 'Connect Injector', primaryActionRoute: '/radiology/mri' },
+    ],
+    'Screening Cleared Patients': [
+      { id: 'MRI-SCR-1', name: 'Deepak Chopra · MRI Cervical Spine', meta: 'Ferromagnetic Detector: All Green', detail: 'Implant verification: Dental ceramic bridge only (MR Safe at 3T)', timeOrWait: 'Cleared 10m', status: 'Safety Cleared', statusColor: 'success', primaryActionLabel: 'Call to Magnet', primaryActionRoute: '/radiology/mri' },
+    ],
+    'Incomplete DICOM Push': [
+      { id: 'MRI-DCM-1', name: 'Rohan Joshi · MRI Shoulder Arthrogram', meta: 'Series 5 (T1 Fat-Sat Coronal) Missing 4 images', detail: 'Re-transmitting series from MRI local console cache to Central PACS', timeOrWait: 'Retrying', status: 'Push Retry', statusColor: 'warn', primaryActionLabel: 'Force Retransfer', primaryActionRoute: '/radiology/pacs' },
+    ],
+  },
+
+  ct_technician: {
+    'Triple Phase CT Queue': [
+      { id: 'CT-Q-1', name: 'Mahesh Rawat · Triple Phase Liver CT', meta: 'UHID-7012 · Dual Head Contrast Injector', detail: 'Non-contrast, Late Arterial (Bolus tracking), Portal Venous, Delayed', timeOrWait: 'Cannula Ready', status: 'Set Bolus Track', statusColor: 'urgent', primaryActionLabel: 'Start Protocol', primaryActionRoute: '/radiology/ct' },
+    ],
+    'HRCT Chest Worklist': [
+      { id: 'CT-HR-1', name: 'Kavita Reddy · HRCT Chest (Inspiratory & Expiratory)', meta: 'UHID-7024 · Sub-millimeter collimation 0.625mm', detail: 'High-spatial-frequency bone algorithm reconstruction required', timeOrWait: 'In Gantry Room', status: 'Acquiring Scout', statusColor: 'info', primaryActionLabel: 'Run CT Scan', primaryActionRoute: '/radiology/ct' },
+    ],
+    'Trauma Whole Body CT': [
+      { id: 'CT-TR-1', name: 'Unknown Male (Trauma) · Pan-Scan Protocol', meta: 'ER Trauma Activation · GCS: 9', detail: 'Non-contrast CT Brain & C-Spine, IV Contrast CT Thorax, Abdomen & Pelvis', timeOrWait: 'STAT Immediate', status: 'STAT Active', statusColor: 'urgent', primaryActionLabel: 'Emergency Scan', primaryActionRoute: '/radiology/ct' },
+    ],
+    '3D Multiplanar Reformat Queue': [
+      { id: 'CT-3D-1', name: 'Sanjay Dutt · CT Facial Bones 3D Volume Rendering', meta: 'Maxillofacial trauma reconstruction', detail: 'Generate 360-degree rotating bone window VR cinematic rendering', timeOrWait: 'Post-Processing', status: 'Generating 3D', statusColor: 'info', primaryActionLabel: 'Complete 3D VR', primaryActionRoute: '/radiology/ct' },
+    ],
+  },
+
+  xray_technician: {
+    'STAT Trauma X-Rays': [
+      { id: 'XR-TR-1', name: 'Akash Jain · Right Tibia-Fibula AP & Lateral', meta: 'ER Trauma · Compound fracture suspicion', detail: 'Immobilized with splint · Bedside portable digital radiography requested', timeOrWait: 'STAT 5m', status: 'STAT Bay Call', statusColor: 'urgent', primaryActionLabel: 'Take Exposure', primaryActionRoute: '/radiology/xray' },
+    ],
+    'Routine OP Chest Worklist': [
+      { id: 'XR-OP-1', name: 'Shyam Sundar · Chest X-Ray PA View', meta: 'UHID-6112 · Pre-employment health checkup', detail: 'Deep inspiration verified · 110 kVp, 3.2 mAs exposure parameters', timeOrWait: 'Next in Queue', status: 'Position Patient', statusColor: 'info', primaryActionLabel: 'Expose X-Ray', primaryActionRoute: '/radiology/xray' },
+      { id: 'XR-OP-2', name: 'Meena Saxena · B/L Knee Standing AP View', meta: 'UHID-6118 · Osteoarthritis grade review', detail: 'Weight-bearing standing views with both knees in single detector field', timeOrWait: 'Waiting in Gown', status: 'Position Patient', statusColor: 'info', primaryActionLabel: 'Expose X-Ray', primaryActionRoute: '/radiology/xray' },
+    ],
+    'Pediatric Radiography Queue': [
+      { id: 'XR-PED-1', name: 'Master Aarav (3y) · Chest AP Supine View', meta: 'Suspected foreign body aspiration', detail: 'Radiation protection: Pediatric low-dose protocol with gonad shielding', timeOrWait: 'Calm & Ready', status: 'Careful Exposure', statusColor: 'warn', primaryActionLabel: 'Low-Dose Shot', primaryActionRoute: '/radiology/xray' },
+    ],
+    'Repeat Review Desk': [
+      { id: 'XR-REV-1', name: 'Pelvis AP · Clipped Iliac Crest', meta: 'Collimation error on first shot', detail: 'Repeat with lower detector centering; total cumulative dose logged', timeOrWait: 'Completed', status: 'QA Logged', statusColor: 'info', primaryActionLabel: 'View Repeat Log', primaryActionRoute: '/radiology/mis' },
+    ],
+  },
+
+  us_technician: {
+    'Full Bladder Waiting Queue': [
+      { id: 'US-BLD-1', name: 'Sunita Devi · USG Whole Abdomen & Pelvis', meta: 'UHID-3041 · Sonologist Room 1 (Dr. Sarah)', detail: 'Patient drank 1 Litre water 45 min ago · Full bladder confirmed by nurse', timeOrWait: 'Bladder Full', status: 'Ready for Exam', statusColor: 'urgent', primaryActionLabel: 'Call to US Room', primaryActionRoute: '/radiology/ultrasound' },
+      { id: 'US-BLD-2', name: 'Pooja Nair · USG KUB (Kidney, Ureter, Bladder)', meta: 'UHID-3048 · Severe right flank colic', detail: 'Pre-void and post-void bladder volume measurements required', timeOrWait: 'Waiting 10m', status: 'Waiting Call', statusColor: 'info', primaryActionLabel: 'Call to US Room', primaryActionRoute: '/radiology/ultrasound' },
+    ],
+    'Fasting Upper Abdomen Queue': [
+      { id: 'US-FST-1', name: 'Ramesh Gupta · USG Upper Abdomen (Gallbladder / Liver)', meta: 'UHID-3054 · Suspected cholelithiasis', detail: '6h Overnight fasting confirmed · Gallbladder fully distended', timeOrWait: 'Fasting 6h', status: 'Fasting Cleared', statusColor: 'success', primaryActionLabel: 'Start Ultrasound', primaryActionRoute: '/radiology/ultrasound' },
+    ],
+    'STAT Vascular Doppler': [
+      { id: 'US-DOP-1', name: 'Mohit Agarwal · Color Doppler Left Lower Limb (Venous)', meta: 'UHID-3062 · Acute unilateral calf swelling', detail: 'Rule out deep vein thrombosis (DVT) · Compression sonography protocol', timeOrWait: 'STAT 10m', status: 'STAT Doppler', statusColor: 'urgent', primaryActionLabel: 'Start Doppler', primaryActionRoute: '/radiology/doppler' },
+    ],
+    'Biopsy Guidance Assistance': [
+      { id: 'US-BIO-1', name: 'Kavita Joshi · USG Guided Liver Biopsy Assistance', meta: 'Interventional Suite · Dr. Sen & Dr. Sarah', detail: 'Sterile probe cover, biopsy gun 18G & formalin containers prepared', timeOrWait: 'Slot: 14:00', status: 'Sterile Prep Ready', statusColor: 'warn', primaryActionLabel: 'Join Procedure', primaryActionRoute: '/radiology/ultrasound' },
+    ],
+  },
+
+  mammo_technician: {
+    'Screening Mammography Queue': [
+      { id: 'MAM-01', name: 'Geeta Kumari (52y) · Bilateral Digital Mammography', meta: 'UHID-2201 · Annual breast health screening', detail: 'Standard 4-view protocol: Bilateral Cranio-Caudal (CC) & Mediolateral Oblique (MLO)', timeOrWait: 'Patient Ready', status: 'Position Patient', statusColor: 'info', primaryActionLabel: 'Start Screening', primaryActionRoute: '/radiology/mammography' },
+    ],
+    'Diagnostic Magnification Views': [
+      { id: 'MAM-02', name: 'Anita Desai (48y) · Left Breast Spot Compression', meta: 'UHID-2208 · Palpable upper outer quadrant lump', detail: 'Focal spot magnification view for microcalcification morphology evaluation', timeOrWait: 'Awaiting Exam', status: 'Diagnostic View', statusColor: 'urgent', primaryActionLabel: 'Magnification View', primaryActionRoute: '/radiology/mammography' },
+    ],
+    'Prior Image Retrieval Desk': [
+      { id: 'MAM-PRIOR-1', name: 'Shanti Swaroop · 2025 Mammogram Comparison Pull', meta: 'PACS Prior Study: MAMMO-2025-081', detail: 'Historical priors fetched from nearline archive to diagnostic reporting console', timeOrWait: 'Retrieved', status: 'Priors Linked', statusColor: 'success', primaryActionLabel: 'Compare in PACS', primaryActionRoute: '/radiology/pacs' },
+    ],
+    'Ultrasound Correlation Queue': [
+      { id: 'MAM-US-1', name: 'Priyanka Sen · Post-Mammography Ultrasound Correlation', meta: 'Dense fibroglandular breast tissue (ACR Density D)', detail: 'Supplemental automated breast ultrasound scheduled in Room 2', timeOrWait: 'Same-day Link', status: 'US Handover', statusColor: 'info', primaryActionLabel: 'Handover to US', primaryActionRoute: '/radiology/ultrasound' },
+    ],
+  },
+
+  pacs_admin: {
+    'Unlinked / Orphan DICOM Studies': [
+      { id: 'ORP-01', name: 'CT Head Study Instance UID #1.2.840.113619...', meta: 'Modality: CT Scanner 2 · Patient ID Missing', detail: 'Study acquired during network drop; manual reconciliation with order #ORD-998', timeOrWait: 'Flagged 1h', status: 'Manual Link Req', statusColor: 'urgent', primaryActionLabel: 'Reconcile Study', primaryActionRoute: '/radiology/pacs' },
+    ],
+    'Retry Transfer Queue': [
+      { id: 'RET-01', name: 'MRI Brain 3T to Offsite Teleradiology PACS Node', meta: 'C-STORE timeout on slice 412/980', detail: 'Network re-established; auto-retry background thread active', timeOrWait: 'Retrying (1/3)', status: 'Transfer Retrying', statusColor: 'warn', primaryActionLabel: 'Force C-STORE', primaryActionRoute: '/radiology/pacs' },
+    ],
+    'Modality Association Alerts': [
+      { id: 'AE-01', name: 'GE Revolution CT Scanner AE Title: CT_SCAN_1', meta: 'DICOM Ping (C-ECHO): 12ms response', detail: 'AE title handshake verified; steady C-STORE pipeline online', timeOrWait: 'Online', status: 'Healthy Link', statusColor: 'success', primaryActionLabel: 'View Association', primaryActionRoute: '/radiology/modalities' },
+    ],
+    'Storage Tiering Jobs': [
+      { id: 'STR-01', name: 'Nearline Cold Archive Migration (Studies > 90 Days)', meta: 'Free Hot SSD Space: 6.4 TB (52% free)', detail: '340 studies scheduled for compressed optical/cloud tiering tonight', timeOrWait: 'Scheduled 01:00', status: 'Job Queued', statusColor: 'info', primaryActionLabel: 'Configure Tiering', primaryActionRoute: '/radiology/pacs' },
+    ],
+  },
+
+  radiology_prep_staff: {
+    'MRI Safety Screening Queue': [
+      { id: 'SCR-01', name: 'Vikas Dubey · MRI Lumbar Spine Safety Check', meta: 'UHID-9082 · Ferromagnetic Metal Questionnaire', detail: 'History of welding: Orbital X-Ray clearance checked and verified negative', timeOrWait: 'Verified 8m', status: 'Ready for Magnet', statusColor: 'success', primaryActionLabel: 'Clear for MRI', primaryActionRoute: '/radiology/preparation' },
+      { id: 'SCR-02', name: 'Mohan Lal · MRI Brain Check (Cardiac Stent)', meta: 'UHID-9089 · Drug-eluting stent placed 2022', detail: 'Stent card checked: Medtronic Onyx (MR Conditional at 1.5T and 3T)', timeOrWait: 'Card Verified', status: 'Safety Cleared', statusColor: 'success', primaryActionLabel: 'Clear for MRI', primaryActionRoute: '/radiology/preparation' },
+    ],
+    'CT Contrast Hydration & Renal Check': [
+      { id: 'REN-01', name: 'Sunita Devi · CECT Abdomen Renal Clearance', meta: 'UHID-9114 · Serum Creatinine: 1.1 mg/dL, eGFR: 72 mL/min', detail: 'Renal parameters within safe contrast threshold (> 45 mL/min) · IV placed', timeOrWait: 'IV Ready', status: 'Contrast Cleared', statusColor: 'success', primaryActionLabel: 'Mark Ready', primaryActionRoute: '/radiology/preparation' },
+      { id: 'REN-02', name: 'Kavita Joshi · CECT Chest Contrast Allergy Review', meta: 'UHID-9120 · Mild seafood allergy reported', detail: 'Pre-medication with Oral Prednisolone + Cetirizine completed 2h prior', timeOrWait: 'Pre-med Given', status: 'Allergy Cleared', statusColor: 'warn', primaryActionLabel: 'Mark Ready', primaryActionRoute: '/radiology/preparation' },
+    ],
+    'Consent Form Signing': [
+      { id: 'CNS-01', name: 'Master Aarav (8y) · Pediatric Contrast Consent', meta: 'Mother accompanying patient', detail: 'Informed consent explained regarding low-osmolar iodinated contrast media', timeOrWait: 'Signed', status: 'Consent Uploaded', statusColor: 'success', primaryActionLabel: 'View Consent', primaryActionRoute: '/radiology/preparation' },
+    ],
+    'Pediatric Sedation Prep': [
+      { id: 'SED-01', name: 'Baby Anaya (2y) · MRI Brain Sedation Protocol', meta: 'Supervised by Anaesthetist: Dr. Rao', detail: '4h Fasting verified · Vital signs baseline documented · Induction room ready', timeOrWait: 'Anaesthesia Ready', status: 'Sedation Ready', statusColor: 'urgent', primaryActionLabel: 'Induction Desk', primaryActionRoute: '/radiology/preparation' },
+    ],
+  },
+
+  radiology_scheduler: {
+    'Waitlist Queue': [
+      { id: 'SCH-W1', name: 'Rohit Sharma · MRI Brain with Contrast Waitlist', meta: 'Requested Slot: Evening · Priority: High', detail: 'Patient flexible on timing; alert when cancellation occurs', timeOrWait: 'Waitlist #1', status: 'Call on Opening', statusColor: 'info', primaryActionLabel: 'Allocate Slot', primaryActionRoute: '/radiology/scheduling' },
+    ],
+    'Rescheduling Queue': [
+      { id: 'SCH-R1', name: 'Pooja Hegde · CT Scan Reschedule Request', meta: 'Originally today 15:00 · Patient requested Monday', detail: 'Fasting instructions and reminder notification re-dispatched', timeOrWait: 'Requested Today', status: 'Reschedule Due', statusColor: 'warn', primaryActionLabel: 'Confirm New Slot', primaryActionRoute: '/radiology/scheduling' },
+    ],
+    'Unconfirmed Online Bookings': [
+      { id: 'SCH-U1', name: 'Deepak Verma · USG Abdomen Online Booking', meta: 'Web portal self-booking · Awaiting confirmation call', detail: 'Call patient to verify full-bladder preparation instructions', timeOrWait: 'Booked 1h ago', status: 'Call Needed', statusColor: 'urgent', primaryActionLabel: 'Confirm & Lock', primaryActionRoute: '/radiology/scheduling' },
+    ],
+    'Preparation Confirmation Calls': [
+      { id: 'SCH-P1', name: 'Morning CT Contrast Batch (6 Patients Tomorrow)', meta: 'Scheduled from 08:30 to 11:30 AM', detail: 'Verify 4-hour fasting and bring previous serum creatinine report', timeOrWait: 'Calls Due', status: 'SMS Dispatched', statusColor: 'info', primaryActionLabel: 'Verify Batch', primaryActionRoute: '/radiology/scheduling' },
+    ],
+  },
+
+  radiology_manager: {
+    'Overdue Reporting Worklist': [
+      { id: 'MGR-TAT-1', name: 'CT Pulmonary Angiography · TAT Breach Warning', meta: 'Study #CT-9904 · Acquired 65m ago', detail: 'Target reporting TAT: 60 mins · Attending Radiologist Dr. Mehra notified', timeOrWait: 'Overdue 5m', status: 'Breached', statusColor: 'urgent', primaryActionLabel: 'Expedite Sign-off', primaryActionRoute: '/radiology/reports' },
+    ],
+    'Urgent / STAT Queue': [
+      { id: 'MGR-STAT-1', name: 'Trauma CT Brain & C-Spine · ER Bay 1', meta: 'GCS: 10 · Critical findings alert active', detail: 'Report signed; critical communication log verified by radiologist', timeOrWait: 'Communicated', status: 'STAT Closed', statusColor: 'success', primaryActionLabel: 'Audit Communication', primaryActionRoute: '/radiology/critical' },
+    ],
+    'Unverified Scans': [
+      { id: 'MGR-UNV-1', name: 'Evening Walk-in X-Rays (8 Studies Unread)', meta: 'Acquired between 18:00 and 20:00', detail: 'Assigned to night teleradiology panel for provisional review', timeOrWait: 'In Night Queue', status: 'Assigned Telerad', statusColor: 'info', primaryActionLabel: 'View Queue', primaryActionRoute: '/radiology/reports' },
+    ],
+    'Critical Escalation Queue': [
+      { id: 'MGR-CRIT-1', name: 'Pneumothorax Finding · Physician Ack Pending', meta: 'Chest X-Ray ICU Bed 4 · Alert dispatched 18m ago', detail: 'Attending physician telephonic acknowledgement required within 30 min SLA', timeOrWait: '18m elapsed', status: 'Pending Ack', statusColor: 'urgent', primaryActionLabel: 'Escalate to CMO', primaryActionRoute: '/radiology/critical' },
+    ],
+    'Equipment Downtime': [
+      { id: 'MGR-EQ-1', name: 'USG Machine Room 2 (Samsung RS85)', meta: 'Convex Probe Connector Issue', detail: 'Service ticket #TK-882 raised with biomedical engineer; backup machine deployed', timeOrWait: 'Down 4h', status: 'Under Repair', statusColor: 'urgent', primaryActionLabel: 'Biomedical Desk', primaryActionRoute: '/hospital/biomedical' },
+    ],
+  },
 };
 
 export default function WorkQueueTable({ roleKey, workQueues }: WorkQueueTableProps) {

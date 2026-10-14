@@ -131,10 +131,12 @@ export const USER_ROLE_OPTIONS = [
   'clinical_pathology_tech', 'microbiology_tech', 'histopathology_tech',
   'cytology_tech', 'serology_tech', 'molecular_tech', 'report_coordinator',
   'home_collection_staff', 'it_admin',
+  'lab_admin', 'lab_manager', 'lab_quality_mgr', 'analyzer_staff', 'lab_inventory_mgr',
   // File 28 §36/§37: radiology (RIS) department roles (mirror models/User.js).
   'radiology_manager', 'radiology_scheduler', 'radiology_prep_staff',
   'mri_technician', 'xray_technician', 'ct_technician', 'us_technician',
   'mammo_technician', 'reporting_assistant', 'pacs_admin',
+  'radiology_admin', 'radiology_receptionist', 'radiology_billing_executive', 'equipment_manager',
 ];
 export const phoneSchema = z.string().min(10, 'Phone must be at least 10 digits').max(15).optional();
 export const positiveNumber = z.number().positive('Must be a positive number');

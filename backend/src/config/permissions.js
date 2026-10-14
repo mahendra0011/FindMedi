@@ -59,8 +59,24 @@ export const ROLE_EQUIVALENTS = {
   super_admin: ['superadmin', 'super_admin'],
   clinic_telemed_coordinator: ['clinic_telemed_coordinator', 'clinic_telemed_coord'],
   clinic_telemed_coord: ['clinic_telemed_coordinator', 'clinic_telemed_coord'],
-  store_keeper: ['store_keeper', 'purchase_officer'],
-  purchase_officer: ['store_keeper', 'purchase_officer'],
+  store_keeper: ['store_keeper', 'purchase_officer', 'lab_inventory_mgr'],
+  purchase_officer: ['store_keeper', 'purchase_officer', 'lab_inventory_mgr'],
+  lab_inventory_mgr: ['store_keeper', 'purchase_officer', 'lab_inventory_mgr'],
+  lab_owner: ['lab_owner', 'lab_admin', 'lab_manager'],
+  lab_admin: ['lab_owner', 'lab_admin', 'lab_manager'],
+  lab_manager: ['lab_owner', 'lab_admin', 'lab_manager'],
+  radiology_manager: ['radiology_manager', 'radiology_admin'],
+  radiology_admin: ['radiology_manager', 'radiology_admin'],
+  receptionist: ['receptionist', 'front_desk', 'radiology_receptionist'],
+  radiology_receptionist: ['receptionist', 'front_desk', 'radiology_receptionist'],
+  billing_executive: ['billing_executive', 'radiology_billing_executive'],
+  radiology_billing_executive: ['billing_executive', 'radiology_billing_executive'],
+  biomedical_engineer: ['biomedical_engineer', 'maintenance', 'facility_manager', 'equipment_manager'],
+  equipment_manager: ['biomedical_engineer', 'maintenance', 'facility_manager', 'equipment_manager'],
+  quality_officer: ['quality_officer', 'lab_quality_mgr'],
+  lab_quality_mgr: ['quality_officer', 'lab_quality_mgr'],
+  technician: ['technician', 'analyzer_staff'],
+  analyzer_staff: ['technician', 'analyzer_staff'],
 };
 
 export const canonicalRole = (role) => {
@@ -154,12 +170,14 @@ export const CANONICAL_ROLES = [
   'clinical_pathology_tech', 'microbiology_tech', 'histopathology_tech',
   'cytology_tech', 'serology_tech', 'molecular_tech', 'report_coordinator',
   'home_collection_staff', 'it_admin',
+  'lab_admin', 'lab_manager', 'lab_quality_mgr', 'analyzer_staff', 'lab_inventory_mgr',
   // File 28 §36/§37: radiology (RIS) department roles — one least-privilege
   // account per job on the imaging floor (manager, scheduler, prep, per-
   // modality technicians, reporting/PACS support).
   'radiology_manager', 'radiology_scheduler', 'radiology_prep_staff',
   'mri_technician', 'xray_technician', 'ct_technician', 'us_technician',
   'mammo_technician', 'reporting_assistant', 'pacs_admin',
+  'radiology_admin', 'radiology_receptionist', 'radiology_billing_executive', 'equipment_manager',
   // HMS Blueprint 6-layer operational roles
   'hospital_owner', 'medical_superintendent', 'hod', 'resident_doctor',
   'emergency', 'icu_doctor', 'ot_coordinator', 'radiology_technician',
@@ -304,6 +322,26 @@ export const ROLE_PERMISSIONS = {
     'equipment:read', 'reports:read', 'staff:view', 'notifications:read',
     'profile:read:own', 'profile:write:own',
   ],
+  lab_admin: [
+    'lab:manage', 'lab:read', 'lab:book', 'lab:verify', 'reports:read',
+    'lab:cancel', 'lab:receive', 'lab:assign', 'lab:finalize', 'lab:correct',
+    'inventory:read', 'inventory:manage', 'billing:read', 'notifications:read',
+  ],
+  lab_manager: [
+    'lab:manage', 'lab:read', 'lab:book', 'lab:verify', 'reports:read',
+    'lab:cancel', 'lab:receive', 'lab:assign', 'lab:finalize', 'lab:correct',
+    'inventory:read', 'inventory:manage', 'billing:read', 'notifications:read',
+  ],
+  lab_quality_mgr: [
+    'lab:read', 'reports:read', 'audit:read', 'notifications:read',
+    'operations:read', 'quality:read',
+  ],
+  analyzer_staff: [
+    'lab:read', 'lab:enter_result', 'equipment:read', 'notifications:read',
+  ],
+  lab_inventory_mgr: [
+    'inventory:read', 'inventory:manage', 'lab:read', 'notifications:read',
+  ],
   pharmacy_owner: ['pharmacy:manage', 'pharmacy:read', 'pharmacy:dispense', 'inventory:manage', 'notifications:read'],
   pharmacist: ['pharmacy:read', 'pharmacy:dispense', 'notifications:read'],
   // §36: radiologists sign/amend reports (radiology:amend on the report
@@ -334,6 +372,20 @@ export const ROLE_PERMISSIONS = {
   // PACS admin: connectivity/worklist/viewer + equipment metadata. No report
   // writes and no PHI-class records:read (BreakGlass covers anything more).
   pacs_admin: ['radiology:read', 'equipment:read', 'notifications:read'],
+  radiology_admin: [
+    'radiology:read', 'radiology:write', 'radiology:cancel',
+    'equipment:read', 'equipment:manage', 'reports:read', 'billing:read', 'notifications:read',
+  ],
+  radiology_receptionist: [
+    'radiology:read', 'radiology:write', 'patients:read', 'patients:write',
+    'billing:read', 'billing:write', 'notifications:read',
+  ],
+  radiology_billing_executive: [
+    'billing:read', 'billing:write', 'radiology:read', 'notifications:read',
+  ],
+  equipment_manager: [
+    'equipment:read', 'equipment:manage', 'inventory:read', 'notifications:read',
+  ],
   dietitian: ['diet:read', 'diet:write'],
   physiotherapist: ['physio:read', 'physio:write'],
   accountant: ['billing:read', 'commission:read', 'reports:read', 'notifications:read'],

@@ -117,4 +117,38 @@ describe('fetchRoleQueues (Wave 3 · live work queues)', () => {
     expect(admin['Pending Bill Settlements']).toBeDefined();
     expect(admin['Inventory Reorder Alerts']).toBeDefined();
   });
+
+  it('maps LIS and RIS roles onto canonical workQueues with /lab/* and /radiology/* routes', async () => {
+    api.get.mockImplementation((path) => {
+      if (path === '/lab/orders') {
+        return Promise.resolve([
+          { _id: 'o1', accessionNo: 'ACC-01', patientName: 'Lab Patient', testName: 'CBC', status: 'Sample Accepted' },
+          { _id: 'o2', accessionNo: 'ACC-02', patientName: 'Critical Patient', testName: 'KFT', status: 'Critical', flag: 'critical' },
+        ]);
+      }
+      if (path === '/radiology/orders') {
+        return Promise.resolve([
+          { _id: 'r1', studyNo: 'RAD-01', patientName: 'Imaging Patient', study: 'CT Brain', modality: 'CT', priority: 'STAT', status: 'Patient Ready' },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+
+    const pathOut = await fetchRoleQueues('pathologist');
+    expect(pathOut['Results Awaiting Verification']).toBeDefined();
+    expect(pathOut['Critical Panic Values']).toBeDefined();
+
+    const techOut = await fetchRoleQueues('lab_technician');
+    expect(techOut['Assigned Samples Queue']).toBeDefined();
+
+    const phlebOut = await fetchRoleQueues('phlebotomist');
+    expect(phlebOut['Pending Collection Queue']).toBeDefined();
+
+    const radOut = await fetchRoleQueues('radiologist');
+    expect(radOut['CT Scan Reporting Queue']).toBeDefined();
+    expect(radOut['STAT Emergency Queue']).toBeDefined();
+
+    const radTechOut = await fetchRoleQueues('radiology_technician');
+    expect(radTechOut['Pending Acquisition Queue']).toBeDefined();
+  });
 });

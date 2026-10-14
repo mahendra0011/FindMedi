@@ -154,12 +154,14 @@ const userSchema = new mongoose.Schema({
       'clinical_pathology_tech', 'microbiology_tech', 'histopathology_tech',
       'cytology_tech', 'serology_tech', 'molecular_tech', 'report_coordinator',
       'home_collection_staff', 'it_admin',
+      'lab_admin', 'lab_manager', 'lab_quality_mgr', 'analyzer_staff', 'lab_inventory_mgr',
       // File 28 §36/§37: radiology (RIS) department roles. Permission sets
       // live in config/permissions.js ROLE_PERMISSIONS (assertRoleMatrixComplete
       // and test/unit/roleMatrixSnapshot.spec.js enforce the pairing).
       'radiology_manager', 'radiology_scheduler', 'radiology_prep_staff',
       'mri_technician', 'xray_technician', 'ct_technician', 'us_technician',
       'mammo_technician', 'reporting_assistant', 'pacs_admin',
+      'radiology_admin', 'radiology_receptionist', 'radiology_billing_executive', 'equipment_manager',
     ],
     default: 'patient',
     index: true,

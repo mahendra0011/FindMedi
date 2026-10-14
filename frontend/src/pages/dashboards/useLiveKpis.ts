@@ -1386,13 +1386,48 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         };
       }
       case 'lab_technician':
-        return labQueues({ intake: 'Accession & Barcode Queue', review: 'Results Awaiting Review' });
+      case 'biochem_tech':
+      case 'hematology_tech':
+      case 'clinical_pathology_tech':
+      case 'microbiology_tech':
+      case 'histopathology_tech':
+      case 'cytology_tech':
+      case 'serology_tech':
+      case 'molecular_tech':
+      case 'analyzer_staff':
+        return labQueues({ intake: 'Assigned Samples Queue', review: 'Pending Result Entry' });
       case 'pathologist':
-        return labQueues({ intake: 'Pending Verification Queue', review: 'Pending Verification Queue' }, 'Critical Panic Queue');
+      case 'lab_supervisor':
+      case 'lab_admin':
+      case 'lab_manager':
+      case 'lab_quality_mgr':
+        return labQueues({ intake: 'Results Awaiting Verification', review: 'Results Awaiting Verification' }, 'Critical Panic Values');
+      case 'phlebotomist':
+      case 'home_collection_staff':
+        return labQueues({ intake: 'Pending Collection Queue', review: 'Urgent STAT Collections' });
+      case 'lab_receiving':
+        return labQueues({ intake: 'Samples Awaiting Receipt', review: 'Sample Acceptance & Rejection' });
       case 'radiology_technician':
-        return radiologyQueues({ worklist: 'Modality Worklist Queue' });
+      case 'mri_technician':
+      case 'xray_technician':
+      case 'ct_technician':
+      case 'us_technician':
+      case 'mammo_technician':
+        return radiologyQueues({ worklist: 'Pending Acquisition Queue' });
       case 'radiologist':
-        return radiologyQueues({ worklist: 'PACS Unread Queue', unread: 'PACS Unread Queue', stat: 'Stat / Urgent Studies' });
+      case 'reporting_assistant':
+      case 'report_coordinator':
+        return radiologyQueues({ worklist: 'CT Scan Reporting Queue', unread: 'MRI Reporting Queue', stat: 'STAT Emergency Queue' });
+      case 'radiology_manager':
+      case 'radiology_admin':
+      case 'equipment_manager':
+        return radiologyQueues({ worklist: 'Overdue Reporting Worklist', stat: 'Urgent / STAT Queue' });
+      case 'pacs_admin':
+        return radiologyQueues({ worklist: 'Unlinked / Orphan DICOM Studies', stat: 'Retry Transfer Queue' });
+      case 'radiology_prep_staff':
+        return radiologyQueues({ worklist: 'MRI Safety Screening Queue', stat: 'CT Contrast Hydration & Renal Check' });
+      case 'radiology_scheduler':
+        return radiologyQueues({ worklist: 'Waitlist Queue', stat: 'Rescheduling Queue' });
       case 'pharmacist':
       case 'clinic_pharmacist':
         return pharmacyQueues();

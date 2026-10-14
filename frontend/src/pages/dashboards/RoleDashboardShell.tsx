@@ -200,12 +200,12 @@ export interface RoleDashboardConfig {
   accent?: string;
   permissions: string[];
   kpis: Kpi[];
-  tasks: TaskItem[];
-  alerts: AlertItem[];
+  tasks?: TaskItem[];
+  alerts?: (AlertItem | { id?: string; level?: string; message?: string; text?: string })[];
   domainModules: DomainModule[];
   sidebarSections?: string[];
   workQueues?: string[];
-  quickActions?: string[];
+  quickActions?: (string | { label: string; route?: string })[];
 }
 
 export function getSectionEmoji(name: string): string {
@@ -279,7 +279,7 @@ export default function RoleDashboardShell({ config }: { config: RoleDashboardCo
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get('tab') || 'today';
   const [activeTab, setActiveTab] = useState<string>(rawTab);
-  const [tasks, setTasks] = useState<TaskItem[]>(config.tasks);
+  const [tasks, setTasks] = useState<TaskItem[]>(config.tasks || []);
   const [newTaskInput, setNewTaskInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBranch, setSelectedBranch] = useState('Main Facility / Studio');
@@ -294,7 +294,16 @@ export default function RoleDashboardShell({ config }: { config: RoleDashboardCo
 
   const navigate = useNavigate();
 
-  const handleQuickAction = (action: string) => {
+  const handleQuickAction = (action: string | { label: string; route?: string }) => {
+    if (typeof action === 'object') {
+      if (action.route) {
+        toast.info(`Opening ${action.label}...`);
+        navigate(action.route);
+      } else {
+        toast.success(`Action initiated: ${action.label}`);
+      }
+      return;
+    }
     const route = QUICK_ACTION_ROUTES[action];
     if (route) {
       toast.info(`Opening ${action}...`);
@@ -573,16 +582,19 @@ export default function RoleDashboardShell({ config }: { config: RoleDashboardCo
                     <span className="text-xs text-muted-foreground">One-click operational triggers</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {config.quickActions.map((action, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => handleQuickAction(action)}
-                        className="text-xs px-3 py-1.5 rounded-lg bg-background hover:bg-muted text-foreground font-medium border shadow-xs transition-colors hover:border-primary/40 flex items-center gap-1.5"
-                      >
-                        <span className="text-primary font-bold">▶</span> {action}
-                      </button>
-                    ))}
+                    {config.quickActions.map((action: any, idx) => {
+                      const label = typeof action === 'string' ? action : action?.label;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handleQuickAction(action)}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-background hover:bg-muted text-foreground font-medium border shadow-xs transition-colors hover:border-primary/40 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <span className="text-primary font-bold">▶</span> {label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </section>
               )}
@@ -639,30 +651,36 @@ export default function RoleDashboardShell({ config }: { config: RoleDashboardCo
                 <section data-testid="role-alerts" className="rounded-xl border bg-card p-4 shadow-sm">
                   <div className="flex items-center justify-between pb-2 border-b">
                     <h2 className="font-semibold text-sm">Alerts</h2>
-                    <span className="text-[11px] text-muted-foreground">{config.alerts.length} notifications</span>
+                    <span className="text-[11px] text-muted-foreground">{(config.alerts || []).length} notifications</span>
                   </div>
 
                   <ul className="mt-3 space-y-2">
-                    {config.alerts.map((a) => (
-                      <li
-                        key={a.id}
-                        className={`text-xs md:text-sm rounded-lg border p-2.5 flex items-start gap-2.5 ${
-                          a.level === 'urgent'
-                            ? 'bg-rose-500/10 border-rose-500/20 text-rose-900 dark:text-rose-200'
-                            : a.level === 'warn'
-                            ? 'bg-amber-500/10 border-amber-500/20 text-amber-900 dark:text-amber-200'
-                            : 'bg-blue-500/10 border-blue-500/20 text-blue-900 dark:text-blue-200'
-                        }`}
-                      >
-                        <span className="text-base shrink-0 leading-none mt-0.5">
-                          {a.level === 'urgent' ? '🔴' : a.level === 'warn' ? '🟡' : '🔵'}
-                        </span>
-                        <div className="flex-1">
-                          <p className="leading-snug">{a.text}</p>
-                        </div>
-                      </li>
-                    ))}
-                    {config.alerts.length === 0 && (
+                    {(config.alerts || []).map((a: any, idx) => {
+                      const alertText = a.text || a.message;
+                      const isUrgent = a.level === 'urgent' || a.level === 'danger';
+                      const isWarn = a.level === 'warn' || a.level === 'warning';
+                      const key = a.id || `alert-${idx}`;
+                      return (
+                        <li
+                          key={key}
+                          className={`text-xs md:text-sm rounded-lg border p-2.5 flex items-start gap-2.5 ${
+                            isUrgent
+                              ? 'bg-rose-500/10 border-rose-500/20 text-rose-900 dark:text-rose-200'
+                              : isWarn
+                              ? 'bg-amber-500/10 border-amber-500/20 text-amber-900 dark:text-amber-200'
+                              : 'bg-blue-500/10 border-blue-500/20 text-blue-900 dark:text-blue-200'
+                          }`}
+                        >
+                          <span className="text-base shrink-0 leading-none mt-0.5">
+                            {isUrgent ? '🔴' : isWarn ? '🟡' : '🔵'}
+                          </span>
+                          <div className="flex-1">
+                            <p className="leading-snug">{alertText}</p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                    {(!config.alerts || config.alerts.length === 0) && (
                       <p className="text-sm text-muted-foreground py-2 text-center">No alerts.</p>
                     )}
                   </ul>

@@ -1197,42 +1197,42 @@ const App = () => (
                     <Route path="/patients" element={<RoleRoute allowedRoles={['hospital_admin']}><Patients /></RoleRoute>} />
                     <Route path="/appointments" element={<RoleRoute allowedRoles={['hospital_admin']}><Appointments /></RoleRoute>} />
                     <Route path="/records" element={<RoleRoute allowedRoles={['hospital_admin']}><MedicalRecords /></RoleRoute>} />
-                    <Route path="/billing" element={<RoleRoute allowedRoles={['hospital_admin', 'billing_executive', 'cashier', 'front_desk', 'insurance_desk']}><Billing /></RoleRoute>} />
+                    <Route path="/billing" element={<RoleRoute allowedRoles={['hospital_admin', 'billing_executive', 'cashier', 'front_desk', 'insurance_desk', 'radiology_billing_executive']}><Billing /></RoleRoute>} />
                     <Route path="/verify-transaction" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'doctor', 'clinic_doctor', 'lab_owner', 'pharmacy_owner', 'patient']}><VerifyTransaction /></RoleRoute>} />
                     <Route path="/reports" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor']}><PDFReports /></RoleRoute>} />
                     <Route path="/import-export" element={<RoleRoute allowedRoles={['hospital_admin']}><ImportExport /></RoleRoute>} />
-                    <Route path="/lab" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'lab_receptionist', 'lab_technician', 'pathologist']}><Lab /></RoleRoute>} />
+                    <Route path="/lab" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'lab_receptionist', 'lab_technician', 'pathologist', 'lab_admin', 'lab_manager']}><Lab /></RoleRoute>} />
                     <Route path="/pharmacy" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'pharmacist', 'pharmacovigilance_officer']}><Pharmacy /></RoleRoute>} />
                     <Route path="/ipd" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'nursing_supervisor', 'matron', 'ward_nurse', 'icu_nurse', 'medical_director', 'cmo', 'surgeon', 'anaesthetist', 'billing_executive']}><IPD /></RoleRoute>} />
                     <Route path="/triage" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><TriagePage /></RoleRoute>} />
                     <Route path="/nursing" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'nursing_supervisor', 'matron', 'infection_control_nurse']}><NursingCharts /></RoleRoute>} />
-                    <Route path="/radiology" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'radiologist', 'technician', 'radiology_manager', 'radiology_scheduler', 'radiology_prep_staff', 'mri_technician', 'xray_technician', 'ct_technician', 'us_technician', 'mammo_technician', 'pacs_admin', 'reporting_assistant', 'report_coordinator', 'front_desk', 'receptionist']}><Radiology /></RoleRoute>} />
+                    <Route path="/radiology" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'radiologist', 'technician', 'radiology_admin', 'radiology_manager', 'radiology_scheduler', 'radiology_prep_staff', 'mri_technician', 'xray_technician', 'ct_technician', 'us_technician', 'mammo_technician', 'pacs_admin', 'reporting_assistant', 'report_coordinator', 'front_desk', 'receptionist', 'radiology_receptionist', 'equipment_manager']}><Radiology /></RoleRoute>} />
 
                     {/* ── Pathology Subroutes ── */}
-                    <Route path="/lab/receiving" element={<RoleRoute allowedRoles={['lab_owner', 'lab_receiving', 'lab_technician', 'hospital_admin']}><LabReceivingDashboard /></RoleRoute>} />
-                    <Route path="/lab/worklist/:section" element={<RoleRoute allowedRoles={['lab_technician', 'lab_owner', 'biochem_tech', 'hematology_tech', 'clinical_pathology_tech', 'microbiology_tech', 'histopathology_tech', 'cytology_tech', 'serology_tech', 'molecular_tech', 'lab_supervisor']}><LabSectionWorkbench /></RoleRoute>} />
-                    <Route path="/lab/verify" element={<RoleRoute allowedRoles={['pathologist', 'lab_owner', 'hospital_admin']}><PathologistVerificationDashboard /></RoleRoute>} />
-                    <Route path="/lab/collection" element={<RoleRoute allowedRoles={['phlebotomist', 'home_collection_staff', 'lab_owner']}><PhlebotomistDashboard /></RoleRoute>} />
-                    <Route path="/lab/qc" element={<RoleRoute allowedRoles={['lab_owner', 'lab_supervisor', 'quality_officer', 'hospital_admin']}><LabQualityQc /></RoleRoute>} />
-                    <Route path="/lab/tracking" element={<RoleRoute allowedRoles={['lab_receptionist', 'lab_technician', 'lab_owner', 'lab_receiving']}><LabSampleTracking /></RoleRoute>} />
-                    <Route path="/lab/outsource" element={<RoleRoute allowedRoles={['lab_owner', 'lab_supervisor']}><LabOutsourceDesk /></RoleRoute>} />
-                    <Route path="/lab/analytics" element={<RoleRoute allowedRoles={['lab_owner', 'hospital_admin', 'accountant']}><LabReportsAnalytics /></RoleRoute>} />
+                    <Route path="/lab/receiving" element={<RoleRoute allowedRoles={['lab_owner', 'lab_receiving', 'lab_technician', 'hospital_admin', 'lab_admin', 'lab_manager']}><LabReceivingDashboard /></RoleRoute>} />
+                    <Route path="/lab/worklist/:section" element={<RoleRoute allowedRoles={['lab_technician', 'lab_owner', 'biochem_tech', 'hematology_tech', 'clinical_pathology_tech', 'microbiology_tech', 'histopathology_tech', 'cytology_tech', 'serology_tech', 'molecular_tech', 'lab_supervisor', 'analyzer_staff', 'lab_admin', 'lab_manager']}><LabSectionWorkbench /></RoleRoute>} />
+                    <Route path="/lab/verify" element={<RoleRoute allowedRoles={['pathologist', 'lab_owner', 'hospital_admin', 'lab_admin', 'lab_manager']}><PathologistVerificationDashboard /></RoleRoute>} />
+                    <Route path="/lab/collection" element={<RoleRoute allowedRoles={['phlebotomist', 'home_collection_staff', 'lab_owner', 'lab_manager']}><PhlebotomistDashboard /></RoleRoute>} />
+                    <Route path="/lab/qc" element={<RoleRoute allowedRoles={['lab_owner', 'lab_supervisor', 'quality_officer', 'hospital_admin', 'lab_admin', 'lab_manager', 'lab_quality_mgr']}><LabQualityQc /></RoleRoute>} />
+                    <Route path="/lab/tracking" element={<RoleRoute allowedRoles={['lab_receptionist', 'lab_technician', 'lab_owner', 'lab_receiving', 'lab_admin', 'lab_manager']}><LabSampleTracking /></RoleRoute>} />
+                    <Route path="/lab/outsource" element={<RoleRoute allowedRoles={['lab_owner', 'lab_supervisor', 'lab_admin', 'lab_manager']}><LabOutsourceDesk /></RoleRoute>} />
+                    <Route path="/lab/analytics" element={<RoleRoute allowedRoles={['lab_owner', 'hospital_admin', 'accountant', 'lab_admin', 'lab_manager']}><LabReportsAnalytics /></RoleRoute>} />
 
                     {/* ── Radiology Subroutes ── */}
-                    <Route path="/radiology/dashboard" element={<RoleRoute allowedRoles={['hospital_admin', 'radiology_manager', 'radiologist']}><RadiologyDashboard /></RoleRoute>} />
-                    <Route path="/radiology/scheduling" element={<RoleRoute allowedRoles={['radiology_scheduler', 'radiology_manager', 'hospital_admin', 'receptionist']}><RadiologyScheduling /></RoleRoute>} />
-                    <Route path="/radiology/modalities" element={<RoleRoute allowedRoles={['radiology_manager', 'hospital_admin']}><ModalityMaster /></RoleRoute>} />
-                    <Route path="/radiology/mri" element={<RoleRoute allowedRoles={['mri_technician', 'radiologist', 'radiology_manager']}><ModalityDashboard modalityType="MRI" /></RoleRoute>} />
-                    <Route path="/radiology/xray" element={<RoleRoute allowedRoles={['xray_technician', 'radiologist', 'radiology_manager']}><ModalityDashboard modalityType="X-Ray" /></RoleRoute>} />
-                    <Route path="/radiology/ct" element={<RoleRoute allowedRoles={['ct_technician', 'radiologist', 'radiology_manager']}><ModalityDashboard modalityType="CT" /></RoleRoute>} />
-                    <Route path="/radiology/ultrasound" element={<RoleRoute allowedRoles={['us_technician', 'radiologist', 'radiology_manager']}><ModalityDashboard modalityType="Ultrasound" /></RoleRoute>} />
-                    <Route path="/radiology/mammography" element={<RoleRoute allowedRoles={['mammo_technician', 'radiologist', 'radiology_manager']}><ModalityDashboard modalityType="Mammography" /></RoleRoute>} />
-                    <Route path="/radiology/preparation" element={<RoleRoute allowedRoles={['radiology_prep_staff', 'radiology_scheduler']}><PreparationQueue /></RoleRoute>} />
-                    <Route path="/radiology/pacs" element={<RoleRoute allowedRoles={['pacs_admin', 'radiologist', 'radiology_manager']}><PacsDashboard /></RoleRoute>} />
-                    <Route path="/radiology/critical" element={<RoleRoute allowedRoles={['radiologist', 'doctor', 'radiology_manager']}><CriticalFindings /></RoleRoute>} />
-                    <Route path="/radiology/reports" element={<RoleRoute allowedRoles={['radiologist', 'report_coordinator', 'radiology_manager']}><ReportCenter /></RoleRoute>} />
-                    <Route path="/radiology/reception" element={<RoleRoute allowedRoles={['receptionist', 'front_desk']}><ReceptionConsole /></RoleRoute>} />
-                    <Route path="/radiology/mis" element={<RoleRoute allowedRoles={['radiology_manager', 'hospital_admin', 'accountant']}><RadiologyMIS /></RoleRoute>} />
+                    <Route path="/radiology/dashboard" element={<RoleRoute allowedRoles={['hospital_admin', 'radiology_admin', 'radiology_manager', 'radiologist']}><RadiologyDashboard /></RoleRoute>} />
+                    <Route path="/radiology/scheduling" element={<RoleRoute allowedRoles={['radiology_scheduler', 'radiology_manager', 'radiology_admin', 'hospital_admin', 'receptionist', 'radiology_receptionist']}><RadiologyScheduling /></RoleRoute>} />
+                    <Route path="/radiology/modalities" element={<RoleRoute allowedRoles={['radiology_manager', 'radiology_admin', 'hospital_admin', 'equipment_manager']}><ModalityMaster /></RoleRoute>} />
+                    <Route path="/radiology/mri" element={<RoleRoute allowedRoles={['mri_technician', 'radiologist', 'radiology_manager', 'radiology_admin']}><ModalityDashboard modalityType="MRI" /></RoleRoute>} />
+                    <Route path="/radiology/xray" element={<RoleRoute allowedRoles={['xray_technician', 'radiologist', 'radiology_manager', 'radiology_admin']}><ModalityDashboard modalityType="X-Ray" /></RoleRoute>} />
+                    <Route path="/radiology/ct" element={<RoleRoute allowedRoles={['ct_technician', 'radiologist', 'radiology_manager', 'radiology_admin']}><ModalityDashboard modalityType="CT" /></RoleRoute>} />
+                    <Route path="/radiology/ultrasound" element={<RoleRoute allowedRoles={['us_technician', 'radiologist', 'radiology_manager', 'radiology_admin']}><ModalityDashboard modalityType="Ultrasound" /></RoleRoute>} />
+                    <Route path="/radiology/mammography" element={<RoleRoute allowedRoles={['mammo_technician', 'radiologist', 'radiology_manager', 'radiology_admin']}><ModalityDashboard modalityType="Mammography" /></RoleRoute>} />
+                    <Route path="/radiology/preparation" element={<RoleRoute allowedRoles={['radiology_prep_staff', 'radiology_scheduler', 'radiology_manager']}><PreparationQueue /></RoleRoute>} />
+                    <Route path="/radiology/pacs" element={<RoleRoute allowedRoles={['pacs_admin', 'radiologist', 'radiology_manager', 'radiology_admin']}><PacsDashboard /></RoleRoute>} />
+                    <Route path="/radiology/critical" element={<RoleRoute allowedRoles={['radiologist', 'doctor', 'radiology_manager', 'radiology_admin']}><CriticalFindings /></RoleRoute>} />
+                    <Route path="/radiology/reports" element={<RoleRoute allowedRoles={['radiologist', 'reporting_assistant', 'report_coordinator', 'radiology_manager', 'radiology_admin']}><ReportCenter /></RoleRoute>} />
+                    <Route path="/radiology/reception" element={<RoleRoute allowedRoles={['receptionist', 'front_desk', 'radiology_receptionist', 'radiology_admin']}><ReceptionConsole /></RoleRoute>} />
+                    <Route path="/radiology/mis" element={<RoleRoute allowedRoles={['radiology_manager', 'radiology_admin', 'hospital_admin', 'accountant']}><RadiologyMIS /></RoleRoute>} />
                     <Route path="/insurance" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'patient']}><Insurance /></RoleRoute>} />
                     <Route path="/diet" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'dietician_head', 'kitchen_staff']}><DietKitchen /></RoleRoute>} />
                     <Route path="/ot" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'surgeon', 'anaesthetist', 'ot_nurse']}><OperationTheatre /></RoleRoute>} />
