@@ -10,6 +10,7 @@ import {
   getRisDashboardSpec,
 } from '@/lib/risDashboardSpec';
 import UniversalHmsDashboard from './UniversalHmsDashboard';
+import UniversalRisDashboard from './UniversalRisDashboard';
 
 describe('RIS / PACS Dashboard Master Specification (Frontend Client)', () => {
   it('covers all 8 diagnostic radiology imaging modalities', () => {
@@ -39,7 +40,7 @@ describe('RIS / PACS Dashboard Master Specification (Frontend Client)', () => {
     expect(ids.size).toBe(41);
   });
 
-  it('provides complete specification for every registered RIS role', () => {
+  it('provides complete specification with layer and tasks for every registered RIS role', () => {
     const roles = getAllRisRoles();
     expect(roles.length).toBeGreaterThanOrEqual(16);
 
@@ -49,6 +50,9 @@ describe('RIS / PACS Dashboard Master Specification (Frontend Client)', () => {
       expect(spec.roleKey).toBe(roleKey);
       expect(spec.title).toBeTruthy();
       expect(spec.subtitle).toBeTruthy();
+      expect(spec.layer).toBe('Radiology Information System & PACS (RIS)');
+      expect(Array.isArray(spec.tasks)).toBe(true);
+      expect(spec.tasks.length).toBeGreaterThanOrEqual(4);
       expect(spec.permissions.length).toBeGreaterThan(0);
       expect(spec.sidebarSections.length).toBeGreaterThan(0);
       expect(spec.kpis.length).toBeGreaterThanOrEqual(3);
@@ -66,6 +70,12 @@ describe('RIS / PACS Dashboard Master Specification (Frontend Client)', () => {
     expect(getRisDashboardSpec('ct_tech').roleKey).toBe('ct_tech');
     expect(getRisDashboardSpec('xray_tech').roleKey).toBe('xray_tech');
     expect(getRisDashboardSpec('pacs_admin').roleKey).toBe('pacs_admin');
+    expect(getRisDashboardSpec('radiology_cashier').roleKey).toBe('radiology_cashier');
+    expect(getRisDashboardSpec('radiology_insurance').roleKey).toBe('radiology_insurance');
+    expect(getRisDashboardSpec('radiology_inventory').roleKey).toBe('radiology_inventory');
+    expect(getRisDashboardSpec('radiology_quality').roleKey).toBe('radiology_quality');
+    expect(getRisDashboardSpec('radiology_accountant').roleKey).toBe('radiology_accountant');
+    expect(getRisDashboardSpec('radiology_patient').roleKey).toBe('radiology_patient');
     expect(getRisDashboardSpec('radiology_unknown_role').roleKey).toBe('radiology_unknown_role');
   });
 
@@ -81,15 +91,15 @@ describe('RIS / PACS Dashboard Master Specification (Frontend Client)', () => {
     expect(screen.getByText(/STAT Emergency & Critical/i)).toBeInTheDocument();
   });
 
-  it('renders UniversalHmsDashboard for MRI technologist with protocol worklist', () => {
+  it('renders UniversalRisDashboard for MRI technologist with protocol worklist and tasks', () => {
     render(
       <MemoryRouter>
-        <UniversalHmsDashboard roleKey="mri_technician" />
+        <UniversalRisDashboard roleKey="mri_technician" />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId('universal-hms-dashboard')).toBeInTheDocument();
+    expect(screen.getByTestId('universal-ris-dashboard')).toBeInTheDocument();
     expect(screen.getByText(/MRI Specialist Radiographer/i)).toBeInTheDocument();
-    expect(screen.getByText(/MRI Modality Worklist/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tasks/i)).toBeInTheDocument();
   });
 });

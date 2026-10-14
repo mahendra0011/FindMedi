@@ -1386,16 +1386,37 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         };
       }
       case 'lab_technician':
-      case 'biochem_tech':
-      case 'hematology_tech':
-      case 'clinical_pathology_tech':
-      case 'microbiology_tech':
-      case 'histopathology_tech':
-      case 'cytology_tech':
-      case 'serology_tech':
-      case 'molecular_tech':
-      case 'analyzer_staff':
         return labQueues({ intake: 'Assigned Samples Queue', review: 'Pending Result Entry' });
+      case 'biochem_tech':
+        return labQueues({ intake: 'Biochemistry Analyzer Worklist', review: 'Glucose & HbA1c Batches' }, 'Critical Electrolytes');
+      case 'hematology_tech':
+        return labQueues({ intake: 'CBC Worklist Queue', review: 'Coagulation PT/INR Queue' }, 'Peripheral Smear Reviews');
+      case 'clinical_pathology_tech':
+        return labQueues({ intake: 'Urine Routine & Microscopy Worklist', review: 'Stool Occult Blood & Parasitology' }, 'Body Fluid Cell Count & Differential');
+      case 'microbiology_tech':
+        return labQueues({ intake: 'Active Culture Incubations', review: 'Antibiotic Susceptibility Testing' }, 'Preliminary Gram Stains');
+      case 'histopathology_tech':
+        return labQueues({ intake: 'Grossing Worklist', review: 'Staining & Slide Mounts' }, 'Block Embedding Queue');
+      case 'cytology_tech':
+        return labQueues({ intake: 'Pap Smear Screening Worklist', review: 'FNAC Smear Fixation & Staining Queue' });
+      case 'serology_tech':
+        return labQueues({ intake: 'Serology & Immunoassay Worklist', review: 'Viral Marker Screening' }, 'Autoimmune Antibody Panel');
+      case 'molecular_tech':
+        return labQueues({ intake: 'RT-PCR Extraction & Amplification Queue', review: 'Viral Load Quantification' }, 'Thermal Cycler Runs');
+      case 'analyzer_staff':
+        return labQueues({ intake: 'Analyzer Calibration Worklist', review: 'Reagent Blank Verifications' }, 'ASTM / HL7 Interfacing Feeds');
+      case 'lab_inventory_mgr':
+        return singleListQueue('/inventory/items', 'Reagent Low Stock Warnings', (it) => ({
+          id: str(it, ['sku', '_id', 'id'], 'RGT'),
+          name: str(it, ['name', 'itemName'], 'Laboratory Reagent'),
+          meta: `Lot: ${str(it, ['lotNo', 'batch'], '—')}`,
+          detail: 'Minimum laboratory stock threshold breached',
+          timeOrWait: 'Reorder Due',
+          status: 'Low Stock',
+          statusColor: 'urgent',
+          primaryActionLabel: 'Reorder Reagent',
+          primaryActionRoute: '/inventory',
+        }));
       case 'pathologist':
       case 'lab_supervisor':
       case 'lab_admin':
@@ -1408,20 +1429,39 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
       case 'lab_receiving':
         return labQueues({ intake: 'Samples Awaiting Receipt', review: 'Sample Acceptance & Rejection' });
       case 'radiology_technician':
-      case 'mri_technician':
-      case 'xray_technician':
-      case 'ct_technician':
-      case 'us_technician':
-      case 'mammo_technician':
         return radiologyQueues({ worklist: 'Pending Acquisition Queue' });
+      case 'mri_technician':
+        return radiologyQueues({ worklist: 'MRI Queue Today', unread: 'Screening Cleared Patients', stat: 'Contrast-Enhanced MRI Waiting' });
+      case 'xray_technician':
+        return radiologyQueues({ worklist: 'Routine OP Chest Worklist', unread: 'Pediatric Radiography Queue', stat: 'STAT Trauma X-Rays' });
+      case 'ct_technician':
+        return radiologyQueues({ worklist: 'Triple Phase CT Queue', unread: 'HRCT Chest Worklist', stat: 'Trauma Whole Body CT' });
+      case 'us_technician':
+        return radiologyQueues({ worklist: 'Full Bladder Waiting Queue', unread: 'Fasting Upper Abdomen Queue', stat: 'STAT Vascular Doppler' });
+      case 'mammo_technician':
+        return radiologyQueues({ worklist: 'Screening Mammography Queue', unread: 'Prior Image Retrieval Desk', stat: 'Diagnostic Magnification Views' });
       case 'radiologist':
       case 'reporting_assistant':
       case 'report_coordinator':
         return radiologyQueues({ worklist: 'CT Scan Reporting Queue', unread: 'MRI Reporting Queue', stat: 'STAT Emergency Queue' });
       case 'radiology_manager':
       case 'radiology_admin':
-      case 'equipment_manager':
         return radiologyQueues({ worklist: 'Overdue Reporting Worklist', stat: 'Urgent / STAT Queue' });
+      case 'equipment_manager':
+        return radiologyQueues({ worklist: 'Modality Breakdown Work Orders', stat: 'Critical Calibration Pending' });
+      case 'radiology_billing_executive':
+      case 'radiology_cashier':
+        return singleListQueue('/radiology/orders', 'Unbilled Modality Studies', (s) => ({
+          id: str(s, ['accessionNo', 'studyNo', '_id', 'id'], 'RAD'),
+          name: `${str(s, ['patientName', 'patient'], 'Patient')} · ${str(s, ['modality', 'studyType'], 'Scan')}`,
+          meta: `Modality: ${str(s, ['modality'], 'X-Ray')}`,
+          detail: 'Completed scan awaiting billing counter settlement',
+          timeOrWait: ago(s.createdAt),
+          status: 'Pending Settlement',
+          statusColor: 'urgent',
+          primaryActionLabel: 'Collect Billing',
+          primaryActionRoute: '/billing',
+        }));
       case 'pacs_admin':
         return radiologyQueues({ worklist: 'Unlinked / Orphan DICOM Studies', stat: 'Retry Transfer Queue' });
       case 'radiology_prep_staff':

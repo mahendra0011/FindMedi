@@ -769,6 +769,90 @@ export const ROLE_QUEUE_DATA: Record<string, Record<string, WorkQueueItem[]>> = 
     ],
   },
 
+  cytology_tech: {
+    'Pap Smear Screening Worklist': [
+      { id: 'CYT-101', name: 'Sunita Devi · Cervical Screening Pap Smear', meta: 'Liquid-Based Cytology (LBC)', detail: 'Bethesda System: Negative for Intraepithelial Lesion or Malignancy (NILM)', timeOrWait: 'Stained', status: 'Screening Ready', statusColor: 'info', primaryActionLabel: 'Screen Slide', primaryActionRoute: '/lab/worklist/cytology' },
+    ],
+    'FNAC Smear Fixation & Staining Queue': [
+      { id: 'CYT-102', name: 'Ramesh Sen · Thyroid Nodule FNAC Aspirate', meta: 'Fixed 95% Ethyl Alcohol + Air-Dried', detail: 'Rapid on-site evaluation (ROSE) performed; Papanicolaou & Giemsa staining completed', timeOrWait: 'Ready', status: 'Slides Mounted', statusColor: 'success', primaryActionLabel: 'Stage for Path', primaryActionRoute: '/lab/verify' },
+    ],
+    'Body Fluid Cytocentrifugation Worklist': [
+      { id: 'CYT-103', name: 'Mohan Lal · Pleural Fluid Centrifugation', meta: 'Vol: 250 mL · Heparinized Container', detail: 'Cytospin preparation for atypical mesothelial cells vs metastatic carcinoma', timeOrWait: 'Centrifuged', status: 'Cell Block Prep', statusColor: 'warn', primaryActionLabel: 'Prepare Cell Block', primaryActionRoute: '/lab/worklist/cytology' },
+    ],
+    'Cytology Slides Staged for Pathologist': [
+      { id: 'CYT-104', name: 'Pooja Hegde · Ascitic Fluid Smears (Tray 4)', meta: 'Ref: Dr. Rao (Oncology)', detail: 'Four stained slides with requisition slip positioned for microscopic sign-out', timeOrWait: 'Staged 15m', status: 'Awaiting Pathologist', statusColor: 'info', primaryActionLabel: 'Deliver Tray', primaryActionRoute: '/lab/verify' },
+    ],
+  },
+
+  serology_tech: {
+    'Serology & Immunoassay Worklist': [
+      { id: 'SER-101', name: 'Aarav Malhotra · Viral Hepatitis Complete Profile', meta: 'HBsAg, Anti-HCV, Anti-HAV IgM', detail: 'Architect i2000SR Chemiluminescence Analyzer automated feed', timeOrWait: 'Running 12m', status: 'Assay In-Progress', statusColor: 'info', primaryActionLabel: 'Review COI', primaryActionRoute: '/lab/worklist/serology' },
+    ],
+    'Viral Marker Screening': [
+      { id: 'SER-102', name: 'Emergency Pre-Op Panel (HIV-1/2 & Syphilis RPR)', meta: 'OT Case #OT-8822 (Immediate)', detail: 'Rapid immunochromatographic 4th generation card · Non-reactive verified', timeOrWait: 'Read at 15m', status: 'Non-Reactive Verified', statusColor: 'success', primaryActionLabel: 'Release OT Cleared', primaryActionRoute: '/lab/verify' },
+    ],
+    'Autoimmune Antibody Panel': [
+      { id: 'SER-103', name: 'Meena Sharma · ANA by Indirect Immunofluorescence', meta: 'Substrate: HEp-2 cells · Dilution 1:100', detail: 'Nuclear speckled fluorescence pattern observed · Titration needed', timeOrWait: 'Incubation Done', status: 'Microscopy Due', statusColor: 'warn', primaryActionLabel: 'Capture Field', primaryActionRoute: '/lab/worklist/serology' },
+    ],
+    'Dilution Titre Verification': [
+      { id: 'SER-104', name: 'Karan Mehra · Widal Tube Agglutination Test', meta: 'TO and TH baseline titres', detail: 'TO 1:160, TH 1:320 · End-point agglutination verified with control sera', timeOrWait: 'Titre Ready', status: 'Titre Confirmed', statusColor: 'info', primaryActionLabel: 'Submit Titre', primaryActionRoute: '/lab/worklist/serology' },
+    ],
+  },
+
+  molecular_tech: {
+    'RT-PCR Extraction & Amplification Queue': [
+      { id: 'MOL-101', name: 'Hepatitis B Virus (HBV) Quantitative DNA PCR', meta: 'TaqMan Real-Time PCR Assay', detail: 'Automated magnetic bead extraction: 500 uL plasma input, eluate 50 uL', timeOrWait: 'Plate Loaded', status: 'Cycle 24/40', statusColor: 'info', primaryActionLabel: 'Monitor Amplification', primaryActionRoute: '/lab/worklist/molecular' },
+    ],
+    'Viral Load Quantification': [
+      { id: 'MOL-102', name: 'HIV-1 Viral Load (IU/mL) Calibration Run', meta: 'Reference standard dilution series (10^2 - 10^7 copies/mL)', detail: 'Standard curve slope -3.32 (Efficiency 100.1%, R^2 = 0.998)', timeOrWait: 'Run Completed', status: 'Valid Curve', statusColor: 'success', primaryActionLabel: 'Quantify Batch', primaryActionRoute: '/lab/worklist/molecular' },
+    ],
+    'Thermal Cycler Runs': [
+      { id: 'MOL-103', name: 'Respiratory Pathogen Multiplex Panel (12 Targets)', meta: '96-Well Optical Reaction Plate #MOL-901', detail: 'Influenza A/B, RSV, SARS-CoV-2 multiplex detection', timeOrWait: 'Finishing 8m', status: 'Cycling', statusColor: 'info', primaryActionLabel: 'Analyze Ct Values', primaryActionRoute: '/lab/worklist/molecular' },
+    ],
+    'Contamination Control Log': [
+      { id: 'MOL-104', name: 'Daily Pre-PCR / Post-PCR UV Decontamination', meta: 'Biosafety Cabinet Level II & PCR Hood', detail: 'UV-C irradiation 30 mins logged · Swipe test negative for amplicon carry-over', timeOrWait: 'Verified Today', status: 'Zero Contamination', statusColor: 'success', primaryActionLabel: 'Sign Clean Log', primaryActionRoute: '/lab/qc' },
+    ],
+  },
+
+  clinical_pathology_tech: {
+    'Urine Routine & Microscopy Worklist': [
+      { id: 'CP-101', name: 'Vikas Dubey · Complete Urine Analysis', meta: 'Automated 10-parameter test strip + sediment microscopy', detail: 'Protein: Trace, RBC: 0-1/hpf, Pus Cells: 12-15/hpf (UTI suspicion)', timeOrWait: 'Microscopy Ready', status: 'Centrifuged', statusColor: 'warn', primaryActionLabel: 'Microscope Exam', primaryActionRoute: '/lab/worklist/clinical-pathology' },
+    ],
+    'Stool Occult Blood & Parasitology': [
+      { id: 'CP-102', name: 'Sanjay Dutt · Stool Occult Blood (FOBT) & Wet Mount', meta: 'Immunochemical FOBT strip + Saline/Iodine Mount', detail: 'FOBT: Negative · Wet mount: Giardia lamblia cysts observed', timeOrWait: 'Read Complete', status: 'Parasite Detected', statusColor: 'urgent', primaryActionLabel: 'Record Findings', primaryActionRoute: '/lab/worklist/clinical-pathology' },
+    ],
+    'Semen Analysis Processing Queue': [
+      { id: 'CP-103', name: 'Fertility Assessment Semen Analysis (WHO 2021 Criteria)', meta: 'Liquefaction at 37°C complete in 25 min', detail: 'Sperm count, progressive motility, vitality & strict Kruger morphology evaluation', timeOrWait: 'Chamber Loaded', status: 'Count in Progress', statusColor: 'info', primaryActionLabel: 'Count Hemocytometer', primaryActionRoute: '/lab/worklist/clinical-pathology' },
+    ],
+    'Body Fluid Cell Count & Differential': [
+      { id: 'CP-104', name: 'Synovial Fluid Right Knee · Total & Differential Leukocytes', meta: 'Neubauer Improved Counting Chamber', detail: 'Turbid fluid · TLC: 48,000 /uL (82% PMNs) · Polarized light exam for crystals', timeOrWait: 'Count Ready', status: 'Urgent Fluid', statusColor: 'urgent', primaryActionLabel: 'Report TLC & Crystals', primaryActionRoute: '/lab/worklist/clinical-pathology' },
+    ],
+  },
+
+  analyzer_staff: {
+    'Analyzer Calibration Worklist': [
+      { id: 'EQ-CAL-1', name: 'Beckman Coulter AU5800 Chemistry Auto-Analyzer', meta: 'ISE Module 2-Point Calibration', detail: 'Calibrators: Ion-Trol Level 1 & Level 2 · Slope: 58.4 mV/decade (Within spec)', timeOrWait: 'Calibrated', status: 'Calibration Pass', statusColor: 'success', primaryActionLabel: 'Lock Calibration', primaryActionRoute: '/hospital/analyzer-emulator' },
+    ],
+    'ASTM / HL7 Interfacing Feeds': [
+      { id: 'HL7-01', name: 'Sysmex XN-1000 Bidirectional ASTM TCP/IP Feed', meta: 'Port 5000 · Port Listener: Active', detail: 'Sample query (Host Query) & auto result broadcast running without packet drops', timeOrWait: 'Live Stream', status: 'Network Online', statusColor: 'success', primaryActionLabel: 'Inspect Packets', primaryActionRoute: '/hospital/analyzer-emulator' },
+    ],
+    'Reagent Blank Verifications': [
+      { id: 'RGT-BLK-1', name: 'Total Bilirubin DSA Reagent Blank OD Check', meta: 'Optical Density: 0.042 (< 0.080 target)', detail: 'Photometric baseline verified at 546 nm wavelength', timeOrWait: 'Verified Today', status: 'Blank Accepted', statusColor: 'info', primaryActionLabel: 'Accept Blank', primaryActionRoute: '/lab/qc' },
+    ],
+  },
+
+  lab_inventory_mgr: {
+    'Reagent Low Stock Warnings': [
+      { id: 'INV-LAB-1', name: 'Roche Cobas Elecsys Troponin T hs Gen 5', meta: 'Pack Size: 100 Tests · On-board: 18 Tests', detail: 'Average daily STAT run: 25 tests · Emergency order required', timeOrWait: 'Stock Alert', status: 'Reorder Now', statusColor: 'urgent', primaryActionLabel: 'Create PO Indent', primaryActionRoute: '/inventory' },
+    ],
+    'Expiring Consumables Alerts': [
+      { id: 'INV-LAB-2', name: 'Vacutainer K2-EDTA Lavender 3 mL (Lot #4419)', meta: 'Quantity: 4 boxes (400 tubes)', detail: 'Manufacturer shelf-life expiration: 15 days · First-Expired First-Out (FEFO)', timeOrWait: '15 Days Left', status: 'Near Expiry', statusColor: 'warn', primaryActionLabel: 'Prioritize Dispense', primaryActionRoute: '/inventory' },
+    ],
+    'Purchase Indents Pending': [
+      { id: 'IND-LAB-1', name: 'Microbiology CLED & MacConkey Dehydrated Media (5 kg)', meta: 'Supplier: HiMedia Laboratories', detail: 'Indent #IND-9904 approved by Lab Director · Awaiting PO release', timeOrWait: 'Pending Approval', status: 'Indent Cleared', statusColor: 'info', primaryActionLabel: 'Issue Purchase Order', primaryActionRoute: '/purchase-center' },
+    ],
+  },
+
   lab_manager: {
     'Overdue TAT Lab Orders': [
       { id: 'TAT-01', name: 'Serum Troponin-I STAT · Overdue by 14m', meta: 'Order #ORD-9912 · Target TAT: 45 min', detail: 'Analyzer rerun caused delay · Escalate to emergency biochemistry bay', timeOrWait: 'TAT Breach', status: 'Breached', statusColor: 'urgent', primaryActionLabel: 'Expedite Result', primaryActionRoute: '/lab/verify' },
@@ -968,6 +1052,34 @@ export const ROLE_QUEUE_DATA: Record<string, Record<string, WorkQueueItem[]>> = 
     ],
     'Equipment Downtime': [
       { id: 'MGR-EQ-1', name: 'USG Machine Room 2 (Samsung RS85)', meta: 'Convex Probe Connector Issue', detail: 'Service ticket #TK-882 raised with biomedical engineer; backup machine deployed', timeOrWait: 'Down 4h', status: 'Under Repair', statusColor: 'urgent', primaryActionLabel: 'Biomedical Desk', primaryActionRoute: '/hospital/biomedical' },
+    ],
+  },
+
+  radiology_billing_executive: {
+    'Unbilled Modality Studies': [
+      { id: 'BIL-RAD-1', name: 'Harish Chandra · MRI Lumbar Spine with Contrast', meta: 'Study #MRI-2026-901 · Tariff: ₹8,500', detail: 'Scan completed at 11:45 AM · Contrast charge + film surcharge unbilled', timeOrWait: 'Completed 15m', status: 'Awaiting Bill', statusColor: 'urgent', primaryActionLabel: 'Generate Invoice', primaryActionRoute: '/billing' },
+      { id: 'BIL-RAD-2', name: 'Meena Sharma · CT Abdomen Triple Phase', meta: 'Study #CT-2026-842 · Tariff: ₹6,800', detail: 'Scan completed · Patient in recovery bay awaiting final receipt', timeOrWait: 'Completed 25m', status: 'Bill Pending', statusColor: 'warn', primaryActionLabel: 'Generate Invoice', primaryActionRoute: '/billing' },
+    ],
+    'TPA Pre-Auth Approvals': [
+      { id: 'TPA-RAD-1', name: 'Siddharth Roy · Star Health Cashless Pre-Auth', meta: 'MRI Brain with Contrast · Claim Est: ₹11,000', detail: 'Pre-auth initial sanction ₹8,500 approved · Differential copay ₹2,500', timeOrWait: 'Sanction Received', status: 'Pre-Auth Cleared', statusColor: 'success', primaryActionLabel: 'Collect Co-pay', primaryActionRoute: '/hospital/insurance' },
+    ],
+    'Cash Desk Settlements': [
+      { id: 'CSH-RAD-1', name: 'Morning Modality Shift Till Reconciliation', meta: 'Total Cash: ₹48,500 · UPI: ₹92,400', detail: 'POS counter terminal batch settlement and sealed cash bag handover to main finance', timeOrWait: 'Shift Close Due', status: 'Reconcile Till', statusColor: 'info', primaryActionLabel: 'Close Shift Till', primaryActionRoute: '/hospital/cashier?tab=reconcile' },
+    ],
+  },
+
+  equipment_manager: {
+    'Modality Breakdown Work Orders': [
+      { id: 'BME-RAD-1', name: 'Siemens Somatom 128-Slice CT Gantry Temperature Warning', meta: 'Gantry Room 1 · Error Code: #E-401 Thermal Drift', detail: 'HVAC chilled water loop serviced · Tube cooling cycle verified within 45°C limit', timeOrWait: 'Active Ticket', status: 'Under Maintenance', statusColor: 'urgent', primaryActionLabel: 'Sign Work Order', primaryActionRoute: '/hospital/biomedical' },
+    ],
+    'Preventative Maintenance Due': [
+      { id: 'BME-RAD-2', name: 'GE Optima 1.5T MRI Cryogen Helium Level Check', meta: 'Current Level: 78.4% (Threshold: 65%)', detail: 'Cold head compressor operating hours: 4,820h · Next refill scheduled next quarter', timeOrWait: 'Monthly Audit', status: 'Helium Stable', statusColor: 'success', primaryActionLabel: 'Log Cryogen Level', primaryActionRoute: '/hospital/biomedical' },
+    ],
+    'AERB Radiation Compliance Logs': [
+      { id: 'AERB-01', name: 'Quarterly TLD Badge Dose Evaluation (Staff: 18)', meta: 'Thermo Luminescent Dosimeters · BARC Accredited Lab', detail: 'All radiographer badges within ALARA permissible limit (< 1.2 mSv/quarter)', timeOrWait: 'Logged Today', status: 'AERB Compliant', statusColor: 'success', primaryActionLabel: 'Upload AERB Return', primaryActionRoute: '/hospital/quality' },
+    ],
+    'Critical Calibration Pending': [
+      { id: 'BME-RAD-3', name: 'Fluoroscopy C-Arm Dose Area Product (DAP) Meter', meta: 'Annual QA Physicist Calibration Certification', detail: 'BARC licensed medical physicist calibration scheduled for Saturday', timeOrWait: 'Due in 4 Days', status: 'Inspection Due', statusColor: 'warn', primaryActionLabel: 'Schedule Physicist', primaryActionRoute: '/radiology/modalities' },
     ],
   },
 };

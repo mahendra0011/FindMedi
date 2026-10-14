@@ -705,29 +705,48 @@ export const RIS_ROLE_SPECS = {
 };
 
 export function getRisDashboardSpec(roleKey) {
-  if (!roleKey) return RIS_ROLE_SPECS.radiology_manager;
+  if (!roleKey) return enrichRisSpec(RIS_ROLE_SPECS.radiology_manager, 'radiology_manager');
   const key = String(roleKey).toLowerCase().trim();
-  if (RIS_ROLE_SPECS[key]) return RIS_ROLE_SPECS[key];
+  let spec = RIS_ROLE_SPECS[key];
 
   // Role alias mappings for RIS
-  if (key === 'radiology_admin' || key === 'imaging_director') return { ...RIS_ROLE_SPECS.radiology_admin, roleKey: key };
-  if (key === 'radiology_scheduler' || key === 'imaging_coordinator') return { ...RIS_ROLE_SPECS.radiology_scheduler, roleKey: key };
-  if (key === 'radiology_prep_staff' || key === 'imaging_nurse') return { ...RIS_ROLE_SPECS.radiology_prep_staff, roleKey: key };
-  if (key === 'radiology_technician' || key === 'radiographer') return { ...RIS_ROLE_SPECS.radiology_technician, roleKey: key };
-  if (key === 'mri_tech') return { ...RIS_ROLE_SPECS.mri_technician, roleKey: key };
-  if (key === 'xray_tech') return { ...RIS_ROLE_SPECS.xray_technician, roleKey: key };
-  if (key === 'ct_tech') return { ...RIS_ROLE_SPECS.ct_technician, roleKey: key };
-  if (key === 'ultrasound_staff' || key === 'sonologist') return { ...RIS_ROLE_SPECS.us_technician, roleKey: key };
-  if (key === 'mammo_tech') return { ...RIS_ROLE_SPECS.mammo_technician, roleKey: key };
-  if (key === 'radiologist' || key === 'attending_radiologist') return { ...RIS_ROLE_SPECS.radiologist, roleKey: key };
-  if (key === 'transcriptionist') return { ...RIS_ROLE_SPECS.reporting_assistant, roleKey: key };
-  if (key === 'pacs_admin' || key === 'pacs_engineer') return { ...RIS_ROLE_SPECS.pacs_admin, roleKey: key };
-  if (key === 'radiology_cashier') return { ...RIS_ROLE_SPECS.radiology_billing_executive, roleKey: key };
-  if (key === 'biomedical_engineer') return { ...RIS_ROLE_SPECS.equipment_manager, roleKey: key };
+  if (!spec) {
+    if (key === 'radiology_admin' || key === 'imaging_director') spec = { ...RIS_ROLE_SPECS.radiology_admin, roleKey: key };
+    else if (key === 'radiology_scheduler' || key === 'imaging_coordinator') spec = { ...RIS_ROLE_SPECS.radiology_scheduler, roleKey: key };
+    else if (key === 'radiology_prep_staff' || key === 'imaging_nurse') spec = { ...RIS_ROLE_SPECS.radiology_prep_staff, roleKey: key };
+    else if (key === 'radiology_technician' || key === 'radiographer') spec = { ...RIS_ROLE_SPECS.radiology_technician, roleKey: key };
+    else if (key === 'mri_tech') spec = { ...RIS_ROLE_SPECS.mri_technician, roleKey: key };
+    else if (key === 'xray_tech') spec = { ...RIS_ROLE_SPECS.xray_technician, roleKey: key };
+    else if (key === 'ct_tech') spec = { ...RIS_ROLE_SPECS.ct_technician, roleKey: key };
+    else if (key === 'ultrasound_staff' || key === 'sonologist') spec = { ...RIS_ROLE_SPECS.us_technician, roleKey: key };
+    else if (key === 'mammo_tech') spec = { ...RIS_ROLE_SPECS.mammo_technician, roleKey: key };
+    else if (key === 'radiologist' || key === 'attending_radiologist') spec = { ...RIS_ROLE_SPECS.radiologist, roleKey: key };
+    else if (key === 'transcriptionist') spec = { ...RIS_ROLE_SPECS.reporting_assistant, roleKey: key };
+    else if (key === 'pacs_admin' || key === 'pacs_engineer') spec = { ...RIS_ROLE_SPECS.pacs_admin, roleKey: key };
+    else if (key === 'radiology_cashier' || key === 'radiology_accountant') spec = { ...RIS_ROLE_SPECS.radiology_billing_executive, roleKey: key };
+    else if (key === 'radiology_insurance' || key === 'radiology_tpa') spec = { ...RIS_ROLE_SPECS.radiology_billing_executive, roleKey: key };
+    else if (key === 'radiology_inventory') spec = { ...RIS_ROLE_SPECS.equipment_manager, roleKey: key };
+    else if (key === 'radiology_quality' || key === 'rso' || key === 'radiation_safety_officer') spec = { ...RIS_ROLE_SPECS.radiology_manager, roleKey: key };
+    else if (key === 'radiology_patient' || key === 'radiology_portal') spec = { ...RIS_ROLE_SPECS.radiology_receptionist, roleKey: key };
+    else if (key === 'biomedical_engineer') spec = { ...RIS_ROLE_SPECS.equipment_manager, roleKey: key };
+    else if (key.startsWith('radiology_')) spec = { ...RIS_ROLE_SPECS.radiology_manager, roleKey: key };
+  }
 
-  // Fallback to Radiology Manager if role starts with radiology_ or ends with _technician
-  if (key.startsWith('radiology_')) return { ...RIS_ROLE_SPECS.radiology_manager, roleKey: key };
-  return null;
+  if (!spec) return null;
+  return enrichRisSpec(spec, key);
+}
+
+function enrichRisSpec(spec, roleKey) {
+  return {
+    ...spec,
+    layer: 'Radiology Information System & PACS (RIS)',
+    tasks: spec.tasks || [
+      { id: `${roleKey}-t1`, text: 'Daily modality QA checks and tube warm-up protocol', done: false, dueTime: '08:30 AM' },
+      { id: `${roleKey}-t2`, text: 'Review urgent emergency trauma scan requests', done: false, dueTime: '10:00 AM' },
+      { id: `${roleKey}-t3`, text: 'Verify contrast screening & eGFR clearances', done: false, dueTime: '12:00 PM' },
+      { id: `${roleKey}-t4`, text: 'Archive DICOM studies & sync PACS network buffer', done: false, dueTime: '05:30 PM' },
+    ],
+  };
 }
 
 export function getAllRisRoles() {

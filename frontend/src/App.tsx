@@ -429,6 +429,9 @@ const DietKitchenDashboard = lazy(() => import('./pages/dashboards/DietKitchenDa
 const CorporateWellnessDashboard = lazy(() => import('./pages/dashboards/CorporateWellnessDashboard'));
 const ChildDevDashboard = lazy(() => import('./pages/dashboards/ChildDevDashboard'));
 const SpecialtyCentreDashboard = lazy(() => import('./pages/dashboards/SpecialtyCentreDashboard'));
+const UniversalHmsDashboard = lazy(() => import('./pages/dashboards/UniversalHmsDashboard'));
+const UniversalLisDashboard = lazy(() => import('./pages/dashboards/UniversalLisDashboard'));
+const UniversalRisDashboard = lazy(() => import('./pages/dashboards/UniversalRisDashboard'));
 
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminPrescriptionQueue = lazy(() => import('./pages/admin/AdminPrescriptionQueue'));
@@ -1580,6 +1583,11 @@ const App = () => (
                     <Route path="/dashboard/corporate-wellness" element={<RoleRoute allowedRoles={['corporate_admin', 'hospital_admin', 'superadmin']}><CorporateWellnessDashboard /></RoleRoute>} />
                     <Route path="/dashboard/child-development" element={<RoleRoute allowedRoles={['child_dev_admin', 'doctor', 'hospital_admin', 'superadmin']}><ChildDevDashboard /></RoleRoute>} />
                     <Route path="/dashboard/specialty-centre" element={<RoleRoute allowedRoles={['specialty_centre_admin', 'doctor', 'hospital_admin', 'superadmin']}><SpecialtyCentreDashboard /></RoleRoute>} />
+
+                    {/* Universal HMS / CMS / LIS / RIS Role Dashboards */}
+                    <Route path="/dashboards/:roleKey" element={<UniversalHmsDashboard />} />
+                    <Route path="/lab/dashboard/:roleKey?" element={<UniversalLisDashboard />} />
+                    <Route path="/radiology/dashboard/:roleKey?" element={<UniversalRisDashboard />} />
                     </Route>
 
                    <Route path="/register/delivery-partner" element={<DeliveryPartnerRegister />} />

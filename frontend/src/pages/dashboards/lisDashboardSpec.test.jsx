@@ -10,6 +10,7 @@ import {
   getLisDashboardSpec,
 } from '@/lib/lisDashboardSpec';
 import UniversalHmsDashboard from './UniversalHmsDashboard';
+import UniversalLisDashboard from './UniversalLisDashboard';
 
 describe('LIS Dashboard Master Specification (Frontend Client)', () => {
   it('covers all 8 diagnostic laboratory departments', () => {
@@ -28,6 +29,8 @@ describe('LIS Dashboard Master Specification (Frontend Client)', () => {
     expect(LIS_SECTIONS.HEMATOLOGY.name).toBe('Hematology & Hemostasis');
     expect(LIS_SECTIONS.MICROBIOLOGY.name).toBe('Microbiology & Infectious Diseases');
     expect(LIS_SECTIONS.HISTOPATHOLOGY.name).toBe('Histopathology & Surgical Biopsy');
+    expect(LIS_SECTIONS.SEROLOGY.name).toBe('Serology & Clinical Immunology');
+    expect(LIS_SECTIONS.MOLECULAR.name).toBe('Molecular Diagnostics & RT-PCR');
   });
 
   it('contains exactly 46 canonical LIS domain modules across all operational tiers', () => {
@@ -39,9 +42,11 @@ describe('LIS Dashboard Master Specification (Frontend Client)', () => {
     expect(ids.size).toBe(46);
   });
 
-  it('provides complete specification for every registered LIS role', () => {
+  it('provides complete specification with layer and tasks for every registered LIS role', () => {
     const roles = getAllLisRoles();
-    expect(roles.length).toBeGreaterThanOrEqual(18);
+    expect(roles.length).toBeGreaterThanOrEqual(20);
+    expect(roles).toContain('serology_tech');
+    expect(roles).toContain('molecular_tech');
 
     roles.forEach((roleKey) => {
       const spec = getLisDashboardSpec(roleKey);
@@ -49,6 +54,9 @@ describe('LIS Dashboard Master Specification (Frontend Client)', () => {
       expect(spec.roleKey).toBe(roleKey);
       expect(spec.title).toBeTruthy();
       expect(spec.subtitle).toBeTruthy();
+      expect(spec.layer).toBe('Pathology & Laboratory Information System (LIS)');
+      expect(Array.isArray(spec.tasks)).toBe(true);
+      expect(spec.tasks.length).toBeGreaterThanOrEqual(4);
       expect(spec.permissions.length).toBeGreaterThan(0);
       expect(spec.sidebarSections.length).toBeGreaterThan(0);
       expect(spec.kpis.length).toBeGreaterThanOrEqual(3);
@@ -67,6 +75,10 @@ describe('LIS Dashboard Master Specification (Frontend Client)', () => {
     expect(getLisDashboardSpec('hematology_tech').roleKey).toBe('hematology_tech');
     expect(getLisDashboardSpec('microbiology_tech').roleKey).toBe('microbiology_tech');
     expect(getLisDashboardSpec('histopathology_tech').roleKey).toBe('histopathology_tech');
+    expect(getLisDashboardSpec('serology_tech').roleKey).toBe('serology_tech');
+    expect(getLisDashboardSpec('molecular_tech').roleKey).toBe('molecular_tech');
+    expect(getLisDashboardSpec('serologist').roleKey).toBe('serologist');
+    expect(getLisDashboardSpec('molecular_biologist').roleKey).toBe('molecular_biologist');
     expect(getLisDashboardSpec('lab_unknown_role').roleKey).toBe('lab_unknown_role');
   });
 
@@ -82,15 +94,26 @@ describe('LIS Dashboard Master Specification (Frontend Client)', () => {
     expect(screen.getAllByText(/Critical Values/i).length).toBeGreaterThan(0);
   });
 
-  it('renders UniversalHmsDashboard for phlebotomist with sample collection worklist', () => {
+  it('renders UniversalLisDashboard for serology_tech with immunoassay workbench and tasks', () => {
     render(
       <MemoryRouter>
-        <UniversalHmsDashboard roleKey="phlebotomist" />
+        <UniversalLisDashboard roleKey="serology_tech" />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId('universal-hms-dashboard')).toBeInTheDocument();
-    expect(screen.getByText(/Phlebotomist \/ Sample Collector/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Collection Queue/i).length).toBeGreaterThan(0);
+    expect(screen.getByTestId('universal-lis-dashboard')).toBeInTheDocument();
+    expect(screen.getByText(/Serology & Immunology Technician/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tasks/i)).toBeInTheDocument();
+  });
+
+  it('renders UniversalLisDashboard for molecular_tech with RT-PCR extraction worklist', () => {
+    render(
+      <MemoryRouter>
+        <UniversalLisDashboard roleKey="molecular_tech" />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('universal-lis-dashboard')).toBeInTheDocument();
+    expect(screen.getByText(/Molecular Diagnostics Technician/i)).toBeInTheDocument();
   });
 });

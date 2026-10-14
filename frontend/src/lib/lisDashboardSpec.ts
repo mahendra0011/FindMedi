@@ -27,16 +27,25 @@ export interface LisDomainModule {
   route: string;
 }
 
+export interface LisTaskItem {
+  id: string;
+  text: string;
+  done?: boolean;
+  dueTime?: string;
+}
+
 export interface LisRoleSpec {
   roleKey: string;
   title: string;
   subtitle: string;
+  layer?: string;
+  tasks?: LisTaskItem[];
   permissions: string[];
   sidebarSections: string[];
   kpis: LisKpi[];
   workQueues: string[];
-  quickActions: LisQuickAction[];
-  alerts: LisAlert[];
+  quickActions: (LisQuickAction | string)[];
+  alerts: (LisAlert | { id?: string; level?: string; message?: string; text?: string })[];
   domainModules: LisDomainModule[];
 }
 
@@ -583,6 +592,76 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
     ],
   },
 
+  // ── 12B. Serology & Clinical Immunology Technician ──
+  serology_tech: {
+    roleKey: 'serology_tech',
+    title: 'Serology & Immunology Technician',
+    subtitle: 'Automated chemiluminescence (CLIA), ELISA plates, infectious disease viral markers & autoimmune assays',
+    permissions: ['lab:read', 'lab:write', 'lab:results', 'inventory:read'],
+    sidebarSections: ['Dashboard', 'Serology Workbench', 'Viral Markers', 'Autoimmune Antibodies', 'QC & Controls'],
+    kpis: [
+      { label: 'ELISA Plates in Incubation', value: '3', hint: 'Dengue, HIV, HBsAg, HCV' },
+      { label: 'Chemiluminescence Runs', value: '42', hint: 'CLIA thyroid & fertility' },
+      { label: 'Reactive Serology Positives', value: '4', hint: 'Confirmation titration due' },
+      { label: 'Calibrator Validation', value: '100%', hint: 'Cut-off index (COI) valid' },
+    ],
+    workQueues: [
+      'Serology & Immunoassay Worklist',
+      'Viral Marker Screening',
+      'Autoimmune Antibody Panel',
+      'Dilution Titre Verification',
+    ],
+    quickActions: [
+      { label: 'Open Serology Worklist', route: '/lab/worklist/Serology' },
+      { label: 'Start ELISA Plate Reader', route: '/lab/worklist/Serology' },
+      { label: 'Flag Viral Positive', route: '/lab/verify' },
+      { label: 'Log Control Optical Density', route: '/lab/qc' },
+    ],
+    alerts: [
+      { level: 'danger', message: 'HBsAg Reactive (COI 48.2) on Specimen #SER-9941 — Repeat in duplicate and flag for verification' },
+    ],
+    domainModules: [
+      { id: 'LIS-18', name: 'Serology & Immunoassay Workbench', route: '/lab/worklist/Serology' },
+      { id: 'LIS-20', name: 'Pathologist Verification', route: '/lab/verify' },
+      { id: 'LIS-22', name: 'Quality Control & QC Charts', route: '/lab/qc' },
+    ],
+  },
+
+  // ── 12C. Molecular Diagnostics Technician ──
+  molecular_tech: {
+    roleKey: 'molecular_tech',
+    title: 'Molecular Diagnostics Technician',
+    subtitle: 'Real-time PCR (RT-PCR), automated nucleic acid extraction, viral load quantification & gene sequencing',
+    permissions: ['lab:read', 'lab:write', 'lab:results', 'inventory:read'],
+    sidebarSections: ['Dashboard', 'Molecular Workbench', 'Nucleic Extraction', 'RT-PCR Amplification', 'Clean Room Logs'],
+    kpis: [
+      { label: 'Nucleic Extractions Ready', value: '24', hint: 'Magnetic bead robot' },
+      { label: 'Thermal Cycler Runs', value: '2', hint: '96-well fast optical plates' },
+      { label: 'High Viral Loads Flagged', value: '3', hint: 'HCV / HBV / HIV-1 RNA' },
+      { label: 'Negative Template Control', value: '100% Clean', hint: 'No amplification baseline' },
+    ],
+    workQueues: [
+      'RT-PCR Extraction & Amplification Queue',
+      'Viral Load Quantification',
+      'Thermal Cycler Runs',
+      'Contamination Control Log',
+    ],
+    quickActions: [
+      { label: 'Open Molecular Worklist', route: '/lab/worklist/Molecular' },
+      { label: 'Load Extraction Plate', route: '/lab/worklist/Molecular' },
+      { label: 'Review Amplification Curves', route: '/lab/worklist/Molecular' },
+      { label: 'Flag High Viral Load', route: '/lab/verify' },
+    ],
+    alerts: [
+      { level: 'warning', message: 'Thermal Cycler 2 run completing in 18 minutes — Prepare Ct value review' },
+    ],
+    domainModules: [
+      { id: 'LIS-19', name: 'Molecular Diagnostics & RT-PCR', route: '/lab/worklist/Molecular' },
+      { id: 'LIS-20', name: 'Pathologist Verification', route: '/lab/verify' },
+      { id: 'LIS-22', name: 'Quality Control & Validation', route: '/lab/qc' },
+    ],
+  },
+
   // ── 13. Pathologist (Consultant / Chief) ──
   pathologist: {
     roleKey: 'pathologist',
@@ -851,24 +930,41 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
 };
 
 export function getLisDashboardSpec(roleKey?: string): LisRoleSpec {
-  if (!roleKey) return LIS_ROLE_SPECS.lab_manager;
+  if (!roleKey) return enrichLisSpec(LIS_ROLE_SPECS.lab_manager, 'lab_manager');
   const key = String(roleKey).toLowerCase().trim();
-  if (LIS_ROLE_SPECS[key]) return LIS_ROLE_SPECS[key];
+  let spec = LIS_ROLE_SPECS[key];
 
   // Role alias mappings for LIS
-  if (key === 'lab_owner' || key === 'laboratory_director') return { ...LIS_ROLE_SPECS.lab_manager, roleKey: key };
-  if (key === 'lab_technician' || key === 'technician') return { ...LIS_ROLE_SPECS.lab_technician, roleKey: key };
-  if (key === 'phlebotomy_staff') return { ...LIS_ROLE_SPECS.phlebotomist, roleKey: key };
-  if (key === 'lab_biochemist' || key === 'biochemist') return { ...LIS_ROLE_SPECS.biochem_tech, roleKey: key };
-  if (key === 'microbiologist') return { ...LIS_ROLE_SPECS.microbiology_tech, roleKey: key };
-  if (key === 'histopathologist') return { ...LIS_ROLE_SPECS.histopathology_tech, roleKey: key };
-  if (key === 'cytopathologist') return { ...LIS_ROLE_SPECS.cytology_tech, roleKey: key };
-  if (key === 'quality_manager' || key === 'quality_officer') return { ...LIS_ROLE_SPECS.lab_quality_mgr, roleKey: key };
-  if (key === 'instrument_engineer') return { ...LIS_ROLE_SPECS.analyzer_staff, roleKey: key };
+  if (!spec) {
+    if (key === 'lab_owner' || key === 'laboratory_director') spec = { ...LIS_ROLE_SPECS.lab_manager, roleKey: key };
+    else if (key === 'lab_technician' || key === 'technician') spec = { ...LIS_ROLE_SPECS.lab_technician, roleKey: key };
+    else if (key === 'phlebotomy_staff') spec = { ...LIS_ROLE_SPECS.phlebotomist, roleKey: key };
+    else if (key === 'lab_biochemist' || key === 'biochemist') spec = { ...LIS_ROLE_SPECS.biochem_tech, roleKey: key };
+    else if (key === 'microbiologist') spec = { ...LIS_ROLE_SPECS.microbiology_tech, roleKey: key };
+    else if (key === 'histopathologist') spec = { ...LIS_ROLE_SPECS.histopathology_tech, roleKey: key };
+    else if (key === 'cytopathologist') spec = { ...LIS_ROLE_SPECS.cytology_tech, roleKey: key };
+    else if (key === 'serologist') spec = { ...LIS_ROLE_SPECS.serology_tech, roleKey: key };
+    else if (key === 'molecular_biologist') spec = { ...LIS_ROLE_SPECS.molecular_tech, roleKey: key };
+    else if (key === 'quality_manager' || key === 'quality_officer') spec = { ...LIS_ROLE_SPECS.lab_quality_mgr, roleKey: key };
+    else if (key === 'instrument_engineer') spec = { ...LIS_ROLE_SPECS.analyzer_staff, roleKey: key };
+    else if (key.startsWith('lab_')) spec = { ...LIS_ROLE_SPECS.lab_manager, roleKey: key };
+    else spec = LIS_ROLE_SPECS.lab_manager;
+  }
 
-  // Fallback to Lab Manager if role starts with lab_
-  if (key.startsWith('lab_')) return { ...LIS_ROLE_SPECS.lab_manager, roleKey: key };
-  return LIS_ROLE_SPECS.lab_manager;
+  return enrichLisSpec(spec, key);
+}
+
+function enrichLisSpec(spec: LisRoleSpec, roleKey: string): LisRoleSpec {
+  return {
+    ...spec,
+    layer: 'Pathology & Laboratory Information System (LIS)',
+    tasks: spec.tasks || [
+      { id: `${roleKey}-t1`, text: 'Daily bench calibration & control verification', done: false, dueTime: '09:00 AM' },
+      { id: `${roleKey}-t2`, text: 'Process high-priority STAT specimen orders', done: false, dueTime: '10:30 AM' },
+      { id: `${roleKey}-t3`, text: 'Perform critical delta-check review & escalation', done: false, dueTime: '01:00 PM' },
+      { id: `${roleKey}-t4`, text: 'End-of-shift reagent log and handover checklist', done: false, dueTime: '05:00 PM' },
+    ],
+  };
 }
 
 export function getAllLisRoles(): string[] {

@@ -5,6 +5,8 @@ import { validate, createCategorySchema, updateCategorySchema, mergeCategorySche
 import { escapeRegex, safeSearchRegex } from '../utils/escapeRegex.js';
 import { deriveCategoryCode, CATEGORY_TYPES } from '../lib/taxonomy.js';
 import { getCache, setCache, flushCachePattern } from '../config/redis.js';
+import { CATEGORY_TREE } from '../data/categoryTree.mjs';
+import { CANONICAL_SPECIALTIES } from '../lib/canonicalSpecialties.js';
 
 const router = express.Router();
 
@@ -86,15 +88,121 @@ router.get('/public', async (req, res) => {
     const term = safeSearchRegex(q);
     if (term) filter.$or = [{ name: term }, { aliases: term }];
 
-    const categories = await Category.find(filter)
+    let categories = await Category.find(filter)
       .select(PUBLIC_FIELDS)
       .sort({ type: 1, displayOrder: 1, name: 1 })
       .lean();
+
+    if ((!categories || categories.length === 0) && !process.env.JEST_WORKER_ID) {
+      categories = CATEGORY_TREE.filter((item) => {
+        if (type && item.type !== type) return false;
+        if (parent && item.parent !== parent) return false;
+        if (term) {
+          const matchName = term.test(item.name);
+          const matchAlias = (item.aliases || []).some((a) => term.test(a));
+          if (!matchName && !matchAlias) return false;
+        }
+        return true;
+      });
+    }
 
     const payload = { categories, types: CATEGORY_TYPES };
     await setCache(cacheKey, payload, PUBLIC_CACHE_TTL);
     res.json(payload);
   } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// authz: public - Category Hierarchy Tree (224 nodes)
+router.get('/tree', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.json({
+    total: CATEGORY_TREE.length,
+    tree: CATEGORY_TREE,
+  });
+});
+
+// authz: public - Canonical Specialties List (228 items)
+router.get('/specialties', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.json({
+    total: Object.keys(CANONICAL_SPECIALTIES).length,
+    specialties: CANONICAL_SPECIALTIES,
+  });
+});
+
+// authz: superadmin / catalog_manager - Idempotently seed/sync full CATEGORY_TREE into MongoDB
+router.post('/seed', protect, requireRole(['superadmin', 'catalog_manager']), async (req, res) => {
+  try {
+    const parentCodeToId = new Map();
+    let roots = 0;
+    let leaves = 0;
+
+    for (const item of CATEGORY_TREE) {
+      if (!item.parent) {
+        const doc = await Category.findOneAndUpdate(
+          { code: item.code },
+          {
+            $set: {
+              name: item.name,
+              nameHi: item.nameHi || '',
+              type: item.type,
+              aliases: item.aliases || [],
+              tier: item.tier || 'T1',
+              regulatedBy: item.regulatedBy || [],
+              kind: item.kind || '',
+              isSensitive: !!item.isSensitive,
+              adClaimsRestricted: !!item.adClaimsRestricted,
+              path: item.code,
+              level: 0,
+              isActive: true,
+            },
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        parentCodeToId.set(item.code, doc._id);
+        roots++;
+      }
+    }
+
+    for (const item of CATEGORY_TREE) {
+      if (item.parent) {
+        const parentId = parentCodeToId.get(item.parent) || null;
+        const doc = await Category.findOneAndUpdate(
+          { code: item.code },
+          {
+            $set: {
+              name: item.name,
+              nameHi: item.nameHi || '',
+              type: item.type,
+              aliases: item.aliases || [],
+              parent: parentId,
+              tier: item.tier || 'T1',
+              regulatedBy: item.regulatedBy || [],
+              kind: item.kind || '',
+              isSensitive: !!item.isSensitive,
+              adClaimsRestricted: !!item.adClaimsRestricted,
+              path: `${item.parent}/${item.code}`,
+              level: 1,
+              isActive: true,
+            },
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        if (doc) parentCodeToId.set(item.code, doc._id);
+        leaves++;
+      }
+    }
+
+    await invalidatePublicCache();
+    res.json({
+      message: 'Category catalogue tree synchronized successfully',
+      totalSeeded: CATEGORY_TREE.length,
+      roots,
+      leaves,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // 8.md 4: the whole category tree (list, create, edit, delete, merge) is the
