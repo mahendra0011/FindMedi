@@ -1,106 +1,149 @@
 /**
- * Environment variable validation on startup
- * Ensures all required config is present before the server starts
+ * Environment variable validation on startup using Zod
+ * Ensures all required config and strong secrets are present before the server starts.
+ * In production, weak secrets (< 32 chars or default dictionary values) or missing
+ * essential vars immediately abort boot with process.exit(1).
  */
+import { z } from 'zod';
 
-const REQUIRED_VARS = {
-  PRODUCTION: [
-    { name: 'MONGO_URI', message: 'MongoDB connection string is required' },
-    { name: 'JWT_SECRET', message: 'JWT secret is required. Generate one with: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"' },
-    { name: 'CLIENT_URL', message: 'Client URL is required for CORS' },
-    // HI-B-01: the public Health-ID QR card embeds a scannable URL built from
-    // FRONTEND_URL. With it unset the code fell back to http://localhost:3000, so
-    // every card printed in a production hospital pointed a paramedic's scanner at
-    // their own laptop — a broken emergency feature that also looks exactly like a
-    // phishing link on a shared card. It is now a startup-class requirement.
-    { name: 'FRONTEND_URL', message: 'FRONTEND_URL is required in production: the public Health-ID QR payload is built from it and must never fall back to localhost' },
-  ],
-  DEVELOPMENT: [
-    { name: 'MONGO_URI', message: 'MongoDB connection string is required' },
-  ],
-  ALL: [
-    { name: 'PORT', message: 'Port is required', defaultValue: '5001' },
-    { name: 'NODE_ENV', message: 'Environment is required', defaultValue: 'development' },
-  ],
-};
+const WEAK_SECRETS = new Set([
+  'secret',
+  'your_jwt_secret_here',
+  'change_me',
+  'password',
+  '12345678',
+  '1234567890',
+  'findmedi',
+  'findmedi_secret',
+  'jwtsecret',
+  'supersecret',
+  'admin',
+  'default',
+]);
 
-export function validateEnv() {
-  const env = process.env.NODE_ENV || 'development';
-  const missing = [];
+const baseEnvSchema = z.object({
+  PORT: z.string().default('5001'),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  MONGO_URI: z.string().min(1, 'MongoDB connection string (MONGO_URI) is required'),
+  JWT_SECRET: z.string().optional(),
+  CLIENT_URL: z.string().optional(),
+  FRONTEND_URL: z.string().optional(),
+  REDIS_URL: z.string().optional(),
+  COOKIE_SECRET: z.string().optional(),
+  ENCRYPTION_KEY: z.string().optional(),
+});
+
+const productionEnvSchema = baseEnvSchema.extend({
+  MONGO_URI: z.string()
+    .min(1, 'MongoDB connection string is required')
+    .refine((val) => val.startsWith('mongodb://') || val.startsWith('mongodb+srv://'), {
+      message: 'MONGO_URI must start with mongodb:// or mongodb+srv://',
+    })
+    .refine((val) => !val.includes('<username>') && !val.includes('<password>'), {
+      message: 'MONGO_URI contains placeholder values (<username>/<password>)',
+    }),
+  JWT_SECRET: z.string({ required_error: 'JWT_SECRET is required in production' })
+    .min(32, 'JWT_SECRET is too short (min 32 chars required in production)')
+    .refine((val) => !WEAK_SECRETS.has(val.toLowerCase().trim()), {
+      message: 'JWT_SECRET is using a weak or known default dictionary value',
+    }),
+  CLIENT_URL: z.string({ required_error: 'CLIENT_URL is required in production for CORS' })
+    .url('CLIENT_URL must be a valid URL'),
+  FRONTEND_URL: z.string({ required_error: 'FRONTEND_URL is required in production for Health-ID QR codes' })
+    .url('FRONTEND_URL must be a valid URL')
+    .refine((val) => !val.includes('localhost'), {
+      message: 'FRONTEND_URL in production must not point to localhost',
+    }),
+});
+
+/**
+ * Validates environment variables according to NODE_ENV.
+ * @param {Record<string, string|undefined>} [envObj=process.env]
+ * @returns {{ ok: boolean, data?: any, errors: string[], warnings: string[] }}
+ */
+export function validateEnv(envObj = process.env) {
+  const env = envObj.NODE_ENV || 'development';
+  const schema = env === 'production' ? productionEnvSchema : baseEnvSchema;
   const warnings = [];
+  const errors = [];
 
-  // Check all-environment vars
-  REQUIRED_VARS.ALL.forEach(({ name, message, defaultValue }) => {
-    if (!process.env[name]) {
-      if (defaultValue) {
-        process.env[name] = defaultValue;
-        warnings.push(`⚙️  ${name} not set, using default: ${defaultValue}`);
-      } else {
-        missing.push(`${name}: ${message}`);
+  const result = schema.safeParse(envObj);
+
+  if (!result.success) {
+    result.error.issues.forEach((issue) => {
+      errors.push(`${issue.path.join('.') || 'ENV'}: ${issue.message}`);
+    });
+  }
+
+  // Development warnings
+  if (env !== 'production') {
+    const jwtSecret = envObj.JWT_SECRET;
+    if (jwtSecret) {
+      if (jwtSecret.length < 32) {
+        warnings.push('⚠️  JWT_SECRET is too short (min 32 chars). Generate a strong one for production.');
+      }
+      if (WEAK_SECRETS.has(jwtSecret.toLowerCase().trim())) {
+        warnings.push('🚨 JWT_SECRET is using a weak/default value! This is a security risk.');
+      }
+    } else {
+      warnings.push('⚠️  JWT_SECRET is not set in development. Authentication may use fallback or fail.');
+    }
+
+    if (envObj.MONGO_URI) {
+      if (envObj.MONGO_URI.includes('<username>') || envObj.MONGO_URI.includes('<password>')) {
+        warnings.push('🚨 MONGO_URI still contains placeholder values (<username>/<password>).');
+      }
+      if (!envObj.MONGO_URI.startsWith('mongodb')) {
+        warnings.push('⚠️  MONGO_URI does not start with mongodb:// or mongodb+srv://');
       }
     }
-  });
-
-  // Check environment-specific vars
-  const envSpecific = env === 'production' ? REQUIRED_VARS.PRODUCTION : REQUIRED_VARS.DEVELOPMENT;
-  envSpecific.forEach(({ name, message }) => {
-    if (!process.env[name]) {
-      missing.push(`${name}: ${message}`);
-    }
-  });
-
-  // Check JWT_SECRET strength
-  if (process.env.JWT_SECRET) {
-    if (process.env.JWT_SECRET.length < 32) {
-      warnings.push('⚠️  JWT_SECRET is too short (min 32 chars). Generate a strong one for production.');
-    }
-    if (['secret', 'your_jwt_secret_here', 'change_me'].includes(process.env.JWT_SECRET)) {
-      warnings.push('🚨 JWT_SECRET is using a weak/default value! This is a security risk.');
-    }
   }
 
-  // Check MONGO_URI has no placeholders
-  if (process.env.MONGO_URI) {
-    if (process.env.MONGO_URI.includes('<username>') || process.env.MONGO_URI.includes('<password>')) {
-      warnings.push('🚨 MONGO_URI still contains placeholder values (<username>/<password>). Update with real credentials.');
-    }
-    if (!process.env.MONGO_URI.startsWith('mongodb')) {
-      warnings.push('⚠️  MONGO_URI does not start with mongodb:// or mongodb+srv://');
-    }
-  }
-
-  // Check for common insecure values
-  if (process.env.JWT_SECRET === process.env.MONGO_URI) {
+  // Common warning: identical secrets
+  if (envObj.JWT_SECRET && envObj.MONGO_URI && envObj.JWT_SECRET === envObj.MONGO_URI) {
     warnings.push('🚨 JWT_SECRET and MONGO_URI should not be the same value!');
   }
 
-  return { missing, warnings };
+  return {
+    ok: errors.length === 0,
+    data: result.success ? result.data : null,
+    errors,
+    warnings,
+  };
 }
 
-export function printEnvStatus() {
-  const { missing, warnings } = validateEnv();
+/**
+ * Prints environment validation status and optionally exits on failure in production.
+ * @param {object} [options]
+ * @param {Record<string, string|undefined>} [options.envObj=process.env]
+ * @param {boolean} [options.exitOnFailure]
+ * @returns {boolean}
+ */
+export function printEnvStatus({ envObj = process.env, exitOnFailure } = {}) {
+  const { ok, errors, warnings } = validateEnv(envObj);
+  const isProd = (envObj.NODE_ENV || process.env.NODE_ENV) === 'production';
+  const shouldExit = exitOnFailure !== undefined ? exitOnFailure : isProd;
 
-  if (missing.length > 0) {
-    console.error('\n❌ Missing required environment variables:');
-    missing.forEach(m => console.error(`   - ${m}`));
-    console.error('\n   Please set these in your .env file or environment.\n');
-    if (process.env.NODE_ENV === 'production') {
+  if (errors.length > 0) {
+    console.error('\n❌ Environment Configuration Validation Failed:');
+    errors.forEach((err) => console.error(`   - ${err}`));
+    console.error('\n   Please set valid values in your .env file or environment.\n');
+    if (shouldExit) {
       process.exit(1);
     }
   }
 
   if (warnings.length > 0) {
     console.warn('\n⚠️  Environment Warnings:');
-    warnings.forEach(w => console.warn(`   ${w}`));
+    warnings.forEach((w) => console.warn(`   ${w}`));
     console.warn('');
-    // In production, warnings are non-fatal (e.g. PORT default) - log only to avoid crash on Render
   }
 
-  if (missing.length === 0 && warnings.length === 0) {
-    console.log('✅ Environment variables validated successfully');
+  if (ok && warnings.length === 0) {
+    console.log('✅ Environment configuration validated successfully (Zod boot-schema)');
   }
 
-  return missing.length === 0;
+  return ok;
 }
 
 export default { validateEnv, printEnvStatus };

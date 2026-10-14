@@ -69,6 +69,94 @@ router.get('/', protect, authorize('billing:read', 'billing:read:own'), async (r
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// POST /api/payments/create-order — gateway order initialization (Razorpay / Cashfree / Mock)
+router.post('/create-order', protect, paymentLimiter, idempotencyGuard({ prefix: 'payment-order-create', failClosed: true }), async (req, res) => {
+  try {
+    const { amount, serviceType = 'appointment', referenceId, gateway = 'razorpay', description } = req.body;
+    if (!amount || Number(amount) <= 0) {
+      return res.status(400).json({ message: 'Valid positive amount is required' });
+    }
+
+    const patientId = req.user.role === 'patient' ? req.user._id : (req.body.patient_id || req.user._id);
+    const patient = await User.findById(patientId).select('_id name hospitalId').lean();
+    if (!patient) return res.status(404).json({ message: 'Patient not found' });
+
+    // Validate authoritative server pricing if linked to appointment
+    if (referenceId && serviceType === 'appointment') {
+      const appointment = await Appointment.findById(referenceId);
+      if (appointment) {
+        const authoritative = await resolveAuthoritativeAmount({ serviceType: 'appointment', appointment });
+        if (authoritative.ok) {
+          const match = assertAmountMatches(authoritative.amount, amount);
+          if (!match.ok) {
+            return res.status(409).json({
+              message: match.message,
+              code: 'PRICE_MISMATCH',
+              authoritative: match.authoritative,
+              received: match.received,
+            });
+          }
+        }
+      }
+    }
+
+    const transaction_id = generateTransactionId();
+    const gw = gatewayFor(gateway);
+
+    let gwOrder = { gatewayOrderId: `order_mock_${Date.now()}` };
+    if (gw && gw.configured && typeof gw.createOrder === 'function') {
+      try {
+        gwOrder = await gw.createOrder({
+          amount: Number(amount),
+          currency: 'INR',
+          receipt: transaction_id,
+          notes: {
+            transactionId: transaction_id,
+            patientId: String(patient._id),
+            serviceType,
+            referenceId: String(referenceId || ''),
+          },
+        });
+      } catch (gwErr) {
+        logger.error(`Gateway order creation failed: ${gwErr.message}`);
+        if (process.env.NODE_ENV === 'production') {
+          return res.status(502).json({ message: `Payment gateway error: ${gwErr.message}`, code: 'GATEWAY_ERROR' });
+        }
+      }
+    }
+
+    const payment = await Payment.create({
+      patient_name: patient.name || 'Patient',
+      patient_id: String(patient._id),
+      amount: Number(amount),
+      method: req.body.method || 'upi',
+      description: description || `Payment for ${serviceType}`,
+      serviceType,
+      referenceId: referenceId ? String(referenceId) : '',
+      transaction_id,
+      gateway: gw.name || gateway,
+      gatewayOrderId: gwOrder.gatewayOrderId || '',
+      status: 'pending',
+      hospitalId: patient.hospitalId || req.user.hospitalId || undefined,
+    });
+
+    void mirrorPayment(payment);
+
+    res.status(201).json({
+      paymentId: payment._id,
+      transactionId: payment.transaction_id,
+      orderId: payment.gatewayOrderId,
+      amount: payment.amount,
+      currency: 'INR',
+      gateway: payment.gateway,
+      keyId: gw.keyId || process.env.RAZORPAY_KEY_ID || 'rzp_test_public_key',
+    });
+  } catch (err) {
+    logger.error(`Create order error: ${err.message}`);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // PAY-B-10: this route had NO role gate and accepted a client-authored `status`
 // plus an arbitrary `patient_id`, so ANY authenticated user could mint a
 // `completed` payment against somebody else's patient and fire them a

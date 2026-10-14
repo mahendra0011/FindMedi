@@ -15,16 +15,16 @@ const read = (rel) => fs.readFileSync(path.join(here, rel), 'utf8');
 
 const { applyWebhookSettlement, WEBHOOK_SETTLEMENT_IMPLEMENTED } = await import('../../src/routes/webhook.js');
 
-describe('PAY-B-07 · webhook settlement is a guarded stub until an adapter lands', () => {
-  it('is explicitly marked unimplemented', () => {
-    expect(WEBHOOK_SETTLEMENT_IMPLEMENTED).toBe(false);
+describe('PAY-B-07 · webhook settlement adapter contract', () => {
+  it('is explicitly marked implemented once adapter lands', () => {
+    expect(WEBHOOK_SETTLEMENT_IMPLEMENTED).toBe(true);
   });
 
-  it('fails closed with 503 SETTLEMENT_NOT_IMPLEMENTED instead of settling', async () => {
+  it('fails closed with 400 when missing payment identifier in event', async () => {
     const out = await applyWebhookSettlement({ provider: 'razorpay', payload: { eventId: 'evt-1' } });
     expect(out.ok).toBe(false);
-    expect(out.status).toBe(503);
-    expect(out.code).toBe('SETTLEMENT_NOT_IMPLEMENTED');
+    expect(out.status).toBe(400);
+    expect(out.code).toBe('MISSING_PAYMENT_IDENTIFIER');
   });
 
   it('routes verified events through applyWebhookSettlement (single settlement path)', () => {

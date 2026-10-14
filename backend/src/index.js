@@ -74,6 +74,7 @@ import metricsRoutes from './routes/metrics.js';
 
 const app = express();
 configureMongoDns();
+printEnvStatus();
 
 // Sentry error tracking (env-gated: no SENTRY_DSN = no-op, zero overhead)
 // §6.4: scrub PII/PHI before it leaves the process — cookies, auth headers,

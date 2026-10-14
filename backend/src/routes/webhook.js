@@ -80,12 +80,12 @@ router.post('/:provider', async (req, res, next) => {
  * *_PROVIDER_UNAVAILABLE. Only this function may ever write `completed` from a
  * verified provider event.
  */
-export const WEBHOOK_SETTLEMENT_IMPLEMENTED = false;
+import { settlePaymentFromWebhook } from '../services/paymentSettlement.js';
+
+export const WEBHOOK_SETTLEMENT_IMPLEMENTED = true;
 
 export async function applyWebhookSettlement({ provider, payload } = {}) {
-  void provider;
-  void payload;
-  // Fail closed until a verified provider settlement path exists.
+  // Fail closed if settlement engine is disabled
   if (!WEBHOOK_SETTLEMENT_IMPLEMENTED) {
     return {
       ok: false,
@@ -94,7 +94,7 @@ export async function applyWebhookSettlement({ provider, payload } = {}) {
       message: 'Verified webhook received; settlement is disabled until a payment provider adapter is configured.',
     };
   }
-  return { ok: true };
+  return settlePaymentFromWebhook({ provider, payload });
 }
 
 export default router;

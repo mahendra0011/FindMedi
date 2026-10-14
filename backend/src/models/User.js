@@ -375,17 +375,17 @@ const BCRYPT_ROUNDS = (() => {
   return Number.isInteger(n) && n >= 10 && n <= 15 ? n : 12;
 })();
 
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  this.password = await hashNewPassword(this.password);
-  next();
+userSchema.pre('save', async function () {
+  if (this.isModified('password')) {
+    this.password = await hashNewPassword(this.password);
+  }
 });
 
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', function (next) {
   if (!this.uhid) {
     this.uhid = generate16DigitId();
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 // AUTH-015: single source of truth is top-level twoFactorEnabled; the legacy
@@ -395,7 +395,7 @@ userSchema.pre('save', function (next) {
     this.settings = { ...this.settings, twoFactorEnabled: this.twoFactorEnabled };
     this.markModified('settings');
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 userSchema.methods.comparePassword = async function (plain) {
@@ -431,7 +431,7 @@ userSchema.pre('save', function canonicaliseRoleAlias(next) {
     const canonical = canonicalRole(this.role);
     if (canonical !== this.role) this.role = canonical;
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 // Same hook for `findOneAndUpdate` / `updateOne`, which never trigger `save`.
