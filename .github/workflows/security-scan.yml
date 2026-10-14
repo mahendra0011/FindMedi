@@ -106,12 +106,12 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
-      - uses: anchore/sbom-action@v0.20.3
+      - uses: anchore/sbom-action@v0.24.3
         with:
           path: ./backend
           format: spdx-json
           output-file: sbom-backend.spdx.json
-      - uses: anchore/sbom-action@v0.20.3
+      - uses: anchore/sbom-action@v0.24.3
         with:
           path: ./frontend
           format: spdx-json
