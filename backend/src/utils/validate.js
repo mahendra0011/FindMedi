@@ -99,10 +99,15 @@ export const USER_ROLE_OPTIONS = [
   'security_admin', 'clinical_safety', 'analyst', 'auditor',
   // File 09 §8.2 front-desk.
   'receptionist',
-  // Doc 12 §3 clinic org roles.
+  // Doc 12 §3 & CMS Blueprint 70-module clinic operational roles.
+  'super_admin',
   'clinic_admin', 'clinic_receptionist', 'clinic_nurse',
   'clinic_accountant', 'clinic_pharmacist',
   'clinic_cashier', 'clinic_branch_manager', 'clinic_telemed_coordinator',
+  'clinic_lab_tech', 'clinic_radiology_tech', 'clinic_inventory_mgr',
+  'clinic_purchase_officer', 'clinic_hr_admin', 'clinic_home_collection',
+  'clinic_telemed_coord', 'clinic_crm_staff', 'clinic_quality_mgr',
+  'clinic_patient_portal', 'clinic_owner_analytics',
   // File 22 P0-8 hospital operations roles (login hint only).
   'front_desk',
   'billing_executive', 'cashier', 'insurance_desk',

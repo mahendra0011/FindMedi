@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, Users, Stethoscope, Clock, CheckCircle2, AlertTriangle,
@@ -6,6 +6,7 @@ import {
   X, Check, Edit3, ShieldAlert, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { fetchRoleQueues } from './useLiveKpis';
 
 export interface WorkQueueItem {
   id: string;
@@ -482,6 +483,150 @@ export const ROLE_QUEUE_DATA: Record<string, Record<string, WorkQueueItem[]>> = 
       { id: 'GRN-01', name: 'Inward Shipment: Disposable Surgical Drapes (500 sets)', meta: 'Received at Central Stores Gate 3', detail: 'Packaging intact · Expiry 2028 verified · Physical count matches vendor invoice', timeOrWait: 'At Store Gate', status: 'Inspection Cleared', statusColor: 'success', primaryActionLabel: 'Verify GRN & Accept', primaryActionRoute: '/admin/settings' },
     ],
   },
+
+  clinic_doctor: {
+    'Live Patient Waiting Queue': [
+      { id: 'TK-01', name: 'Aarav Sharma', meta: '34y · Male · UHID-9041', detail: 'Fever & persistent dry cough (3 days)', timeOrWait: '15 min wait', status: 'Waiting', statusColor: 'warn', primaryActionLabel: 'Consult Patient', primaryActionRoute: '/clinic/consultations' },
+      { id: 'TK-02', name: 'Meera Patel', meta: '28y · Female · UHID-8842', detail: 'Routine 2nd trimester antenatal checkup', timeOrWait: '22 min wait', status: 'Scheduled', statusColor: 'info', primaryActionLabel: 'Consult Patient', primaryActionRoute: '/clinic/consultations' },
+      { id: 'TK-03', name: 'Rajesh Verma', meta: '58y · Male · UHID-7910', detail: 'Hypertension follow-up & BP review (160/95 mmHg)', timeOrWait: '30 min wait', status: 'Priority Review', statusColor: 'warn', primaryActionLabel: 'Consult Patient', primaryActionRoute: '/clinic/consultations' },
+    ],
+    'Waiting OPD Patients': [
+      { id: 'TK-01', name: 'Aarav Sharma', meta: '34y · Male · UHID-9041', detail: 'Fever & persistent dry cough (3 days)', timeOrWait: '15 min wait', status: 'Waiting', statusColor: 'warn', primaryActionLabel: 'Consult Patient', primaryActionRoute: '/clinic/consultations' },
+      { id: 'TK-02', name: 'Meera Patel', meta: '28y · Female · UHID-8842', detail: 'Routine 2nd trimester antenatal checkup', timeOrWait: '22 min wait', status: 'Scheduled', statusColor: 'info', primaryActionLabel: 'Consult Patient', primaryActionRoute: '/clinic/consultations' },
+      { id: 'TK-03', name: 'Rajesh Verma', meta: '58y · Male · UHID-7910', detail: 'Hypertension follow-up & BP review (160/95 mmHg)', timeOrWait: '30 min wait', status: 'Priority Review', statusColor: 'warn', primaryActionLabel: 'Consult Patient', primaryActionRoute: '/clinic/consultations' },
+    ],
+    'In-Consultation Encounter': [
+      { id: 'TK-12', name: 'Kavita Reddy', meta: '41y · Female · UHID-1092', detail: 'Chief complaint: Acute epigastric pain · Physical exam ongoing', timeOrWait: 'In Room', status: 'In Consultation', statusColor: 'info', primaryActionLabel: 'Open EMR Workstation', primaryActionRoute: '/clinic/consultations' },
+    ],
+    'Active Consultation': [
+      { id: 'TK-12', name: 'Kavita Reddy', meta: '41y · Female · UHID-1092', detail: 'Chief complaint: Acute epigastric pain · Physical exam ongoing', timeOrWait: 'In Room', status: 'In Consultation', statusColor: 'info', primaryActionLabel: 'Open EMR Workstation', primaryActionRoute: '/clinic/consultations' },
+    ],
+    'Pending Lab Results': [
+      { id: 'REP-01', name: 'Deepak Joshi (CBC & Lipid Profile)', meta: 'UHID-9011 · Lab Accession #L-441', detail: 'Hemoglobin 13.2 g/dL · Fasting Chol 210 mg/dL', timeOrWait: 'Awaiting Review', status: 'Results Ready', statusColor: 'success', primaryActionLabel: 'Review Report', primaryActionRoute: '/clinic/consultations' },
+    ],
+    'Pending Investigation Reviews': [
+      { id: 'REP-01', name: 'Deepak Joshi (CBC & Lipid Profile)', meta: 'UHID-9011 · Lab Accession #L-441', detail: 'Hemoglobin 13.2 g/dL · Fasting Chol 210 mg/dL', timeOrWait: 'Awaiting Review', status: 'Results Ready', statusColor: 'success', primaryActionLabel: 'Review Report', primaryActionRoute: '/clinic/consultations' },
+    ],
+    'Scheduled Follow-ups': [
+      { id: 'FOL-01', name: 'Sunita Devi', meta: '46y · Female · UHID-9214', detail: 'Type 2 DM post 14-day Metformin adjustment follow-up', timeOrWait: '11:30 AM', status: 'Follow-up Due', statusColor: 'info', primaryActionLabel: 'Consult Patient', primaryActionRoute: '/clinic/consultations' },
+      { id: 'FOL-02', name: 'Vikram Malhotra', meta: '52y · Male · UHID-6119', detail: 'ECG review & cardiology consultation follow-up', timeOrWait: '12:00 PM', status: 'Follow-up Due', statusColor: 'info', primaryActionLabel: 'Consult Patient', primaryActionRoute: '/clinic/consultations' },
+    ],
+    'Telemedicine Queue': [
+      { id: 'VID-01', name: 'Suresh Menon', meta: '45y · Male · UHID-5921', detail: 'Cardiology lipid profile review via Video Teleconsult', timeOrWait: 'In Waiting Room', status: 'Patient Waiting', statusColor: 'warn', primaryActionLabel: 'Join Video Room', primaryActionRoute: '/clinic/consultations' },
+    ],
+  },
+
+  clinic_receptionist: {
+    'Front Desk Check-in Queue': [
+      { id: 'REG-101', name: 'Harish Chandra', meta: 'Phone: 98124-XXXXX', detail: 'Walk-in arrival for General Physician consultation', timeOrWait: '2 min in lobby', status: 'Arrived', statusColor: 'info', primaryActionLabel: 'Check-In', primaryActionRoute: '/clinic/reception' },
+      { id: 'REG-102', name: 'Priyanka Sen', meta: 'UHID-4921 · Appt #204', detail: 'Pre-booked appointment with Dr. Sharma (11:00 AM)', timeOrWait: 'Arrived on-time', status: 'Check-In Pending', statusColor: 'warn', primaryActionLabel: 'Check-In', primaryActionRoute: '/clinic/reception' },
+    ],
+    'Waiting Room Patient Queue': [
+      { id: 'TKN-04', name: 'Rahul Sharma', meta: 'Token #18 · Room 101', detail: 'Vitals recorded: BP 120/80, SpO2 99%', timeOrWait: '10 min wait', status: 'Next to Call', statusColor: 'info', primaryActionLabel: 'Call to Room', primaryActionRoute: '/clinic/reception' },
+      { id: 'TKN-05', name: 'Anita Desai', meta: 'Token #19 · Room 102', detail: 'Waiting for Pediatrician OPD', timeOrWait: '18 min wait', status: 'Waiting', statusColor: 'info', primaryActionLabel: 'Call to Room', primaryActionRoute: '/clinic/reception' },
+    ],
+    'OPD Thermal Slips Queue': [
+      { id: 'SLIP-01', name: 'Manish Rawat (UHID-2026-0812)', meta: 'Dr. Vivek Verma · General Medicine', detail: 'Thermal barcode OPD slip ready for printer', timeOrWait: 'Just now', status: 'Ready to Print', statusColor: 'success', primaryActionLabel: 'Print OPD Slip', primaryActionRoute: '/clinic/reception' },
+    ],
+    'Doctor Room Status': [
+      { id: 'RM-01', name: 'Room 101 · Dr. Vivek Verma', meta: 'Specialty: Internal Medicine', detail: 'Current Token: #17 · 5 patients waiting in queue', timeOrWait: 'Active', status: 'Room Occupied', statusColor: 'success', primaryActionLabel: 'Queue Desk', primaryActionRoute: '/clinic/reception' },
+      { id: 'RM-02', name: 'Room 102 · Dr. Sunita Rao', meta: 'Specialty: Pediatrics', detail: 'Current Token: #11 · 3 patients waiting in queue', timeOrWait: 'Active', status: 'Room Occupied', statusColor: 'success', primaryActionLabel: 'Queue Desk', primaryActionRoute: '/clinic/reception' },
+    ],
+  },
+
+  clinic_nurse: {
+    'Vitals Station Queue': [
+      { id: 'VIT-01', name: 'Sunita Devi (Token #20)', meta: '46y · Female · UHID-9214', detail: 'Chief complaint: Headaches · BP & RBS screening due', timeOrWait: 'Waiting 8m', status: 'Screening Due', statusColor: 'warn', primaryActionLabel: 'Record Vitals', primaryActionRoute: '/clinic/nurse' },
+      { id: 'VIT-02', name: 'Vikram Malhotra (Token #21)', meta: '52y · Male · UHID-6119', detail: 'Pre-consultation routine vitals check', timeOrWait: 'Waiting 3m', status: 'Screening Due', statusColor: 'warn', primaryActionLabel: 'Record Vitals', primaryActionRoute: '/clinic/nurse' },
+    ],
+    'Minor Procedure / Dressing Queue': [
+      { id: 'PROC-01', name: 'Akash Jain', meta: '22y · Male · Wound Dressing', detail: 'Post-abrasion antiseptic dressing & bandaging', timeOrWait: 'In Dressing Room', status: 'Ready for Dressing', statusColor: 'info', primaryActionLabel: 'Perform Dressing', primaryActionRoute: '/clinic/nurse' },
+    ],
+    'Immunization & Vaccine Due': [
+      { id: 'VAC-01', name: 'Baby Vivaan (9 Months)', meta: 'Pediatric Immunization', detail: 'MR 1st Dose + Typhoid Conjugate Vaccine scheduled', timeOrWait: 'Cold Chain Checked', status: 'Ready to Administer', statusColor: 'info', primaryActionLabel: 'Administer Vaccine', primaryActionRoute: '/clinic/nurse' },
+    ],
+    'Doctor Room Assistance': [
+      { id: 'AST-01', name: 'Consulting Room #101', meta: 'Dr. Vivek Verma', detail: 'Nebulization setup requested for acute asthma patient', timeOrWait: 'Stat', status: 'Assistance Needed', statusColor: 'urgent', primaryActionLabel: 'Assist Doctor', primaryActionRoute: '/clinic/nurse' },
+    ],
+  },
+
+  clinic_cashier: {
+    'Unpaid Consultation Invoices': [
+      { id: 'INV-401', name: 'Harish Chandra · ₹800', meta: 'Dr. Vivek Verma OPD Fee', detail: 'Consultation fee pending counter settlement', timeOrWait: 'Pending 5m', status: 'Unpaid', statusColor: 'urgent', primaryActionLabel: 'Collect Payment', primaryActionRoute: '/clinic/cashier' },
+      { id: 'INV-402', name: 'Sunita Devi · ₹1,250', meta: 'Consultation + RBS Rapid Test', detail: 'Patient completed doctor visit, arrived at billing counter', timeOrWait: 'Pending 2m', status: 'Unpaid', statusColor: 'urgent', primaryActionLabel: 'Collect Payment', primaryActionRoute: '/clinic/cashier' },
+    ],
+    'Pharmacy Dispensing Bills': [
+      { id: 'RXB-101', name: 'Rahul Sharma · ₹640', meta: '3 Prescribed Medicines Dispensed', detail: 'Paracetamol 650mg, Azithromycin 500mg, Pantoprazole 40mg', timeOrWait: 'Dispensed', status: 'Awaiting Settlement', statusColor: 'warn', primaryActionLabel: 'Settle Rx Bill', primaryActionRoute: '/clinic/cashier' },
+    ],
+    'Collected Receipts Log': [
+      { id: 'RCT-902', name: 'Priyanka Sen · ₹800', meta: 'Payment Mode: UPI Dynamic QR', detail: 'Receipt #RCT-902 printed & handed to patient', timeOrWait: 'Settled 10m ago', status: 'Paid', statusColor: 'success', primaryActionLabel: 'Print Receipt', primaryActionRoute: '/clinic/cashier' },
+    ],
+    'Cash Drawer Handover': [
+      { id: 'TILL-01', name: 'Morning Shift Cash Till Closing', meta: 'Counter #1 · Cashier: Anita Gupta', detail: 'Opening float: ₹2,000 · Physical cash collected: ₹18,450 · UPI: ₹26,800', timeOrWait: 'Shift End', status: 'Ready to Close', statusColor: 'info', primaryActionLabel: 'Reconcile Till', primaryActionRoute: '/clinic/cashier' },
+    ],
+  },
+
+  clinic_admin: {
+    'Today Consultation Census': [
+      { id: 'CEN-01', name: 'Clinic Daily OPD Census', meta: '82 Total Footfall Today', detail: '65 Appointments scheduled · 17 Walk-ins · 64 Consultations finished', timeOrWait: 'Census Active', status: 'OPD Active', statusColor: 'success', primaryActionLabel: 'View Appointments', primaryActionRoute: '/clinic/appointments' },
+    ],
+    'Pending Bill Settlements': [
+      { id: 'SET-01', name: 'Uncollected OPD Billing Balances', meta: '4 Invoices Pending · Total: ₹3,850', detail: 'Counter receivables awaiting cashier collection or split settle', timeOrWait: 'Action Needed', status: 'Balances Pending', statusColor: 'warn', primaryActionLabel: 'Open Billing Desk', primaryActionRoute: '/clinic/billing' },
+    ],
+    'Inventory Reorder Alerts': [
+      { id: 'STK-01', name: 'Critical Pharmacy Stock Alerts', meta: '3 Medicines Below Minimum Threshold', detail: 'Amoxicillin 500mg (8 tabs left) · Normal Saline 500ml (4 bottles left)', timeOrWait: 'Immediate', status: 'Below Reorder Point', statusColor: 'urgent', primaryActionLabel: 'Manage Inventory', primaryActionRoute: '/clinic/inventory' },
+    ],
+    'Staff Duty Status': [
+      { id: 'STF-01', name: 'Clinic Staff Attendance Roster', meta: '12 / 14 Clinical & Front Staff Present', detail: '2 Nurses on morning shift · 1 Pharmacist · 2 Cashiers on duty', timeOrWait: 'On Duty', status: 'Roster Active', statusColor: 'success', primaryActionLabel: 'View Staff Roster', primaryActionRoute: '/clinic/staff' },
+    ],
+  },
+
+  clinic_branch_manager: {
+    'Branch Patient Queue': [
+      { id: 'BR-Q1', name: 'South City Branch Central Queue', meta: '38 Patients Registered Today', detail: 'Avg wait time: 14 mins · 4 Consulting rooms active', timeOrWait: 'Real-time', status: 'Queue Smooth', statusColor: 'success', primaryActionLabel: 'Branch Schedule', primaryActionRoute: '/clinic/schedule' },
+    ],
+    'Doctor Room Allocations': [
+      { id: 'RM-ALL-1', name: 'Room 101 - Dr. Vivek Verma (Internal Med)', meta: 'Morning Session: 09:00 - 13:00', detail: 'Consulting room fully equipped, digital prescription pad active', timeOrWait: 'Active', status: 'Allocated', statusColor: 'success', primaryActionLabel: 'Room Master', primaryActionRoute: '/clinic/schedule' },
+    ],
+    'Daily Cash Closing': [
+      { id: 'CLS-01', name: 'Branch Daily Cash & Digital Audit', meta: 'Total Collection: ₹46,200', detail: 'Cash: ₹16,400 · UPI: ₹24,800 · Card POS: ₹5,000', timeOrWait: 'End of Day', status: 'Closing Due', statusColor: 'warn', primaryActionLabel: 'Verify Closing', primaryActionRoute: '/clinic/billing' },
+    ],
+    'Staff Attendance Log': [
+      { id: 'ATT-01', name: 'Branch Biometric Check-in Exceptions', meta: 'All morning shift staff verified on-time', detail: 'Evening shift nurse reporting at 14:00', timeOrWait: 'Verified', status: 'Attendance Normal', statusColor: 'info', primaryActionLabel: 'Staff Log', primaryActionRoute: '/clinic/staff' },
+    ],
+  },
+
+  clinic_lab_tech: {
+    'Accession & Barcode Queue': [
+      { id: 'ACC-01', name: 'Rahul Sharma · Blood Sample (CBC / ESR)', meta: 'EDTA Vial · Ref: Dr. Verma', detail: 'Sample collected, print barcode and verify container seal', timeOrWait: 'Collected 10m', status: 'Awaiting Barcode', statusColor: 'warn', primaryActionLabel: 'Print Barcode', primaryActionRoute: '/clinic/tests' },
+      { id: 'ACC-02', name: 'Pooja Nair · Urine Routine & Microscopy', meta: 'Sterile Cup · Ref: Dr. Rao', detail: 'Sample received at intake counter', timeOrWait: 'Just now', status: 'Sample Received', statusColor: 'info', primaryActionLabel: 'Accession Sample', primaryActionRoute: '/clinic/tests' },
+    ],
+    'Sample Collection Queue': [
+      { id: 'COL-01', name: 'Manish Rawat · Fasting Blood Sugar', meta: 'Fluoride Vial · Phlebotomy Bay 1', detail: 'Patient seated in collection bay', timeOrWait: 'Due Now', status: 'Collection Due', statusColor: 'urgent', primaryActionLabel: 'Collect Sample', primaryActionRoute: '/clinic/tests' },
+    ],
+    'Results Entry Worklist': [
+      { id: 'ENT-01', name: 'Sunita Devi · Lipid Profile & HbA1c', meta: 'Automated Biochemistry Analyzer Run #42', detail: 'Analyzer values imported, verify calibration & reference ranges', timeOrWait: 'Completed Run', status: 'Ready to Enter', statusColor: 'info', primaryActionLabel: 'Enter Results', primaryActionRoute: '/clinic/tests' },
+    ],
+    'Pathologist Sign-off Queue': [
+      { id: 'SGN-01', name: 'Geeta Kumari · Complete Blood Count', meta: 'Abnormal Flag: Mild Microcytic Anemia (Hb 9.8)', detail: 'Report compiled, awaiting consulting pathologist electronic signature', timeOrWait: 'Awaiting Doctor Sign', status: 'Pending Sign-off', statusColor: 'warn', primaryActionLabel: 'Review & Sign', primaryActionRoute: '/clinic/tests' },
+    ],
+  },
+
+  clinic_inventory_mgr: {
+    'Medicine Stock Below Reorder Level': [
+      { id: 'REO-01', name: 'Paracetamol 650mg Tablets', meta: 'Current Stock: 40 tabs · Reorder Level: 200 tabs', detail: 'Daily consumption: ~60 tabs · Immediate indent needed', timeOrWait: 'Critically Low', status: 'Stock Critical', statusColor: 'urgent', primaryActionLabel: 'Raise Indent', primaryActionRoute: '/clinic/inventory' },
+      { id: 'REO-02', name: 'Disposable Syringes 5ml with Needle', meta: 'Current Stock: 15 pcs · Reorder Level: 100 pcs', detail: 'Procedure room consumption fast', timeOrWait: 'Low Stock', status: 'Reorder Due', statusColor: 'warn', primaryActionLabel: 'Raise Indent', primaryActionRoute: '/clinic/inventory' },
+    ],
+    'Batches Expiring in 30 Days': [
+      { id: 'EXP-01', name: 'Cough Syrup Diphenhydramine 100ml', meta: 'Batch #CS-2024 · Expiry: End of Month', detail: '14 bottles in stock · Fast-track dispensing or vendor return', timeOrWait: '24 Days Left', status: 'Near Expiry', statusColor: 'urgent', primaryActionLabel: 'Quarantine Batch', primaryActionRoute: '/clinic/inventory' },
+    ],
+    'Pending Purchase Indents': [
+      { id: 'IND-101', name: 'Monthly Consumables & Surgical Cotton Indent', meta: 'Value Estimate: ₹18,500', detail: 'Submitted to clinic purchase desk for vendor quotation', timeOrWait: 'Submitted Yesterday', status: 'Indent Pending', statusColor: 'info', primaryActionLabel: 'View Indents', primaryActionRoute: '/clinic/inventory' },
+    ],
+    'Goods Received Verification (GRN)': [
+      { id: 'GRN-401', name: 'MedSource India Delivery: IV Fluids Batch #9', meta: 'PO #PO-2026-88 · 50 Bottles RL & DNS', detail: 'Shipment delivered to clinic stock room Gate 2', timeOrWait: 'Delivered Today', status: 'Verify & Stock', statusColor: 'success', primaryActionLabel: 'Acknowledge GRN', primaryActionRoute: '/clinic/inventory' },
+    ],
+  },
 };
 
 export default function WorkQueueTable({ roleKey, workQueues }: WorkQueueTableProps) {
@@ -496,16 +641,60 @@ export default function WorkQueueTable({ roleKey, workQueues }: WorkQueueTablePr
   // Interactive local queue state so user can modify items, submit action forms & see real updates!
   const [itemsMap, setItemsMap] = useState<Record<string, WorkQueueItem[]>>({});
 
+  // Live backend queue state — real transactional lists keyed by SPEC queue
+  // names. Falls back to the curated roster below when empty/unreachable.
+  const [liveMap, setLiveMap] = useState<Record<string, WorkQueueItem[]>>({});
+  useEffect(() => {
+    let cancelled = false;
+    fetchRoleQueues(effectiveRole)
+      .then((m) => {
+        if (!cancelled && m && Object.keys(m).length > 0) setLiveMap(m);
+      })
+      .catch(() => {
+        /* keep curated fallback on any network/auth error */
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveRole]);
+
+  // Fuzzy key match so near-identical queue names still hit curated data
+  // (e.g. spec 'Turnaround / Cleaning Queue' vs curated 'Bed Turnover Queue').
+  const fuzzyDemo = (queueName: string): WorkQueueItem[] | null => {
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const target = new Set(norm(queueName).split(' ').filter((w) => w.length > 2));
+    let best: WorkQueueItem[] | null = null;
+    let bestScore = 0;
+    for (const [key, items] of Object.entries(roleData)) {
+      const words = new Set(norm(key).split(' ').filter((w) => w.length > 2));
+      let score = 0;
+      target.forEach((w) => {
+        if (words.has(w)) score += 2;
+        else if ([...words].some((x) => x.includes(w) || w.includes(x))) score += 1;
+      });
+      if (score > bestScore) {
+        bestScore = score;
+        best = items as WorkQueueItem[];
+      }
+    }
+    return bestScore >= 2 ? best : null;
+  };
+
   // Active Action Form Modal state
   const [activeModalItem, setActiveModalItem] = useState<WorkQueueItem | null>(null);
   const [actionRemarks, setActionRemarks] = useState('');
   const [actionStatus, setActionStatus] = useState('Completed');
   const [actionValue, setActionValue] = useState('');
 
-  // Get items for currently selected queue with smart fallback
+  // Get items for currently selected queue with smart fallback:
+  // local edits > live backend > exact curated > fuzzy curated > generic.
   const getQueueItems = (queueName: string): WorkQueueItem[] => {
     if (itemsMap[queueName]) return itemsMap[queueName];
+    if (liveMap[queueName]?.length) return liveMap[queueName];
     if (roleData[queueName]) return roleData[queueName];
+    const fuzzy = fuzzyDemo(queueName);
+    if (fuzzy) return fuzzy;
     // Department-tailored fallback if not yet customized
     return [
       {
@@ -598,6 +787,15 @@ export default function WorkQueueTable({ roleKey, workQueues }: WorkQueueTablePr
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               {filteredItems.length} Active
             </span>
+            {liveMap[selectedQueue]?.length ? (
+              <span data-testid="queue-source-live" title="Showing live hospital data from backend APIs" className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
+                ● Live
+              </span>
+            ) : (
+              <span data-testid="queue-source-demo" title="Backend unreachable or empty — showing curated roster" className="text-[11px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full border">
+                Demo roster
+              </span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             Real-time departmental patient and operational task roster

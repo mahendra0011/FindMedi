@@ -695,7 +695,7 @@ export default function RoleDashboardShell({ config }: { config: RoleDashboardCo
               </section>
 
               {/* Role-Specific Domain Modules */}
-              {config.domainModules.length > 0 && (
+              {(config.domainModules?.length ?? 0) > 0 && (
                 <section data-testid="role-domain-modules" className="rounded-xl border bg-card p-4 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="font-semibold text-sm">Specialty tools</h2>

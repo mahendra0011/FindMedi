@@ -55,6 +55,10 @@ export const ROLE_EQUIVALENTS = {
   medical_superintendent: ['medical_director', 'cmo', 'hospital_owner', 'medical_superintendent'],
   maintenance: ['maintenance', 'facility_manager'],
   facility_manager: ['maintenance', 'facility_manager'],
+  superadmin: ['superadmin', 'super_admin'],
+  super_admin: ['superadmin', 'super_admin'],
+  clinic_telemed_coordinator: ['clinic_telemed_coordinator', 'clinic_telemed_coord'],
+  clinic_telemed_coord: ['clinic_telemed_coordinator', 'clinic_telemed_coord'],
   store_keeper: ['store_keeper', 'purchase_officer'],
   purchase_officer: ['store_keeper', 'purchase_officer'],
 };
@@ -93,10 +97,15 @@ export const CANONICAL_ROLES = [
   'security_admin', 'clinical_safety', 'analyst', 'auditor',
   // File 09 §8.2: hospital front-desk (tenant-scoped, no clinical reads).
   'receptionist',
-  // Doc 12 §3: clinic org roles (tenant-scoped clinic staff with real logins).
+  // Doc 12 §3 & CMS Blueprint 70-module clinic operational roles.
+  'super_admin',
   'clinic_admin', 'clinic_receptionist', 'clinic_nurse',
   'clinic_accountant', 'clinic_pharmacist',
   'clinic_cashier', 'clinic_branch_manager', 'clinic_telemed_coordinator',
+  'clinic_lab_tech', 'clinic_radiology_tech', 'clinic_inventory_mgr',
+  'clinic_purchase_officer', 'clinic_hr_admin', 'clinic_home_collection',
+  'clinic_telemed_coord', 'clinic_crm_staff', 'clinic_quality_mgr',
+  'clinic_patient_portal', 'clinic_owner_analytics',
   // File 22 P0-8 (docs2/08 §8.2): hospital operations roles.
   'front_desk',
   'billing_executive', 'cashier', 'insurance_desk',
@@ -194,6 +203,7 @@ export function assertRoleMatrixComplete(ROLE_PERMISSIONS) {
 
 export const ROLE_PERMISSIONS = {
   superadmin: ['*'],
+  super_admin: ['*'],
   // ── Ops console (8.md 1, 7.md 4) ───────────────────────────────────────────
   // Least privilege per role: each set is the smallest one that lets that role
   // do ITS job. `support:manage`, payout CREATION/PAYMENT, commission-config
@@ -587,6 +597,52 @@ export const ROLE_PERMISSIONS = {
     'appointments:read', 'appointments:write', 'patients:read', 'records:read',
     'chat:read', 'chat:write', 'notifications:read',
     'profile:read:own', 'profile:write:own',
+  ],
+  clinic_lab_tech: [
+    'lab:read', 'lab:enter_result', 'lab:book', 'patients:read',
+    'appointments:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  clinic_radiology_tech: [
+    'radiology:read', 'radiology:write', 'patients:read',
+    'appointments:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  clinic_inventory_mgr: [
+    'inventory:read', 'inventory:manage', 'pharmacy:read', 'pharmacy:manage',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  clinic_purchase_officer: [
+    'inventory:read', 'inventory:manage', 'billing:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  clinic_hr_admin: [
+    'staff:view', 'staff:manage', 'admin:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  clinic_home_collection: [
+    'lab:read', 'lab:book', 'patients:read', 'appointments:read', 'ride:read',
+    'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  clinic_telemed_coord: [
+    'appointments:read', 'appointments:write', 'patients:read', 'records:read',
+    'chat:read', 'chat:write', 'notifications:read',
+    'profile:read:own', 'profile:write:own',
+  ],
+  clinic_crm_staff: [
+    'patients:read', 'appointments:read', 'appointments:write', 'reviews:read',
+    'crm:read', 'crm:write', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  clinic_quality_mgr: [
+    'audit:read', 'reviews:read', 'operations:read', 'reports:read',
+    'admin:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
+  ],
+  clinic_patient_portal: [
+    'appointments:read:own', 'appointments:write:own', 'records:read:own',
+    'billing:read:own', 'profile:read:own', 'profile:write:own',
+    'chat:read', 'chat:write', 'notifications:read:own', 'notifications:write:own',
+  ],
+  clinic_owner_analytics: [
+    'reports:read', 'billing:read', 'analytics:read', 'clinic:manage',
+    'admin:read', 'notifications:read', 'profile:read:own', 'profile:write:own',
   ],
   // ── File 22 P0-8 (docs2/08 §8.2/§8.3): hospital operations roles ─────────
   // Every string below is already enforced by an authorize() call site —

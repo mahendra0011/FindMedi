@@ -117,11 +117,15 @@ const userSchema = new mongoose.Schema({
       // File 09 §8.2/Phase 0: hospital front-desk (registration, tokens,
       // OPD billing counter). Tenant-scoped, no clinical reads.
       'receptionist',
-      // Doc 12 §3: clinic org roles — owner (admin) + practitioner-adjacent
-      // staff with real logins + RBAC (replacing string-label ClinicStaff).
+      // Doc 12 §3 & CMS Blueprint 70-module clinic operational roles.
+      'super_admin',
       'clinic_admin', 'clinic_receptionist', 'clinic_nurse',
       'clinic_accountant', 'clinic_pharmacist',
       'clinic_cashier', 'clinic_branch_manager', 'clinic_telemed_coordinator',
+      'clinic_lab_tech', 'clinic_radiology_tech', 'clinic_inventory_mgr',
+      'clinic_purchase_officer', 'clinic_hr_admin', 'clinic_home_collection',
+      'clinic_telemed_coord', 'clinic_crm_staff', 'clinic_quality_mgr',
+      'clinic_patient_portal', 'clinic_owner_analytics',
       // File 22 P0-8 (docs2/08 §8.2): hospital operations roles. What each
       // role may reach lives in config/permissions.js ROLE_PERMISSIONS
       // (assertRoleMatrixComplete enforces the pairing); aliases share
