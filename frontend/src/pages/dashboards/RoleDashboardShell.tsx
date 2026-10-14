@@ -69,6 +69,100 @@ export const QUICK_ACTION_ROUTES: Record<string, string> = {
   'Fulfill Ward Indent': '/hospital/pharmacy?tab=indents',
   'Scan Medicine Barcode': '/hospital/pharmacy?tab=pos',
   'Generate Pharmacy Bill': '/hospital/pharmacy?tab=billing',
+  // Cashier Desk
+  'Collect Payment': '/hospital/cashier?action=settle',
+  'Print Official Receipt': '/hospital/cashier?action=receipt',
+  'Initiate Shift Cash Closing': '/hospital/cashier?tab=reconcile',
+  'Scan UPI Dynamic QR': '/hospital/cashier?action=settle',
+  // ICU Intensivist & Nurse
+  'Review ICU Patient Chart': '/ipd?ward=icu',
+  'Order Critical Infusion': '/hospital/nursing?tab=mar',
+  'Record Procedure Note (Central Line)': '/ipd?tab=notes',
+  'Plan Ward Step-Down': '/hospital/beds?ward=stepdown',
+  'Log Hourly ICU Vitals': '/hospital/nursing?tab=vitals',
+  'Document Infusion Rate Change': '/hospital/nursing?tab=mar',
+  'Record Endotracheal Care': '/hospital/nursing?tab=notes',
+  'Acknowledge Monitor Alarm': '/hospital/nursing?tab=vitals',
+  // Operation Theatre Coordinator & Teams
+  'Schedule New Surgery': '/ot?action=schedule',
+  'Assign OT Room & Team': '/ot?tab=rooms',
+  'Verify WHO Surgical Checklist': '/ot?tab=checklist',
+  'Mark Theatre Available': '/ot?tab=rooms',
+  // Surgeon
+  'Start Operative Note': '/ot?tab=operative-note',
+  'Verify Pre-Op Consent': '/ot?tab=consent',
+  'Enter Post-Op Orders': '/ipd?tab=orders',
+  'Check PAC Clearance': '/ot?tab=pac',
+  // Anaesthetist / Anaesthesiologist
+  'Complete Pre-Anaesthesia PAC': '/ot?tab=pac',
+  'Start Intra-Op Log': '/ot?tab=intraop',
+  'Discharge from PACU': '/ot?tab=pacu',
+  'Flag Difficult Airway': '/ot?tab=alerts',
+  // Radiologist
+  'Launch Web PACS Viewer': '/hospital/radiology?tab=pacs',
+  'Dictate Radiology Report': '/hospital/radiology?tab=reporting',
+  'Sign & Release Diagnostic Report': '/hospital/radiology?tab=signoff',
+  'Flag Urgent Finding': '/hospital/radiology?tab=critical',
+  // Discharge Coordinator
+  'Check Clearance Status': '/ipd?tab=discharge',
+  'Notify Pharmacy / Billing': '/hospital/cashier',
+  'Print Discharge Folder': '/ipd?tab=discharge-summary',
+  'Mark Discharge Completed': '/hospital/beds?action=release',
+  // Housekeeping & Sanitization
+  'Assign Cleaning Task': '/housekeeping?tab=tasks',
+  'Verify & Release Clean Bed': '/hospital/beds?action=release',
+  'Log Biohazard Disinfection': '/housekeeping?tab=biohazard',
+  'Report Plumbing/AC Fault': '/admin/settings',
+  // Biomedical Engineering
+  'Log Breakdown Work Order': '/biomedical?action=breakdown',
+  'Record Equipment Calibration': '/biomedical?action=calibrate',
+  'Release Equipment to Clinical Service': '/biomedical?action=release',
+  'Schedule Preventive Service': '/biomedical?action=pm',
+  // Central Sterile Supply Department (CSSD)
+  'Log Autoclave Cycle Start': '/cssd?action=autoclave',
+  'Record Chemical Indicator Result': '/cssd?action=indicator',
+  'Issue Sterile Tray to OT': '/cssd?action=dispatch',
+  'Receive Soiled Instrument Set': '/cssd?action=receive',
+  // Ambulance & Transport
+  'Dispatch Emergency Ambulance': '/ambulanceTrips',
+  'Log Vehicle Inspection Checklist': '/ambulanceTrips',
+  'Complete Trip & Generate Bill': '/ambulanceTrips',
+  'Mark Vehicle Available': '/ambulanceTrips',
+  // Quality & Patient Safety
+  'Log Patient Safety Incident': '/hospital/quality',
+  'Initiate Root Cause Analysis': '/hospital/quality',
+  'Assign Corrective Action (CAPA)': '/hospital/quality',
+  'Export NABH Quality Report': '/hospital/quality',
+  // Infection Control
+  'Place Patient on Isolation Protocol': '/hospital/quality',
+  'Record Hand Hygiene Audit': '/hospital/quality',
+  'Log HAI Infection Event': '/hospital/quality',
+  'Generate BMW Waste Manifest': '/hospital/quality',
+  // Hospital Security
+  'Issue Visitor Pass': '/hospital/frontdesk',
+  'Scan Visitor Exit': '/hospital/frontdesk',
+  'Log Security Incident': '/admin/settings',
+  'Revoke Access Badge': '/admin/settings',
+  // Mortuary & Death Records
+  'Log Deceased Intake': '/mortuary',
+  'Allocate Storage Cabinet': '/mortuary',
+  'Verify Release Documentation': '/mortuary',
+  'Complete Handover': '/mortuary',
+  // Hospital IT Admin
+  'Unlock Staff User Account': '/admin/settings',
+  'Restart HL7 Gateway Bridge': '/admin/settings',
+  'Run On-Demand DB Snapshot': '/admin/settings',
+  'Test Network Printer': '/admin/settings',
+  // Hospital MIS & Analytics
+  'Export Daily Operations Summary': '/reports',
+  'Generate Monthly Financial P&L': '/reports',
+  'Analyze Bed Occupancy Trends': '/reports',
+  'Schedule Automated Report': '/reports',
+  // Purchase & Procurement
+  'Create Purchase Order': '/admin/settings',
+  'Request Quotation (RFQ)': '/admin/settings',
+  'Verify Goods Receipt Note (GRN)': '/admin/settings',
+  'Add Approved Vendor': '/admin/settings',
 };
 
 export interface Kpi {
