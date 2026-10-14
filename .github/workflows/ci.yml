@@ -127,7 +127,7 @@ jobs:
     # by upstream advisories and Dependabot bumps them; re-scanning them here
     # would only reproduce vendor CVEs we cannot patch.
     - name: Trivy config/image scan
-      uses: aquasecurity/trivy-action@0.28.0
+      uses: aquasecurity/trivy-action@v0.36.0
       with:
         scan-type: config
         scan-ref: .
@@ -139,7 +139,7 @@ jobs:
     - name: Build the backup image
       run: docker build -t findmedi/backup:ci infra/backup
     - name: Trivy scan the built image
-      uses: aquasecurity/trivy-action@0.28.0
+      uses: aquasecurity/trivy-action@v0.36.0
       with:
         image-ref: findmedi/backup:ci
         severity: CRITICAL,HIGH
