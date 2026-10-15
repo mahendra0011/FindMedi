@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api, downloadPaymentInvoice } from '@/lib/api';
+import { useTranslation } from 'react-i18next';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -81,28 +82,35 @@ const statCards = [
 ];
 
 const quickActions = [
-  { label: 'Find Doctors', icon: Building2, link: '/patient/doctors', desc: 'In Clinic / Hospital' },
-  { label: 'Video Consult', icon: Video, link: '/patient/video-calls', desc: 'Full HD 1080p' },
-  { label: 'Doctor Chat', icon: MessageCircle, link: '/patient/chat', desc: 'Instant messaging' },
-  { label: 'Book Lab Test', icon: Syringe, link: '/patient/services', desc: 'Home blood sample' },
-  { label: 'Buy Medicine', icon: Pill, link: '/buy-medicine', desc: 'Doorstep delivery' },
-  { label: 'Upload Report', icon: Upload, link: '/upload', desc: 'ABDM Health Locker' },
-  { label: 'Dentist', icon: Sparkles, link: '/healthcare?category=dentist', desc: 'Teeth cleaning & RCT' },
-  { label: 'Eye Care', icon: Eye, link: '/healthcare?category=eye', desc: 'Vision & Lasik' },
-  { label: 'Physiotherapy', icon: Activity, link: '/patient/programs', desc: 'Rehab & home visits' },
-  { label: 'Diet & Nutrition', icon: Leaf, link: '/healthcare?category=dietitian', desc: 'Custom meal plans' },
-  { label: 'Diet Meals', icon: UtensilsCrossed, link: '/patient/meals', desc: 'Therapeutic meal plans' },
-  { label: 'Mental Wellbeing', icon: Heart, link: '/patient/wellness', desc: 'Discreet counselling', sensitive: true },
-  { label: 'Rent Equipment', icon: Truck, link: '/patient/rentals', desc: 'Beds & Oxygen' },
-  { label: 'Gym & Yoga', icon: Flame, link: '/patient/programs', desc: 'CultPass & studios' },
-  { label: 'Health Camps', icon: Users, link: '/patient/events', desc: 'Free screenings' },
-  { label: 'Vaccinations', icon: ShieldCheck, link: '/patient/vaccinations', desc: 'Child UIP & Adult' },
-  { label: 'Insurance & Claims', icon: FileText, link: '/patient/insurance', desc: 'Cashless pre-auth' },
-  { label: 'AYUSH Holistic', icon: Leaf, link: '/healthcare?category=ayush', desc: 'Ayurveda, Homeo & Siddha' },
-  { label: 'Elder & Home Care', icon: Building2, link: '/patient/home-visit', desc: 'Assisted living & nurses' },
-  { label: 'Govt & PM-JAY', icon: Landmark, link: '/healthcare?category=govt_facility', desc: 'PHC, CHC & Ayushman' },
-  { label: 'Emergency SOS', icon: Siren, link: '/emergency', desc: 'Ambulance 108 & Blood' },
+  { id: 'findDoctors', icon: Building2, link: '/patient/doctors' },
+  { id: 'videoConsult', icon: Video, link: '/patient/video-calls' },
+  { id: 'doctorChat', icon: MessageCircle, link: '/patient/chat' },
+  { id: 'labTest', icon: Syringe, link: '/patient/services' },
+  { id: 'buyMedicine', icon: Pill, link: '/buy-medicine' },
+  { id: 'uploadReport', icon: Upload, link: '/upload' },
+  { id: 'dentist', icon: Sparkles, link: '/healthcare?category=dentist' },
+  { id: 'eyeCare', icon: Eye, link: '/healthcare?category=eye' },
+  { id: 'physio', icon: Activity, link: '/patient/programs' },
+  { id: 'dietNutrition', icon: Leaf, link: '/healthcare?category=dietitian' },
+  { id: 'dietMeals', icon: UtensilsCrossed, link: '/patient/meals' },
+  { id: 'mental', icon: Heart, link: '/patient/wellness', sensitive: true },
+  { id: 'rentEquipment', icon: Truck, link: '/patient/rentals' },
+  { id: 'gymYoga', icon: Flame, link: '/patient/programs' },
+  { id: 'camps', icon: Users, link: '/patient/events' },
+  { id: 'vaccination', icon: ShieldCheck, link: '/patient/vaccinations' },
+  { id: 'insurance', icon: FileText, link: '/patient/insurance' },
+  { id: 'ayush', icon: Leaf, link: '/healthcare?category=ayush' },
+  { id: 'elderCare', icon: Building2, link: '/patient/home-visit' },
+  { id: 'govt', icon: Landmark, link: '/healthcare?category=govt_facility' },
+  { id: 'emergency', icon: Siren, link: '/emergency' },
 ];
+
+/**
+ * 6.md §4 persona variants: per-persona tile priority lives in
+ * ./personaTiles (pure, tested). Tiles not listed keep their relative order
+ * AFTER prioritised ones. Permissions never change here.
+ */
+import { orderTiles } from './personaTiles';
 
 const healthTips = [
   'Stay hydrated — drink at least 8 glasses of water daily.',
@@ -114,6 +122,22 @@ const healthTips = [
 export default function PatientDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
+  const [persona, setPersona] = useState<string | null>(null);
+
+  // Persona-driven defaults (6.md §4): tile order + density follow the
+  // stored persona. Fetched once; generic adult order on failure/empty.
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/patient/persona')
+      .then((res: any) => {
+        if (!cancelled && res?.persona) setPersona(res.persona);
+      })
+      .catch(() => { /* generic defaults stand */ });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [showModal, setShowModal] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [bills, setBills] = useState([]);
@@ -153,9 +177,9 @@ export default function PatientDashboard() {
 
   useEffect(() => {
     const h = new Date().getHours();
-    if (h < 12) setGreeting('Good morning');
-    else if (h < 17) setGreeting('Good afternoon');
-    else setGreeting('Good evening');
+    if (h < 12) setGreeting('morning');
+    else if (h < 17) setGreeting('afternoon');
+    else setGreeting('evening');
   }, []);
 
   useEffect(() => {
@@ -304,6 +328,11 @@ export default function PatientDashboard() {
   const recentTests = testBookings.slice(0, 3);
   const recentOrders = medOrders.filter(o => o.status !== 'Delivered').slice(0, 3);
 
+  // Persona-driven tile order + density. Elderly gets larger tap targets.
+  const orderedTiles = orderTiles(quickActions, persona);
+  const tileText = persona === 'elderly' ? 'text-sm' : 'text-xs';
+  const tileDescText = persona === 'elderly' ? 'text-xs' : 'text-[10px]';
+
   const statValues = {
     'Upcoming Appts': upcomingAppts.length,
     'Active Prescriptions': activeRxCount,
@@ -446,9 +475,9 @@ export default function PatientDashboard() {
         <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full translate-y-1/2" />
         <div className="relative z-10 flex items-center justify-between flex-wrap gap-4">
           <div>
-            <p className="text-sm font-medium text-white/70">{greeting}</p>
-            <h1 className="font-heading text-2xl sm:text-3xl font-bold mt-0.5">Welcome back, {user?.name?.split(' ')[0] || 'there'}</h1>
-            <p className="text-white/80 mt-1">Here's your health snapshot for today</p>
+            <p className="text-sm font-medium text-white/70">{greeting === 'morning' ? t('dashboard.greetingMorning') : greeting === 'afternoon' ? t('dashboard.greetingAfternoon') : t('dashboard.greetingEvening')}</p>
+            <h1 className="font-heading text-2xl sm:text-3xl font-bold mt-0.5">{t('dashboard.welcomeBack', { name: user?.name?.split(' ')[0] || 'there' })}</h1>
+            <p className="text-white/80 mt-1">{t('dashboard.todaySnapshot')}</p>
           </div>
           <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
             <Button
@@ -767,7 +796,7 @@ export default function PatientDashboard() {
               <Activity className="w-4 h-4 text-blue-500" />
             </div>
             <div>
-              <h3 className="font-heading font-black text-lg text-foreground">Health & Family Management</h3>
+              <h3 className="font-heading font-black text-lg text-foreground">{t('dashboard.sections.healthFamily')}</h3>
               <p className="text-xs text-muted-foreground font-medium">Tools to manage your medical profile</p>
             </div>
           </div>
@@ -881,7 +910,7 @@ export default function PatientDashboard() {
                 <CalendarDays className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-heading font-semibold text-foreground">My Appointments</h3>
+                <h3 className="font-heading font-semibold text-foreground">{t('dashboard.sections.appointments')}</h3>
                 <p className="text-xs text-muted-foreground">
                   {apptTab === 'pending' && `${pendingAppts.length} pending confirmation`}
                   {apptTab === 'upcoming' && `${upcomingAppts.length} upcoming scheduled`}
@@ -1088,7 +1117,7 @@ export default function PatientDashboard() {
                 <IndianRupee className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-heading font-semibold text-foreground">Payment History</h3>
+                <h3 className="font-heading font-semibold text-foreground">{t('dashboard.sections.payments')}</h3>
                 <p className="text-xs text-muted-foreground">{payments.length > 0 ? `Last ${Math.min(payments.length, 3)} payments` : 'No payments yet'}</p>
               </div>
             </div>
@@ -1154,7 +1183,7 @@ export default function PatientDashboard() {
                 <TestTube className="w-5 h-5 text-cyan-500" />
               </div>
               <div>
-                <h3 className="font-heading font-semibold text-foreground">Lab Tests</h3>
+                <h3 className="font-heading font-semibold text-foreground">{t('dashboard.sections.labTests')}</h3>
                 <p className="text-xs text-muted-foreground">{recentTests.length > 0 ? `${recentTests.length} recent` : 'No tests booked'}</p>
               </div>
             </div>
@@ -1199,7 +1228,7 @@ export default function PatientDashboard() {
                 <ShoppingCart className="w-5 h-5 text-amber-500" />
               </div>
               <div>
-                <h3 className="font-heading font-semibold text-foreground">Medicine Orders</h3>
+                <h3 className="font-heading font-semibold text-foreground">{t('dashboard.sections.medOrders')}</h3>
                 <p className="text-xs text-muted-foreground">{activeOrders > 0 ? `${activeOrders} active` : 'No active orders'}</p>
               </div>
             </div>
@@ -1244,7 +1273,7 @@ export default function PatientDashboard() {
                 <ClipboardList className="w-5 h-5 text-blue-500" />
               </div>
               <div>
-                <h3 className="font-heading font-semibold text-foreground">Active Prescriptions</h3>
+                <h3 className="font-heading font-semibold text-foreground">{t('dashboard.sections.prescriptions')}</h3>
                 <p className="text-xs text-muted-foreground">{activeRxCount > 0 ? `${activeRxCount} active` : 'No active scripts'}</p>
               </div>
             </div>
@@ -1289,7 +1318,7 @@ export default function PatientDashboard() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-heading font-semibold text-foreground">Health Ecosystem Quick Actions</h3>
+                <h3 className="font-heading font-semibold text-foreground">{t('dashboard.sections.quickActions')}</h3>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                   {quickActions.length} Services
                 </span>
@@ -1319,19 +1348,19 @@ export default function PatientDashboard() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3.5">
-          {(showAllActions ? quickActions : quickActions.slice(0, 10)).map(a => {
-            const displayLabel = a.sensitive && discreetMode ? 'Consultation' : a.label;
-            const displayDesc = a.sensitive && discreetMode ? 'Confidential care' : a.desc;
+          {(showAllActions ? orderedTiles : orderedTiles.slice(0, 10)).map(a => {
+            const displayLabel = a.sensitive && discreetMode ? 'Consultation' : t(`dashboard.tiles.${a.id}.label`, a.id);
+            const displayDesc = a.sensitive && discreetMode ? 'Confidential care' : t(`dashboard.tiles.${a.id}.desc`, a.id);
 
             return (
-              <Link key={a.label} to={a.link}
+              <Link key={a.id} to={a.link}
                 className="group relative flex flex-col items-center gap-2.5 p-4 rounded-2xl border border-border/40 bg-gradient-to-br from-muted/10 to-muted/5 hover:from-primary/5 hover:to-primary/10 hover:border-primary/30 hover:shadow-md transition-all duration-300 text-center">
                 <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-300">
                   <a.icon className="w-5 h-5 text-primary" />
                 </div>
                 <div className="space-y-0.5">
-                  <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors block line-clamp-1">{displayLabel}</span>
-                  <span className="text-[10px] text-muted-foreground block line-clamp-1 leading-tight">{displayDesc}</span>
+                  <span className={`${tileText} font-bold text-foreground group-hover:text-primary transition-colors block line-clamp-1`}>{displayLabel}</span>
+                  <span className={`${tileDescText} text-muted-foreground block line-clamp-1 leading-tight`}>{displayDesc}</span>
                 </div>
                 <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-border/0 group-hover:ring-primary/20 transition-all" />
               </Link>
@@ -1349,7 +1378,7 @@ export default function PatientDashboard() {
       >
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-heading font-black text-lg text-foreground">Programs, Subscriptions & Health Records</h3>
+            <h3 className="font-heading font-black text-lg text-foreground">{t('dashboard.sections.programs')}</h3>
             <p className="text-xs text-muted-foreground font-medium">Manage memberships, equipment rentals, registered health camps, and insurance</p>
           </div>
         </div>
@@ -1520,7 +1549,7 @@ export default function PatientDashboard() {
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-destructive/10 flex items-center justify-center"><RotateCcw className="w-4 h-4 text-destructive" /></div>
             <div>
-              <h3 className="font-semibold text-foreground">Refunds</h3>
+              <h3 className="font-semibold text-foreground">{t('dashboard.sections.refunds')}</h3>
               <p className="text-xs text-muted-foreground">{refunds.length > 0 ? `₹${totalRefunded.toLocaleString()} refunded` : 'No refunds'}</p>
             </div>
           </div>

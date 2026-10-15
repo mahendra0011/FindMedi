@@ -5,19 +5,21 @@
  * dashboard DEFAULTS only in later turns — never permissions.
  */
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 
 const OPTIONS = [
-  { id: 'adult', label: 'Myself', hint: 'Appointments, meds, reports', emoji: '🧑' },
-  { id: 'parent', label: 'My child', hint: 'Vaccines, growth, pediatrician', emoji: '👶' },
-  { id: 'elderly', label: 'Elderly care', hint: 'Large text, reminders, SOS', emoji: '🧓' },
-  { id: 'caregiver', label: 'Caregiver', hint: 'Manage family profiles', emoji: '🤝' },
-  { id: 'fitness', label: 'Fitness', hint: 'Classes, memberships, nutrition', emoji: '💪' },
-  { id: 'chronic', label: 'Chronic care', hint: 'Care plan, vitals, refills', emoji: '📋' },
-  { id: 'maternity', label: 'Pregnancy', hint: 'ANC visits, baby vaccines', emoji: '🤰' },
+  { id: 'adult', emoji: '🧑' },
+  { id: 'parent', emoji: '👶' },
+  { id: 'elderly', emoji: '🧓' },
+  { id: 'caregiver', emoji: '🤝' },
+  { id: 'fitness', emoji: '💪' },
+  { id: 'chronic', emoji: '📋' },
+  { id: 'maternity', emoji: '🤰' },
 ];
 
 export default function PersonaStep() {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -49,15 +51,15 @@ export default function PersonaStep() {
     <section data-testid="persona-step" className="rounded-2xl border bg-card p-4 shadow-sm space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-semibold text-sm">What brings you here?</h2>
-          <p className="text-xs text-muted-foreground">Personalises your home screen. Skippable — nothing is locked.</p>
+          <h2 className="font-semibold text-sm">{t('personaStep.title')}</h2>
+          <p className="text-xs text-muted-foreground">{t('personaStep.subtitle')}</p>
         </div>
         <button
           type="button"
           onClick={() => choose(null)}
           className="text-xs text-muted-foreground hover:text-foreground underline"
         >
-          Skip
+          {t('personaStep.skip')}
         </button>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -69,8 +71,8 @@ export default function PersonaStep() {
             className="rounded-xl border bg-background p-3 text-left hover:border-primary/50 hover:bg-muted/50 transition-colors"
           >
             <div className="text-xl">{o.emoji}</div>
-            <div className="text-xs font-semibold mt-1">{o.label}</div>
-            <div className="text-[11px] text-muted-foreground">{o.hint}</div>
+            <div className="text-xs font-semibold mt-1">{t(`personaStep.options.${o.id}.label`)}</div>
+            <div className="text-[11px] text-muted-foreground">{t(`personaStep.options.${o.id}.hint`)}</div>
           </button>
         ))}
       </div>

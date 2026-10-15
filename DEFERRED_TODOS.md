@@ -105,4 +105,16 @@ Code base se audit md files hatane ke baad yehi ek source of truth hai.
   Encrypt-write here without decrypt-there = data loss. Do both sides in one
   change with a clinician sign-off on the read paths.
 
+## 15. Full SSR / prerender for SEO (File 09 §1.3, 11, 21)
+- **Status:** Crawl basics done — marketplace-accurate title/meta/OG/JSON-LD
+  (`index.html`), robots.txt blocks app shells + `/api` + sitemap pointer,
+  dynamic `sitemap.xml` with thin-page filter. i18n boot + switcher live.
+- **Baki:** App uses HashRouter (`App.tsx`) so crawlers only ever see entry
+  points. Real prerender needs: BrowserRouter migration + server fallback
+  rewrites + build-time prerender of public routes (/, hospitals, search,
+  facility pages) + per-route meta.
+- **Blocked on:** A dedicated migration turn — HashRouter→BrowserRouter
+  changes every deep link/bookmark; needs hosting rewrite rules + full E2E
+  pass. Do NOT attempt as a side quest.
+
 Related: see docs/qa-release.md for the release process.
