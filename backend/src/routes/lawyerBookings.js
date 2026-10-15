@@ -7,6 +7,7 @@ import Notification from '../models/Notification.js';
 import OutboxEvent from '../models/OutboxEvent.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { bookingLimiter } from '../middleware/rateLimit.js';
+import { idempotencyGuard } from '../middleware/idempotency.js';
 import {
   validate,
   bookLawyerSchema,
@@ -89,7 +90,7 @@ async function assertBookingAccess(req, bookingId, action) {
 
 // ─── POST /api/lawyer-booking/book ─────────────────────────────────────────
 // Create a new legal consultation booking (Paths A, B, and C)
-router.post('/book', protect, authorize('legal:book'), validate(bookLawyerSchema), bookingLimiter, async (req, res) => {
+router.post('/book', protect, authorize('legal:book'), bookingLimiter, idempotencyGuard({ prefix: 'lawyer-book' }), validate(bookLawyerSchema), async (req, res) => {
   try {
     const {
       lawyerId,

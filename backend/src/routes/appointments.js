@@ -728,7 +728,7 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
   }
 });
 
-router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), authorize('appointments:write'), validate(createAppointmentSchema), async (req, res) => {
+router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), authorize('appointments:write'), bookingLimiter, idempotencyGuard({ prefix: 'appt-create', failClosed: true }), validate(createAppointmentSchema), async (req, res) => {
   try {
     const { doctorId, doctor, department, date, time, type, symptoms, priority, appointmentMode } = req.body;
     

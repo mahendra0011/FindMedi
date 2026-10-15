@@ -636,6 +636,7 @@ import patientVaccinationRoutes from './routes/vaccinations.js';
 import patientDsrRoutes from './routes/dsr.js';
 import adminDsrRoutes from './routes/adminDsr.js';
 import breakGlassRoutes from './routes/breakGlass.js';
+import twoPersonApprovalRoutes from './routes/twoPersonApprovals.js';
 import crmRoutes from './routes/crm.js';
 import iamRoutes from './routes/iam.js';
 import accessLogRoutes from './routes/accessLog.js';
@@ -919,6 +920,8 @@ app.use('/api/admin/dsr', adminDsrRoutes);
 // File 23 §4.2: break-glass queue (request/decide/revoke) behind
 // breakglass:read/write/approve — DPO, clinical safety, support L2.
 app.use('/api/admin/break-glass', breakGlassRoutes);
+// Generic four-eyes administrative approval queue (payouts, fee waivers, sensitive kyc, suspensions)
+app.use('/api/admin/approvals', twoPersonApprovalRoutes);
 // File 24: supply/partnership CRM (crm:read/write) + command center.
 app.use('/api/crm', crmRoutes);
 // File 25: tenant Access Control Center (staff:manage gate inside).

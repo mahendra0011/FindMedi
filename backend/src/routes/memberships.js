@@ -1,4 +1,5 @@
 import express from 'express';
+import { z } from 'zod';
 import Membership from '../models/Membership.js';
 import Plan from '../models/Plan.js';
 import { protect } from '../middleware/auth.js';
@@ -315,6 +316,88 @@ router.post('/:id/renew', protect, requireObjectId, bookingLimiter, idempotencyG
     if (err?.code === 11000 && String(err.message || '').includes('paymentId')) {
       return res.status(409).json({ message: 'This payment has already been used', code: 'PAYMENT_ALREADY_USED' });
     }
+    res.status(500).json({ message: err.message });
+  }
+});
+
+const autopaySchema = z.object({
+  mandateRef: z.string().trim().min(3).max(120),
+  autoRenew: z.boolean().default(true),
+}).strict();
+
+const checkInSchema = z.object({
+  method: z.enum(['qr', 'app', 'manual']).default('qr'),
+  location: z.string().trim().max(200).optional(),
+}).strict();
+
+// ─── UPI AutoPay mandate setup ─────────────────────────────────────────────
+// authz: self
+router.post('/:id/autopay', protect, requireObjectId, bookingLimiter, idempotencyGuard({ prefix: 'membership-autopay' }), validate(autopaySchema), async (req, res) => {
+  try {
+    const row = await Membership.findOne({ _id: req.params.id, userId: actorId(req) });
+    if (!row) return res.status(404).json({ message: 'Membership not found' });
+    if (row.status !== MEMBERSHIP_STATUS.ACTIVE && row.status !== MEMBERSHIP_STATUS.RENEWED) {
+      return res.status(409).json({ message: `Cannot set AutoPay on ${row.status} membership`, code: 'INVALID_STATUS' });
+    }
+    row.mandateRef = req.body.mandateRef;
+    row.autoRenew = req.body.autoRenew;
+    pushHistory(row, row.status, row.status, actorId(req), `Configured AutoPay mandate ${req.body.mandateRef}`);
+    await row.save();
+    await auditLog('membership_autopay_configured', actorId(req), {
+      membershipId: String(row._id), mandateRef: req.body.mandateRef, autoRenew: req.body.autoRenew, ip: req.ip,
+    });
+    return res.json({ membership: row });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Cancel UPI AutoPay mandate ───────────────────────────────────────────
+// authz: self
+router.delete('/:id/autopay', protect, requireObjectId, bookingLimiter, async (req, res) => {
+  try {
+    const row = await Membership.findOne({ _id: req.params.id, userId: actorId(req) });
+    if (!row) return res.status(404).json({ message: 'Membership not found' });
+    row.autoRenew = false;
+    row.mandateRef = '';
+    pushHistory(row, row.status, row.status, actorId(req), 'Cancelled AutoPay mandate');
+    await row.save();
+    await auditLog('membership_autopay_cancelled', actorId(req), {
+      membershipId: String(row._id), ip: req.ip,
+    });
+    return res.json({ membership: row });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Attendance / Session Check-in (5.md 104) ──────────────────────────────
+// authz: self
+router.post('/:id/check-in', protect, requireObjectId, bookingLimiter, idempotencyGuard({ prefix: 'membership-checkin' }), validate(checkInSchema), async (req, res) => {
+  try {
+    const row = await Membership.findOne({ _id: req.params.id, userId: actorId(req) });
+    if (!row) return res.status(404).json({ message: 'Membership not found' });
+    if (row.status !== MEMBERSHIP_STATUS.ACTIVE && row.status !== MEMBERSHIP_STATUS.RENEWED) {
+      return res.status(409).json({ message: `Cannot check in on ${row.status} membership`, code: 'INVALID_STATUS' });
+    }
+    // Check if class-pack has credits left
+    if (typeof row.creditsLeft === 'number') {
+      if (row.creditsLeft <= 0) {
+        return res.status(409).json({ message: 'No session credits left on this membership', code: 'NO_CREDITS_LEFT' });
+      }
+      row.creditsLeft -= 1;
+    }
+    row.checkIns = [...(row.checkIns || []), {
+      at: new Date(),
+      method: req.body.method || 'qr',
+      location: (req.body.location || '').slice(0, 200),
+    }];
+    await row.save();
+    await auditLog('membership_check_in', actorId(req), {
+      membershipId: String(row._id), method: req.body.method, creditsLeft: row.creditsLeft, ip: req.ip,
+    });
+    return res.json({ membership: row, creditsLeft: row.creditsLeft });
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });

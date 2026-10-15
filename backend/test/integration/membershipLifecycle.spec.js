@@ -271,4 +271,33 @@ describe('POST /:id/renew', () => {
     expect(res.body.code).toBe('INVALID_TRANSITION');
     expect(memberRow.save).not.toHaveBeenCalled();
   });
+
+  it('configures and cancels UPI AutoPay mandate', async () => {
+    memberRow = makeRow();
+    const setup = await as(PATIENT).post(`/${ROW_ID}/autopay`).send({
+      mandateRef: 'mandate_upi_rzp_12345678',
+      autoRenew: true,
+    });
+    expect(setup.status).toBe(200);
+    expect(memberRow.mandateRef).toBe('mandate_upi_rzp_12345678');
+    expect(memberRow.autoRenew).toBe(true);
+
+    const cancel = await as(PATIENT).delete(`/${ROW_ID}/autopay`);
+    expect(cancel.status).toBe(200);
+    expect(memberRow.autoRenew).toBe(false);
+    expect(memberRow.mandateRef).toBe('');
+  });
+
+  it('records attendance check-in and burns class-pack credit', async () => {
+    memberRow = makeRow({ creditsLeft: 5, checkIns: [] });
+    const res = await as(PATIENT).post(`/${ROW_ID}/check-in`).send({
+      method: 'qr',
+      location: 'Gym Floor Gate A',
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.creditsLeft).toBe(4);
+    expect(memberRow.creditsLeft).toBe(4);
+    expect(memberRow.checkIns).toHaveLength(1);
+    expect(memberRow.checkIns[0].location).toBe('Gym Floor Gate A');
+  });
 });

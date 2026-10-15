@@ -6,6 +6,7 @@ import Ambulance from '../models/Ambulance.js';
 import { protect, restrictTo, authorize } from '../middleware/auth.js';
 import { validate } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import { idempotencyGuard } from '../middleware/idempotency.js';
 
 // Checklist §2: ambulance trip sheet + fuel/maintenance running log.
 // A driver writes their OWN trips and vehicle logs (they hold the odometer
@@ -29,7 +30,7 @@ const tripSchema = z.object({
 }).strict();
 
 // authz: role
-router.post('/trips', protect, restrictTo('ambulance', 'hospital_admin', 'superadmin'), validate(tripSchema), async (req, res) => {
+router.post('/trips', protect, restrictTo('ambulance', 'hospital_admin', 'superadmin'), idempotencyGuard({ prefix: 'amb-trip' }), validate(tripSchema), async (req, res) => {
   try {
     let ambulanceId = req.body.ambulanceId;
     if (!ambulanceId) {
