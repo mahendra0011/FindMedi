@@ -8,10 +8,13 @@ import crypto from 'node:crypto';
  */
 import logger from '../config/logger.js';
 
-export const sendSms = async ({ to, text, templateId, notificationId }) => {
+import { resolveDltTemplate, DLT_CONFIG } from '../config/dltTemplates.js';
+
+export const sendSms = async ({ to, text, templateId, category, variables = {}, notificationId }) => {
   const authKey = process.env.MSG91_AUTH_KEY;
-  const senderId = process.env.MSG91_SENDER_ID || 'FNDMED';
-  const defaultTemplateId = process.env.MSG91_TEMPLATE_ID;
+  const dlt = resolveDltTemplate(category, variables);
+  const senderId = process.env.MSG91_SENDER_ID || DLT_CONFIG.senderId;
+  const activeTemplateId = templateId || process.env.MSG91_TEMPLATE_ID || dlt.templateId;
 
   if (!authKey) {
     logger.info(`[SMS] Provider unconfigured. Skipped sending to ${to}: ${text?.substring(0, 40)}...`);
@@ -29,12 +32,15 @@ export const sendSms = async ({ to, text, templateId, notificationId }) => {
 
   try {
     const payload = {
-      template_id: templateId || defaultTemplateId,
+      template_id: activeTemplateId,
+      sender: senderId,
+      dlt_te_id: dlt.entityId,
       short_url: '0',
       recipients: [
         {
           mobiles: cleanTo.startsWith('+') ? cleanTo.slice(1) : cleanTo,
-          message: text,
+          message: text || dlt.formattedText,
+          ...variables,
         },
       ],
     };
