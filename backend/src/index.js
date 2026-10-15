@@ -408,7 +408,7 @@ app.use((req, res, next) => {
   }
   return jsonBody(req, res, next);
 });
-app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // AUTH-B-14: body sanitizers MUST run AFTER the body parsers — mounted
 // earlier they saw `req.body === undefined` for JSON requests, so no JSON

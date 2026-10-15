@@ -191,4 +191,14 @@ describe('INS-M-01 cross-tenant claim attachment (seeded HTTP)', () => {
     expect(get.status).toBe(200);
     expect(get.body.documents).toHaveLength(1);
   });
+
+  it('foreign tenant staff cannot decide pre-auth or settle claim (403, TENANT_MISMATCH)', async () => {
+    const preAuthRes = await as(ADMIN_H2).put('/clm-h1/pre-auth').send({ decision: 'Rejected', denialReason: 'Foreign admin trying to reject' });
+    expect(preAuthRes.status).toBe(403);
+    expect(preAuthRes.body.code).toBe('TENANT_MISMATCH');
+
+    const settleRes = await as(ADMIN_H2).put('/clm-h1/settle').send({ approvedAmount: 5000 });
+    expect(settleRes.status).toBe(403);
+    expect(settleRes.body.code).toBe('TENANT_MISMATCH');
+  });
 });

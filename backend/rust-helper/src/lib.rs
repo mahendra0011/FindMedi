@@ -122,7 +122,17 @@ pub fn resize_image(
     ));
   }
 
-  let img = image::load_from_memory(input)
+  // RUST-BUG-01: Enforce decompression bomb limits (max 8192x8192) before full decoding
+  let mut reader = image::ImageReader::new(Cursor::new(input))
+    .with_guessed_format()
+    .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("Failed to read image format: {}", e)))?;
+
+  let mut limits = image::Limits::default();
+  limits.max_image_width = Some(8192);
+  limits.max_image_height = Some(8192);
+  reader.limits(limits);
+
+  let img = reader.decode()
     .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("Failed to decode image: {}", e)))?;
 
   let resized = img.resize_exact(width, height, FilterType::Triangle);
@@ -148,14 +158,22 @@ pub fn resize_image(
 /// Get image format and dimensions without decoding pixel data.
 #[napi]
 pub fn get_image_info(input: &[u8]) -> napi::Result<String> {
-  let img = image::load_from_memory(input)
-    .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("Failed to load image: {}", e)))?;
-
   let format = image::guess_format(input)
     .map(|f| format!("{:?}", f))
     .unwrap_or_else(|_| "unknown".to_string());
 
-  let dims = img.dimensions();
+  // RUST-BUG-01: Read dimensions from headers without decoding full pixel buffer
+  let mut reader = image::ImageReader::new(Cursor::new(input))
+    .with_guessed_format()
+    .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("Failed to read image format: {}", e)))?;
+
+  let mut limits = image::Limits::default();
+  limits.max_image_width = Some(8192);
+  limits.max_image_height = Some(8192);
+  reader.limits(limits);
+
+  let dims = reader.into_dimensions()
+    .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("Failed to read image dimensions: {}", e)))?;
 
   Ok(format!(
     "{{\"format\":\"{}\",\"width\":{},\"height\":{}}}",

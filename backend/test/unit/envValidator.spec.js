@@ -98,4 +98,36 @@ describe('Boot Validation · Zod Env Validator', () => {
     expect(res.ok).toBe(true);
     expect(res.warnings.length).toBeGreaterThan(0);
   });
+
+  it('fails in production if COOKIE_SECRET is too short (< 32 chars) or weak', () => {
+    const env = {
+      NODE_ENV: 'production',
+      PORT: '5001',
+      MONGO_URI: 'mongodb+srv://produser:StrongProdPass99@cluster0.findmedi.net/findmedi_prod',
+      JWT_SECRET: 'a_very_strong_production_jwt_secret_with_more_than_32_characters_12345!',
+      CLIENT_URL: 'https://findmedi.in',
+      FRONTEND_URL: 'https://findmedi.in',
+      COOKIE_SECRET: 'weak_cookie_secret',
+    };
+    const res = validateEnv(env);
+    expect(res.ok).toBe(false);
+    expect(res.errors.some((e) => e.includes('COOKIE_SECRET must be at least 32 characters'))).toBe(true);
+  });
+
+  it('fails in production if COOKIE_SECRET is identical to JWT_SECRET (key separation violation)', () => {
+    const strongSecret = 'a_very_strong_production_jwt_secret_with_more_than_32_characters_12345!';
+    const env = {
+      NODE_ENV: 'production',
+      PORT: '5001',
+      MONGO_URI: 'mongodb+srv://produser:StrongProdPass99@cluster0.findmedi.net/findmedi_prod',
+      JWT_SECRET: strongSecret,
+      CLIENT_URL: 'https://findmedi.in',
+      FRONTEND_URL: 'https://findmedi.in',
+      COOKIE_SECRET: strongSecret,
+    };
+    const res = validateEnv(env);
+    expect(res.ok).toBe(false);
+    expect(res.errors.some((e) => e.includes('key separation violation'))).toBe(true);
+  });
 });
+

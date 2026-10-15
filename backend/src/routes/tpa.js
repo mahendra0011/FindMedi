@@ -21,6 +21,11 @@ const TPA_ROLES = ['tpa_agent', 'hospital_admin', 'superadmin', 'accountant', 'r
 const tpaOnly = (req, res, next) => (
   TPA_ROLES.includes(req.user?.role) ? next() : res.status(403).json({ message: 'TPA desk access required' })
 );
+const checkDocTenant = (req, doc) => {
+  if (req.user?.role === 'superadmin') return true;
+  if (!doc?.hospitalId) return true;
+  return String(doc.hospitalId) === String(req.user?.hospitalId);
+};
 const OBJECT_ID = /^[0-9a-f]{24}$/i;
 const requireObjectId = (req, res, next) => (
   OBJECT_ID.test(String(req.params.id)) ? next() : res.status(404).json({ message: 'Not found' })
@@ -97,6 +102,9 @@ router.put('/preauth/:id/status', tpaOnly, requireObjectId, async (req, res) => 
     const { status, approvedAmount, validTill, queryText, enhancement } = req.body || {};
     const row = await PreAuthRequest.findById(req.params.id);
     if (!row) return res.status(404).json({ message: 'Not found' });
+    if (!checkDocTenant(req, row)) {
+      return res.status(403).json({ message: 'Not authorized for this hospital record', code: 'TENANT_MISMATCH' });
+    }
     if (!PREAUTH_FLOW[row.status].includes(status)) {
       return res.status(409).json({ message: `Cannot move pre-auth from ${row.status} to ${status}` });
     }
@@ -137,6 +145,9 @@ router.put('/claims/:id/settle', tpaOnly, requireObjectId, async (req, res) => {
     const { settledAmount, utr, tds, shortSettlement, status } = req.body || {};
     const row = await Claim.findById(req.params.id);
     if (!row) return res.status(404).json({ message: 'Not found' });
+    if (!checkDocTenant(req, row)) {
+      return res.status(403).json({ message: 'Not authorized for this hospital record', code: 'TENANT_MISMATCH' });
+    }
     if (!['Settled', 'Partial', 'Rejected'].includes(status)) {
       return res.status(400).json({ message: 'status must be Settled|Partial|Rejected' });
     }
@@ -180,6 +191,9 @@ router.post('/claims/:id/room-rent', tpaOnly, requireObjectId, async (req, res) 
     const { eligiblePerDay, actualPerDay, days, notes } = req.body || {};
     const row = await Claim.findById(req.params.id);
     if (!row) return res.status(404).json({ message: 'Not found' });
+    if (!checkDocTenant(req, row)) {
+      return res.status(403).json({ message: 'Not authorized for this hospital record', code: 'TENANT_MISMATCH' });
+    }
     if (!(Number(days) > 0)) return res.status(400).json({ message: 'days>0 required' });
     const excess = Math.max(0, Number(actualPerDay || 0) - Number(eligiblePerDay || 0));
     const amount = +(excess * Number(days)).toFixed(2);
@@ -203,6 +217,9 @@ router.post('/claims/:id/query', tpaOnly, requireObjectId, async (req, res) => {
     if (!text) return res.status(400).json({ message: 'text required' });
     const row = await Claim.findById(req.params.id);
     if (!row) return res.status(404).json({ message: 'Not found' });
+    if (!checkDocTenant(req, row)) {
+      return res.status(403).json({ message: 'Not authorized for this hospital record', code: 'TENANT_MISMATCH' });
+    }
     row.queries.push({ by: String(by || req.user.role || '').slice(0, 60), text: String(text).slice(0, 2000), at: new Date() });
     await row.save();
     await auditLog('tpa_query_posted', actorId(req), { claimId: row._id, ip: req.ip });
@@ -218,6 +235,9 @@ router.post('/claims/:id/appeal', tpaOnly, requireObjectId, async (req, res) => 
   try {
     const parent = await Claim.findById(req.params.id);
     if (!parent) return res.status(404).json({ message: 'Not found' });
+    if (!checkDocTenant(req, parent)) {
+      return res.status(403).json({ message: 'Not authorized for this hospital record', code: 'TENANT_MISMATCH' });
+    }
     if (!['Rejected', 'Partial'].includes(parent.status)) {
       return res.status(409).json({ message: 'Only Rejected/Partial claims can be appealed' });
     }

@@ -54,6 +54,14 @@ const productionEnvSchema = baseEnvSchema.extend({
     .refine((val) => !val.includes('localhost'), {
       message: 'FRONTEND_URL in production must not point to localhost',
     }),
+  COOKIE_SECRET: z.string().optional()
+    .refine((val) => !val || (val.length >= 32 && !WEAK_SECRETS.has(val.toLowerCase().trim())), {
+      message: 'COOKIE_SECRET must be at least 32 characters and cannot be a weak/dictionary secret',
+    }),
+  ENCRYPTION_KEY: z.string().optional()
+    .refine((val) => !val || (val.length >= 32 && !WEAK_SECRETS.has(val.toLowerCase().trim())), {
+      message: 'ENCRYPTION_KEY must be at least 32 characters and cannot be a weak/dictionary secret',
+    }),
 });
 
 /**
@@ -99,9 +107,29 @@ export function validateEnv(envObj = process.env) {
     }
   }
 
-  // Common warning: identical secrets
+  // Secret reuse checks
   if (envObj.JWT_SECRET && envObj.MONGO_URI && envObj.JWT_SECRET === envObj.MONGO_URI) {
-    warnings.push('🚨 JWT_SECRET and MONGO_URI should not be the same value!');
+    if (env === 'production') {
+      errors.push('JWT_SECRET: JWT_SECRET must not be identical to MONGO_URI');
+    } else {
+      warnings.push('🚨 JWT_SECRET and MONGO_URI should not be the same value!');
+    }
+  }
+
+  if (envObj.COOKIE_SECRET && envObj.JWT_SECRET && envObj.COOKIE_SECRET === envObj.JWT_SECRET) {
+    if (env === 'production') {
+      errors.push('COOKIE_SECRET: COOKIE_SECRET must not be identical to JWT_SECRET (key separation violation)');
+    } else {
+      warnings.push('🚨 COOKIE_SECRET and JWT_SECRET should not be the same value!');
+    }
+  }
+
+  if (envObj.ENCRYPTION_KEY && envObj.JWT_SECRET && envObj.ENCRYPTION_KEY === envObj.JWT_SECRET) {
+    if (env === 'production') {
+      errors.push('ENCRYPTION_KEY: ENCRYPTION_KEY must not be identical to JWT_SECRET (key separation violation)');
+    } else {
+      warnings.push('🚨 ENCRYPTION_KEY and JWT_SECRET should not be the same value!');
+    }
   }
 
   return {

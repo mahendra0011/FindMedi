@@ -1,10 +1,14 @@
 import express from 'express';
+import { z } from 'zod';
 import ProviderApplication from '../models/ProviderApplication.js';
 import ProviderDocument from '../models/ProviderDocument.js';
+import DocumentVerification from '../models/DocumentVerification.js';
+import ReviewerAssignment from '../models/ReviewerAssignment.js';
 import ProviderTypeConfig from '../models/ProviderTypeConfig.js';
 import Provider from '../models/Provider.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
+import logger from '../config/logger.js';
 import { protect, requireRole } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import {
@@ -163,6 +167,18 @@ router.post('/:id/claim', requireObjectId, validate(applicationClaimSchema), asy
     });
     await application.save();
 
+    await ReviewerAssignment.assignReviewer({
+      applicationId: application._id,
+      reviewerId: caller,
+      assignedBy: caller,
+      roleType: 'kyc_reviewer',
+      tier: 'T1',
+      slaHours: 48,
+      priority: application.twoPersonApproval ? 'high_risk' : 'standard',
+    }).catch((err) => {
+      logger.warn(`Failed to record ReviewerAssignment on claim: ${err.message}`);
+    });
+
     await auditLog('application_claimed', caller, {
       applicationId: String(application._id),
       queue,
@@ -207,6 +223,18 @@ router.post('/:id/assign', requireRole(['superadmin']), requireObjectId, validat
       reviewerId: req.body.reviewerId, assignedBy: caller, assignedAt: new Date(), queue,
     });
     await application.save();
+
+    await ReviewerAssignment.assignReviewer({
+      applicationId: application._id,
+      reviewerId: req.body.reviewerId,
+      assignedBy: caller,
+      roleType: 'kyc_reviewer',
+      tier: 'T1',
+      slaHours: 48,
+      priority: application.twoPersonApproval ? 'high_risk' : 'standard',
+    }).catch((err) => {
+      logger.warn(`Failed to record ReviewerAssignment on assign: ${err.message}`);
+    });
 
     await Notification.create({
       userId: String(req.body.reviewerId),
@@ -385,6 +413,12 @@ router.post('/:id/decision', requireObjectId, validate(applicationDecisionSchema
       }).catch(() => {});
     }
 
+    if (!awaitingSecondApprover) {
+      await ReviewerAssignment.completeAssignment(application._id, callerId).catch((err) => {
+        logger.warn(`Failed to complete ReviewerAssignment: ${err.message}`);
+      });
+    }
+
     await auditLog('application_decision', callerId, {
       applicationId: String(application._id),
       typeKey: application.typeKey,
@@ -440,6 +474,73 @@ router.post('/:id/activation', requireObjectId, validate(applicationActivationSc
     });
 
     return res.json({ providerId: provider._id, onboarding: provider.onboarding });
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+});
+
+const documentVerificationSchema = z.object({
+  decision: z.enum(['verified', 'rejected', 'needs_info']),
+  verificationMethod: z.enum(['manual_portal', 'api_registry', 'ocr_assisted', 'digilocker']).optional().default('manual_portal'),
+  registrySource: z.string().max(100).optional(),
+  registryRegistrationNumber: z.string().max(100).optional(),
+  registryCheckResult: z.object({
+    matched: z.boolean().optional(),
+    practitionerName: z.string().max(200).optional(),
+    registrationValid: z.boolean().optional(),
+    details: z.record(z.any()).optional(),
+  }).optional(),
+  rejectionReason: z.string().max(1000).optional(),
+  reviewerNotes: z.string().max(2000).optional(),
+  documentHash: z.string().max(128).optional(),
+});
+
+// authz: kyc_reviewer / superadmin
+// KYC Document Verification audit endpoint
+router.post('/:id/documents/:docId/verify', requireObjectId, validate(documentVerificationSchema), async (req, res) => {
+  try {
+    if (!OBJECT_ID.test(String(req.params.docId))) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+    const application = await ProviderApplication.findById(req.params.id);
+    if (!application) return res.status(404).json({ message: 'Application not found' });
+
+    const document = await ProviderDocument.findOne({ _id: req.params.docId, applicationId: application._id });
+    if (!document) return res.status(404).json({ message: 'Document not found for this application' });
+
+    const callerId = req.user._id ?? req.user.id;
+    const callerName = req.user.name || req.user.email || 'Reviewer';
+
+    const verification = await DocumentVerification.recordVerification({
+      documentId: document._id,
+      applicationId: application._id,
+      reviewerId: callerId,
+      reviewerName: callerName,
+      docType: document.docType,
+      decision: req.body.decision,
+      verificationMethod: req.body.verificationMethod || 'manual_portal',
+      registrySource: req.body.registrySource || '',
+      registryRegistrationNumber: req.body.registryRegistrationNumber || '',
+      registryCheckResult: req.body.registryCheckResult || null,
+      rejectionReason: req.body.rejectionReason || '',
+      reviewerNotes: req.body.reviewerNotes || '',
+      documentHash: req.body.documentHash || '',
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    await auditLog('document_verification_recorded', callerId, {
+      applicationId: String(application._id),
+      documentId: String(document._id),
+      docType: document.docType,
+      decision: req.body.decision,
+      verificationId: String(verification._id),
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    const updatedDocument = await ProviderDocument.findById(document._id).lean();
+    return res.json({ verification, document: updatedDocument });
   } catch (err) {
     return res.status(400).json({ message: err.message });
   }

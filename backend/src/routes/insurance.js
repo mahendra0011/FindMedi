@@ -10,7 +10,7 @@ import { authorizeObject } from '../middleware/authorize.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 // INS-B-02/03: fail-closed tenant predicate for list + stats.
-import { applyTenantScope } from '../utils/tenantScope.js';
+import { applyTenantScope, callerOwnsTenant } from '../utils/tenantScope.js';
 // INS-B-04: no raw err.message in a 500 body.
 import { sendServerError } from '../utils/safeError.js';
 // INS-B-04: integer-paise comparison so a float cannot slip past the ceiling.
@@ -246,6 +246,9 @@ router.post('/:id/pre-auth', protect, authorize('insurance:write'), paymentLimit
   try {
     const claim = await Insurance.findById(req.params.id);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (claim.hospitalId && !callerOwnsTenant(req.user, claim, ['hospitalId'])) {
+      return res.status(403).json({ message: 'Not authorized for this hospital claim', code: 'TENANT_MISMATCH' });
+    }
     if (claim.preAuthStatus === 'Pending') {
       return res.status(409).json({ message: 'A pre-auth is already pending on this claim', code: 'PRE_AUTH_ALREADY_PENDING' });
     }
@@ -306,6 +309,9 @@ router.put('/:id/pre-auth', protect, authorize('insurance:write'), paymentLimite
     const { decision, decisionAmount, denialReason, preAuthExpiry } = req.body;
     const claim = await Insurance.findById(req.params.id);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (claim.hospitalId && !callerOwnsTenant(req.user, claim, ['hospitalId'])) {
+      return res.status(403).json({ message: 'Not authorized for this hospital claim', code: 'TENANT_MISMATCH' });
+    }
     if (claim.preAuthStatus !== 'Pending') {
       return res.status(409).json({ message: 'No pending pre-auth to decide on', code: 'PRE_AUTH_NOT_PENDING' });
     }
@@ -368,6 +374,9 @@ router.post('/:id/pre-auth/resubmit', protect, authorize('insurance:write'), pay
   try {
     const claim = await Insurance.findById(req.params.id);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (claim.hospitalId && !callerOwnsTenant(req.user, claim, ['hospitalId'])) {
+      return res.status(403).json({ message: 'Not authorized for this hospital claim', code: 'TENANT_MISMATCH' });
+    }
     if (claim.preAuthStatus !== 'Rejected') {
       return res.status(409).json({ message: 'Only a denied pre-auth can be resubmitted', code: 'PRE_AUTH_NOT_DENIED' });
     }
@@ -421,6 +430,9 @@ router.put('/:id/file-claim', protect, authorize('insurance:write'), paymentLimi
   try {
     const existing = await Insurance.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Claim not found' });
+    if (existing.hospitalId && !callerOwnsTenant(req.user, existing, ['hospitalId'])) {
+      return res.status(403).json({ message: 'Not authorized for this hospital claim', code: 'TENANT_MISMATCH' });
+    }
 
     // INS-M-02: THIS is where the two workflows actually diverge. A cashless
     // claim is billed by the hospital directly against an approved pre-auth —
@@ -469,6 +481,9 @@ router.put('/:id/settle', protect, authorize('insurance:write'), paymentLimiter,
     // (a deliberate partial settlement).
     const existing = await Insurance.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Claim not found' });
+    if (existing.hospitalId && !callerOwnsTenant(req.user, existing, ['hospitalId'])) {
+      return res.status(403).json({ message: 'Not authorized for this hospital claim', code: 'TENANT_MISMATCH' });
+    }
 
     const claimCeiling = toPaise(existing.claimAmount ?? existing.estimatedCost ?? 0);
     if (claimCeiling <= 0) {
