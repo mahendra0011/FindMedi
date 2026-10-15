@@ -226,7 +226,7 @@ export default function HealthcareCatalogueModal({ isOpen, onClose }: Healthcare
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5">
                       {section.items.map((item) => {
                         const ItemIcon = item.icon;
                         return (
@@ -235,12 +235,12 @@ export default function HealthcareCatalogueModal({ isOpen, onClose }: Healthcare
                             whileHover={{ scale: 1.04, y: -2 }}
                             whileTap={{ scale: 0.96 }}
                             onClick={() => handleCardClick(item)}
-                            className="rounded-2xl p-3.5 border border-border/70 bg-card hover:bg-card/90 hover:border-primary/50 hover:shadow-md transition-all text-center flex flex-col items-center justify-center min-h-[110px] cursor-pointer group"
+                            className="rounded-xl p-2.5 sm:p-3 border border-border/70 bg-card hover:bg-card/90 hover:border-primary/50 hover:shadow-sm transition-all text-center flex flex-col items-center justify-center min-h-[92px] sm:min-h-[100px] cursor-pointer group"
                           >
-                            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-2 mx-auto transition-transform group-hover:scale-110 shadow-xs`}>
-                              <ItemIcon className={`w-5 h-5 ${item.textColor}`} />
+                            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center mb-1.5 mx-auto transition-transform group-hover:scale-110 shadow-xs`}>
+                              <ItemIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${item.textColor}`} />
                             </div>
-                            <h4 className="font-semibold text-xs text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                            <h4 className="font-medium text-[11px] sm:text-xs text-foreground leading-tight line-clamp-2 group-hover:text-primary transition-colors text-center px-0.5">
                               {item.name}
                             </h4>
                           </motion.button>

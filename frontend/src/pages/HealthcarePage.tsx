@@ -88,8 +88,8 @@ export default function HealthcarePage() {
                   </p>
                 </div>
 
-                {/* ── Grid of Categories ── */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-3.5">
+                {/* ── Grid of Categories (8 per row on desktop) ── */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5 sm:gap-3">
                   {section.items.map((item) => {
                     const ItemIcon = item.icon;
 
@@ -107,14 +107,14 @@ export default function HealthcarePage() {
                             handleCardClick(item);
                           }
                         }}
-                        className={`rounded-2xl p-4 border bg-card hover:bg-card/90 hover:border-primary/50 hover:shadow-md transition-all text-center flex flex-col items-center justify-center min-h-[120px] cursor-pointer group ${
+                        className={`rounded-xl p-2.5 sm:p-3 border bg-card hover:bg-card/90 hover:border-primary/50 hover:shadow-sm transition-all text-center flex flex-col items-center justify-center min-h-[92px] sm:min-h-[100px] cursor-pointer group ${
                           item.soon ? 'border-border/70 opacity-80' : 'border-border/70'
                         }`}
                       >
-                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-2.5 mx-auto transition-transform group-hover:scale-110 shadow-xs`}>
-                          <ItemIcon className={`w-6 h-6 ${item.textColor}`} />
+                        <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center mb-1.5 mx-auto transition-transform group-hover:scale-110 shadow-xs`}>
+                          <ItemIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${item.textColor}`} />
                         </div>
-                        <h3 className="font-semibold text-xs sm:text-sm text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                        <h3 className="font-medium text-[11px] sm:text-xs text-foreground leading-tight line-clamp-2 group-hover:text-primary transition-colors text-center px-0.5">
                           {item.name}
                         </h3>
                       </motion.div>
