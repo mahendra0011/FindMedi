@@ -1,0 +1,1954 @@
+{
+  "localStorage": [
+    {
+      "file": "frontend\\src\\components\\AIChatAssistant.tsx",
+      "num": 64,
+      "line": "const saved = (localStorage.getItem('findmedi_ai_history') || localStorage.getItem('medicore_ai_history'));"
+    },
+    {
+      "file": "frontend\\src\\components\\AIChatAssistant.tsx",
+      "num": 172,
+      "line": "localStorage.setItem('findmedi_ai_history', JSON.stringify(newSessions));"
+    },
+    {
+      "file": "frontend\\src\\components\\AIChatAssistant.tsx",
+      "num": 334,
+      "line": "localStorage.setItem('findmedi_ai_history', JSON.stringify(updated));"
+    },
+    {
+      "file": "frontend\\src\\components\\chat\\ChatDashboard.tsx",
+      "num": 154,
+      "line": "try { setTheme(JSON.parse((localStorage.getItem('findmedi_settings') || localStorage.getItem('medicore_settings')) || '{}').theme || 'system'); } catch { /* keep */ }"
+    },
+    {
+      "file": "frontend\\src\\components\\chat\\ChatDashboard.tsx",
+      "num": 749,
+      "line": "const stored = JSON.parse((localStorage.getItem('findmedi_settings') || localStorage.getItem('medicore_settings')) || '{}');"
+    },
+    {
+      "file": "frontend\\src\\components\\chat\\ChatDashboard.tsx",
+      "num": 750,
+      "line": "localStorage.setItem('findmedi_settings', JSON.stringify({ ...stored, theme: next }));"
+    },
+    {
+      "file": "frontend\\src\\components\\chat\\EmojiPicker.tsx",
+      "num": 9,
+      "line": "try { return JSON.parse((localStorage.getItem(RECENT_KEY) || localStorage.getItem(LEGACY_RECENT_KEY)) || '[]'); } catch { return []; }"
+    },
+    {
+      "file": "frontend\\src\\components\\chat\\EmojiPicker.tsx",
+      "num": 13,
+      "line": "try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* ignore */ }"
+    },
+    {
+      "file": "frontend\\src\\components\\ErrorBoundary.tsx",
+      "num": 18,
+      "line": "const hasReloaded = sessionStorage.getItem('vite_chunk_retry');"
+    },
+    {
+      "file": "frontend\\src\\components\\ErrorBoundary.tsx",
+      "num": 20,
+      "line": "sessionStorage.setItem('vite_chunk_retry', 'true');"
+    },
+    {
+      "file": "frontend\\src\\components\\ErrorBoundary.tsx",
+      "num": 27,
+      "line": "sessionStorage.removeItem('vite_chunk_retry');"
+    },
+    {
+      "file": "frontend\\src\\components\\ErrorBoundary.tsx",
+      "num": 32,
+      "line": "sessionStorage.removeItem('vite_chunk_retry');"
+    },
+    {
+      "file": "frontend\\src\\components\\ErrorBoundary.tsx",
+      "num": 37,
+      "line": "sessionStorage.removeItem('vite_chunk_retry');"
+    },
+    {
+      "file": "frontend\\src\\components\\ErrorBoundary.tsx",
+      "num": 46,
+      "line": "sessionStorage.clear();"
+    },
+    {
+      "file": "frontend\\src\\components\\LanguageSwitcher.test.jsx",
+      "num": 26,
+      "line": "expect(window.localStorage.getItem('findmedi_lang')).toBe('hi');"
+    },
+    {
+      "file": "frontend\\src\\components\\LanguageSwitcher.tsx",
+      "num": 16,
+      "line": "window.localStorage.setItem('findmedi_lang', next);"
+    },
+    {
+      "file": "frontend\\src\\components\\patient\\ReminderAlarmHost.tsx",
+      "num": 25,
+      "line": "const raw = localStorage.getItem(STORE_KEY);"
+    },
+    {
+      "file": "frontend\\src\\components\\patient\\ReminderAlarmHost.tsx",
+      "num": 36,
+      "line": "localStorage.setItem(STORE_KEY, JSON.stringify(st));"
+    },
+    {
+      "file": "frontend\\src\\components\\PublicNavbar.tsx",
+      "num": 258,
+      "line": "localStorage.setItem('darkMode', document.documentElement.classList.contains('dark') ? 'true' : 'false');"
+    },
+    {
+      "file": "frontend\\src\\components\\PublicNavbar.tsx",
+      "num": 263,
+      "line": "const [selectedCity, setSelectedCity] = useState(() => (localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city')) || 'Jabalpur');"
+    },
+    {
+      "file": "frontend\\src\\components\\PublicNavbar.tsx",
+      "num": 267,
+      "line": "const newCity = e.detail || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city');"
+    },
+    {
+      "file": "frontend\\src\\components\\PublicNavbar.tsx",
+      "num": 282,
+      "line": "localStorage.setItem('findmedi_city', cityName);"
+    },
+    {
+      "file": "frontend\\src\\context\\PreferredPharmacyContext.tsx",
+      "num": 34,
+      "line": "const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);"
+    },
+    {
+      "file": "frontend\\src\\context\\PreferredPharmacyContext.tsx",
+      "num": 97,
+      "line": "localStorage.setItem(STORAGE_KEY, JSON.stringify({ pharmacies: mapped, autoRetryEnabled: false }));"
+    },
+    {
+      "file": "frontend\\src\\context\\PreferredPharmacyContext.tsx",
+      "num": 128,
+      "line": "localStorage.setItem(STORAGE_KEY, JSON.stringify({ pharmacies: state.pharmacies, autoRetryEnabled: state.autoRetryEnabled }));"
+    },
+    {
+      "file": "frontend\\src\\i18n\\i18n.ts",
+      "num": 19,
+      "line": "const saved = localStorage.getItem(LOCALE_KEY);"
+    },
+    {
+      "file": "frontend\\src\\i18n\\i18n.ts",
+      "num": 33,
+      "line": "localStorage.setItem(LOCALE_KEY, locale);"
+    },
+    {
+      "file": "frontend\\src\\i18n.ts",
+      "num": 203,
+      "line": "const savedLang = typeof window !== 'undefined' ? localStorage.getItem('findmedi_lang') || 'en' : 'en';"
+    },
+    {
+      "file": "frontend\\src\\lib\\api.js",
+      "num": 6,
+      "line": "* Three receipt downloads used `localStorage.getItem('token')`. That was both a"
+    },
+    {
+      "file": "frontend\\src\\lib\\axios.js",
+      "num": 73,
+      "line": "if (localStorage.getItem(key) !== null) {"
+    },
+    {
+      "file": "frontend\\src\\lib\\chatPrefs.js",
+      "num": 28,
+      "line": "const raw = typeof localStorage !== 'undefined' ? (localStorage.getItem(KEY) || localStorage.getItem(LEGACY_KEY)) : null;"
+    },
+    {
+      "file": "frontend\\src\\lib\\chatPrefs.js",
+      "num": 38,
+      "line": "if (typeof localStorage !== 'undefined') localStorage.setItem(KEY, JSON.stringify(next));"
+    },
+    {
+      "file": "frontend\\src\\lib\\chatPrefs.js",
+      "num": 63,
+      "line": "return JSON.parse((localStorage.getItem(WALLPAPER_KEY) || localStorage.getItem(LEGACY_WALLPAPER_KEY)) || '{}');"
+    },
+    {
+      "file": "frontend\\src\\lib\\chatPrefs.js",
+      "num": 73,
+      "line": "try { localStorage.setItem(WALLPAPER_KEY, JSON.stringify(all)); } catch { /* ignore */ }"
+    },
+    {
+      "file": "frontend\\src\\lib\\chatPrefs.js",
+      "num": 82,
+      "line": "try { return JSON.parse((localStorage.getItem(DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY)) || '{}'); } catch { return {}; }"
+    },
+    {
+      "file": "frontend\\src\\lib\\chatPrefs.js",
+      "num": 89,
+      "line": "try { localStorage.setItem(DRAFT_KEY, JSON.stringify(all)); } catch { /* ignore */ }"
+    },
+    {
+      "file": "frontend\\src\\lib\\chatPrefs.js",
+      "num": 101,
+      "line": "try { return JSON.parse((localStorage.getItem(`${QUEUE_KEY}_${userId}`) || localStorage.getItem(`${LEGACY_QUEUE_KEY}_${userId}`)) || '[]'); } catch { return []; }"
+    },
+    {
+      "file": "frontend\\src\\lib\\chatPrefs.js",
+      "num": 106,
+      "line": "localStorage.setItem(`${QUEUE_KEY}_${userId}`, JSON.stringify(items));"
+    },
+    {
+      "file": "frontend\\src\\lib\\chatResume.js",
+      "num": 28,
+      "line": "const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;"
+    },
+    {
+      "file": "frontend\\src\\lib\\chatResume.js",
+      "num": 37,
+      "line": "if (typeof localStorage !== 'undefined') localStorage.setItem(key, JSON.stringify(value));"
+    },
+    {
+      "file": "frontend\\src\\lib\\csrf.test.js",
+      "num": 217,
+      "line": "expect(localStorage.getItem('token')).toBeNull();"
+    },
+    {
+      "file": "frontend\\src\\lib\\csrf.test.js",
+      "num": 218,
+      "line": "expect(localStorage.getItem('refreshToken')).toBeNull();"
+    },
+    {
+      "file": "frontend\\src\\lib\\encryptedStorage.js",
+      "num": 36,
+      "line": "localStorage.setItem('fm-encrypted', JSON.stringify(payload));"
+    },
+    {
+      "file": "frontend\\src\\lib\\encryptedStorage.js",
+      "num": 40,
+      "line": "const raw = localStorage.getItem('fm-encrypted');"
+    },
+    {
+      "file": "frontend\\src\\lib\\offlineQueue.ts",
+      "num": 79,
+      "line": "localStorage.setItem(`fm-draft:${ns}`, JSON.stringify({ at: Date.now(), value }));"
+    },
+    {
+      "file": "frontend\\src\\lib\\offlineQueue.ts",
+      "num": 85,
+      "line": "const raw = localStorage.getItem(`fm-draft:${ns}`);"
+    },
+    {
+      "file": "frontend\\src\\lib\\settings.js",
+      "num": 29,
+      "line": "return JSON.parse((localStorage.getItem('findmedi_settings') || localStorage.getItem('medicore_settings')) || '{}');"
+    },
+    {
+      "file": "frontend\\src\\lib\\settings.js",
+      "num": 52,
+      "line": "localStorage.setItem('findmedi_settings', JSON.stringify(next));"
+    },
+    {
+      "file": "frontend\\src\\lib\\socket.js",
+      "num": 22,
+      "line": "// This used to read `localStorage.getItem('token')`, which meant every socket"
+    },
+    {
+      "file": "frontend\\src\\lib\\track.ts",
+      "num": 80,
+      "line": "let sid = sessionStorage.getItem(SESSION_KEY);"
+    },
+    {
+      "file": "frontend\\src\\lib\\track.ts",
+      "num": 83,
+      "line": "sessionStorage.setItem(SESSION_KEY, sid);"
+    },
+    {
+      "file": "frontend\\src\\lib\\track.ts",
+      "num": 94,
+      "line": "return localStorage.getItem(CONSENT_KEY) === 'granted';"
+    },
+    {
+      "file": "frontend\\src\\lib\\track.ts",
+      "num": 102,
+      "line": "localStorage.setItem(CONSENT_KEY, granted ? 'granted' : 'denied');"
+    },
+    {
+      "file": "frontend\\src\\mind\\contexts\\LanguageContext.tsx",
+      "num": 18,
+      "line": "return localStorage.getItem(STORAGE_KEY) || \"en\";"
+    },
+    {
+      "file": "frontend\\src\\mind\\contexts\\LanguageContext.tsx",
+      "num": 23,
+      "line": "localStorage.setItem(STORAGE_KEY, code);"
+    },
+    {
+      "file": "frontend\\src\\mind\\contexts\\LanguageContext.tsx",
+      "num": 29,
+      "line": "const saved = localStorage.getItem(STORAGE_KEY) || \"en\";"
+    },
+    {
+      "file": "frontend\\src\\mind\\contexts\\ThemeContext.tsx",
+      "num": 17,
+      "line": "return localStorage.getItem(STORAGE_KEY) || \"default\";"
+    },
+    {
+      "file": "frontend\\src\\mind\\contexts\\ThemeContext.tsx",
+      "num": 22,
+      "line": "localStorage.setItem(STORAGE_KEY, newTheme);"
+    },
+    {
+      "file": "frontend\\src\\mind\\contexts\\ThemeContext.tsx",
+      "num": 27,
+      "line": "const saved = localStorage.getItem(STORAGE_KEY) || \"default\";"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\CounsellorDashboard.tsx",
+      "num": 197,
+      "line": "const [theme, setTheme] = useState(() => localStorage.getItem(\"mindsupport_counsellor_theme\") || \"default\");"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\CounsellorDashboard.tsx",
+      "num": 295,
+      "line": "localStorage.setItem(\"mindsupport_counsellor_theme\", theme);"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\PeerSupport.tsx",
+      "num": 50,
+      "line": "const existing = localStorage.getItem(key);"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\PeerSupport.tsx",
+      "num": 54,
+      "line": "localStorage.setItem(key, uid);"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\PsychiatristDashboard.tsx",
+      "num": 198,
+      "line": "const [theme, setTheme] = useState(() => localStorage.getItem(\"mindsupport_psychiatrist_theme\") || localStorage.getItem(\"mindsupport_counsellor_theme\") || \"default\");"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\PsychiatristDashboard.tsx",
+      "num": 295,
+      "line": "localStorage.setItem(\"mindsupport_psychiatrist_theme\", theme);"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\PsychiatristDetail.tsx",
+      "num": 86,
+      "line": "const savedIds = JSON.parse(localStorage.getItem('fav_doctor_ids') || '[]');"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\Psychiatrists.tsx",
+      "num": 80,
+      "line": "try { return JSON.parse(localStorage.getItem('fav_doctor_ids') || '[]'); } catch { return []; }"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\Psychiatrists.tsx",
+      "num": 115,
+      "line": "const [selectedCity, setSelectedCity] = useState(() => (localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city')) || '');"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\Psychiatrists.tsx",
+      "num": 120,
+      "line": "const newCity = e.detail || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city');"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\ResourceHub.tsx",
+      "num": 160,
+      "line": "const lastCategory = (localStorage.getItem(\"lastCategory\") || \"\").trim();"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\UserDashboard.tsx",
+      "num": 138,
+      "line": "const raw = localStorage.getItem(key);"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\UserDashboard.tsx",
+      "num": 513,
+      "line": "const [theme, setTheme] = useState(localStorage.getItem(\"mindsupport_theme\") || \"default\");"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\UserDashboard.tsx",
+      "num": 671,
+      "line": "localStorage.setItem(\"mindsupport_theme\", theme);"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\UserDashboard.tsx",
+      "num": 675,
+      "line": "localStorage.setItem(\"mindsupport_notification_prefs\", JSON.stringify(notificationPrefs));"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\UserDashboard.tsx",
+      "num": 679,
+      "line": "localStorage.setItem(\"mindsupport_privacy_prefs\", JSON.stringify(privacyPrefs));"
+    },
+    {
+      "file": "frontend\\src\\pages\\AIChatPage.tsx",
+      "num": 80,
+      "line": "const saved = (localStorage.getItem('findmedi_ai_history') || localStorage.getItem('medicore_ai_history'));"
+    },
+    {
+      "file": "frontend\\src\\pages\\AIChatPage.tsx",
+      "num": 216,
+      "line": "localStorage.setItem('findmedi_ai_history', JSON.stringify(updated));"
+    },
+    {
+      "file": "frontend\\src\\pages\\AIChatPage.tsx",
+      "num": 223,
+      "line": "localStorage.setItem('findmedi_ai_history', JSON.stringify(updated));"
+    },
+    {
+      "file": "frontend\\src\\pages\\AIChatPage.tsx",
+      "num": 289,
+      "line": "localStorage.setItem('findmedi_ai_history', JSON.stringify(newSessions));"
+    },
+    {
+      "file": "frontend\\src\\pages\\AIChatPage.tsx",
+      "num": 773,
+      "line": "localStorage.setItem('findmedi_ai_history', JSON.stringify(updated));"
+    },
+    {
+      "file": "frontend\\src\\pages\\AIChatPage.tsx",
+      "num": 793,
+      "line": "<Tooltip><TooltipTrigger asChild><button onClick={(e) => { e.stopPropagation(); const updated = chatSessions.filter(s => s.id !== session.id); setChatSessions(updated); localStorage.setItem('findmedi_ai_history', JSON.stringify(updated)); if (isSelected) startNewChat(); }} className=\"p-1 text-destructive hover:text-red-600\"><Trash2 className=\"w-3 h-3\"/></button></TooltipTrigger><TooltipContent>Delete</TooltipContent></Tooltip>"
+    },
+    {
+      "file": "frontend\\src\\pages\\BookAssistant.tsx",
+      "num": 113,
+      "line": "localStorage.getItem('findmedi_city') ||"
+    },
+    {
+      "file": "frontend\\src\\pages\\BookAssistant.tsx",
+      "num": 114,
+      "line": "localStorage.getItem('mediCore_city') ||"
+    },
+    {
+      "file": "frontend\\src\\pages\\BookAssistant.tsx",
+      "num": 141,
+      "line": "const newCity = e.detail || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city');"
+    },
+    {
+      "file": "frontend\\src\\pages\\BookAssistant.tsx",
+      "num": 157,
+      "line": "localStorage.setItem('findmedi_city', cityName);"
+    },
+    {
+      "file": "frontend\\src\\pages\\BuyMedicine.tsx",
+      "num": 28,
+      "line": "const selectedCity = (localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city')) || '';"
+    },
+    {
+      "file": "frontend\\src\\pages\\Cart.tsx",
+      "num": 16,
+      "line": "try { return JSON.parse((localStorage.getItem('findmedi_saved') || localStorage.getItem('mediCore_saved'))) || {}; } catch { return {}; }"
+    },
+    {
+      "file": "frontend\\src\\pages\\Cart.tsx",
+      "num": 21,
+      "line": "localStorage.setItem('findmedi_saved', JSON.stringify(savedForLater));"
+    },
+    {
+      "file": "frontend\\src\\pages\\Checkout.tsx",
+      "num": 87,
+      "line": "try { return JSON.parse((localStorage.getItem(SAVED_PRESCRIPTIONS_KEY) || localStorage.getItem(LEGACY_SAVED_PRESCRIPTIONS_KEY))) || []; } catch { return []; }"
+    },
+    {
+      "file": "frontend\\src\\pages\\Checkout.tsx",
+      "num": 926,
+      "line": "localStorage.setItem(SAVED_PRESCRIPTIONS_KEY, JSON.stringify(saved));"
+    },
+    {
+      "file": "frontend\\src\\pages\\ClinicDetail.tsx",
+      "num": 141,
+      "line": "const [isFavorited, setIsFavorited] = useState(() => localStorage.getItem(`fav_clinic_${clinicId}`) === 'true');"
+    },
+    {
+      "file": "frontend\\src\\pages\\ClinicDoctor.tsx",
+      "num": 110,
+      "line": "const [saved, setSaved] = useState(() => localStorage.getItem(`fav_doctor_${id}`) === 'true');"
+    },
+    {
+      "file": "frontend\\src\\pages\\ClinicDoctors.tsx",
+      "num": 76,
+      "line": "try { return JSON.parse(localStorage.getItem('fav_doctor_ids') || '[]'); } catch { return []; }"
+    },
+    {
+      "file": "frontend\\src\\pages\\DiagnosticCenterDetail.tsx",
+      "num": 127,
+      "line": "const [isFavorited, setIsFavorited] = useState(() => localStorage.getItem(`fav_clinic_${clinicId}`) === 'true');"
+    },
+    {
+      "file": "frontend\\src\\pages\\FindLawyer.tsx",
+      "num": 124,
+      "line": "localStorage.getItem('findmedi_city') ||"
+    },
+    {
+      "file": "frontend\\src\\pages\\FindLawyer.tsx",
+      "num": 125,
+      "line": "localStorage.getItem('mediCore_city') ||"
+    },
+    {
+      "file": "frontend\\src\\pages\\FindLawyer.tsx",
+      "num": 138,
+      "line": "const newCity = e.detail || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city');"
+    },
+    {
+      "file": "frontend\\src\\pages\\FindVehicle.tsx",
+      "num": 55,
+      "line": "() => localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city') || 'Jabalpur'"
+    },
+    {
+      "file": "frontend\\src\\pages\\FindVehicle.tsx",
+      "num": 60,
+      "line": "const newCity = e.detail || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city');"
+    },
+    {
+      "file": "frontend\\src\\pages\\Home.tsx",
+      "num": 159,
+      "line": "const getSelectedCity = () => (localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city')) || '';"
+    },
+    {
+      "file": "frontend\\src\\pages\\hospital\\BedsideScan.tsx",
+      "num": 64,
+      "line": "sessionStorage.setItem(QUEUE_KEY, '1');"
+    },
+    {
+      "file": "frontend\\src\\pages\\hospital\\BedsideScan.tsx",
+      "num": 106,
+      "line": "sessionStorage.removeItem(QUEUE_KEY);"
+    },
+    {
+      "file": "frontend\\src\\pages\\HospitalDashboardV2.tsx",
+      "num": 31,
+      "line": "try { return JSON.parse(localStorage.getItem('dashv2-hidden') || '[]'); } catch { return []; }"
+    },
+    {
+      "file": "frontend\\src\\pages\\HospitalDashboardV2.tsx",
+      "num": 37,
+      "line": "try { localStorage.setItem('dashv2-hidden', JSON.stringify(next)); } catch { /* noop */ }"
+    },
+    {
+      "file": "frontend\\src\\pages\\HospitalDirectory.tsx",
+      "num": 37,
+      "line": "() => searchParams.get('city') || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city') || ''"
+    },
+    {
+      "file": "frontend\\src\\pages\\HospitalDirectory.tsx",
+      "num": 47,
+      "line": "const newCity = e.detail || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city');"
+    },
+    {
+      "file": "frontend\\src\\pages\\HospitalDoctor.tsx",
+      "num": 76,
+      "line": "const [saved, setSaved] = useState(() => localStorage.getItem(`fav_doctor_${id}`) === 'true');"
+    },
+    {
+      "file": "frontend\\src\\pages\\HospitalProfile.tsx",
+      "num": 90,
+      "line": "const [isFavorited, setIsFavorited] = useState(() => localStorage.getItem(`fav_hospital_${id}`) === 'true');"
+    },
+    {
+      "file": "frontend\\src\\pages\\join\\JoinWizard.tsx",
+      "num": 426,
+      "line": "typeof window !== 'undefined' && window.localStorage.getItem(LS_LANG) === 'hi' ? 'hi' : 'en',"
+    },
+    {
+      "file": "frontend\\src\\pages\\join\\JoinWizard.tsx",
+      "num": 473,
+      "line": "window.localStorage.setItem(LS_LANG, lang);"
+    },
+    {
+      "file": "frontend\\src\\pages\\join\\JoinWizard.tsx",
+      "num": 657,
+      "line": "const raw = window.localStorage.getItem(lsDraftKey(typeKey));"
+    },
+    {
+      "file": "frontend\\src\\pages\\join\\JoinWizard.tsx",
+      "num": 713,
+      "line": "window.localStorage.setItem(lsDraftKey(typeKey), JSON.stringify(next));"
+    },
+    {
+      "file": "frontend\\src\\pages\\join\\JoinWizard.tsx",
+      "num": 1667,
+      "line": "window.localStorage.setItem(lsDraftKey(selected.typeKey), JSON.stringify(draft));"
+    },
+    {
+      "file": "frontend\\src\\pages\\Kiosk.tsx",
+      "num": 17,
+      "line": "const [hospitalId, setHospitalId] = useState(() => localStorage.getItem('kiosk_hospital') || '');"
+    },
+    {
+      "file": "frontend\\src\\pages\\Kiosk.tsx",
+      "num": 68,
+      "line": "localStorage.setItem('kiosk_hospital', hospitalId);"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabCenterDashboard.tsx",
+      "num": 52,
+      "line": "const saved = localStorage.getItem('lab_platform_settings');"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabCenterDashboard.tsx",
+      "num": 58,
+      "line": "localStorage.setItem('lab_platform_settings', JSON.stringify(platformSettings));"
+    },
+    {
+      "file": "frontend\\src\\pages\\Login.tsx",
+      "num": 182,
+      "line": "localStorage.setItem('google_signup', JSON.stringify(signupData));"
+    },
+    {
+      "file": "frontend\\src\\pages\\MedicineStoreDetail.tsx",
+      "num": 107,
+      "line": "const [isFavorited, setIsFavorited] = useState(() => localStorage.getItem(`fav_store_${storeId}`) === 'true');"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\NotificationPreferences.tsx",
+      "num": 38,
+      "line": "const stored = localStorage.getItem('findmedi_notification_prefs');"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\NotificationPreferences.tsx",
+      "num": 75,
+      "line": "localStorage.setItem('findmedi_notification_prefs', JSON.stringify(prefs));"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientDashboard.tsx",
+      "num": 158,
+      "line": "try { return window.localStorage.getItem('findmedi:discreet') === '1'; } catch { return false; }"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientDashboard.tsx",
+      "num": 167,
+      "line": "try { window.localStorage.setItem('findmedi:discreet', discreetMode ? '1' : '0'); } catch {}"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientDashboardV2.tsx",
+      "num": 36,
+      "line": "try { return window.localStorage.getItem(LS_DISCREET) === '1'; } catch { return false; }"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientDashboardV2.tsx",
+      "num": 43,
+      "line": "try { window.localStorage.setItem(LS_DISCREET, discreet ? '1' : '0'); } catch { /* ignore */ }"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PrivacyCentre.tsx",
+      "num": 44,
+      "line": "try { return window.localStorage.getItem(LS_DISCREET) === '1'; } catch { return false; }"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PrivacyCentre.tsx",
+      "num": 51,
+      "line": "try { window.localStorage.setItem(LS_DISCREET, v ? '1' : '0'); } catch { /* ignore */ }"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PrivacyCentre.tsx",
+      "num": 74,
+      "line": "const raw = window.localStorage.getItem(LS_CONSENTS);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PrivacyCentre.tsx",
+      "num": 134,
+      "line": "window.localStorage.setItem(LS_CONSENTS, JSON.stringify(prefs));"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\Timeline.tsx",
+      "num": 32,
+      "line": "try { return window.localStorage.getItem(LS_DISCREET) === '1'; } catch { return false; }"
+    },
+    {
+      "file": "frontend\\src\\pages\\pharmacy\\PharmacyBusinessDashboard.tsx",
+      "num": 44,
+      "line": "const saved = localStorage.getItem('pharmacy_platform_settings');"
+    },
+    {
+      "file": "frontend\\src\\pages\\pharmacy\\PharmacyBusinessDashboard.tsx",
+      "num": 50,
+      "line": "localStorage.setItem('pharmacy_platform_settings', JSON.stringify(platformSettings));"
+    },
+    {
+      "file": "frontend\\src\\pages\\Pharmacy.tsx",
+      "num": 902,
+      "line": "<Button className=\"w-full\" onClick={async () => { try { localStorage.setItem('pharmacy_store_settings', JSON.stringify(storeSettings)); showToast('Store settings saved'); } catch { showToast('Failed to save', 'error'); } }}><Save className=\"w-4 h-4 mr-1\" /> Save Settings</Button>"
+    },
+    {
+      "file": "frontend\\src\\pages\\practitioner\\PractitionerProfilePage.tsx",
+      "num": 187,
+      "line": "const savedList = JSON.parse(localStorage.getItem('findmedi_saved_practitioners') || '[]');"
+    },
+    {
+      "file": "frontend\\src\\pages\\practitioner\\PractitionerProfilePage.tsx",
+      "num": 209,
+      "line": "const savedList: string[] = JSON.parse(localStorage.getItem('findmedi_saved_practitioners') || '[]');"
+    },
+    {
+      "file": "frontend\\src\\pages\\practitioner\\PractitionerProfilePage.tsx",
+      "num": 220,
+      "line": "localStorage.setItem('findmedi_saved_practitioners', JSON.stringify(updated));"
+    },
+    {
+      "file": "frontend\\src\\pages\\Signup.tsx",
+      "num": 57,
+      "line": "const stored = localStorage.getItem('google_signup');"
+    },
+    {
+      "file": "frontend\\src\\pages\\Signup.tsx",
+      "num": 123,
+      "line": "localStorage.setItem('google_signup', JSON.stringify(signupData));"
+    },
+    {
+      "file": "frontend\\src\\pages\\superadmin\\DataExport.tsx",
+      "num": 30,
+      "line": "// `Bearer ${localStorage.getItem('token')}` read a key nothing ever"
+    },
+    {
+      "file": "frontend\\src\\store\\slices\\authSlice.js",
+      "num": 86,
+      "line": "// FE-B-01: the presence check can no longer be `localStorage.getItem('token')`"
+    },
+    {
+      "file": "frontend\\src\\store\\slices\\cartSlice.js",
+      "num": 8,
+      "line": "const saved = (localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY));"
+    },
+    {
+      "file": "frontend\\src\\store\\slices\\cartSlice.js",
+      "num": 17,
+      "line": "localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));"
+    }
+  ],
+  "dangerouslySetInnerHTML": [
+    {
+      "file": "frontend\\src\\components\\ui\\chart.tsx",
+      "num": 90,
+      "line": "// P1-4: plain text child instead of dangerouslySetInnerHTML. Values are"
+    },
+    {
+      "file": "frontend\\src\\mind\\components\\ui\\chart.tsx",
+      "num": 38,
+      "line": "// P1-4: plain text child instead of dangerouslySetInnerHTML. Values stay"
+    }
+  ],
+  "consoleLogs": [
+    {
+      "file": "frontend\\src\\components\\AIChatAssistant.tsx",
+      "num": 69,
+      "line": "console.error(\"Failed to parse chat history\");"
+    },
+    {
+      "file": "frontend\\src\\components\\AIChatAssistant.tsx",
+      "num": 86,
+      "line": "console.error(\"Error accessing camera:\", err);"
+    },
+    {
+      "file": "frontend\\src\\components\\AppointmentHistorySection.tsx",
+      "num": 63,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\components\\BookingModal.tsx",
+      "num": 140,
+      "line": ".catch(err => console.error('Failed to fetch facility doctors:', err))"
+    },
+    {
+      "file": "frontend\\src\\components\\BookingModal.tsx",
+      "num": 350,
+      "line": "console.warn('Slot lock failed', err);"
+    },
+    {
+      "file": "frontend\\src\\components\\emergency\\ProviderHospitalSelect.tsx",
+      "num": 50,
+      "line": "console.error('Failed to load nearby hospitals:', err);"
+    },
+    {
+      "file": "frontend\\src\\components\\emergency\\SOSConfirmModal.tsx",
+      "num": 68,
+      "line": "console.warn('GPS error:', err);"
+    },
+    {
+      "file": "frontend\\src\\components\\ErrorBoundary.tsx",
+      "num": 15,
+      "line": "console.error('ErrorBoundary caught:', error, errorInfo);"
+    },
+    {
+      "file": "frontend\\src\\components\\IntakeFormStep.tsx",
+      "num": 66,
+      "line": "console.error('Upload error:', err);"
+    },
+    {
+      "file": "frontend\\src\\components\\LawyerUrgentIntakeModal.tsx",
+      "num": 147,
+      "line": "console.warn('Geolocation failed:', err.message);"
+    },
+    {
+      "file": "frontend\\src\\components\\LawyerUrgentIntakeModal.tsx",
+      "num": 318,
+      "line": "console.error('Urgent booking failed:', err);"
+    },
+    {
+      "file": "frontend\\src\\components\\LicenseExpiryReminder.tsx",
+      "num": 28,
+      "line": "console.error('Failed to fetch licenses for expiry check', err);"
+    },
+    {
+      "file": "frontend\\src\\components\\NotificationBell.tsx",
+      "num": 15,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\components\\PatientHistoryDrawer.tsx",
+      "num": 40,
+      "line": "console.error('Failed to fetch patient history:', err);"
+    },
+    {
+      "file": "frontend\\src\\components\\PatientHistoryModal.tsx",
+      "num": 37,
+      "line": "console.error('Failed to fetch patient history:', err);"
+    },
+    {
+      "file": "frontend\\src\\components\\PublicNavbar.tsx",
+      "num": 177,
+      "line": "console.error('Failed to toggle status:', err);"
+    },
+    {
+      "file": "frontend\\src\\components\\PublicNavbar.tsx",
+      "num": 196,
+      "line": "console.error('Failed to toggle assistant status:', err);"
+    },
+    {
+      "file": "frontend\\src\\components\\PublicNavbar.tsx",
+      "num": 215,
+      "line": "console.error('Failed to toggle lawyer status:', err);"
+    },
+    {
+      "file": "frontend\\src\\components\\PublicNavbar.tsx",
+      "num": 248,
+      "line": "console.error('Failed to toggle ambulance status:', err);"
+    },
+    {
+      "file": "frontend\\src\\components\\ScheduleChangeRequestModal.tsx",
+      "num": 229,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\components\\TodayAppointmentsSection.tsx",
+      "num": 153,
+      "line": "console.error('File preview error:', err);"
+    },
+    {
+      "file": "frontend\\src\\components\\TodayAppointmentsSection.tsx",
+      "num": 225,
+      "line": "console.error('Quick note save failed:', noteErr);"
+    },
+    {
+      "file": "frontend\\src\\components\\TodayAppointmentsSection.tsx",
+      "num": 234,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\components\\TodayAppointmentsSection.tsx",
+      "num": 246,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\components\\TodayAppointmentsSection.tsx",
+      "num": 274,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\components\\TodayAppointmentsSection.tsx",
+      "num": 681,
+      "line": "console.error('Absent note save failed:', noteErr);"
+    },
+    {
+      "file": "frontend\\src\\components\\ui\\AlertBanner.stories.jsx",
+      "num": 27,
+      "line": "onAck: (id) => console.log('ack', id),"
+    },
+    {
+      "file": "frontend\\src\\components\\ui\\AlertBanner.stories.jsx",
+      "num": 28,
+      "line": "onSnooze: (id) => console.log('snooze', id),"
+    },
+    {
+      "file": "frontend\\src\\components\\WalkInPatientForm.tsx",
+      "num": 200,
+      "line": "} catch (e) { console.error('Intake save failed:', e); }"
+    },
+    {
+      "file": "frontend\\src\\components\\WalkInPatientForm.tsx",
+      "num": 213,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\context\\AudioCallContext.tsx",
+      "num": 85,
+      "line": "console.warn('Audio devices enumeration error:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\AudioCallContext.tsx",
+      "num": 165,
+      "line": "console.warn('setSinkId error:', err);"
+    },
+    {
+      "file": "frontend\\src\\context\\AudioCallContext.tsx",
+      "num": 208,
+      "line": "console.warn('Failed to log call initiate:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\AudioCallContext.tsx",
+      "num": 223,
+      "line": "console.warn('Failed to update call status:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\AudioCallContext.tsx",
+      "num": 254,
+      "line": "console.warn('Failed to upload call recording:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\AudioCallContext.tsx",
+      "num": 340,
+      "line": "console.warn('Recording initiation failed:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\AudioCallContext.tsx",
+      "num": 688,
+      "line": "console.warn('Error creating WebRTC offer:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\AudioCallContext.tsx",
+      "num": 722,
+      "line": "console.warn('Error handling WebRTC offer:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\AudioCallContext.tsx",
+      "num": 742,
+      "line": "console.warn('Error setting WebRTC answer:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\AudioCallContext.tsx",
+      "num": 754,
+      "line": "console.warn('Error adding ICE candidate:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\VideoCallContext.tsx",
+      "num": 193,
+      "line": "console.warn('Media devices enumeration error:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\VideoCallContext.tsx",
+      "num": 295,
+      "line": "console.warn('1080p constraint fallback to standard HD:', err1080p);"
+    },
+    {
+      "file": "frontend\\src\\context\\VideoCallContext.tsx",
+      "num": 372,
+      "line": "console.warn('Switch camera error:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\VideoCallContext.tsx",
+      "num": 414,
+      "line": "console.warn('Flip facing mode error:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\VideoCallContext.tsx",
+      "num": 483,
+      "line": "console.warn('setSinkId error:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\VideoCallContext.tsx",
+      "num": 507,
+      "line": "console.warn('PiP error:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\VideoCallContext.tsx",
+      "num": 559,
+      "line": "console.warn('Revert webcam error:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\VideoCallContext.tsx",
+      "num": 703,
+      "line": "console.warn('Failed to log video call initiate:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\VideoCallContext.tsx",
+      "num": 723,
+      "line": "console.warn('Failed to update call status:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\VideoCallContext.tsx",
+      "num": 1061,
+      "line": "console.warn('Error creating WebRTC video offer:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\VideoCallContext.tsx",
+      "num": 1094,
+      "line": "console.warn('Error handling WebRTC video offer:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\VideoCallContext.tsx",
+      "num": 1114,
+      "line": "console.warn('Error setting WebRTC video answer:', e);"
+    },
+    {
+      "file": "frontend\\src\\context\\VideoCallContext.tsx",
+      "num": 1125,
+      "line": "console.warn('Error adding video ICE candidate:', e);"
+    },
+    {
+      "file": "frontend\\src\\hooks\\useAmbulanceGps.ts",
+      "num": 20,
+      "line": "(err) => console.warn('[GPS]', err.message),"
+    },
+    {
+      "file": "frontend\\src\\hooks\\useApiQuery.js",
+      "num": 28,
+      "line": "console.error(`Query error [${key}]:`, err);"
+    },
+    {
+      "file": "frontend\\src\\hooks\\useApiQuery.js",
+      "num": 70,
+      "line": "console.error('Mutation error:', err);"
+    },
+    {
+      "file": "frontend\\src\\lib\\api.js",
+      "num": 140,
+      "line": "console.error('getFilePreviewUrl error:', err);"
+    },
+    {
+      "file": "frontend\\src\\lib\\audioCallSounds.js",
+      "num": 62,
+      "line": "console.warn('Ringtone playback error:', e);"
+    },
+    {
+      "file": "frontend\\src\\lib\\audioCallSounds.js",
+      "num": 116,
+      "line": "console.warn('Ringback playback error:', e);"
+    },
+    {
+      "file": "frontend\\src\\lib\\axios.js",
+      "num": 75,
+      "line": "console.warn("
+    },
+    {
+      "file": "frontend\\src\\lib\\axios.js",
+      "num": 243,
+      "line": "console.error("
+    },
+    {
+      "file": "frontend\\src\\lib\\errorCopy.js",
+      "num": 112,
+      "line": "console.error(`[${context}]`, err);"
+    },
+    {
+      "file": "frontend\\src\\lib\\socket.js",
+      "num": 60,
+      "line": "console.warn('[Socket] connect error:', err.message);"
+    },
+    {
+      "file": "frontend\\src\\lib\\socket.js",
+      "num": 63,
+      "line": "console.warn('[Socket] disconnected:', reason);"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\NotFound.tsx",
+      "num": 6,
+      "line": "console.error(\"404 Error: User attempted to access non-existent route:\", location.pathname);"
+    },
+    {
+      "file": "frontend\\src\\mind\\pages\\PeerSupport.tsx",
+      "num": 124,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\admin\\AdminAssistants.tsx",
+      "num": 51,
+      "line": "console.error('Failed to fetch admin assistant data', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\admin\\AdminClinicSettings.tsx",
+      "num": 79,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\admin\\AdminHospitalSettings.tsx",
+      "num": 165,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\admin\\AdminLabSettings.tsx",
+      "num": 55,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to load lab data'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\admin\\AdminLawyers.tsx",
+      "num": 53,
+      "line": "console.error('Failed to fetch admin lawyer data:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\admin\\AdminPharmacySettings.tsx",
+      "num": 48,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to load pharmacy data'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\admin\\AdminScheduleManage.tsx",
+      "num": 32,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\admin\\AdminScheduleManage.tsx",
+      "num": 54,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\AIChatPage.tsx",
+      "num": 85,
+      "line": "console.error(\"Failed to parse chat history\");"
+    },
+    {
+      "file": "frontend\\src\\pages\\AllTests.tsx",
+      "num": 70,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\ambulance\\AmbulanceDashboard.tsx",
+      "num": 137,
+      "line": "console.warn('Active job empty, keeping previous state');"
+    },
+    {
+      "file": "frontend\\src\\pages\\assistant\\AssistantDashboard.tsx",
+      "num": 307,
+      "line": "console.error('Failed to load assistant dashboard', e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\BookAssistant.tsx",
+      "num": 135,
+      "line": ".catch((err: any) => console.warn('Failed to load service cities:', err));"
+    },
+    {
+      "file": "frontend\\src\\pages\\BookAssistant.tsx",
+      "num": 261,
+      "line": "console.warn('Socket connection error in BookAssistant:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\BookAssistant.tsx",
+      "num": 314,
+      "line": "console.warn('Failed to load assistants:', err.message);"
+    },
+    {
+      "file": "frontend\\src\\pages\\BookAssistant.tsx",
+      "num": 743,
+      "line": "console.warn('Cancel assistant error:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\BuyMedicine.tsx",
+      "num": 58,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\Checkout.tsx",
+      "num": 105,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\Checkout.tsx",
+      "num": 392,
+      "line": "console.error('Failed to save address:', e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicAppointments.tsx",
+      "num": 77,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicAppointments.tsx",
+      "num": 117,
+      "line": ".catch(err => console.error('Failed to fetch booked slots:', err));"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicAppointments.tsx",
+      "num": 139,
+      "line": "try { await api.updateAppointment(id, { status, ...extra }); loadAppointments(); } catch (e) { console.error(e); toast.error('Failed to update appointment'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicAppointments.tsx",
+      "num": 149,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to reschedule appointment'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicAppointments.tsx",
+      "num": 209,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to generate prescription'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicAppointments.tsx",
+      "num": 236,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicAppointments.tsx",
+      "num": 255,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to load prescription'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicBilling.tsx",
+      "num": 41,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicConsultations.tsx",
+      "num": 41,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicConsultations.tsx",
+      "num": 66,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicDashboard.tsx",
+      "num": 310,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicFees.tsx",
+      "num": 62,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicFees.tsx",
+      "num": 120,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicNotifications.tsx",
+      "num": 46,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicNotifications.tsx",
+      "num": 66,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicNotifications.tsx",
+      "num": 73,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicNotifications.tsx",
+      "num": 80,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicNotifications.tsx",
+      "num": 89,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicPatients.tsx",
+      "num": 26,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicPaymentHistory.tsx",
+      "num": 80,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicPlatformSettings.tsx",
+      "num": 52,
+      "line": "console.error('Failed to load facility settings:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicPlatformSettings.tsx",
+      "num": 90,
+      "line": "console.error('Failed to load doctor:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicReviews.tsx",
+      "num": 18,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicSchedule.tsx",
+      "num": 106,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicSchedule.tsx",
+      "num": 186,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicTestRequests.tsx",
+      "num": 59,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\clinic\\ClinicTests.tsx",
+      "num": 66,
+      "line": "} catch { console.warn('Failed to load tests'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\ClinicDetail.tsx",
+      "num": 263,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\ClinicDetail.tsx",
+      "num": 298,
+      "line": "console.error(facilityError);"
+    },
+    {
+      "file": "frontend\\src\\pages\\ClinicDetail.tsx",
+      "num": 299,
+      "line": "console.error(doctorError);"
+    },
+    {
+      "file": "frontend\\src\\pages\\ClinicDoctor.tsx",
+      "num": 164,
+      "line": "try { await navigator.share({ title: doctor?.name || 'Doctor Profile', url }); } catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\ClinicDoctor.tsx",
+      "num": 189,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\delivery\\DeliveryDashboard.tsx",
+      "num": 115,
+      "line": "(err) => console.warn('GPS location tracking notice:', err),"
+    },
+    {
+      "file": "frontend\\src\\pages\\DiagnosticCenterDetail.tsx",
+      "num": 157,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\DiagnosticCenterDetail.tsx",
+      "num": 171,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorAppointments.tsx",
+      "num": 109,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorAppointments.tsx",
+      "num": 148,
+      "line": ".catch(err => console.error('Failed to fetch booked slots:', err));"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorAppointments.tsx",
+      "num": 172,
+      "line": "try { await api.updateAppointment(id, { status, ...extra }); loadAppointments(); } catch (e) { console.error(e); toast.error('Failed to update appointment'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorAppointments.tsx",
+      "num": 182,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to reschedule appointment'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorAppointments.tsx",
+      "num": 260,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to generate prescription'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorAppointments.tsx",
+      "num": 289,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to generate lab report'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorAppointments.tsx",
+      "num": 320,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to generate discharge summary'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorAppointments.tsx",
+      "num": 339,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to generate bill'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorCallRoom.tsx",
+      "num": 135,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorCalls.tsx",
+      "num": 80,
+      "line": "console.warn('Failed to load call logs:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorCalls.tsx",
+      "num": 102,
+      "line": "console.warn('Error fetching contacts:', e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorDashboard.tsx",
+      "num": 130,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorDashboard.tsx",
+      "num": 219,
+      "line": "console.error(err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorInPersonAppointments.tsx",
+      "num": 124,
+      "line": "console.warn('Failed to load home visits:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorInPersonAppointments.tsx",
+      "num": 147,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorLeaveRequests.tsx",
+      "num": 44,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorOnlineAppointments.tsx",
+      "num": 122,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorOnlineAppointments.tsx",
+      "num": 199,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorReviews.tsx",
+      "num": 22,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorScheduleEdit.tsx",
+      "num": 60,
+      "line": "console.error('Failed to load schedule change requests', e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorVideoCallRoom.tsx",
+      "num": 133,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\doctor\\DoctorVideoCalls.tsx",
+      "num": 98,
+      "line": "console.warn('Failed to load video call logs:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\DoctorConsultation.tsx",
+      "num": 186,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\FileUpload.tsx",
+      "num": 108,
+      "line": "console.error('Drive connect error:', e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\FileUpload.tsx",
+      "num": 123,
+      "line": "console.error('Drive disconnect error:', e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\FileUpload.tsx",
+      "num": 144,
+      "line": "console.error('Error fetching files:', error);"
+    },
+    {
+      "file": "frontend\\src\\pages\\FileUpload.tsx",
+      "num": 229,
+      "line": "console.error('Upload error:', error);"
+    },
+    {
+      "file": "frontend\\src\\pages\\FindLawyer.tsx",
+      "num": 167,
+      "line": ".catch((err) => console.warn('Failed to load service cities:', err));"
+    },
+    {
+      "file": "frontend\\src\\pages\\FindLawyer.tsx",
+      "num": 184,
+      "line": "console.error('Failed to load lawyers:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\FindVehicle.tsx",
+      "num": 221,
+      "line": "console.warn('Failed to fetch estimate:', err.message);"
+    },
+    {
+      "file": "frontend\\src\\pages\\hospital\\ManageAmbulancesPage.tsx",
+      "num": 145,
+      "line": "console.error('Failed to load fleet data:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\HospitalDirectory.tsx",
+      "num": 122,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\HospitalDoctor.tsx",
+      "num": 142,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\HospitalDoctors.tsx",
+      "num": 84,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\HospitalTestBooking.tsx",
+      "num": 158,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\HospitalTestBooking.tsx",
+      "num": 333,
+      "line": "console.error('Booking error:', e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\ImagingCenterDetail.tsx",
+      "num": 118,
+      "line": "} catch (_e) { console.error(_e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\ImagingCenterDetail.tsx",
+      "num": 178,
+      "line": "} catch (_e) { console.error(_e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\ImportExport.tsx",
+      "num": 33,
+      "line": "console.error('Export error:', error);"
+    },
+    {
+      "file": "frontend\\src\\pages\\join\\JoinWizard.tsx",
+      "num": 609,
+      "line": "console.warn('Failed to resume application from server', e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabBilling.tsx",
+      "num": 82,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabBilling.tsx",
+      "num": 90,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabBookingManagement.tsx",
+      "num": 25,
+      "line": "}).catch(e => { toast.error('Failed to load bookings'); console.error(e); }).finally(() => setLoading(false));"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabCenterDashboard.tsx",
+      "num": 96,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabEquipment.tsx",
+      "num": 53,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabEquipment.tsx",
+      "num": 59,
+      "line": "try { await api.updateLabEquipment(id, updates); } catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabPackages.tsx",
+      "num": 31,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabPackages.tsx",
+      "num": 57,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabReports.tsx",
+      "num": 235,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabReports.tsx",
+      "num": 246,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabReports.tsx",
+      "num": 253,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabReports.tsx",
+      "num": 261,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabReviews.tsx",
+      "num": 20,
+      "line": "console.error(error);"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabSampleCollection.tsx",
+      "num": 50,
+      "line": ".catch((e) => { console.error(e); toast.error('Failed to load collections'); })"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabSampleCollection.tsx",
+      "num": 59,
+      "line": "} catch (e) { console.error(e); toast.error('Assignment failed'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabSampleCollection.tsx",
+      "num": 70,
+      "line": "} catch (e) { console.error(e); toast.error('Status update failed'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabStaff.tsx",
+      "num": 37,
+      "line": "console.error(error);"
+    },
+    {
+      "file": "frontend\\src\\pages\\labcenter\\LabTestCatalog.tsx",
+      "num": 23,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\lawyer\\LawyerDashboard.tsx",
+      "num": 271,
+      "line": "console.error('Failed to load lawyer dashboard', e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\LawyerProfile.tsx",
+      "num": 88,
+      "line": "console.error('Failed to load advocate profile:', e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\Login.tsx",
+      "num": 212,
+      "line": "console.error('Google OAuth popup error:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\Login.tsx",
+      "num": 219,
+      "line": "console.warn('initTokenClient failed, falling back to ID prompt:', oauthErr);"
+    },
+    {
+      "file": "frontend\\src\\pages\\NotFound.tsx",
+      "num": 6,
+      "line": "console.error(\"404 Error: User attempted to access non-existent route:\", location.pathname);"
+    },
+    {
+      "file": "frontend\\src\\pages\\Notifications.tsx",
+      "num": 30,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\Notifications.tsx",
+      "num": 44,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\Notifications.tsx",
+      "num": 52,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\Notifications.tsx",
+      "num": 60,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\Notifications.tsx",
+      "num": 69,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\OrderTracking.tsx",
+      "num": 82,
+      "line": "} catch (e) { console.error('Failed to load order:', e); } finally { setLoadingOrder(false); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\OrderTracking.tsx",
+      "num": 100,
+      "line": "} catch (e) { console.error('Failed to load facilities:', e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\OrderTracking.tsx",
+      "num": 167,
+      "line": "} catch (e) { console.error('Cancel order failed:', e); toast.error('Failed to cancel order. Please try again.'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\OrderTracking.tsx",
+      "num": 175,
+      "line": "} catch (e) { console.error('Submit review failed:', e); toast.error('Failed to submit review. Please try again.'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\OrderTracking.tsx",
+      "num": 186,
+      "line": "} catch (e) { console.error('Return request failed:', e); toast.error('Failed to submit return request. Please try again.'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientAssistants.tsx",
+      "num": 50,
+      "line": "console.error(err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientBookingHistory.tsx",
+      "num": 111,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientCarePlan.tsx",
+      "num": 93,
+      "line": "console.error(err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientCarePlan.tsx",
+      "num": 115,
+      "line": "console.error(err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientDashboard.tsx",
+      "num": 301,
+      "line": "} catch (e) { console.error(e); showToast('Failed to load dashboard data', 'error'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientHistory.tsx",
+      "num": 60,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientInPersonVisits.tsx",
+      "num": 106,
+      "line": "console.warn('Geolocation not allowed or failed:', err.message);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientInPersonVisits.tsx",
+      "num": 131,
+      "line": "console.warn('Failed to load home visits:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientInPersonVisits.tsx",
+      "num": 242,
+      "line": "console.error('Failed to update transit status:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientLawyers.tsx",
+      "num": 65,
+      "line": "console.error('Failed to fetch legal console data:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientLawyers.tsx",
+      "num": 134,
+      "line": "console.warn('Socket connection error in PatientLawyers:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientLawyers.tsx",
+      "num": 716,
+      "line": "console.warn('Cancel lawyer booking error:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientMedicineOrders.tsx",
+      "num": 41,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientMedicineReminders.tsx",
+      "num": 93,
+      "line": "console.error(err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientPayment.tsx",
+      "num": 44,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientPayment.tsx",
+      "num": 64,
+      "line": "console.error(e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientPrescriptions.tsx",
+      "num": 30,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientRecords.tsx",
+      "num": 40,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to load records'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientReports.tsx",
+      "num": 49,
+      "line": "console.error('Error fetching reports:', error);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientReports.tsx",
+      "num": 67,
+      "line": "console.error('Error downloading report:', error);"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientReviews.tsx",
+      "num": 58,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientServices.tsx",
+      "num": 100,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientServices.tsx",
+      "num": 149,
+      "line": "} catch (e) { console.error(e); toast?.error?.(e.message || 'Booking failed'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\patient\\PatientVitals.tsx",
+      "num": 91,
+      "line": "console.error(err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\PDFReports.tsx",
+      "num": 228,
+      "line": "console.error('Error generating PDF:', error);"
+    },
+    {
+      "file": "frontend\\src\\pages\\PDFReports.tsx",
+      "num": 265,
+      "line": "console.error('Error sending email:', error);"
+    },
+    {
+      "file": "frontend\\src\\pages\\PendingApproval.tsx",
+      "num": 27,
+      "line": "} catch (e) { console.error('Polling check failed:', e);"
+    },
+    {
+      "file": "frontend\\src\\pages\\pharmacy\\PharmacyBusinessDashboard.tsx",
+      "num": 75,
+      "line": "} catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\pharmacy\\PharmacyDelivery.tsx",
+      "num": 33,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\pharmacy\\PharmacyDelivery.tsx",
+      "num": 52,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\pharmacy\\PharmacyDelivery.tsx",
+      "num": 59,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\pharmacy\\PharmacyOffers.tsx",
+      "num": 19,
+      "line": "catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\pharmacy\\PharmacyOrders.tsx",
+      "num": 25,
+      "line": "catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\pharmacy\\PharmacyPrescriptionQueue.tsx",
+      "num": 59,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\pharmacy\\PharmacyPrescriptionQueue.tsx",
+      "num": 95,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\pharmacy\\PharmacyReviews.tsx",
+      "num": 25,
+      "line": "} catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\pharmacy\\PharmacyStaff.tsx",
+      "num": 19,
+      "line": "catch (e) { console.error(e); }"
+    },
+    {
+      "file": "frontend\\src\\pages\\Pharmacy.tsx",
+      "num": 142,
+      "line": "console.error('Failed to load pharmacy deliveries', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\rider\\RiderDashboard.tsx",
+      "num": 174,
+      "line": "console.error('Failed to load rider dashboard data', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\rider\\RiderDashboard.tsx",
+      "num": 308,
+      "line": "(err) => console.warn('GPS tracking error:', err),"
+    },
+    {
+      "file": "frontend\\src\\pages\\rider\\RiderDashboard.tsx",
+      "num": 347,
+      "line": "(err) => console.warn('Idle GPS heartbeat error:', err),"
+    },
+    {
+      "file": "frontend\\src\\pages\\Signup.tsx",
+      "num": 150,
+      "line": "console.error('Google OAuth error:', err);"
+    },
+    {
+      "file": "frontend\\src\\pages\\Signup.tsx",
+      "num": 157,
+      "line": "console.warn('initTokenClient fallback:', oauthErr);"
+    },
+    {
+      "file": "frontend\\src\\pages\\superadmin\\crm\\CrmCommandCenter.tsx",
+      "num": 60,
+      "line": "console.error('Failed to load CRM command center', err);"
+    },
+    {
+      "file": "frontend\\src\\services\\featureFlags.ts",
+      "num": 23,
+      "line": "unleash.on('error', (err) => console.error('Unleash error:', err));"
+    },
+    {
+      "file": "frontend\\src\\store\\slices\\notificationsSlice.js",
+      "num": 70,
+      "line": "console.error('Failed to fetch notifications:', error);"
+    },
+    {
+      "file": "frontend\\src\\store\\slices\\notificationsSlice.js",
+      "num": 79,
+      "line": "console.error('Failed to mark notification as read:', error);"
+    },
+    {
+      "file": "frontend\\src\\store\\slices\\notificationsSlice.js",
+      "num": 88,
+      "line": "console.error('Failed to mark all notifications as read:', error);"
+    },
+    {
+      "file": "frontend\\src\\store\\slices\\notificationsSlice.js",
+      "num": 97,
+      "line": "console.error('Failed to delete notification:', error);"
+    },
+    {
+      "file": "frontend\\src\\store\\slices\\notificationsSlice.js",
+      "num": 107,
+      "line": "console.error('Failed to create notification:', error);"
+    },
+    {
+      "file": "frontend\\src\\utils\\alarmAudio.ts",
+      "num": 172,
+      "line": "console.warn('Audio cycle failed:', e);"
+    },
+    {
+      "file": "frontend\\src\\utils\\emergencyDoctorAudio.ts",
+      "num": 42,
+      "line": "console.warn('Web Audio emergency alert autoplay blocked by browser policy:', err);"
+    }
+  ],
+  "hardcodedSecrets": []
+}
