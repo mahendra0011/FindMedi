@@ -191,11 +191,11 @@ router.post('/book', protect, authorize('ride:write', 'ride:write:own'), validat
 });
 
 // ─── GET /api/ride/active ───────────────────────────────────────────────────
-// Get active ride for current logged-in user or rider
-router.get('/active', optionalProtect, async (req, res) => {
+// Get active ride for current logged-in user or rider (strictly protected to prevent enumeration)
+router.get('/active', protect, async (req, res) => {
   try {
     if (!req.user) {
-      return res.json({ ride: null });
+      return res.status(401).json({ message: 'Authentication required' });
     }
 
     const query = {

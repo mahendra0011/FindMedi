@@ -54,6 +54,21 @@ export const referralService = {
     const ipHash = context.ip ? crypto.createHash('sha256').update(String(context.ip)).digest('hex').slice(0, 32) : '';
     const deviceHash = context.userAgent ? crypto.createHash('sha256').update(String(context.userAgent)).digest('hex').slice(0, 32) : '';
 
+    // LOYALTY-BUG-02: Self-referral Sybil check — block if referrer has matching IP or device hash
+    if (ipHash || deviceHash) {
+      const selfReferralRing = await Referral.findOne({
+        $or: [
+          { referrerId: referrer._id, ipHash: { $ne: '', $eq: ipHash } },
+          { referrerId: referrer._id, deviceHash: { $ne: '', $eq: deviceHash } },
+          { refereeId: referrer._id, ipHash: { $ne: '', $eq: ipHash } },
+          { refereeId: referrer._id, deviceHash: { $ne: '', $eq: deviceHash } },
+        ],
+      }).lean();
+      if (selfReferralRing) {
+        return; // Reject self-referral Sybil loop
+      }
+    }
+
     // Create pending referral record
     const referral = new Referral({
       referrerId: referrer._id,

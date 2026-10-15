@@ -21,6 +21,7 @@ const twoPersonApprovalSchema = new mongoose.Schema({
       'fee_waiver',
       'break_glass',
       'superadmin_escalation',
+      'bulk_export',
     ],
     index: true,
   },

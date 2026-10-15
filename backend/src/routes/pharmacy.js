@@ -195,7 +195,7 @@ const pharmacyStaffSchema = z.object({
   experience: z.string().trim().max(120).optional(),
   shift: z.string().trim().max(40).optional(),
   isActive: z.boolean().optional(),
-});
+}).strict();
 const pharmacyDispenseSchema = z.object({
   medicineIndex: z.number().int().nonnegative(),
   substituteMedicineId: z.string().regex(/^[0-9a-f]{24}$/i).optional(),
@@ -2219,9 +2219,10 @@ router.get('/staff', protect, async (req, res) => {
 
 router.post('/staff', protect, authorize('pharmacy:manage'), validate(pharmacyStaffSchema), async (req, res) => {
   try {
-    // authorize() added: previously protect-only, so ANY authenticated user
-    // could mint pharmacy staff with an arbitrary role/isActive.
-    const member = await PharmacyStaff.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    // PHARM-LAB-BUG-02: explicit allowlisted fields only — mass assignment prevented
+    const { pickBody } = await import('../utils/pick.js');
+    const allowed = ['name', 'role', 'email', 'phone', 'licenseNumber', 'experience', 'shift', 'isActive'];
+    const member = await PharmacyStaff.create({ ...pickBody(req.body, allowed), hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     await auditLog('create_pharmacy_staff', req.user._id, { recordId: member._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(member);
   } catch (err) { res.status(400).json({ message: err.message }); }

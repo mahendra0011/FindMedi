@@ -147,6 +147,15 @@ export async function executeDeletion(userId, { reason = 'erasure', deletedBy = 
       // stops an active device from continuing after erasure even though the
       // signed access token has not expired yet.
       const res = await RefreshToken.deleteMany({ userId: id });
+      await User.updateOne({ _id: id }, { $inc: { tokenVersion: 1 } });
+      const { removeUserPresence } = await import('../config/redis.js');
+      await removeUserPresence(id).catch(() => {});
+      const { getIO } = await import('./socketService.js');
+      const io = getIO();
+      if (io) {
+        io.to(`user:${id}`).emit('session:revoked', { reason: 'account_deleted' });
+        io.to(`user:${id}`).disconnectSockets(true);
+      }
       return `${res.deletedCount} session(s) revoked`;
     }),
   );

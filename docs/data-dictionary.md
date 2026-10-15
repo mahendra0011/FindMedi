@@ -12784,7 +12784,7 @@ source `TwoPersonApproval.js` · timestamps: yes · virtuals: 0 · retention: 7 
 
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|
-| `actionType` | String | yes |  |  | payout, sensitive_kyc_approval, tenant_suspension, commission_rate_change, fee_waiver, break_glass, superadmin_escalation |  |  |
+| `actionType` | String | yes |  |  | payout, sensitive_kyc_approval, tenant_suspension, commission_rate_change, fee_waiver, break_glass, superadmin_escalation, bulk_export |  |  |
 | `targetModel` | String | yes |  |  |  |  |  |
 | `targetId` | String | yes |  |  |  |  |  |
 | `requestedBy` | ObjectId | yes |  |  |  | User |  |

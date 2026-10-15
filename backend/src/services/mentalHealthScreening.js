@@ -141,6 +141,29 @@ export const score = (instrumentId, answers = {}) => {
 
   const severity = instrument.severity(total);
 
+  const helplines = suicidalityFlagged ? [
+    {
+      name: 'National Tele-MANAS',
+      phone: '14416',
+      tollFree: '1800-891-4416',
+      available: '24x7 Toll-Free',
+      description: 'National Tele Mental Health Programme of India, Government of India',
+    },
+    {
+      name: 'KIRAN Mental Health Helpline',
+      phone: '1800-599-0019',
+      tollFree: '1800-599-0019',
+      available: '24x7 Toll-Free',
+      description: 'Ministry of Social Justice and Empowerment, Government of India',
+    },
+    {
+      name: 'Vandrevala Foundation',
+      phone: '+91 9999 666 555',
+      available: '24x7 Free',
+      description: 'Free confidential 24x7 crisis intervention and suicide prevention helpline',
+    },
+  ] : [];
+
   return {
     valid: true,
     instrument: instrument.id,
@@ -153,6 +176,8 @@ export const score = (instrumentId, answers = {}) => {
     // overall and still have answered item 9.
     suicidalityFlagged,
     referralSuggested: total >= instrument.referralThreshold || suicidalityFlagged,
+    crisis: suicidalityFlagged,
+    helplines,
     responses,
   };
 };

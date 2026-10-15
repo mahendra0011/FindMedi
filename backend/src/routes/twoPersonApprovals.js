@@ -26,6 +26,7 @@ const requestApprovalSchema = z.object({
     'fee_waiver',
     'break_glass',
     'superadmin_escalation',
+    'bulk_export',
   ]),
   targetModel: z.string().trim().min(1).max(100),
   targetId: z.string().trim().min(1).max(100),

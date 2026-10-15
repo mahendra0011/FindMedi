@@ -60,8 +60,16 @@ router.put('/:id/block', protect, adminOnly, validate(blockUserSchema), async (r
 
     user.status = user.status === 'blocked' ? 'active' : 'blocked';
     if (user.status === 'blocked') {
-      // P2-10: immediately invalidate all sessions for blocked users
+      // ADMIN-BUG-02: immediately invalidate all sessions, drop presence, and disconnect sockets
       user.tokenVersion = (user.tokenVersion || 0) + 1;
+      const { removeUserPresence } = await import('../config/redis.js');
+      await removeUserPresence(user._id.toString()).catch(() => {});
+      const { getIO } = await import('../services/socketService.js');
+      const io = getIO();
+      if (io) {
+        io.to(`user:${user._id}`).emit('session:revoked', { reason: 'account_suspended' });
+        io.to(`user:${user._id}`).disconnectSockets(true);
+      }
     }
     await user.save();
 

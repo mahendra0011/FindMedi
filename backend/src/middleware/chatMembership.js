@@ -203,7 +203,7 @@ export function _resetRoomTenantCache() {
  * mode is a closed door, not an open one.
  */
 export const KNOWN_ROOMS = new Set([
-  'chat', 'ride', 'emergency', 'assistant-booking', 'lawyer-booking',
+  'chat', 'ride', 'emergency', 'ambulance', 'assistant-booking', 'lawyer-booking',
   'order', 'appointment', 'ride-tracking',
 ]);
 
@@ -276,6 +276,7 @@ async function checkRoomAccess(userId, role, room, id) {
       const amb = await Ambulance.findById(key).select('userId hospitalId').lean();
       if (!amb) return { ok: false, reason: 'not-found' };
       if (sameId(amb.userId, userId)) return { ok: true };
+      if (await isOperatorForRow(userId, role, amb, { tenantFields: ['hospitalId'] })) return { ok: true };
       return { ok: false, reason: 'not-the-crew' };
     }
 

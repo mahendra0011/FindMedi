@@ -536,15 +536,22 @@ router.post('/referrals/:id/screening', protect, async (req, res) => {
 
       // Loud, and independent of the notification path - a safety signal must
       // not depend on a notification being created successfully.
-      logger.error(`[mental-health] SUICIDALITY FLAG referral=${r._id} patient=${r.patientId} instrument=${result.instrument} total=${result.total} severity=${result.severity}`);
+      logger.error(`[mental-health] SUICIDALITY FLAG referral=${r._id} patient=${r.patientId} instrument=${result.instrument} flagged`);
+      // MHCA 2017 Section 23: audit log must record only event and category,
+      // without raw questionnaire answers, total scores, or severity classifications.
       auditLog('mental_health_suicidality_flagged', req.user._id, {
         referralId: r.referralId,
         patientId: r.patientId,
-        instrument: result.instrument,
-        total: result.total,
-        severity: result.severity,
+        category: 'mental_health',
       }).catch((e) => logger.error(`screening audit failed: ${e.message}`));
     }
+
+    auditLog('screening_completed', req.user._id, {
+      event: 'screening_completed',
+      referralId: r.referralId,
+      patientId: r.patientId,
+      category: 'mental_health',
+    }).catch((e) => logger.error(`screening audit failed: ${e.message}`));
 
     await r.save();
 
@@ -556,11 +563,13 @@ router.post('/referrals/:id/screening', protect, async (req, res) => {
       severity: result.severity,
       suicidalityFlagged: result.suicidalityFlagged,
       referralSuggested: result.referralSuggested,
-      crisisHelplines: result.suicidalityFlagged ? [
+      crisis: result.crisis || result.suicidalityFlagged,
+      helplines: result.helplines || [],
+      crisisHelplines: result.helplines || (result.suicidalityFlagged ? [
         { name: 'National Tele-MANAS', phone: '14416', available: '24x7 Toll-Free' },
         { name: 'Kiran Mental Health Helpline', phone: '1800-599-0019', available: '24x7 Toll-Free' },
         { name: 'Vandrevala Foundation', phone: '+91 9999 666 555', available: '24x7 Free' },
-      ] : [],
+      ] : []),
     });
   } catch (err) { sendServerError(res, err); }
 });

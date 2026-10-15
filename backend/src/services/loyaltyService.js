@@ -204,14 +204,25 @@ export const loyaltyService = {
     const catalogItem = await RewardCatalogItem.findById(catalogItemId).lean();
     if (!catalogItem || !catalogItem.isActive) return { success: false, message: 'Reward not available' };
 
-    const user = await User.findById(userId);
-    if (!user || user.loyalty.pointsBalance < catalogItem.pointsRequired) {
-      return { success: false, message: 'Insufficient points' };
-    }
-
     // Check stock limit
     if (catalogItem.stockLimit > 0 && catalogItem.redeemedCount >= catalogItem.stockLimit) {
       return { success: false, message: 'Reward out of stock' };
+    }
+
+    // LOYALTY-BUG-01: Atomic conditional debit to prevent double-spending & race conditions
+    const updatedUser = await User.findOneAndUpdate(
+      {
+        _id: userId,
+        'loyalty.pointsBalance': { $gte: catalogItem.pointsRequired },
+      },
+      {
+        $inc: { 'loyalty.pointsBalance': -catalogItem.pointsRequired },
+      },
+      { new: true }
+    ).select('loyalty');
+
+    if (!updatedUser) {
+      return { success: false, message: 'Insufficient points' };
     }
 
     // Create redemption record
@@ -227,10 +238,6 @@ export const loyaltyService = {
     });
     await redemption.save();
 
-    // Deduct points
-    user.loyalty.pointsBalance -= catalogItem.pointsRequired;
-    await user.save();
-
     // Log in ledger
     await LoyaltyLedger.create({
       userId,
@@ -238,7 +245,7 @@ export const loyaltyService = {
       points: -catalogItem.pointsRequired,
       reason: `reward_redeemed:${catalogItem.code}`,
       refId: catalogItemId,
-      balanceAfter: user.loyalty.pointsBalance,
+      balanceAfter: updatedUser.loyalty.pointsBalance,
     });
 
     // Update catalog redeemed count
@@ -248,7 +255,7 @@ export const loyaltyService = {
       success: true,
       code,
       pointsSpent: catalogItem.pointsRequired,
-      newBalance: user.loyalty.pointsBalance,
+      newBalance: updatedUser.loyalty.pointsBalance,
       expiresAt,
     };
   },

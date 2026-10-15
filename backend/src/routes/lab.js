@@ -1855,7 +1855,9 @@ router.get('/equipment', protect, async (req, res) => {
 
 router.post('/equipment', protect, validate(labEquipmentSchema), async (req, res) => {
   try {
-    const item = await Equipment.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    const { pickBody } = await import('../utils/pick.js');
+    const allowedEquip = ['name', 'type', 'model', 'serialNumber', 'manufacturer', 'installationDate', 'lastMaintenanceDate', 'nextMaintenanceDate', 'maintenanceInterval', 'status', 'location', 'notes'];
+    const item = await Equipment.create({ ...pickBody(req.body, allowedEquip), hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     await auditLog('create_lab_equipment', req.user._id, { recordId: item._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(item);
   } catch (err) { res.status(400).json({ message: err.message }); }
@@ -1915,7 +1917,9 @@ router.get('/packages', protect, async (req, res) => {
 
 router.post('/packages', protect, validate(labPackageSchema), async (req, res) => {
   try {
-    const pkg = await HealthPackage.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    const { pickBody } = await import('../utils/pick.js');
+    const allowedPkg = ['name', 'description', 'category', 'tests', 'testNames', 'originalPrice', 'packagePrice', 'discount', 'popular', 'homeCollectionAvailable', 'reportTime', 'isActive'];
+    const pkg = await HealthPackage.create({ ...pickBody(req.body, allowedPkg), hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     await auditLog('create_lab_package', req.user._id, { recordId: pkg._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(pkg);
   } catch (err) { res.status(400).json({ message: err.message }); }

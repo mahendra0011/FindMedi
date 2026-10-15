@@ -7076,63 +7076,63 @@
     },
     {
       "file": "lab.js",
-      "line": 1864,
+      "line": 1866,
       "method": "PUT",
       "target": "'/equipment/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1880,
+      "line": 1882,
       "method": "DELETE",
       "target": "'/equipment/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1894,
+      "line": 1896,
       "method": "GET",
       "target": "'/packages/public'",
       "tag": "public"
     },
     {
       "file": "lab.js",
-      "line": 1906,
+      "line": 1908,
       "method": "GET",
       "target": "'/packages'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 1916,
+      "line": 1918,
       "method": "POST",
       "target": "'/packages'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 1924,
+      "line": 1928,
       "method": "PUT",
       "target": "'/packages/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1940,
+      "line": 1944,
       "method": "DELETE",
       "target": "'/packages/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1960,
+      "line": 1964,
       "method": "GET",
       "target": "'/export'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 2018,
+      "line": 2022,
       "method": "POST",
       "target": "'/analyzer-upload'",
       "tag": "role"
@@ -7909,63 +7909,63 @@
     },
     {
       "file": "mentalhealth.js",
-      "line": 569,
+      "line": 578,
       "method": "GET",
       "target": "'/referrals/:id/screening/trend'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 594,
+      "line": 603,
       "method": "GET",
       "target": "'/referrals/:id/consent-status'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 627,
+      "line": 636,
       "method": "POST",
       "target": "'/referrals/:id/consent/:consentId/renew'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 675,
+      "line": 684,
       "method": "POST",
       "target": "'/referrals/:id/retention-sweep'",
       "tag": "role"
     },
     {
       "file": "mentalhealth.js",
-      "line": 699,
+      "line": 708,
       "method": "POST",
       "target": "'/referrals/:id/create-billing'",
       "tag": "role"
     },
     {
       "file": "mentalhealth.js",
-      "line": 735,
+      "line": 744,
       "method": "GET",
       "target": "'/stats'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 771,
+      "line": 780,
       "method": "GET",
       "target": "'/crisis/queue'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 827,
+      "line": 836,
       "method": "PUT",
       "target": "'/crisis/:id/acknowledge'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 873,
+      "line": 882,
       "method": "PUT",
       "target": "'/crisis/:id/resolve'",
       "tag": "object"
@@ -9372,35 +9372,35 @@
     },
     {
       "file": "pharmacy.js",
-      "line": 2230,
+      "line": 2231,
       "method": "PUT",
       "target": "'/staff/:id'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 2243,
+      "line": 2244,
       "method": "DELETE",
       "target": "'/staff/:id'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 2255,
+      "line": 2256,
       "method": "POST",
       "target": "'/coupons/validate'",
       "tag": "self"
     },
     {
       "file": "pharmacy.js",
-      "line": 2271,
+      "line": 2272,
       "method": "POST",
       "target": "'/orders/verify-prescriptions'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 2369,
+      "line": 2370,
       "method": "POST",
       "target": "'/orders/:id/refund'",
       "tag": "object"
@@ -12655,35 +12655,35 @@
     },
     {
       "file": "twoPersonApprovals.js",
-      "line": 46,
+      "line": 47,
       "method": "GET",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "twoPersonApprovals.js",
-      "line": 78,
+      "line": 79,
       "method": "POST",
       "target": "'/request'",
       "tag": "role"
     },
     {
       "file": "twoPersonApprovals.js",
-      "line": 111,
+      "line": 112,
       "method": "GET",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "twoPersonApprovals.js",
-      "line": 122,
+      "line": 123,
       "method": "POST",
       "target": "'/:id/approve'",
       "tag": "role"
     },
     {
       "file": "twoPersonApprovals.js",
-      "line": 158,
+      "line": 159,
       "method": "POST",
       "target": "'/:id/reject'",
       "tag": "role"
@@ -12725,21 +12725,21 @@
     },
     {
       "file": "users.js",
-      "line": 77,
+      "line": 85,
       "method": "PUT",
       "target": "'/:id/flag'",
       "tag": "role"
     },
     {
       "file": "users.js",
-      "line": 89,
+      "line": 97,
       "method": "PUT",
       "target": "'/:id/unflag'",
       "tag": "role"
     },
     {
       "file": "users.js",
-      "line": 101,
+      "line": 109,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "role"
