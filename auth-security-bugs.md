@@ -71,8 +71,8 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Audit all files using `git grep Math.random`.
-  - [ ] Replace `Math.random` in `smsProvider.js` and `whatsappProvider.js`.
+  - [x] Audit all files using `git grep Math.random`.
+  - [x] Replace `Math.random` in `smsProvider.js` and `whatsappProvider.js`.
   - [ ] Add ESLint rule `no-restricted-properties` banning `Math.random`.
 
 ---
@@ -97,5 +97,5 @@
 - **Priority**: High
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Add tenant assertions in `doctors.js`.
+  - [x] Add tenant assertions in `doctors.js`.
   - [ ] Add cross-tenant test asserting 404 on mismatched tenant queries.

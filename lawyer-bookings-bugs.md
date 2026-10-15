@@ -26,8 +26,8 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Add ownership check to `GET /api/lawyer-bookings/:id`.
-  - [ ] Add integration test verifying foreign lawyer receives 404.
+  - [x] Add ownership check to `GET /api/lawyer-bookings/:id`.
+  - [x] Add integration test verifying foreign lawyer receives 404.
 
 ---
 
@@ -49,4 +49,4 @@
 - **Priority**: High
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Attach `idempotencyGuard` to retainer hold endpoint.
+  - [x] Attach `idempotencyGuard` to retainer hold endpoint.

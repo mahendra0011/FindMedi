@@ -73,8 +73,8 @@ jestApi.unstable_mockModule('../../src/models/Payout.js', () => ({
 }));
 jestApi.unstable_mockModule('../../src/models/TransactionLedger.js', () => ({
   default: {
-    find: () => chain([]),
-    updateMany: jestApi.fn(async () => ({ matchedCount: 0 })),
+    find: () => chain([{ amount: 1000, commissionAmount: 100 }]),
+    updateMany: jestApi.fn(async () => ({ matchedCount: 1, modifiedCount: 1 })),
     aggregate: async () => [],
   },
 }));
@@ -112,6 +112,8 @@ beforeEach(() => {
   configDoc = {
     _id: CFG_ID,
     facilityId: FACILITY_ID,
+    facilityName: 'Test Facility',
+    facilityType: 'clinic',
     pendingPayout: 0,
     totalEarnings: 0,
     save: jestApi.fn(async function save() { return this; }),
@@ -136,6 +138,9 @@ describe('POST /payouts — 2.md §6 payout hold at create', () => {
   it('creates the payout when no listing is held', async () => {
     heldProvider = null;
     const res = await create();
+    if (res.status !== 201) {
+      console.error('TEST FAIL - status:', res.status, 'body:', JSON.stringify(res.body, null, 2));
+    }
     expect(res.status).toBe(201);
     expect(createdPayouts).toHaveLength(1);
     expect(createdPayouts[0].facilityId).toBe(FACILITY_ID);

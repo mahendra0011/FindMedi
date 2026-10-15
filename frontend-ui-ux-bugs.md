@@ -20,8 +20,8 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Remove `findmedi_ai_history` from localStorage.
-  - [ ] Add explicit chat history clear button.
+  - [x] Remove `findmedi_ai_history` from localStorage.
+  - [x] Add explicit chat history clear button.
 
 ---
 
@@ -44,7 +44,7 @@
 - **Priority**: High
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Wrap appointment cancellation in AlertDialog.
+  - [x] Wrap appointment cancellation in AlertDialog.
   - [ ] Wrap record deletion in AlertDialog.
 
 ---
@@ -68,5 +68,5 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Update `frontend/vite.config.ts` to drop console and debugger in production.
-  - [ ] Verify production bundle is clean of console calls.
+  - [x] Update `frontend/vite.config.ts` to drop console and debugger in production.
+  - [x] Verify production bundle is clean of console calls.

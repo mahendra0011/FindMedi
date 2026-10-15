@@ -19,7 +19,7 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Enforce 1 MB JSON limit on chat routes.
+  - [x] Enforce 1 MB JSON limit on chat routes.
   - [ ] Reject base64 file payloads in message body validator.
 
 ---
@@ -43,5 +43,5 @@
 - **Priority**: High
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Update LiveKit token generator options with short TTL.
-  - [ ] Wire room deletion hook on appointment completion.
+  - [x] Update LiveKit token generator options with short TTL.
+  - [x] Wire room deletion hook on appointment completion.

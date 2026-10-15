@@ -21,8 +21,8 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Add `hospitalId` to `ehr_docs_index.json`.
-  - [ ] Inject tenant scoping filter into OpenSearch query builder.
+  - [x] Add `hospitalId` to `ehr_docs_index.json`.
+  - [x] Inject tenant scoping filter into OpenSearch query builder.
 
 ---
 
@@ -45,5 +45,5 @@
 - **Priority**: High
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Standardize timestamp payload in `eventForwarder.js`.
-  - [ ] Update Flink SQL schema definitions.
+  - [x] Standardize timestamp payload in `eventForwarder.js`.
+  - [x] Update Flink SQL schema definitions.

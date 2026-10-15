@@ -20,8 +20,8 @@
 - **Priority**: High
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Update `loyaltyService.js` to use atomic `$inc` with condition.
-  - [ ] Add unit test checking concurrent redemption collision.
+  - [x] Update `loyaltyService.js` to use atomic `$inc` with condition.
+  - [x] Add unit test checking concurrent redemption collision.
 
 ---
 
@@ -45,5 +45,5 @@
 - **Priority**: High
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Add `first_order_completed` gating in `referralService.js`.
-  - [ ] Add abuse velocity limit per referral code.
+  - [x] Add `first_order_completed` gating in `referralService.js`.
+  - [x] Add abuse velocity limit per referral code.

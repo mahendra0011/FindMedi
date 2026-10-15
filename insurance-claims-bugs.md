@@ -20,8 +20,8 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Add strict validation schema in `patientInsurancePolicies.js`.
-  - [ ] Enforce `verified: false` default at schema level.
+  - [x] Add strict validation schema in `patientInsurancePolicies.js`.
+  - [x] Enforce `verified: false` default at schema level.
 
 ---
 
@@ -44,5 +44,5 @@
 - **Priority**: High
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Add tenant verification on insurance claim updates.
-  - [ ] Write integration test verifying cross-tenant claim rejection.
+  - [x] Add tenant verification on insurance claim updates.
+  - [x] Write integration test verifying cross-tenant claim rejection.

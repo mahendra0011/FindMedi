@@ -21,8 +21,8 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Add `hospitalId` filter in `backend/src/routes/lab.js` ASTM and HL7 ingestion loops.
-  - [ ] Add integration test verifying cross-tenant ingestion rejection.
+  - [x] Add `hospitalId` filter in `backend/src/routes/lab.js` ASTM and HL7 ingestion loops.
+  - [x] Add integration test verifying cross-tenant ingestion rejection.
 
 ---
 
@@ -45,5 +45,5 @@
 - **Priority**: Medium
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Refactor `pharmacy.js` staff creation to use validated schema.
-  - [ ] Refactor `lab.js` package and equipment creation.
+  - [x] Refactor `pharmacy.js` staff creation to use validated schema.
+  - [x] Refactor `lab.js` package and equipment creation.

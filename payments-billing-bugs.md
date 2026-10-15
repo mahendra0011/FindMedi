@@ -19,8 +19,8 @@
 - **Priority**: High
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Reorder refund operations in `backend/src/routes/payments.js`.
-  - [ ] Add idempotency test for concurrent refund triggers.
+  - [x] Reorder refund operations in `backend/src/routes/payments.js`.
+  - [x] Add idempotency test for concurrent refund triggers.
 
 ---
 
@@ -43,8 +43,8 @@
 - **Priority**: High
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Wrap `commission.js` payout generation in `startSession` transaction.
-  - [ ] Add unit test checking parallel payout generation concurrency.
+  - [x] Wrap `commission.js` payout generation in `startSession` transaction.
+  - [x] Add unit test checking parallel payout generation concurrency.
 
 ---
 
@@ -68,8 +68,8 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Implement `maskAccountNumber` in `backend/src/utils/masking.js`.
-  - [ ] Update `backend/src/routes/recon.js` to mask `accountNo`.
+  - [x] Implement `maskAccountNumber` in `backend/src/utils/masking.js`.
+  - [x] Update `backend/src/routes/recon.js` to mask `accountNo`.
 
 ---
 
@@ -92,5 +92,5 @@
 - **Priority**: Medium
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Add `createBankAccountSchema` in validation utilities.
-  - [ ] Attach validator in `backend/src/routes/recon.js`.
+  - [x] Add `createBankAccountSchema` in validation utilities.
+  - [x] Attach validator in `backend/src/routes/recon.js`.

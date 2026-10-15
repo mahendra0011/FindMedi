@@ -23,8 +23,8 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Create `backend/src/config/dltTemplates.js`.
-  - [ ] Update `smsProvider.js` to send DLT template parameters.
+  - [x] Create `backend/src/config/dltTemplates.js`.
+  - [x] Update `smsProvider.js` to send DLT template parameters.
 
 ---
 

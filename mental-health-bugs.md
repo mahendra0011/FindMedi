@@ -20,8 +20,8 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Strip answers and scores from audit log payload in `mentalHealthScreening.js`.
-  - [ ] Add unit test checking audit log sanitization for mental health events.
+  - [x] Strip answers and scores from audit log payload in `mentalHealthScreening.js`.
+  - [x] Add unit test checking audit log sanitization for mental health events.
 
 ---
 
@@ -46,5 +46,5 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Implement Question 9 crisis check in `mentalHealthScreening.js`.
-  - [ ] Add Tele-MANAS helpline payload to crisis response.
+  - [x] Implement Question 9 crisis check in `mentalHealthScreening.js`.
+  - [x] Add Tele-MANAS helpline payload to crisis response.

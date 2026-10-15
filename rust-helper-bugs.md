@@ -19,5 +19,5 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Add pixel dimension limit in `rust-helper/src/lib.rs`.
-  - [ ] Rebuild NAPI binary with `npm run build:rust`.
+  - [x] Add pixel dimension limit in `rust-helper/src/lib.rs`.
+  - [x] Rebuild NAPI binary with `npm run build:rust`.

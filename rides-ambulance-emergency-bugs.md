@@ -21,8 +21,8 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Enforce `assertRoomAccess` in `socketService.js` location rooms.
-  - [ ] Add unit test checking foreign user socket rejection.
+  - [x] Enforce `assertRoomAccess` in `socketService.js` location rooms.
+  - [x] Add unit test checking foreign user socket rejection.
 
 ---
 
@@ -44,4 +44,4 @@
 - **Priority**: High
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Change `optionalProtect` to `protect` in `backend/src/routes/rides.js`.
+  - [x] Change `optionalProtect` to `protect` in `backend/src/routes/rides.js`.

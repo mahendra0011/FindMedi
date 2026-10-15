@@ -20,8 +20,8 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Wire `TwoPersonApproval` into `export.js`.
-  - [ ] Wire `TwoPersonApproval` into platform commission rate changes.
+  - [x] Wire `TwoPersonApproval` into `export.js`.
+  - [x] Wire `TwoPersonApproval` into platform commission rate changes.
 
 ---
 
@@ -48,5 +48,5 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Add `tokenVersion` increment in `users.js` suspension handler.
-  - [ ] Add socket termination trigger in `deletionService.js`.
+  - [x] Add `tokenVersion` increment in `users.js` suspension handler.
+  - [x] Add socket termination trigger in `deletionService.js`.

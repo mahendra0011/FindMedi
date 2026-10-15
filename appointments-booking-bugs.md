@@ -19,8 +19,8 @@
 - **Priority**: High
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Attach `idempotencyGuard` to `POST /api/appointments/` and `POST /api/appointments/walk-in`.
-  - [ ] Write integration test verifying double-submit idempotency.
+  - [x] Attach `idempotencyGuard` to `POST /api/appointments/` and `POST /api/appointments/walk-in`.
+  - [x] Write integration test verifying double-submit idempotency.
 
 ---
 
@@ -44,4 +44,4 @@
 - **Priority**: Medium
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Clean up console statements in `backend/src/routes/appointments.js`.
+  - [x] Clean up console statements in `backend/src/routes/appointments.js`.

@@ -68,28 +68,28 @@ Between October 14 and 15, 2026, an exhaustive **5-pass multi-dimensional audit*
 - [x] **Payment Webhook Settlement**: Idempotent settlement engine and Razorpay order creation (`backend/src/services/paymentSettlement.js`).
 - [x] **KYC Pipeline Depth**: `DocumentVerification` and `ReviewerAssignment` models created.
 - [x] **Break-Glass & Four-Eyes Models**: `TwoPersonApproval` and `breakGlassService` models created.
-- [ ] **Error Message Leak Scrubbing (`SEC-BUG-01`)**: Enforce `sendServerError` in catch blocks to eliminate raw MongoDB error exposure.
-- [ ] **ASTM/HL7 Ingestion Tenant Isolation (`PHARM-LAB-BUG-01`)**: Add `hospitalId` scoping to prevent cross-hospital lab order overwrites.
-- [ ] **Nginx Cache-Control bfcache Fix (`INFRA-BUG-01`)**: Set `no-store, no-cache, must-revalidate` on HTML entry points.
-- [ ] **Native Rust Pixel Bomb Guard (`RUST-BUG-01`)**: Limit max image dimensions to 8192x8192 in `rust-helper/src/lib.rs`.
-- [ ] **Drop Production Consoles (`FE-BUG-03`)**: Configure `esbuild.drop: ['console', 'debugger']` in `frontend/vite.config.ts`.
+- [x] **Error Message Leak Scrubbing (`SEC-BUG-01`)**: Enforce `sendServerError` in catch blocks to eliminate raw MongoDB error exposure.
+- [x] **ASTM/HL7 Ingestion Tenant Isolation (`PHARM-LAB-BUG-01`)**: Add `hospitalId` scoping to prevent cross-hospital lab order overwrites.
+- [x] **Nginx Cache-Control bfcache Fix (`INFRA-BUG-01`)**: Set `no-store, no-cache, must-revalidate` on HTML entry points.
+- [x] **Native Rust Pixel Bomb Guard (`RUST-BUG-01`)**: Limit max image dimensions to 8192x8192 in `rust-helper/src/lib.rs`.
+- [x] **Drop Production Consoles (`FE-BUG-03`)**: Configure `esbuild.drop: ['console', 'debugger']` in `frontend/vite.config.ts`.
 
 ### Phase 1: Revenue, Idempotency & Core Data Protection (Weeks 1–2)
-- [ ] **WhatsApp & DLT SMS Templates (`NOTIF-BUG-01`)**: Map TRAI-approved DLT templates to Msg91 dispatches; IVR escalation.
-- [ ] **Booking Idempotency (`APPT-BUG-01`)**: Enforce `idempotencyGuard` on appointment and walk-in creation.
-- [ ] **Safe Two-Phase Refund Sequence (`PAY-BUG-01`)**: Record pending refund in MongoDB before external gateway dispatch.
-- [ ] **Doctor Payout Concurrency Lock (`PAY-BUG-02`)**: Wrap commission payout claims in atomic Mongoose transactions.
-- [ ] **Bank Account Masking (`PAY-BUG-03`)**: Return masked `******1234` in reconciliation endpoints.
+- [x] **WhatsApp & DLT SMS Templates (`NOTIF-BUG-01`)**: Map TRAI-approved DLT templates to Msg91 dispatches; IVR escalation.
+- [x] **Booking Idempotency (`APPT-BUG-01`)**: Enforce `idempotencyGuard` on appointment and walk-in creation.
+- [x] **Safe Two-Phase Refund Sequence (`PAY-BUG-01`)**: Record pending refund in MongoDB before external gateway dispatch.
+- [x] **Doctor Payout Concurrency Lock (`PAY-BUG-02`)**: Wrap commission payout claims in atomic Mongoose transactions.
+- [x] **Bank Account Masking (`PAY-BUG-03`)**: Return masked `******1234` in reconciliation endpoints.
 - [ ] **LocalStorage Token Migration (`SEC-BUG-02`)**: Move refresh token to `httpOnly` secure cookies.
-- [ ] **OpenSearch Tenant Field (`DATA-BUG-01`)**: Add `hospitalId` to `ehr_docs_index.json` to prevent cross-facility search leaks.
-- [ ] **Lawyer Case Notes IDOR (`LAW-BUG-01`)**: Enforce attorney-client ownership validation.
+- [x] **OpenSearch Tenant Field (`DATA-BUG-01`)**: Add `hospitalId` to `ehr_docs_index.json` to prevent cross-facility search leaks.
+- [x] **Lawyer Case Notes IDOR (`LAW-BUG-01`)**: Enforce attorney-client ownership validation.
 
 ### Phase 2: Compliance, Advanced Assurance & Hardening (Weeks 3–4)
 - [ ] **Application-Level Field Encryption (`SEC-MISSING-01`)**: Implement AES-256-GCM envelope encryption for mental health and KYC documents.
-- [ ] **UPI AutoPay Subscriptions (`PAY-MISSING-01`)**: Wire Razorpay Subscriptions for automated recurring membership renewals.
+- [x] **UPI AutoPay Subscriptions (`PAY-MISSING-01`)**: Wire Razorpay Subscriptions for automated recurring membership renewals.
 - [ ] **Statutory GST E-Invoicing (`PAY-MISSING-02`)**: Connect NIC/ClearTax IRN generation and signed QR code embedding for B2B billing.
 - [ ] **National Emergency 108/112 CAD Auto-Bridge (`EMERG-MISSING-01`)**: Automated IVR dispatch on 90s ambulance timeout.
-- [ ] **Testing Overhaul Execution (`testing-overhaul-plan.md`)**: Run fresh Jest/Supertest/Vitest/Playwright suites across all touched modules.
+- [x] **Testing Overhaul Execution (`testing-overhaul-plan.md`)**: Run fresh Jest/Supertest/Vitest/Playwright suites across all touched modules.
 - [ ] **Immutable Audit Hash Chaining (`ADMIN-MISSING-01`)**: Append-only SHA-256 Merkle chain on audit records.
 
 ---

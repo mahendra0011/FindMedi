@@ -23,8 +23,8 @@
 - **Priority**: High
 - **Phase**: Phase 0
 - **TODOs**:
-  - [ ] Update `findmedi-proxy-locations.conf` Cache-Control header.
-  - [ ] Add `pageshow` reload listener in frontend.
+  - [x] Update `findmedi-proxy-locations.conf` Cache-Control header.
+  - [x] Add `pageshow` reload listener in frontend.
 
 ---
 
@@ -49,5 +49,5 @@
 - **Priority**: High
 - **Phase**: Phase 1
 - **TODOs**:
-  - [ ] Expand CSP in `infra/nginx/nginx.conf`.
+  - [x] Expand CSP in `infra/nginx/nginx.conf`.
   - [ ] Verify Google Sign-In and MapTiler tiles load without CSP violation reports.
