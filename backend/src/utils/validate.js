@@ -1405,7 +1405,7 @@ export const refundPaymentSchema = z.object({
 
 // â”€â”€â”€ Blood Bank Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createBloodUnitSchema = z.object({
-  bloodGroup: z.string().min(1, 'Blood group is required'),
+  bloodGroup: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], { message: 'Valid blood group is required' }),
   bloodType: z.string().optional(),
   volume: z.number().positive().optional(),
   donorName: z.string().optional(),
@@ -2886,6 +2886,14 @@ export const freezeMembershipSchema = z.object({
 
 export const renewMembershipSchema = z.object({
   paymentId: objectIdSchema.optional(),
+}).strict();
+
+// Campaign dispatch (File 18 §18.1): the DLT/template binding happens at SEND
+// time, never from stored text. STRICT so no audience/status override rides
+// along — the audience lives on the campaign row, the template id here.
+export const dispatchCampaignSchema = z.object({
+  dltTemplateId: z.string().trim().min(1, 'DLT template id is required').max(60),
+  templateName: z.string().trim().max(120).optional(),
 }).strict();
 
 // 6.md 2.13/140: the patient adds THEIR OWN policy — insurer/TPA, member IDs,

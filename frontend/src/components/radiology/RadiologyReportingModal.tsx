@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FileCheck, AlertOctagon, X, Mic, History, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 interface Props {
   order: any;
@@ -74,7 +75,7 @@ export const RadiologyReportingModal: React.FC<Props> = ({ order, onClose, onSub
 
   const handleVoiceToggle = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Speech recognition not supported in this browser.');
+      toast.error('Speech recognition not supported in this browser.');
       return;
     }
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -100,7 +101,7 @@ export const RadiologyReportingModal: React.FC<Props> = ({ order, onClose, onSub
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isAmendment && !amendmentReason.trim()) {
-      alert('Amendment reason is required.');
+      toast.error('Amendment reason is required.');
       return;
     }
     onSubmit({

@@ -1173,6 +1173,10 @@ export const api = {
   bookLawyer:                (body)    => request('/lawyer-booking/book', { method: 'POST', body: JSON.stringify(body) }),
   fallbackBroadcastLawyerBooking: (id) => request(`/lawyer-booking/${id}/broadcast-fallback`, { method: 'POST' }),
   getFamilyMembers:          ()        => request('/patient/family'),
+  // Patient portal live lists (replacing page-level demo fixtures).
+  getMyEventRegistrations: ()        => request('/patient/events'),
+  getMyInsurancePolicies:  ()        => request('/patient/insurance/policies'),
+  getMyInsuranceClaims:    ()        => request('/insurance'),
   getActiveLawyerBooking:    ()        => request('/lawyer-booking/active'),
   getMyLawyerBookings:       ()        => request('/lawyer-booking/my-bookings'),
   getMyLawyerCases:          ()        => request('/lawyer-booking/my-cases'),

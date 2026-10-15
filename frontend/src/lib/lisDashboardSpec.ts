@@ -231,7 +231,7 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
     ],
     alerts: [
       { level: 'info', message: '8 patients waiting at phlebotomy counter — Phlebotomist Bay 2 active' },
-      { level: 'warning', message: 'Patient Sunita Devi (UHID-9041) fasting status needs verbal verification' },
+      { level: 'warning', message: 'Fasting-status verbal verification pending on 2 morning collections' },
     ],
     domainModules: [
       { id: 'LIS-03', name: 'Reception & Registration', route: '/lab/reception' },
@@ -352,7 +352,7 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Check Daily QC Status', route: '/lab/qc' },
     ],
     alerts: [
-      { level: 'warning', message: 'HbA1c value 12.8% on Patient UHID-8812 exceeds critical limit — repeat run advised' },
+      { level: 'warning', message: 'HbA1c value 12.8% exceeds critical limit — repeat run advised' },
       { level: 'info', message: 'Analyzer interface online — 48 results imported in last hour' },
     ],
     domainModules: [
@@ -920,7 +920,7 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Verify Report QR Code', route: '/lab/reports' },
     ],
     alerts: [
-      { level: 'warning', message: 'Report delivery failed for UHID-9042 (SMS gateway bounced) — verify contact number' },
+      { level: 'warning', message: 'Report delivery failed for 1 queued SMS (gateway bounced) — verify contact number' },
     ],
     domainModules: [
       { id: 'LIS-31', name: 'Report Center & Versioned Delivery', route: '/lab/reports' },

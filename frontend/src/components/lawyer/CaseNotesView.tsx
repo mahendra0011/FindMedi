@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FileText, Clock, Plus, Send, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { toast } from 'sonner';
 
 interface CaseNoteItem {
   _id?: string;
@@ -34,7 +35,7 @@ export const CaseNotesView: React.FC<Props> = ({
       await onAddNote(newNote.trim());
       setNewNote('');
     } catch (err: any) {
-      alert(err.message || 'Failed to save note');
+      toast.error(err.message || 'Failed to save note');
     } finally {
       setSaving(false);
     }

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import PatientBanner from '@/components/clinical/PatientBanner';
+import { toast } from 'sonner';
 
 const labApi = {
   getOrders: (p = {}) => api.dispatch(() => Promise.resolve({ orders: [] }), '/lab/orders?' + new URLSearchParams(p)),
@@ -108,10 +109,10 @@ export default function Lab() {
                   method: 'POST',
                   body: JSON.stringify({ rawPayload: payload, deviceModel: 'Sysmex XN-550', protocol: 'astm' })
                 });
-                alert(`✅ LIS Driver Ingest Success: ${res?.parsedResults?.length || 4} parameters auto-mapped into workbench!`);
+                toast.success(`✅ LIS Driver Ingest Success: ${res?.parsedResults?.length || 4} parameters auto-mapped into workbench!`);
                 qc.invalidateQueries({ queryKey: ['lab-orders'] });
               } catch (e: any) {
-                alert(`LIS Ingest Error: ${e?.message || 'Failed'}`);
+                toast.error(`LIS Ingest Error: ${e?.message || 'Failed'}`);
               }
             }}
             className="gap-2 border-indigo-500/30 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"

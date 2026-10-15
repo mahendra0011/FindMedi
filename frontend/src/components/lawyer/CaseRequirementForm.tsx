@@ -19,6 +19,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { LEGAL_CATEGORIES } from './LegalCategorySelector';
+import { toast } from 'sonner';
 
 export interface CaseRequirementData {
   category: string;
@@ -79,7 +80,7 @@ export const CaseRequirementForm: React.FC<Props> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!description.trim()) {
-      alert('Please provide a brief description of your legal requirement or issue.');
+      toast.error('Please provide a brief description of your legal requirement or issue.');
       return;
     }
     onSubmit({

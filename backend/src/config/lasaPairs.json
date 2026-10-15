@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "version": "0.1.0-unverified",
+    "reviewStatus": "pending-pharmacist",
+    "reviewedBy": null,
+    "reviewedAt": null,
+    "description": "Look-alike / sound-alike (LASA) confusion pairs. ONLY entries with verified:true fire alerts — everything else is counted as ignored. Pairs are filled and verified by a KYC-approved pharmacist AFTER joining via the Join Platform (provider type pharmacy, pharmacist_reg document). Never invent pairs here without pharmacist sign-off.",
+    "schema": {
+      "id": "stable string id, e.g. LASA-001",
+      "drugA": "first confused name as written on packs",
+      "drugB": "second confused name",
+      "type": "look-alike | sound-alike | both",
+      "severity": "high | moderate",
+      "note": "why they confuse + what to double-check (<= 300 chars)",
+      "verified": "boolean - ONLY true fires; default false",
+      "reviewedBy": "pharmacist user id or name",
+      "reviewedAt": "ISO date of pharmacist review"
+    }
+  },
+  "pairs": []
+}

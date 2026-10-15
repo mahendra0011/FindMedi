@@ -39,29 +39,9 @@ export default function PatientConsents() {
     },
   ]);
 
-  const [accessLog, setAccessLog] = useState([
-    {
-      id: 'log-1',
-      accessor: 'Dr. Aarav Sharma (Consultant Physician)',
-      action: 'Viewed Lipid Profile & HbA1c Lab Report',
-      timestamp: 'Today at 10:45 AM',
-      purpose: 'Active In-Clinic Consultation Review',
-    },
-    {
-      id: 'log-2',
-      accessor: 'Apex Super Specialty Hospital (TPA Desk)',
-      action: 'Verified Insurance Empanelment & Pre-Auth Claim Slip',
-      timestamp: 'Yesterday at 04:12 PM',
-      purpose: 'Cashless Hospital Admission Pre-Authorization',
-    },
-    {
-      id: 'log-3',
-      accessor: 'Max Labs Phlebotomist (Ramesh Kumar)',
-      action: 'Verified Patient Identity & Lab Test Requisition Order',
-      timestamp: '18 Oct 2026 at 07:30 AM',
-      purpose: 'Home Sample Collection Verification',
-    },
-  ]);
+  // Access log starts EMPTY: entries claiming someone viewed YOUR records must
+  // come from the server audit trail, never from fixtures.
+  const [accessLog, setAccessLog] = useState([]);
 
   const handleToggleConsent = (id: string) => {
     setConsents((prev) =>
@@ -140,6 +120,9 @@ export default function PatientConsents() {
         </div>
 
         <div className="rounded-3xl border border-border/60 bg-card overflow-hidden shadow-xs divide-y divide-border/40">
+          {accessLog.length === 0 && (
+            <p className="text-xs text-muted-foreground p-5 text-center">No record access yet — every access to your medical data will appear here.</p>
+          )}
           {accessLog.map((log) => (
             <div key={log.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="space-y-0.5">

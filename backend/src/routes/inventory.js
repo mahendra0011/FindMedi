@@ -19,6 +19,9 @@ const barcodeSchema = z.object({ barcode: z.string().trim().min(1, 'Barcode is r
 
 const router = express.Router();
 
+const OBJECT_ID = /^[0-9a-f]{24}$/i;
+const requireObjectId = (req, res, next) => (OBJECT_ID.test(String(req.params.id)) ? next() : res.status(404).json({ message: 'Not found' }));
+
 const generatePONumber = async () => generateTimestampedId('PO');
 
 const generateBarcode = (hospitalId) => {
@@ -61,7 +64,7 @@ router.get('/items', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/items/:id', protect, validate(updateInventoryItemSchema), async (req, res) => {
+router.put('/items/:id', protect, requireObjectId, validate(updateInventoryItemSchema), async (req, res) => {
   try {
     const item = await Inventory.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
@@ -230,7 +233,7 @@ router.get('/suppliers', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/suppliers/:id', protect, validate(updateSupplierSchema), async (req, res) => {
+router.put('/suppliers/:id', protect, requireObjectId, validate(updateSupplierSchema), async (req, res) => {
   try {
     const supplier = await Supplier.findById(req.params.id);
     if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
@@ -259,7 +262,7 @@ const onboardingSchema = z.object({
   reason: z.string().max(500).optional(),
 });
 
-router.post('/suppliers/:id/onboarding', protect, authorize('inventory:manage'), validate(onboardingSchema), async (req, res) => {
+router.post('/suppliers/:id/onboarding', protect, authorize('inventory:manage'), requireObjectId, validate(onboardingSchema), async (req, res) => {
   try {
     const supplier = await Supplier.findById(req.params.id);
     if (!supplier) return res.status(404).json({ message: 'Supplier not found' });

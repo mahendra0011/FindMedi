@@ -2007,7 +2007,11 @@ router.get('/deliveries', protect, async (req, res) => {
 
 router.post('/deliveries', protect, authorize('pharmacy:manage'), validate(pharmacyDeliverySchema), async (req, res) => {
   try {
-    const delivery = await PharmacyDelivery.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    // A delivery is BORN 'Pending Assignment': status/OTP proof ride the PUT
+    // timeline (PHARM-M-04 transitions), never the create body — otherwise a
+    // create with status 'Delivered' + otpVerified skips the whole chain.
+    const { status: _dropS, otpVerified: _dropV, deliveryOtp: _dropO, ...body } = req.body || {};
+    const delivery = await PharmacyDelivery.create({ ...body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     await auditLog('create_pharmacy_delivery', req.user._id, { recordId: delivery._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(delivery);
   } catch (err) { res.status(400).json({ message: err.message }); }
@@ -2175,8 +2179,10 @@ router.get('/staff', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/staff', protect, validate(pharmacyStaffSchema), async (req, res) => {
+router.post('/staff', protect, authorize('pharmacy:manage'), validate(pharmacyStaffSchema), async (req, res) => {
   try {
+    // authorize() added: previously protect-only, so ANY authenticated user
+    // could mint pharmacy staff with an arbitrary role/isActive.
     const member = await PharmacyStaff.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     await auditLog('create_pharmacy_staff', req.user._id, { recordId: member._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(member);

@@ -13,7 +13,10 @@ const tenantFilter = (req) => (req.user.role === 'superadmin' && !req.user.hospi
 const makeCrud = (Model, key) => {
   const create = async (req, res) => {
     try {
-      const row = await Model.create({ ...tenantFilter(req), ...req.body });
+      // Spread first, tenant after: a forged hospitalId in the body must
+      // never move a clinical record across tenants. procedureStatus stays
+      // writer-set (records:write-gated clinical workflow transitions).
+      const row = await Model.create({ ...req.body, ...tenantFilter(req) });
       return res.status(201).json({ [key]: row });
     } catch (err) { return res.status(400).json({ message: err.message }); }
   };
@@ -28,8 +31,10 @@ const makeCrud = (Model, key) => {
   };
   const update = async (req, res) => {
     try {
+      // Strip hospitalId: tenant moves are never a PATCH body field.
+      const { hospitalId: _drop, ...set } = req.body || {};
       const row = await Model.findOneAndUpdate(
-        { _id: req.params.id, ...tenantFilter(req) }, { $set: req.body }, { new: true },
+        { _id: req.params.id, ...tenantFilter(req) }, { $set: set }, { new: true },
       );
       if (!row) return res.status(404).json({ message: 'Not found' });
       return res.json({ [key]: row });

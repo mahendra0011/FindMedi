@@ -29,7 +29,10 @@ router.get('/corporates', authorize('billing:read'), async (req, res) => {
 
 router.post('/corporates', authorize('billing:write'), async (req, res) => {
   try {
-    const row = await Corporate.create({ ...tenant(req), ...req.body });
+    // creditUsed is a COMPUTED ledger (eligibility math reads it) — never
+    // client-set. hospitalId pinned after the spread.
+    const { hospitalId: _dropH, creditUsed: _dropC, ...body } = req.body || {};
+    const row = await Corporate.create({ ...body, ...tenant(req) });
     return res.status(201).json({ id: String(row._id) });
   } catch (err) {
     logger.error(`Corporate create error: ${err.message}`);
@@ -39,7 +42,11 @@ router.post('/corporates', authorize('billing:write'), async (req, res) => {
 
 router.get('/corporates/:id/employees', authorize('billing:read'), async (req, res) => {
   try {
-    const rows = await CorporateEmployee.find({ corporateId: req.params.id, active: true })
+    // Corporate itself must belong to this tenant, else any corporateId is an
+    // oracle into another tenant's employee roster.
+    const corp = await Corporate.findOne({ _id: req.params.id, ...tenant(req) }).select('_id').lean();
+    if (!corp) return res.status(404).json({ message: 'Not found' });
+    const rows = await CorporateEmployee.find({ corporateId: corp._id, active: true })
       .sort({ name: 1 }).limit(500).lean();
     return res.json({ employees: rows });
   } catch (err) {
@@ -50,7 +57,12 @@ router.get('/corporates/:id/employees', authorize('billing:read'), async (req, r
 
 router.post('/corporates/:id/employees', authorize('billing:write'), async (req, res) => {
   try {
-    const row = await CorporateEmployee.create({ ...tenant(req), corporateId: req.params.id, ...req.body });
+    const corp = await Corporate.findOne({ _id: req.params.id, ...tenant(req) }).select('_id').lean();
+    if (!corp) return res.status(404).json({ message: 'Not found' });
+    // corporateId pinned to the tenant-verified corporate; active pinned true
+    // (deactivation is a separate, audited flow).
+    const { hospitalId: _dropH, corporateId: _dropC, active: _dropA, ...body } = req.body || {};
+    const row = await CorporateEmployee.create({ ...body, ...tenant(req), corporateId: corp._id, active: true });
     return res.status(201).json({ id: String(row._id) });
   } catch (err) {
     logger.error(`Corporate employee create error: ${err.message}`);
@@ -61,7 +73,7 @@ router.post('/corporates/:id/employees', authorize('billing:write'), async (req,
 // Eligibility: employee active + corporate active + credit headroom.
 router.get('/corporates/:id/eligibility', authorize('billing:read'), async (req, res) => {
   try {
-    const corp = await Corporate.findById(req.params.id).lean();
+    const corp = await Corporate.findOne({ _id: req.params.id, ...tenant(req) }).lean();
     if (!corp) return res.status(404).json({ message: 'Not found' });
     const { employeeId, amount } = req.query;
     const emp = employeeId
@@ -111,7 +123,9 @@ router.get('/contracts', authorize('billing:read'), async (req, res) => {
 
 router.post('/contracts', authorize('billing:write'), async (req, res) => {
   try {
-    const row = await Contract.create({ ...tenant(req), ...req.body });
+    // status is lifecycle-owned (active → expired via sweep); never forged at create.
+    const { hospitalId: _dropH, status: _dropS, ...body } = req.body || {};
+    const row = await Contract.create({ ...body, ...tenant(req) });
     return res.status(201).json({ id: String(row._id) });
   } catch (err) {
     logger.error(`Contract create error: ${err.message}`);

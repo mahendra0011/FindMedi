@@ -66,7 +66,16 @@ export type FacilityTypeKey =
   | 'govt'
   | 'event'
   | 'bloodbank'
-  | 'ambulance';
+  | 'ambulance'
+  | 'dialysis'
+  | 'ivf'
+  | 'rehab'
+  | 'eldercare'
+  | 'vaccination'
+  | 'dietkitchen'
+  | 'specialty'
+  | 'corporate'
+  | 'program';
 
 export const sectionsByType: Record<FacilityTypeKey, SectionKey[]> = {
   hospital: ['hero', 'actionbar', 'overview', 'departments', 'doctors', 'emergency', 'beds', 'packages', 'insurance', 'amenities', 'accreditations', 'reviews', 'gallery', 'location', 'faq', 'policies', 'similar', 'report'],
@@ -84,6 +93,15 @@ export const sectionsByType: Record<FacilityTypeKey, SectionKey[]> = {
   event: ['banner', 'details', 'organiser', 'agenda', 'speakers', 'eligibility', 'seats', 'consent', 'location', 'after_report', 'report'],
   bloodbank: ['hero', 'actionbar', 'overview', 'details', 'contacts', 'timings', 'location', 'faq', 'report'],
   ambulance: ['hero', 'actionbar', 'overview', 'services_prices', 'contacts', 'location', 'faq', 'report'],
+  dialysis: ['hero', 'actionbar', 'overview', 'services_prices', 'practitioners', 'facilities', 'timings', 'infection_control', 'insurance', 'reviews', 'location', 'faq', 'policies', 'similar', 'report'],
+  ivf: ['hero', 'actionbar', 'overview', 'services_prices', 'practitioners', 'packages', 'gallery_consented', 'insurance', 'reviews', 'location', 'faq', 'policies', 'similar', 'report'],
+  rehab: ['hero', 'actionbar', 'overview', 'services_prices', 'practitioners', 'plans', 'timings', 'reviews', 'location', 'faq', 'policies', 'similar', 'report'],
+  eldercare: ['hero', 'actionbar', 'overview', 'services_prices', 'practitioners', 'plans', 'amenities', 'reviews', 'location', 'faq', 'policies', 'similar', 'report'],
+  vaccination: ['hero', 'actionbar', 'overview', 'services_prices', 'timings', 'reviews', 'location', 'faq', 'policies', 'similar', 'report'],
+  dietkitchen: ['hero', 'actionbar', 'overview', 'services_prices', 'plans', 'timings', 'reviews', 'location', 'faq', 'policies', 'similar', 'report'],
+  specialty: ['hero', 'actionbar', 'overview', 'departments', 'practitioners', 'services_prices', 'packages', 'insurance', 'accreditations', 'reviews', 'location', 'faq', 'policies', 'similar', 'report'],
+  corporate: ['hero', 'actionbar', 'overview', 'services', 'plans', 'contacts', 'reviews', 'location', 'faq', 'policies', 'similar', 'report'],
+  program: ['hero', 'actionbar', 'overview', 'services', 'plans', 'timetable', 'practitioners', 'reviews', 'location', 'faq', 'policies', 'similar', 'report'],
 };
 
 export const SECTION_LABELS: Record<SectionKey, string> = {

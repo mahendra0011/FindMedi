@@ -909,6 +909,9 @@ export default function RoleDashboardShell({ config }: { config: RoleDashboardCo
                   <div>
                     <h2 className="font-bold text-lg flex items-center gap-2">
                       📋 Bookings & Orders Roster
+                      <span data-testid="bookings-demo-badge" title="Illustrative layout preview — connect the bookings API for live rows" className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                        Sample layout
+                      </span>
                     </h2>
                     <p className="text-xs text-muted-foreground">View incoming appointments, manage patient attendance, and record completions.</p>
                   </div>
@@ -996,6 +999,9 @@ export default function RoleDashboardShell({ config }: { config: RoleDashboardCo
                   <div>
                     <h2 className="font-bold text-lg flex items-center gap-2">
                       💰 Earnings & Payout Settlement
+                      <span data-testid="earnings-demo-badge" title="Illustrative layout preview — connect the payouts API for live figures" className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                        Sample layout
+                      </span>
                     </h2>
                     <p className="text-xs text-muted-foreground">Track gross receipts, platform commissions, TDS deductions, and auto-settlements.</p>
                   </div>

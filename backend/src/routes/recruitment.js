@@ -79,9 +79,12 @@ router.post('/jobs', authorize('staff:manage'), validate(createJobSchema), async
 
 router.put('/jobs/:id', authorize('staff:manage'), async (req, res) => {
   try {
+    // Tenant + poster pinned: raw-body update could otherwise move the job
+    // across hospitals or reassign its owner.
+    const { hospitalId: _dropH, postedBy: _dropP, ...set } = req.body || {};
     const job = await JobOpening.findOneAndUpdate(
       { _id: req.params.id, ...tenantFilter(req) },
-      req.body,
+      { $set: set },
       { new: true }
     );
     if (!job) return res.status(404).json({ message: 'Job not found' });

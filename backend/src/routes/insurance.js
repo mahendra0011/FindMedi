@@ -125,7 +125,12 @@ router.post('/', protect, authorize('insurance:write', 'insurance:write:own'), p
     const patientId = req.user.role === 'patient' ? req.user._id : req.body.patientId;
     if (!patientId) return res.status(400).json({ message: 'patientId required' });
 
-    const hospitalId = req.body.hospitalId || req.user.hospitalId || undefined;
+    // Tenant is session-owned: staff must not file claims under an arbitrary
+    // hospitalId (cross-tenant claim + empanelment oracle). Only superadmin
+    // may target explicitly; everyone else inherits their own tenant.
+    const hospitalId = req.user.role === 'superadmin' && req.body.hospitalId
+      ? req.body.hospitalId
+      : (req.user.hospitalId || undefined);
 
     // INS-M-02: fail early on an empanelment problem when the hospital is known.
     // A claim created without a hospital still gets its hard check at pre-auth

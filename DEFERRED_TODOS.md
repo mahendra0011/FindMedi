@@ -1,7 +1,8 @@
 # Deferred Production TODOs (code-complete, external dependency pending)
 
-Ye 5 items code me fail-closed aur test-covered hain, par close karne ke liye
-bahar ki cheez chahiye (isliye audit-md se `[x]` mark karke yahan track ho rahe hain).
+Ye 13 items code me fail-closed aur test-covered hain (jahan code banna tha),
+par close karne ke liye bahar ki cheez chahiye (isliye audit-md se `[x]` mark
+karke yahan track ho rahe hain).
 Code base se audit md files hatane ke baad yehi ek source of truth hai.
 
 ## 1. Real payment provider adapter (PAY-B-07 / PAY-M-02)
@@ -43,5 +44,55 @@ Code base se audit md files hatane ke baad yehi ek source of truth hai.
   scripts/config ready (`restore-drill.sh` step 7, `surge_sink_freshness.yaml`),
   par asli drill / deploy / Pinot cluster par run hona baki hai.
 - **Blocked on:** Staging deploy + `backup-drill` run + Pinot cluster.
+
+## 7. LASA confusion-pair dataset (File 18 §10 Rx QA)
+- **Status:** DDI interaction QA live hai (`rxInteractionQA.spec.js`, 145-pair
+  knowledge base, symmetry + unknown-drug honesty pinned). Look-alike /
+  sound-alike confusion pairs ka koi curated dataset repo me nahi hai — aur
+  hona bhi nahi chahiye bina pharmacist ke (invented clinical pairs patient
+  safety risk hain).
+- **Baki:** Pharmacist-curated confusion pairs (e.g. celecoxib/citalopram-type
+  pairs + severity) + `lasaPairs.json` import pipeline + dataset test.
+- **Blocked on:** Clinical pharmacist review + sign-off.
+
+## 8. ClamAV daemon deploy + signature upkeep
+- **Status:** Code side ready hona baki hai (scanner client + upload hook +
+  quarantine flow — AI backlog me hai, ye file ka item nahi).
+- **Baki:** clamd daemon ko staging/prod par chalana, freshclam signature
+  updates, quarantine monitoring/alerting.
+- **Blocked on:** DevOps deploy + monitoring.
+
+## 9. Native mobile store release
+- **Status:** Capacitor shell + biometric lock + force-update code AI se ban
+  sakta hai (backlog), par store tak pahunchna code se nahi hoga.
+- **Baki:** Play Console / App Store accounts, signing keys, Data Safety +
+  privacy labels, review submission, staged rollout.
+- **Blocked on:** Human (accounts + certificates + store review).
+
+## 10. Analytics warehouse provision + backfill
+- **Status:** Masked views + funnel queries + k-anonymity SQL AI se ban sakta
+  hai (backlog). Event taxonomy (`track.ts`, `events.yaml`) already live hai.
+- **Baki:** Warehouse provision (BigQuery/Postgres), Kafka outbox → warehouse
+  emitter, historical backfill, dashboard queries verify.
+- **Blocked on:** Data-infra provision + backfill run.
+
+## 11. R4 regulated flows (IVF / de-addiction / palliative)
+- **Status:** Sahi se gated hai — koi flow nahi bana hai.
+- **Baki:** Independent pentest + DPIA sign-off FIRST, uske baad hi flows
+  banana allowed hai.
+- **Blocked on:** External security firm (pentest report) + clinical advisor.
+
+## 12. Legal counsel review (File 13)
+- **Status:** ToS, Privacy (DPDP), Provider Agreement + DPA, 17 type-addenda,
+  ad-claims policy — sab drafts repo me hain, `[ ]` placeholders ke saath.
+- **Baki:** Lawyer redline + sign-off, Hindi localisation, re-acceptance flow.
+- **Blocked on:** Human lawyer (retainer). Redline package banakar billable
+  hours kam kiye ja sakte hain — bolne par AI se banwa lena.
+
+## 13. Usability study sessions (File 12 §11)
+- **Status:** Test script/tasks/SUS sheet AI se ban sakte hain (backlog).
+- **Baki:** 5–8 real Hindi users ke moderated sessions, SUS scores, findings
+  ko backlog me dalna.
+- **Blocked on:** Human researcher + recruited users.
 
 Related: see docs/qa-release.md for the release process.

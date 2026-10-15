@@ -75,9 +75,12 @@ router.post('/items', authorize('billing:write', 'admin:manage'), validate(creat
 
 router.put('/items/:id', authorize('billing:write', 'admin:manage'), async (req, res) => {
   try {
+    // Tenant pinned: raw-body update could otherwise move the item across
+    // hospitals. Price stays admin-settable by design.
+    const { hospitalId: _dropH, ...set } = req.body || {};
     const item = await CanteenItem.findOneAndUpdate(
       { _id: req.params.id, ...tenantFilter(req) },
-      req.body,
+      { $set: set },
       { new: true }
     );
     if (!item) return res.status(404).json({ message: 'Item not found' });

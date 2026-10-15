@@ -10,12 +10,12 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1826,
+  "total": 1827,
   "counts": {
     "inherited": 5,
     "object": 444,
     "public": 116,
-    "role": 1184,
+    "role": 1185,
     "self": 77
   },
   "byMechanism": {
@@ -24,7 +24,7 @@
     "assertCallParticipant": 2,
     "assertEhrSearchAccess": 1,
     "assertMentalHealthAccess": 11,
-    "authorize": 833,
+    "authorize": 834,
     "authorizeObject": 76,
     "canAccessPatient": 5,
     "canAccessRecord": 4,
@@ -39,7 +39,7 @@
     "platformAdminOnly": 15,
     "requireConversationMember": 18,
     "requireMetricsToken": 1,
-    "requireObjectId": 119,
+    "requireObjectId": 120,
     "requirePatientGrant": 4,
     "requireReportScope": 2,
     "requireRole": 87,
@@ -2645,114 +2645,121 @@
     },
     {
       "file": "contactCenter.js",
-      "line": 25,
+      "line": 34,
       "method": "POST",
       "target": "'/telephony/webhook'",
       "tag": "public"
     },
     {
       "file": "contactCenter.js",
-      "line": 87,
+      "line": 96,
       "method": "GET",
       "target": "'/dnd'",
       "tag": "role"
     },
     {
       "file": "contactCenter.js",
-      "line": 100,
+      "line": 109,
       "method": "POST",
       "target": "'/dnd'",
       "tag": "role"
     },
     {
       "file": "contactCenter.js",
-      "line": 123,
+      "line": 132,
       "method": "DELETE",
       "target": "'/dnd/:id'",
       "tag": "role"
     },
     {
       "file": "contactCenter.js",
-      "line": 135,
+      "line": 144,
       "method": "GET",
       "target": "'/screen-pop'",
       "tag": "role"
     },
     {
       "file": "contactCenter.js",
-      "line": 181,
+      "line": 190,
       "method": "GET",
       "target": "'/interactions'",
       "tag": "role"
     },
     {
       "file": "contactCenter.js",
-      "line": 195,
+      "line": 204,
       "method": "POST",
       "target": "'/interactions'",
       "tag": "role"
     },
     {
       "file": "contactCenter.js",
-      "line": 221,
+      "line": 230,
       "method": "PATCH",
       "target": "'/interactions/:id/dispose'",
       "tag": "role"
     },
     {
       "file": "contactCenter.js",
-      "line": 239,
+      "line": 248,
       "method": "GET",
       "target": "'/queue'",
       "tag": "role"
     },
     {
       "file": "contactCenter.js",
-      "line": 250,
+      "line": 259,
       "method": "POST",
       "target": "'/queue/:id/assign'",
       "tag": "role"
     },
     {
       "file": "contactCenter.js",
-      "line": 267,
+      "line": 276,
       "method": "POST",
       "target": "'/queue/:id/done'",
       "tag": "role"
     },
     {
       "file": "contactCenter.js",
-      "line": 281,
+      "line": 290,
       "method": "POST",
       "target": "'/agents/session'",
       "tag": "role"
     },
     {
       "file": "contactCenter.js",
-      "line": 303,
+      "line": 312,
       "method": "GET",
       "target": "'/wallboard'",
       "tag": "role"
     },
     {
       "file": "contactCenter.js",
-      "line": 321,
+      "line": 330,
       "method": "GET",
       "target": "'/campaigns'",
       "tag": "role"
     },
     {
       "file": "contactCenter.js",
-      "line": 331,
+      "line": 340,
       "method": "POST",
       "target": "'/campaigns'",
       "tag": "role"
     },
     {
       "file": "contactCenter.js",
-      "line": 347,
+      "line": 359,
       "method": "POST",
       "target": "'/campaigns/:id/state'",
+      "tag": "role"
+    },
+    {
+      "file": "contactCenter.js",
+      "line": 377,
+      "method": "POST",
+      "target": "'/campaigns/:id/dispatch'",
       "tag": "role"
     },
     {

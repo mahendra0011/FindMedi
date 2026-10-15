@@ -28,7 +28,10 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', authorize('staff:manage', 'hospital:manage'), async (req, res) => {
   try {
-    const row = await ClinicBranch.create({ ...req.body, hospitalId: req.user.hospitalId });
+    // active rides the dedicated PATCH /:id/active toggle — never the create
+    // body. hospitalId pinned after the spread.
+    const { hospitalId: _dropH, active: _dropA, ...body } = req.body || {};
+    const row = await ClinicBranch.create({ ...body, hospitalId: req.user.hospitalId });
     await auditLog('clinic.branch.create', req.user._id, { branchId: row._id, name: row.name });
     res.status(201).json({ branch: row });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -36,9 +39,13 @@ router.post('/', authorize('staff:manage', 'hospital:manage'), async (req, res) 
 
 router.put('/:id', authorize('staff:manage'), async (req, res) => {
   try {
+    // Raw $set:req.body could overwrite hospitalId (tenant move) and active
+    // (bypassing the audited toggle). Both are stripped; the filter stays
+    // tenant-scoped.
+    const { hospitalId: _dropH, active: _dropA, ...set } = req.body || {};
     const row = await ClinicBranch.findOneAndUpdate(
       { _id: req.params.id, hospitalId: req.user.hospitalId },
-      { $set: req.body },
+      { $set: set },
       { new: true },
     );
     if (!row) return res.status(404).json({ message: 'Branch not found' });

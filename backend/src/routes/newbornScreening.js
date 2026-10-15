@@ -29,10 +29,13 @@ router.get('/patient/:patientId', async (req, res) => {
 router.post('/patient/:patientId', async (req, res) => {
   try {
     const tests = PANEL.map((name) => ({ name, result: '', normal: true, flagged: false }));
+    // Server pins identity, tenant, panel and status AFTER the spread: forged
+    // hospitalId/patientId/status in the body can never win on a neonatal chart.
+    const { hospitalId: _dropH, patientId: _dropP, status: _dropS, tests: _dropT, ...body } = req.body || {};
     const row = await NewbornScreening.create({
+      ...body,
       hospitalId: req.user.hospitalId,
       patientId: req.params.patientId,
-      ...req.body,
       tests,
       createdBy: req.user._id,
     });

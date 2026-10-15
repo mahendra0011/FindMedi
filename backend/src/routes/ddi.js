@@ -1,6 +1,7 @@
 import express from 'express';
 import { protect, authorize } from '../middleware/auth.js';
 import { checkDrugInteractionsDetailed, getKnowledgeBase } from '../services/ddiEngine.js';
+import { loadLasaPairs, checkLasa } from '../lib/lasaCheck.js';
 import DdiOverride from '../models/DdiOverride.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
@@ -26,6 +27,12 @@ router.post('/check', authorize('prescriptions:write', 'records:read', 'pharmacy
     // was in force and that this is decision support, not a clinical order.
     const knowledgeBase = getKnowledgeBase();
 
+    // LASA verify channel (additive — never moves overallRiskLevel, which
+    // stays a pure DDI verdict). Empty until a KYC-approved pharmacist
+    // curates verified pairs into config/lasaPairs.json.
+    const lasaDataset = loadLasaPairs();
+    const lasaAlerts = checkLasa(drugs, lasaDataset.pairs);
+
     return res.json({
       checkedCount: drugs.length,
       interactionsCount: interactions.length,
@@ -37,6 +44,13 @@ router.post('/check', authorize('prescriptions:write', 'records:read', 'pharmacy
       interactions,
       knowledgeBase,
       disclaimer: knowledgeBase.disclaimer,
+      lasaAlerts,
+      lasaKnowledge: {
+        version: lasaDataset.meta.version,
+        reviewStatus: lasaDataset.meta.reviewStatus,
+        verifiedPairs: lasaDataset.pairs.length,
+        unverifiedIgnored: lasaDataset.ignoredUnverified,
+      },
     });
   } catch (err) {
     logger.error(`DDI check error: ${err.message}`);

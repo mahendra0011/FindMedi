@@ -33,7 +33,9 @@ const AdvancedFeatures = () => {
   const [accessibilityMode, setAccessibilityMode] = useState(false);
 
   const handleScreeningComplete = (score, riskLevel) => {
-    console.log("Screening completed:", { score, riskLevel });
+    // Clinical scores stay out of the console; persistence happens via props.
+    void score;
+    void riskLevel;
   };
 
   const toggleNotification = (id) => {
@@ -45,7 +47,7 @@ const AdvancedFeatures = () => {
   };
 
   const handleCrisisDetected = () => {
-    console.log("Crisis support request started");
+    // Crisis flow continues in-UI; nothing identifying is logged.
   };
 
   return (

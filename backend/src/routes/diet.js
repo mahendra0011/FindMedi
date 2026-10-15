@@ -21,6 +21,9 @@ const dietBillingSchema = z.object({ amount: z.number().finite().optional(), des
 
 const router = express.Router();
 
+const OBJECT_ID = /^[0-9a-f]{24}$/i;
+const requireObjectId = (req, res, next) => (OBJECT_ID.test(String(req.params.id)) ? next() : res.status(404).json({ message: 'Not found' }));
+
 // File 09 §06.6: kitchen production sheet — today's active orders grouped
 // by ward × diet type (census → production quantities).
 router.get('/kitchen/sheet', protect, async (req, res) => {
@@ -77,7 +80,7 @@ router.get('/orders', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/orders/:id/deliver-meal', protect, validate(dietDeliverMealSchema), async (req, res) => {
+router.put('/orders/:id/deliver-meal', protect, requireObjectId, validate(dietDeliverMealSchema), async (req, res) => {
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -104,7 +107,7 @@ if (mealIndex >= 0) {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/orders/:id/confirm-meal', protect, validate(dietConfirmMealSchema), async (req, res) => {
+router.put('/orders/:id/confirm-meal', protect, requireObjectId, validate(dietConfirmMealSchema), async (req, res) => {
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -125,7 +128,7 @@ router.put('/orders/:id/confirm-meal', protect, validate(dietConfirmMealSchema),
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/orders/:id/review', protect, async (req, res) => {
+router.put('/orders/:id/review', protect, requireObjectId, async (req, res) => {
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -148,7 +151,7 @@ router.put('/orders/:id/review', protect, async (req, res) => {
 });
 
 // Notify kitchen
-router.put('/orders/:id/notify', protect, async (req, res) => {
+router.put('/orders/:id/notify', protect, requireObjectId, async (req, res) => {
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -163,7 +166,7 @@ router.put('/orders/:id/notify', protect, async (req, res) => {
 });
 
 // Add patient feedback
-router.put('/orders/:id/feedback', protect, async (req, res) => {
+router.put('/orders/:id/feedback', protect, requireObjectId, async (req, res) => {
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -179,7 +182,7 @@ router.put('/orders/:id/feedback', protect, async (req, res) => {
 });
 
 // Create billing for diet order
-router.post('/orders/:id/create-billing', protect, adminOnly, validate(dietBillingSchema), async (req, res) => {
+router.post('/orders/:id/create-billing', protect, adminOnly, requireObjectId, validate(dietBillingSchema), async (req, res) => {
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });

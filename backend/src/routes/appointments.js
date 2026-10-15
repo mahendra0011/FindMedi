@@ -44,6 +44,9 @@ import {
 
 const router = express.Router();
 
+const OBJECT_ID = /^[0-9a-f]{24}$/i;
+const requireObjectId = (req, res, next) => (OBJECT_ID.test(String(req.params.id)) ? next() : res.status(404).json({ message: 'Not found' }));
+
 const calculateEstimatedWaitTime = async (department, priority = 'Normal') => {
   const waitingCount = await Appointment.countDocuments({
     department,
@@ -864,7 +867,7 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), authori
   }
 });
 
-router.put('/:id/checkin', protect, async (req, res) => {
+router.put('/:id/checkin', protect, requireObjectId, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
     if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
@@ -939,7 +942,7 @@ router.get('/queue/:department', protect, requireRole(APPOINTMENT_QUEUE_ROLES), 
     res.json({ queue, page: p, limit: l, total, totalPages });
   } catch (err) { sendServerError(res, err, 'Request failed'); }
 });
-router.put('/:id/transit', protect, authorize('appointments:write', 'appointments:write:own'), async (req, res) => {
+router.put('/:id/transit', protect, authorize('appointments:write', 'appointments:write:own'), requireObjectId, async (req, res) => {
   try {
     const { lat, lng, address, transitStatus, etaMinutes, distanceKm } = req.body;
     const appointment = await Appointment.findById(req.params.id);
@@ -982,7 +985,7 @@ router.put('/:id/transit', protect, authorize('appointments:write', 'appointment
   }
 });
 
-router.put('/:id/intake', protect, authorize('appointments:write', 'appointments:write:own'), async (req, res) => {
+router.put('/:id/intake', protect, authorize('appointments:write', 'appointments:write:own'), requireObjectId, async (req, res) => {
   try {
     const {
       chiefComplaint, chiefComplaintOther, symptomsDuration,
@@ -1345,7 +1348,7 @@ router.put('/:id', protect, authorize('appointments:write', 'appointments:write:
   }
 });
 
-router.delete('/:id', protect, authorize('appointments:write', 'appointments:write:own'), async (req, res) => {
+router.delete('/:id', protect, authorize('appointments:write', 'appointments:write:own'), requireObjectId, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
     if (!appointment) return res.status(404).json({ message: 'Appointment not found' });

@@ -7,6 +7,7 @@ import AiSafetyEvent from '../models/AiSafetyEvent.js';
 import { getCachedAIReply, setCachedAIReply } from '../config/redis.js';
 import { protect } from '../middleware/auth.js';
 import { createGrlRateLimiter } from '../middleware/rateLimit.js';
+import { detectRedFlag } from '../lib/redFlags.js';
 
 const router = express.Router();
 
@@ -22,13 +23,9 @@ const aiLimiter = createGrlRateLimiter({
 });
 
 // SA-M4: crisis patterns that trigger a red-flag safety event (matched
-// keyword is stored — never the raw prompt text).
-const RED_FLAG_PATTERNS = [
-  { re: /(suicid|kill (myself|me)|end my life|self[\s-]?harm|hurt myself)/i, trigger: 'suicidal-ideation' },
-  { re: /(severe chest pain|crushing chest|heart attack|myocardial)/i, trigger: 'cardiac-red-flag' },
-  { re: /(anaphylaxis|throat closing|can'?t breathe|severe allergic)/i, trigger: 'respiratory-red-flag' },
-  { re: /(overdose|took too many pills|poisoning)/i, trigger: 'overdose-red-flag' },
-];
+// keyword is stored — never the raw prompt text). Patterns live in
+// lib/redFlags.js (imported above) so the escalation suite pins them without
+// booting the route.
 
 const estTokens = (chars) => Math.ceil(Number(chars || 0) / 4);
 
@@ -54,9 +51,9 @@ router.post('/', protect, aiLimiter, async (req, res) => {
       return res.status(400).json({ reply: 'Please ask a health-related question or provide an image.' });
     }
 
-    // SA-M4: red-flag detection on user prompt
+    // SA-M4: red-flag detection on user prompt (single code path with the suite).
     const promptText = (message || '').trim();
-    const hit = RED_FLAG_PATTERNS.find(p => p.re.test(promptText)) || null;
+    const hit = detectRedFlag(promptText);
 
     // SA-M4 & SPEC 23: red-flag screen on user prompt.
     // If life-threatening red-flag detected, lock chat and surface immediate Emergency SOS guidance.

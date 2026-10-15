@@ -13,9 +13,9 @@ export function mask(value: string, discreet: boolean): string {
 export default function EmergencyCard({
   discreet = false,
   compact = false,
-  bloodGroup = 'B+',
-  contactName = 'Aarav Sharma',
-  contactPhone = '9876543210',
+  bloodGroup = '',
+  contactName = '',
+  contactPhone = '',
 }: {
   discreet?: boolean;
   compact?: boolean;
@@ -23,6 +23,9 @@ export default function EmergencyCard({
   contactName?: string;
   contactPhone?: string;
 }) {
+  // No placeholder identity: empty props render an explicit "not set" state
+  // with a CTA instead of someone else's name and number.
+  const hasContact = contactName.trim() !== '' || contactPhone.trim() !== '';
   return (
     <section
       data-testid="emergency-card"
@@ -39,17 +42,22 @@ export default function EmergencyCard({
       <div className="mt-3 grid sm:grid-cols-3 gap-2 text-sm">
         <div className="rounded-lg bg-background border p-2">
           <p className="text-xs text-muted-foreground">Blood group</p>
-          <p className="font-semibold">{discreet ? '••' : bloodGroup}</p>
+          <p className="font-semibold">{discreet ? '••' : (bloodGroup || 'Not set')}</p>
         </div>
         <div className="rounded-lg bg-background border p-2">
           <p className="text-xs text-muted-foreground">Emergency contact</p>
-          <p className="font-semibold">{mask(contactName, discreet)}</p>
+          <p className="font-semibold">{hasContact ? mask(contactName || '—', discreet) : 'Not set'}</p>
         </div>
         <div className="rounded-lg bg-background border p-2">
           <p className="text-xs text-muted-foreground">Phone</p>
-          <p className="font-semibold">{discreet ? '••••••' : contactPhone}</p>
+          <p className="font-semibold">{discreet ? '••••••' : (contactPhone || '—')}</p>
         </div>
       </div>
+      {!hasContact && !compact && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Add an emergency contact from <Link to="/patient/addresses" className="underline">Manage contacts</Link> so responders can reach them.
+        </p>
+      )}
       <div className="mt-3 flex flex-wrap gap-2">
         <a href="tel:108" className="rounded-lg bg-destructive text-white px-4 py-2 text-sm font-semibold">
           Call 108

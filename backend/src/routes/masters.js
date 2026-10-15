@@ -31,7 +31,8 @@ router.get('/locations', authorize('staff:view'), async (req, res) => {
 
 router.post('/locations', authorize('staff:manage'), async (req, res) => {
   try {
-    const row = await Location.create({ ...tenant(req), ...req.body });
+    // Tenant pinned after the spread: a forged hospitalId must never win.
+    const row = await Location.create({ ...req.body, ...tenant(req) });
     return res.status(201).json({ id: String(row._id) });
   } catch (err) {
     logger.error(`Location create error: ${err.message}`);
@@ -52,7 +53,8 @@ router.get('/ward-types', authorize('staff:view'), async (req, res) => {
 
 router.post('/ward-types', authorize('staff:manage'), async (req, res) => {
   try {
-    const row = await WardType.create({ ...tenant(req), ...req.body });
+    // Tenant pinned after the spread: a forged hospitalId must never win.
+    const row = await WardType.create({ ...req.body, ...tenant(req) });
     return res.status(201).json({ id: String(row._id) });
   } catch (err) {
     logger.error(`Ward type create error: ${err.message}`);
@@ -76,7 +78,8 @@ router.get('/reason-codes', authorize('staff:view'), async (req, res) => {
 
 router.post('/reason-codes', authorize('staff:manage'), async (req, res) => {
   try {
-    const row = await ReasonCode.create({ ...tenant(req), ...req.body });
+    // Tenant pinned after the spread: a forged hospitalId must never win.
+    const row = await ReasonCode.create({ ...req.body, ...tenant(req) });
     return res.status(201).json({ id: String(row._id) });
   } catch (err) {
     if (err?.code === 11000) return res.status(409).json({ message: 'Reason code already exists for module' });

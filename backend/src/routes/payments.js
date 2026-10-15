@@ -21,6 +21,9 @@ import { resolveAuthoritativeAmount, assertAmountMatches } from '../services/pri
 
 const router = express.Router();
 
+const OBJECT_ID = /^[0-9a-f]{24}$/i;
+const requireObjectId = (req, res, next) => (OBJECT_ID.test(String(req.params.id)) ? next() : res.status(404).json({ message: 'Not found' }));
+
 const LIVE_GATEWAYS = ['razorpay', 'cashfree', 'payu', 'phonepe'];
 const liveGatewayConfigured = () => LIVE_GATEWAYS.some((name) => Boolean(gatewayFor(name).configured));
 
@@ -235,7 +238,7 @@ router.post('/', protect, paymentLimiter, (req, res, next) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, paymentLimiter, adminOnly, validate(updatePaymentSchema), async (req, res) => {
+router.put('/:id', protect, paymentLimiter, adminOnly, requireObjectId, validate(updatePaymentSchema), async (req, res) => {
   try {
     const payment = await Payment.findById(req.params.id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
@@ -267,7 +270,7 @@ router.put('/:id', protect, paymentLimiter, adminOnly, validate(updatePaymentSch
 
 // AUTHZ-M-03: a refund moves money back out, so it needs a fresh proof of
 // possession, not just a valid session.
-router.put('/:id/refund', protect, paymentLimiter, requireStepUp('refunds:issue'), idempotencyGuard({ prefix: 'refund', failClosed: true }), adminOnly, validate(refundPaymentSchema), async (req, res) => {
+router.put('/:id/refund', protect, paymentLimiter, requireStepUp('refunds:issue'), idempotencyGuard({ prefix: 'refund', failClosed: true }), adminOnly, requireObjectId, validate(refundPaymentSchema), async (req, res) => {
   try {
     // PAY-B-08: fail closed in production when no provider adapter is
     // configured — refuse before any read or write. With a live gateway the

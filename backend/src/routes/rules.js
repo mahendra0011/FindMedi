@@ -19,6 +19,13 @@ const actorId = (req) => req.user._id ?? req.user.id;
 const tenantFilter = (req) => (req.user.role === 'superadmin' && !req.user.hospitalId
   ? {} : { hospitalId: req.user.hospitalId });
 
+const OBJECT_ID = /^[0-9a-f]{24}$/i;
+const requireObjectId = (req, res, next) => (
+  OBJECT_ID.test(String(req.params.id))
+    ? next()
+    : res.status(404).json({ message: 'Not found' })
+);
+
 router.get('/datasets', authorize('staff:manage'), (req, res) => res.json({ datasets: datasetNames() }));
 
 // ─── Rules ──────────────────────────────────────────────────────────────────
@@ -99,10 +106,15 @@ router.post('/rules/seed-clinical', authorize('staff:manage'), async (req, res) 
   }
 });
 
-router.patch('/rules/:id', authorize('staff:manage'), async (req, res) => {
+router.patch('/rules/:id', authorize('staff:manage'), requireObjectId, async (req, res) => {
   try {
-    const row = await Rule.findByIdAndUpdate(req.params.id,
-      { $set: { ...req.body, hospitalId: undefined } }, { new: true });
+    // Tenant-scoped + allowlisted: the old `{...req.body, hospitalId:
+    // undefined}` wiped the tenant and had no tenant filter (cross-hospital
+    // overwrite). hospitalId can never move via this route.
+    const allowed = ['name', 'groups', 'actions', 'cooldownMinutes', 'schedule', 'enabled'];
+    const set = Object.fromEntries(Object.entries(req.body || {}).filter(([k]) => allowed.includes(k)));
+    const row = await Rule.findOneAndUpdate(
+      { _id: req.params.id, ...tenantFilter(req) }, { $set: set }, { new: true });
     if (!row) return res.status(404).json({ message: 'Not found' });
     await auditLog('rule_updated', actorId(req), { ruleId: row._id, key: row.key, ip: req.ip });
     return res.json({ id: String(row._id), enabled: row.enabled });
@@ -243,8 +255,10 @@ router.get('/tasks', authorize('staff:manage'), async (req, res) => {
 
 router.post('/tasks', authorize('staff:manage'), async (req, res) => {
   try {
+    // Spread first, server fields after: a forged hospitalId/createdBy in the
+    // body can never win.
     const row = await WorkTask.create({
-      hospitalId: req.user.hospitalId, ...req.body, createdBy: actorId(req),
+      ...req.body, hospitalId: req.user.hospitalId, createdBy: actorId(req),
     });
     return res.status(201).json({ id: String(row._id) });
   } catch (err) {
@@ -253,11 +267,12 @@ router.post('/tasks', authorize('staff:manage'), async (req, res) => {
   }
 });
 
-router.patch('/tasks/:id', authorize('staff:manage'), async (req, res) => {
+router.patch('/tasks/:id', authorize('staff:manage'), requireObjectId, async (req, res) => {
   try {
     const allowed = ['title', 'detail', 'assignee', 'roleQueue', 'priority', 'status', 'dueAt', 'tags'];
     const set = Object.fromEntries(Object.entries(req.body || {}).filter(([k]) => allowed.includes(k)));
-    const row = await WorkTask.findByIdAndUpdate(req.params.id, { $set: set }, { new: true });
+    const row = await WorkTask.findOneAndUpdate(
+      { _id: req.params.id, ...tenantFilter(req) }, { $set: set }, { new: true });
     if (!row) return res.status(404).json({ message: 'Not found' });
     return res.json({ id: String(row._id), status: row.status });
   } catch (err) {
@@ -266,10 +281,10 @@ router.patch('/tasks/:id', authorize('staff:manage'), async (req, res) => {
   }
 });
 
-router.post('/tasks/:id/activity', authorize('staff:manage'), async (req, res) => {
+router.post('/tasks/:id/activity', authorize('staff:manage'), requireObjectId, async (req, res) => {
   try {
     if (!req.body?.text) return res.status(400).json({ message: 'text required' });
-    const row = await WorkTask.findByIdAndUpdate(req.params.id, {
+    const row = await WorkTask.findOneAndUpdate({ _id: req.params.id, ...tenantFilter(req) }, {
       $push: { activity: { by: actorId(req), at: new Date(), text: String(req.body.text).slice(0, 1000) } },
     }, { new: true });
     if (!row) return res.status(404).json({ message: 'Not found' });

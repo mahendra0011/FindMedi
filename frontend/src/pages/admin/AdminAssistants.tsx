@@ -19,6 +19,7 @@ import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { DataGrid } from '../../components/ui/System';
 import { api } from '../../lib/api';
+import { toast } from 'sonner';
 
 export default function AdminAssistants() {
   const [activeTab, setActiveTab] = useState<'approvals' | 'all' | 'bookings' | 'analytics'>('approvals');
@@ -60,10 +61,10 @@ export default function AdminAssistants() {
   const handleApprove = async (id: string) => {
     try {
       await api.approveAssistant(id);
-      alert('Assistant verified and approved successfully!');
+      toast.error('Assistant verified and approved successfully!');
       fetchData();
     } catch (err: any) {
-      alert(err.message || 'Approve failed');
+      toast.error(err.message || 'Approve failed');
     }
   };
 
@@ -72,10 +73,10 @@ export default function AdminAssistants() {
     if (!reason) return;
     try {
       await api.rejectAssistant(id, reason);
-      alert('Assistant rejected.');
+      toast.error('Assistant rejected.');
       fetchData();
     } catch (err: any) {
-      alert(err.message || 'Reject failed');
+      toast.error(err.message || 'Reject failed');
     }
   };
 
@@ -85,7 +86,7 @@ export default function AdminAssistants() {
       await api.suspendAssistant(id, suspend, reason);
       fetchData();
     } catch (err: any) {
-      alert(err.message || 'Action failed');
+      toast.error(err.message || 'Action failed');
     }
   };
 

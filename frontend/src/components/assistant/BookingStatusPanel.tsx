@@ -18,6 +18,7 @@ import { Badge } from '../ui/badge';
 import { TaskChecklistView } from './TaskChecklistView';
 import { AssistantChatPanel } from './AssistantChatPanel';
 import { api } from '../../lib/api';
+import { toast } from 'sonner';
 
 interface Props {
   booking: any;
@@ -61,7 +62,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
       await api.updateAssistantTask(booking._id, taskId, isDone);
       onRefresh();
     } catch (err: any) {
-      alert(err.message || 'Failed to update task');
+      toast.error(err.message || 'Failed to update task');
     }
   };
 
@@ -70,7 +71,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
       await api.addAssistantCustomTask(booking._id, label, category);
       onRefresh();
     } catch (err: any) {
-      alert(err.message || 'Failed to add custom task');
+      toast.error(err.message || 'Failed to add custom task');
     }
   };
 
@@ -82,7 +83,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
       await api.cancelAssistantBooking(booking._id, reason);
       onRefresh();
     } catch (err: any) {
-      alert(err.message || 'Failed to cancel');
+      toast.error(err.message || 'Failed to cancel');
     } finally {
       setActionLoading(false);
     }
@@ -99,7 +100,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
       setPaySuccess(true);
       onRefresh();
     } catch (err: any) {
-      alert(err.message || 'Payment simulation failed');
+      toast.error(err.message || 'Payment simulation failed');
     } finally {
       setPaying(false);
     }
@@ -116,7 +117,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
       setShowRateModal(false);
       onRefresh();
     } catch (err: any) {
-      alert(err.message || 'Failed to submit rating');
+      toast.error(err.message || 'Failed to submit rating');
     } finally {
       setRatingSubmitting(false);
     }
@@ -221,7 +222,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                     await api.checkInAssistantBooking(booking._id);
                     onRefresh();
                   } catch (e: any) {
-                    alert(e.message || 'Check in failed');
+                    toast.error(e.message || 'Check in failed');
                   }
                 }}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
@@ -296,7 +297,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                     await api.completeAssistantBooking(booking._id, note || 'All hospital tasks completed.');
                     onRefresh();
                   } catch (e: any) {
-                    alert(e.message || 'Complete failed');
+                    toast.error(e.message || 'Complete failed');
                   }
                 }}
                 className="bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs"

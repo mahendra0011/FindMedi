@@ -14,6 +14,9 @@ const createNotification = async (userId, title, message, type = 'system') => {
 
 const router = express.Router();
 
+const OBJECT_ID = /^[0-9a-f]{24}$/i;
+const requireObjectId = (req, res, next) => (OBJECT_ID.test(String(req.params.id)) ? next() : res.status(404).json({ message: 'Not found' }));
+
 router.get('/', protect, async (req, res) => {
   try {
     const filter = {};
@@ -72,7 +75,7 @@ router.post('/', protect, validate(createLeaveRequestSchema), async (req, res) =
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/status', protect, adminOnly, validate(updateLeaveStatusSchema), async (req, res) => {
+router.put('/:id/status', protect, adminOnly, requireObjectId, validate(updateLeaveStatusSchema), async (req, res) => {
   try {
     const { status, adminNotes } = req.body;
     const leave = await LeaveRequest.findByIdAndUpdate(

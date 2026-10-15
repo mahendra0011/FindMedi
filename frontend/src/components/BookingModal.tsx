@@ -506,7 +506,6 @@ export default function BookingModal({
         throw new Error('Doctor consultation fee is not set. Please contact support.');
       }
 
-      console.log('[BookingModal] Creating appointment + payment in single call');
       const payResult = await api.payTransaction({
         serviceType: 'appointment',
         appointment: {
@@ -560,8 +559,6 @@ export default function BookingModal({
           qty: 1
         }],
       });
-
-      console.log('[BookingModal] Payment result:', payResult);
 
       if (!payResult?.success) {
         throw new Error(payResult?.message || 'Payment failed');

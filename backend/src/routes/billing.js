@@ -542,8 +542,10 @@ router.put('/:id', protect, authorize('billing:write'), paymentLimiter, async (r
     }
 
     // AUTH-030: allowlisted fields only — identity/tenant linkage and status immutable here.
+    // paid/balance are COLLECT-derived (see :id/collect below): letting PUT set
+    // them would forge a Paid bill without money moving.
     const { pickBody } = await import('../utils/pick.js');
-    const patch = pickBody(req.body, ['patient', 'doctor', 'service', 'services', 'source', 'amount', 'subTotal', 'discount', 'tax', 'taxRate', 'taxableAmount', 'paid', 'balance', 'date', 'dueDate', 'paymentMethod', 'transactionId', 'insuranceClaimId', 'insuranceApprovedAmount', 'insuranceStatus']);
+    const patch = pickBody(req.body, ['patient', 'doctor', 'service', 'services', 'source', 'amount', 'subTotal', 'discount', 'tax', 'taxRate', 'taxableAmount', 'date', 'dueDate', 'paymentMethod', 'transactionId', 'insuranceClaimId', 'insuranceApprovedAmount', 'insuranceStatus']);
     // File 22 P0-1: discount top-ups re-check the policy (bill + patch merged).
     if (patch.discount != null) {
       const { discountPct, overDiscountPolicy, approverRolesFor, safeFirst } = await import('../lib/approvalWiring.js');

@@ -5,6 +5,9 @@ import { validate, createBedSchema, updateBedSchema } from '../utils/validate.js
 
 const router = express.Router();
 
+const OBJECT_ID = /^[0-9a-f]{24}$/i;
+const requireObjectId = (req, res, next) => (OBJECT_ID.test(String(req.params.id)) ? next() : res.status(404).json({ message: 'Not found' }));
+
 router.get('/', protect, scopeToHospital, async (req, res) => {
   try {
     const { ward, status, hospitalId } = req.query;
@@ -89,7 +92,7 @@ router.post('/', protect, scopeToHospital, validate(createBedSchema), async (req
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, scopeToHospital, validate(updateBedSchema), async (req, res) => {
+router.put('/:id', protect, scopeToHospital, requireObjectId, validate(updateBedSchema), async (req, res) => {
   try {
     if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Admin access required' });
@@ -152,7 +155,7 @@ router.put('/:id', protect, scopeToHospital, validate(updateBedSchema), async (r
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/:id', protect, scopeToHospital, async (req, res) => {
+router.delete('/:id', protect, scopeToHospital, requireObjectId, async (req, res) => {
   try {
     if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Admin access required' });

@@ -49,6 +49,9 @@ const requirePatientGrant = (req, res, next) => {
 
 const router = express.Router();
 
+const OBJECT_ID = /^[0-9a-f]{24}$/i;
+const requireObjectId = (req, res, next) => (OBJECT_ID.test(String(req.params.id)) ? next() : res.status(404).json({ message: 'Not found' }));
+
 /**
  * DLB-17: object-level authorization for the patient directory.
  *
@@ -267,7 +270,7 @@ router.post('/', protect, validate(createPatientSchema), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, requirePatientGrant, validate(updatePatientSchema), async (req, res) => {
+router.put('/:id', protect, requirePatientGrant, requireObjectId, validate(updatePatientSchema), async (req, res) => {
   try {
     const p = await Patient.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Patient not found' });
@@ -283,7 +286,7 @@ router.put('/:id', protect, requirePatientGrant, validate(updatePatientSchema), 
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/:id', protect, requirePatientGrant, async (req, res) => {
+router.delete('/:id', protect, requirePatientGrant, requireObjectId, async (req, res) => {
   try {
     const p = await Patient.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Patient not found' });

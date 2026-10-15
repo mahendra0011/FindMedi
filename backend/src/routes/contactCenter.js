@@ -5,6 +5,8 @@ import AgentSession from '../models/AgentSession.js';
 import OutboundCampaign from '../models/OutboundCampaign.js';
 import WorkTask from '../models/WorkTask.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { validate, dispatchCampaignSchema } from '../utils/validate.js';
+import { dispatchCampaign } from '../services/campaignDispatch.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 
@@ -16,6 +18,13 @@ const router = express.Router();
 
 const actorId = (req) => req.user._id ?? req.user.id;
 const tenant = (req) => ({ hospitalId: req.user.hospitalId });
+
+const OBJECT_ID = /^[0-9a-f]{24}$/i;
+const requireObjectId = (req, res, next) => (
+  OBJECT_ID.test(String(req.params.id))
+    ? next()
+    : res.status(404).json({ message: 'Not found' })
+);
 
 // Provider webhook (Exotel-style).
 // File 22 P1-27: HMAC-SHA256 over the RAW body (x-provider-signature) with
@@ -333,8 +342,11 @@ router.post('/campaigns', authorize('staff:manage'), async (req, res) => {
     if (!req.body?.consentChecked) {
       return res.status(400).json({ message: 'Consent check confirmation required before any outbound campaign' });
     }
+    // Status is server-owned: a created campaign is ALWAYS a draft. A forged
+    // `status: 'running'` must never imply anything was sent.
+    const { status: _ignored, ...body } = req.body || {};
     const row = await OutboundCampaign.create({
-      ...tenant(req), ...req.body, createdBy: actorId(req),
+      ...tenant(req), ...body, status: 'draft', createdBy: actorId(req),
     });
     await auditLog('campaign_created', actorId(req), { campaignId: row._id, ip: req.ip });
     return res.status(201).json({ id: String(row._id) });
@@ -354,6 +366,28 @@ router.post('/campaigns/:id/state', authorize('staff:manage'), async (req, res) 
   } catch (err) {
     logger.error(`Campaign state error: ${err.message}`);
     return res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Campaign dispatch (sends the blast) ────────────────────────────────────
+// Flipping state to `running` never sent anything; THIS route does: consent +
+// DND + DLT checks in services/campaignDispatch.js, then per-recipient send
+// with stats back on the row. Audited as campaign_dispatched with totals.
+// authz: role (staff:manage)
+router.post('/campaigns/:id/dispatch', authorize('staff:manage'), requireObjectId, validate(dispatchCampaignSchema), async (req, res) => {
+  try {
+    const report = await dispatchCampaign(req.params.id, {
+      actorId: actorId(req),
+      ip: req.ip,
+      dltTemplateId: req.body.dltTemplateId,
+      templateName: req.body.templateName,
+    });
+    return res.json(report);
+  } catch (err) {
+    logger.error(`Campaign dispatch error: ${err.message}`);
+    const status = err.status || 500;
+    const code = err.code || 'DISPATCH_ERROR';
+    return res.status(status).json({ message: err.message, code });
   }
 });
 

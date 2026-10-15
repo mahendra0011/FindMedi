@@ -25,6 +25,7 @@ import { Badge } from '../../components/ui/badge';
 import { DataGrid } from '../../components/ui/System';
 import { InstantSearchingScreen, InstantNoRespondersScreen, InstantAssignedScreen } from '../../components/instant';
 import { api } from '../../lib/api';
+import { toast } from 'sonner';
 
 export default function PatientLawyers() {
   const navigate = useNavigate();
@@ -154,7 +155,7 @@ export default function PatientLawyers() {
       await api.closeLawyerCaseThread(threadId);
       fetchData();
     } catch (err: any) {
-      alert(err.message || 'Failed to close case');
+      toast.error(err.message || 'Failed to close case');
     }
   };
 

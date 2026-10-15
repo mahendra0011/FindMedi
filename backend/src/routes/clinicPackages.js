@@ -21,9 +21,12 @@ router.post('/', restrictTo('hospital_admin', 'superadmin', 'clinic_admin'), asy
 
 router.put('/:id', restrictTo('hospital_admin', 'superadmin', 'clinic_admin'), async (req, res) => {
   try {
+    // hospitalId/createdBy can never move via PUT (the filter is scoped, but
+    // $set would rewrite the field itself). Price stays admin-settable.
+    const { hospitalId: _dropH, createdBy: _dropC, ...set } = req.body || {};
     const row = await ClinicPackage.findOneAndUpdate(
       { _id: req.params.id, hospitalId: req.user.hospitalId },
-      { $set: req.body },
+      { $set: set },
       { new: true },
     );
     res.json({ package: row });

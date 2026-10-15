@@ -204,8 +204,8 @@ export const RIS_ROLE_SPECS = {
       { label: 'Check Report Status', route: '/radiology/reports' },
     ],
     alerts: [
-      { level: 'info', message: 'Patient Meera Patel checked in for MRI Brain (11:00 AM slot) — sent to preparation area' },
-      { level: 'warning', message: 'Patient Harish Chandra requires fasting confirmation before Abdomen Ultrasound' },
+      { level: 'info', message: 'MRI Brain 11:00 AM slot checked in — sent to preparation area' },
+      { level: 'warning', message: 'Fasting confirmation pending before scheduled Abdomen Ultrasound' },
     ],
     domainModules: [
       { id: 'RIS-03', name: 'Reception & Patient Desk', route: '/radiology/reception' },

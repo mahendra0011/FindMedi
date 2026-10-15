@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ShieldCheck, FileText, CheckCircle2, Clock, AlertCircle, Building2,
@@ -7,45 +7,65 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { api } from '@/lib/api';
+
+const fmtDate = (iso: any) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+const fmtINR = (n: any) => (n === null || n === undefined || n === '' ? '—' : `₹${Number(n).toLocaleString('en-IN')}`);
 
 export default function PatientInsurance() {
-  const [policies, setPolicies] = useState([
-    {
-      id: 'pol-1',
-      insurer: 'HDFC ERGO Health Optima Restore',
-      tpa: 'Direct In-House Cashless Desk',
-      policyNo: 'POL-2819-HDFC-991',
-      insuredMembers: 'Aarav Sharma (Self), Sneha Sharma (Spouse)',
-      sumInsured: '₹10,00,000',
-      validTill: '14 May 2027',
-      status: 'Active',
-      type: 'Private Health Insurance',
-    },
-    {
-      id: 'pol-2',
-      insurer: 'Ayushman Bharat PM-JAY',
-      tpa: 'National Health Authority (NHA)',
-      policyNo: 'AB-PMJAY-DEL-491028',
-      insuredMembers: 'Family Floater PM-JAY',
-      sumInsured: '₹5,00,000 / year',
-      validTill: 'Lifetime / Annual Verification',
-      status: 'Active & Linked',
-      type: 'Government Health Scheme',
-    },
-  ]);
+  const [policies, setPolicies] = useState([]);
+  const [claims, setClaims] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [claims, setClaims] = useState([
-    {
-      id: 'clm-1',
-      hospital: 'Apex Super Specialty Hospital, Sector 62',
-      procedure: 'Emergency Appendectomy & Laparoscopy',
-      amountClaimed: '₹84,500',
-      amountApproved: '₹82,000',
-      status: 'Cashless Settled',
-      date: '18 Sep 2026',
-      claimRef: 'CLM-HDFC-2026-991',
-    },
-  ]);
+  // Live data only (GET /patient/insurance/policies + GET /insurance,
+  // both session-scoped). Empty lists render empty states, never fixtures.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([api.getMyInsurancePolicies(), api.getMyInsuranceClaims()])
+      .then(([pol, clm]) => {
+        if (cancelled) return;
+        const prow = pol.status === 'fulfilled' ? pol.value : null;
+        const crows = clm.status === 'fulfilled' ? clm.value : null;
+        const livePolicies = Array.isArray(prow?.policies) ? prow.policies : [];
+        const liveClaims = Array.isArray(crows?.claims) ? crows.claims : [];
+        setPolicies(livePolicies.map((r: any) => ({
+          id: String(r._id || r.id),
+          type: r.scheme || 'Health Insurance',
+          insurer: r.insurer || '—',
+          policyNo: r.policyNumber || '—',
+          status: r.status || 'active',
+          insuredMembers: Array.isArray(r.memberIds) && r.memberIds.length ? r.memberIds.join(', ') : 'Self',
+          validTill: fmtDate(r.validTo),
+          tpa: r.tpa || '—',
+        })));
+        setClaims(liveClaims.map((c: any) => ({
+          id: String(c._id || c.claimId || c.id),
+          procedure: c.claimId ? `Claim ${c.claimId}` : 'Insurance Claim',
+          status: c.claimStatus || c.status || 'Filed',
+          hospital: '',
+          claimRef: c.claimId || '',
+          date: fmtDate(c.createdAt || c.updatedAt),
+          amountApproved: fmtINR(c.approvedAmount),
+          amountClaimed: fmtINR(c.claimAmount),
+        })));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPolicies([]);
+          setClaims([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
@@ -69,6 +89,13 @@ export default function PatientInsurance() {
       {/* Active Policies Grid */}
       <div className="space-y-3">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Active Health Coverage</h2>
+        {loading && <p className="text-xs text-muted-foreground py-6 text-center">Loading your policies…</p>}
+        {!loading && policies.length === 0 && (
+          <div className="p-8 rounded-3xl border border-border/60 bg-card text-center space-y-2">
+            <p className="font-bold text-sm text-foreground">No policies linked yet</p>
+            <p className="text-xs text-muted-foreground">Link your health insurance card or PM-JAY/CGHS scheme to track cashless claims here.</p>
+          </div>
+        )}
         <div className="grid md:grid-cols-2 gap-4">
           {policies.map((p) => (
             <div
@@ -84,8 +111,9 @@ export default function PatientInsurance() {
                   <p className="text-xs text-muted-foreground font-mono">{p.policyNo}</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold block">Sum Insured</span>
-                  <span className="text-base font-black text-emerald-600">{p.sumInsured}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}>
+                    {p.status === 'active' ? 'Active' : 'Expired'}
+                  </span>
                 </div>
               </div>
 
@@ -102,20 +130,6 @@ export default function PatientInsurance() {
                   <span className="text-muted-foreground">TPA / Desk:</span>
                   <strong className="text-foreground">{p.tpa}</strong>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1 text-[11px]">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Cashless Empanelled
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toast.success('E-Card downloaded to device.')}
-                  className="h-7 text-xs font-semibold gap-1 text-primary"
-                >
-                  <Download className="w-3 h-3" /> E-Health Card
-                </Button>
               </div>
             </div>
           ))}
@@ -137,6 +151,9 @@ export default function PatientInsurance() {
         </div>
 
         <div className="rounded-3xl border border-border/60 bg-card overflow-hidden shadow-xs divide-y divide-border/40">
+          {!loading && claims.length === 0 && (
+            <p className="text-xs text-muted-foreground py-8 text-center">No cashless claims yet — your hospital claims will appear here.</p>
+          )}
           {claims.map((c) => (
             <div key={c.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-1">
@@ -147,15 +164,15 @@ export default function PatientInsurance() {
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Building2 className="w-3.5 h-3.5 text-primary" /> {c.hospital} • Ref: {c.claimRef}
+                  <Building2 className="w-3.5 h-3.5 text-primary" /> Ref: {c.claimRef}
                 </p>
-                <p className="text-[11px] text-muted-foreground">Discharge Date: {c.date}</p>
+                <p className="text-[11px] text-muted-foreground">Filed: {c.date}</p>
               </div>
 
               <div className="text-right sm:shrink-0 space-y-0.5">
                 <span className="text-xs text-muted-foreground block">Approved Cashless Amount</span>
                 <span className="text-base font-extrabold text-foreground">{c.amountApproved}</span>
-                <span className="text-[10px] text-muted-foreground block line-through">Claimed: {c.amountClaimed}</span>
+                <span className="text-[10px] text-muted-foreground block">Claimed: {c.amountClaimed}</span>
               </div>
             </div>
           ))}

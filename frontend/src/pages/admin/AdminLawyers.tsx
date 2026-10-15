@@ -21,6 +21,7 @@ import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { DataGrid } from '../../components/ui/System';
 import { api } from '../../lib/api';
+import { toast } from 'sonner';
 
 export default function AdminLawyers() {
   const [activeTab, setActiveTab] = useState<'approvals' | 'all' | 'bookings' | 'analytics'>('approvals');
@@ -63,10 +64,10 @@ export default function AdminLawyers() {
     if (!confirm('Approve and activate this advocate profile on FindMedi?')) return;
     try {
       await api.approveLawyer(id);
-      alert('Advocate verified and approved successfully!');
+      toast.error('Advocate verified and approved successfully!');
       fetchData();
     } catch (err: any) {
-      alert(err.message || 'Approve failed');
+      toast.error(err.message || 'Approve failed');
     }
   };
 
@@ -75,10 +76,10 @@ export default function AdminLawyers() {
     if (!reason) return;
     try {
       await api.rejectLawyer(id, reason);
-      alert('Advocate registration rejected.');
+      toast.error('Advocate registration rejected.');
       fetchData();
     } catch (err: any) {
-      alert(err.message || 'Reject failed');
+      toast.error(err.message || 'Reject failed');
     }
   };
 
@@ -88,7 +89,7 @@ export default function AdminLawyers() {
       await api.suspendLawyer(id, suspend, reason);
       fetchData();
     } catch (err: any) {
-      alert(err.message || 'Action failed');
+      toast.error(err.message || 'Action failed');
     }
   };
 

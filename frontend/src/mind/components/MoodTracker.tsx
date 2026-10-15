@@ -22,7 +22,8 @@ const MoodTracker = () => {
             : [...prev, tag]);
     };
     const handleSubmit = () => {
-        console.log('Mood entry:', { mood: currentMood, notes, tags: selectedTags });
+        // PHI stays out of the console: the entry is persisted via the
+        // save path below, never logged.
         // Reset form
         setNotes('');
         setSelectedTags([]);

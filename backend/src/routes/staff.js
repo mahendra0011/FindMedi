@@ -20,6 +20,9 @@ const overtimeSchema = z.object({ staffId: z.string().min(1), date: z.string().o
 
 const router = express.Router();
 
+const OBJECT_ID = /^[0-9a-f]{24}$/i;
+const requireObjectId = (req, res, next) => (OBJECT_ID.test(String(req.params.id)) ? next() : res.status(404).json({ message: 'Not found' }));
+
 const genId = () => generateTimestampedId('EMP');
 
 // ==============================================================================
@@ -106,7 +109,7 @@ router.get('/', protect, authorize('staff:manage'), async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/:id', protect, authorize('staff:manage'), async (req, res) => {
+router.get('/:id', protect, authorize('staff:manage'), requireObjectId, async (req, res) => {
   try {
     const filter = { _id: req.params.id };
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
@@ -126,7 +129,7 @@ const isLastOwner = async (staffDoc) => {
   return count <= 1;
 };
 
-router.put('/:id', protect, authorize('staff:manage'), adminOnly, validate(updateStaffSchema), requireStepUp('users:role-change'), async (req, res) => {
+router.put('/:id', protect, authorize('staff:manage'), adminOnly, requireObjectId, validate(updateStaffSchema), requireStepUp('users:role-change'), async (req, res) => {
   try {
     const filter = { _id: req.params.id };
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
@@ -150,7 +153,7 @@ router.put('/:id', protect, authorize('staff:manage'), adminOnly, validate(updat
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/:id', protect, authorize('staff:manage'), adminOnly, async (req, res) => {
+router.delete('/:id', protect, authorize('staff:manage'), adminOnly, requireObjectId, async (req, res) => {
   try {
     const filter = { _id: req.params.id };
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
@@ -495,7 +498,7 @@ router.get('/payslips/:id', protect, authorize('staff:manage'), async (req, res)
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.delete('/payslips/:id', protect, authorize('staff:manage'), adminOnly, async (req, res) => {
+router.delete('/payslips/:id', protect, authorize('staff:manage'), adminOnly, requireObjectId, async (req, res) => {
   try {
     const { default: Payslip } = await import('../models/Payslip.js');
     const { auditLog } = await import('../middleware/audit.js');
@@ -508,7 +511,7 @@ router.delete('/payslips/:id', protect, authorize('staff:manage'), adminOnly, as
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/payslips/:id/release', protect, authorize('staff:manage'), adminOnly, async (req, res) => {
+router.post('/payslips/:id/release', protect, authorize('staff:manage'), adminOnly, requireObjectId, async (req, res) => {
   try {
     const { default: Payslip } = await import('../models/Payslip.js');
     const { auditLog } = await import('../middleware/audit.js');
@@ -618,7 +621,7 @@ router.post('/loans', protect, authorize('staff:manage'), adminOnly, async (req,
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/loans/:id/recover', protect, authorize('staff:manage'), adminOnly, async (req, res) => {
+router.post('/loans/:id/recover', protect, authorize('staff:manage'), adminOnly, requireObjectId, async (req, res) => {
   try {
     const { default: LoanAdvance } = await import('../models/LoanAdvance.js');
     const { auditLog } = await import('../middleware/audit.js');
