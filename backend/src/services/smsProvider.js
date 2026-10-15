@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 /**
  * Wave 3 — SMS Provider (Msg91 wrapper with graceful fallback).
  *
@@ -17,7 +18,7 @@ export const sendSms = async ({ to, text, templateId, notificationId }) => {
     return {
       success: true,
       status: 'skipped',
-      messageId: `sim-sms-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      messageId: `sim-sms-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
       simulated: true,
       reason: 'MSG91_AUTH_KEY not configured',
     };

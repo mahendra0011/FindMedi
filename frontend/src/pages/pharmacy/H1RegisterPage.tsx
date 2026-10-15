@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { api } from '@/lib/api';
+import { api, apiClient } from '@/lib/api';
 import {
   FileText,
   AlertTriangle,
@@ -111,11 +111,9 @@ export default function H1RegisterPage() {
     try {
       setLoading(true);
       const [entriesRes, gapsRes, reconRes, adjRes, staffRes]: any = await Promise.all([
-        api.get('/pharmacy/h1-register', {
-          params: {
-            rxSchedule: scheduleFilter !== 'ALL' ? scheduleFilter : undefined,
-          },
-        }),
+        // NOTE: api.get(path) takes no options — params must be in the URL,
+        // otherwise the schedule filter is silently ignored.
+        api.get(`/pharmacy/h1-register${scheduleFilter !== 'ALL' ? `?rxSchedule=${encodeURIComponent(scheduleFilter)}` : ''}`),
         api.get('/pharmacy/h1-register/gaps'),
         api.get('/pharmacy/narcotic-register/reconcile'),
         api.get('/pharmacy/narcotic-register/adjustments'),
@@ -140,24 +138,46 @@ export default function H1RegisterPage() {
     loadData();
   }, [scheduleFilter]);
 
-  const handleExportCsv = async () => {
+  // Authenticated blob download: window.open() sends no auth headers, so the
+  // export endpoints would 401. apiClient carries the session; the blob URL
+  // triggers a real file download instead of a dead tab.
+  const downloadExport = async (path: string, filename: string, doneMsg: string) => {
     try {
-      const url = `${api.defaults.baseURL || '/api'}/pharmacy/h1-register/export?rxSchedule=${scheduleFilter !== 'ALL' ? scheduleFilter : ''}`;
-      window.open(url, '_blank');
-      toast.success('Inspector-ready CSV export generated');
+      const response = await apiClient.get(path, { responseType: 'blob' });
+      const contentType = response.headers?.['content-type'];
+      const blob = new Blob([response.data], {
+        type: typeof contentType === 'string' ? contentType : 'application/octet-stream',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      toast.success(doneMsg);
     } catch {
       toast.error('Export download failed');
     }
   };
 
+  const scheduleQuery = scheduleFilter !== 'ALL' ? `?rxSchedule=${encodeURIComponent(scheduleFilter)}` : '';
+
+  const handleExportCsv = async () => {
+    await downloadExport(
+      `/pharmacy/h1-register/export${scheduleQuery}`,
+      `h1-register-${scheduleFilter}.csv`,
+      'Inspector-ready CSV export generated',
+    );
+  };
+
   const handleExportPdf = async () => {
-    try {
-      const url = `${api.defaults.baseURL || '/api'}/pharmacy/h1-register/pdf?rxSchedule=${scheduleFilter !== 'ALL' ? scheduleFilter : ''}`;
-      window.open(url, '_blank');
-      toast.success('Statutory Inspector PDF generated');
-    } catch {
-      toast.error('PDF export download failed');
-    }
+    await downloadExport(
+      `/pharmacy/h1-register/pdf${scheduleQuery}`,
+      `h1-register-${scheduleFilter}.pdf`,
+      'Statutory Inspector PDF generated',
+    );
   };
 
   const submitAdjustment = async () => {

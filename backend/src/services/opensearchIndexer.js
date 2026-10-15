@@ -382,7 +382,7 @@ export function redactClinicalText(input) {
   return text;
 }
 
-export async function indexEhrDoc({ recordId, patientId, docType, text, allergies = [] }) {
+export async function indexEhrDoc({ recordId, patientId, docType, text, allergies = [], hospitalId = '', facilityId = '' }) {
   if (!isOpenSearchConfigured() || !recordId) return null;
   try {
     // DP-B-06: pseudonymize the subject id before it reaches the analytics store.
@@ -393,6 +393,8 @@ export async function indexEhrDoc({ recordId, patientId, docType, text, allergie
       recordId: String(recordId),
       patientId: pseudonym,
       patientPseudonym: pseudonym,
+      hospitalId: String(hospitalId || ''),
+      facilityId: String(facilityId || ''),
       docType: docType || 'note',
       text: redactClinicalText(text),
       allergies: (Array.isArray(allergies) ? allergies : []).map((a) => String(a).slice(0, 120)),

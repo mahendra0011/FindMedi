@@ -21,6 +21,8 @@
   "mappings": {
     "dynamic": "strict",
     "properties": {
+      "hospitalId": { "type": "keyword" },
+      "facilityId": { "type": "keyword" },
       "recordId": { "type": "keyword" },
       "patientId": { "type": "keyword" },
       "patientPseudonym": { "type": "keyword" },

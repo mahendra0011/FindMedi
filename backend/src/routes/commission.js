@@ -220,6 +220,9 @@ router.post('/payouts', protect, paymentLimiter, requireStepUp('payouts:add'), i
       ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}),
     });
 
+    if (!transactions.length) {
+      return res.status(400).json({ message: 'No unclaimed transactions found for this period' });
+    }
     const grossRevenue = transactions.reduce((s, t) => s + (t.amount || 0), 0);
     const commissionAmount = transactions.reduce((s, t) => s + (t.commissionAmount || 0), 0);
     const netPayout = grossRevenue - commissionAmount;
@@ -238,7 +241,7 @@ router.post('/payouts', protect, paymentLimiter, requireStepUp('payouts:add'), i
     });
 
     await TransactionLedger.updateMany(
-      { _id: { $in: transactions.map(t => t._id) } },
+      { _id: { $in: transactions.map(t => t._id) }, payoutId: null },
       { payoutId: payout._id }
     );
 

@@ -1,5 +1,6 @@
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 import { bookingLimiter } from '../middleware/rateLimit.js';
+import { idempotencyGuard } from '../middleware/idempotency.js';
 import express from 'express';
 import Appointment from '../models/Appointment.js';
 import Bed from '../models/Bed.js';
@@ -153,7 +154,7 @@ router.get('/', protect, authorize('appointments:read', 'appointments:read:own')
         }
       }
     } catch (e) {
-      console.error('Failed to attach payment info to paginated appointments:', e);
+      logger.warn(`Failed to attach payment info to paginated appointments: ${e.message}`);
     }
 
     // File 23 §3.3: platform-wide list is metadata-only without a grant —
@@ -335,7 +336,7 @@ router.get('/my-appointments', protect, async (req, res) => {
         }
       }
     } catch (e) {
-      console.error('Failed to attach payment info to appointments:', e);
+      logger.warn(`Failed to attach payment info to appointments: ${e.message}`);
     }
     
     res.json(appointments);
@@ -427,7 +428,7 @@ router.get('/history-with-payments', protect, async (req, res) => {
     const data = visibleAppointments.slice((p - 1) * l, (p - 1) * l + l);
     res.json({ data, total, page: p, limit: l, totalPages: Math.ceil(total / l) });
   } catch (err) {
-    console.error('[appointments/history-with-payments] ERROR:', err);
+    logger.error(`[appointments/history-with-payments] ERROR: ${err.message}`);
     sendServerError(res, err, 'Request failed');
   }
 });
@@ -533,7 +534,7 @@ primeDoctorUserLinks();
 setInterval(primeDoctorUserLinks, 5 * 60 * 1000).unref?.();
 
 // ─── Walk-in Booking (doctor/clinic/staff se: patient register + appointment ek saath) ───
-router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic_admin', 'hospital_admin', 'superadmin']), validate(walkInSchema), async (req, res) => {
+router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic_admin', 'hospital_admin', 'superadmin']), idempotencyGuard({ prefix: 'appt-walkin', failClosed: false }), validate(walkInSchema), async (req, res) => {
   // APPT-B-02: holds the atomic seat claim so a later failure releases it.
   // walkInSlotKey carries the slot coordinates into the catch block (the
   // reservation result itself is only { ok, count }).
@@ -613,9 +614,9 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
     try {
       const { patientHardStop } = await import('./masters.js');
       const stop = await patientHardStop(hospitalId || null, canonicalPatientId);
-      if (process.env.DEBUG_WALKIN) console.log('HARDSTOP RESULT', { hospitalId, canonicalPatientId, stop });
+      if (process.env.DEBUG_WALKIN) logger.debug(`HARDSTOP RESULT hospital=${hospitalId} stop=${stop}`);
       if (stop) return res.status(409).json({ message: `Booking blocked: patient is ${stop}`, code: 'PATIENT_HARD_STOP' });
-    } catch (e) { if (process.env.DEBUG_WALKIN) console.log('HARDSTOP ERR', e.stack); }
+    } catch (e) { if (process.env.DEBUG_WALKIN) logger.debug(`HARDSTOP ERR ${e.message}`); }
 
     // A5 (5.md §15: server-side price, no client price): the walk-in fee is
     // resolved from the doctor's listed consultation fee through the same
@@ -722,7 +723,7 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
       await releaseAppointmentSlot(walkInSlotKey.doctorId, walkInSlotKey.date, walkInSlotKey.time, req.user._id)
         .catch(() => {});
     }
-    if (process.env.DEBUG_WALKIN) console.log(err.stack);
+    if (process.env.DEBUG_WALKIN) logger.debug(err.message);
     res.status(400).json({ message: err.message });
   }
 });

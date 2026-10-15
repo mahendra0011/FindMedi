@@ -333,6 +333,17 @@ router.put('/:id/refund', protect, paymentLimiter, requireStepUp('refunds:issue'
         throw apErr;
       }
     }
+    const { default: Refund } = await import('../models/Refund.js');
+    const { refund, created } = await Refund.requestRefund({
+      paymentId: payment._id,
+      amount: refund_amount,
+      originalAmount: payment.amount,
+      reason: req.body.reason || 'Refund processed by administrator',
+      reasonCode: req.body.reasonCode || 'patient_request',
+      idempotencyKey: idemKey,
+      requestedBy: req.user._id,
+    });
+
     const payGateway = payment.gateway && payment.gateway !== 'mock' ? gatewayFor(payment.gateway) : null;
     let providerRefund = null;
     if (payGateway && payGateway.configured && typeof payGateway.refund === 'function'
@@ -344,19 +355,12 @@ router.put('/:id/refund', protect, paymentLimiter, requireStepUp('refunds:issue'
           amount: refund_amount,
         });
       } catch (gwErr) {
+        refund.status = 'FAILED';
+        refund.failureReason = gwErr.message;
+        await refund.save();
         return res.status(422).json({ message: `Provider refund failed: ${gwErr.message}`, code: gwErr.code || 'GATEWAY_ERROR' });
       }
     }
-    const { default: Refund } = await import('../models/Refund.js');
-    const { refund, created } = await Refund.requestRefund({
-      paymentId: payment._id,
-      amount: refund_amount,
-      originalAmount: payment.amount,
-      reason: req.body.reason || 'Refund processed by administrator',
-      reasonCode: req.body.reasonCode || 'patient_request',
-      idempotencyKey: idemKey,
-      requestedBy: req.user._id,
-    });
 
     if (!created) {
       return res.status(200).json({

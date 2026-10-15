@@ -61,7 +61,7 @@ export default function AIChatAssistant() {
   }, []);
 
   useEffect(() => {
-    const saved = (localStorage.getItem('findmedi_ai_history') || localStorage.getItem('medicore_ai_history'));
+    const saved = (sessionStorage.getItem('findmedi_ai_history') || sessionStorage.getItem('medicore_ai_history'));
     if (saved) {
       try {
         setChatSessions(JSON.parse(saved));
@@ -169,7 +169,7 @@ export default function AIChatAssistant() {
         }
       }
       setChatSessions(newSessions);
-      localStorage.setItem('findmedi_ai_history', JSON.stringify(newSessions));
+      sessionStorage.setItem('findmedi_ai_history', JSON.stringify(newSessions));
 
     } catch (err: any) {
       const serverReply = err?.response?.data?.reply;
@@ -331,7 +331,7 @@ export default function AIChatAssistant() {
                             e.stopPropagation();
                             const updated = chatSessions.filter(s => s.id !== session.id);
                             setChatSessions(updated);
-                            localStorage.setItem('findmedi_ai_history', JSON.stringify(updated));
+                            sessionStorage.setItem('findmedi_ai_history', JSON.stringify(updated));
                             if (currentSessionId === session.id) {
                               setCurrentSessionId(null);
                               setMessages([]);

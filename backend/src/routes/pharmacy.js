@@ -1337,6 +1337,34 @@ router.get('/narcotic-register/reconcile', protect, authorize('pharmacy:read', '
     }
 
     const varianceCount = rows.filter((r) => r.variance !== 0).length;
+    if (varianceCount > 0) {
+      // Narcotic variance is a potential-diversion signal: raise ONE alert
+      // per day (deduped on open alerts with the same code), not one per
+      // reconcile read. Never blocks the response.
+      void (async () => {
+        try {
+          const { default: DashboardAlert } = await import('../models/DashboardAlert.js');
+          const dayAgo = new Date(Date.now() - 24 * 3600 * 1000);
+          const existing = await DashboardAlert.findOne({
+            hospitalId: req.user.hospitalId,
+            code: 'narcotic-variance',
+            status: 'open',
+            createdAt: { $gte: dayAgo },
+          }).select('_id').lean();
+          if (!existing) {
+            const { raiseAlert } = await import('../lib/alerts.js');
+            await raiseAlert({
+              hospitalId: req.user.hospitalId,
+              severity: 'critical',
+              message: `Narcotic register variance on ${varianceCount} medicine(s) — physical count differs from expected closing. Verify immediately.`,
+              entityRef: { model: 'NarcoticCount' },
+              code: 'narcotic-variance',
+              by: req.user._id,
+            });
+          }
+        } catch { /* alerting must never break reconciliation */ }
+      })();
+    }
     res.json({
       from: fromDate,
       to: toDate,

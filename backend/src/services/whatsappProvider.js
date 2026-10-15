@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 /**
  * Wave 3 — WhatsApp Provider (Msg91 WhatsApp HSM wrapper with graceful fallback).
  *
@@ -17,7 +18,7 @@ export const sendWhatsApp = async ({ to, text, templateName, variables = {}, not
     return {
       success: true,
       status: 'skipped',
-      messageId: `sim-wa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      messageId: `sim-wa-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
       simulated: true,
       reason: 'MSG91_AUTH_KEY not configured',
     };

@@ -556,6 +556,11 @@ router.post('/referrals/:id/screening', protect, async (req, res) => {
       severity: result.severity,
       suicidalityFlagged: result.suicidalityFlagged,
       referralSuggested: result.referralSuggested,
+      crisisHelplines: result.suicidalityFlagged ? [
+        { name: 'National Tele-MANAS', phone: '14416', available: '24x7 Toll-Free' },
+        { name: 'Kiran Mental Health Helpline', phone: '1800-599-0019', available: '24x7 Toll-Free' },
+        { name: 'Vandrevala Foundation', phone: '+91 9999 666 555', available: '24x7 Free' },
+      ] : [],
     });
   } catch (err) { sendServerError(res, err); }
 });
