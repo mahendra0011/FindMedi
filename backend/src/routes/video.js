@@ -21,8 +21,24 @@ export function isLiveKitConfigured() {
 // spoofing). The identity is now always the caller's own user id.
 router.post('/token', protect, async (req, res) => {
   try {
-    const { room, name } = req.body;
+    const { room, name, appointmentId } = req.body;
     if (!room) return res.status(400).json({ message: 'room required' });
+
+    // CHAT-BUG-02: If the room is linked to an appointment, verify the caller is patient, doctor, or authorized admin
+    const targetAppointmentId = appointmentId || (room.startsWith('appt_') || room.startsWith('appointment_') ? room.split('_')[1] : null);
+    if (targetAppointmentId && targetAppointmentId.match(/^[0-9a-f]{24}$/i)) {
+      const { default: Appointment } = await import('../models/Appointment.js');
+      const appt = await Appointment.findById(targetAppointmentId).select('patientId doctorId hospitalId').lean();
+      if (appt) {
+        const callerId = String(req.user._id || req.user.id);
+        const isParty = String(appt.patientId) === callerId || String(appt.doctorId) === callerId;
+        const isAdmin = req.user.role === 'superadmin' || (req.user.role === 'hospital_admin' && String(appt.hospitalId) === String(req.user.hospitalId));
+        if (!isParty && !isAdmin) {
+          return res.status(403).json({ message: 'Not authorized for this consultation room' });
+        }
+      }
+    }
+
     if (!isLiveKitConfigured()) {
       return res.status(503).json({
         message: 'Video media not configured (LIVEKIT_URL). Use audio/call fallback.',
