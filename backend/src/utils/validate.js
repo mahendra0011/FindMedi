@@ -1469,11 +1469,13 @@ export const createInventoryItemSchema = z.object({
   currentStock: z.number().nonnegative().optional(),
   minStockLevel: z.number().nonnegative().optional(),
   unit: z.string().optional(),
+  coldChain: z.boolean().optional(),
   hospitalId: z.string().optional(),
 });
 
 export const updateInventoryItemSchema = z.object({
   itemName: z.string().optional(),
+  coldChain: z.boolean().optional(),
   itemCode: z.string().optional(),
   category: z.string().optional(),
   unitPrice: positiveNumber.optional(),
@@ -2895,6 +2897,36 @@ export const freezeMembershipSchema = z.object({
 
 export const renewMembershipSchema = z.object({
   paymentId: objectIdSchema.optional(),
+}).strict();
+
+// Elder-care MAR (File 12 inventory gap): resident roster, med-chart rows and
+// administration records. STRICT: identity/tenant/status ride the session.
+export const createElderResidentSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  age: z.number().int().min(0).max(130).optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  room: z.string().trim().max(60).optional(),
+  bed: z.string().trim().max(60).optional(),
+  doctor: z.string().trim().max(200).optional(),
+  allergies: z.array(z.string().trim().max(200)).max(30).optional(),
+  conditions: z.array(z.string().trim().max(200)).max(30).optional(),
+}).strict();
+
+export const addElderMedicationSchema = z.object({
+  medicationId: z.string().trim().min(1).max(80),
+  name: z.string().trim().min(1).max(200),
+  dose: z.string().trim().min(1).max(120),
+  frequency: z.string().trim().max(120).optional(),
+  times: z.array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'HH:MM')).max(12).optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+}).strict();
+
+export const logElderAdministrationSchema = z.object({
+  medicationId: z.string().trim().min(1).max(80),
+  scheduledFor: z.coerce.date(),
+  status: z.enum(['given', 'missed']),
+  note: z.string().trim().max(500).optional(),
 }).strict();
 
 // Campaign dispatch (File 18 §18.1): the DLT/template binding happens at SEND

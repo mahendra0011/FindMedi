@@ -10,6 +10,7 @@ import { useCart } from '@/context/CartContext';
 import { allCities } from '@/data/cities';
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const MAIN_NAV_ITEMS = [
   { label: 'Diagnostic Centers', path: '/diagnostic-centers' },
@@ -593,6 +594,9 @@ export default function PublicNavbar() {
           </Popover>
 
           {/* Auth */}
+          <div className="hidden sm:flex items-center shrink-0">
+            <LanguageSwitcher />
+          </div>
           {!user && (
             <Button variant="ghost" size="sm" onClick={() => navigate('/login')} className="hidden sm:flex whitespace-nowrap shrink-0">
               Sign In

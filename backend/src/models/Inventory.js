@@ -14,6 +14,8 @@ const inventorySchema = new mongoose.Schema({
       'Implants/Prosthetics', 'Linen', 'Lab Reagents/Kits',
       'Radiology Films/Contrast', 'Medical Gases', 'Kitchen/Food',
       'BMW Bags', 'PPE', 'Fire Safety', 'IT', 'OT Consumables',
+      // Vaccines: cold-chain tracked (see coldChain below + route rule).
+      'Vaccines',
     ],
     required: true,
   },
@@ -29,6 +31,9 @@ const inventorySchema = new mongoose.Schema({
     default: 'Pcs',
   },
   currentStock: { type: Number, default: 0 },
+  // Cold-chain flag (2–8°C): mandatory true for Vaccines (route-enforced).
+  // A vaccine row without cold chain is spoiled stock by definition.
+  coldChain: { type: Boolean, default: false },
   minStockLevel: { type: Number, default: 10 },
   maxStockLevel: { type: Number, default: 500 },
   unitPrice: { type: Number, default: 0 },

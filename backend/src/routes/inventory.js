@@ -30,9 +30,20 @@ const generateBarcode = (hospitalId) => {
   return `INV-${short}-${rand}`;
 };
 
+// Vaccines without cold chain are spoiled stock by definition — refuse both
+// at create and when an update would leave a vaccine row non-cold-chain.
+const assertVaccineColdChain = (category, coldChain) => {
+  if (category === 'Vaccines' && coldChain !== true) {
+    return { ok: false, message: 'Vaccines require coldChain: true (2–8°C storage)' };
+  }
+  return { ok: true };
+};
+
 // Inventory Items
 router.post('/items', protect, authorize('inventory:manage'), validate(createInventoryItemSchema), async (req, res) => {
   try {
+    const cold = assertVaccineColdChain(req.body.category, req.body.coldChain);
+    if (!cold.ok) return res.status(400).json({ message: cold.message, code: 'VACCINE_COLD_CHAIN_REQUIRED' });
     const item = await Inventory.create({
       ...req.body,
       barcode: generateBarcode(req.user.hospitalId),
@@ -73,7 +84,9 @@ router.put('/items/:id', protect, requireObjectId, validate(updateInventoryItemS
     }
     // AUTH-030: allowlisted fields only — stock/history via stock endpoint, tenant immutable.
     const { pickBody } = await import('../utils/pick.js');
-    Object.assign(item, pickBody(req.body, ['itemName', 'category', 'itemCode', 'unit', 'currentStock', 'minStockLevel', 'maxStockLevel', 'unitPrice', 'supplier', 'location', 'expiryDate', 'batchNumber', 'isActive']));
+    Object.assign(item, pickBody(req.body, ['itemName', 'category', 'itemCode', 'unit', 'currentStock', 'minStockLevel', 'maxStockLevel', 'unitPrice', 'supplier', 'location', 'expiryDate', 'batchNumber', 'isActive', 'coldChain']));
+    const cold = assertVaccineColdChain(item.category, item.coldChain);
+    if (!cold.ok) return res.status(400).json({ message: cold.message, code: 'VACCINE_COLD_CHAIN_REQUIRED' });
     await item.save();
     await auditLog('update_inventory_item', req.user._id, { recordId: item._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(item);

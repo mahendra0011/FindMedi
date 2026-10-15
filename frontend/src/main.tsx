@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import * as Sentry from "@sentry/react";
 import App from "./App";
 import "./index.css";
+import "./i18n";
 import { initFeatureFlags, initPostHog } from "./services/featureFlags";
 
 // Sentry error tracking + performance (env-gated: no VITE_SENTRY_DSN = no-op)

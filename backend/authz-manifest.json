@@ -10,12 +10,12 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1831,
+  "total": 1837,
   "counts": {
     "inherited": 5,
     "object": 437,
     "public": 116,
-    "role": 1196,
+    "role": 1202,
     "self": 77
   },
   "byMechanism": {
@@ -24,7 +24,7 @@
     "assertCallParticipant": 2,
     "assertEhrSearchAccess": 1,
     "assertMentalHealthAccess": 11,
-    "authorize": 837,
+    "authorize": 843,
     "authorizeObject": 78,
     "canAccessPatient": 5,
     "canAccessRecord": 4,
@@ -39,7 +39,7 @@
     "platformAdminOnly": 15,
     "requireConversationMember": 18,
     "requireMetricsToken": 1,
-    "requireObjectId": 158,
+    "requireObjectId": 162,
     "requirePatientGrant": 4,
     "requireReportScope": 2,
     "requireRole": 87,
@@ -4198,6 +4198,48 @@
       "tag": "self"
     },
     {
+      "file": "eldercare.js",
+      "line": 36,
+      "method": "GET",
+      "target": "'/residents'",
+      "tag": "role"
+    },
+    {
+      "file": "eldercare.js",
+      "line": 53,
+      "method": "POST",
+      "target": "'/residents'",
+      "tag": "role"
+    },
+    {
+      "file": "eldercare.js",
+      "line": 65,
+      "method": "GET",
+      "target": "'/residents/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "eldercare.js",
+      "line": 77,
+      "method": "POST",
+      "target": "'/residents/:id/medications'",
+      "tag": "role"
+    },
+    {
+      "file": "eldercare.js",
+      "line": 96,
+      "method": "POST",
+      "target": "'/residents/:id/administrations'",
+      "tag": "role"
+    },
+    {
+      "file": "eldercare.js",
+      "line": 143,
+      "method": "GET",
+      "target": "'/residents/:id/due'",
+      "tag": "role"
+    },
+    {
       "file": "emergency.js",
       "line": 33,
       "method": "GET",
@@ -6271,133 +6313,133 @@
     },
     {
       "file": "inventory.js",
-      "line": 34,
+      "line": 43,
       "method": "POST",
       "target": "'/items'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 46,
+      "line": 57,
       "method": "GET",
       "target": "'/items'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 67,
+      "line": 78,
       "method": "PUT",
       "target": "'/items/:id'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 83,
+      "line": 96,
       "method": "PUT",
       "target": "'/items/:id/stock'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 134,
+      "line": 147,
       "method": "GET",
       "target": "'/items/:id'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 145,
+      "line": 158,
       "method": "POST",
       "target": "'/items/:id/barcode'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 166,
+      "line": 179,
       "method": "GET",
       "target": "'/barcode/:code'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 181,
+      "line": 194,
       "method": "GET",
       "target": "'/stats'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 203,
+      "line": 216,
       "method": "POST",
       "target": "'/suppliers'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 223,
+      "line": 236,
       "method": "GET",
       "target": "'/suppliers'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 236,
+      "line": 249,
       "method": "PUT",
       "target": "'/suppliers/:id'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 265,
+      "line": 278,
       "method": "POST",
       "target": "'/suppliers/:id/onboarding'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 284,
+      "line": 297,
       "method": "GET",
       "target": "'/suppliers/:id'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 296,
+      "line": 309,
       "method": "POST",
       "target": "'/purchase-orders'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 386,
+      "line": 399,
       "method": "GET",
       "target": "'/purchase-orders'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 406,
+      "line": 419,
       "method": "GET",
       "target": "'/purchase-orders/:id'",
       "tag": "object"
     },
     {
       "file": "inventory.js",
-      "line": 419,
+      "line": 432,
       "method": "PUT",
       "target": "'/purchase-orders/:id/status'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 467,
+      "line": 480,
       "method": "PUT",
       "target": "'/purchase-orders/:id/receive'",
       "tag": "role"
     },
     {
       "file": "inventory.js",
-      "line": 503,
+      "line": 516,
       "method": "DELETE",
       "target": "'/purchase-orders/:id'",
       "tag": "object"

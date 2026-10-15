@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { allCities } from '@/data/cities';
+import { useTranslation } from 'react-i18next';
 
 export const QUICK_SYMPTOMS = [
   { label: '🦷 Tooth pain', query: 'tooth pain', hint: 'Dentist' },
@@ -41,6 +42,7 @@ export default function UnifiedSearch({
   className = '',
 }: Props) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [query, setQuery] = useState(initialQuery);
   const [selectedCity, setSelectedCity] = useState(initialCity || 'All Cities');
   const [results, setResults] = useState<any[]>([]);
@@ -239,7 +241,7 @@ export default function UnifiedSearch({
                 triggerSearch();
               }
             }}
-            placeholder="Search doctors, clinics, tests, medicines, or symptoms (e.g., 'seene me dard', 'tooth pain')…"
+            placeholder={t('common.search')}
             className="border-0 shadow-none focus-visible:ring-0 text-sm h-13 pl-3 pr-10 bg-transparent placeholder:text-muted-foreground/70"
           />
           {query && (

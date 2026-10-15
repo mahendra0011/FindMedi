@@ -17,8 +17,27 @@ const fmtDate = (iso: any) => {
 const fmtINR = (n: any) => (n === null || n === undefined || n === '' ? '—' : `₹${Number(n).toLocaleString('en-IN')}`);
 
 export default function PatientInsurance() {
-  const [policies, setPolicies] = useState([]);
-  const [claims, setClaims] = useState([]);
+  interface PolicyRow {
+    id: string;
+    type: string;
+    insurer: string;
+    policyNo: string;
+    status: string;
+    insuredMembers: string;
+    validTill: string;
+    tpa: string;
+  }
+  interface ClaimRow {
+    id: string;
+    procedure: string;
+    status: string;
+    claimRef: string;
+    date: string;
+    amountApproved: string;
+    amountClaimed: string;
+  }
+  const [policies, setPolicies] = useState<PolicyRow[]>([]);
+  const [claims, setClaims] = useState<ClaimRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Live data only (GET /patient/insurance/policies + GET /insurance,
