@@ -728,7 +728,12 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
   }
 });
 
-router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), authorize('appointments:write'), bookingLimiter, idempotencyGuard({ prefix: 'appt-create', failClosed: true }), validate(createAppointmentSchema), async (req, res) => {
+// Fail-OPEN deliberately (no failClosed): booking is not a money movement —
+// payment is captured separately under payments.js's fail-closed guard — and
+// duplicates are already blocked by the patient+doctor+slot guard + unique
+// index below. failClosed here would 400 every client that does not send
+// Idempotency-Key, including production mobile apps.
+router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), authorize('appointments:write'), bookingLimiter, idempotencyGuard({ prefix: 'appt-create' }), validate(createAppointmentSchema), async (req, res) => {
   try {
     const { doctorId, doctor, department, date, time, type, symptoms, priority, appointmentMode } = req.body;
     

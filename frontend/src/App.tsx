@@ -527,6 +527,12 @@ if (typeof window !== 'undefined') {
   window.addEventListener('findmedi:logout', () => {
     try { queryClient.clear(); } catch { /* ignore */ }
   });
+  // INFRA-BUG-01: bust bfcache on back/forward navigation when page was persisted
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+      window.location.reload();
+    }
+  });
 }
 
 const loadingFallback = (

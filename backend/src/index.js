@@ -799,6 +799,10 @@ import securityRoutes from './routes/security.js';
 import recruitmentRoutes from './routes/recruitment.js';
 import canteenRoutes from './routes/canteen.js';
 import biometricRoutes from './routes/biometric.js';
+import sitemapRoutes from './routes/sitemap.js';
+
+// Root SEO routes (sitemap.xml, robots.txt, and /api/seo)
+app.use(sitemapRoutes);
 
 // Routes
 app.use('/api/auth', authRoutes);

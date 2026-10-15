@@ -495,7 +495,7 @@ const documentVerificationSchema = z.object({
   documentHash: z.string().max(128).optional(),
 });
 
-// authz: kyc_reviewer / superadmin
+// authz: role (router-level requireRole superadmin/kyc_reviewer)
 // KYC Document Verification audit endpoint
 router.post('/:id/documents/:docId/verify', requireObjectId, validate(documentVerificationSchema), async (req, res) => {
   try {

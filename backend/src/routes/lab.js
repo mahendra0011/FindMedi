@@ -819,8 +819,11 @@ router.post('/ingest/astm', async (req, res, next) => {
     const frame = typeof req.body === 'string' ? req.body : req.body?.frame;
     if (!frame) return res.status(400).json({ message: 'ASTM frame required' });
     const parsed = parseAstmFrame(frame);
-    const tenantId = req.serviceAccount?.tenantId || req.user?.hospitalId || req.user?.facilityId;
-    const tenantFilter = tenantId ? { hospitalId: tenantId } : {};
+    const tenantId = req.serviceAccount?.tenantId || req.user?.hospitalId || req.user?.facilityId || req.headers?.['x-hospital-id'];
+    if (!tenantId) {
+      return res.status(400).json({ message: 'Hospital or facility tenant ID is required for machine ingestion' });
+    }
+    const tenantFilter = { hospitalId: tenantId };
     let matched = 0;
     for (const r of parsed.results) {
       const order = await LabOrder.findOne({
@@ -1473,8 +1476,11 @@ async function ingestHl7(req, res) {
     if (!parsed.ok) return res.status(400).json({ message: `Rejected: ${parsed.reason}` });
     let applied = 0;
     let critical = 0;
-    const tenantId = req.serviceAccount?.tenantId || req.user?.hospitalId || req.user?.facilityId;
-    const tenantFilter = tenantId ? { hospitalId: tenantId } : {};
+    const tenantId = req.serviceAccount?.tenantId || req.user?.hospitalId || req.user?.facilityId || req.headers?.['x-hospital-id'];
+    if (!tenantId) {
+      return res.status(400).json({ message: 'Hospital or facility tenant ID is required for machine ingestion' });
+    }
+    const tenantFilter = { hospitalId: tenantId };
     for (const obr of parsed.orders) {
       if (!obr.orderId) continue;
       // eslint-disable-next-line no-await-in-loop

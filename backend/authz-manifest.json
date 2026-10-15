@@ -10,13 +10,13 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1838,
+  "total": 1851,
   "counts": {
     "inherited": 5,
     "object": 437,
-    "public": 116,
-    "role": 1202,
-    "self": 78
+    "public": 119,
+    "role": 1208,
+    "self": 82
   },
   "byMechanism": {
     "adminOnly": 99,
@@ -39,10 +39,10 @@
     "platformAdminOnly": 15,
     "requireConversationMember": 18,
     "requireMetricsToken": 1,
-    "requireObjectId": 166,
+    "requireObjectId": 173,
     "requirePatientGrant": 4,
     "requireReportScope": 2,
-    "requireRole": 87,
+    "requireRole": 92,
     "requireSosAccess": 7,
     "requireStaff": 4,
     "requireStepUp": 33,
@@ -139,44 +139,51 @@
     },
     {
       "file": "adminApplications.js",
-      "line": 53,
+      "line": 57,
       "method": "GET",
       "target": "'/'",
       "tag": "public"
     },
     {
       "file": "adminApplications.js",
-      "line": 93,
+      "line": 97,
       "method": "GET",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "adminApplications.js",
-      "line": 144,
+      "line": 148,
       "method": "POST",
       "target": "'/:id/claim'",
       "tag": "role"
     },
     {
       "file": "adminApplications.js",
-      "line": 185,
+      "line": 201,
       "method": "POST",
       "target": "'/:id/assign'",
       "tag": "role"
     },
     {
       "file": "adminApplications.js",
-      "line": 237,
+      "line": 265,
       "method": "POST",
       "target": "'/:id/decision'",
       "tag": "role"
     },
     {
       "file": "adminApplications.js",
-      "line": 418,
+      "line": 452,
       "method": "POST",
       "target": "'/:id/activation'",
+      "tag": "role"
+    },
+    {
+      "file": "adminApplications.js",
+      "line": 500,
+      "method": "POST",
+      "target": "'/:id/documents/:docId/verify'",
       "tag": "role"
     },
     {
@@ -587,42 +594,42 @@
     },
     {
       "file": "ambulanceTrips.js",
-      "line": 32,
+      "line": 33,
       "method": "POST",
       "target": "'/trips'",
       "tag": "role"
     },
     {
       "file": "ambulanceTrips.js",
-      "line": 58,
+      "line": 59,
       "method": "GET",
       "target": "'/trips'",
       "tag": "role"
     },
     {
       "file": "ambulanceTrips.js",
-      "line": 78,
+      "line": 79,
       "method": "PUT",
       "target": "'/trips/:id/end'",
       "tag": "role"
     },
     {
       "file": "ambulanceTrips.js",
-      "line": 111,
+      "line": 112,
       "method": "POST",
       "target": "'/logs'",
       "tag": "role"
     },
     {
       "file": "ambulanceTrips.js",
-      "line": 137,
+      "line": 138,
       "method": "GET",
       "target": "'/logs'",
       "tag": "role"
     },
     {
       "file": "ambulanceTrips.js",
-      "line": 155,
+      "line": 156,
       "method": "GET",
       "target": "'/stats'",
       "tag": "role"
@@ -671,105 +678,105 @@
     },
     {
       "file": "appointments.js",
-      "line": 81,
+      "line": 82,
       "method": "GET",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 183,
+      "line": 184,
       "method": "POST",
       "target": "'/lock-slot'",
       "tag": "object"
     },
     {
       "file": "appointments.js",
-      "line": 219,
+      "line": 220,
       "method": "POST",
       "target": "'/release-slot'",
       "tag": "object"
     },
     {
       "file": "appointments.js",
-      "line": 238,
+      "line": 239,
       "method": "GET",
       "target": "'/booked-slots'",
       "tag": "object"
     },
     {
       "file": "appointments.js",
-      "line": 278,
+      "line": 279,
       "method": "GET",
       "target": "'/my-appointments'",
       "tag": "object"
     },
     {
       "file": "appointments.js",
-      "line": 346,
+      "line": 347,
       "method": "GET",
       "target": "'/history-with-payments'",
       "tag": "object"
     },
     {
       "file": "appointments.js",
-      "line": 435,
+      "line": 436,
       "method": "GET",
       "target": "'/:id'",
       "tag": "object"
     },
     {
       "file": "appointments.js",
-      "line": 536,
+      "line": 537,
       "method": "POST",
       "target": "'/walk-in'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 730,
+      "line": 736,
       "method": "POST",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 870,
+      "line": 876,
       "method": "PUT",
       "target": "'/:id/checkin'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 914,
+      "line": 920,
       "method": "GET",
       "target": "'/queue/:department'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 945,
+      "line": 951,
       "method": "PUT",
       "target": "'/:id/transit'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 988,
+      "line": 994,
       "method": "PUT",
       "target": "'/:id/intake'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 1025,
+      "line": 1031,
       "method": "PUT",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 1351,
+      "line": 1357,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "role"
@@ -2617,28 +2624,28 @@
     },
     {
       "file": "commission.js",
-      "line": 267,
+      "line": 277,
       "method": "PUT",
       "target": "'/payouts/:id/approve'",
       "tag": "role"
     },
     {
       "file": "commission.js",
-      "line": 288,
+      "line": 298,
       "method": "PUT",
       "target": "'/payouts/:id/pay'",
       "tag": "role"
     },
     {
       "file": "commission.js",
-      "line": 337,
+      "line": 347,
       "method": "GET",
       "target": "'/stats'",
       "tag": "role"
     },
     {
       "file": "commission.js",
-      "line": 379,
+      "line": 389,
       "method": "GET",
       "target": "'/recon'",
       "tag": "role"
@@ -6229,35 +6236,35 @@
     },
     {
       "file": "insurance.js",
-      "line": 304,
+      "line": 307,
       "method": "PUT",
       "target": "'/:id/pre-auth'",
       "tag": "role"
     },
     {
       "file": "insurance.js",
-      "line": 367,
+      "line": 373,
       "method": "POST",
       "target": "'/:id/pre-auth/resubmit'",
       "tag": "role"
     },
     {
       "file": "insurance.js",
-      "line": 420,
+      "line": 429,
       "method": "PUT",
       "target": "'/:id/file-claim'",
       "tag": "role"
     },
     {
       "file": "insurance.js",
-      "line": 458,
+      "line": 470,
       "method": "PUT",
       "target": "'/:id/settle'",
       "tag": "role"
     },
     {
       "file": "insurance.js",
-      "line": 523,
+      "line": 538,
       "method": "GET",
       "target": "'/stats/main'",
       "tag": "role"
@@ -6866,427 +6873,427 @@
     },
     {
       "file": "lab.js",
-      "line": 897,
+      "line": 903,
       "method": "POST",
       "target": "'/ingest/emulate'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 929,
+      "line": 935,
       "method": "PUT",
       "target": "'/orders/:id/deliver-report'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 962,
+      "line": 968,
       "method": "PUT",
       "target": "'/orders/:id/status'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 979,
+      "line": 985,
       "method": "PUT",
       "target": "'/orders/:id/cancel'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 999,
+      "line": 1005,
       "method": "PUT",
       "target": "'/orders/:id/finalize'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1025,
+      "line": 1031,
       "method": "POST",
       "target": "'/orders/:id/tests'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1069,
+      "line": 1075,
       "method": "GET",
       "target": "'/receiving'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1096,
+      "line": 1102,
       "method": "GET",
       "target": "'/sections'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1119,
+      "line": 1125,
       "method": "GET",
       "target": "'/worklist'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1149,
+      "line": 1155,
       "method": "POST",
       "target": "'/orders/:id/receive'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1189,
+      "line": 1195,
       "method": "PUT",
       "target": "'/orders/:id/tests/:index/accept'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1220,
+      "line": 1226,
       "method": "GET",
       "target": "'/orders/:id/report/versions'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1232,
+      "line": 1238,
       "method": "POST",
       "target": "'/orders/:id/correct-report'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1272,
+      "line": 1278,
       "method": "GET",
       "target": "'/stats'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 1332,
+      "line": 1338,
       "method": "GET",
       "target": "'/outbreak'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1374,
+      "line": 1380,
       "method": "GET",
       "target": "'/tests'",
       "tag": "public"
     },
     {
       "file": "lab.js",
-      "line": 1396,
+      "line": 1402,
       "method": "GET",
       "target": "'/phlebotomists'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1407,
+      "line": 1413,
       "method": "GET",
       "target": "'/bookings'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 1453,
+      "line": 1459,
       "method": "POST",
       "target": "'/ingest/hl7'",
       "tag": "public"
     },
     {
       "file": "lab.js",
-      "line": 1500,
+      "line": 1511,
       "method": "POST",
       "target": "'/bookings'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 1538,
+      "line": 1549,
       "method": "PUT",
       "target": "'/bookings/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1578,
+      "line": 1589,
       "method": "PUT",
       "target": "'/bookings/:id/visit'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1624,
+      "line": 1635,
       "method": "DELETE",
       "target": "'/bookings/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1762,
+      "line": 1773,
       "method": "POST",
       "target": "'/bookings/:id/dispatch-report'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1775,
+      "line": 1786,
       "method": "GET",
       "target": "'/bookings/:id/dispatch-report'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 1804,
+      "line": 1815,
       "method": "POST",
       "target": "'/orders/:id/dispatch-report'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 1817,
+      "line": 1828,
       "method": "GET",
       "target": "'/report-deliveries'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 1835,
+      "line": 1846,
       "method": "GET",
       "target": "'/equipment'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 1845,
+      "line": 1856,
       "method": "POST",
       "target": "'/equipment'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 1853,
+      "line": 1864,
       "method": "PUT",
       "target": "'/equipment/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1869,
+      "line": 1880,
       "method": "DELETE",
       "target": "'/equipment/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1883,
+      "line": 1894,
       "method": "GET",
       "target": "'/packages/public'",
       "tag": "public"
     },
     {
       "file": "lab.js",
-      "line": 1895,
+      "line": 1906,
       "method": "GET",
       "target": "'/packages'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 1905,
+      "line": 1916,
       "method": "POST",
       "target": "'/packages'",
       "tag": "object"
     },
     {
       "file": "lab.js",
-      "line": 1913,
+      "line": 1924,
       "method": "PUT",
       "target": "'/packages/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1929,
+      "line": 1940,
       "method": "DELETE",
       "target": "'/packages/:id'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 1949,
+      "line": 1960,
       "method": "GET",
       "target": "'/export'",
       "tag": "role"
     },
     {
       "file": "lab.js",
-      "line": 2007,
+      "line": 2018,
       "method": "POST",
       "target": "'/analyzer-upload'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 92,
+      "line": 93,
       "method": "POST",
       "target": "'/book'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 216,
+      "line": 217,
       "method": "POST",
       "target": "'/:id/broadcast-fallback'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 255,
+      "line": 256,
       "method": "POST",
       "target": "'/:id/hold-retainer'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 314,
+      "line": 315,
       "method": "GET",
       "target": "'/active'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 348,
+      "line": 349,
       "method": "POST",
       "target": "'/:id/accept'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 409,
+      "line": 410,
       "method": "POST",
       "target": "'/:id/propose-time'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 449,
+      "line": 450,
       "method": "POST",
       "target": "'/:id/decline'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 482,
+      "line": 483,
       "method": "POST",
       "target": "'/:id/start'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 516,
+      "line": 517,
       "method": "POST",
       "target": "'/:id/note'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 559,
+      "line": 560,
       "method": "POST",
       "target": "'/:id/complete'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 651,
+      "line": 652,
       "method": "POST",
       "target": "'/:id/cancel'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 707,
+      "line": 708,
       "method": "POST",
       "target": "'/:id/reschedule'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 760,
+      "line": 761,
       "method": "POST",
       "target": "'/:id/follow-up'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 806,
+      "line": 807,
       "method": "GET",
       "target": "'/my-bookings'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 821,
+      "line": 822,
       "method": "GET",
       "target": "'/my-cases'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 867,
+      "line": 868,
       "method": "PUT",
       "target": "'/case/:caseThreadId/close'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 883,
+      "line": 884,
       "method": "GET",
       "target": "'/lawyer-history'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 900,
+      "line": 901,
       "method": "GET",
       "target": "'/lawyer-requests'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 965,
+      "line": 966,
       "method": "GET",
       "target": "'/documents'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 995,
+      "line": 996,
       "method": "GET",
       "target": "'/favorites'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 1030,
+      "line": 1031,
       "method": "POST",
       "target": "'/:id/rate'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 1072,
+      "line": 1073,
       "method": "GET",
       "target": "'/:id/receipt'",
       "tag": "role"
     },
     {
       "file": "lawyerBookings.js",
-      "line": 1109,
+      "line": 1110,
       "method": "GET",
       "target": "'/:id'",
       "tag": "role"
@@ -7769,44 +7776,65 @@
     },
     {
       "file": "memberships.js",
-      "line": 72,
+      "line": 73,
       "method": "GET",
       "target": "'/'",
       "tag": "self"
     },
     {
       "file": "memberships.js",
-      "line": 88,
+      "line": 89,
       "method": "POST",
       "target": "'/'",
       "tag": "self"
     },
     {
       "file": "memberships.js",
-      "line": 179,
+      "line": 180,
       "method": "POST",
       "target": "'/:id/cancel'",
       "tag": "self"
     },
     {
       "file": "memberships.js",
-      "line": 205,
+      "line": 206,
       "method": "POST",
       "target": "'/:id/freeze'",
       "tag": "self"
     },
     {
       "file": "memberships.js",
-      "line": 242,
+      "line": 243,
       "method": "POST",
       "target": "'/:id/unfreeze'",
       "tag": "self"
     },
     {
       "file": "memberships.js",
-      "line": 273,
+      "line": 274,
       "method": "POST",
       "target": "'/:id/renew'",
+      "tag": "self"
+    },
+    {
+      "file": "memberships.js",
+      "line": 335,
+      "method": "POST",
+      "target": "'/:id/autopay'",
+      "tag": "self"
+    },
+    {
+      "file": "memberships.js",
+      "line": 357,
+      "method": "DELETE",
+      "target": "'/:id/autopay'",
+      "tag": "self"
+    },
+    {
+      "file": "memberships.js",
+      "line": 376,
+      "method": "POST",
+      "target": "'/:id/check-in'",
       "tag": "self"
     },
     {
@@ -7881,63 +7909,63 @@
     },
     {
       "file": "mentalhealth.js",
-      "line": 564,
+      "line": 569,
       "method": "GET",
       "target": "'/referrals/:id/screening/trend'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 589,
+      "line": 594,
       "method": "GET",
       "target": "'/referrals/:id/consent-status'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 622,
+      "line": 627,
       "method": "POST",
       "target": "'/referrals/:id/consent/:consentId/renew'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 670,
+      "line": 675,
       "method": "POST",
       "target": "'/referrals/:id/retention-sweep'",
       "tag": "role"
     },
     {
       "file": "mentalhealth.js",
-      "line": 694,
+      "line": 699,
       "method": "POST",
       "target": "'/referrals/:id/create-billing'",
       "tag": "role"
     },
     {
       "file": "mentalhealth.js",
-      "line": 730,
+      "line": 735,
       "method": "GET",
       "target": "'/stats'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 766,
+      "line": 771,
       "method": "GET",
       "target": "'/crisis/queue'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 822,
+      "line": 827,
       "method": "PUT",
       "target": "'/crisis/:id/acknowledge'",
       "tag": "object"
     },
     {
       "file": "mentalhealth.js",
-      "line": 868,
+      "line": 873,
       "method": "PUT",
       "target": "'/crisis/:id/resolve'",
       "tag": "object"
@@ -9141,238 +9169,238 @@
     },
     {
       "file": "pharmacy.js",
-      "line": 1365,
+      "line": 1393,
       "method": "POST",
       "target": "'/narcotic-register/adjustments'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1420,
+      "line": 1448,
       "method": "GET",
       "target": "'/narcotic-register/adjustments'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1443,
+      "line": 1471,
       "method": "POST",
       "target": "'/narcotic-register/counts'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1487,
+      "line": 1515,
       "method": "PUT",
       "target": "'/prescriptions/:id/verify'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1536,
+      "line": 1564,
       "method": "GET",
       "target": "'/stats'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1565,
+      "line": 1593,
       "method": "GET",
       "target": "'/billing/export'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1588,
+      "line": 1616,
       "method": "GET",
       "target": "'/orders'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1619,
+      "line": 1647,
       "method": "POST",
       "target": "'/orders'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 1766,
+      "line": 1794,
       "method": "PUT",
       "target": "'/orders/:id'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1782,
+      "line": 1810,
       "method": "PUT",
       "target": "'/orders/:id/status'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1812,
+      "line": 1840,
       "method": "POST",
       "target": "'/orders/:id/cancel'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1836,
+      "line": 1864,
       "method": "POST",
       "target": "'/orders/:id/collect-cod'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1912,
+      "line": 1940,
       "method": "DELETE",
       "target": "'/orders/:id'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1916,
+      "line": 1944,
       "method": "POST",
       "target": "'/orders/:id/forward'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1924,
+      "line": 1952,
       "method": "PUT",
       "target": "'/orders/:id/reject'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1949,
+      "line": 1977,
       "method": "POST",
       "target": "'/orders/:id/substitutions'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1979,
+      "line": 2007,
       "method": "PUT",
       "target": "'/orders/:id/substitutions/:subIndex'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 1995,
+      "line": 2023,
       "method": "GET",
       "target": "'/deliveries'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 2008,
+      "line": 2036,
       "method": "POST",
       "target": "'/deliveries'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 2020,
+      "line": 2048,
       "method": "PUT",
       "target": "'/deliveries/:id'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 2063,
+      "line": 2091,
       "method": "GET",
       "target": "'/offers'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 2076,
+      "line": 2104,
       "method": "POST",
       "target": "'/offers'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 2084,
+      "line": 2112,
       "method": "PUT",
       "target": "'/offers/:id'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 2097,
+      "line": 2125,
       "method": "DELETE",
       "target": "'/offers/:id'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 2103,
+      "line": 2131,
       "method": "GET",
       "target": "'/returns'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 2116,
+      "line": 2144,
       "method": "POST",
       "target": "'/returns'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 2161,
+      "line": 2189,
       "method": "PUT",
       "target": "'/returns/:id'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 2179,
+      "line": 2207,
       "method": "GET",
       "target": "'/staff'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 2192,
+      "line": 2220,
       "method": "POST",
       "target": "'/staff'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 2202,
+      "line": 2230,
       "method": "PUT",
       "target": "'/staff/:id'",
       "tag": "object"
     },
     {
       "file": "pharmacy.js",
-      "line": 2215,
+      "line": 2243,
       "method": "DELETE",
       "target": "'/staff/:id'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 2227,
+      "line": 2255,
       "method": "POST",
       "target": "'/coupons/validate'",
       "tag": "self"
     },
     {
       "file": "pharmacy.js",
-      "line": 2243,
+      "line": 2271,
       "method": "POST",
       "target": "'/orders/verify-prescriptions'",
       "tag": "role"
     },
     {
       "file": "pharmacy.js",
-      "line": 2341,
+      "line": 2369,
       "method": "POST",
       "target": "'/orders/:id/refund'",
       "tag": "object"
@@ -10464,63 +10492,63 @@
     },
     {
       "file": "recon.js",
-      "line": 33,
+      "line": 37,
       "method": "POST",
       "target": "'/accounts'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 46,
+      "line": 65,
       "method": "POST",
       "target": "'/imports'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 72,
+      "line": 91,
       "method": "GET",
       "target": "'/imports/:id/txns'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 87,
+      "line": 106,
       "method": "POST",
       "target": "'/imports/:id/automatch'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 145,
+      "line": 164,
       "method": "POST",
       "target": "'/txns/:id/match'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 163,
+      "line": 182,
       "method": "GET",
       "target": "'/rules'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 173,
+      "line": 192,
       "method": "POST",
       "target": "'/rules'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 186,
+      "line": 205,
       "method": "POST",
       "target": "'/imports/:id/close'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 199,
+      "line": 218,
       "method": "GET",
       "target": "'/imports/:id/export'",
       "tag": "role"
@@ -11870,6 +11898,34 @@
       "tag": "public"
     },
     {
+      "file": "sitemap.js",
+      "line": 230,
+      "method": "GET",
+      "target": "'/robots.txt'",
+      "tag": "public"
+    },
+    {
+      "file": "sitemap.js",
+      "line": 246,
+      "method": "GET",
+      "target": "'/sitemap.xml'",
+      "tag": "public"
+    },
+    {
+      "file": "sitemap.js",
+      "line": 268,
+      "method": "GET",
+      "target": "'/api/seo/sitemap-stats'",
+      "tag": "public"
+    },
+    {
+      "file": "sitemap.js",
+      "line": 290,
+      "method": "GET",
+      "target": "'/api/seo/metadata'",
+      "tag": "self"
+    },
+    {
       "file": "staff.js",
       "line": 84,
       "method": "POST",
@@ -12375,98 +12431,98 @@
     },
     {
       "file": "tpa.js",
-      "line": 30,
+      "line": 35,
       "method": "GET",
       "target": "'/insurers'",
       "tag": "role"
     },
     {
       "file": "tpa.js",
-      "line": 40,
+      "line": 45,
       "method": "POST",
       "target": "'/insurers'",
       "tag": "role"
     },
     {
       "file": "tpa.js",
-      "line": 58,
+      "line": 63,
       "method": "GET",
       "target": "'/preauth'",
       "tag": "role"
     },
     {
       "file": "tpa.js",
-      "line": 72,
+      "line": 77,
       "method": "POST",
       "target": "'/preauth'",
       "tag": "role"
     },
     {
       "file": "tpa.js",
-      "line": 95,
+      "line": 100,
       "method": "PUT",
       "target": "'/preauth/:id/status'",
       "tag": "role"
     },
     {
       "file": "tpa.js",
-      "line": 118,
+      "line": 126,
       "method": "POST",
       "target": "'/claims'",
       "tag": "role"
     },
     {
       "file": "tpa.js",
-      "line": 135,
+      "line": 143,
       "method": "PUT",
       "target": "'/claims/:id/settle'",
       "tag": "role"
     },
     {
       "file": "tpa.js",
-      "line": 158,
+      "line": 169,
       "method": "GET",
       "target": "'/pipeline'",
       "tag": "role"
     },
     {
       "file": "tpa.js",
-      "line": 178,
+      "line": 189,
       "method": "POST",
       "target": "'/claims/:id/room-rent'",
       "tag": "role"
     },
     {
       "file": "tpa.js",
-      "line": 200,
+      "line": 214,
       "method": "POST",
       "target": "'/claims/:id/query'",
       "tag": "role"
     },
     {
       "file": "tpa.js",
-      "line": 217,
+      "line": 234,
       "method": "POST",
       "target": "'/claims/:id/appeal'",
       "tag": "role"
     },
     {
       "file": "tpa.js",
-      "line": 241,
+      "line": 261,
       "method": "GET",
       "target": "'/claims/:id/bundle'",
       "tag": "role"
     },
     {
       "file": "tpa.js",
-      "line": 287,
+      "line": 307,
       "method": "GET",
       "target": "'/pmjay'",
       "tag": "role"
     },
     {
       "file": "tpa.js",
-      "line": 301,
+      "line": 321,
       "method": "POST",
       "target": "'/pmjay'",
       "tag": "role"
@@ -12595,6 +12651,41 @@
       "line": 120,
       "method": "GET",
       "target": "'/status'",
+      "tag": "role"
+    },
+    {
+      "file": "twoPersonApprovals.js",
+      "line": 46,
+      "method": "GET",
+      "target": "'/'",
+      "tag": "role"
+    },
+    {
+      "file": "twoPersonApprovals.js",
+      "line": 78,
+      "method": "POST",
+      "target": "'/request'",
+      "tag": "role"
+    },
+    {
+      "file": "twoPersonApprovals.js",
+      "line": 111,
+      "method": "GET",
+      "target": "'/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "twoPersonApprovals.js",
+      "line": 122,
+      "method": "POST",
+      "target": "'/:id/approve'",
+      "tag": "role"
+    },
+    {
+      "file": "twoPersonApprovals.js",
+      "line": 158,
+      "method": "POST",
+      "target": "'/:id/reject'",
       "tag": "role"
     },
     {

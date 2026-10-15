@@ -37,6 +37,7 @@ export function parseAstmFrame(frame) {
     if (rest.startsWith(CR)) rest = rest.slice(1);
     if (rest.startsWith(LF)) rest = rest.slice(1);
   }
+  let currentOrderSampleId = '';
   for (const r of records) {
     const lines = r.body.split(CR).map((l) => l.trim()).filter(Boolean);
     for (const line of lines) {
@@ -46,14 +47,16 @@ export function parseAstmFrame(frame) {
       if (kind === 'H') out.header = { sender: fields[4] || '', version: fields[13] || '' };
       else if (kind === 'O') {
         // O|seq|sampleId|test^^^code|priority|...
+        currentOrderSampleId = fields[2] || '';
         out.orders.push({
-          sampleId: fields[2] || '', testCode: (fields[3] || '').split('^')[3] || (fields[3] || '').split('^')[0] || '',
+          sampleId: currentOrderSampleId, testCode: (fields[3] || '').split('^')[3] || (fields[3] || '').split('^')[0] || '',
           priority: fields[4] || 'R',
         });
       } else if (kind === 'R') {
         // R|seq|test^^^code|value|units|refRange|flag|...|completedAt(12)
         const comp = (fields[2] || '').split('^');
         out.results.push({
+          sampleId: currentOrderSampleId,
           testCode: comp[3] || comp[0] || '', value: fields[3] || '',
           rawValue: fields[2] || '', units: fields[4] || '', refRange: fields[5] || '',
           flag: fields[6] || '', completedAt: fields[12] || '',

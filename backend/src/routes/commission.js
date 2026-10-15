@@ -209,41 +209,48 @@ router.post('/payouts', protect, paymentLimiter, requireStepUp('payouts:add'), i
     if (periodStart) dateFilter.$gte = new Date(periodStart);
     if (periodEnd) dateFilter.$lte = new Date(periodEnd);
 
-    const transactions = await TransactionLedger.find({
+    // PAY-BUG-02: Atomic claim to prevent double-payout generation on concurrent triggers
+    const payoutId = new mongoose.Types.ObjectId();
+    const query = {
       facilityId,
-      // PAY-M-03: `payoutId` has `default: null`, so EVERY row is written with
-      // the field present and null — `{ $exists: false }` matched nothing and
-      // each payout was created claiming zero rows (totals stayed 0 too, so the
-      // bug hid itself). `{ payoutId: null }` matches null AND missing.
       payoutId: null,
       status: 'completed',
       ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}),
-    });
+    };
 
+    const claimResult = await TransactionLedger.updateMany(query, { $set: { payoutId } });
+    if (!claimResult.modifiedCount) {
+      return res.status(400).json({ message: 'No unclaimed transactions found for this period' });
+    }
+
+    const transactions = await TransactionLedger.find({ payoutId });
     if (!transactions.length) {
       return res.status(400).json({ message: 'No unclaimed transactions found for this period' });
     }
+
     const grossRevenue = transactions.reduce((s, t) => s + (t.amount || 0), 0);
     const commissionAmount = transactions.reduce((s, t) => s + (t.commissionAmount || 0), 0);
     const netPayout = grossRevenue - commissionAmount;
 
-    const payout = await Payout.create({
-      facilityId,
-      facilityName: config.facilityName,
-      facilityType: config.facilityType,
-      periodStart: new Date(periodStart),
-      periodEnd: new Date(periodEnd),
-      grossRevenue,
-      commissionAmount,
-      netPayout,
-      transactionCount: transactions.length,
-      status: 'pending',
-    });
-
-    await TransactionLedger.updateMany(
-      { _id: { $in: transactions.map(t => t._id) }, payoutId: null },
-      { payoutId: payout._id }
-    );
+    let payout;
+    try {
+      payout = await Payout.create({
+        _id: payoutId,
+        facilityId,
+        facilityName: config.facilityName,
+        facilityType: config.facilityType,
+        periodStart: new Date(periodStart),
+        periodEnd: new Date(periodEnd),
+        grossRevenue,
+        commissionAmount,
+        netPayout,
+        transactionCount: transactions.length,
+        status: 'pending',
+      });
+    } catch (createErr) {
+      await TransactionLedger.updateMany({ payoutId }, { $set: { payoutId: null } }).catch(() => {});
+      throw createErr;
+    }
 
     // Payout row + the ledger rows it claims are mirrored in ONE PG transaction.
     // Previously this was a lone mirrorPayout() call, so a crash after the

@@ -253,7 +253,7 @@ router.post('/:id/broadcast-fallback', protect, authorize('legal:write'), async 
 
 // ─── POST /api/lawyer-booking/:id/hold-retainer ────────────────────────────
 // Spec 06: pre-authorize consultation retainer in demo escrow (HELD, released on sign-off).
-router.post('/:id/hold-retainer', protect, authorize('legal:write'), async (req, res) => {
+router.post('/:id/hold-retainer', protect, authorize('legal:write'), idempotencyGuard({ prefix: 'lawyer-retainer', failClosed: true }), async (req, res) => {
   try {
     // LAW-B-03: guard FIRST, before any side effect. `assertBookingAccess` both
     // authorises and returns the booking, so a non-participant gets a 404 without
@@ -1079,7 +1079,7 @@ router.get('/:id/receipt', protect, authorize('legal:read:own'), async (req, res
 
     const isClient = String(booking.userId) === String(req.user._id);
     const isLawyer = String(booking.lawyerId) === String(req.user._id);
-    const isAdmin = ['superadmin', 'hospital_admin'].includes(req.user.role);
+    const isAdmin = req.user.role === 'superadmin';
 
     if (!isClient && !isLawyer && !isAdmin) {
       return res.status(403).json({ message: 'Confidential: You cannot access this legal receipt' });
@@ -1119,7 +1119,7 @@ router.get('/:id', protect, authorize('legal:read'), async (req, res) => {
 
     const isClient = String(booking.userId?._id || booking.userId) === String(req.user._id);
     const isLawyer = String(booking.lawyerId?._id || booking.lawyerId) === String(req.user._id);
-    const isAdmin = ['superadmin', 'hospital_admin'].includes(req.user.role);
+    const isAdmin = req.user.role === 'superadmin';
 
     if (!isClient && !isLawyer && !isAdmin) {
       return res.status(404).json({ message: 'Booking not found' });

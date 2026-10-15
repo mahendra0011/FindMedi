@@ -208,7 +208,7 @@ describe('STEP-UP F7: the sensitive mounts exist and every scope is registered',
       /router\.put\('\/:id', protect, authorize\('records:write', 'records:write:own'\), requireStepUp\('records:amend'\)/
     );
     expect(read('staff.js')).toMatch(
-      /router\.put\('\/:id', protect, authorize\('staff:manage'\), adminOnly, validate\(updateStaffSchema\), requireStepUp\('users:role-change'\)/
+      /router\.put\('\/:id', protect, authorize\('staff:manage'\), adminOnly, requireObjectId, validate\(updateStaffSchema\), requireStepUp\('users:role-change'\)/
     );
   });
 
