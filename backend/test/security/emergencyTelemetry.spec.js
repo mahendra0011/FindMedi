@@ -79,4 +79,28 @@ describe('Emergency Telemetry & Ride Access Control (EMERG-BUG-01 & 02)', () => 
       expect(verdict.reason).toBe('not-the-crew');
     });
   });
+
+  describe('National Emergency 108/112 CAD Auto-Bridge (EMERG-MISSING-01)', () => {
+    it('creates an outbox bridge event with 108/112 escalation data', async () => {
+      const { triggerNationalEmergencyCadBridge } = await import('../../src/services/emergencyDispatchService.js');
+      const mockReq = {
+        _id: '507f1f77bcf86cd799439088',
+        category: 'heart_attack',
+        severityLevel: 'critical',
+        location: { coordinates: [77.5946, 12.9716], address: 'MG Road, Bangalore' },
+        userId: '507f1f77bcf86cd799439055',
+      };
+      const caller = { _id: '507f1f77bcf86cd799439055', name: 'Rohan Sharma', phone: '+919876543210' };
+
+      const payload = await triggerNationalEmergencyCadBridge(mockReq, caller);
+      expect(payload.incidentId).toBe('507f1f77bcf86cd799439088');
+      expect(payload.nationalHelplines).toEqual([
+        { service: 'National Ambulance', number: '108' },
+        { service: 'All-in-One Emergency Response', number: '112' },
+      ]);
+      expect(payload.caller.phone).toBe('+919876543210');
+      expect(payload.cadBridgeStatus).toBe('queued');
+    });
+  });
 });
+

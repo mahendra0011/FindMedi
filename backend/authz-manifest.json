@@ -10,12 +10,12 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1851,
+  "total": 1855,
   "counts": {
     "inherited": 5,
     "object": 437,
     "public": 119,
-    "role": 1208,
+    "role": 1212,
     "self": 82
   },
   "byMechanism": {
@@ -24,7 +24,7 @@
     "assertCallParticipant": 2,
     "assertEhrSearchAccess": 1,
     "assertMentalHealthAccess": 11,
-    "authorize": 844,
+    "authorize": 848,
     "authorizeObject": 78,
     "canAccessPatient": 5,
     "canAccessRecord": 4,
@@ -37,7 +37,7 @@
     "hospitalAdminOnly": 9,
     "orderRoleOnly": 7,
     "platformAdminOnly": 15,
-    "requireConversationMember": 18,
+    "requireConversationMember": 19,
     "requireMetricsToken": 1,
     "requireObjectId": 173,
     "requirePatientGrant": 4,
@@ -59,12 +59,12 @@
   "centralLayer": {
     "mechanism": "authorizeObject",
     "routes": 78,
-    "objectScopedTotal": 148,
-    "share": 0.527,
+    "objectScopedTotal": 149,
+    "share": 0.523,
     "alternatives": [
       {
         "mechanism": "requireConversationMember",
-        "routes": 18
+        "routes": 19
       },
       {
         "mechanism": "assertMentalHealthAccess",
@@ -2157,82 +2157,89 @@
       "file": "chat.js",
       "line": 1339,
       "method": "POST",
+      "target": "'/messages/:messageId/promote-to-ehr'",
+      "tag": "role"
+    },
+    {
+      "file": "chat.js",
+      "line": 1364,
+      "method": "POST",
       "target": "'/messages/:messageId/reactions'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1373,
+      "line": 1398,
       "method": "GET",
       "target": "'/messages/:messageId/reactions'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1396,
+      "line": 1421,
       "method": "PUT",
       "target": "'/messages/:messageId'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1436,
+      "line": 1461,
       "method": "DELETE",
       "target": "'/messages/:messageId'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1472,
+      "line": 1497,
       "method": "POST",
       "target": "'/messages/bulk-delete'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1510,
+      "line": 1535,
       "method": "PUT",
       "target": "'/messages/:messageId/star'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1532,
+      "line": 1557,
       "method": "GET",
       "target": "'/starred'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1546,
+      "line": 1571,
       "method": "POST",
       "target": "'/messages/forward'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1606,
+      "line": 1631,
       "method": "GET",
       "target": "'/messages/:messageId/info'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1635,
+      "line": 1660,
       "method": "GET",
       "target": "'/messages/:conversationId/media'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1660,
+      "line": 1685,
       "method": "GET",
       "target": "'/global-search'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1702,
+      "line": 1727,
       "method": "POST",
       "target": "'/link-check'",
       "tag": "role"
@@ -7971,6 +7978,27 @@
       "tag": "object"
     },
     {
+      "file": "mentalhealth.js",
+      "line": 915,
+      "method": "POST",
+      "target": "'/advance-directives'",
+      "tag": "role"
+    },
+    {
+      "file": "mentalhealth.js",
+      "line": 937,
+      "method": "GET",
+      "target": "'/advance-directives'",
+      "tag": "role"
+    },
+    {
+      "file": "mentalhealth.js",
+      "line": 948,
+      "method": "PUT",
+      "target": "'/advance-directives/:id/revoke'",
+      "tag": "role"
+    },
+    {
       "file": "metrics.js",
       "line": 12,
       "method": "GET",
@@ -8861,63 +8889,63 @@
     },
     {
       "file": "patients.js",
-      "line": 115,
+      "line": 116,
       "method": "GET",
       "target": "'/'",
       "tag": "object"
     },
     {
       "file": "patients.js",
-      "line": 153,
+      "line": 154,
       "method": "GET",
       "target": "'/duplicates'",
       "tag": "object"
     },
     {
       "file": "patients.js",
-      "line": 176,
+      "line": 177,
       "method": "POST",
       "target": "'/:id/merge'",
       "tag": "role"
     },
     {
       "file": "patients.js",
-      "line": 222,
+      "line": 223,
       "method": "POST",
       "target": "'/:id/abha'",
       "tag": "object"
     },
     {
       "file": "patients.js",
-      "line": 239,
+      "line": 240,
       "method": "GET",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "patients.js",
-      "line": 250,
+      "line": 254,
       "method": "POST",
       "target": "'/'",
       "tag": "object"
     },
     {
       "file": "patients.js",
-      "line": 273,
+      "line": 277,
       "method": "PUT",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "patients.js",
-      "line": 289,
+      "line": 293,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "patients.js",
-      "line": 303,
+      "line": 307,
       "method": "GET",
       "target": "'/:id/card'",
       "tag": "role"

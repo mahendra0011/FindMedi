@@ -113,6 +113,7 @@ const medicineSchema = new mongoose.Schema({
   // None is `required`: rows that predate the split must still save.
   therapeuticClass: { type: String, enum: THERAPEUTIC_CLASSES },
   rxSchedule: { type: String, enum: RX_SCHEDULES, set: (v) => canonicalRxSchedule(v) },
+  scheduleClass: { type: String, enum: RX_SCHEDULES, set: (v) => canonicalRxSchedule(v) },
   productLine: { type: String, enum: PRODUCT_LINES },
 
   // §5.5 special handling flags (R0 taxonomy / T0.1). Subdocument with

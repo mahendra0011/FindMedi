@@ -259,6 +259,30 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({});
 
+  // FE-MISSING-02: Prescription auto-save draft mechanism
+  useEffect(() => {
+    if (showRx) {
+      try {
+        const saved = localStorage.getItem('findmedi_rx_draft');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && Object.keys(parsed).length > 0) {
+            setForm(prev => ({ ...prev, ...parsed }));
+            toast.info('Restored saved prescription draft');
+          }
+        }
+      } catch { /* ignore */ }
+    }
+  }, [showRx]);
+
+  useEffect(() => {
+    if (showRx && form && (form.patientName || form.diagnosis || form.medications?.length)) {
+      try {
+        localStorage.setItem('findmedi_rx_draft', JSON.stringify(form));
+      } catch { /* ignore */ }
+    }
+  }, [form, showRx]);
+
   // Filters
   const [billStatus, setBillStatus] = useState('All');
   const [invStatus, setInvStatus] = useState('All');
@@ -352,6 +376,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
         type: 'records',
       });
       setShowRx(false);
+      try { localStorage.removeItem('findmedi_rx_draft'); } catch { /* ignore */ }
       setForm(initialPrescription);
       toast.success('Prescription created');
       onRefresh?.();

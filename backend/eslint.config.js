@@ -68,6 +68,14 @@ export default tseslint.config(
       "prefer-const": ["error", { destructuring: "all" }],
       // False positive in errorHandler.js (no actual this aliasing)
       "@typescript-eslint/no-this-alias": "off",
+      "no-restricted-properties": [
+        "warn",
+        {
+          object: "Math",
+          property: "random",
+          message: "Use crypto.randomBytes() or crypto.randomInt() for security-sensitive randomness.",
+        },
+      ],
     },
   },
 );

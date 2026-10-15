@@ -35,6 +35,7 @@ const notificationPreferenceSchema = new mongoose.Schema({
     email: { type: Boolean, default: true },
     sms: { type: Boolean, default: true },
     push: { type: Boolean, default: true },
+    ivr: { type: Boolean, default: true },
   },
 
   // DPDP: marketing is consent-based and default OFF is the safer posture, but

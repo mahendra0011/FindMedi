@@ -35,6 +35,7 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import LawyerCard from '@/components/LawyerCard';
 import LawyerUrgentIntakeModal from '@/components/LawyerUrgentIntakeModal';
+import BciDisclaimerModal from '@/components/legal/BciDisclaimerModal';
 
 export const LAWYER_CATEGORY_THEME: Record<
   string,
@@ -663,6 +664,9 @@ export default function FindLawyer() {
         lawyer={null}
         broadcast={true}
       />
+
+      {/* Statutory Bar Council of India Rule 36 Disclaimer Modal */}
+      <BciDisclaimerModal />
     </div>
   );
 }

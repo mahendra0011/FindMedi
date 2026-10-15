@@ -124,7 +124,7 @@ export function classifyField(fieldPath, modelName = '') {
  * before everything else it could swallow.
  */
 export const RETENTION_RULES = [
-  [/^MentalHealth$/, 'Mental-health records', 'Clinical statutory period, plus the consent validity period'],
+  [/^(MentalHealth|AdvanceDirective)$/, 'Mental-health records', 'Clinical statutory period, plus the consent validity period'],
   [/^Consent/, 'ABDM consent records', 'Consent validity, then 1 year'],
   // A handled DPDP request (access/correct/export) is the EVIDENCE the right
   // was honoured — same reason DeletionRequest sits here: the proof must

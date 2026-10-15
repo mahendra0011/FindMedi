@@ -160,6 +160,8 @@ const emergencyRequestSchema = new mongoose.Schema({
 
   cancelledAt: { type: Date, default: null },
   completedAt: { type: Date, default: null },
+  cadBridgeEscalated: { type: Boolean, default: false },
+  cadBridgeEscalatedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now, index: true },
   updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });

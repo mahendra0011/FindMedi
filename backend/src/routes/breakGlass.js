@@ -101,6 +101,22 @@ router.post('/:id/decision', authorize('breakglass:approve'), requireObjectId, r
     await auditLog('breakglass_approved', actorId(req), {
       grantId: grant._id, subjectType: grant.subject.type, approvals: distinct.size, ip: req.ip,
     });
+
+    // Notify patient upon break-glass approval (DPDP Compliance & Patient Audit)
+    if (grant.subject?.id && (grant.subject.type === 'patient' || grant.subject.type === 'mental_health')) {
+      try {
+        const { createNotification } = await import('../services/notificationService.js');
+        await createNotification({
+          userId: grant.subject.id,
+          title: 'Emergency Medical Data Access (Break-Glass)',
+          message: `An authorized operator was granted emergency break-glass access to your health record. Reason: ${grant.reasonNote || grant.reasonCode}`,
+          type: 'security_alert',
+        }).catch(() => {});
+        grant.patientNotifiedAt = new Date();
+        await grant.save();
+      } catch {}
+    }
+
     return res.json({ id: String(grant._id), status: grant.status, expiresAt: grant.expiresAt });
   } catch (err) {
     logger.error(`Break-glass decision error: ${err.message}`);

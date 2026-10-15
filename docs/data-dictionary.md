@@ -13,9 +13,9 @@
 
 ## Summary
 
-- **345 models** across 337 files (0 skipped)
-- **7617 schema fields**, of which **798 classified as PII** in **243 collections**
-- **7 collections** carry a TTL index
+- **346 models** across 338 files (0 skipped)
+- **7644 schema fields**, of which **803 classified as PII** in **244 collections**
+- **8 collections** carry a TTL index
 - **127 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
 ### PII categories
@@ -24,15 +24,15 @@
 |---|---|
 | Credential | 4 |
 | Government ID | 2 |
-| Contact | 35 |
+| Contact | 36 |
 | Financial | 14 |
 | Health | 34 |
 | Demographic | 16 |
 | Location | 25 |
 | Image/Biometric | 4 |
 | Device/Network | 13 |
-| Identifier | 205 |
-| Identity | 92 |
+| Identifier | 206 |
+| Identity | 93 |
 
 ## Collections
 
@@ -45,6 +45,7 @@
 | `activities` | Activity | 11 | 0 | 4 | — | No PII fields detected |
 | `admissions` | Admission | 96 | 22 | 3 | — | Clinical records |
 | `adrreports` | AdrReport | 13 | 1 | 2 | — | Clinical records |
+| `advancedirectives` | AdvanceDirective | 22 | 5 | 3 | — | Mental-health records |
 | `agentsessions` | AgentSession | 8 | 0 | 2 | — | No PII fields detected |
 | `aiinvocations` | AiInvocation | 13 | 0 | 3 | — | No PII fields detected |
 | `aireviews` | AiReview | 13 | 0 | 3 | — | No PII fields detected |
@@ -153,7 +154,7 @@
 | `elderresidents` | ElderResident | 29 | 14 | 5 | — | Clinical records |
 | `emergencies` | Emergency | 22 | 7 | 3 | — | Ride and SOS location traces |
 | `emergencydoctorrequests` | EmergencyDoctorRequest | 75 | 21 | 6 | — | Ride and SOS location traces |
-| `emergencyrequests` | EmergencyRequest | 62 | 17 | 4 | — | Ride and SOS location traces |
+| `emergencyrequests` | EmergencyRequest | 64 | 17 | 4 | — | Ride and SOS location traces |
 | `encounters` | Encounter | 24 | 2 | 8 | — | Clinical records |
 | `endoscopyrecords` | EndoscopyRecord | 19 | 1 | 3 | — | Clinical records |
 | `enquiries` | Enquiry | 14 | 4 | 4 | — | **UNMAPPED — see gaps** |
@@ -221,7 +222,7 @@
 | `mealsubscriptions` | MealSubscription | 23 | 3 | 5 | — | **UNMAPPED — see gaps** |
 | `medicinedoselogs` | MedicineDoseLog | 11 | 1 | 4 | — | Clinical records |
 | `medicinereminders` | MedicineReminder | 20 | 2 | 1 | — | Clinical records |
-| `medicines` | Medicine | 38 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
+| `medicines` | Medicine | 39 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `memberships` | Membership | 37 | 4 | 9 | — | **UNMAPPED — see gaps** |
 | `mentalhealths` | MentalHealth | 82 | 11 | 4 | — | Mental-health records |
 | `mlccases` | MlcCase | 15 | 2 | 4 | — | Clinical records |
@@ -236,7 +237,7 @@
 | `nicurecords` | NicuRecord | 26 | 3 | 3 | — | Clinical records |
 | `notificationaudits` | NotificationAudit | 11 | 1 | 6 | — | Audit logs |
 | `notificationdeliveries` | NotificationDelivery | 19 | 1 | 6 | — | Notifications |
-| `notificationpreferences` | NotificationPreference | 15 | 2 | 1 | — | **UNMAPPED — see gaps** |
+| `notificationpreferences` | NotificationPreference | 16 | 2 | 1 | — | **UNMAPPED — see gaps** |
 | `notifications` | Notification | 15 | 1 | 3 | — | Notifications |
 | `notificationtemplates` | NotificationTemplate | 12 | 0 | 3 | — | No PII fields detected |
 | `notifytemplates` | NotifyTemplate | 14 | 2 | 3 | — | **UNMAPPED — see gaps** |
@@ -256,7 +257,7 @@
 | `patientaddresses` | PatientAddress | 11 | 4 | 1 | — | Clinical records |
 | `patientflags` | PatientFlag | 10 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `patientmovements` | PatientMovement | 23 | 1 | 6 | — | Clinical records |
-| `patients` | Patient | 42 | 10 | 9 | — | Clinical records |
+| `patients` | Patient | 43 | 10 | 10 | — | Clinical records |
 | `payments` | Payment | 31 | 2 | 5 | — | Payment and ledger entries |
 | `payouts` | Payout | 20 | 1 | 1 | — | Payment and ledger entries |
 | `payoutstatements` | PayoutStatement | 15 | 2 | 4 | — | **UNMAPPED — see gaps** |
@@ -321,7 +322,7 @@
 | `rewardredemptions` | RewardRedemption | 11 | 1 | 4 | — | Payment and ledger entries |
 | `ridebookings` | RideBooking | 72 | 13 | 9 | — | Ride and SOS location traces |
 | `riderprofiles` | RiderProfile | 49 | 12 | 12 | — | Provider KYC documents |
-| `ridetrackings` | RideTracking | 10 | 3 | 3 | — | Ride and SOS location traces |
+| `ridetrackings` | RideTracking | 10 | 3 | 4 | 2592000s | Ride and SOS location traces |
 | `roomtariffs` | RoomTariff | 13 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `rosters` | Roster | 14 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `rulefirings` | RuleFiring | 10 | 0 | 4 | — | No PII fields detected |
@@ -796,6 +797,43 @@ Indexes:
 |---|---|
 | `hospitalId:1` |  |
 | `status:1` |  |
+
+### `advancedirectives` — AdvanceDirective
+
+source `AdvanceDirective.js` · timestamps: yes · virtuals: 0 · retention: Clinical statutory period, plus the consent validity period (docs/privacy/RETENTION.md) · PII: Contact, Identifier, Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `patientId` | ObjectId | yes |  |  |  | User | Identifier |
+| `nominatedRepresentative.name` | String | yes |  |  |  |  | Identity |
+| `nominatedRepresentative.relationship` | String | yes |  |  |  |  |  |
+| `nominatedRepresentative.phone` | String | yes |  |  |  |  | Contact |
+| `nominatedRepresentative.email` | String |  |  | "" |  |  | Contact |
+| `nominatedRepresentative.address` | String |  |  | "" |  |  | Contact |
+| `treatmentPreferences.preferredFacilities` | Array<Mixed> |  |  |  |  |  |  |
+| `treatmentPreferences.acceptableMedications` | Array<Mixed> |  |  |  |  |  |  |
+| `treatmentPreferences.prohibitedTreatments` | Array<Mixed> |  |  |  |  |  |  |
+| `treatmentPreferences.preferredTherapies` | Array<Mixed> |  |  |  |  |  |  |
+| `treatmentPreferences.additionalInstructions` | String |  |  | "" |  |  |  |
+| `registrationDetails.boardRegistrationNumber` | String |  |  | "" |  |  |  |
+| `registrationDetails.registeredWithMentalHealthBoard` | Boolean |  |  | false |  |  |  |
+| `registrationDetails.registrationDate` | Date |  |  | null |  |  |  |
+| `status` | String |  |  | "active" | active, revoked, amended |  |  |
+| `revokedAt` | Date |  |  | null |  |  |  |
+| `revocationReason` | String |  |  | "" |  |  |  |
+| `validFrom` | Date |  |  | [function] |  |  |  |
+| `validUntil` | Date |  |  | null |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `patientId:1` |  |
+| `status:1` |  |
+| `patientId:1, status:1` |  |
 
 ### `agentsessions` — AgentSession
 
@@ -4952,6 +4990,8 @@ source `EmergencyRequest.js` · timestamps: yes · virtuals: 0 · retention: Tri
 | `dispatchLog.timestamp` | Date |  |  | [function] |  |  |  |
 | `cancelledAt` | Date |  |  | null |  |  |  |
 | `completedAt` | Date |  |  | null |  |  |  |
+| `cadBridgeEscalated` | Boolean |  |  | false |  |  |  |
+| `cadBridgeEscalatedAt` | Date |  |  | null |  |  |  |
 | `createdAt` | Date |  |  | [function] |  |  |  |
 | `updatedAt` | Date |  |  | [function] |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -7584,6 +7624,7 @@ source `Medicine.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `form` | String | yes |  |  | Tablet, Capsule, Syrup, Injection, Drop, Cream, Inhaler, Infusion, Other, Ointment, Gel, Lotion, Powder, Sachet, Suppository, Patch, Spray, Lozenge, Eye Drop, Ear Drop, Nasal Drop, Kit |  |  |
 | `therapeuticClass` | String |  |  |  | Antibiotic, Antiviral, Antifungal, Antiparasitic, Antimalarial, Anti-TB, Analgesic, NSAID, Muscle Relaxant, Anesthetic, Opioid, Antihypertensive, Diuretic, Statin, Antiplatelet, Anticoagulant, Antiarrhythmic, Nitrate, Antidiabetic, Insulin, Thyroid, Corticosteroid, Sex Hormone, A… (739 chars) |  |  |
 | `rxSchedule` | String |  |  |  | otc, rx, schedule_h, h1, x, schedule_g, narcotic_ndps, ayurvedic, OTC, H, H1, X, G, NDPS, NON_SCHEDULED_RX, AYUSH |  |  |
+| `scheduleClass` | String |  |  |  | otc, rx, schedule_h, h1, x, schedule_g, narcotic_ndps, ayurvedic, OTC, H, H1, X, G, NDPS, NON_SCHEDULED_RX, AYUSH |  |  |
 | `productLine` | String |  |  |  | Prescription, OTC, Generic, Branded, Ayurvedic, Homeopathic, Unani/Siddha, Supplements, Baby Care, Personal Care, Women's Hygiene, Elder Care, Diabetic Care, Surgical/Ortho, Medical Devices, First Aid, Hygiene, Health Foods, Other |  |  |
 | `storage.coldChain` | Boolean |  |  | false |  |  |  |
 | `storage.coldChainTemp` | String |  |  | "" |  |  |  |
@@ -8194,6 +8235,7 @@ source `NotificationPreference.js` · timestamps: yes · virtuals: 0 · retentio
 | `channels.email` | Boolean |  |  | true |  |  | Contact |
 | `channels.sms` | Boolean |  |  | true |  |  |  |
 | `channels.push` | Boolean |  |  | true |  |  |  |
+| `channels.ivr` | Boolean |  |  | true |  |  |  |
 | `marketingOptIn` | Boolean |  |  | true |  |  |  |
 | `mutedTypes` | Array<Mixed> |  |  | [] |  |  |  |
 | `discreetMode` | Boolean |  |  | false |  |  |  |
@@ -8948,6 +8990,7 @@ source `Patient.js` · timestamps: yes · virtuals: 0 · retention: Statutory pe
 | `abhaAddress` | String |  |  | "" |  |  |  |
 | `abhaStatus` | String |  |  | "" | , Unverified, Verified |  |  |
 | `provisional` | Boolean |  |  | false |  |  |  |
+| `isCanary` | Boolean |  |  | false |  |  |  |
 | `createdAt` | Date |  |  | [function] |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -8960,6 +9003,7 @@ Indexes:
 | `hospitalId:1` |  |
 | `mergedInto:1` |  |
 | `provisional:1` |  |
+| `isCanary:1` |  |
 | `hospitalId:1, status:1` |  |
 | `phone:1` |  |
 | `createdAt:-1` |  |
@@ -11497,6 +11541,7 @@ Indexes:
 | `rideId:1` |  |
 | `riderId:1` |  |
 | `timestamp:1` |  |
+| `timestamp:1` | TTL 2592000s |
 
 ### `roomtariffs` — RoomTariff
 

@@ -778,7 +778,7 @@ router.post('/register', authLimiter, botProtection(), validate(registerSchema),
       simulated: otpResult.simulated,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    sendServerError(res, err);
   }
 });
 
@@ -846,7 +846,7 @@ router.post('/verify-otp', authLimiter, totpLimiter, validate(verifyOtpSchema), 
       user: await userResponse(user),
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    sendServerError(res, err);
   }
 });
 
@@ -897,7 +897,7 @@ router.post('/resend-otp', authLimiter, totpLimiter, botProtection(), validate(r
       simulated: otpResult.simulated,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    sendServerError(res, err);
   }
 });
 
@@ -1222,7 +1222,7 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
       user: await userResponse(user),
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    sendServerError(res, err);
   }
 });
 
@@ -1332,7 +1332,7 @@ router.post('/2fa/complete', authLimiter, totpLimiter, async (req, res) => {
       user: await userResponse(user),
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    sendServerError(res, err);
   }
 });
 
@@ -1448,7 +1448,7 @@ router.post('/google', authLimiter, validate(googleAuthSchema), async (req, res)
     });
   } catch (err) {
     logger.error('Google auth route error:', err);
-    res.status(500).json({ message: err.message || 'Google authentication failed' });
+    sendServerError(res, err, 'Google authentication failed');
   }
 });
 
@@ -1564,7 +1564,7 @@ router.post('/google-register', authLimiter, botProtection(), validate(googleReg
     });
   } catch (err) {
     logger.error('Google register route error:', err);
-    res.status(500).json({ message: err.message || 'Google registration failed' });
+    sendServerError(res, err, 'Google registration failed');
   }
 });
 
@@ -1598,7 +1598,7 @@ router.post('/forgot-password', authLimiter, botProtection(), validate(forgotPas
 
     return res.json({ message: 'Password reset OTP sent to your email.', email: user.email });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    sendServerError(res, err);
   }
 });
 
@@ -1680,7 +1680,7 @@ router.post('/reset-password', authLimiter, validate(resetPasswordSchema), async
 
     res.json({ message: 'Password updated successfully. You can now login.' });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    sendServerError(res, err);
   }
 });
 
@@ -1943,7 +1943,7 @@ router.put('/change-password', protect, validate(changePasswordSchema), async (r
 
     res.json({ message: 'Password updated successfully' });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    sendServerError(res, err);
   }
 });
 
@@ -1996,7 +1996,7 @@ router.post('/avatar', protect, handleAvatarUpload, async (req, res) => {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({ message: 'Profile photo must be 5MB or smaller' });
     }
-    res.status(500).json({ message: err.message });
+    sendServerError(res, err);
   }
 });
 
@@ -2086,7 +2086,7 @@ router.put('/profile', protect, validate(profileUpdateSchema), async (req, res) 
 
     res.json(await userResponse(user));
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    sendServerError(res, err);
   }
 });
 
@@ -2120,7 +2120,7 @@ router.post('/logout-all', protect, async (req, res) => {
     }
     res.json({ message: 'Signed out of all devices' });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    sendServerError(res, err);
   }
 });
 
@@ -2139,7 +2139,7 @@ router.post('/pin', protect, async (req, res) => {
     await auditLog('pin_set', req.user._id, { ip: req.ip });
     return res.json({ set: true });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    return sendServerError(res, err);
   }
 });
 
@@ -2182,7 +2182,7 @@ router.post('/pin/unlock', protect, async (req, res) => {
     await auditLog('pin_unlock', req.user._id, { ip: req.ip });
     return res.json({ unlocked: true });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    return sendServerError(res, err);
   }
 });
 
@@ -2192,7 +2192,7 @@ router.get('/allowed-ips', protect, async (req, res) => {
     const user = await User.findById(req.user._id).select('allowedIps').lean();
     return res.json({ allowedIps: user?.allowedIps || [] });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    return sendServerError(res, err);
   }
 });
 
@@ -2211,7 +2211,7 @@ router.put('/allowed-ips', protect, async (req, res) => {
     await auditLog('allowed_ips_updated', req.user._id, { count: list.length, ip: req.ip });
     return res.json({ allowedIps: list });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    return sendServerError(res, err);
   }
 });
 

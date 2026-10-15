@@ -1,0 +1,23 @@
+{
+  "name": "findmedi-mongodb-cdc-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mongodb.MongoDbConnector",
+    "tasks.max": "1",
+    "mongodb.hosts": "mongo:27017",
+    "mongodb.name": "findmedi_db",
+    "mongodb.user": "${file:/secrets/mongo-credentials.properties:username}",
+    "mongodb.password": "${file:/secrets/mongo-credentials.properties:password}",
+    "mongodb.authsource": "admin",
+    "database.include.list": "findmedi",
+    "collection.include.list": "findmedi.appointments,findmedi.pharmacyorders,findmedi.laborders,findmedi.billings,findmedi.emergencyrequests",
+    "collection.exclude.list": "findmedi.auditlogs,findmedi.users",
+    "capture.mode": "change_streams_update_lookup",
+    "topic.prefix": "cdc.findmedi",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+    "tombstones.on.delete": "true",
+    "heartbeat.interval.ms": "10000"
+  }
+}

@@ -910,4 +910,58 @@ router.put('/crisis/:id/resolve', protect, validate(mhCrisisAckSchema), async (r
   } catch (err) { sendServerError(res, err, 'Could not resolve the crisis'); }
 });
 
+
+// ─── MH-MISSING-01: Mental Healthcare Act (MHCA 2017) Advance Directives ─────
+router.post('/advance-directives', protect, authorize('records:write', 'records:write:own'), async (req, res) => {
+  try {
+    const { default: AdvanceDirective } = await import('../models/AdvanceDirective.js');
+    const { nominatedRepresentative, treatmentPreferences, registrationDetails } = req.body;
+    if (!nominatedRepresentative?.name || !nominatedRepresentative?.phone) {
+      return res.status(400).json({ message: 'Nominated representative name and phone are required' });
+    }
+    const directive = await AdvanceDirective.create({
+      patientId: req.user._id || req.user.id,
+      nominatedRepresentative,
+      treatmentPreferences: treatmentPreferences || {},
+      registrationDetails: registrationDetails || {},
+      status: 'active',
+      validFrom: new Date(),
+    });
+    await auditLog('advance_directive_created', req.user._id, { directiveId: directive._id });
+    res.status(201).json({ ok: true, directive });
+  } catch (err) {
+    sendServerError(res, err, 'Could not create advance directive');
+  }
+});
+
+router.get('/advance-directives', protect, authorize('records:read', 'records:read:own'), async (req, res) => {
+  try {
+    const { default: AdvanceDirective } = await import('../models/AdvanceDirective.js');
+    const patientId = req.user.role === 'patient' ? (req.user._id || req.user.id) : (req.query.patientId || req.user._id);
+    const directives = await AdvanceDirective.find({ patientId }).sort({ createdAt: -1 }).lean();
+    res.json({ ok: true, directives });
+  } catch (err) {
+    sendServerError(res, err, 'Could not fetch advance directives');
+  }
+});
+
+router.put('/advance-directives/:id/revoke', protect, authorize('records:write', 'records:write:own'), async (req, res) => {
+  try {
+    const { default: AdvanceDirective } = await import('../models/AdvanceDirective.js');
+    const directive = await AdvanceDirective.findOne({
+      _id: req.params.id,
+      ...(req.user.role === 'patient' ? { patientId: req.user._id || req.user.id } : {}),
+    });
+    if (!directive) return res.status(404).json({ message: 'Advance directive not found' });
+    directive.status = 'revoked';
+    directive.revokedAt = new Date();
+    directive.revocationReason = req.body.reason || 'Revoked by patient';
+    await directive.save();
+    await auditLog('advance_directive_revoked', req.user._id, { directiveId: directive._id });
+    res.json({ ok: true, directive });
+  } catch (err) {
+    sendServerError(res, err, 'Could not revoke advance directive');
+  }
+});
+
 export default router;

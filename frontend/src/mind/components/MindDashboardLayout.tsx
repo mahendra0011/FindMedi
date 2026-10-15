@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MindSidebar from './MindSidebar';
+import QuickExitButton from './QuickExitButton';
 
 export default function MindDashboardLayout({ children }: { children: React.ReactNode }) {
   const mainRef = useRef<HTMLDivElement>(null);
@@ -22,6 +23,7 @@ export default function MindDashboardLayout({ children }: { children: React.Reac
       >
         {children}
       </main>
+      <QuickExitButton />
     </div>
   );
 }

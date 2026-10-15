@@ -202,3 +202,51 @@ export const recordSignupEvent = async ({ ip, userId, email } = {}) => {
     return { count: null, burst: false };
   }
 };
+
+/**
+ * Security probe detection and progressive temporary lockout (SEC-MISSING-01 / AUTH-M-08)
+ * Tracks consecutive 401/403/404/422 probing events per IP / User.
+ * Locks out on persistent probing (> 20 probe events within 5 minutes for 15 minutes).
+ */
+const PROBE_WINDOW_MS = 5 * 60 * 1000;
+const PROBE_LOCKOUT_MS = 15 * 60 * 1000;
+export const PROBE_THRESHOLD = 20;
+
+export const recordSecurityProbe = async ({ ip, userId, statusCode, endpoint } = {}) => {
+  try {
+    const probeKey = `sec:probe:${ip || 'unknown'}`;
+    const lockoutKey = `sec:lockout:${ip || 'unknown'}`;
+
+    if (isRedisReady() && redisClient.isOpen) {
+      const isLocked = await redisClient.get(lockoutKey);
+      if (isLocked) {
+        return { locked: true, remainingSec: await redisClient.ttl(lockoutKey) };
+      }
+
+      const count = await redisClient.incr(probeKey);
+      if (count === 1) await redisClient.pexpire(probeKey, PROBE_WINDOW_MS);
+
+      if (count >= PROBE_THRESHOLD) {
+        await redisClient.set(lockoutKey, '1', { PX: PROBE_LOCKOUT_MS });
+        await auditLog('security_probe_lockout', userId || null, {
+          ip,
+          probeCount: count,
+          statusCode,
+          endpoint,
+          lockoutDurationSec: PROBE_LOCKOUT_MS / 1000,
+        }).catch(() => {});
+        logger.warn(`[security] IP ${ip} temporarily locked out for ${PROBE_LOCKOUT_MS / 1000}s after ${count} probe requests`);
+        return { locked: true, remainingSec: PROBE_LOCKOUT_MS / 1000, probeCount: count };
+      }
+      return { locked: false, probeCount: count };
+    } else {
+      const count = memIncr(probeKey);
+      const locked = count >= PROBE_THRESHOLD;
+      return { locked, probeCount: count };
+    }
+  } catch (err) {
+    logger.error(`[security] probe tracking failed: ${err.message}`);
+    return { locked: false, probeCount: 0 };
+  }
+};
+

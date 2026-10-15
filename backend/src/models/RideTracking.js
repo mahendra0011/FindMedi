@@ -19,4 +19,7 @@ const rideTrackingSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now, index: true },
 }, { timestamps: true });
 
+// 30-day retention window per RETENTION.md (dispute window)
+rideTrackingSchema.index({ timestamp: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
+
 export default mongoose.model('RideTracking', rideTrackingSchema);

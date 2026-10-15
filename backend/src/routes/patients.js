@@ -6,6 +6,7 @@ import { validate, createPatientSchema, updatePatientSchema } from '../utils/val
 import { auditLog } from '../middleware/audit.js';
 import { paginatedResults } from '../utils/pagination.js';
 import { requireBreakGlass } from '../middleware/requireBreakGlass.js';
+import logger from '../config/logger.js';
 
 // File 23 §3.3/§4.3: platform operators see MASKED identity by default.
 // Full identity needs a BreakGlassGrant (per-subject, time-boxed, audited).
@@ -242,6 +243,9 @@ router.get('/:id', protect, requirePatientGrant, async (req, res) => {
     if (!p) return res.status(404).json({ message: 'Patient not found' });
     if (!canAccessPatientDoc(req, p)) {
       return res.status(403).json({ message: 'Access denied' });
+    }
+    if (p.isCanary) {
+      logger.warn(`[CANARY-ALERT] Decoy canary patient ${p._id} accessed by user ${req.user?._id} (${req.user?.role}) from IP ${req.ip}`);
     }
     res.json(p);
   } catch (err) { res.status(500).json({ message: err.message }); }

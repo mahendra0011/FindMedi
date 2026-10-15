@@ -572,3 +572,53 @@ fn hex_decode(s: &str) -> Option<Vec<u8>> {
   }
   Some(result)
 }
+
+/// Batch AES-256-GCM field encryption for PHI data (RUST-MISSING-01).
+/// Encrypts an array of plaintext strings with authenticated AAD binding.
+#[napi]
+pub fn batch_encrypt_aes_gcm(
+  key_bytes: Vec<u8>,
+  items: Vec<String>,
+  aad: Option<String>,
+) -> Result<Vec<String>, napi::Error> {
+  if key_bytes.len() != 32 {
+    return Err(napi::Error::from_reason("Key must be 32 bytes for AES-256-GCM"));
+  }
+
+  use aes_gcm::{
+    aead::{Aead, KeyInit, Payload},
+    Aes256Gcm, Nonce,
+  };
+  use base64::prelude::*;
+  use rand::RngCore;
+
+  let cipher = match Aes256Gcm::new_from_slice(&key_bytes) {
+    Ok(c) => c,
+    Err(e) => return Err(napi::Error::from_reason(format!("Cipher init error: {}", e))),
+  };
+
+  let mut results = Vec::with_capacity(items.len());
+  let aad_bytes = aad.as_deref().unwrap_or("").as_bytes();
+
+  for item in items {
+    let mut nonce_bytes = [0u8; 12];
+    rand::thread_rng().fill_bytes(&mut nonce_bytes);
+    let nonce = Nonce::from_slice(&nonce_bytes);
+
+    let payload = Payload {
+      msg: item.as_bytes(),
+      aad: aad_bytes,
+    };
+
+    match cipher.encrypt(nonce, payload) {
+      Ok(ciphertext) => {
+        let nonce_b64 = BASE64_STANDARD.encode(nonce_bytes);
+        let ct_b64 = BASE64_STANDARD.encode(ciphertext);
+        results.push(format!("v1:rust:{}:{}", nonce_b64, ct_b64));
+      }
+      Err(e) => return Err(napi::Error::from_reason(format!("Encryption error: {}", e))),
+    }
+  }
+
+  Ok(results)
+}

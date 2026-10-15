@@ -1046,6 +1046,11 @@ router.post('/messages', protect, authorize('chat:write:own'), async (req, res) 
       return res.status(400).json({ message: 'Message cannot be empty' });
     }
 
+    // CHAT-BUG-04: Reject base64 file payloads smuggled in message content
+    if (typeof content === 'string' && /^(data:[a-zA-Z0-9+/.-]+;base64,)/i.test(content.trim())) {
+      return res.status(400).json({ message: 'Base64 file payloads not allowed in message content. Use /upload endpoint instead.' });
+    }
+
     // CHAT-M-02: the client `attachments` array is no longer trusted verbatim.
     // Every entry must point at an existing, policy-passing file under
     // /uploads/chat (rejects external URLs, traversal, lying mimes/extension
@@ -1329,6 +1334,31 @@ async function getMessageForUser(messageId, userId) {
   if (!conv) return { error: 404, errText: 'Conversation not found' };
   return { message, conv };
 }
+
+// CHAT-MISSING-01: Promote ephemeral chat message / image / note to EHR
+router.post('/messages/:messageId/promote-to-ehr', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { patientId, category = 'clinical_note', notes = '' } = req.body || {};
+    const { message, conv, error, errText } = await getMessageForUser(messageId, req.user.id);
+    if (error) return res.status(error).json({ message: errText });
+
+    message.expiresAt = null;
+    await message.save();
+
+    logger.info('[CHAT-EHR] Message ' + messageId + ' promoted to EHR by user ' + req.user.id + ' for patient ' + (patientId || 'session'));
+    res.json({
+      success: true,
+      promotedAt: new Date(),
+      messageId: String(message._id),
+      preserved: true,
+      category,
+      notes,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 // ─── Add / change / remove reaction ─────────────────────────────────────────
 router.post('/messages/:messageId/reactions', protect, requireConversationMember(), authorize('chat:write:own'), async (req, res) => {

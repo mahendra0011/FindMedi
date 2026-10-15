@@ -164,3 +164,70 @@ export async function processAnalyzerResultUpload({
     importedAt: new Date(),
   };
 }
+
+const activeAnalyzerConnections = new Map();
+
+/**
+ * Creates an in-process TCP listener for LIS analyzers connecting over LAN (ASTM/HL7).
+ */
+export async function startLisTcpServer({ port = 5100, onResult } = {}) {
+  const net = await import('node:net');
+  const server = net.createServer((socket) => {
+    const remoteId = `${socket.remoteAddress}:${socket.remotePort}`;
+    activeAnalyzerConnections.set(remoteId, {
+      connectedAt: new Date(),
+      lastHeartbeat: new Date(),
+      socket,
+    });
+
+    let buffer = '';
+    socket.on('data', async (chunk) => {
+      const conn = activeAnalyzerConnections.get(remoteId);
+      if (conn) conn.lastHeartbeat = new Date();
+
+      buffer += chunk.toString('utf8');
+      if (buffer.includes('\r\n') || buffer.includes('\r') || buffer.includes('\x1c')) {
+        try {
+          const res = await processAnalyzerResultUpload({
+            analyzerId: `TCP-${remoteId}`,
+            rawPayload: buffer,
+            protocol: buffer.startsWith('MSH') ? 'HL7' : 'ASTM',
+          });
+          if (onResult) onResult(res);
+          socket.write('\x06'); // ACK character
+        } catch {}
+        buffer = '';
+      }
+    });
+
+    socket.on('close', () => {
+      activeAnalyzerConnections.delete(remoteId);
+    });
+
+    socket.on('error', () => {
+      activeAnalyzerConnections.delete(remoteId);
+    });
+  });
+
+  return server;
+}
+
+/**
+ * Returns active analyzer connection heartbeats and connection health.
+ */
+export function getActiveAnalyzerHeartbeats() {
+  const now = Date.now();
+  const list = [];
+  for (const [id, info] of activeAnalyzerConnections.entries()) {
+    const ageSec = Math.round((now - info.lastHeartbeat.getTime()) / 1000);
+    list.push({
+      connectionId: id,
+      connectedAt: info.connectedAt,
+      lastHeartbeat: info.lastHeartbeat,
+      healthy: ageSec < 60,
+      ageSec,
+    });
+  }
+  return list;
+}
+
