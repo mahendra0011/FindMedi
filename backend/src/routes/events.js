@@ -374,6 +374,13 @@ router.post('/:id/register', protect, bookingLimiter, idempotencyGuard({ prefix:
         feeAmount,
         currency: event.fee?.currency ?? 'INR',
         paymentId: payment?._id ?? null,
+        // Attribution triple for organiser impact reports (optional,
+        // schema-bounded, never PII).
+        attribution: {
+          source: req.body.attribution?.source || '',
+          medium: req.body.attribution?.medium || '',
+          campaign: req.body.attribution?.campaign || '',
+        },
         // Server-minted. This is the string the ticket's QR encodes; the
         // client has no say in it and cannot mint one for somebody else.
         checkInCode: randomId('', 8).toLowerCase(),

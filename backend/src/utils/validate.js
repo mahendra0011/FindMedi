@@ -1338,6 +1338,11 @@ export const createSupportTicketSchema = z.object({
   priority: z.enum(['Low', 'Medium', 'High', 'Urgent']).optional().default('Medium'),
 });
 
+// CSAT is captured once, by the raiser, on a resolved/closed ticket.
+export const ticketCsatSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+}).strict();
+
 // â”€â”€â”€ Leave Request Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const createLeaveRequestSchema = z.object({
   leaveType: z.enum(['Sick Leave', 'Casual Leave', 'Earned Leave', 'Personal Leave', 'Maternity/Paternity Leave', 'Other']),
@@ -2671,6 +2676,11 @@ export const eventActionSchema = z.object({
 export const registerEventSchema = z.object({
   consentGiven: z.boolean().optional(),
   paymentId: objectIdSchema.optional(),
+  attribution: z.object({
+    source: z.string().trim().max(60).optional(),
+    medium: z.string().trim().max(60).optional(),
+    campaign: z.string().trim().max(120).optional(),
+  }).strict().optional(),
 }).strict();
 
 export const cancelRegistrationSchema = z.object({

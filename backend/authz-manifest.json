@@ -10,13 +10,13 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1837,
+  "total": 1838,
   "counts": {
     "inherited": 5,
     "object": 437,
     "public": 116,
     "role": 1202,
-    "self": 77
+    "self": 78
   },
   "byMechanism": {
     "adminOnly": 99,
@@ -24,7 +24,7 @@
     "assertCallParticipant": 2,
     "assertEhrSearchAccess": 1,
     "assertMentalHealthAccess": 11,
-    "authorize": 843,
+    "authorize": 844,
     "authorizeObject": 78,
     "canAccessPatient": 5,
     "canAccessRecord": 4,
@@ -39,7 +39,7 @@
     "platformAdminOnly": 15,
     "requireConversationMember": 18,
     "requireMetricsToken": 1,
-    "requireObjectId": 162,
+    "requireObjectId": 166,
     "requirePatientGrant": 4,
     "requireReportScope": 2,
     "requireRole": 87,
@@ -4710,28 +4710,28 @@
     },
     {
       "file": "events.js",
-      "line": 406,
+      "line": 413,
       "method": "GET",
       "target": "'/:id/registrations'",
       "tag": "object"
     },
     {
       "file": "events.js",
-      "line": 430,
+      "line": 437,
       "method": "GET",
       "target": "'/:id/registration'",
       "tag": "self"
     },
     {
       "file": "events.js",
-      "line": 448,
+      "line": 455,
       "method": "POST",
       "target": "'/:id/check-in'",
       "tag": "object"
     },
     {
       "file": "events.js",
-      "line": 488,
+      "line": 495,
       "method": "POST",
       "target": "'/:id/registration/cancel'",
       "tag": "self"
@@ -9470,7 +9470,7 @@
     },
     {
       "file": "platformContent.js",
-      "line": 28,
+      "line": 34,
       "method": "PUT",
       "target": "'/:key'",
       "tag": "role"
@@ -12151,52 +12151,59 @@
     },
     {
       "file": "supportTickets.js",
-      "line": 14,
+      "line": 21,
       "method": "POST",
       "target": "'/'",
-      "tag": "role"
-    },
-    {
-      "file": "supportTickets.js",
-      "line": 32,
-      "method": "GET",
-      "target": "'/my-tickets'",
       "tag": "role"
     },
     {
       "file": "supportTickets.js",
       "line": 39,
       "method": "GET",
+      "target": "'/my-tickets'",
+      "tag": "role"
+    },
+    {
+      "file": "supportTickets.js",
+      "line": 46,
+      "method": "GET",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "supportTickets.js",
-      "line": 61,
+      "line": 68,
       "method": "PUT",
       "target": "'/:id/status'",
       "tag": "role"
     },
     {
       "file": "supportTickets.js",
-      "line": 73,
+      "line": 80,
       "method": "PUT",
       "target": "'/:id/assign'",
       "tag": "role"
     },
     {
       "file": "supportTickets.js",
-      "line": 82,
+      "line": 89,
       "method": "POST",
       "target": "'/:id/messages'",
       "tag": "role"
     },
     {
       "file": "supportTickets.js",
-      "line": 93,
+      "line": 100,
       "method": "GET",
       "target": "'/stats'",
       "tag": "role"
+    },
+    {
+      "file": "supportTickets.js",
+      "line": 113,
+      "method": "POST",
+      "target": "'/:id/csat'",
+      "tag": "self"
     },
     {
       "file": "surge.js",

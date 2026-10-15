@@ -3,6 +3,7 @@ import {
   MapPin, Plus, RefreshCw, Calendar, CheckCircle2, Clock, MapPinned, Target
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { queueWrite, syncNow, pendingWrites, onReconnect } from '@/lib/offlineQueue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +35,7 @@ export default function FieldOps() {
   const [territories, setTerritories] = useState<Territory[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingOffline, setPendingOffline] = useState(0);
   const [isTerritoryOpen, setIsTerritoryOpen] = useState(false);
   const [newTerritory, setNewTerritory] = useState({
     name: '',
@@ -61,6 +63,36 @@ export default function FieldOps() {
 
   useEffect(() => {
     fetchData();
+    // Offline-first: replay queued territory creates when connectivity
+    // returns, and surface the pending count. Queue rows carry idempotency
+    // keys so a replayed create can never double-create server-side.
+    let cancelled = false;
+    const refreshPending = async () => {
+      try {
+        const rows = await pendingWrites();
+        if (!cancelled) setPendingOffline(rows.length);
+      } catch { /* IndexedDB unavailable — online-only mode */ }
+    };
+    const replay = async () => {
+      try {
+        const out = await syncNow(async (w) => {
+          await apiClient.post(w.url, w.body);
+        });
+        if (!cancelled) {
+          setPendingOffline(out.pending);
+          if (out.synced > 0) {
+            toast.success(`${out.synced} offline change(s) synced`);
+            fetchData();
+          }
+        }
+      } catch { /* stays queued for the next reconnect */ }
+    };
+    refreshPending();
+    const off = onReconnect(() => { void replay(); });
+    return () => {
+      cancelled = true;
+      off();
+    };
   }, []);
 
   const handleCreateTerritory = async (e: React.FormEvent) => {
@@ -75,7 +107,7 @@ export default function FieldOps() {
         .map((p) => p.trim())
         .filter(Boolean);
 
-      await apiClient.post('/crm/territories', {
+      const payload = {
         name: newTerritory.name.trim(),
         city: newTerritory.city,
         pincodes: pincodesArray,
@@ -83,7 +115,8 @@ export default function FieldOps() {
           visitsPerDay: Number(newTerritory.visitsPerDay) || 0,
           leadsPerWeek: Number(newTerritory.leadsPerWeek) || 0,
         },
-      });
+      };
+      await apiClient.post('/crm/territories', payload);
       toast.success('Territory created');
       setIsTerritoryOpen(false);
       setNewTerritory({
@@ -95,6 +128,26 @@ export default function FieldOps() {
       });
       fetchData();
     } catch (err: any) {
+      // Offline: queue the create for replay on reconnect instead of losing
+      // field work. Anything else surfaces the server message as before.
+      if (!err?.response) {
+        try {
+          await queueWrite('/crm/territories', 'POST', {
+            name: newTerritory.name.trim(),
+            city: newTerritory.city,
+            pincodes: newTerritory.pincodes.split(',').map((p) => p.trim()).filter(Boolean),
+            targets: {
+              visitsPerDay: Number(newTerritory.visitsPerDay) || 0,
+              leadsPerWeek: Number(newTerritory.leadsPerWeek) || 0,
+            },
+          });
+          const rows = await pendingWrites().catch(() => []);
+          setPendingOffline(rows.length);
+          toast.success('Offline — territory queued, will sync on reconnect');
+          setIsTerritoryOpen(false);
+          return;
+        } catch { /* fall through to the error toast */ }
+      }
       toast.error(err.response?.data?.message || 'Failed to create territory');
     }
   };
@@ -120,9 +173,14 @@ export default function FieldOps() {
 
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={fetchData} disabled={loading} className="gap-1.5 h-9">
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
+          {pendingOffline > 0 && (
+            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 dark:bg-amber-950/40 border-amber-200">
+              {pendingOffline} offline change(s) pending sync
+            </Badge>
+          )}
 
           <Button size="sm" onClick={() => setIsTerritoryOpen(true)} className="gap-1.5 h-9 bg-primary text-primary-foreground">
             <Plus className="h-4 w-4" />

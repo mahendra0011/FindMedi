@@ -32,6 +32,13 @@ const registrationSchema = new mongoose.Schema({
   cancelReason: { type: String, maxlength: 500, default: '' },
   refundedAt: { type: Date, default: null },
   refundId: { type: mongoose.Schema.Types.ObjectId, ref: 'Refund', default: null },
+  // Campaign attribution (where the registrant came from): UTM triple,
+  // bounded and optional. Powers organiser impact reports; never PII.
+  attribution: {
+    source: { type: String, trim: true, maxlength: 60, default: '' },
+    medium: { type: String, trim: true, maxlength: 60, default: '' },
+    campaign: { type: String, trim: true, maxlength: 120, default: '' },
+  },
 }, { timestamps: true });
 
 // 5.md 6 "one-registration-per-person": the unique index is the enforcement —

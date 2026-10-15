@@ -153,6 +153,25 @@ describe('POST /events/:id/register — the seat CAS', () => {
     const res = await as().post(`/${EVENT_ID}/register`).send({});
     expect(res.status).toBe(401);
   });
+
+  it('stores bounded UTM attribution for organiser impact reports', async () => {
+    const res = await as(attendee).post(`/${EVENT_ID}/register`).send({
+      consentGiven: true,
+      attribution: { source: 'rwa-group', medium: 'whatsapp', campaign: 'diabetes-camp-nov' },
+    });
+    expect(res.status).toBe(201);
+    expect(lastRegBody.attribution).toEqual({
+      source: 'rwa-group',
+      medium: 'whatsapp',
+      campaign: 'diabetes-camp-nov',
+    });
+  });
+
+  it('stores empty attribution when none is supplied', async () => {
+    const res = await as(attendee).post(`/${EVENT_ID}/register`).send({ consentGiven: true });
+    expect(res.status).toBe(201);
+    expect(lastRegBody.attribution).toEqual({ source: '', medium: '', campaign: '' });
+  });
 });
 
 describe('POST /events/:id/registration/cancel — the refund rule', () => {

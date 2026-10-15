@@ -96,6 +96,14 @@ export function startScheduler() {
       );
     }, 'hourly');
     await escalateUnackedClinicalAlerts();
+    // 20.md §2-§3: SLA-breached support tickets auto-escalate (hourly).
+    try {
+      const { runTicketEscalationsOnce } = await import('../jobs/ticketEscalation.job.js');
+      const out = await runTicketEscalationsOnce();
+      if (out?.escalated) logger.info(`[scheduler:tickets] escalated ${out.escalated} breached ticket(s)`);
+    } catch (e) {
+      logger.warn(`[scheduler:tickets] ${e.message}`);
+    }
     try {
       await retryDueWebhooks();
     } catch (e) {

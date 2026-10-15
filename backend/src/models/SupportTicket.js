@@ -41,6 +41,17 @@ const supportTicketSchema = new mongoose.Schema({
   assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   assignedToName: { type: String },
   messages: [ticketMessageSchema],
+  // 20.md §2 CSAT: captured once, by the raiser, on a resolved ticket.
+  csat: {
+    rating: { type: Number, min: 1, max: 5, default: null },
+    at: { type: Date, default: null },
+  },
+  // 20.md §3 escalation: SLA breach auto-escalates (see jobs/ticketEscalation).
+  escalated: {
+    at: { type: Date, default: null },
+    reason: { type: String, maxlength: 200, default: '' },
+    level: { type: String, enum: ['L1', 'L2', 'L3', ''], default: '' },
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });
