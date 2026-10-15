@@ -235,28 +235,14 @@ export default function HealthcareCatalogueModal({ isOpen, onClose }: Healthcare
                             whileHover={{ scale: 1.04, y: -2 }}
                             whileTap={{ scale: 0.96 }}
                             onClick={() => handleCardClick(item)}
-                            className="rounded-2xl p-3 border border-border/70 bg-card hover:bg-card/90 hover:border-primary/50 hover:shadow-md transition-all text-center flex flex-col items-center justify-between min-h-[140px] cursor-pointer group"
+                            className="rounded-2xl p-3.5 border border-border/70 bg-card hover:bg-card/90 hover:border-primary/50 hover:shadow-md transition-all text-center flex flex-col items-center justify-center min-h-[110px] cursor-pointer group"
                           >
                             <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-2 mx-auto transition-transform group-hover:scale-110 shadow-xs`}>
                               <ItemIcon className={`w-5 h-5 ${item.textColor}`} />
                             </div>
-                            <div className="flex-1 flex flex-col justify-center">
-                              <h4 className="font-semibold text-xs text-foreground leading-tight line-clamp-2">
-                                {item.name}
-                              </h4>
-                              <p className="text-[10px] text-muted-foreground/90 mt-1 line-clamp-2 leading-tight">
-                                {item.summary}
-                              </p>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground mt-1 font-medium">
-                              {item.soon
-                                ? 'Coming soon'
-                                : item.countKey === 'hospitals' && hospitalsCount > 0
-                                  ? `${hospitalsCount} hospitals`
-                                  : item.countKey === 'doctors' && doctorsCount > 0
-                                    ? `${doctorsCount} doctors`
-                                    : `${item.subs.length} subcategories`}
-                            </p>
+                            <h4 className="font-semibold text-xs text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                              {item.name}
+                            </h4>
                           </motion.button>
                         );
                       })}
