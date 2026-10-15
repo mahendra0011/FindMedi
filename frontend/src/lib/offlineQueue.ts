@@ -54,6 +54,15 @@ export const queueWrite = async (url: string, method: string, body: any): Promis
     attempts: 0,
   };
   await tx('readwrite', (s) => s.put(row));
+  // First offline write of the session marks offline-mode entry (once per
+  // page load; analytics must never break queueing).
+  try {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false && !(globalThis as any).__fmOfflineTracked) {
+      (globalThis as any).__fmOfflineTracked = true;
+      const { track } = await import('./track');
+      track('offline_mode_entered', { network_type: 'offline' });
+    }
+  } catch { /* ignore */ }
   return row;
 };
 

@@ -697,6 +697,22 @@ jobs:
       # would have discovered them by crashing.
       run: cd backend && node scripts/check-env-docs.mjs
 
+  frontend-gates:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 24.x
+    - name: 11.md S12 - i18n key parity (no blank non-English UI)
+      # Every en key must exist in hi and vice versa - a missing Hindi key
+      # renders the English fallback silently, a missing English key blank.
+      run: node scripts/i18n-coverage.mjs --strict
+    - name: 17.md - analytics registry parity (no undocumented emissions)
+      # Every runtime EVENT_SCHEMA must have an events.yaml entry with a
+      # reviewed pii_class. Undocumented emissions fail; dead spec is roadmap.
+      run: node scripts/analytics-coverage.mjs --strict
+
   server:
     runs-on: ubuntu-latest
 

@@ -137,6 +137,14 @@ export const EVENT_SCHEMAS: Record<string, z.ZodObject<any>> = {
     purpose: z.enum(['analytics', 'marketing', 'ai']),
     granted: z.boolean(),
   }),
+  install_prompt_accepted: z.object({
+    ...globalShape,
+    platform: z.enum(['web', 'pwa', 'android', 'ios']).optional(),
+  }),
+  offline_mode_entered: z.object({
+    ...globalShape,
+    network_type: z.enum(['wifi', '4g', '3g', 'offline']).optional(),
+  }),
 
   // 2. Search & Discovery
   search_performed: z.object({

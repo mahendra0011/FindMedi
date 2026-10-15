@@ -323,3 +323,188 @@ events:
     owner: platform
     pii_class: none
     properties: { network_type: "enum(wifi,4g,3g,offline)" }
+
+  # --- Backfilled 2026-10-15: runtime schemas that shipped without a yaml
+  # entry (analytics-coverage gate). needs_privacy_review=true marks entries
+  # whose pii_class below is the emitter-side default, NOT a reviewed
+  # classification - privacy review clears the flag, never the event.
+  - name: session_started
+    source: client
+    owner: auth
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: page_viewed
+    source: client
+    owner: growth
+    pii_class: none
+    needs_privacy_review: true
+    properties: { page_type: string }
+  - name: search_zero_results
+    source: client
+    owner: growth
+    pii_class: none
+    needs_privacy_review: true
+    properties: { query_length: number }
+  - name: provider_profile_shared
+    source: client
+    owner: growth
+    pii_class: none
+    needs_privacy_review: true
+    properties: { channel: string }
+  - name: booking_completed
+    source: client
+    owner: bookings
+    pii_class: none
+    needs_privacy_review: true
+    properties: { mode: string }
+  - name: rx_uploaded
+    source: client
+    owner: pharmacy
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: delivery_assigned
+    source: server
+    owner: logistics
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: plan_viewed
+    source: client
+    owner: growth
+    pii_class: none
+    needs_privacy_review: true
+    properties: { plan_type: string }
+  - name: trial_started
+    source: client
+    owner: growth
+    pii_class: none
+    needs_privacy_review: true
+    properties: { plan_type: string }
+  - name: membership_renewed
+    source: server
+    owner: billing
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: class_booked
+    source: client
+    owner: bookings
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: check_in_recorded
+    source: client
+    owner: ops
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: event_checked_in
+    source: client
+    owner: engagement
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: record_shared
+    source: client
+    owner: records
+    pii_class: none
+    needs_privacy_review: true
+    properties: { share_method: string }
+  - name: consent_granted
+    source: client
+    owner: privacy
+    pii_class: none
+    needs_privacy_review: true
+    properties: { purpose: string }
+  - name: consent_revoked
+    source: client
+    owner: privacy
+    pii_class: none
+    needs_privacy_review: true
+    properties: { purpose: string }
+  - name: access_log_viewed
+    source: client
+    owner: privacy
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: join_landing_viewed
+    source: client
+    owner: supply
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: join_type_selected
+    source: client
+    owner: supply
+    pii_class: none
+    needs_privacy_review: true
+    properties: { provider_type: string }
+  - name: join_document_uploaded
+    source: client
+    owner: supply
+    pii_class: none
+    needs_privacy_review: true
+    properties: { doc_type: string }
+  - name: pd_booking_accepted
+    source: client
+    owner: provider
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: pd_availability_updated
+    source: client
+    owner: provider
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: pd_payout_viewed
+    source: client
+    owner: provider
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: support_ticket_created
+    source: client
+    owner: support
+    pii_class: none
+    needs_privacy_review: true
+    properties: { category: string }
+  - name: dispute_opened
+    source: client
+    owner: support
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: notification_sent
+    source: server
+    owner: engagement
+    pii_class: none
+    needs_privacy_review: true
+    properties: { channel: string }
+  - name: wallet_topup_started
+    source: client
+    owner: billing
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: coupon_applied
+    source: client
+    owner: growth
+    pii_class: none
+    needs_privacy_review: true
+    properties: {}
+  - name: ai_escalated_to_emergency
+    source: client
+    owner: ai
+    pii_class: count-only
+    needs_privacy_review: true
+    properties: {}
+  - name: web_vital
+    source: client
+    owner: platform
+    pii_class: none
+    needs_privacy_review: true
+    properties: { metric: string }

@@ -16,6 +16,7 @@ import SplitText from "@/components/reactbits/SplitText";
 import BlurText from "@/components/reactbits/BlurText";
 import AIChatAssistant from "@/components/AIChatAssistant";
 import UnifiedSearch from "@/components/search/UnifiedSearch";
+import InstallAppButton from "@/components/InstallAppButton";
 import NationalHelplinesModal from "@/components/emergency/NationalHelplinesModal";
 import AccessibilityControls from "@/components/accessibility/AccessibilityControls";
 
@@ -381,6 +382,7 @@ const Home = () => {
                 <Button size="lg" variant="outline" className="gap-2 text-base px-8 h-14" onClick={() => window.location.href='tel:108'}>
                   <Phone className="w-4 h-4" /> Emergency Call
                 </Button>
+                <InstallAppButton />
               </div>
             </motion.div>
 
