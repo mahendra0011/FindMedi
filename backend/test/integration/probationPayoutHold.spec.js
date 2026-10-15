@@ -50,6 +50,11 @@ jestApi.unstable_mockModule('../../src/lib/pgDualWrite.js', () => ({
   mirrorLedgerEntry: jestApi.fn(async () => {}),
   mirrorPaymentWithLedger: jestApi.fn(async () => {}),
 }));
+// Mock the service so it doesn't load real models (which need mongoose)
+jestApi.unstable_mockModule('../../src/services/payoutReconcile.js', () => ({
+  reconcilePayouts: jestApi.fn(async () => ({ ok: true, checkedAt: new Date(), counts: {}, totals: {}, mismatches: [] })),
+  unsweptGraceMs: jestApi.fn(() => 3 * 24 * 60 * 60 * 1000),
+}));
 jestApi.unstable_mockModule('../../src/models/CommissionConfig.js', () => ({
   default: {
     find: () => chain([]),
@@ -138,9 +143,6 @@ describe('POST /payouts — 2.md §6 payout hold at create', () => {
   it('creates the payout when no listing is held', async () => {
     heldProvider = null;
     const res = await create();
-    if (res.status !== 201) {
-      console.error('TEST FAIL - status:', res.status, 'body:', JSON.stringify(res.body, null, 2));
-    }
     expect(res.status).toBe(201);
     expect(createdPayouts).toHaveLength(1);
     expect(createdPayouts[0].facilityId).toBe(FACILITY_ID);

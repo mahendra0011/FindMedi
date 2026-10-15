@@ -1651,7 +1651,7 @@
     },
     {
       "file": "breakGlass.js",
-      "line": 112,
+      "line": 128,
       "method": "POST",
       "target": "'/:id/revoke'",
       "tag": "role"
@@ -2099,140 +2099,140 @@
     },
     {
       "file": "chat.js",
-      "line": 1146,
+      "line": 1151,
       "method": "PUT",
       "target": "'/messages/read/:conversationId'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1177,
+      "line": 1182,
       "method": "PUT",
       "target": "'/messages/delivered/:conversationId'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1193,
+      "line": 1198,
       "method": "PUT",
       "target": "'/messages/mark-unread/:conversationId'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1210,
+      "line": 1215,
       "method": "PUT",
       "target": "'/settings/:conversationId'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1256,
+      "line": 1261,
       "method": "DELETE",
       "target": "'/chat/:conversationId/clear'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1272,
+      "line": 1277,
       "method": "DELETE",
       "target": "'/chat/:conversationId'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1287,
+      "line": 1292,
       "method": "PUT",
       "target": "'/chat/:conversationId/draft'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1304,
+      "line": 1309,
       "method": "PUT",
       "target": "'/chat/:conversationId/pin-message'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1334,
+      "line": 1339,
       "method": "POST",
       "target": "'/messages/:messageId/reactions'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1368,
+      "line": 1373,
       "method": "GET",
       "target": "'/messages/:messageId/reactions'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1391,
+      "line": 1396,
       "method": "PUT",
       "target": "'/messages/:messageId'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1431,
+      "line": 1436,
       "method": "DELETE",
       "target": "'/messages/:messageId'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1467,
+      "line": 1472,
       "method": "POST",
       "target": "'/messages/bulk-delete'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1505,
+      "line": 1510,
       "method": "PUT",
       "target": "'/messages/:messageId/star'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1527,
+      "line": 1532,
       "method": "GET",
       "target": "'/starred'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1541,
+      "line": 1546,
       "method": "POST",
       "target": "'/messages/forward'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1601,
+      "line": 1606,
       "method": "GET",
       "target": "'/messages/:messageId/info'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1630,
+      "line": 1635,
       "method": "GET",
       "target": "'/messages/:conversationId/media'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1655,
+      "line": 1660,
       "method": "GET",
       "target": "'/global-search'",
       "tag": "role"
     },
     {
       "file": "chat.js",
-      "line": 1697,
+      "line": 1702,
       "method": "POST",
       "target": "'/link-check'",
       "tag": "role"
@@ -2582,70 +2582,70 @@
     },
     {
       "file": "commission.js",
-      "line": 30,
+      "line": 31,
       "method": "GET",
       "target": "'/config'",
       "tag": "role"
     },
     {
       "file": "commission.js",
-      "line": 64,
+      "line": 65,
       "method": "PUT",
       "target": "'/config/:id'",
       "tag": "role"
     },
     {
       "file": "commission.js",
-      "line": 85,
+      "line": 86,
       "method": "GET",
       "target": "'/ledger'",
       "tag": "role"
     },
     {
       "file": "commission.js",
-      "line": 117,
+      "line": 118,
       "method": "GET",
       "target": "'/tax-summary'",
       "tag": "role"
     },
     {
       "file": "commission.js",
-      "line": 166,
+      "line": 167,
       "method": "GET",
       "target": "'/payouts'",
       "tag": "role"
     },
     {
       "file": "commission.js",
-      "line": 192,
+      "line": 193,
       "method": "POST",
       "target": "'/payouts'",
       "tag": "role"
     },
     {
       "file": "commission.js",
-      "line": 277,
+      "line": 278,
       "method": "PUT",
       "target": "'/payouts/:id/approve'",
       "tag": "role"
     },
     {
       "file": "commission.js",
-      "line": 298,
+      "line": 299,
       "method": "PUT",
       "target": "'/payouts/:id/pay'",
       "tag": "role"
     },
     {
       "file": "commission.js",
-      "line": 347,
+      "line": 348,
       "method": "GET",
       "target": "'/stats'",
       "tag": "role"
     },
     {
       "file": "commission.js",
-      "line": 389,
+      "line": 390,
       "method": "GET",
       "target": "'/recon'",
       "tag": "role"
@@ -12816,14 +12816,14 @@
     },
     {
       "file": "video.js",
-      "line": 50,
+      "line": 66,
       "method": "GET",
       "target": "'/status'",
       "tag": "self"
     },
     {
       "file": "video.js",
-      "line": 55,
+      "line": 71,
       "method": "POST",
       "target": "'/consent'",
       "tag": "object"
