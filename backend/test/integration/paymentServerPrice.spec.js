@@ -163,7 +163,7 @@ describe('A5 · POST /api/payments prices an appointment link server-side', () =
 describe('A5 · PUT /:id/refund defaults to the full remaining balance', () => {
   const seedRefundable = () => {
     const row = {
-      _id: 'pay-r1', amount: 500, refund_amount: 0, status: 'completed',
+      _id: '64b0000000000000000000b1', amount: 500, refund_amount: 0, status: 'completed',
       hospitalId: 'H1', serviceType: 'appointment', patient_id: 'pat-1',
     };
     payments.set(row._id, row);
@@ -173,21 +173,21 @@ describe('A5 · PUT /:id/refund defaults to the full remaining balance', () => {
   it('an empty body refunds the whole remaining capture', async () => {
     seedRefundable();
 
-    const res = await as(STAFF).put('/pay-r1/refund').send({});
+    const res = await as(STAFF).put('/64b0000000000000000000b1/refund').send({});
 
     expect(res.status).toBe(200);
     expect(res.body.totalRefunded).toBe(500);
-    expect(payments.get('pay-r1').status).toBe('refunded');
+    expect(payments.get('64b0000000000000000000b1').status).toBe('refunded');
   });
 
   it('an explicit amount still wins', async () => {
     seedRefundable();
 
-    const res = await as(STAFF).put('/pay-r1/refund').send({ refund_amount: 150 });
+    const res = await as(STAFF).put('/64b0000000000000000000b1/refund').send({ refund_amount: 150 });
 
     expect(res.status).toBe(200);
-    expect(payments.get('pay-r1').refund_amount).toBe(150);
-    expect(payments.get('pay-r1').status).toBe('partially_refunded');
+    expect(payments.get('64b0000000000000000000b1').refund_amount).toBe(150);
+    expect(payments.get('64b0000000000000000000b1').status).toBe('partially_refunded');
   });
 
   it('a fully refunded payment refuses instead of refunding 0 or negative', async () => {
@@ -195,7 +195,7 @@ describe('A5 · PUT /:id/refund defaults to the full remaining balance', () => {
     row.refund_amount = 500;
     row.status = 'refunded';
 
-    const res = await as(STAFF).put('/pay-r1/refund').send({});
+    const res = await as(STAFF).put('/64b0000000000000000000b1/refund').send({});
 
     expect(res.status).toBe(400);
     expect(res.body.code).toBe('ALREADY_REFUNDED');

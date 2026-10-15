@@ -23,21 +23,40 @@ const tenant = (req) => ({ hospitalId: req.user.hospitalId });
 router.get('/accounts', authorize('billing:read'), async (req, res) => {
   try {
     const rows = await BankAccount.find({ ...tenant(req), active: true }).lean();
-    return res.json({ accounts: rows });
+    const masked = rows.map((r) => ({
+      ...r,
+      accountNo: r.accountNo ? `******${String(r.accountNo).slice(-4)}` : '',
+    }));
+    return res.json({ accounts: masked });
   } catch (err) {
     logger.error(`Bank accounts error: ${err.message}`);
-    return res.status(500).json({ message: err.message });
+    return res.status(500).json({ message: 'Failed to fetch bank accounts' });
   }
 });
 
 router.post('/accounts', authorize('billing:write'), async (req, res) => {
   try {
-    const row = await BankAccount.create({ ...tenant(req), ...req.body });
+    const { bankName, accountNo, ifsc, kind } = req.body || {};
+    if (!bankName || !accountNo) {
+      return res.status(400).json({ message: 'bankName and accountNo are required' });
+    }
+    const cleanAccountNo = String(accountNo).replace(/\s+/g, '');
+    const cleanIfsc = String(ifsc || '').trim().toUpperCase();
+    const validKinds = ['current', 'savings', 'escrow', 'od'];
+    const chosenKind = validKinds.includes(kind) ? kind : 'current';
+    const row = await BankAccount.create({
+      ...tenant(req),
+      bankName: String(bankName).slice(0, 100),
+      accountNo: cleanAccountNo,
+      ifsc: cleanIfsc,
+      kind: chosenKind,
+      active: true,
+    });
     return res.status(201).json({ id: String(row._id) });
   } catch (err) {
     if (err?.code === 11000) return res.status(409).json({ message: 'Account already registered' });
     logger.error(`Bank account create error: ${err.message}`);
-    return res.status(500).json({ message: err.message });
+    return res.status(500).json({ message: 'Failed to create bank account' });
   }
 });
 

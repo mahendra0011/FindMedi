@@ -44,7 +44,7 @@ describe('PAY-B-08 · PUT /:id/refund production fail-closed guard', () => {
     process.env.NODE_ENV = 'production';
     try {
       const response = await as({ _id: 'admin-1', role: 'superadmin' })
-        .put('/pay-1/refund')
+        .put('/64b0000000000000000000b2/refund')
         .send({ refund_amount: 10 });
 
       expect(response.status).toBe(503);
@@ -65,7 +65,7 @@ describe('PAY-B-08 · PUT /:id/refund production fail-closed guard', () => {
     paymentFindById.mockResolvedValueOnce(null);
     try {
       const response = await as({ _id: 'admin-1', role: 'superadmin' })
-        .put('/pay-1/refund')
+        .put('/64b0000000000000000000b2/refund')
         .send({ refund_amount: 10 });
 
       // Passes the guard, then 404s on the missing payment — never 503.

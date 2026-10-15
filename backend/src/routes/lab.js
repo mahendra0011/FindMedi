@@ -819,9 +819,12 @@ router.post('/ingest/astm', async (req, res, next) => {
     const frame = typeof req.body === 'string' ? req.body : req.body?.frame;
     if (!frame) return res.status(400).json({ message: 'ASTM frame required' });
     const parsed = parseAstmFrame(frame);
+    const tenantId = req.serviceAccount?.tenantId || req.user?.hospitalId || req.user?.facilityId;
+    const tenantFilter = tenantId ? { hospitalId: tenantId } : {};
     let matched = 0;
     for (const r of parsed.results) {
       const order = await LabOrder.findOne({
+        ...tenantFilter,
         $or: [{ accessionNo: r.sampleId }, { orderId: r.sampleId }, { 'tests.sampleId': r.sampleId }],
       });
       if (!order) continue;
@@ -1470,10 +1473,12 @@ async function ingestHl7(req, res) {
     if (!parsed.ok) return res.status(400).json({ message: `Rejected: ${parsed.reason}` });
     let applied = 0;
     let critical = 0;
+    const tenantId = req.serviceAccount?.tenantId || req.user?.hospitalId || req.user?.facilityId;
+    const tenantFilter = tenantId ? { hospitalId: tenantId } : {};
     for (const obr of parsed.orders) {
       if (!obr.orderId) continue;
       // eslint-disable-next-line no-await-in-loop
-      const order = await LabOrder.findOne({ orderId: obr.orderId });
+      const order = await LabOrder.findOne({ ...tenantFilter, orderId: obr.orderId });
       if (!order) continue;
       for (const t of (order.tests || [])) {
         const hit = parsed.results.find((r) =>

@@ -5,7 +5,8 @@ import { mountApp, query } from '../helpers/appHarness.js';
 
 const accounts = [];
 const vendorBills = [];
-const loans = [{ _id: 'l1', principal: 10000, recovered: 0, emi: 2000, status: 'Open', save: async function s() { return this; } }];
+const LOAN_ID = '64b00000000000000000aa01';
+const loans = [{ _id: LOAN_ID, principal: 10000, recovered: 0, emi: 2000, status: 'Open', save: async function s() { return this; } }];
 
 const { as: asFin } = await mountApp('finance', {
   '../../src/models/Account.js': () => ({
@@ -84,7 +85,7 @@ describe('P1-16 accounts', () => {
 
 describe('P1-17 loans', () => {
   test('recovery closes at principal', async () => {
-    const r = await asStaff(admin).post('/loans/l1/recover').send({ amount: 10000 });
+    const r = await asStaff(admin).post(`/loans/${LOAN_ID}/recover`).send({ amount: 10000 });
     expect(r.status).toBe(200);
     expect(r.body.status).toBe('Closed');
     expect(r.body.recovered).toBe(10000);

@@ -241,7 +241,7 @@ export default function UnifiedSearch({
                 triggerSearch();
               }
             }}
-            placeholder={t('common.search')}
+            placeholder={t('common.search', { defaultValue: 'Search doctors, clinics, tests, medicines…' })}
             className="border-0 shadow-none focus-visible:ring-0 text-sm h-13 pl-3 pr-10 bg-transparent placeholder:text-muted-foreground/70"
           />
           {query && (

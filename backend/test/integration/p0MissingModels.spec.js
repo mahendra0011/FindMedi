@@ -7,6 +7,10 @@ import { mountApp, query } from '../helpers/appHarness.js';
 
 const mem = () => {
   const rows = [];
+  // Created ids are valid 24-hex ObjectIds: :id routes carry requireObjectId
+  // guards, so random base36 ids would 404 before reaching the handler.
+  let seq = 0;
+  const nextId = () => `64b00000000000000000${String(1000 + (seq++ % 9000)).slice(-4)}`;
   const matchOne = (filter = {}) => rows.find((r) => (filter._id === undefined || String(r._id) === String(filter._id))
     && (!filter.hospitalId || String(r.hospitalId) === String(filter.hospitalId))
     && (filter.staffId === undefined || String(r.staffId) === String(filter.staffId))
@@ -39,7 +43,7 @@ const mem = () => {
     },
     create: async (doc) => {
       const row = {
-        _id: `${Math.random().toString(36).slice(2)}`, status: 'Draft', ...doc,
+        _id: nextId(), status: 'Draft', ...doc,
         save: async function save() { return this; },
       };
       if (doc.earnings) {

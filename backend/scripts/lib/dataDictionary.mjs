@@ -129,7 +129,7 @@ export const RETENTION_RULES = [
   // A handled DPDP request (access/correct/export) is the EVIDENCE the right
   // was honoured — same reason DeletionRequest sits here: the proof must
   // outlive the data it describes.
-  [/^(AuditLog|LoginEvent|NotificationAudit|DeletionRequest|DataSubjectRequest)$/, 'Audit logs', '7 years (longer than the data they describe)'],
+  [/^(AuditLog|LoginEvent|NotificationAudit|DeletionRequest|DataSubjectRequest|TwoPersonApproval)$/, 'Audit logs', '7 years (longer than the data they describe)'],
     [/^(TransactionLedger|Payment|DemoPayment|Refund|Payout|CommissionConfig|Billing|LoyaltyLedger|LoyaltyEarnRule|RewardCatalogItem|RewardRedemption|WalletGuard|Dispute|Insurance|PlatformCouponRedemption|PlatformCouponUserUsage|IpdDeposit|CreditNote|DebitNote|Expense|LedgerEntry)$/, 'Payment and ledger entries', '8 years (statutory accounting)'],
   [/^(Notification|NotificationDelivery)$/, 'Notifications', '90 days'],
   [/^(OTP|RefreshToken|AmbulanceSetupCode|Token)$/, 'OTP / setup codes / tokens', '15–60 minutes (TTL index) — tokens until logout or expiry'],
@@ -140,11 +140,11 @@ export const RETENTION_RULES = [
   // application and its KYC documents are that same record from BEFORE the
   // relationship existed (2.md 12 keeps rejected applications so a re-apply
   // can reuse them), so they are held on the identical clock.
-  [/^(ProviderApplication|ProviderDocument|Doctor|Staff|AssistantProfile|LawyerProfile|RiderProfile|DeliveryPartner|PharmacyStaff|Provider|PractitionerProfile)$/, 'Provider KYC documents', 'Life of the provider relationship + 1 year (provider deletion flow)'],
+  [/^(ProviderApplication|ProviderDocument|DocumentVerification|Doctor|Staff|AssistantProfile|LawyerProfile|RiderProfile|DeliveryPartner|PharmacyStaff|Provider|PractitionerProfile)$/, 'Provider KYC documents', 'Life of the provider relationship + 1 year (provider deletion flow)'],
   // Clinical: dispensing (Pharmacy*), blood bank, physio and OT episodes are
   // health records about a patient, even though RETENTION.md's examples are
   // appointments/prescriptions/labs.
-  [/^(Patient|PatientAddress|Appointment|Prescription|Record|RecordVersion|Report|LabOrder|LabBooking|Admission|VitalsLog|VitalsReminder|Triage|NursingChart|Radiology|DietOrder|ChronicCarePlan|MedicineDoseLog|MedicineReminder|Referral|FamilyMember|Physiotherapy|OperationTheatre|BloodRequest|BloodUnit|PharmacyOrder|PharmacyReturn|PharmacyDelivery|AssistantBooking|VaccinationSchedule|Encounter|ChargeItem|BedTransfer|DischargeWorkflow|WardRound|AdrReport|Incident|MlcCase|DeathRecord|PreAuthRequest|Claim|Order|ShiftHandover|AntenatalRecord|LabourRecord|IcuFlowsheet|ChemoProtocol|ChemoCycle|FormResponse|QueueTicket|PatientMovement|SignatureEvent|GrowthChart|VaccinationAlert|Partogram|NewbornScreening|ClinicBranch|ClinicPackage|HaiEvent|AntibioticReview|NeedleStick|NicuRecord|CathLabRecord|EndoscopyRecord|AiReview|DoseLog)$/, 'Clinical records', 'Statutory period for the jurisdiction, minimum 3 years'],
+  [/^(Patient|PatientAddress|Appointment|Prescription|Record|RecordVersion|Report|LabOrder|LabBooking|Admission|VitalsLog|VitalsReminder|Triage|NursingChart|Radiology|DietOrder|ChronicCarePlan|MedicineDoseLog|MedicineReminder|Referral|FamilyMember|Physiotherapy|OperationTheatre|BloodRequest|BloodUnit|PharmacyOrder|PharmacyReturn|PharmacyDelivery|AssistantBooking|VaccinationSchedule|Encounter|ChargeItem|BedTransfer|DischargeWorkflow|WardRound|AdrReport|Incident|MlcCase|DeathRecord|PreAuthRequest|Claim|Order|ShiftHandover|AntenatalRecord|LabourRecord|IcuFlowsheet|ChemoProtocol|ChemoCycle|FormResponse|QueueTicket|PatientMovement|SignatureEvent|GrowthChart|VaccinationAlert|Partogram|NewbornScreening|ClinicBranch|ClinicPackage|HaiEvent|AntibioticReview|NeedleStick|NicuRecord|CathLabRecord|EndoscopyRecord|AiReview|DoseLog|ElderResident)$/, 'Clinical records', 'Statutory period for the jurisdiction, minimum 3 years'],
 ];
 
 export const OPERATIONAL_ORG_CLASS = {

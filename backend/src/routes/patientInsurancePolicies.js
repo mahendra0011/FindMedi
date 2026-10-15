@@ -40,7 +40,12 @@ router.post('/', protect, authorize('insurance:write', 'insurance:write:own'), b
     // patientId is NEVER read from the body — the schema is strict, so
     // `patientId: <someone else>` is a 400 before this line, and the session
     // owns the row either way.
-    const policy = await InsurancePolicy.create({ ...req.body, patientId: actorId(req) });
+    const { insurer, tpa, policyNumber, memberIds, scheme, validFrom, validTo } = req.body;
+    const policy = await InsurancePolicy.create({
+      insurer, tpa, policyNumber, memberIds, scheme, validFrom, validTo,
+      verified: false,
+      patientId: actorId(req),
+    });
     return res.status(201).json(withStatus(policy.toObject?.() ?? policy));
   } catch (err) {
     return res.status(400).json({ message: err.message });

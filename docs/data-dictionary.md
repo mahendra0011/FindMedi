@@ -16,7 +16,7 @@
 - **345 models** across 337 files (0 skipped)
 - **7617 schema fields**, of which **798 classified as PII** in **243 collections**
 - **7 collections** carry a TTL index
-- **130 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
+- **127 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
 ### PII categories
 
@@ -147,10 +147,10 @@
 | `dndentries` | DndEntry | 8 | 2 | 3 | — | **UNMAPPED — see gaps** |
 | `doctorfees` | DoctorFee | 12 | 2 | 3 | — | **UNMAPPED — see gaps** |
 | `doctors` | Doctor | 117 | 11 | 15 | — | Provider KYC documents |
-| `documentverifications` | DocumentVerification | 23 | 2 | 7 | — | **UNMAPPED — see gaps** |
+| `documentverifications` | DocumentVerification | 23 | 2 | 7 | — | Provider KYC documents |
 | `donorscreenings` | DonorScreening | 17 | 3 | 2 | — | **UNMAPPED — see gaps** |
 | `doselogs` | DoseLog | 18 | 1 | 4 | — | Clinical records |
-| `elderresidents` | ElderResident | 29 | 14 | 5 | — | **UNMAPPED — see gaps** |
+| `elderresidents` | ElderResident | 29 | 14 | 5 | — | Clinical records |
 | `emergencies` | Emergency | 22 | 7 | 3 | — | Ride and SOS location traces |
 | `emergencydoctorrequests` | EmergencyDoctorRequest | 75 | 21 | 6 | — | Ride and SOS location traces |
 | `emergencyrequests` | EmergencyRequest | 62 | 17 | 4 | — | Ride and SOS location traces |
@@ -358,7 +358,7 @@
 | `tokens` | Token | 25 | 4 | 3 | — | OTP / setup codes / tokens |
 | `transactionledgers` | TransactionLedger | 20 | 4 | 9 | — | Payment and ledger entries |
 | `triages` | Triage | 46 | 16 | 2 | — | Clinical records |
-| `twopersonapprovals` | TwoPersonApproval | 22 | 1 | 5 | — | **UNMAPPED — see gaps** |
+| `twopersonapprovals` | TwoPersonApproval | 22 | 1 | 5 | — | Audit logs |
 | `unmetdemands` | UnmetDemand | 15 | 4 | 5 | — | **UNMAPPED — see gaps** |
 | `users` | User | 105 | 27 | 19 | — | **UNMAPPED — see gaps** |
 | `vaccinationalerts` | VaccinationAlert | 12 | 1 | 1 | — | Clinical records |
@@ -428,9 +428,7 @@ cover yet — each needs a decision, not a guess:
 - `dialysiswaterqualities`
 - `dndentries`
 - `doctorfees`
-- `documentverifications`
 - `donorscreenings`
-- `elderresidents`
 - `enquiries`
 - `eventregistrations`
 - `events`
@@ -503,7 +501,6 @@ cover yet — each needs a decision, not a guess:
 - `teammembers`
 - `teleconsents`
 - `territories`
-- `twopersonapprovals`
 - `unmetdemands`
 - `users`
 - `vendorbills`
@@ -4609,7 +4606,7 @@ Indexes:
 
 ### `documentverifications` — DocumentVerification
 
-source `DocumentVerification.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Device/Network
+source `DocumentVerification.js` · timestamps: yes · virtuals: 0 · retention: Life of the provider relationship + 1 year (provider deletion flow) (docs/privacy/RETENTION.md) · PII: Device/Network
 
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|
@@ -4716,7 +4713,7 @@ Indexes:
 
 ### `elderresidents` — ElderResident
 
-source `ElderResident.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Demographic, Health, Identity
+source `ElderResident.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Demographic, Health, Identity
 
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|
@@ -12783,7 +12780,7 @@ Indexes:
 
 ### `twopersonapprovals` — TwoPersonApproval
 
-source `TwoPersonApproval.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Device/Network
+source `TwoPersonApproval.js` · timestamps: yes · virtuals: 0 · retention: 7 years (longer than the data they describe) (docs/privacy/RETENTION.md) · PII: Device/Network
 
 | Path | Type | Req | Unique | Default | Enum | Ref | PII |
 |---|---|---|---|---|---|---|---|

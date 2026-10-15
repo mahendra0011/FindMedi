@@ -50,7 +50,7 @@ async function assertBookingAccess(req, bookingId, action) {
   if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
   const isClient = booking.userId?.toString() === req.user._id.toString();
   const isLawyer = booking.lawyerId?.toString() === req.user._id.toString();
-  const isAdmin = ['superadmin', 'hospital_admin'].includes(req.user.role);
+  const isAdmin = req.user.role === 'superadmin';
   // Actions permitted per role
   const perms = {
     read: isClient || isLawyer || isAdmin,
@@ -1121,7 +1121,7 @@ router.get('/:id', protect, authorize('legal:read'), async (req, res) => {
     const isAdmin = ['superadmin', 'hospital_admin'].includes(req.user.role);
 
     if (!isClient && !isLawyer && !isAdmin) {
-      return res.status(403).json({ message: 'Confidential: You do not have access to this case record' });
+      return res.status(404).json({ message: 'Booking not found' });
     }
 
     let lawyerProfile = null;
