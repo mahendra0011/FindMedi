@@ -95,4 +95,14 @@ Code base se audit md files hatane ke baad yehi ek source of truth hai.
   ko backlog me dalna.
 - **Blocked on:** Human researcher + recruited users.
 
+## 14. T1 clinical-note encryption at rest (File 07 §8)
+- **Status:** AES-256-GCM infra ready (`utils/fieldEncryption.js` + `phiFields.js`
+  blind index + migrate script) but applied only to govt IDs + bank details.
+  Mental-health session notes deliberately NOT encrypted yet.
+- **Baki:** Encrypt on session-write + decrypt on every read path TOGETHER.
+- **Blocked on:** Joint migration — `backend/mindsupport` sub-app reads the
+  same session rows directly; one-sided encryption breaks its readers.
+  Encrypt-write here without decrypt-there = data loss. Do both sides in one
+  change with a clinician sign-off on the read paths.
+
 Related: see docs/qa-release.md for the release process.

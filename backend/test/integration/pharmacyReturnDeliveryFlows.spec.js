@@ -42,6 +42,10 @@ jestApi.unstable_mockModule('../../src/models/PharmacyOrder.js', () => ({
     findOne: (...args) => orderFindOne(...args),
   },
 }));
+const medicineCount = jestApi.fn();
+jestApi.unstable_mockModule('../../src/models/Medicine.js', () => ({
+  default: { countDocuments: (...args) => medicineCount(...args) },
+}));
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
   auditLog: (...args) => auditLog(...args),
 }));
@@ -79,6 +83,7 @@ beforeEach(() => {
   returnCreate.mockReset();
   orderFindById.mockReset();
   orderFindOne.mockReset();
+  medicineCount.mockReset().mockResolvedValue(0);
   auditLog.mockReset().mockResolvedValue(undefined);
 });
 
@@ -236,6 +241,36 @@ describe('POST /returns', () => {
 
     expect(res.status).toBe(404);
     expect(returnCreate).not.toHaveBeenCalled();
+  });
+
+  it('409s a return on an order containing cold-chain items (no re-entry to stock)', async () => {
+    orderFindById.mockImplementation(() => query({
+      ...orderDoc,
+      items: [{ medicineId: '507f1f77bcf86cd799439010', medicineName: 'Insulin Glargine' }],
+    }));
+    orderFindOne.mockImplementation(() => query(null));
+    medicineCount.mockResolvedValue(1);
+
+    const res = await staff.post('/returns').send({ orderId: orderIdHex, reason: 'Changed mind' });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('COLD_CHAIN_NO_RETURN');
+    expect(returnCreate).not.toHaveBeenCalled();
+  });
+
+  it('allows the return when no item is cold-chain', async () => {
+    orderFindById.mockImplementation(() => query({
+      ...orderDoc,
+      items: [{ medicineId: '507f1f77bcf86cd799439011', medicineName: 'Paracetamol' }],
+    }));
+    orderFindOne.mockImplementation(() => query(null));
+    medicineCount.mockResolvedValue(0);
+    returnCreate.mockImplementation(async (doc) => ({ ...doc, _id: 'ret-1' }));
+
+    const res = await staff.post('/returns').send({ orderId: orderIdHex, reason: 'Damaged strip' });
+
+    expect(res.status).toBe(201);
+    expect(returnCreate).toHaveBeenCalledTimes(1);
   });
 });
 

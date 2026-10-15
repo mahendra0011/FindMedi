@@ -97,6 +97,13 @@ const quoteSchema = new mongoose.Schema({
     amount: { type: Number, min: 0, default: 0 },
     held: { type: Boolean, default: false },
     paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment', default: null },
+    // FLOW-B escrow: held at accept (verified advance payment), released when
+    // the service starts, disputable for 48 h after release. `disputed` freezes
+    // settlement to the provider until ops resolves (see routes/quotes.js).
+    releasedAt: { type: Date, default: null },
+    disputeUntil: { type: Date, default: null },
+    disputed: { type: Boolean, default: false },
+    disputeReason: { type: String, maxlength: 500, default: '' },
   },
 }, { timestamps: true });
 

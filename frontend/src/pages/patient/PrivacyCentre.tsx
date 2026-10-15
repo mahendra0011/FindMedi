@@ -24,6 +24,7 @@ interface AccessEntry {
 }
 
 const LS_DISCREET = 'findmedi:discreet';
+const LS_CONSENTS = 'findmedi:consent-prefs';
 
 const DEFAULT_CONSENTS: Consent[] = [
   { id: 'care', purpose: 'Share records with treating doctors', granted: true, updatedAt: '' },
@@ -52,34 +53,89 @@ export default function PrivacyCentre({
   };
 
   const [consents, setConsents] = useState<Consent[]>(DEFAULT_CONSENTS);
-  const [accessLog, setAccessLog] = useState<AccessEntry[]>([]);
 
+  // Preference flags live on the server (PUT /patient/privacy → settings.
+// consentPrefs); localStorage is only the offline fallback. Care GRANTS
+  // themselves are recorded in consultation/ABHA flows, not here.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await api.get('/consents/mine') as unknown as { consents?: Consent[]; accessLog?: AccessEntry[] };
+        const prefs = await api.get('/patient/privacy') as unknown as { consentPrefs?: Record<string, boolean> };
         if (cancelled) return;
-        if (Array.isArray(res?.consents) && res.consents.length > 0) setConsents(res.consents);
-        if (Array.isArray(res?.accessLog)) setAccessLog(res.accessLog);
-      } catch { /* backend stub — keep defaults */ }
-      if (!cancelled && accessLog.length === 0) {
-        setAccessLog([
-          { id: 'a1', actor: 'Dr. Mehta (Clinic)', action: 'Viewed prescription', at: new Date().toISOString().slice(0, 10) },
-          { id: 'a2', actor: 'City Lab', action: 'Uploaded report', at: new Date().toISOString().slice(0, 10) },
-        ]);
-      }
+        const server = prefs?.consentPrefs;
+        if (server && typeof server === 'object') {
+          setConsents(DEFAULT_CONSENTS.map((c) => (typeof server[c.id] === 'boolean' ? { ...c, granted: server[c.id] } : c)));
+          return;
+        }
+      } catch { /* fall through to local prefs */ }
+      if (cancelled) return;
+      try {
+        const raw = window.localStorage.getItem(LS_CONSENTS);
+        if (raw) {
+          const saved = JSON.parse(raw) as Record<string, boolean>;
+          setConsents(DEFAULT_CONSENTS.map((c) => (typeof saved[c.id] === 'boolean' ? { ...c, granted: saved[c.id] } : c)));
+        }
+      } catch { /* ignore corrupt prefs */ }
     })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const [accessLog, setAccessLog] = useState<AccessEntry[]>([]);
+
+  // Live data only: care-grant ledger (GET /patient/consents) + the
+  // patient-visible audit trail (GET /patient/access-log). The old
+  // /consents/mine endpoints never existed — calls to them 404'd and the
+  // page fell back to fixture rows. No fixtures anymore: empty = empty.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [cRes, aRes] = await Promise.allSettled([
+          api.get('/patient/consents'),
+          api.get('/patient/access-log'),
+        ]);
+        if (cancelled) return;
+        if (cRes.status === 'fulfilled' && Array.isArray((cRes.value as any)?.consents)) {
+          // Server ledger wins when it has rows; local prefs stay otherwise.
+          const rows = (cRes.value as any).consents;
+          if (rows.length > 0) {
+            setConsents(rows.map((r: any) => ({
+              id: String(r._id || r.purpose),
+              purpose: String(r.purpose || r.title || 'Data sharing consent'),
+              granted: r.effectiveStatus === 'GRANTED' || r.status === 'GRANTED',
+              updatedAt: String(r.updatedAt || r.createdAt || ''),
+            })));
+          }
+        }
+        if (aRes.status === 'fulfilled' && Array.isArray(aRes.value as any)) {
+          const rows = (aRes.value as any).map((e: any, i: number) => ({
+            id: String(e._id || `a${i}`),
+            actor: String(e.userId || e.actor || 'System'),
+            action: String(e.action || 'Record access'),
+            at: String(e.timestamp || e.at || '').slice(0, 10),
+          }));
+          setAccessLog(rows);
+        }
+      } catch { /* offline — prefs + empty log stand */ }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const toggleConsent = async (id: string) => {
     const next = consents.map((c) => (c.id === id ? { ...c, granted: !c.granted } : c));
     setConsents(next);
+    const prefs: Record<string, boolean> = {};
+    next.forEach((c) => { prefs[c.id] = c.granted; });
     try {
-      await api.post('/consents/mine', { consents: next.map((c) => ({ id: c.id, granted: c.granted })) });
-    } catch { /* local-only */ }
+      window.localStorage.setItem(LS_CONSENTS, JSON.stringify(prefs));
+    } catch { /* ignore */ }
+    try {
+      await api.put('/patient/privacy', { consentPrefs: prefs });
+    } catch { /* offline — local prefs stand until next sync */ }
   };
 
   return (

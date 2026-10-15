@@ -104,11 +104,21 @@ const favoriteSchema = z.object({
 // the closed, validated surface the spec lists, so the schema is strict:
 // a key outside this vocabulary is a 400, not a silent write.
 const PRIVACY_VISIBILITY = ['private', 'care_team'];
+// Device-level sharing prefs the PrivacyCentre toggles write (care/family
+// consults, anonymised research, marketing tips). Stored under
+// settings.consentPrefs; care GRANTS themselves stay in ConsentRecord flows.
+const CONSENT_PREF_KEYS = ['care', 'family', 'research', 'marketing'];
 const privacySchema = z.object({
   hiddenCategories: z.array(z.string().min(1).max(64)).max(50).optional(),
   profileVisibility: z.enum(PRIVACY_VISIBILITY).optional(),
   patientRecordSharing: z.boolean().optional(),
   dataSharing: z.boolean().optional(),
+  consentPrefs: z.object({
+    care: z.boolean(),
+    family: z.boolean(),
+    research: z.boolean(),
+    marketing: z.boolean(),
+  }).partial().strict().optional(),
 }).strict();
 
 // The read view doubles as the write response. `settings` predates this
@@ -122,6 +132,12 @@ const privacyView = (settings = {}) => ({
     : 'care_team',
   patientRecordSharing: settings.patientRecordSharing === true,
   dataSharing: settings.dataSharing === true,
+  consentPrefs: {
+    care: settings.consentPrefs?.care !== false,
+    family: settings.consentPrefs?.family === true,
+    research: settings.consentPrefs?.research === true,
+    marketing: settings.consentPrefs?.marketing === true,
+  },
 });
 
 const router = express.Router();
@@ -396,6 +412,14 @@ router.put('/privacy', protect, authorize('profile:write:own'), validate(privacy
         changed.push(key);
       }
     }
+    if (req.body.consentPrefs !== undefined) {
+      const merged = { ...(next.consentPrefs ?? {}) };
+      for (const k of CONSENT_PREF_KEYS) {
+        if (typeof req.body.consentPrefs[k] === 'boolean') merged[k] = req.body.consentPrefs[k];
+      }
+      next.consentPrefs = merged;
+      changed.push('consentPrefs');
+    }
     if (changed.length) {
       // Reassign the whole object rather than poke nested keys: `settings` is
       // a Mixed path, and mongoose cannot see a nested mutation without
@@ -411,6 +435,35 @@ router.put('/privacy', protect, authorize('profile:write:own'), validate(privacy
       });
     }
     res.json(privacyView(next));
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Persona (6.md §4 role-based variants) ────────────────────────────────
+// "What brings you here?" — changes dashboard DEFAULTS only, never
+// permissions. Strict closed enum; skippable (no persona = generic adult
+// defaults). Stored on User.settings.persona, audited on change.
+const PERSONAS = ['adult', 'parent', 'elderly', 'caregiver', 'fitness', 'chronic', 'maternity'];
+const personaSchema = z.object({ persona: z.enum(PERSONAS) }).strict();
+
+router.get('/persona', protect, authorize('profile:read:own'), async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('settings').lean();
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const persona = PERSONAS.includes(user.settings?.persona) ? user.settings.persona : null;
+    return res.json({ persona });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.put('/persona', protect, authorize('profile:write:own'), validate(personaSchema), async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const next = { ...(user.settings ?? {}), persona: req.body.persona };
+    const { auditLog } = await import('../middleware/audit.js');
+    user.settings = next;
+    await user.save();
+    await auditLog('persona_selected', req.user._id, { persona: req.body.persona, ip: req.ip });
+    return res.json({ persona: req.body.persona });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

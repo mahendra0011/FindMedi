@@ -87,6 +87,7 @@ describe('GET /privacy', () => {
       profileVisibility: 'care_team',
       patientRecordSharing: false,
       dataSharing: false,
+      consentPrefs: { care: true, family: false, research: false, marketing: false },
     });
   });
 
@@ -103,6 +104,7 @@ describe('GET /privacy', () => {
       profileVisibility: 'private',
       patientRecordSharing: true,
       dataSharing: false,
+      consentPrefs: { care: true, family: false, research: false, marketing: false },
     });
   });
 
@@ -159,6 +161,7 @@ describe('PUT /privacy', () => {
       profileVisibility: 'care_team',
       patientRecordSharing: true,
       dataSharing: false,
+      consentPrefs: { care: true, family: false, research: false, marketing: false },
     });
     // Settings the privacy centre does not own survive the write.
     expect(currentUser.settings.theme).toBe('dark');
@@ -179,9 +182,34 @@ describe('PUT /privacy', () => {
       profileVisibility: 'care_team',
       patientRecordSharing: false,
       dataSharing: false,
+      consentPrefs: { care: true, family: false, research: false, marketing: false },
     });
     expect(save).not.toHaveBeenCalled();
     expect(auditLog).not.toHaveBeenCalled();
+  });
+
+  it('merges consentPrefs toggles and audits the move', async () => {
+    currentUser = makeUser({ consentPrefs: { care: true, family: true } });
+    const res = await as(PATIENT).put('/privacy').send({
+      consentPrefs: { family: false, marketing: true },
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.consentPrefs).toEqual({ care: true, family: false, research: false, marketing: true });
+    expect(currentUser.settings.consentPrefs).toEqual({ care: true, family: false, marketing: true });
+    expect(auditLog).toHaveBeenCalledWith(
+      'privacy_setting_changed',
+      'pat-1',
+      expect.objectContaining({ settingKeys: expect.arrayContaining(['consentPrefs']) }),
+    );
+  });
+
+  it('400s an unknown pref key inside consentPrefs (strict)', async () => {
+    currentUser = makeUser({});
+    const res = await as(PATIENT).put('/privacy').send({
+      consentPrefs: { evil: true },
+    });
+    expect(res.status).toBe(400);
+    expect(save).not.toHaveBeenCalled();
   });
 });
 
@@ -205,6 +233,41 @@ describe('GET /consents', () => {
       'c2:GRANTED',
       'c3:REVOKED',
     ]);
+  });
+});
+
+describe('GET+PUT /persona', () => {
+  it('401s anonymously', async () => {
+    expect((await as().get('/persona')).status).toBe(401);
+    expect((await as().put('/persona').send({ persona: 'parent' })).status).toBe(401);
+  });
+
+  it('answers null when no persona is set (generic adult defaults)', async () => {
+    currentUser = makeUser({ theme: 'dark' });
+    const res = await as(PATIENT).get('/persona');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ persona: null });
+  });
+
+  it('stores a closed-vocabulary persona and audits it', async () => {
+    currentUser = makeUser({ theme: 'dark' });
+    const res = await as(PATIENT).put('/persona').send({ persona: 'elderly' });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ persona: 'elderly' });
+    expect(currentUser.settings.persona).toBe('elderly');
+    expect(currentUser.settings.theme).toBe('dark');
+    expect(auditLog).toHaveBeenCalledWith(
+      'persona_selected',
+      'pat-1',
+      expect.objectContaining({ persona: 'elderly' }),
+    );
+  });
+
+  it('400s a persona outside the closed vocabulary', async () => {
+    currentUser = makeUser({});
+    const res = await as(PATIENT).put('/persona').send({ persona: 'astronaut' });
+    expect(res.status).toBe(400);
+    expect(save).not.toHaveBeenCalled();
   });
 });
 

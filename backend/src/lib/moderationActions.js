@@ -36,6 +36,27 @@ const ACTIVE_STATUSES = ['open', 'in_review', 'appealed'];
 const asId = (value) => (mongoose.isValidObjectId(value) ? value : null);
 
 /**
+ * 8.md §17 catalogue alignment: categories flagged `adClaimsRestricted`
+ * (skin/hair, weight-loss, supplements, IVF success rates, sexual health)
+ * auto-escalate any queue item touching them to at least HIGH — banned-claim
+ * review cannot sit at routine priority. Fail-open to the computed severity:
+ * a catalogue read failure must not block queue entry.
+ */
+async function adClaimsBoost(category, severity) {
+  try {
+    if (!category || category === 'other') return severity;
+    const { default: Category } = await import('../models/Category.js');
+    const cat = await Category.findOne({
+      $or: [{ code: category }, { aliases: category }],
+    }).select('adClaimsRestricted').lean();
+    if (cat?.adClaimsRestricted) return maxSeverity(severity, 'high');
+  } catch (err) {
+    logger.warn(`adClaims boost lookup failed: ${err?.message}`);
+  }
+  return severity;
+}
+
+/**
  * Auto-flag / report entry point: one OPEN queue row per target, ever.
  *
  * A burst of reports on the same review must not turn into fifty rows that
@@ -63,7 +84,7 @@ export async function ensureModerationItem({
     status: { $in: ACTIVE_STATUSES },
   });
 
-  const nextSeverity = severity || severityForCategory(category);
+  const nextSeverity = await adClaimsBoost(category, severity || severityForCategory(category));
 
   if (existing) {
     const raised = maxSeverity(existing.severity, nextSeverity);

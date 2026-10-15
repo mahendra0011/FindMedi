@@ -2129,6 +2129,16 @@ router.post('/returns', protect, authorize('pharmacy:manage'), validate(pharmacy
     if (/^[0-9a-fA-F]{24}$/.test(oid)) order = await PharmacyOrder.findById(oid);
     if (!order) order = await PharmacyOrder.findOne({ orderId: oid });
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    // 5.md Flow C cold-chain rule: insulated-pack medicines (insulin,
+    // vaccines) leave temperature control at dispense and can never re-enter
+    // stock — their orders are not returnable, no exceptions.
+    const itemMedIds = (order.items || []).map((it) => it.medicineId).filter(Boolean);
+    if (itemMedIds.length) {
+      const coldCount = await Medicine.countDocuments({ _id: { $in: itemMedIds }, coldChain: true });
+      if (coldCount > 0) {
+        return res.status(409).json({ message: 'Cold-chain items cannot be returned once dispensed', code: 'COLD_CHAIN_NO_RETURN' });
+      }
+    }
     const returnId = generateTimestampedId('RET');
     const ret = await PharmacyReturn.create({
       orderId: oid,

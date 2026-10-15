@@ -1075,6 +1075,39 @@ router.post('/messages', protect, authorize('chat:write:own'), async (req, res) 
     await message.populate('replyTo', 'content type sender deletedForEveryone');
     await message.populate('sender', 'name avatar');
 
+    // 8.md §5/§6 + 9.md §5: crisis keywords in chat text route to the human
+    // review queue (critical). Fire-and-forget AFTER persist: screening must
+    // never block or fail the send, and only text content is screened.
+    if (message.type === 'text' && String(message.content || '').trim()) {
+      void (async () => {
+        try {
+          const { analyzeContent } = await import('../lib/moderationRules.js');
+          const { ensureModerationItem } = await import('../lib/moderationActions.js');
+          const analysis = analyzeContent(String(message.content), { targetType: 'chat' });
+          if (analysis.categories.includes('crisis')) {
+            await ensureModerationItem({
+              targetType: 'chat_message',
+              targetId: String(message._id),
+              category: 'crisis',
+              reason: 'crisis keyword in chat message',
+              severity: 'critical',
+              source: 'auto_filter',
+              reporterId: null,
+              subjectUserId: senderId,
+              note: 'Auto-escalated for human review; no auto-ban.',
+            });
+            await auditLog('chat_crisis_escalated', senderId, {
+              messageId: String(message._id),
+              conversationId: String(conversationId),
+            });
+          }
+        } catch (err) {
+          const { default: logger } = await import('../config/logger.js').catch(() => ({ default: console }));
+          logger.warn(`chat crisis screen failed: ${err?.message}`);
+        }
+      })();
+    }
+
     conversation.lastMessage = message._id;
     conversation.lastMessageAt = message.createdAt;
     // Naya message bhejne par chat list me wapas dikhna chahiye

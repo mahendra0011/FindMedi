@@ -7,7 +7,9 @@ import { bookingLimiter } from '../middleware/rateLimit.js';
 import { idempotencyGuard } from '../middleware/idempotency.js';
 import {
   validate, createQuoteRequestSchema, sendQuoteSchema, acceptQuoteSchema, quoteDecisionSchema,
+  disputeAdvanceSchema,
 } from '../utils/validate.js';
+import { verifiedPaymentFor } from '../services/paymentVerification.js';
 import { protect } from '../middleware/auth.js';
 import {
   QUOTE_STATUS, QUOTE_TRANSITIONS, canTransition, computeQuoteTotals,
@@ -214,12 +216,9 @@ router.post('/:id/quote', protect, requireObjectId, bookingLimiter, validate(sen
 // on `status` so the second of two simultaneous clicks matches nothing and
 // replays the first's result instead of charging twice.
 //
-// TODO(FLOW-B): escrow. 5.md 3 holds the advance until the service starts and
-// releases it after a 48 h dispute window. There is no escrow ledger entry in
-// this codebase yet (payments.js captures, demoPayment.js holds), so the row
-// records the agreed advance amount with `held: false` rather than pretending
-// money moved. Wiring this = create the Payment/Refund pair keyed on quoteId at
-// this transition and flip `held` on capture.
+// TODO(FLOW-B): escrow — LIFTED. 5.md §3: the advance is HELD at accept
+// (verified payment) and RELEASED when the service starts, with a 48 h
+// dispute window. `held:false` now means "no advance paid", never "pretend".
 router.post('/:id/accept', protect, requireObjectId, bookingLimiter, idempotencyGuard({ prefix: 'quote-accept' }), validate(acceptQuoteSchema), authorizeObject({
   model: Quote,
   idFrom: (req) => req.params.id,
@@ -241,14 +240,26 @@ router.post('/:id/accept', protect, requireObjectId, bookingLimiter, idempotency
     }
 
     const now = new Date();
+    const advanceAmount = current.quote?.totalAmount ?? 0;
+    // Escrow hold: an advance payment may ride along with the accept. It is
+    // verified exactly like a membership purchase (owner + completed +
+    // covers the server-computed total); unverified/absent means no hold.
+    let advancePayment = null;
+    if (req.body.advancePaymentId && advanceAmount > 0) {
+      advancePayment = await verifiedPaymentFor(req.body.advancePaymentId, actorId(req), advanceAmount);
+      if (!advancePayment) {
+        return res.status(402).json({ message: 'Advance payment could not be verified', code: 'ADVANCE_NOT_VERIFIED' });
+      }
+    }
     const updated = await Quote.findOneAndUpdate(
       { _id: current._id, status: QUOTE_STATUS.QUOTE_SENT },
       {
         $set: {
           status: QUOTE_STATUS.ACCEPTED,
           acceptedAt: now,
-          'advance.amount': current.quote?.totalAmount ?? 0,
-          'advance.held': false,
+          'advance.amount': advanceAmount,
+          'advance.held': Boolean(advancePayment),
+          'advance.paymentId': advancePayment ? advancePayment._id : null,
         },
         $push: { history: historyEntry(req, QUOTE_STATUS.QUOTE_SENT, QUOTE_STATUS.ACCEPTED) },
       },
@@ -265,6 +276,86 @@ router.post('/:id/accept', protect, requireObjectId, bookingLimiter, idempotency
 
     await auditLog('quote_accepted', actorId(req), {
       quoteId: updated._id, totalAmount: updated.quote?.totalAmount ?? 0, ip: req.ip, userAgent: req.get('user-agent'),
+    });
+    return res.json(updated);
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+});
+
+// authz: object (provider side)
+//
+// Release the held advance when the service STARTS: held=false,
+// releasedAt=now, dispute window = 48 h. Settlement to the provider happens
+// downstream; a `disputed` flag freezes it until ops resolves.
+router.post('/:id/release-advance', protect, requireObjectId, bookingLimiter, idempotencyGuard({ prefix: 'quote-release' }), authorizeObject({
+  model: Quote,
+  idFrom: (req) => req.params.id,
+  ownerField: 'providerOwnerId',
+  actorRoles: [],
+  write: true,
+}), async (req, res) => {
+  try {
+    const current = req.scoped;
+    if (current.status !== QUOTE_STATUS.ACCEPTED) {
+      return res.status(409).json({ message: 'Advance releases only on an accepted quote', code: 'ILLEGAL_STATE_TRANSITION' });
+    }
+    if (!current.advance?.held || current.advance?.releasedAt) {
+      return res.status(409).json({ message: 'No held advance to release', code: 'NOTHING_HELD' });
+    }
+    const now = new Date();
+    const updated = await Quote.findOneAndUpdate(
+      { _id: current._id, status: QUOTE_STATUS.ACCEPTED, 'advance.held': true, 'advance.releasedAt': null },
+      {
+        $set: {
+          'advance.held': false,
+          'advance.releasedAt': now,
+          'advance.disputeUntil': new Date(now.getTime() + 48 * 3600 * 1000),
+        },
+        $push: { history: historyEntry(req, QUOTE_STATUS.ACCEPTED, QUOTE_STATUS.ACCEPTED, 'advance released, 48h dispute window open') },
+      },
+      { new: true, runValidators: true },
+    );
+    if (!updated) return res.status(409).json({ message: 'Advance already released', code: 'ALREADY_RELEASED' });
+    await auditLog('quote_advance_released', actorId(req), {
+      quoteId: updated._id, amount: updated.advance?.amount ?? 0, ip: req.ip,
+    });
+    return res.json(updated);
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+});
+
+// authz: object (patient side)
+//
+// Dispute within the 48 h window after release. Sets disputed=true (settlement
+// freeze) — ops resolves off-band. After the window, or with no release, 409.
+router.post('/:id/dispute-advance', protect, requireObjectId, bookingLimiter, idempotencyGuard({ prefix: 'quote-dispute' }), validate(disputeAdvanceSchema), authorizeObject({
+  model: Quote,
+  idFrom: (req) => req.params.id,
+  ownerField: 'patientId',
+  actorRoles: [],
+  write: true,
+}), async (req, res) => {
+  try {
+    const current = req.scoped;
+    if (!current.advance?.releasedAt || current.advance?.disputed) {
+      return res.status(409).json({ message: 'No released advance to dispute', code: 'NOTHING_TO_DISPUTE' });
+    }
+    if (current.advance.disputeUntil && new Date(current.advance.disputeUntil).getTime() < Date.now()) {
+      return res.status(409).json({ message: 'Dispute window has closed', code: 'DISPUTE_WINDOW_CLOSED' });
+    }
+    const updated = await Quote.findOneAndUpdate(
+      { _id: current._id, 'advance.releasedAt': { $ne: null }, 'advance.disputed': { $ne: true } },
+      {
+        $set: { 'advance.disputed': true, 'advance.disputeReason': String(req.body.reason).slice(0, 500) },
+        $push: { history: historyEntry(req, current.status, current.status, `advance disputed: ${String(req.body.reason).slice(0, 200)}`) },
+      },
+      { new: true, runValidators: true },
+    );
+    if (!updated) return res.status(409).json({ message: 'Dispute already recorded', code: 'ALREADY_DISPUTED' });
+    await auditLog('quote_advance_disputed', actorId(req), {
+      quoteId: updated._id, reason: String(req.body.reason).slice(0, 200), ip: req.ip,
     });
     return res.json(updated);
   } catch (err) {

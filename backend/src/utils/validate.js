@@ -2586,8 +2586,17 @@ export const sendQuoteSchema = z.object({
   validityHours: z.number().int().min(1).max(720).optional(),
 }).strict();
 
-// Accept is a decision, not a payload: an empty object is the whole schema.
-export const acceptQuoteSchema = z.object({}).strict();
+// Accept is a decision, not a payload: empty, plus an OPTIONAL verified
+// advance payment to hold in escrow (FLOW-B). The amount is server-derived
+// from the quote total — the client only names the payment.
+export const acceptQuoteSchema = z.object({
+  advancePaymentId: objectIdSchema.optional(),
+}).strict();
+
+// Escrow dispute: patient flags within the 48 h window after release.
+export const disputeAdvanceSchema = z.object({
+  reason: z.string().trim().min(1).max(500),
+}).strict();
 
 export const quoteDecisionSchema = z.object({
   reason: z.string().trim().min(3).max(500),

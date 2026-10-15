@@ -24,6 +24,7 @@ import {
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { TodayHealthWidget } from '@/components/patient/TodayHealthWidget';
+import PersonaStep from './PersonaStep';
 import { SupportTicketForm } from '@/components/patient/SupportTicketForm';
 import EmergencyDoctorModal from '@/components/emergency/EmergencyDoctorModal';
 
@@ -483,6 +484,9 @@ export default function PatientDashboard() {
           </div>
         </div>
       </motion.div>
+
+      {/* 6.md §4 persona step — once, skippable, defaults only */}
+      <PersonaStep />
 
       {/* ── Dual Emergency Quick Hub ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-6">

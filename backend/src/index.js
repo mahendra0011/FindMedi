@@ -1530,6 +1530,16 @@ if (process.env.NODE_ENV !== 'test') {
         logger.warn('appointment reminder job failed to start (non-fatal): ' + e.message);
       }
 
+      // 5.md §11: review prompts (T+2h/T+1day after completion), every
+      // 15 min. Same durability contract (per-milestone state on the doc,
+      // atomic claim, skip-if-reviewed) so completed visits actually ask.
+      try {
+        const { startReviewPrompts } = await import('./jobs/reviewPrompt.job.js');
+        startReviewPrompts(process.env.REVIEW_PROMPT_CRON || '*/15 * * * *');
+      } catch (e) {
+        logger.warn('review prompt job failed to start (non-fatal): ' + e.message);
+      }
+
       // PAY-M-03: payout-vs-settlement reconciliation (daily, 03:00 — offset
       // from the 02:00 wallet job). Mismatch = audit + superadmin alert.
       try {

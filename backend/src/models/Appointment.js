@@ -138,6 +138,13 @@ const appointmentSchema = new mongoose.Schema({
     t24: { type: reminderMilestoneSchema },
     t2: { type: reminderMilestoneSchema },
   },
+  // 5.md §11: review prompts (T+2h / T+1day after completion). Same durable
+  // milestone shape as reminders: per-milestone status on the document, atomic
+  // claim, bounded backoff, skip-on-reviewed.
+  reviewPrompt: {
+    t2h: { type: reminderMilestoneSchema },
+    t1d: { type: reminderMilestoneSchema },
+  },
   // APPT-M-02: an occurrence of a recurring series. The series is a container
   // for bookkeeping only - every occurrence is a real Appointment, so queueing,
   // reminders, billing, cancellation and waitlist fan-out all keep working

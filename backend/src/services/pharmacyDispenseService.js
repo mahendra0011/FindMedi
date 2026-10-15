@@ -74,7 +74,23 @@ export async function dispensePrescriptionMedicine({
       { session }
     );
 
-    return { medicine, prescriptionId: String(prescriptionId), status: remainingLines ? 'Partially Dispensed' : 'Dispensed' };
+    return {
+      medicine,
+      prescriptionId: String(prescriptionId),
+      status: remainingLines ? 'Partially Dispensed' : 'Dispensed',
+      // 5.md Flow C cold-chain handoff: insulated pack, delivery time cap and
+      // temperature note travel WITH the dispense so the delivery flow and the
+      // returns gate enforce them downstream.
+      ...(medicine.coldChain ? {
+        coldChainHandling: {
+          required: true,
+          pack: 'insulated',
+          deliverWithinHours: 4,
+          temperatureNote: medicine.coldChainTemp || '2-8C',
+          noReturn: true,
+        },
+      } : {}),
+    };
   }, [
     {
       aggregateType: 'Prescription',

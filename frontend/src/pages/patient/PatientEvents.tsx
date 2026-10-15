@@ -7,7 +7,16 @@ import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 
 export default function PatientEvents() {
-  const [events, setEvents] = useState([]);
+  interface EventRow {
+    id: string;
+    title: string;
+    organizer: string;
+    date: string;
+    time: string;
+    venue: string;
+    status: string;
+  }
+  const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Live registrations (GET /patient/events, session-scoped). No demo rows:
