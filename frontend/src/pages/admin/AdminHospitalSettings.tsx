@@ -13,9 +13,10 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 function DoctorAutoConfirmList() {
-  const [doctors, setDoctors] = useState([]);
+  const [doctors, setDoctors] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
 

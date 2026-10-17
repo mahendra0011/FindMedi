@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 
 
@@ -31,7 +32,7 @@ export default function StoreMedicines() {
   const { storeId } = useParams();
   const navigate = useNavigate();
   const [store, setStore] = useState(null);
-  const [allMeds, setAllMeds] = useState([]);
+  const [allMeds, setAllMeds] = useState<ApiRow[]>([]);
   const [_loading, setLoading] = useState(true);
   const { addItem, updateQty, entries } = useCart();
 

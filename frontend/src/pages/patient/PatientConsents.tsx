@@ -6,6 +6,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function PatientConsents() {
   const [consents, setConsents] = useState([
@@ -41,7 +42,7 @@ export default function PatientConsents() {
 
   // Access log starts EMPTY: entries claiming someone viewed YOUR records must
   // come from the server audit trail, never from fixtures.
-  const [accessLog, setAccessLog] = useState([]);
+  const [accessLog, setAccessLog] = useState<ApiRow[]>([]);
 
   const handleToggleConsent = (id: string) => {
     setConsents((prev) =>

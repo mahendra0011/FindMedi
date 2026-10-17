@@ -10,6 +10,7 @@ import { getISTDateString } from '@/lib/dateUtils';
 import { getSubSlotsForHour, parseTime } from '@/lib/timeSlots';
 import IntakeFormStep from './IntakeFormStep';
 import { userFacingError } from '@/lib/errorCopy';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const genders = ['Male', 'Female', 'Other'];
@@ -46,9 +47,9 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }) {
   const [selectedHour, setSelectedHour] = useState('');
   const [notes, setNotes] = useState('');
   const [slotCounts, setSlotCounts] = useState({});
-  const [fullSlots, setFullSlots] = useState([]);
-  const [dateDisabledSlots, setDateDisabledSlots] = useState([]);
-  const [pendingDisabledSlots, setPendingDisabledSlots] = useState([]);
+  const [fullSlots, setFullSlots] = useState<ApiRow[]>([]);
+  const [dateDisabledSlots, setDateDisabledSlots] = useState<ApiRow[]>([]);
+  const [pendingDisabledSlots, setPendingDisabledSlots] = useState<ApiRow[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [intakeForm, setIntakeForm] = useState(initialIntakeForm);
   const [creating, setCreating] = useState(false);

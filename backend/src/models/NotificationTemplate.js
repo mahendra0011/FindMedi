@@ -60,9 +60,9 @@ notificationTemplateSchema.pre('save', function (next) {
       return next(new Error(`Unknown template variables: ${unknown.join(', ')} — declare them in variables[] first`));
     }
   } catch (e) {
-    return next(e);
+    if (typeof next === 'function') return next(e); throw e;
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.models.NotificationTemplate || mongoose.model('NotificationTemplate', notificationTemplateSchema);

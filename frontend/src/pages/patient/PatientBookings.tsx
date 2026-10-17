@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const BOOKING_STATUS = {
   Scheduled: { label: 'Scheduled', color: 'bg-blue-500/10 text-blue-600 border-blue-500/30', icon: Clock },
@@ -65,7 +66,7 @@ function normalizeBooking(item, type) {
 
 export default function PatientBookings() {
   const navigate = useNavigate();
-  const [bookings, setBookings] = useState([]);
+  const [bookings, setBookings] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [search, setSearch] = useState('');

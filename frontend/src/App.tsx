@@ -766,6 +766,15 @@ const SPECIALTY_DASHBOARD_PATHS: Record<string, string> = {
   finance_admin: '/dashboard/finance-admin',
   compliance_officer: '/dashboard/compliance-kyc',
   kyc_reviewer: '/dashboard/compliance-kyc',
+  // File 07 §3.25-§3.30 specialty verticals. Without these entries the six
+  // owner roles fell through RoleDashboard() to the generic StaffDashboard,
+  // so their dedicated /dashboard/* routes were unreachable by their own role.
+  elder_care_admin: '/dashboard/elder-care',
+  vaccination_admin: '/dashboard/vaccination-centre',
+  diet_kitchen_admin: '/dashboard/diet-kitchen',
+  corporate_admin: '/dashboard/corporate-wellness',
+  child_dev_admin: '/dashboard/child-development',
+  specialty_centre_admin: '/dashboard/specialty-centre',
 };
 
 function RoleDashboard() {

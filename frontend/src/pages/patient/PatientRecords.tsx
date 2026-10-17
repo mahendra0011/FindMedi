@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api, resolveFileUrl } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const categoryConfig = {
   prescription:     { icon: Pill,         color: 'text-success',     bg: 'bg-success/10',     label: 'Prescriptions' },
@@ -20,8 +21,8 @@ const CATEGORIES = ['All', 'prescription', 'lab_report', 'discharge_summary', 'b
 
 export default function PatientRecords() {
   const { user } = useAuth();
-  const [appointments, setAppointments] = useState([]);
-  const [records, setRecords] = useState([]);
+  const [appointments, setAppointments] = useState<ApiRow[]>([]);
+  const [records, setRecords] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');

@@ -106,6 +106,7 @@ import { api } from "@/mind/lib/api";
 import { getRealtimeSocket } from "@/mind/lib/socket";
 import { sanitizeInput } from "@/mind/lib/sanitize";
 import SecureChatPanel from "@/mind/components/SecureChatPanel";
+import type { ApiRow } from '@/lib/apiTypes';
 
 const themeOptions = [
   { id: "default", name: "Midnight Calm", color: "bg-indigo-500" },
@@ -538,7 +539,7 @@ const UserDashboard = () => {
   const [consentRecord, setConsentRecord] = useState(null);
   const [showConsent, setShowConsent] = useState(false);
   const [intakeSubmitted, setIntakeSubmitted] = useState({});
-  const [assignments, setAssignments] = useState([]);
+  const [assignments, setAssignments] = useState<ApiRow[]>([]);
   const [assignmentFilter, setAssignmentFilter] = useState("this-week");
 
 
@@ -2759,7 +2760,7 @@ function ConsentDialog({ open, onOpenChange, onAccept }) {
 }
 
 function PrescriptionsTab() {
-  const [prescriptions, setPrescriptions] = useState([]);
+  const [prescriptions, setPrescriptions] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -2858,7 +2859,7 @@ function PrescriptionsTab() {
 }
 
 function AssignmentsTab() {
-  const [assignments, setAssignments] = useState([]);
+  const [assignments, setAssignments] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

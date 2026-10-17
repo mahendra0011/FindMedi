@@ -12,6 +12,7 @@ import {
 } from '@tanstack/react-table';
 import { observeElementRect, useVirtualizer } from '@tanstack/react-virtual';
 import { X, ChevronLeft, ChevronRight, Search, AlertTriangle, Camera, Loader2 } from 'lucide-react';
+import type { ApiRow } from '@/lib/apiTypes';
 
 /* ─── AlertBanner ────────────────────────────────────────────────────────── */
 export function AlertBanner({ alerts = [], onAck, onSnooze }) {
@@ -130,7 +131,7 @@ export function DataGrid({
   renderDetail,
 }) {
   const [globalFilter, setGlobalFilter] = useState('');
-  const [sorting, setSorting] = useState([]);
+  const [sorting, setSorting] = useState<ApiRow[]>([]);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize });
   const parentRef = useRef(null);
 
@@ -403,7 +404,7 @@ export function FilterBar({ filters = [], value = {}, onChange }) {
 /* ─── EntityPicker ───────────────────────────────────────────────────────── */
 export function EntityPicker({ label, search, onSelect, renderOption, placeholder = 'Type to search…', debounceMs = 250 }) {
   const [q, setQ] = useState('');
-  const [options, setOptions] = useState([]);
+  const [options, setOptions] = useState<ApiRow[]>([]);
   const [open, setOpen] = useState(false);
   const boxRef = useRef(null);
   const inputId = useId();

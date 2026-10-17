@@ -4,6 +4,7 @@
 // verifyAccessToken closes both.
 import { verifyAccessToken } from '../utils/jwtKeys.js';
 import { MANDATORY_TWO_FACTOR_ROLES } from '../config/permissions.js';
+import { isDemoAccount } from '../utils/demoAccount.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import Patient from '../models/Patient.js';
@@ -141,7 +142,7 @@ export const protect = async (req, res, next) => {
   // admin set the flag, and because it ran before token issuance the user
   // could never reach PUT /auth/change-password - the one route that clears
   // the flag. Session-level enforcement closes both holes.
-  if (user.mustResetPassword && !isPasswordResetExempt(req)) {
+  if (user.mustResetPassword && !isDemoAccount(user.email) && !isPasswordResetExempt(req)) {
     return res.status(403).json({
       message: 'You must set a new password before continuing.',
       code: 'PASSWORD_RESET_REQUIRED',
@@ -198,7 +199,7 @@ req.user = {
     facilityId: user.facilityId || null,
     facilityType: user.facilityType || '',
     doctorProfileId: (user.role === 'doctor' || user.role === 'clinic_doctor' || user.role === 'counsellor' || user.role === 'psychiatrist') ? (doctor?._id || null) : null,
-    mustResetPassword: Boolean(user.mustResetPassword),
+    mustResetPassword: isDemoAccount(user.email) ? false : Boolean(user.mustResetPassword),
   };
   req.authUser = user;
 
@@ -423,7 +424,7 @@ export const optionalProtect = async (req, res, next) => {
     if (user.status === 'blocked') return next();
     // AUTH-F-06: same rule as `protect` - a mustResetPassword account is
     // anonymous on optional-auth routes rather than quietly privileged.
-    if (user.mustResetPassword) return next();
+    if (user.mustResetPassword && !isDemoAccount(user.email)) return next();
     if (!user.isVerified) return next();
     req.user = user;
   } catch {

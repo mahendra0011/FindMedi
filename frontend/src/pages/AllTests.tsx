@@ -23,6 +23,7 @@ import {
   FALLBACK_CATEGORY_TESTS,
   getTestCategoryVisual,
 } from '@/data/testCategoriesFallback';
+import type { ApiRow } from '@/lib/apiTypes';
 
 
 const INITIAL_VISIBLE = 11;
@@ -45,7 +46,7 @@ export default function AllTests() {
   const [distanceFilter, setDistanceFilter] = useState('any');
   const [ratingFilter, setRatingFilter] = useState(0);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
-  const [tests, setTests] = useState([]);
+  const [tests, setTests] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const STORE_ID = 'test-booking';
 

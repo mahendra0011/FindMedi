@@ -29,11 +29,10 @@ const tokenSchema = new mongoose.Schema({
 
 import { generateTokenNumber } from '../utils/idGenerator.js';
 
-tokenSchema.pre('save', async function (next) {
+tokenSchema.pre('save', async function () {
   if (!this.tokenNumber) {
     this.tokenNumber = generateTokenNumber();
   }
-  next();
 });
 
 export default mongoose.model('Token', tokenSchema);

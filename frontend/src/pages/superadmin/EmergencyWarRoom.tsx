@@ -9,6 +9,7 @@ import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import ClinicalLockingAlert from '@/components/emergency/ClinicalLockingAlert';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const ACTIVE = ['Pending', 'Assigned', 'Under Treatment'];
 const SLA_TARGET_MIN = 60;
@@ -19,7 +20,7 @@ function ageMin(createdAt) {
 }
 
 export default function EmergencyWarRoom() {
-  const [emergencies, setEmergencies] = useState([]);
+  const [emergencies, setEmergencies] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [severity, setSeverity] = useState('All');
   const [now, setNow] = useState(Date.now());

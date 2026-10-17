@@ -25,11 +25,10 @@ const clinicProfileSchema = new mongoose.Schema({
   social: { type: Object, default: {} },
 }, { timestamps: true });
 
-clinicProfileSchema.pre('save', async function (next) {
+clinicProfileSchema.pre('save', async function () {
   if (!this.clinicId) {
     this.clinicId = generate16DigitId();
   }
-  next();
 });
 
 export default mongoose.model('ClinicProfile', clinicProfileSchema);

@@ -15,7 +15,7 @@ const wellnessProfileSchema = new mongoose.Schema({
 wellnessProfileSchema.index({ userId: 1, familyMemberId: 1 });
 wellnessProfileSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('WellnessProfile', wellnessProfileSchema);

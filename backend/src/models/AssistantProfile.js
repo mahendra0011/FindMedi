@@ -129,7 +129,7 @@ assistantProfileSchema.index({ currentLocation: '2dsphere' });
 
 assistantProfileSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('AssistantProfile', assistantProfileSchema);

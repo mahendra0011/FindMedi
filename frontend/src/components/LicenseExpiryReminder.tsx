@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { AlertTriangle, Clock } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function LicenseExpiryReminder() {
   const { user } = useAuth();
-  const [expiringLicenses, setExpiringLicenses] = useState([]);
+  const [expiringLicenses, setExpiringLicenses] = useState<ApiRow[]>([]);
 
   useEffect(() => {
     if (!['superadmin', 'doctor', 'clinic_doctor', 'pharmacy_owner', 'lab_owner', 'hospital_admin', 'ambulance'].includes(user?.role)) return;

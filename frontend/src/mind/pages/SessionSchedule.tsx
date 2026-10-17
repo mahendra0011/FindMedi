@@ -15,6 +15,7 @@ import { api } from "@/mind/lib/api";
 import { fetchCounsellors, selectCounsellors, selectCounsellorsStatus } from "@/mind/store/counsellorsSlice";
 import { useAppDispatch, useAppSelector } from "@/mind/store/hooks";
 import { ArrowLeft, ArrowRight, CalendarCheck, Check, CheckCircle2, ClipboardList, Clock3, CreditCard, Info, Landmark, Mail, MessageCircle, Phone, ShieldCheck, Smartphone, Star, Video, Wallet } from "lucide-react";
+import type { ApiRow } from '@/lib/apiTypes';
 
 const fallbackPlans = [
   {
@@ -138,7 +139,7 @@ const SessionSchedule = () => {
   const [showPayment, setShowPayment] = useState(false);
   const [paying, setPaying] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("card");
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState<ApiRow[]>([]);
   const [selectedId, setSelectedId] = useState(params.get("counsellorId") || "");
   const [selectedPlanId, setSelectedPlanId] = useState(params.get("plan") || "short-term");
   const [booking, setBooking] = useState({ mode: "google-meet", date: "", time: "" });

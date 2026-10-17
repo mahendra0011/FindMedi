@@ -46,8 +46,22 @@ import mongoose from 'mongoose';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
-// §4.5/§4.6: extra NoSQL-injection layer + unknown filter fields ignored.
-mongoose.set('sanitizeFilter', true);
+// §4.6: unknown filter fields ignored.
+//
+// Do NOT enable mongoose's `sanitizeFilter` here. It is a second NoSQL-injection
+// layer meant for filters built from *untrusted* input, and it rewrites every
+// nested operator into `{ $eq: { $lt: ... } }` (mongoose/lib/helpers/query/
+// sanitizeFilter.js:36). That silently corrupts every trusted internal query
+// that uses a range/`$in`/`$ne` predicate on a typed path — cron jobs, the outbox
+// poller, waitlist sweeps, reminders — which failed with hundreds of
+// "Cast to date failed for value { '$lte': ... }" errors per day and 500'd
+// public list endpoints that filter by city.
+//
+// Untrusted HTTP input is already covered by `mongoSanitize()` mounted below
+// (it strips `$`-prefixed keys from req.body/req.query/req.params for every API
+// route), and the raw-body webhook routes are gated by HMAC verification before
+// they touch a query. Internal query builders take no user input, so they must
+// be allowed to use real operators.
 mongoose.set('strictQuery', true);
 // P1-5: HTTP Parameter Pollution -- collapses duplicate keys so
 // ` ?sort=asc&sort[]=desc ` cannot bypass a sort-field allowlist or trigger an
@@ -1474,18 +1488,34 @@ if (process.env.NODE_ENV !== 'test') {
   mongoose.connection.on('connected', async () => {
     logger.info('✅ Mongoose connected to MongoDB');
     try {
-      const Appointment = (await import('./models/Appointment.js')).default;
-      const Payment = (await import('./models/Payment.js')).default;
-      const Doctor = (await import('./models/Doctor.js')).default;
-      const Patient = (await import('./models/Patient.js')).default;
-      await Appointment.syncIndexes();
-      await Payment.syncIndexes();
-      await Doctor.syncIndexes();
-      await Patient.syncIndexes();
-      logger.info('✅ Database indexes synced');
+      // Index sync is isolated from everything below it. A single bad index
+      // spec (a `$ne` in a partial filter, a stale definition) used to reject
+      // here and, because this all sat in ONE try, silently skipped demo
+      // seeding, the outbox poller and every cron job while the API still came
+      // up and served 404s on the data those jobs maintain. A failed index is
+      // degraded, not fatal — log it and keep booting.
+      try {
+        const Appointment = (await import('./models/Appointment.js')).default;
+        const Payment = (await import('./models/Payment.js')).default;
+        const Doctor = (await import('./models/Doctor.js')).default;
+        const Patient = (await import('./models/Patient.js')).default;
+        await Appointment.syncIndexes();
+        await Payment.syncIndexes();
+        await Doctor.syncIndexes();
+        await Patient.syncIndexes();
+        logger.info('✅ Database indexes synced');
+      } catch (indexError) {
+        logger.error('⚠️ Index sync failed (continuing boot without it): ' + indexError.message);
+      }
 
-      const { ensureDemoUsers } = await import('./services/demoSeedService.js');
-      await ensureDemoUsers();
+      // Same reasoning: demo seed failure must not take the pollers/jobs down
+      // with it — the API is already listening either way.
+      try {
+        const { ensureDemoUsers } = await import('./services/demoSeedService.js');
+        await ensureDemoUsers();
+      } catch (seedError) {
+        logger.error('⚠️ Demo seed failed (continuing boot): ' + seedError.message);
+      }
 
       // Start Transactional Outbox Background Poller
       const { startOutboxPoller } = await import('./services/outboxPollerService.js');

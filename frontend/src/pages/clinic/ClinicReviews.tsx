@@ -3,10 +3,11 @@ import { motion } from 'framer-motion';
 import { Star, Calendar, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function ClinicReviews() {
   const { user } = useAuth();
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

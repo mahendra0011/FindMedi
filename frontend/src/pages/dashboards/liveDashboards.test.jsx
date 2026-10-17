@@ -14,6 +14,8 @@ import AdmissionCoordinatorDashboard from './AdmissionCoordinatorDashboard';
 import AuditorDashboard from './AuditorDashboard';
 import BedManagerDashboard from './BedManagerDashboard';
 import CorporateBillingDashboard from './CorporateBillingDashboard';
+import DietKitchenDashboard from './DietKitchenDashboard';
+import ElderCareDashboard from './ElderCareDashboard';
 import FacilityManagerDashboard from './FacilityManagerDashboard';
 import HodDashboard from './HodDashboard';
 import MedicalSuperintendentDashboard from './MedicalSuperintendentDashboard';
@@ -21,12 +23,18 @@ import OpdCoordinatorDashboard from './OpdCoordinatorDashboard';
 import PatientRelationsDashboard from './PatientRelationsDashboard';
 import ResidentDashboard from './ResidentDashboard';
 
-/** The 10 wave-2 dashboards wired to useLiveKpis (file 31 · T8). */
+/**
+ * Dashboards wired to useLiveKpis: the 10 wave-2 batch (file 31 · T8) plus the
+ * elder-care and diet-kitchen role dashboards, whose fetchers read the resident
+ * roster / bed register and the diet stats aggregate.
+ */
 const LIVE_DASHBOARDS = [
   { name: 'AdmissionCoordinator', Comp: AdmissionCoordinatorDashboard, title: 'Admission Coordinator Dashboard', kpi: 'Pending Pre-Auth' },
   { name: 'Auditor', Comp: AuditorDashboard, title: 'Auditor Dashboard', kpi: 'Audit Events (24h)' },
   { name: 'BedManager', Comp: BedManagerDashboard, title: 'Bed Manager Dashboard', kpi: 'Total Beds' },
   { name: 'CorporateBilling', Comp: CorporateBillingDashboard, title: 'Corporate Billing Dashboard', kpi: 'Credit Outstanding' },
+  { name: 'DietKitchen', Comp: DietKitchenDashboard, title: '🍲 Therapeutic Diet Kitchen Dashboard', kpi: 'Active Meal Plans' },
+  { name: 'ElderCare', Comp: ElderCareDashboard, title: '🏡 Elder-Care Home & Hospice Dashboard', kpi: 'Active Residents' },
   { name: 'FacilityManager', Comp: FacilityManagerDashboard, title: 'Facility Manager Dashboard', kpi: 'Open Tickets' },
   { name: 'Hod', Comp: HodDashboard, title: 'Department Head (HOD) Dashboard', kpi: 'Active Faculty' },
   { name: 'MedicalSuperintendent', Comp: MedicalSuperintendentDashboard, title: 'Medical Superintendent Dashboard', kpi: 'Bed Occupancy' },
@@ -40,7 +48,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe.each(LIVE_DASHBOARDS)('$nameDashboard (wave-2 live KPIs)', ({ Comp, title, kpi }) => {
+describe.each(LIVE_DASHBOARDS)('$nameDashboard (live KPIs)', ({ Comp, title, kpi }) => {
   it('renders the role shell with title, 4 KPIs, tasks and alerts', async () => {
     render(
       <MemoryRouter>
@@ -76,7 +84,7 @@ describe.each(LIVE_DASHBOARDS)('$nameDashboard (wave-2 live KPIs)', ({ Comp, tit
   });
 });
 
-describe('RoleDashboardShell interactions (shared by all 10)', () => {
+describe('RoleDashboardShell interactions (shared by all live dashboards)', () => {
   it('renders sidebar navigation derived from permissions and switches tabs', async () => {
     render(
       <MemoryRouter>

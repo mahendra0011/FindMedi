@@ -13,6 +13,7 @@ import StatCard from '@/components/StatCard';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
 import { Switch } from '@/components/ui/switch';
 import { DataGrid } from '@/components/ui/System';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = {
   Completed: 'bg-success/10 text-success',
@@ -25,10 +26,10 @@ export default function PharmacyBusinessDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<ApiRow[]>([]);
   const [orderTab, setOrderTab] = useState('pending');
-  const [lowStock, setLowStock] = useState([]);
-  const [refunds, setRefunds] = useState([]);
+  const [lowStock, setLowStock] = useState<ApiRow[]>([]);
+  const [refunds, setRefunds] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [platformSettings, setPlatformSettings] = useState({
     autoConfirmOrders: true,

@@ -160,7 +160,7 @@ const doctorSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 
-doctorSchema.pre('save', async function (next) {
+doctorSchema.pre('save', async function () {
   if (!this.doctorId) {
     this.doctorId = generate16DigitId();
   }
@@ -186,7 +186,6 @@ doctorSchema.pre('save', async function (next) {
   } catch {
     // ignore: a normalization failure must not fail the write
   }
-  next();
 });
 
 doctorSchema.index({ facilityId: 1, approved: 1 });

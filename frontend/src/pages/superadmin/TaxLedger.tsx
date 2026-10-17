@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 // SA-M3: statutory reconciliation computed from the REAL transaction ledger.
 // - Section 194-O TDS: 1% of gross provider payouts.
@@ -15,7 +16,7 @@ const TDS_RATE = 0.01;
 const GST_ON_FEE_RATE = 0.18;
 
 export default function TaxLedger() {
-  const [rows, setRows] = useState([]);
+  const [rows, setRows] = useState<ApiRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);

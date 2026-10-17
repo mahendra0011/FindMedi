@@ -7,11 +7,12 @@ import { api, resolveFileUrl, isValidFileUrl } from '@/lib/api';
 import { subSlotFor } from '@/lib/timeSlots';
 import { CompletedCard } from '@/components/TodayAppointmentsSection';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function DoctorPatients() {
   const { user } = useAuth();
-  const [appointments, setAppointments] = useState([]);
-  const [records, setRecords] = useState([]);
+  const [appointments, setAppointments] = useState<ApiRow[]>([]);
+  const [records, setRecords] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 

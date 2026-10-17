@@ -46,7 +46,7 @@ fertilityCycleSchema.index({ patientId: 1, createdAt: -1 });
 fertilityCycleSchema.index({ patientId: 1, cycleNo: 1 });
 fertilityCycleSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('FertilityCycle', fertilityCycleSchema);

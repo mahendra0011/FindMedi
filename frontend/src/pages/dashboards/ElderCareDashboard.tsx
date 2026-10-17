@@ -1,8 +1,15 @@
 /**
  * File 07 §3.25 — Elder-care home & hospice operations dashboard.
  * Residents, care plans, MAR logs, bed occupancy, family updates & palliative notes.
+ *
+ * Live KPIs: the roster count comes from the resident list itself and bed
+ * occupancy from the hospital bed register — the only two of the four this
+ * dashboard can honestly derive today. MAR adherence and family-update volume
+ * have no aggregate endpoint, so those cards stay on their placeholder rather
+ * than carrying a demo number that never changes.
  */
 import RoleDashboardShell, { type RoleDashboardConfig } from './RoleDashboardShell';
+import { useLiveKpis, api } from './useLiveKpis';
 
 const config: RoleDashboardConfig = {
   roleKey: 'elder_care_admin',
@@ -10,10 +17,10 @@ const config: RoleDashboardConfig = {
   subtitle: 'Resident care plans, MAR dose records, palliative care & family portal updates',
   permissions: ['profile:view', 'calendar:view', 'bookings:manage', 'earnings:view', 'reviews:view', 'staff:manage', 'docs:upload', 'support:contact'],
   kpis: [
-    { label: 'Active Residents', value: '42', hint: '38 Long-term · 4 Respite' },
-    { label: 'Bed Occupancy', value: '91%', hint: '4 beds available' },
-    { label: 'MAR Adherence', value: '99.2%', hint: '0 missed doses today' },
-    { label: 'Family Updates Sent', value: '18', hint: 'Daily photos & vitals' },
+    { label: 'Active Residents', value: '—', hint: 'Long-term & respite stays' },
+    { label: 'Bed Occupancy', value: '—', hint: 'Occupied vs total beds' },
+    { label: 'MAR Adherence', value: '—', hint: 'Doses due & given today' },
+    { label: 'Family Updates Sent', value: '—', hint: 'Daily photos & vitals' },
   ],
   tasks: [
     { id: 'ec-t1', text: 'Review evening insulin administration for Room 104' },
@@ -52,6 +59,29 @@ const config: RoleDashboardConfig = {
   ],
 };
 
+async function fetchLive(): Promise<Partial<Record<string, number | string>>> {
+  const [residentsRes, bedsRes] = await Promise.all([
+    api.get('/eldercare/residents').catch(() => null),
+    api.get('/beds/stats').catch(() => null),
+  ]);
+  const out: Partial<Record<string, number | string>> = {};
+
+  const body = residentsRes?.data ?? residentsRes;
+  const residents = body?.residents;
+  if (Array.isArray(residents)) {
+    out['Active Residents'] = residents.filter((r: { status?: string }) => !r.status || r.status === 'active').length;
+  }
+
+  const beds = bedsRes?.data ?? bedsRes;
+  const total = Number(beds?.total);
+  const occupied = Number(beds?.occupied);
+  if (Number.isFinite(total) && total > 0 && Number.isFinite(occupied)) {
+    out['Bed Occupancy'] = `${Math.round((occupied / total) * 100)}%`;
+  }
+  return out;
+}
+
 export default function ElderCareDashboard() {
-  return <RoleDashboardShell config={config} />;
+  const kpis = useLiveKpis(fetchLive, config.kpis);
+  return <RoleDashboardShell config={{ ...config, kpis }} />;
 }

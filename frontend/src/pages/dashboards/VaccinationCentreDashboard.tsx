@@ -1,6 +1,12 @@
 /**
  * File 07 §3.26 — Vaccination centre & cold-chain operations dashboard.
  * Cold-chain monitoring, stock levels, UIP vs optional vaccines, AEFI reports & digital certs.
+ *
+ * KPIs below are File 07 spec figures: nothing on the backend aggregates
+ * cold-chain temperature, vaccine doses or issued certificates (the inventory
+ * stats count items, not doses; /certificates is a per-patient record list),
+ * so this stays static until such an endpoint exists — wire it with
+ * useLiveKpis exactly like ElderCareDashboard when one does.
  */
 import RoleDashboardShell, { type RoleDashboardConfig } from './RoleDashboardShell';
 

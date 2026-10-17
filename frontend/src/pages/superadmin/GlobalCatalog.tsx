@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const TABS = [
   { id: 'tests', label: 'Tests', icon: FlaskConical },
@@ -19,12 +20,12 @@ const TABS = [
 
 export default function GlobalCatalog() {
   const [tab, setTab] = useState('tests');
-  const [tests, setTests] = useState([]);
-  const [medicines, setMedicines] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [tests, setTests] = useState<ApiRow[]>([]);
+  const [medicines, setMedicines] = useState<ApiRow[]>([]);
+  const [categories, setCategories] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [dupTests, setDupTests] = useState([]);
+  const [dupTests, setDupTests] = useState<ApiRow[]>([]);
 
   const load = async () => {
     setLoading(true);

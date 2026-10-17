@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -8,8 +8,14 @@ import {
   UserRound,
   Building2,
   Microscope,
+  FlaskConical,
   Pill,
   Heart,
+  HeartPulse,
+  ScanLine,
+  Receipt,
+  Smile,
+  Headset,
   Eye,
   EyeOff,
   Truck,
@@ -19,6 +25,8 @@ import {
   Ambulance,
   Brain,
   BrainCircuit,
+  Syringe,
+  Salad,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,22 +62,67 @@ interface DemoAccountItem {
   pass: string;
 }
 
-const roles: RoleItem[] = [
-  { key: 'superadmin', label: 'SuperAdmin', desc: 'Manage full platform', icon: Shield, color: 'text-purple-600', bg: 'bg-purple-500/10' },
-  { key: 'hospital_admin', label: 'Hospital Admin', desc: 'Manage hospital', icon: Shield, color: 'text-primary', bg: 'bg-primary/10' },
-  { key: 'doctor', label: 'Hosp Doctor', desc: 'Patient & schedule', icon: Stethoscope, color: 'text-info', bg: 'bg-info/10' },
-  { key: 'clinic_doctor', label: 'Clinic', desc: 'Clinic management', icon: Heart, color: 'text-rose-600', bg: 'bg-rose-500/10' },
-  { key: 'lab_owner', label: 'Diagnostic', desc: 'Lab test mgmt', icon: Microscope, color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
-  { key: 'pharmacy_owner', label: 'Pharmacy', desc: 'Medicine store', icon: Pill, color: 'text-amber-600', bg: 'bg-amber-500/10' },
-  { key: 'delivery_boy', label: 'Delivery', desc: 'Medicine delivery', icon: Truck, color: 'text-blue-600', bg: 'bg-blue-500/10' },
-  { key: 'rider', label: 'Rider', desc: 'Vehicle rides', icon: Car, color: 'text-teal-600', bg: 'bg-teal-500/10' },
-  { key: 'ambulance', label: 'Ambulance Driver', desc: 'Emergency ambulance', icon: Ambulance, color: 'text-red-600', bg: 'bg-red-500/10' },
-  { key: 'assistant', label: 'Assistant', desc: 'Patient care & help', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10' },
-  { key: 'lawyer', label: 'Lawyer', desc: 'Legal consultation', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10' },
-  { key: 'counsellor', label: 'Counsellor', desc: 'Therapy & counselling', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10' },
-  { key: 'psychiatrist', label: 'Psychiatrist', desc: 'Diagnosis & medication', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10' },
-  { key: 'patient', label: 'Patient', desc: 'Appointments & records', icon: UserRound, color: 'text-success', bg: 'bg-success/10' },
-];
+// AUTH-UI: metadata per role key. The tile LIST itself comes from
+// GET /auth/login-roles (every role that actually has an active account), so
+// the grid can never drift from the seed. Previously the list was hardcoded to
+// 14 entries while the seed created 21 - and because the form always POSTs
+// `role`, the 7 roles with no tile were unloginable (the server 403s when
+// `user.role !== role`). Unknown keys fall back to a humanised label so a new
+// seeded role is never invisible.
+const ROLE_META: Record<string, { label: string; desc: string; icon: any; color: string; bg: string }> = {
+  superadmin:         { label: 'SuperAdmin',       desc: 'Manage full platform',   icon: Shield,       color: 'text-purple-600', bg: 'bg-purple-500/10' },
+  hospital_admin:     { label: 'Hospital Admin',   desc: 'Manage hospital',        icon: Shield,       color: 'text-primary',    bg: 'bg-primary/10' },
+  doctor:             { label: 'Hosp Doctor',      desc: 'Patient & schedule',     icon: Stethoscope,  color: 'text-info',       bg: 'bg-info/10' },
+  clinic_doctor:      { label: 'Clinic',           desc: 'Clinic management',      icon: Heart,        color: 'text-rose-600',   bg: 'bg-rose-500/10' },
+  lab_owner:          { label: 'Diagnostic',       desc: 'Lab test mgmt',          icon: Microscope,   color: 'text-emerald-600',bg: 'bg-emerald-500/10' },
+  pathologist:        { label: 'Pathologist',      desc: 'Reports & slides',       icon: FlaskConical, color: 'text-violet-600', bg: 'bg-violet-500/10' },
+  pharmacy_owner:     { label: 'Pharmacy',         desc: 'Medicine store',         icon: Pill,         color: 'text-amber-600',  bg: 'bg-amber-500/10' },
+  nurse:              { label: 'Nurse',            desc: 'Ward & patient care',    icon: HeartPulse,   color: 'text-pink-600',   bg: 'bg-pink-500/10' },
+  radiologist:        { label: 'Radiology',        desc: 'Imaging & scans',        icon: ScanLine,     color: 'text-sky-600',    bg: 'bg-sky-500/10' },
+  counsellor:         { label: 'Counsellor',       desc: 'Therapy & counselling',  icon: Brain,        color: 'text-teal-600',   bg: 'bg-teal-500/10' },
+  psychiatrist:       { label: 'Psychiatrist',     desc: 'Diagnosis & medication', icon: BrainCircuit, color: 'text-cyan-600',   bg: 'bg-cyan-500/10' },
+  delivery_boy:       { label: 'Delivery',         desc: 'Medicine delivery',      icon: Truck,        color: 'text-blue-600',   bg: 'bg-blue-500/10' },
+  rider:              { label: 'Rider',            desc: 'Vehicle rides',          icon: Car,          color: 'text-teal-600',   bg: 'bg-teal-500/10' },
+  ambulance:          { label: 'Ambulance Driver', desc: 'Emergency ambulance',    icon: Ambulance,    color: 'text-red-600',    bg: 'bg-red-500/10' },
+  assistant:          { label: 'Assistant',        desc: 'Patient care & help',    icon: Users,        color: 'text-cyan-600',   bg: 'bg-cyan-500/10' },
+  lawyer:             { label: 'Lawyer',           desc: 'Legal consultation',     icon: Scale,        color: 'text-indigo-600', bg: 'bg-indigo-500/10' },
+  patient:            { label: 'Patient',          desc: 'Appointments & records', icon: UserRound,    color: 'text-success',    bg: 'bg-success/10' },
+  receptionist:       { label: 'Receptionist',     desc: 'Front desk & OPD queue', icon: Headset,      color: 'text-orange-600', bg: 'bg-orange-500/10' },
+  clinic_admin:       { label: 'Clinic Admin',     desc: 'Clinic operations',      icon: Building2,    color: 'text-emerald-700',bg: 'bg-emerald-500/10' },
+  billing_executive:  { label: 'Billing',          desc: 'Bills & payments',       icon: Receipt,      color: 'text-yellow-600', bg: 'bg-yellow-500/10' },
+  dentist:            { label: 'Dentist',          desc: 'Dental care',            icon: Smile,     color: 'text-cyan-700',   bg: 'bg-cyan-500/10' },
+  // File 07 §3.25-§3.30 specialty-vertical owners. Each has its own dashboard
+  // route (App.tsx /dashboard/elder-care and friends) and a seeded account, so
+  // they need a real tile rather than the humanised fallback.
+  elder_care_admin:   { label: 'Elder Care',        desc: 'Residents & MAR records', icon: HeartPulse, color: 'text-amber-700', bg: 'bg-amber-500/10' },
+  vaccination_admin:  { label: 'Vaccination Centre', desc: 'Doses & certificates',   icon: Syringe,   color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
+  diet_kitchen_admin: { label: 'Diet Kitchen',      desc: 'Therapeutic meal plans',  icon: Salad,     color: 'text-lime-700',  bg: 'bg-lime-500/10' },
+  corporate_admin:    { label: 'Corporate Wellness', desc: 'Enrolments & contracts',  icon: Building2, color: 'text-indigo-600', bg: 'bg-indigo-500/10' },
+  child_dev_admin:    { label: 'Child Development', desc: 'Therapy & IEP tracking',  icon: Users,     color: 'text-rose-600',  bg: 'bg-rose-500/10' },
+  specialty_centre_admin: { label: 'Specialty Centre', desc: 'Daycare & consultants', icon: Stethoscope, color: 'text-violet-600', bg: 'bg-violet-500/10' },
+};
+
+// Used as the pre-fetch list (so the grid is never empty) and as the fallback
+// if /auth/login-roles is unreachable.
+const FALLBACK_ROLE_KEYS = Object.keys(ROLE_META);
+
+const humanise = (key: string) =>
+  key.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+function buildRoles(keys: string[]): RoleItem[] {
+  return keys.map((key) => {
+    const meta = ROLE_META[key];
+    if (meta) return { key, ...meta };
+    return {
+      key,
+      label: humanise(key),
+      desc: 'Sign in as this role',
+      icon: Users,
+      color: 'text-foreground',
+      bg: 'bg-muted',
+    };
+  });
+}
 
 const demoAccounts: DemoAccountItem[] = [
   // Core System Roles (Exact 14 Accounts requested)
@@ -87,6 +140,25 @@ const demoAccounts: DemoAccountItem[] = [
   { key: 'counsellor', category: 'core', name: 'Ananya Verma', label: 'Counsellor', desc: 'Therapy & counselling', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'counsellor@findmedi.com', pass: 'password' },
   { key: 'psychiatrist', category: 'core', name: 'Dr. Rohan Deshmukh', label: 'Psychiatrist', desc: 'Diagnosis & medication', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'psychiatrist@findmedi.com', pass: 'password' },
   { key: 'patient', category: 'core', name: 'Patient Test', label: 'Patient', desc: 'Appointments & records', icon: UserRound, color: 'text-success', bg: 'bg-success/10', email: 'patient@findmedi.com', pass: 'password' },
+
+  // The 7 roles that previously had NO tile, so their accounts were unloginable
+  // from this page (the server 403s when a posted role mismatches the account).
+  { key: 'pathologist', category: 'core', name: 'Dr. Amit Pathologist', label: 'Pathologist', desc: 'Reports & slides', icon: FlaskConical, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'pathologist@findmedi.com', pass: 'password' },
+  { key: 'nurse', category: 'core', name: 'Sister Mary Nurse', label: 'Nurse', desc: 'Ward & patient care', icon: HeartPulse, color: 'text-pink-600', bg: 'bg-pink-500/10', email: 'nurse@findmedi.com', pass: 'password' },
+  { key: 'radiologist', category: 'core', name: 'Dr. Meena Radiologist', label: 'Radiology', desc: 'Imaging & scans', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'radiologist@findmedi.com', pass: 'password' },
+  { key: 'receptionist', category: 'core', name: 'Pooja Front Desk', label: 'Receptionist', desc: 'Front desk & OPD queue', icon: Headset, color: 'text-orange-600', bg: 'bg-orange-500/10', email: 'receptionist@findmedi.com', pass: 'password' },
+  { key: 'clinic_admin', category: 'core', name: 'Dr. Rajesh Admin', label: 'Clinic Admin', desc: 'Clinic operations', icon: Building2, color: 'text-emerald-700', bg: 'bg-emerald-500/10', email: 'clinicadmin@findmedi.com', pass: 'password' },
+  { key: 'billing_executive', category: 'core', name: 'Suresh Billing', label: 'Billing', desc: 'Bills & payments', icon: Receipt, color: 'text-yellow-600', bg: 'bg-yellow-500/10', email: 'billing@findmedi.com', pass: 'password' },
+  { key: 'dentist', category: 'core', name: 'Dr. Alok Dental', label: 'Dentist', desc: 'Dental care', icon: Smile, color: 'text-cyan-700', bg: 'bg-cyan-500/10', email: 'dentist@findmedi.com', pass: 'password' },
+
+  // File 07 §3.25-§3.30 specialty dashboards — one seeded account per owner role
+  // so every dashboard route is reachable by the role it was built for.
+  { key: 'elder_care_admin', category: 'core', name: 'Elder Care Admin', label: 'Elder Care', desc: 'Residents & MAR records', icon: HeartPulse, color: 'text-amber-700', bg: 'bg-amber-500/10', email: 'elder.care.admin@findmedi.com', pass: 'password' },
+  { key: 'vaccination_admin', category: 'core', name: 'Vaccination Admin', label: 'Vaccination Centre', desc: 'Doses & certificates', icon: Syringe, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'vaccination.admin@findmedi.com', pass: 'password' },
+  { key: 'diet_kitchen_admin', category: 'core', name: 'Diet Kitchen Admin', label: 'Diet Kitchen', desc: 'Therapeutic meal plans', icon: Salad, color: 'text-lime-700', bg: 'bg-lime-500/10', email: 'diet.kitchen.admin@findmedi.com', pass: 'password' },
+  { key: 'corporate_admin', category: 'core', name: 'Corporate Wellness Admin', label: 'Corporate Wellness', desc: 'Enrolments & contracts', icon: Building2, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'corporate.admin@findmedi.com', pass: 'password' },
+  { key: 'child_dev_admin', category: 'core', name: 'Child Development Admin', label: 'Child Development', desc: 'Therapy & IEP tracking', icon: Users, color: 'text-rose-600', bg: 'bg-rose-500/10', email: 'child.dev.admin@findmedi.com', pass: 'password' },
+  { key: 'specialty_centre_admin', category: 'core', name: 'Specialty Centre Admin', label: 'Specialty Centre', desc: 'Daycare & consultants', icon: Stethoscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'specialty.centre.admin@findmedi.com', pass: 'password' },
 
   // Counsellors (MindSupport - Therapists & Psychologists, NO "Dr." prefix)
   { key: 'counsellor', category: 'counsellor', name: 'Aisha Mehra', label: 'Aisha Mehra', desc: 'Anxiety & Stress (PhD)', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'aisha.mehra@mindsupport.seed', pass: 'password' },
@@ -124,10 +196,30 @@ const demoAccounts: DemoAccountItem[] = [
   { key: 'rider', category: 'rider', name: 'Deepak Sharma', label: 'Deepak Sharma', desc: 'Swift Car (Highway)', icon: Car, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'rider5@findmedi.com', pass: 'password' },
 ];
 
+const isDemoEmail = (emailStr?: string) => {
+  if (!emailStr) return false;
+  const e = emailStr.toLowerCase().trim();
+  return (
+    e.endsWith('@findmedi.com') ||
+    e.endsWith('@mindsupport.seed') ||
+    e.endsWith('@medicore.com') ||
+    e.endsWith('@findmedi.local') ||
+    e.startsWith('demo-') ||
+    e.startsWith('demo_') ||
+    e === 'mahendrapra0077@gmail.com'
+  );
+};
+
 export default function Login() {
   const navigate = useNavigate();
   const { user, loading: authLoading, login, completeGoogleLogin, completeTwoFactorLogin } = useAuth();
-  const [role, setRole] = useState('hospital_admin');
+  // AUTH-UI: start with NO role selected. An empty role is omitted from the
+  // payload entirely (see handleLogin), so the server logs the account in
+  // without a `user.role !== role` mismatch - which is what made the 7 roles
+  // that had no tile unloginable before this page became data-driven.
+  const [role, setRole] = useState('');
+  // Live list from GET /auth/login-roles; falls back to the bundled metadata.
+  const [roleKeys, setRoleKeys] = useState<string[] | null>(null);
   const [demoCategory, setDemoCategory] = useState<'all' | 'counsellor' | 'psychiatrist' | 'assistant' | 'lawyer' | 'rider'>('all');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -139,12 +231,28 @@ export default function Login() {
   const [twoFactorTicket, setTwoFactorTicket] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
 
+  // AUTH-UI: fetch the authoritative role list. Must run before the early
+  // returns below (React hook ordering), and failures must not block login -
+  // the bundled fallback keeps the grid usable when the API is down.
+  useEffect(() => {
+    let alive = true;
+    api.loginRoles()
+      .then((data: any) => {
+        const keys = Array.isArray(data?.roles) ? data.roles.filter(Boolean) : null;
+        if (alive && keys && keys.length) setRoleKeys(keys);
+      })
+      .catch(() => { /* offline / 5xx -> keep bundled fallback */ });
+    return () => { alive = false; };
+  }, []);
+
+  const roleTiles = buildRoles(roleKeys ?? FALLBACK_ROLE_KEYS);
+
   // Wait for /auth/me hydration before redirecting. Otherwise a stale user in
   // memory during session validation can bounce between /login and /dashboard.
   // AUTH-F-06: a temp-password session goes to /set-password instead - every
   // data endpoint will 403 PASSWORD_RESET_REQUIRED until the flag is cleared.
   if (authLoading) return <div className="min-h-screen" role="status" aria-label="Checking session" />;
-  if (user) return <Navigate to={user.mustResetPassword ? '/set-password' : '/dashboard'} replace />;
+  if (user) return <Navigate to={(user.mustResetPassword && !isDemoEmail(user.email)) ? '/set-password' : '/dashboard'} replace />;
 
   const pickRole = (r: string) => {
     setRole(r);
@@ -161,13 +269,16 @@ export default function Login() {
     setError('');
     setGoogleLoading(true);
     try {
-      const data = await api.googleAuth({ idToken, accessToken, role });
+      // AUTH-UI: omit `role` entirely when no tile is selected. Sending ''
+      // would 400 against the zod enum, and sending a role the account does not
+      // have 403s - so an unselected role means "log in as whatever this is".
+      const data = await api.googleAuth({ idToken, accessToken, ...(role ? { role } : {}) });
       if (data.exists && data.token && data.user) {
         setAuthTokens(data.token);
         completeGoogleLogin(data.user);
         // AUTH-F-06: google sessions for temp-password accounts land on the
         // forced-rotation page too (the old login-time check never ran here).
-        navigate(data.user.mustResetPassword ? '/set-password' : '/dashboard', { replace: true });
+        navigate((data.user.mustResetPassword && !isDemoEmail(data.user.email)) ? '/set-password' : '/dashboard', { replace: true });
         return;
       }
 
@@ -236,15 +347,15 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const result = await login(email, password, role);
+      const result = await login(email, password, role || undefined);
       // AUTH-B-03: 2FA-enrolled accounts get a ticket, not a session.
       if (result?.requiresTwoFactor) {
         setTwoFactorTicket(result.twoFactorTicket);
         setTwoFactorCode('');
         return;
       }
-      // AUTH-F-06: temp-password accounts must rotate before anything else.
-      if (result?.mustResetPassword) {
+      // AUTH-F-06: temp-password accounts must rotate before anything else (except demo accounts).
+      if (result?.mustResetPassword && !isDemoEmail(email)) {
         navigate('/set-password', { replace: true });
         return;
       }
@@ -398,11 +509,12 @@ export default function Login() {
 
           {/* Role Selection */}
           <div className="grid grid-cols-4 gap-2 mb-6">
-            {roles.map(({ key, label, desc, icon: Icon, color, bg }) => (
+            {roleTiles.map(({ key, label, desc, icon: Icon, color, bg }) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => pickRole(key)}
+                aria-pressed={role === key}
                 className={`p-2 rounded-lg border text-center transition-all ${
                   role === key
                     ? 'border-primary bg-accent shadow-sm'

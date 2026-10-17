@@ -37,6 +37,7 @@ import { api } from '@/lib/api';
 import { applyUserSettings, t } from '@/lib/settings';
 import { useSettings, useUpdateSetting, useLoadUserSettings } from '@/store/useSettingsStore';
 import PreferredPharmacySettings from '@/components/PreferredPharmacySettings';
+import type { ApiRow } from '@/lib/apiTypes';
 
 interface NoticeState {
   type: 'error' | 'success';
@@ -165,7 +166,7 @@ function TwoFactorSection() {
   const [secret, setSecret] = useState('');
   const [otpAuthUrl, setOtpAuthUrl] = useState('');
   const [code, setCode] = useState('');
-  const [backupCodes, setBackupCodes] = useState([]);
+  const [backupCodes, setBackupCodes] = useState<ApiRow[]>([]);
   const [disablePassword, setDisablePassword] = useState('');
   const [copied, setCopied] = useState(false);
 

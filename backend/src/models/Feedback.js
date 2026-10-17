@@ -41,9 +41,14 @@ const feedbackSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 feedbackSchema.index({ hospitalId: 1, createdAt: -1 });
+// `$type: 'objectId'` rather than `$ne: null`: MongoDB rejects `$ne` inside a
+// partial-index filter ("Expression not supported in partial index"). The
+// predicate is identical here — a null or absent patientId is BSON null/missing
+// and never matches `$type: 'objectId'`, so uniqueness still only applies to
+// rows that name a real patient.
 feedbackSchema.index(
   { patientId: 1, context: 1, refId: 1 },
-  { unique: true, partialFilterExpression: { refId: { $type: 'string', $gt: '' }, patientId: { $ne: null } } }
+  { unique: true, partialFilterExpression: { refId: { $type: 'string', $gt: '' }, patientId: { $type: 'objectId' } } }
 );
 
 export default mongoose.models.Feedback || mongoose.model('Feedback', feedbackSchema);

@@ -1,0 +1,187 @@
+# 19 — DevOps, Scaling & Cost Plan
+
+> **Repo se jo mila (✅):** `.github/workflows` (`ci.yml`, `deploy.yml`, `security-scan.yml`, `uptime.yml`) · `infra/` (`docker-compose.{dev,prod,observability}.yml`, `k8s/`, `nginx/`, `kafka/`, `opensearch/`, `trino/`, `valhalla/`, `livekit/`, `flink-lib/`, `rust-telemetry/`, `backup/`) · live frontend API URL **Render** (`*.onrender.com`) · MongoDB Atlas, Redis, Cloudinary, Brevo, Razorpay, Twilio, MapTiler, Sentry, PostHog, Unleash, LiveKit (processors) · Prometheus (`prom-client`), pino logs.
+> **Observation:** infra me bahut kuch hai (Kafka, Flink, Trino, Pinot, OpenSearch, k8s) — ye **bada operational bojh** hai. Jab tak scale/team na ho, har component production me chalana zaruri nahi. Is file ka core: **kya abhi chalao, kya baad me**, aur **cost control**.
+> ⚠️ Vendor pricing badalti rehti hai — maine koi ₹/$ figures nahi diye; formulas aur checklists diye hain. Actual numbers vendor pricing pages se lo.
+
+---
+
+## 1. Stage-wise infrastructure (don't over-build)
+
+| Stage | Users/Bookings (rough, replace with your data) | Recommended stack | Skip for now |
+|---|---|---|---|
+| **S0 — Pilot (R-1/R1)** | 1 city, ≤ few hundred providers, low traffic | Managed PaaS (Render/Fly/Railway) or 1–2 VMs w/ Docker Compose + nginx; **MongoDB Atlas** (M10+ replica set), managed Redis, Cloudinary, OpenSearch managed/single node (or Atlas Search/Meilisearch), LiveKit Cloud, Cloudflare in front | Kafka, Flink, Trino, Pinot, k8s |
+| **S1 — Growth** | 2–3 cities, steady daily bookings | Containers on a managed container platform (ECS/Cloud Run/Render private services) **or** small managed k8s; autoscaling API/workers; queue (BullMQ ✅/Redis) ; managed OpenSearch; read replicas; CDN; staging parity | Self-hosted Kafka/Flink unless proven need |
+| **S2 — Scale** | Multi-city/state, spikes (camps, outbreaks) | k8s with HPA, separate worker pools, Kafka (managed: MSK/Confluent) **if event volume needs it**, warehouse (BigQuery/ClickHouse/Trino) for analytics, multi-AZ DB, DR region plan | Multi-region active-active (unless regulation/SLA demands) |
+| **S3 — Enterprise** | B2B/insurers/hospital chains | SSO/SAML, tenant isolation tiers, SLAs/SLOs, dedicated clusters for big tenants, SOC2/ISO controls | — |
+
+> Aapke repo me S2/S3 ke pieces (Kafka/Flink/Trino/Pinot) already hain. **Recommendation:** unhe `profiles`/feature-flag ke peeche rakho; S0/S1 me sirf core chalao (API, workers, Mongo, Redis, OpenSearch, ClamAV, nginx/Cloudflare, LiveKit). Complexity = cost + incidents.
+
+## 2. Environments
+
+| Env | Hosting | Notes |
+|---|---|---|
+| **dev** | Docker Compose (`docker-compose.dev.yml` ✅) | Seed data gated; no real vendors (mocks) |
+| **CI** | GitHub Actions containers | Ephemeral Mongo replica set, Redis, ClamAV, OpenSearch |
+| **staging** | Mirror of prod (smaller) | Synthetic data only; sandbox payments; same flags/config shape; ZAP/load tests |
+| **prod** | S0/S1 stack | Separate cloud accounts/projects, secrets, DBs; least privilege |
+| **preview** | Per-PR frontend previews (+ optional ephemeral backend) | Auto-teardown |
+Rules: **no prod data in lower envs**; separate credentials per env; IaC for all; env parity checked in CI (config schema validation at boot).
+
+## 3. CI/CD
+
+### 3.1 Pipeline (extend ✅ existing)
+```
+PR:    lint → typecheck → unit → authz:coverage → dtoLeak/authMatrix → SAST (Semgrep ✅, CodeQL ✅) → secrets (gitleaks ✅)
+       → dependency-review/OSV → build → preview deploy → a11y/visual (Storybook) 
+main:  + integration (real DB) → Trivy ✅ → migration dry-run → build images (SBOM) → sign (Cosign, later)
+stage: deploy → smoke → critical E2E (Playwright) → ZAP baseline → load smoke
+prod:  manual/auto approval → canary (5–10%) → monitor → full rollout → post-deploy checks
+```
+- `npm ci` (lockfile), cache deps, matrix for Node LTS; fail on High vulns.
+- **Branch protection:** required checks, reviews (CODEOWNERS for auth/infra/payments), no force-push, signed commits (optional).
+- **Deploy strategies:** blue/green or canary with feature flags (Unleash ✅); **DB migrations** expand→migrate→contract; rollbacks tested.
+- **Secrets in CI:** environment-scoped secrets, OIDC to cloud (no long-lived keys); pin third-party Actions to SHA; least-privilege `permissions:`.
+- **Release notes/changelog** auto; version tags; artefact retention.
+
+### 3.2 Migrations & data jobs
+Idempotent scripts, dry-run mode with report, backups before, throttled batches, resumable, audit logged, rehearsed on staging with production-like volume; feature-flagged cutover.
+
+## 4. Infrastructure as Code & config
+- Terraform/Pulumi (cloud + Atlas + Cloudflare + DNS) or at minimum versioned `docker-compose`/`k8s` manifests ✅ + Helm/Kustomize overlays per env.
+- **Config schema (zod) validated at boot** — app refuses to start with missing/weak secrets (also fixes "prod flag forgotten" risk).
+- Policy-as-code: Checkov/kics/OPA (no public DB, encryption on, non-root containers).
+- Drift detection; peer-reviewed infra PRs; tagged resources for cost allocation.
+
+## 5. Containers & runtime
+Dockerfiles for backend/frontend/workers (**missing** except `infra/backup/Dockerfile`): multi-stage, non-root `USER node`, minimal base (distroless/alpine), `read_only` FS, `cap_drop: ALL`, `no-new-privileges`, healthchecks, resource limits, pinned digests, Trivy scan, SBOM. k8s: PodSecurity restricted, NetworkPolicies default-deny (partially ✅ in `core.yaml`), RBAC least-privilege, secrets via external store (not plain manifests), PDBs, HPA, readiness/liveness probes, anti-affinity.
+
+## 6. Edge & networking
+**Cloudflare** (DNS, WAF, bot, rate limit, DDoS, cache rules: bypass `/api/*` & authenticated HTML) → nginx ✅ (TLS, rate limits, headers; `server_tokens off`, real_ip from CF CIDRs) → app. Origin locked to Cloudflare. Datastores private (no public ports ✅ in prod compose). Egress allowlist (SSRF/exfil). WebSockets (Socket.io) sticky sessions or Redis adapter ✅ with proper timeouts. LiveKit: own region/TURN config, TLS.
+
+## 7. Data layer
+
+| Component | Guidance |
+|---|---|
+| **MongoDB Atlas** | Replica set (transactions), backups + PITR, IP allowlist/PrivateLink, least-priv users, alerts (connections, replication lag, slow queries), index review, `maxTimeMS`, TTL indexes for retention, archive cold data (online archive) |
+| **Redis** | Auth + TLS ✅, persistence config appropriate (sessions/rate-limits ok to lose? define), memory limits/eviction policy, separate instances for cache vs queues vs rate limits at scale |
+| **OpenSearch** | Public DTO only, index aliases for reindex, snapshots, shard sizing, ILM, auth + TLS ✅ |
+| **Object storage (Cloudinary/S3)** | Private + signed URLs, lifecycle policies, malware scan pipeline, cost of transformations |
+| **Kafka/Flink/Trino/Pinot** | Only when event volume/analytics justify; otherwise warehouse export via simple outbox + batch ETL |
+| **Backups** ✅ | 3-2-1, **immutable** copy in separate account, encrypted, quarterly restore drill with evidence |
+
+## 8. Observability & SRE
+
+### 8.1 Signals
+Logs (pino ✅ structured, redaction ✅, correlation id ✅) · metrics (Prometheus ✅) · traces (OpenTelemetry — add) · errors (Sentry ✅ scrubbed) · uptime (`uptime.yml` ✅ + external probe) · RUM (web vitals) · synthetic checks for critical journeys (login, search, booking, payment sandbox).
+
+### 8.2 SLOs (starter; tune with data)
+| Service | SLI | Target |
+|---|---|---|
+| API availability | non-5xx / total | 99.9% |
+| Booking success | confirmed / initiated (excl. user abandon) | ≥ 98% |
+| Payment success (gateway-attributable) | | ≥ 97% |
+| Search latency | p95 | < 500 ms |
+| Notification delivery | within 60 s (critical) | ≥ 99% |
+| SOS dispatch API | availability | 99.95% |
+Error budgets → release freeze rules.
+
+### 8.3 Alerts (page vs ticket)
+**Page:** API 5xx spike, payment webhook failures, SOS endpoint down, DB primary failover/replication lag, queue backlog age, auth failure spike, disk/memory critical, cert expiry < 7d.
+**Ticket:** slow queries, elevated 4xx, doc-expiry spikes, cost anomaly, dependency vulns.
+Runbooks linked from each alert; on-call rotation; escalation matrix; status page.
+
+### 8.4 Security monitoring
+Auth anomalies, refresh-token reuse, mass export/read, role changes, WAF blocks, ClamAV hits, webhook sig failures; central log retention + access control; later SIEM (Wazuh/Loki+rules) when team grows.
+
+## 9. Scalability design notes
+
+| Area | Practice |
+|---|---|
+| **API** | Stateless, horizontal scaling, connection pools, request timeouts, circuit breakers for third parties (`AbortSignal.timeout`), idempotency keys |
+| **Workers** | Separate deployables per queue (notifications, PDFs, exports, verification, search indexing), concurrency limits, DLQ, backoff |
+| **Search** | Cache popular queries, async indexing, denormalised public DTOs |
+| **DB** | Index by access pattern (provider+slot unique, patient+status), avoid N+1, pagination (cursor), read replicas for analytics/read-heavy |
+| **Slots/booking hot paths** | Atomic ops, minimal locks, short holds, Redis for hold TTL if needed |
+| **Spikes** | Camp/event registration queue + waiting room, rate limits, pre-warm, autoscaling policies, static caching for event pages |
+| **Realtime** | Socket.io Redis adapter ✅, room-scoped events, backpressure |
+| **Files** | Direct-to-storage uploads with signed URLs + async scan; CDN for public media only |
+| **Notifications** | Queue + provider failover (SMS/WhatsApp), batching, dedupe, per-channel budgets |
+| **Multi-city** | Config/data partitioning by `city_code`; geo-sharding later |
+| **Tenant isolation** ✅ | Scope enforced; noisy-neighbour quotas ✅ (`tenantQuota`) |
+
+## 10. Cost model (framework — fill with actual vendor pricing)
+
+### 10.1 Cost buckets
+| Bucket | Drivers | Control levers |
+|---|---|---|
+| **Compute** (API/workers/frontend) | CPU-hours, instances, autoscaling | Right-size, autoscale, spot for batch, scale-to-zero previews |
+| **Database (Atlas)** | Tier, storage, IOPS, backups, data transfer | Index/query tuning, archival/TTL, avoid over-provision, reserved discounts |
+| **Search (OpenSearch)** | Nodes, storage | Index only public fields, ILM, smaller shards |
+| **Cache/queue (Redis)** | Memory | TTLs, eviction, separate small instances |
+| **Object storage/CDN (Cloudinary/S3)** | Storage, transformations, bandwidth | Compress/WebP, limit derived assets, lifecycle rules |
+| **Messaging (SMS/WhatsApp/email/push)** | Per-message price × volume | Push-first, batching, template categories, OTP rate limits, SMS fallback only, WhatsApp opt-in, cap pumping (country allowlist) |
+| **Video (LiveKit)** | Participant-minutes, bandwidth | Audio-first option, auto-quality, session length caps, self-host TURN if scale |
+| **Maps/routing** | Tile/geocode/route calls | Self-hosted Valhalla ✅, cache geocodes, lazy-load maps |
+| **Payments** | % + fixed per txn | Negotiate at volume, UPI-preference nudges (verify fees), reduce failed-retries |
+| **Observability** | Log GB, metrics series, Sentry events | Sampling, log levels, retention tiers, drop noisy logs |
+| **Security tooling** | Pentest, scanners, WAF plan | Free tiers first; annual pentest budget |
+| **Third-party APIs** | KYC/GST/PAN/bank verification | Cache results, verify once, batch |
+| **People/ops** | Support, field verification, on-call | Self-serve, automation, tiered support |
+
+### 10.2 Cost per 1,000 bookings (compute this monthly)
+```
+Cost/1k bookings = (infra + vendors + messaging + video + maps + payments fees + support + verification) / (bookings / 1000)
+```
+Track **per category** (video-heavy vs in-person) and per city. Tie to unit-economics (file 16): variable cost per booking must stay below target.
+
+### 10.3 Budgets & guardrails
+- Cloud budgets/alerts at 50/80/100%; anomaly detection; tags per service/env/city.
+- **Hard caps/limits:** SMS daily caps, OTP per-number limits (SMS pumping), video max duration, upload sizes, API quotas per tenant ✅.
+- Non-prod auto-shutdown (nights/weekends), preview env TTL.
+- Quarterly cost review: top 5 drivers, optimisation backlog.
+- Avoid premature commitments (reserved capacity) until usage stable.
+
+## 11. Disaster recovery & business continuity
+| Item | Plan |
+|---|---|
+| **RPO/RTO** | Define per tier: auth/booking/payments/SOS (tight), analytics/content (relaxed) |
+| **Backups** | Mongo PITR + daily snapshots, object storage versioning, config/secrets backup (encrypted), IaC in git |
+| **Restore drills** | Quarterly: restore to staging, verify integrity & app boot; record RTO achieved |
+| **Failover** | DB multi-AZ; stateless app multi-instance; DNS/Cloudflare failover; **degraded mode** (read-only bookings view, cached SOS numbers/offline page) |
+| **Third-party outage** | Payment gateway fallback/queue, SMS provider failover, LiveKit fallback to audio/phone, maps degrade gracefully |
+| **Ransomware** | Immutable backups, separate credentials, tested clean-restore |
+| **Comms** | Status page, templates, escalation tree |
+| **Runbooks** | Auth key compromise (`JWT_KEYS` rotate), DB credential leak, secret rotation, queue stuck, payment mismatch, data breach (DPDP/CERT-In timelines) ✅ docs |
+
+## 12. Secrets & key management (DevOps view)
+Secret manager (Doppler/Vault/AWS SM) → inject at runtime; no secrets in images/git; per-env scopes; rotation calendar (90 days / on-incident); `JWT_KEYS` active/retiring rotation drill ✅; access audit; break-glass procedure; developer machines hold no prod secrets.
+
+## 13. Compliance-oriented ops
+Data residency choices (India region preferred for PHI), vendor DPAs, audit-log retention, access reviews quarterly, change management records (PR + approvals), vulnerability SLAs (Critical 7d / High 30d), incident response drills (tabletop 6-monthly), DPDP/CERT-In reporting readiness (6-hour incident reporting), evidence repository for audits.
+
+## 14. Team & on-call
+Start: shared on-call (2–3 engineers), business-hours + critical alerts after-hours; rotation, handover notes, postmortems (blameless), runbook ownership. Later: dedicated SRE/DevOps.
+
+## 15. Roadmap (infra)
+| When | Tasks |
+|---|---|
+| **R-1** | Rotate secrets, boot-time config validation, Cloudflare, Atlas allowlist, CI security gates, Dockerfiles (non-root), basic dashboards/alerts |
+| **R0** | Staging parity, IaC baseline, OpenTelemetry traces, queue/worker split, backup immutability, restore drill #1 |
+| **R1** | Canary deploys + flags, SLO dashboards, status page, load tests, cost dashboard + budgets, on-call rotation |
+| **R2** | Autoscaling/HPA, search scaling, WhatsApp/SMS provider failover, mobile release pipeline (store builds), analytics warehouse (simple) |
+| **R3** | Multi-city partitioning, read replicas, DR region plan, SIEM, SOC2-style evidence |
+| **R4** | Pentest + hardening sprint before sensitive categories; dedicated clusters for enterprise tenants if needed |
+
+## 16. Checklist
+- [ ] Decide S0 stack (what runs in prod now) — put Kafka/Flink/Trino/Pinot behind profiles
+- [ ] Backend/frontend/worker Dockerfiles (non-root, read-only) + Trivy
+- [ ] Boot-time config validation (fail on missing/weak secrets)
+- [ ] Cloudflare + origin lock + cache rules; nginx real-IP/CSP/timeouts
+- [ ] Staging parity + synthetic data + sandbox vendors
+- [ ] Canary + feature-flag rollout + rollback runbook
+- [ ] SLOs, alerts (page vs ticket), status page, on-call
+- [ ] Immutable backups + quarterly restore drill with evidence
+- [ ] Cost tags, budgets, per-1k-bookings dashboard, messaging/video caps
+- [ ] Secrets manager + rotation calendar + access audit
+- [ ] Load/spike/soak tests and autoscaling policies

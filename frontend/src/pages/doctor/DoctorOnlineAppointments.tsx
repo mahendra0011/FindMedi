@@ -30,6 +30,7 @@ const initialPrescriptionData = {
 };
 
 import { isOnlineAppointment, isOfflineAppointment } from '@/lib/appointmentModes';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function DoctorOnlineAppointments() {
   const { user } = useAuth();
@@ -58,8 +59,8 @@ export default function DoctorOnlineAppointments() {
     setActiveTab(t);
     setSearchParams({ tab: t });
   };
-  const [appointments, setAppointments] = useState([]);
-  const [allAppointments, setAllAppointments] = useState([]);
+  const [appointments, setAppointments] = useState<ApiRow[]>([]);
+  const [allAppointments, setAllAppointments] = useState<ApiRow[]>([]);
   const [calDate, setCalDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
   const [loading, setLoading] = useState(true);

@@ -11,6 +11,7 @@ import {
   triggerVibration,
   stopVibration,
 } from '@/lib/audioCallSounds';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const AudioCallContext = createContext(null);
 
@@ -37,7 +38,7 @@ export function AudioCallProvider({ children }) {
   // Audio Controls
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
-  const [audioDevices, setAudioDevices] = useState([]);
+  const [audioDevices, setAudioDevices] = useState<ApiRow[]>([]);
   const [selectedOutputId, setSelectedOutputId] = useState('default');
 
   // Stats & Timers

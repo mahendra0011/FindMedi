@@ -100,7 +100,7 @@ moderationItemSchema.index({ assignee: 1, status: 1 });
 // insert rather than left for every call site to remember.
 moderationItemSchema.pre('validate', function setSla(next) {
   if (!this.slaDueAt) this.slaDueAt = slaDueAtFor(this.severity, this.createdAt || new Date());
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('ModerationItem', moderationItemSchema);

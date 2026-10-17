@@ -1,50 +1,93 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Truck, ShieldCheck, Clock, Calendar, ArrowRight, RotateCcw,
-  FileCheck2, CheckCircle2, AlertCircle, Sparkles
+  FileCheck2, CheckCircle2, AlertCircle, Sparkles, Loader2, Inbox
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { api } from '@/lib/api';
+
+interface AssetRef {
+  productName?: string;
+  serial?: string;
+  kind?: string;
+  status?: string;
+  lastSanitisedAt?: string | null;
+}
+interface VendorRef {
+  name?: string;
+  type?: string;
+}
+
+interface Rental {
+  _id?: string;
+  startAt?: string | null;
+  endAt?: string | null;
+  days?: number;
+  ratePerDay?: number;
+  rentalAmount?: number;
+  deposit?: number;
+  depositRefundAmount?: number | null;
+  currency?: string;
+  status?: string;
+  createdAt?: string | null;
+  sanitisation?: { performedAt?: string | null; notes?: string };
+  assetUnitId?: AssetRef | string | null;
+  vendorId?: VendorRef | string | null;
+}
+
+const fmt = (iso?: string | null): string => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const daysLeft = (iso?: string | null): number | null => {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return null;
+  return Math.max(0, Math.ceil((t - Date.now()) / 86_400_000));
+};
+
+const titleCase = (s?: string) =>
+  (s ?? '').toLowerCase().replace(/(^|_)([a-z])/g, (_, p, c) => `${p ? ' ' : ''}${c.toUpperCase()}`);
+
+const ref = <T,>(v: T | string | null | undefined): T | undefined =>
+  v && typeof v === 'object' ? (v as T) : undefined;
 
 export default function PatientRentals() {
-  const [rentals, setRentals] = useState([
-    {
-      id: 'rnt-1',
-      equipment: 'Motorized ICU Hospital Bed (5-Function with Waterproof Mattress)',
-      vendor: 'MedEquip Rentals & Healthcare Logistics',
-      status: 'Active',
-      startDate: '10 Oct 2026',
-      returnDueDate: '10 Nov 2026',
-      daysRemaining: 18,
-      monthlyRent: 3500,
-      depositHeld: 5000,
-      depositStatus: 'Held in Escrow (100% Refundable)',
-      serialNo: 'BED-5F-2024-89',
-      sanitisedCertificate: 'CERT-AUTOCLAVE-9921',
-    },
-    {
-      id: 'rnt-2',
-      equipment: 'Philips Respironics 10L High-Flow Oxygen Concentrator',
-      vendor: 'O2Care Life Systems',
-      status: 'Active',
-      startDate: '15 Oct 2026',
-      returnDueDate: '30 Oct 2026',
-      daysRemaining: 7,
-      monthlyRent: 4000,
-      depositHeld: 8000,
-      depositStatus: 'Held in Escrow (100% Refundable)',
-      serialNo: 'O2C-10L-8761',
-      sanitisedCertificate: 'CERT-O2-8812',
-    },
-  ]);
+  const [rentals, setRentals] = useState<Rental[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleScheduleReturn = (id: string) => {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.get('/patient/rentals');
+        if (cancelled) return;
+        const rows = Array.isArray((res as any)?.rentals) ? (res as any).rentals : [];
+        setRentals(rows);
+        setError(null);
+      } catch {
+        if (!cancelled) setError('Could not load your rentals.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleScheduleReturn = () => {
     toast.success('Pickup request submitted! A technician will inspect and collect the equipment tomorrow.');
   };
 
-  const handleExtend = (id: string) => {
+  const handleExtend = () => {
     toast.info('Extension window opened. Select extension tenure in checkout.');
   };
 
@@ -66,74 +109,120 @@ export default function PatientRentals() {
       </div>
 
       <div className="space-y-4">
-        {rentals.map((item) => (
-          <div
-            key={item.id}
-            className="p-5 rounded-3xl border border-border/60 bg-card space-y-4 shadow-xs"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 text-[10px] font-bold">
-                    Active Rental
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">S/N: {item.serialNo}</span>
-                </div>
-                <h2 className="font-heading text-base font-bold text-foreground">{item.equipment}</h2>
-                <p className="text-xs text-muted-foreground">{item.vendor}</p>
-              </div>
-
-              <div className="text-right sm:shrink-0">
-                <span className="text-xs text-muted-foreground block">Return Due</span>
-                <span className="text-sm font-extrabold text-foreground">{item.returnDueDate}</span>
-                <span className="text-[11px] text-amber-600 font-semibold block">{item.daysRemaining} days left</span>
-              </div>
-            </div>
-
-            <div className="grid sm:grid-cols-3 gap-3 p-3.5 rounded-2xl bg-muted/30 border border-border/40 text-xs">
-              <div>
-                <span className="text-muted-foreground block text-[11px]">Monthly Rent</span>
-                <strong className="text-foreground text-sm">₹{item.monthlyRent}</strong>
-              </div>
-              <div>
-                <span className="text-muted-foreground block text-[11px]">Security Deposit Held</span>
-                <strong className="text-emerald-600 text-sm">₹{item.depositHeld}</strong>
-                <span className="text-[10px] text-muted-foreground block">{item.depositStatus}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground block text-[11px]">Sanitisation & QA</span>
-                <strong className="text-foreground text-sm flex items-center gap-1">
-                  <FileCheck2 className="w-3.5 h-3.5 text-emerald-600" /> Certified
-                </strong>
-                <span className="text-[10px] text-muted-foreground block">{item.sanitisedCertificate}</span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Deposit auto-refunded to UPI within 48h of return inspection
-              </span>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleExtend(item.id)}
-                  className="rounded-xl text-xs h-8"
-                >
-                  Extend Tenure
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => handleScheduleReturn(item.id)}
-                  className="rounded-xl text-xs h-8 font-semibold gap-1"
-                >
-                  <Truck className="w-3.5 h-3.5" /> Schedule Return Pickup
-                </Button>
-              </div>
-            </div>
+        {loading && (
+          <div className="p-8 rounded-3xl border border-border/60 bg-card flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading rentals…
           </div>
-        ))}
+        )}
+
+        {!loading && error && (
+          <div className="p-8 rounded-3xl border border-border/60 bg-card text-center space-y-1">
+            <AlertCircle className="w-5 h-5 mx-auto text-amber-600" />
+            <p className="text-sm text-muted-foreground">{error}</p>
+          </div>
+        )}
+
+        {!loading && !error && rentals.length === 0 && (
+          <div className="p-8 rounded-3xl border border-border/60 bg-card text-center space-y-1">
+            <Inbox className="w-5 h-5 mx-auto text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">No equipment rentals yet.</p>
+            <p className="text-[11px] text-muted-foreground/70">Rent a bed, concentrator or pump to see it here.</p>
+          </div>
+        )}
+
+        {!loading && !error && rentals.map((item) => {
+          const asset = ref<AssetRef>(item.assetUnitId);
+          const vendor = ref<VendorRef>(item.vendorId);
+          const left = daysLeft(item.endAt);
+          const statusLabel = titleCase(item.status) || 'Rental';
+          const sanitisedAt = item.sanitisation?.performedAt;
+          const depositSettled = item.status === 'CLOSED' || item.status === 'DEPOSIT_REFUNDED';
+
+          return (
+            <div
+              key={String(item._id ?? '')}
+              className="p-5 rounded-3xl border border-border/60 bg-card space-y-4 shadow-xs"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 text-[10px] font-bold">
+                      {statusLabel}
+                    </Badge>
+                    {asset?.serial && <span className="text-xs text-muted-foreground">S/N: {asset.serial}</span>}
+                  </div>
+                  <h2 className="font-heading text-base font-bold text-foreground">
+                    {asset?.productName || 'Rented medical equipment'}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">{vendor?.name || 'Partner vendor'}</p>
+                </div>
+
+                <div className="text-right sm:shrink-0">
+                  <span className="text-xs text-muted-foreground block">Return Due</span>
+                  <span className="text-sm font-extrabold text-foreground">{fmt(item.endAt)}</span>
+                  {left !== null && (
+                    <span className="text-[11px] text-amber-600 font-semibold block">
+                      {left} day{left === 1 ? '' : 's'} left
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-3 p-3.5 rounded-2xl bg-muted/30 border border-border/40 text-xs">
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Rental Amount</span>
+                  <strong className="text-foreground text-sm">₹{(item.rentalAmount ?? 0).toLocaleString('en-IN')}</strong>
+                  {item.ratePerDay ? (
+                    <span className="text-[10px] text-muted-foreground block">₹{item.ratePerDay}/day · {item.days ?? 0} day term</span>
+                  ) : null}
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Security Deposit Held</span>
+                  <strong className="text-emerald-600 text-sm">₹{(item.deposit ?? 0).toLocaleString('en-IN')}</strong>
+                  <span className="text-[10px] text-muted-foreground block">
+                    {depositSettled
+                      ? `Refunded ₹${(item.depositRefundAmount ?? item.deposit ?? 0).toLocaleString('en-IN')}`
+                      : 'Held in Escrow (100% Refundable)'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Sanitisation & QA</span>
+                  <strong className="text-foreground text-sm flex items-center gap-1">
+                    <FileCheck2 className={`w-3.5 h-3.5 ${sanitisedAt ? 'text-emerald-600' : 'text-muted-foreground'}`} />
+                    {sanitisedAt ? 'Certified' : 'Pending'}
+                  </strong>
+                  <span className="text-[10px] text-muted-foreground block">
+                    {sanitisedAt ? `Last cycle ${fmt(sanitisedAt)}` : 'Awaiting cycle certificate'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Deposit auto-refunded to UPI within 48h of return inspection
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExtend}
+                    className="rounded-xl text-xs h-8"
+                  >
+                    Extend Tenure
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleScheduleReturn}
+                    className="rounded-xl text-xs h-8 font-semibold gap-1"
+                  >
+                    <Truck className="w-3.5 h-3.5" /> Schedule Return Pickup
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { api, getApiBaseUrl } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const API_URL = getApiBaseUrl();
 
@@ -66,7 +67,7 @@ export default function FileUpload() {
   const [loading, setLoading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [uploadType, setUploadType] = useState('image');
-  const [files, setFiles] = useState([]);
+  const [files, setFiles] = useState<ApiRow[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);

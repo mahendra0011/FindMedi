@@ -1,6 +1,12 @@
 /**
  * File 07 §3.30 — Single-specialty & daycare medical centre dashboard.
  * Cancer, cardiac, ortho-spine, sleep, pain daycare suites, procedure catalogues & referral inbox.
+ *
+ * KPIs below are File 07 spec figures: there is no procedures route (the
+ * /procedures mount does not exist), /referral/stats is the patient referral
+ * programme rather than a centre inbox, and /beds/stats has no stay-turnover
+ * measure — so this stays static until a real aggregate lands. Wire it with
+ * useLiveKpis like ElderCareDashboard when one does.
  */
 import RoleDashboardShell, { type RoleDashboardConfig } from './RoleDashboardShell';
 

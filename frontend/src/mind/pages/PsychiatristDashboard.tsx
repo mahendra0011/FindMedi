@@ -151,6 +151,7 @@ import {
   initials,
   normalizeNotification,
 } from "@/mind/lib/providerDashboardShared";
+import type { ApiRow } from '@/lib/apiTypes';
 const PsychiatristDashboard = () => {
   const { toast } = useToast();
   const dispatch = useAppDispatch();
@@ -164,7 +165,7 @@ const PsychiatristDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState({});
   const [availabilityRows, setAvailabilityRows] = useState(() => parseAvailabilityRows([]));
-  const [unavailableDates, setUnavailableDates] = useState([]);
+  const [unavailableDates, setUnavailableDates] = useState<ApiRow[]>([]);
   const [unavailableDateDraft, setUnavailableDateDraft] = useState("");
   const [bookingEnabled, setBookingEnabled] = useState(true);
   const [meetLink, setMeetLink] = useState("");
@@ -196,7 +197,7 @@ const PsychiatristDashboard = () => {
   const [notificationSettings, setNotificationSettings] = useState(defaultNotificationSettings);
   const [providerSettings, setProviderSettings] = useState(defaultProviderSettings);
   const [theme, setTheme] = useState(() => localStorage.getItem("mindsupport_psychiatrist_theme") || localStorage.getItem("mindsupport_counsellor_theme") || "default");
-  const [customPackages, setCustomPackages] = useState([]);
+  const [customPackages, setCustomPackages] = useState<ApiRow[]>([]);
   const [activeChatPeer, setActiveChatPeer] = useState<string | null>(null);
   const [activeChatPeerName, setActiveChatPeerName] = useState<string>("");
 

@@ -7,10 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function UserManagementTab() {
   const navigate = useNavigate();
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<ApiRow[]>([]);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   const [showFlagged, setShowFlagged] = useState(false);

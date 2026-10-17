@@ -28,6 +28,7 @@ import {
 import { useAudioCall } from '@/context/AudioCallContext';
 import { useVideoCall } from '@/context/VideoCallContext';
 import { userFacingError } from '@/lib/errorCopy';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const mediaUrl = (u) => (String(u || '').startsWith('http') ? u : `${getServerOrigin()}${u}`);
 const uid = (v) => (v == null ? '' : (typeof v === 'object' ? String(v._id || v.userId || '') : String(v)));
@@ -40,21 +41,21 @@ export default function ChatDashboard() {
   const videoCallCtx = useVideoCall();
 
   // ── Core lists ──
-  const [conversations, setConversations] = useState([]);
-  const [contacts, setContacts] = useState([]);
-  const [requests, setRequests] = useState([]);
-  const [blocked, setBlocked] = useState([]);
-  const [reports, setReports] = useState([]);
+  const [conversations, setConversations] = useState<ApiRow[]>([]);
+  const [contacts, setContacts] = useState<ApiRow[]>([]);
+  const [requests, setRequests] = useState<ApiRow[]>([]);
+  const [blocked, setBlocked] = useState<ApiRow[]>([]);
+  const [reports, setReports] = useState<ApiRow[]>([]);
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // ── Active conversation ──
   const [selectedId, setSelectedId] = useState(null);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<ApiRow[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [unreadDividerId, setUnreadDividerId] = useState(null);
   const [gallery, setGallery] = useState({ media: [], links: [], files: [], voice: [] });
-  const [starred, setStarred] = useState([]);
+  const [starred, setStarred] = useState<ApiRow[]>([]);
 
   // ── Composer ──
   const [draftText, setDraftText] = useState('');
@@ -62,7 +63,7 @@ export default function ChatDashboard() {
   const [editMessage, setEditMessage] = useState(null);
   const [showEmoji, setShowEmoji] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [pendingAttachments, setPendingAttachments] = useState([]);
+  const [pendingAttachments, setPendingAttachments] = useState<ApiRow[]>([]);
   const fileInputRef = useRef(null);
   const [highlightId, setHighlightId] = useState<any>(null);
   const [recordingVoice, setRecordingVoice] = useState(false);
@@ -81,7 +82,7 @@ export default function ChatDashboard() {
 
   // ── Selection / forward ──
   const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedMessages, setSelectedMessages] = useState([]);
+  const [selectedMessages, setSelectedMessages] = useState<ApiRow[]>([]);
   const [forwardMessageIds, setForwardMessageIds] = useState(null);
 
   // ── Panels / dialogs ──

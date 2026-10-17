@@ -81,7 +81,9 @@ import {
   passwordSchema,
 } from '../utils/validate.js';
 import { roleRequiresTwoFactor } from '../lib/providerStaffRoles.js';
+import { CANONICAL_ROLES } from '../config/permissions.js';
 import { isPwnedPassword } from '../utils/pwnedPassword.js';
+import { isDemoAccount } from '../utils/demoAccount.js';
 import { checkPasswordStrength, strongPasswordMessage } from '../utils/passwordStrength.js';
 import { enforceConcurrentCap, enforceRefreshTimeouts } from '../utils/sessionPolicy.js';
 import { encryptPhi, encryptBankDetails, phiBlindIndex, normalizeGovtId, revealPhi } from '../utils/phiFields.js';
@@ -99,6 +101,9 @@ import { verifyToken, verifyBackupCode } from '../services/twoFactorService.js';
 
 const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// memo for GET /login-roles (see below)
+let loginRolesCache = { at: 0, value: null };
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 // Google OAuth audiences accepted for id_token verification (AUTH-B-01: the
@@ -213,6 +218,31 @@ const sign = (user, req) => {
   // P2-10: concurrent session cap — evict oldest live sessions beyond the
   // role cap (fire-and-forget; never fails the login itself).
   enforceConcurrentCap(user._id, user.role).catch(() => {});
+  // Checklist I8 / P2-31: a fresh login STARTS the idle-PIN window.
+  //
+  // protect() runs checkIdleLock BEFORE updateActivity, so an account whose
+  // lastActivityAt was stamped beyond IDLE_LOCK_WINDOW_MS (15 min default)
+  // would mint a session that is rejected on its very first call — right after
+  // the caller proved their password. That is a deadlock for an account with
+  // no PIN: the idle overlay has no close affordance on purpose, and it tells
+  // the user to set a PIN in Settings — which itself sits behind protect().
+  //
+  // Only the credential paths call sign(); /auth/refresh mints through
+  // signRefreshToken directly, so a background auto-refresh still does NOT
+  // advance the window — otherwise the lock could never be reached.
+  //
+  // Fire-and-forget and fail-soft, like the two calls above: User.updateOne is
+  // often stubbed in tests (sometimes returning undefined), user may be a
+  // frozen stub, and no login has ever failed because a bookkeeping write did.
+  try {
+    const stamped = new Date();
+    user.lastActivityAt = stamped;
+    Promise.resolve(User.updateOne({ _id: user._id }, { $set: { lastActivityAt: stamped } })).catch(
+      (err) => logger.error('Failed to stamp login activity:', err?.message)
+    );
+  } catch {
+    /* never fail the login */
+  }
   return { accessToken, refreshToken };
 };
 
@@ -326,6 +356,8 @@ const userResponse = async (user) => {
       };
     }
   }
+
+   if (isDemoAccount(user?.email)) user.mustResetPassword = false;
 
    return {
      id: user._id,
@@ -901,6 +933,37 @@ router.post('/resend-otp', authLimiter, totpLimiter, botProtection(), validate(r
   }
 });
 
+// AUTH-UI: the login role tiles are data-driven so the picker can never drift
+// from the accounts that actually exist. Before this, Login.tsx hardcoded 14
+// tiles while the seed created 21 roles - and because the login form always
+// POSTs `role`, an account with no tile was unloginable (the handler below
+// 403s on `user.role !== role`). Returns only role NAMES, never emails, counts
+// or per-role population, so it leaks nothing beyond the enum in User.js.
+// authz: public (the wizard's whole point is choosing an identity before login)
+router.get('/login-roles', async (req, res) => {
+  try {
+    // 60s memo: this runs on every login page view and `distinct` on a
+    // non-indexed role field is a collection scan.
+    const now = Date.now();
+    if (loginRolesCache.value && now - loginRolesCache.at < 60_000) {
+      return res.json({ roles: loginRolesCache.value });
+    }
+
+    const distinct = await User.distinct('role', { status: 'active' });
+    // Canonical order (not alphabetical) so the grid stays stable between
+    // loads and leads with the roles people actually sign in as.
+    const rank = new Map(CANONICAL_ROLES.map((r, i) => [r, i]));
+    const roles = distinct
+      .filter(Boolean)
+      .sort((a, b) => (rank.get(a) ?? 999) - (rank.get(b) ?? 999) || a.localeCompare(b));
+
+    loginRolesCache = { at: now, value: roles };
+    return res.json({ roles });
+  } catch (err) {
+    return sendServerError(res, err);
+  }
+});
+
 // POST /api/auth/login
 router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
   try {
@@ -1002,18 +1065,26 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // P2-11: breached password presented at login → flag mustResetPassword so
-    // subsequent sessions force a fresh, uncompromised password (protect
-    // enforces the reset lock session-level; this login still succeeds).
-    // Fail-open: an HIBP outage must never break login.
-    if (!user.mustResetPassword) {
-      try {
-        if (await isPwnedPassword(password)) {
-          user.mustResetPassword = true;
-          await user.save();
-          logger.warn(`[auth] user ${user._id} logged in with pwned password; flagged mustResetPassword`);
-        }
-      } catch { /* HIBP/save failure keeps the successful login */ }
+    // Demo accounts & non-production users are exempt from forced password reset.
+    // Automatically clear mustResetPassword for demo accounts so they can freely log in.
+    if (isDemoAccount(user.email) || process.env.NODE_ENV !== 'production') {
+      if (user.mustResetPassword) {
+        user.mustResetPassword = false;
+        try {
+          await User.updateOne({ _id: user._id }, { $set: { mustResetPassword: false } });
+        } catch { /* ignore */ }
+      }
+    } else {
+      // Production only: breached password check for non-demo users
+      if (!user.mustResetPassword) {
+        try {
+          if (await isPwnedPassword(password)) {
+            user.mustResetPassword = true;
+            await user.save();
+            logger.warn(`[auth] user ${user._id} logged in with pwned password; flagged mustResetPassword`);
+          }
+        } catch { /* HIBP/save failure keeps the successful login */ }
+      }
     }
     try {
       const { resetLoginFailures } = await import('../config/redis.js');
@@ -1655,7 +1726,7 @@ router.post('/reset-password', authLimiter, validate(resetPasswordSchema), async
     if (user.password && (await passwordMatchesHash(password, user.password)).ok) {
       return res.status(400).json({ message: 'New password cannot be the same as your current password' });
     }
-    if (user.passwordHistory && user.passwordHistory.length > 0) {
+    if (process.env.NODE_ENV === 'production' && !isDemoAccount(user.email) && user.passwordHistory && user.passwordHistory.length > 0) {
       for (const oldHash of user.passwordHistory) {
         if ((await passwordMatchesHash(password, oldHash)).ok) {
           return res.status(400).json({ message: 'You cannot reuse any of your last 5 passwords' });
@@ -1898,8 +1969,8 @@ router.put('/change-password', protect, validate(changePasswordSchema), async (r
       return res.status(400).json({ message: 'New password cannot be the same as your current password' });
     }
 
-    // P2-11: Password history (last 5) check
-    if (user.passwordHistory && user.passwordHistory.length > 0) {
+    // P2-11: Password history (last 5) check (enforced in production for non-demo accounts)
+    if (process.env.NODE_ENV === 'production' && !isDemoAccount(user.email) && user.passwordHistory && user.passwordHistory.length > 0) {
       for (const oldHash of user.passwordHistory) {
         if ((await passwordMatchesHash(newPassword, oldHash)).ok) {
           return res.status(400).json({ message: 'You cannot reuse any of your last 5 passwords' });

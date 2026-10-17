@@ -381,6 +381,11 @@ export const api = {
   patch:              (path, body) => request(path, { method:'PATCH', body: JSON.stringify(body) }),
   del:                (path)      => request(path, { method:'DELETE' }),
   login:              (body)    => request('/auth/login',            { method:'POST', body: JSON.stringify(body) }),
+  // AUTH-UI: the login role tiles are fetched so the picker can never drift
+  // from the roles that actually exist (the seed creates 21; the old hardcoded
+  // grid had 14, and because the form always POSTed `role`, the 7 missing ones
+  // were unloginable - the server 403s when `user.role !== role`).
+  loginRoles:         ()        => request('/auth/login-roles'),
   googleAuth:         (body)    => request('/auth/google',           { method:'POST', body: JSON.stringify(body) }),
   googleRegister:     (body)    => request('/auth/google-register',  { method:'POST', body: JSON.stringify(body) }),
   setDoctorPassword:  (body)    => request('/auth/doctor-setup',     { method:'POST', body: JSON.stringify(body) }),

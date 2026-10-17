@@ -94,7 +94,7 @@ async function seed() {
         password, // pass raw — pre-save hook in User model will hash it
         isVerified: true,
         status: 'active',
-        approvalStatus: (rest.role === 'doctor' || rest.role === 'clinic_doctor' || rest.role === 'delivery_boy') ? 'approved' : 'not_required',
+        approvalStatus: 'approved',
       };
       if (hospitalId && hospitalsMap[hospitalId]) userObj.hospitalId = hospitalsMap[hospitalId];
       if (facilityId && facilitiesMap[facilityId]) {
@@ -284,6 +284,15 @@ async function seed() {
     }
     console.log(`  ${inventoryData.length} inventory items created.`);
 
+        // ===== SEED SERVICE CITIES & ADDITIONAL DEMO USERS =====
+    console.log('Seeding additional demo profiles (riders, assistants, lawyers, ambulance, psychiatrists)...');
+    try {
+      const { ensureDemoUsers } = await import('./src/services/demoSeedService.js');
+      await ensureDemoUsers();
+    } catch (e) {
+      console.warn('  ensureDemoUsers warning:', e.message);
+    }
+
     console.log('\n✅ Seed complete! 15 sections seeded.');
     console.log('   hospitals, facilities, users, doctors, clinicprofiles, patients, appointments, reviews, tests, medicines, beds, departments, staff, inventory, deliverypartners');
     console.log('\nDemo Accounts:');
@@ -296,6 +305,13 @@ async function seed() {
     console.log('  pharmacy   → pharmacy@findmedi.com / password');
     console.log('  delivery   → delivery@findmedi.com / password');
     console.log('  patient    → patient@findmedi.com / password');
+    console.log('  Role dashboards (File 07 §3.25-§3.30):');
+    console.log('  elder care → elder.care.admin@findmedi.com / password');
+    console.log('  vaccination→ vaccination.admin@findmedi.com / password');
+    console.log('  diet kitchen → diet.kitchen.admin@findmedi.com / password');
+    console.log('  corporate wellness → corporate.admin@findmedi.com / password');
+    console.log('  child development → child.dev.admin@findmedi.com / password');
+    console.log('  specialty centre → specialty.centre.admin@findmedi.com / password');
 
   } catch (err) {
     console.error('Seed failed:', err);

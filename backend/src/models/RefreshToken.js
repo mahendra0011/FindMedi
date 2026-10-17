@@ -65,7 +65,7 @@ refreshTokenSchema.methods.compareToken = async function(plainToken) {
 };
 
 // Pre-save hook to hash token if it's a plain token
-refreshTokenSchema.pre('save', async function(next) {
+refreshTokenSchema.pre('save', async function() {
   if (this.isModified('tokenHash') && this.tokenHash && 
       !this.tokenHash.startsWith('$2a$') && 
       !this.tokenHash.startsWith('$2b$') && 
@@ -75,7 +75,6 @@ refreshTokenSchema.pre('save', async function(next) {
     const { hashOtp } = await import('../services/napiOtpService.js');
     this.tokenHash = await hashOtp(this.tokenHash);
   }
-  next();
 });
 
 export default mongoose.model('RefreshToken', refreshTokenSchema);

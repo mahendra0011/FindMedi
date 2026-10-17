@@ -25,7 +25,7 @@ payoutStatementSchema.pre('save', function (next) {
   const gross = Number(this.gross) || 0;
   this.tds = +(gross * (Number(this.tdsRate) || 0) / 100).toFixed(2);
   this.net = +(gross - this.tds - (Number(this.otherDeductions) || 0)).toFixed(2);
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.models.PayoutStatement || mongoose.model('PayoutStatement', payoutStatementSchema);

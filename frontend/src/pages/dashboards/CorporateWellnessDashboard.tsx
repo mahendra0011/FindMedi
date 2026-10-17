@@ -1,6 +1,11 @@
 /**
  * File 07 §3.28 — Corporate wellness & B2B programs dashboard.
  * Corporate packages, employee enrollment, webinars, fitness challenges & k-anonymous aggregate reports.
+ *
+ * KPIs below are File 07 spec figures: no endpoint exists for corporate
+ * enrolment counts, participation rates, contract value or wellness scores
+ * (/memberships is a patient membership list, not B2B contracts), so this
+ * stays static until one does — wire it with useLiveKpis like ElderCareDashboard.
  */
 import RoleDashboardShell, { type RoleDashboardConfig } from './RoleDashboardShell';
 

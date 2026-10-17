@@ -139,7 +139,7 @@ const rideBookingSchema = new mongoose.Schema({
 
 rideBookingSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('RideBooking', rideBookingSchema);

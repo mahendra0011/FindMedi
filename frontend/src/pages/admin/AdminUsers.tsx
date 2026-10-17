@@ -6,6 +6,7 @@ import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const roleColors = {
   superadmin: 'bg-destructive/10 text-destructive',
@@ -25,7 +26,7 @@ export default function AdminUsers() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'superadmin';
   const roleFilters = isSuperAdmin ? allRoleFilters : hospitalRoleFilters;
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<ApiRow[]>([]);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   const [loading, setLoading] = useState(true);

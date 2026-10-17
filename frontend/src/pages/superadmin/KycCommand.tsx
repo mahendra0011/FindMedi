@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 // SA-M2: standardized rejection reasons dispatched to applicant SMS/email by the backend.
 const REJECT_TEMPLATES = [
@@ -53,7 +54,7 @@ function itemSub(item) {
 
 export default function KycCommand() {
   const [active, setActive] = useState('hospitals');
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState<ApiRow[]>([]);
   const [counts, setCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState(null);

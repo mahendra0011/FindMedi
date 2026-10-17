@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const priorityStyles = {
   urgent: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/10',
@@ -20,7 +21,7 @@ const priorityStyles = {
 const priorityIcons = { urgent: AlertCircle, high: AlertTriangle, normal: Info, low: Info };
 
 export default function AdminAnnouncements() {
-  const [announcements, setAnnouncements] = useState([]);
+  const [announcements, setAnnouncements] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [title, setTitle] = useState('');

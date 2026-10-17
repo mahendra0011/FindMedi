@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function AdminDepartments() {
-  const [departments, setDepartments] = useState([]);
+  const [departments, setDepartments] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);

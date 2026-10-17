@@ -60,11 +60,10 @@ const patientSchema = new mongoose.Schema({
 
 import { generateUHID } from '../utils/idGenerator.js';
 
-patientSchema.pre('save', async function (next) {
+patientSchema.pre('save', async function () {
   if (!this.uhid) {
     this.uhid = generateUHID();
   }
-  next();
 });
 
 patientSchema.index({ hospitalId: 1, status: 1 });
@@ -78,13 +77,22 @@ patientSchema.index({ createdAt: -1 });
 // The partial filter keeps uniqueness INSIDE a hospital: the same phone may
 // legitimately exist at two different facilities (a patient treated at both),
 // which is exactly why the lookup is now tenant-scoped.
+//
+// `$gt: ''` (not `$ne: ''`): MongoDB rejects `$ne` inside a partial
+// index filter — the server rewrites it to `$not { $eq: "" }` and answers
+// "Expression not supported in partial index". That rejection surfaced at boot
+// from `Patient.syncIndexes()` and, because that await sits in the same try as
+// `ensureDemoUsers()` and every background job, ONE index spec took down demo
+// seeding, the outbox poller and the cron jobs with it. For a string field
+// `$gt: ""` is the same predicate (only non-empty strings compare greater)
+// and is a supported partial-index operator.
 patientSchema.index(
   { hospitalId: 1, phone: 1 },
-  { unique: true, partialFilterExpression: { phone: { $type: 'string', $ne: '' } } }
+  { unique: true, partialFilterExpression: { phone: { $type: 'string', $gt: '' } } }
 );
 patientSchema.index(
   { hospitalId: 1, email: 1 },
-  { unique: true, partialFilterExpression: { email: { $type: 'string', $ne: '' } } }
+  { unique: true, partialFilterExpression: { email: { $type: 'string', $gt: '' } } }
 );
 
 export default mongoose.model('Patient', patientSchema);

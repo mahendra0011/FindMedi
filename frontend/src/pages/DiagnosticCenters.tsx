@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import DiagnosticCenterCard from '@/components/DiagnosticCenterCard';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const CATEGORIES = [
   { key: 'All', label: 'All', icon: null, filterCat: null },
@@ -28,7 +29,7 @@ const parseHrs = (t) => {
 };
 
 export default function DiagnosticCenters() {
-  const [clinics, setClinics] = useState([]);
+  const [clinics, setClinics] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const deriveCategory = (f) => {

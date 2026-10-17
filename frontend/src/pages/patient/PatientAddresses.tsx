@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 function patientRequest(path, opts = {}) {
   return api.dispatch(null, path, opts);
@@ -19,7 +20,7 @@ const patientApi = {
 
 export default function PatientAddresses() {
   const { user } = useAuth();
-  const [addresses, setAddresses] = useState([]);
+  const [addresses, setAddresses] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);

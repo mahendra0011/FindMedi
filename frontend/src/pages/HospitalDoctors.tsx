@@ -15,6 +15,7 @@ import BookingModal from '@/components/BookingModal';
 
 import { CANONICAL_SPECIALTIES } from '@/data/specialties';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const DEFAULT_SPECS = ['All', ...CANONICAL_SPECIALTIES.map(s => s.name)];
 
@@ -42,8 +43,8 @@ export default function HospitalDoctors() {
    const { hospitalId } = useParams();
    const navigate = useNavigate();
    const [hospital, setHospital] = useState(null);
-  const [doctors, setDoctors] = useState([]);
-  const [allDoctors, setAllDoctors] = useState([]);
+  const [doctors, setDoctors] = useState<ApiRow[]>([]);
+  const [allDoctors, setAllDoctors] = useState<ApiRow[]>([]);
   const [search, setSearch] = useState('');
   const [specFilter, setSpecFilter] = useState('All');
   const [loading, setLoading] = useState(true);
@@ -62,8 +63,8 @@ export default function HospitalDoctors() {
   const [sortBy, setSortBy] = useState('relevance');
 
   const [consultantType, setConsultantType] = useState('');
-  const [qualificationFilter, setQualificationFilter] = useState([]);
-  const [languageFilter, setLanguageFilter] = useState([]);
+  const [qualificationFilter, setQualificationFilter] = useState<ApiRow[]>([]);
+  const [languageFilter, setLanguageFilter] = useState<ApiRow[]>([]);
   const [surgeryFilter, setSurgeryFilter] = useState('');
   const [admissionFilter, setAdmissionFilter] = useState('');
   const [insuranceFilter, setInsuranceFilter] = useState('');

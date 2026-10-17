@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api, downloadInvoicePdf } from '@/lib/api';
 import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = {
   Paid: 'bg-success/10 text-success',
@@ -24,7 +25,7 @@ const emptyForm = {
 
 export default function ClinicBilling() {
   const { user } = useAuth();
-  const [bills, setBills] = useState([]);
+  const [bills, setBills] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');

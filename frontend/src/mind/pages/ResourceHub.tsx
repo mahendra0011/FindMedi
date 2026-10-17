@@ -12,6 +12,7 @@ import { useToast } from "@/mind/components/ui/use-toast";
 import { api } from "@/mind/lib/api";
 import { BookOpen, Filter, Languages, Search, Video, FileText, Bookmark, Headphones, Play, Pause, Clock, ChevronDown, ChevronUp, Sparkles, Heart, ArrowRight, Volume2, File } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import type { ApiRow } from '@/lib/apiTypes';
 function buildQuery(params) {
     const q = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => {
@@ -146,12 +147,12 @@ const ResourceHub = () => {
     const { toast } = useToast();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-    const [resources, setResources] = useState([]);
+    const [resources, setResources] = useState<ApiRow[]>([]);
     const [q, setQ] = useState("");
     const [type, setType] = useState("all");
     const [category, setCategory] = useState("all");
     const [language, setLanguage] = useState("all");
-    const [tags, setTags] = useState([]);
+    const [tags, setTags] = useState<ApiRow[]>([]);
     const [minDur, setMinDur] = useState("");
     const [maxDur, setMaxDur] = useState("");
     const [playingAudio, setPlayingAudio] = useState(null);

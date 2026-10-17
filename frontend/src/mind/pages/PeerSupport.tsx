@@ -13,6 +13,7 @@ import { Check, MessageCircle, Pencil, Plus, Send, ThumbsDown, ThumbsUp, Trash2,
 import { useNavigate } from "react-router-dom";
 import { api } from "@/mind/lib/api";
 import { sanitizeInput } from "@/mind/lib/sanitize";
+import type { ApiRow } from '@/lib/apiTypes';
 const CATEGORIES = ["General Wellness", "Exam Stress", "Sleep Issues", "Burnout", "Coping Strategies"];
 const emergencyKeywords = ["suicide", "self-harm", "panic attack", "abuse"];
 const hasEmergencyLanguage = (text) => emergencyKeywords.some((keyword) => String(text || "").toLowerCase().includes(keyword));
@@ -81,7 +82,7 @@ const PeerSupport = () => {
     const { toast } = useToast();
     const navigate = useNavigate();
     const [activeCategory, setActiveCategory] = useState("All");
-    const [posts, setPosts] = useState([]);
+    const [posts, setPosts] = useState<ApiRow[]>([]);
     const [loading, setLoading] = useState(false);
     const uid = useMemo(() => getOrCreateAnonUID(), []);
     const alias = useMemo(() => aliasFromUID(uid), [uid]);
@@ -90,7 +91,7 @@ const PeerSupport = () => {
     const [editingPostId, setEditingPostId] = useState("");
     const [editingPostContent, setEditingPostContent] = useState("");
     const [selectedPost, setSelectedPost] = useState(null);
-    const [comments, setComments] = useState([]);
+    const [comments, setComments] = useState<ApiRow[]>([]);
     const [commentContent, setCommentContent] = useState("");
     const ownerId = uid;
     const aliasGrad = useMemo(() => aliasGradient(alias), [alias]);

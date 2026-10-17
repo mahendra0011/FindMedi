@@ -65,7 +65,7 @@ const dietOrderSchema = new mongoose.Schema({
 
 dietOrderSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('DietOrder', dietOrderSchema);

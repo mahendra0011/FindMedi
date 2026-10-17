@@ -23,7 +23,7 @@ licenseSchema.pre('save', function (next) {
   if (daysLeft < 0) this.status = 'Expired';
   else if (daysLeft <= 30) this.status = 'Expiring Soon';
   else this.status = 'Active';
-  next();
+  if (typeof next === 'function') next();
 });
 
 licenseSchema.index({ status: 1, expiryDate: 1 });

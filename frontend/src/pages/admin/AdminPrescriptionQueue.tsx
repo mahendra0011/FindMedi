@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
 import { api, resolveFileUrl } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = {
   Active: 'bg-warning/10 text-warning',
@@ -15,13 +16,13 @@ const statusColors = {
 };
 
 export default function AdminPrescriptionQueue() {
-  const [queue, setQueue] = useState([]);
+  const [queue, setQueue] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
   const [selectedRx, setSelectedRx] = useState(null);
   const [barcode, setBarcode] = useState('');
-  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedIds, setSelectedIds] = useState<ApiRow[]>([]);
 
   const handleBatchDispense = async () => {
     try {

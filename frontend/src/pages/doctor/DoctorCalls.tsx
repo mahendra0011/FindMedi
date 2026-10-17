@@ -18,6 +18,7 @@ import { api, resolveFileUrl } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useAudioCall } from '@/context/AudioCallContext';
 import { formatDisplayDate } from '@/lib/dateUtils';
+import type { ApiRow } from '@/lib/apiTypes';
 
 function formatDuration(secs) {
   if (!secs || secs <= 0) return '00:00';
@@ -36,7 +37,7 @@ export default function DoctorCalls() {
   const navigate = useNavigate();
   const { initiateCall, callState } = useAudioCall();
 
-  const [calls, setCalls] = useState([]);
+  const [calls, setCalls] = useState<ApiRow[]>([]);
   const [stats, setStats] = useState({
     totalCalls: 0,
     missedCalls: 0,
@@ -52,7 +53,7 @@ export default function DoctorCalls() {
 
   // Quick Dial Modal
   const [showDialModal, setShowDialModal] = useState(false);
-  const [contacts, setContacts] = useState([]);
+  const [contacts, setContacts] = useState<ApiRow[]>([]);
   const [contactSearch, setContactSearch] = useState('');
   const [loadingContacts, setLoadingContacts] = useState(false);
 

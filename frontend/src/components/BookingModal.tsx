@@ -14,6 +14,7 @@ import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import IntakeFormStep from './IntakeFormStep';
 import { userFacingError } from '@/lib/errorCopy';
 import { isSensitiveCategory, neutralText, SLOT_HOLD_SECONDS, formatHoldCountdown } from '@/lib/discreet';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function BookingModal({
   open,
@@ -24,7 +25,7 @@ export default function BookingModal({
 }: any) {
   const [bookingStep, setBookingStep] = useState(doctor ? 0 : -1);
   const [selectedDoctor, setSelectedDoctor] = useState(doctor || null);
-  const [fetchedDoctors, setFetchedDoctors] = useState([]);
+  const [fetchedDoctors, setFetchedDoctors] = useState<ApiRow[]>([]);
   const [fetchingDoctors, setFetchingDoctors] = useState(false);
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
@@ -34,12 +35,12 @@ export default function BookingModal({
   const [repeatFreq, setRepeatFreq] = useState<'none' | 'weekly' | 'biweekly' | 'monthly'>('none');
   const [repeatCount, setRepeatCount] = useState(4);
   const [bookingLoading, setBookingLoading] = useState(false);
-  const [bookedSlots, setBookedSlots] = useState([]);
-  const [lockedSlots, setLockedSlots] = useState([]);
+  const [bookedSlots, setBookedSlots] = useState<ApiRow[]>([]);
+  const [lockedSlots, setLockedSlots] = useState<ApiRow[]>([]);
   const [lockingSlot, setLockingSlot] = useState(false);
   const [slotCounts, setSlotCounts] = useState({});
-  const [dateDisabledSlots, setDateDisabledSlots] = useState([]);
-  const [pendingDisabledSlots, setPendingDisabledSlots] = useState([]);
+  const [dateDisabledSlots, setDateDisabledSlots] = useState<ApiRow[]>([]);
+  const [pendingDisabledSlots, setPendingDisabledSlots] = useState<ApiRow[]>([]);
   const [bookingWindow, setBookingWindow] = useState(null);
   const [selectedHour, setSelectedHour] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('card');
@@ -64,7 +65,7 @@ export default function BookingModal({
   // Booking target: 'self' | 'family' | 'other'
   const [bookingFor, setBookingFor] = useState('self');
   const [selectedFamilyMember, setSelectedFamilyMember] = useState(null);
-  const [familyMembers, setFamilyMembers] = useState([]);
+  const [familyMembers, setFamilyMembers] = useState<ApiRow[]>([]);
   const [fetchingFamily, setFetchingFamily] = useState(false);
   const [otherPatient, setOtherPatient] = useState({ name: '', gender: 'Male', phone: '', age: '', bloodGroup: '' });
   // Guardian consent: required when booking for a family member / other person

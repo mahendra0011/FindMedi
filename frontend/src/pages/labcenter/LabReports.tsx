@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { api, getApiBaseUrl } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = {
   'Pending Upload': 'bg-warning/10 text-warning',
@@ -216,7 +217,7 @@ function CorrectionsTab() {
 }
 
 export default function LabReports() {
-  const [reports, setReports] = useState([]);
+  const [reports, setReports] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');

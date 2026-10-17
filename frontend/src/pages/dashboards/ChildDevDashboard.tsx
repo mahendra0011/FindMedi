@@ -1,6 +1,11 @@
 /**
  * File 07 §3.29 — Child development & special-education centre dashboard.
  * Child profiles, guardian consent, IEP therapy plans, RCI therapist roster & progress charts.
+ *
+ * KPIs below are File 07 spec figures: /growth-charts and /care-plans are
+ * patient-scoped reads (no centre-wide aggregate), and there is no RCI roster
+ * or parent-satisfaction endpoint, so this stays static until one exists —
+ * wire it with useLiveKpis like ElderCareDashboard when it does.
  */
 import RoleDashboardShell, { type RoleDashboardConfig } from './RoleDashboardShell';
 

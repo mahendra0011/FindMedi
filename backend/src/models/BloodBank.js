@@ -74,7 +74,7 @@ bloodUnitSchema.pre('save', function (next) {
   if (this.expiryDate && this.expiryDate < new Date() && this.status === 'Available') {
     this.status = 'Expired';
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 export const BloodUnit = mongoose.model('BloodUnit', bloodUnitSchema);

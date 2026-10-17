@@ -118,7 +118,7 @@ router.get('/admin/list', protect, requireRole(['superadmin', 'compliance_office
 
     const [providers, total] = await Promise.all([
       Provider.find(filter)
-        .select('name slug kind type group tier status address verification stats probation trusted plan createdAt')
+        .select('name slug kind type group tier status address verification stats probation trusted plan createdAt claimedBy claimRequest importedFrom')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -419,5 +419,167 @@ router.post('/:id/view-as', protect, requireRole(['superadmin']), requireObjectI
   }
 });
 
+
+// ---------------------------------------------------------------------------
+// Claim-listing (10.md 4.4, 08.md 3)
+//
+// A govt/imported listing ships with no owner. The public claims it, an
+// operator approves, and `claimedBy` flips — after which the owner is a real
+// principal for authorizeObject on every other provider write.
+// ---------------------------------------------------------------------------
+
+const claimRequestSchema = z.object({
+  note: z.string().trim().max(500).optional(),
+}).strict();
+
+// A rejection has to say why: the claimant will ask, and an audit entry that
+// records "rejected" with an empty field is the same as no audit entry. The
+// admin UI blocks an empty reason too — the schema keeps a direct API call
+// from doing what the form already refuses.
+const claimDecisionSchema = z.object({
+  reason: z.string().trim().min(1).max(500),
+}).strict();
+
+const claimState = (provider) => ({
+  status: provider.claimRequest?.status || 'none',
+  requestedAt: provider.claimRequest?.requestedAt || null,
+  decidedAt: provider.claimRequest?.decidedAt || null,
+  reason: provider.claimRequest?.reason || '',
+});
+
+// The claimer addresses the listing the way their own surface knows it: an
+// admin row carries `_id`, a public detail page carries `slug`. Both resolve
+// here. An id-shaped string never falls through to a slug lookup, so a
+// mistyped id stays a 404 instead of quietly matching some other listing.
+const findClaimTarget = (raw) => {
+  const value = String(raw || '').trim();
+  if (!value) return Promise.resolve(null);
+  if (OBJECT_ID.test(value)) return Provider.findById(value);
+  if (value.length > 160) return Promise.resolve(null);
+  return Provider.findOne({ slug: value.toLowerCase() });
+};
+
+// 10.md 2.1 calls the field `claimedBy (for govt/imported)` — so BOTH halves
+// make a listing claimable, not just an import stamp: nothing in this codebase
+// writes `importedFrom` yet, so gating on it alone would be a door that never
+// opens. `kind`/`type` cover the info-only govt rows 08.md §3 describes.
+//
+// This gate only decides who may ASK. It is deliberately generous — the grant
+// is a separate, role-gated decision — because a rejected request costs
+// nothing while a claim nobody can even file makes the feature fictional.
+const CLAIMABLE_TYPES = new Set(['govt_facility', 'info', 'helpline']);
+const isClaimable = (provider) => Boolean(provider.importedFrom)
+  || provider.kind === 'info'
+  || CLAIMABLE_TYPES.has(String(provider.type || '').toLowerCase());
+
+// authz: self
+//
+// `claimedBy === null` is NOT the test: operator-created rows (POST /) start
+// unclaimed too, so "nobody has it yet" would let any signed-in caller file a
+// claim against a live private listing.
+router.post('/:id/claim', protect, validate(claimRequestSchema), async (req, res) => {
+  try {
+    const provider = await findClaimTarget(req.params.id);
+    if (!provider) return res.status(404).json({ message: 'Provider not found' });
+    if (!isClaimable(provider)) return res.status(400).json({ message: 'This listing cannot be claimed' });
+
+    const actorId = String(req.user._id ?? req.user.id);
+    if (provider.claimedBy) {
+      return res.status(409).json({
+        message: String(provider.claimedBy) === actorId
+          ? 'You already manage this listing'
+          : 'This listing has already been claimed',
+      });
+    }
+    if (provider.claimRequest?.status === 'pending') {
+      return res.status(409).json({ message: 'A claim request is already under review' });
+    }
+
+    provider.claimRequest = {
+      userId: req.user._id ?? req.user.id,
+      note: req.body.note || '',
+      status: 'pending',
+      requestedAt: new Date(),
+      decidedAt: null,
+      decidedBy: null,
+      reason: '',
+    };
+    await provider.save();
+    await auditLog('provider_claim_requested', req.user._id ?? req.user.id, {
+      providerId: provider._id, ip: req.ip, userAgent: req.get('user-agent'),
+    });
+    return res.status(201).json({ providerId: String(provider._id), ...claimState(provider) });
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+});
+
+// authz: role
+//
+// 10.md 4.4 `POST /api/admin/providers/:id/claim-approve`. It lives on this
+// router beside /admin/list, /:id/status and /:id/probation rather than on a
+// second mount — same file, same requireRole vocabulary, same audit trail.
+router.post('/:id/claim-approve', protect, requireRole(['superadmin', 'compliance_officer']), requireObjectId, async (req, res) => {
+  try {
+    const provider = await Provider.findById(req.params.id);
+    if (!provider) return res.status(404).json({ message: 'Provider not found' });
+
+    const pending = provider.claimRequest;
+    if (pending?.status !== 'pending' || !pending?.userId) {
+      return res.status(400).json({ message: 'This listing has no claim request awaiting review' });
+    }
+
+    provider.claimedBy = pending.userId;
+    provider.claimRequest = {
+      userId: pending.userId,
+      note: pending.note || '',
+      status: 'approved',
+      requestedAt: pending.requestedAt,
+      decidedAt: new Date(),
+      decidedBy: req.user._id ?? req.user.id,
+      reason: '',
+    };
+    await provider.save();
+    await auditLog('provider_claim_approved', req.user._id ?? req.user.id, {
+      providerId: provider._id, claimedBy: String(pending.userId), ip: req.ip,
+    });
+    return res.json({ providerId: String(provider._id), claimedBy: String(provider.claimedBy), ...claimState(provider) });
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+});
+
+// authz: role
+//
+// A queue that can only be approved cannot be cleared: one bogus request
+// would sit on the row forever and block every honest claimant behind it.
+router.post('/:id/claim-reject', protect, requireRole(['superadmin', 'compliance_officer']), requireObjectId, validate(claimDecisionSchema), async (req, res) => {
+  try {
+    const provider = await Provider.findById(req.params.id);
+    if (!provider) return res.status(404).json({ message: 'Provider not found' });
+
+    const pending = provider.claimRequest;
+    if (pending?.status !== 'pending' || !pending?.userId) {
+      return res.status(400).json({ message: 'This listing has no claim request awaiting review' });
+    }
+
+    provider.claimRequest = {
+      userId: pending.userId,
+      note: pending.note || '',
+      status: 'rejected',
+      requestedAt: pending.requestedAt,
+      decidedAt: new Date(),
+      decidedBy: req.user._id ?? req.user.id,
+      reason: req.body.reason || '',
+    };
+    await provider.save();
+    await auditLog('provider_claim_rejected', req.user._id ?? req.user.id, {
+      providerId: provider._id, claimedBy: String(pending.userId), reason: req.body.reason || '', ip: req.ip,
+    });
+    return res.json({ providerId: String(provider._id), claimedBy: null, ...claimState(provider) });
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+});
 
 export default router;

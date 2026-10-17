@@ -24,6 +24,7 @@
     "promo:open": "powershell -Command \"Start-Process d:\\projects\\Findmedi\\findmedi-promo\\index.html\"",
     "typecheck": "npm run typecheck --prefix frontend",
     "seed": "npm run seed --prefix backend",
+    "seed:all": "npm run seed --prefix backend",
     "seed:admin": "npm run seed:admin --prefix backend",
     "seed:cluster": "npm run seed:cluster --prefix backend",
     "infra:up": "node scripts/infra.mjs up",

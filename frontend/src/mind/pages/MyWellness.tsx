@@ -33,6 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/mind/components/ui/t
 import { Textarea } from "@/mind/components/ui/textarea";
 import { useToast } from "@/mind/components/ui/use-toast";
 import { api } from "@/mind/lib/api";
+import type { ApiRow } from '@/lib/apiTypes';
 
 const moodOptions = [
   { value: 1, label: "Very Low", emoji: "😰" },
@@ -111,7 +112,7 @@ const MyWellness = () => {
   const allowedTabs = ["dashboard", "goals", "assessment", "mood", "emergency"];
   const activeTab = allowedTabs.includes(urlTab || "") ? urlTab! : "dashboard";
   const setActiveTab = (v: string) => setSearchParams({ tab: v });
-  const [moodEntries, setMoodEntries] = useState([]);
+  const [moodEntries, setMoodEntries] = useState<ApiRow[]>([]);
   const [currentMood, setCurrentMood] = useState(null);
   const [moodNote, setMoodNote] = useState("");
   const [assessment, setAssessment] = useState(null);
@@ -127,7 +128,7 @@ const MyWellness = () => {
     chatResponses: true,
     appointmentReminders: true,
   });
-  const [goals, setGoals] = useState([]);
+  const [goals, setGoals] = useState<ApiRow[]>([]);
   const [breathing, setBreathing] = useState({ active: false, phase: "Ready", seconds: 0 });
 
   const questions = assessmentType === "gad7" ? gad7Questions : phq9Questions;

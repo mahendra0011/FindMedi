@@ -14,10 +14,11 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
+import type { ApiRow } from '@/lib/apiTypes';
 
 
 export default function LabStaff() {
-  const [staffList, setStaffList] = useState([]);
+  const [staffList, setStaffList] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);

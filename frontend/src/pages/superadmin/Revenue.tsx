@@ -10,6 +10,7 @@ import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { userFacingError } from '@/lib/errorCopy';
+import type { ApiRow } from '@/lib/apiTypes';
 
 function RevenueOverview() {
   const [stats, setStats] = useState(null);
@@ -126,7 +127,7 @@ function RevenueOverview() {
 }
 
 function CommissionConfigTab() {
-  const [configs, setConfigs] = useState([]);
+  const [configs, setConfigs] = useState<ApiRow[]>([]);
   const [stats, setStats] = useState(null);
   const [editId, setEditId] = useState(null);
   const [editFields, setEditFields] = useState({});
@@ -272,7 +273,7 @@ function CommissionConfigTab() {
 }
 
 function TransactionLedgerTab() {
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState<ApiRow[]>([]);
   const [totals, setTotals] = useState({ totalAmount: 0, totalCommission: 0, totalNet: 0, count: 0 });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -364,8 +365,8 @@ function TransactionLedgerTab() {
 }
 
 function PayoutsTab() {
-  const [payouts, setPayouts] = useState([]);
-  const [payoutStats, setPayoutStats] = useState([]);
+  const [payouts, setPayouts] = useState<ApiRow[]>([]);
+  const [payoutStats, setPayoutStats] = useState<ApiRow[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);

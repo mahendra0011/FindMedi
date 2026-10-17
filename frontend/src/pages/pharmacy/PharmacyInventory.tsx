@@ -6,9 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function PharmacyInventory() {
-  const [medicines, setMedicines] = useState([]);
+  const [medicines, setMedicines] = useState<ApiRow[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

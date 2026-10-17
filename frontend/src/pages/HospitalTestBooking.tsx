@@ -17,6 +17,7 @@ import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { bookTestLab, isBookingConflictError } from '@/lib/testBooking';
 import { useAuth } from '@/context/AuthContext';
 import { userFacingError } from '@/lib/errorCopy';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const DEPARTMENTS = [
   { id:'all', name:'All Departments', icon:FlaskConical, color:'from-primary/20 to-primary/5', textColor:'text-primary', hoverColor:'hover:border-primary/40' },
@@ -59,7 +60,7 @@ export default function HospitalTestBooking() {
   const [paymentResult, setPaymentResult] = useState(null);
   const [hospital, setHospital] = useState(null);
   const { user } = useAuth();
-  const [tests, setTests] = useState([]);
+  const [tests, setTests] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [_bookingConfirmed, setBookingConfirmed] = useState(false);
   const [_bookingLoading, setBookingLoading] = useState(false);

@@ -95,11 +95,11 @@ const RESTRICTED_PATTERNS = [
 
 recordSchema.pre('save', function (next) {
   try {
-    if (this.isModified('sensitivity') && this.sensitivity !== 'standard') return next();
+    if (this.isModified('sensitivity') && this.sensitivity !== 'standard') { if (typeof next === 'function') next(); return; }
     const hay = `${this.type || ''} ${this.diagnosis || ''}`;
     if (RESTRICTED_PATTERNS.some((re) => re.test(hay))) this.sensitivity = 'restricted';
   } catch { /* best-effort only */ }
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('Record', recordSchema);

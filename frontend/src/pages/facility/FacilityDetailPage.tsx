@@ -160,6 +160,7 @@ export default function FacilityDetailPage() {
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [showClaimDialog, setShowClaimDialog] = useState(false);
+  const [claimSubmitting, setClaimSubmitting] = useState(false);
 
   // Auto-open modal on search query (?quote=1, ?book=1, ?rent=1, ?enroll=1)
   useEffect(() => {
@@ -228,9 +229,28 @@ export default function FacilityDetailPage() {
     setReportReason('');
   };
 
-  const handleSubmitClaim = () => {
-    toast.success('Claim verification initiated. An OTP has been sent to the registered establishment phone.');
-    setShowClaimDialog(false);
+  const handleSubmitClaim = async () => {
+    if (!facility) return;
+    // A detail page knows the listing by slug (that is its public address);
+    // an id-shaped value resolves too, so both surfaces can file a request.
+    const target = facility.slug || facility._id;
+    if (!target) {
+      toast.error('This listing has no claimable record');
+      setShowClaimDialog(false);
+      return;
+    }
+    setClaimSubmitting(true);
+    try {
+      await api.post(`/providers/${target}/claim`, { note: `Claimed from the ${facility.name} detail page` });
+      toast.success('Claim request submitted. Moderation reviews govt/imported claims before ownership changes.');
+      setShowClaimDialog(false);
+    } catch (e: any) {
+      // Surface the server's actual verdict (not claimable / already claimed /
+      // already under review) instead of pretending the request went through.
+      toast.error(e?.response?.data?.message || 'Could not submit a claim for this listing');
+    } finally {
+      setClaimSubmitting(false);
+    }
   };
 
   if (loading || !facility) {
@@ -332,11 +352,11 @@ export default function FacilityDetailPage() {
             </ul>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowClaimDialog(false)}>
+            <Button variant="outline" onClick={() => setShowClaimDialog(false)} disabled={claimSubmitting}>
               Cancel
             </Button>
-            <Button onClick={handleSubmitClaim}>
-              Begin Verification
+            <Button onClick={handleSubmitClaim} disabled={claimSubmitting}>
+              {claimSubmitting ? 'Submitting…' : 'Begin Verification'}
             </Button>
           </DialogFooter>
         </DialogContent>

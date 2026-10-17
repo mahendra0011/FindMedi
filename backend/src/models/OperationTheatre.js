@@ -94,7 +94,7 @@ operationSchema.pre('save', function (next) {
   if (this.startTime && this.endTime) {
     this.totalDuration = Math.round((this.endTime - this.startTime) / 60000);
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('OperationTheatre', operationSchema);

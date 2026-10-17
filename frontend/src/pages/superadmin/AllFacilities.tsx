@@ -86,6 +86,11 @@ export default function AllFacilities() {
   const [strikeModal, setStrikeModal] = useState<{ open: boolean; provider: any; note: string }>({
     open: false, provider: null, note: ''
   });
+  // Claim-listing review (08.md §3). Approve grants `claimedBy`; reject only
+  // clears the queue entry, which is why both live here rather than one.
+  const [claimModal, setClaimModal] = useState<{
+    open: boolean; provider: any; action: 'approve' | 'reject'; reason: string;
+  }>({ open: false, provider: null, action: 'approve', reason: '' });
 
   // Legacy Hospital & Facility State
   const [allHospitals, setAllHospitals] = useState<any[]>([]);
@@ -225,6 +230,30 @@ export default function AllFacilities() {
       fetchProviders();
     } catch (e: any) {
       toast.error(e?.response?.data?.message || 'Failed to issue strike');
+    }
+  };
+
+  // Claim-listing decision (10.md §4.4)
+  const handleClaimDecision = async () => {
+    const provider = claimModal.provider;
+    if (!provider) return;
+    if (claimModal.action === 'reject' && !claimModal.reason.trim()) {
+      toast.error('A reason is required to reject a claim');
+      return;
+    }
+    try {
+      await api.post(`/providers/${provider._id}/claim-${claimModal.action}`, {
+        reason: claimModal.reason.trim(),
+      });
+      toast.success(
+        claimModal.action === 'approve'
+          ? `${provider.name} is now managed by its claimed owner`
+          : 'Claim request rejected',
+      );
+      setClaimModal({ open: false, provider: null, action: 'approve', reason: '' });
+      fetchProviders();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Failed to record the claim decision');
     }
   };
 
@@ -374,6 +403,16 @@ export default function AllFacilities() {
                             Info-Only · No Booking CTA
                           </Badge>
                         )}
+                        {p.claimedBy && (
+                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] border-emerald-500/30">
+                            Claimed
+                          </Badge>
+                        )}
+                        {p.claimRequest?.status === 'pending' && (
+                          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] border-amber-500/30 flex items-center gap-1">
+                            <UserCheck className="w-2.5 h-2.5" /> Claim awaiting review
+                          </Badge>
+                        )}
                         {isSensitiveProvider(p) && (
                           <Badge className="bg-purple-500/15 text-purple-700 dark:text-purple-300 text-[10px] border-purple-500/30 flex items-center gap-1">
                             <Lock className="w-2.5 h-2.5" /> Sensitive 🔒
@@ -453,6 +492,27 @@ export default function AllFacilities() {
                         >
                           <Eye className="w-3 h-3 text-blue-500" /> View-As
                         </Button>
+
+                        {p.claimRequest?.status === 'pending' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-[11px] gap-1 text-success border-success/30 hover:bg-success/10"
+                              onClick={() => setClaimModal({ open: true, provider: p, action: 'approve', reason: '' })}
+                            >
+                              <UserCheck className="w-3 h-3" /> Approve Claim
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-[11px] gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                              onClick={() => setClaimModal({ open: true, provider: p, action: 'reject', reason: '' })}
+                            >
+                              <XCircle className="w-3 h-3" /> Reject
+                            </Button>
+                          </>
+                        )}
 
                         <Button
                           size="sm"
@@ -731,6 +791,58 @@ export default function AllFacilities() {
               </Button>
               <Button size="sm" variant="destructive" onClick={handleIssueStrike}>
                 Confirm Strike
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* CLAIM-LISTING REVIEW (10.md §4.4) */}
+      {claimModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md bg-card border rounded-2xl p-5 shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-success" />
+              {claimModal.action === 'approve' ? 'Approve Listing Claim' : 'Reject Listing Claim'}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Listing: <strong className="text-foreground">{claimModal.provider?.name}</strong>
+              {claimModal.provider?.importedFrom && (
+                <span className="block font-mono pt-1">Imported from {claimModal.provider.importedFrom}</span>
+              )}
+            </p>
+            <div className="p-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+              {claimModal.action === 'approve' ? (
+                <>
+                  <p>→ The claimant becomes the listing owner and can manage it.</p>
+                  <p>→ Their identity, this decision, and the time are written to the audit log.</p>
+                </>
+              ) : (
+                <>
+                  <p>→ The listing stays unclaimed and can be claimed again later.</p>
+                  <p>→ The reason is recorded against the request for audit.</p>
+                </>
+              )}
+            </div>
+            <Input
+              value={claimModal.reason}
+              onChange={(e) => setClaimModal((m) => ({ ...m, reason: e.target.value }))}
+              placeholder={
+                claimModal.action === 'approve'
+                  ? 'Optional note (e.g. verification ticket ref)'
+                  : 'Reason for rejection (required)'
+              }
+              className="text-xs"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button size="sm" variant="outline" onClick={() => setClaimModal({ open: false, provider: null, action: 'approve', reason: '' })}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                variant={claimModal.action === 'approve' ? 'default' : 'destructive'}
+                onClick={handleClaimDecision}
+              >
+                {claimModal.action === 'approve' ? 'Approve Claim' : 'Confirm Rejection'}
               </Button>
             </div>
           </div>

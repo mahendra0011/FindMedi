@@ -6,6 +6,7 @@ import { Label } from '@/mind/components/ui/label';
 import { Progress } from '@/mind/components/ui/progress';
 import { AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/mind/components/ui/alert';
+import type { ApiRow } from '@/lib/apiTypes';
 const PHQ9_QUESTIONS = [
     "Little interest or pleasure in doing things",
     "Feeling down, depressed, or hopeless",
@@ -28,7 +29,7 @@ const GAD7_QUESTIONS = [
 ];
 const ScreeningForm = ({ type, onComplete }) => {
     const [currentQuestion, setCurrentQuestion] = useState(0);
-    const [answers, setAnswers] = useState([]);
+    const [answers, setAnswers] = useState<ApiRow[]>([]);
     const [showResults, setShowResults] = useState(false);
     const questions = type === 'PHQ9' ? PHQ9_QUESTIONS : GAD7_QUESTIONS;
     const totalQuestions = questions.length;

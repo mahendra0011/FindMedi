@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = {
   approved: 'bg-success/10 text-success',
@@ -45,7 +46,7 @@ function queueItemSub(item) {
 
 export default function PendingApprovals() {
   const navigate = useNavigate();
-  const [pendingHospitals, setPendingHospitals] = useState([]);
+  const [pendingHospitals, setPendingHospitals] = useState<ApiRow[]>([]);
   const [aggregated, setAggregated] = useState({ facilities: [], delivery: [], riders: [], assistants: [], lawyers: [] });
   const [activeQueue, setActiveQueue] = useState('hospitals');
   const [loading, setLoading] = useState(true);

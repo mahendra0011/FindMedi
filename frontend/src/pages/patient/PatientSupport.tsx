@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const ticketStatusColors = { Open: 'bg-warning/10 text-warning', 'In Progress': 'bg-info/10 text-info', Resolved: 'bg-success/10 text-success', Closed: 'bg-muted text-muted-foreground' };
 const ticketStatusIcons = { Open: AlertCircle, 'In Progress': Clock, Resolved: CheckCircle2, Closed: TicketCheck };
@@ -13,7 +14,7 @@ export default function PatientSupport() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [tickets, setTickets] = useState([]);
+  const [tickets, setTickets] = useState<ApiRow[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
 
   const loadTickets = async () => {

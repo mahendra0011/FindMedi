@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useNotificationCount } from '@/context/NotificationContext';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const typeIcons = { reminder: Calendar, payment: CreditCard, appointment: Calendar, records: FileText, system: AlertCircle };
 const typeColors = { reminder: 'bg-warning/10 text-warning', payment: 'bg-success/10 text-success', appointment: 'bg-info/10 text-info', records: 'bg-primary/10 text-primary', system: 'bg-purple-500/10 text-purple-600' };
@@ -12,7 +13,7 @@ const typeColors = { reminder: 'bg-warning/10 text-warning', payment: 'bg-succes
 export default function Notifications() {
   const { user } = useAuth();
   const { refreshCount } = useNotificationCount();
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadNotifications = async () => {

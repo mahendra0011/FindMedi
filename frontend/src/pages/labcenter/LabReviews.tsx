@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function LabReviews() {
   const { user } = useAuth();
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState<ApiRow[]>([]);
 
   useEffect(() => {
     const fetchReviews = async () => {

@@ -5,6 +5,7 @@ import { Star, Trash2, Calendar, Search, Stethoscope, Filter, X } from 'lucide-r
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const ratingLevels = [
   { label: 'All', value: 0 },
@@ -43,7 +44,7 @@ function formatDate(dateStr) {
 
 export default function PatientReviews() {
   const { user } = useAuth();
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [ratingFilter, setRatingFilter] = useState(0);

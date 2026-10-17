@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { RotateCcw, Search, Calendar, Clock, IndianRupee, AlertCircle, Loader2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusFilters = ['All', 'Pending', 'Processing', 'Refunded', 'Failed'];
 
@@ -14,7 +15,7 @@ const statusConfig = {
 };
 
 export default function PatientRefunds() {
-  const [refunds, setRefunds] = useState([]);
+  const [refunds, setRefunds] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');

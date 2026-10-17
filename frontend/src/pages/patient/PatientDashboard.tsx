@@ -111,6 +111,7 @@ const quickActions = [
  * AFTER prioritised ones. Permissions never change here.
  */
 import { orderTiles } from './personaTiles';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const healthTips = [
   'Stay hydrated — drink at least 8 glasses of water daily.',
@@ -139,19 +140,19 @@ export default function PatientDashboard() {
     };
   }, []);
   const [showModal, setShowModal] = useState(null);
-  const [appointments, setAppointments] = useState([]);
-  const [bills, setBills] = useState([]);
-  const [medOrders, setMedOrders] = useState([]);
-  const [prescriptions, setPrescriptions] = useState([]);
-  const [testBookings, setTestBookings] = useState([]);
-  const [reports, setReports] = useState([]);
-  const [notifs, setNotifs] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  const [refunds, setRefunds] = useState([]);
+  const [appointments, setAppointments] = useState<ApiRow[]>([]);
+  const [bills, setBills] = useState<ApiRow[]>([]);
+  const [medOrders, setMedOrders] = useState<ApiRow[]>([]);
+  const [prescriptions, setPrescriptions] = useState<ApiRow[]>([]);
+  const [testBookings, setTestBookings] = useState<ApiRow[]>([]);
+  const [reports, setReports] = useState<ApiRow[]>([]);
+  const [notifs, setNotifs] = useState<ApiRow[]>([]);
+  const [reviews, setReviews] = useState<ApiRow[]>([]);
+  const [refunds, setRefunds] = useState<ApiRow[]>([]);
   const [cancelTarget, setCancelTarget] = useState(null);
   const [tipIndex, setTipIndex] = useState(0);
   const [greeting, setGreeting] = useState('');
-  const [payments, setPayments] = useState([]);
+  const [payments, setPayments] = useState<ApiRow[]>([]);
   const [apptTab, setApptTab] = useState('upcoming');
   const [doctorSosModalOpen, setDoctorSosModalOpen] = useState(false);
   const [discreetMode, setDiscreetMode] = useState<boolean>(() => {

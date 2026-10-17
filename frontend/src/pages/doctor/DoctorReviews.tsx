@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function DoctorReviews() {
   const { user } = useAuth();
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [replyingId, setReplyingId] = useState(null);
   const [replyText, setReplyText] = useState({});

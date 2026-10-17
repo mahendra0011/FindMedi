@@ -8,14 +8,15 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import StatCard from '@/components/StatCard';
 import { userFacingError } from '@/lib/errorCopy';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = { completed: 'bg-success/10 text-success', pending: 'bg-warning/10 text-warning', failed: 'bg-destructive/10 text-destructive', refunded: 'bg-info/10 text-info' };
 const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
 
 export default function PatientPayment() {
   const { user } = useAuth();
-  const [payments, setPayments] = useState([]);
-  const [bills, setBills] = useState([]);
+  const [payments, setPayments] = useState<ApiRow[]>([]);
+  const [bills, setBills] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [payingBill, setPayingBill] = useState(null);
   const [payMethod, setPayMethod] = useState('card');

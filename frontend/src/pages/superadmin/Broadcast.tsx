@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const ROLE_OPTIONS = [
   { value: 'all', label: 'All Users', icon: Users },
@@ -27,7 +28,7 @@ const PRIORITY_OPTIONS = [
 ];
 
 export default function Broadcast() {
-  const [broadcasts, setBroadcasts] = useState([]);
+  const [broadcasts, setBroadcasts] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [title, setTitle] = useState('');

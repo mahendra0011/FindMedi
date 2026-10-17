@@ -44,7 +44,7 @@ physioSchema.pre('save', function (next) {
   if (this.treatmentPlan) {
     this.treatmentPlan.sessionsCompleted = this.sessions?.length || 0;
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('Physiotherapy', physioSchema);

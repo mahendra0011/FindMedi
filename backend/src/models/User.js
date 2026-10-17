@@ -441,7 +441,7 @@ userSchema.pre(['updateOne', 'findOneAndUpdate'], function canonicaliseRoleAlias
     update.$set.role = canonicalRole(update.$set.role);
     this.setUpdate(update);
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('User', userSchema);

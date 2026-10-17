@@ -29,12 +29,11 @@ const purchaseOrderSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 
-purchaseOrderSchema.pre('save', async function (next) {
+purchaseOrderSchema.pre('save', async function () {
   this.updatedAt = new Date();
   if (!this.poNumber) {
     this.poNumber = generateTimestampedId('PO');
   }
-  next();
 });
 
 export default mongoose.model('PurchaseOrder', purchaseOrderSchema);

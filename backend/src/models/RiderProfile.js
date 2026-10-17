@@ -97,7 +97,7 @@ riderProfileSchema.pre('save', function (next) {
   if (this.currentLocation?.lat != null && this.currentLocation?.lng != null) {
     this.currentLocation.coordinates = [Number(this.currentLocation.lng), Number(this.currentLocation.lat)];
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('RiderProfile', riderProfileSchema);

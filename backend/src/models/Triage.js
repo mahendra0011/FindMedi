@@ -56,7 +56,7 @@ const triageSchema = new mongoose.Schema({
 
 triageSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('Triage', triageSchema);

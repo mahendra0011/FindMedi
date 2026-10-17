@@ -29,7 +29,7 @@ const dentalTreatmentPlanSchema = new mongoose.Schema({
 dentalTreatmentPlanSchema.index({ patientId: 1, createdAt: -1 });
 dentalTreatmentPlanSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('DentalTreatmentPlan', dentalTreatmentPlanSchema);

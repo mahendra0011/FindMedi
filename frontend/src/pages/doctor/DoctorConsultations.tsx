@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api, apiClient, getApiBaseUrl } from '@/lib/api';
 import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const typeIcons = {
   Prescription: { icon: Pill, color: 'text-success', bg: 'bg-success/10' },
@@ -18,7 +19,7 @@ const typeIcons = {
 
 export default function DoctorConsultations() {
   const { user } = useAuth();
-  const [records, setRecords] = useState([]);
+  const [records, setRecords] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');

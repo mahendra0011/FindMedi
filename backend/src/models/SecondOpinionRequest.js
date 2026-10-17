@@ -42,7 +42,7 @@ const secondOpinionRequestSchema = new mongoose.Schema({
 secondOpinionRequestSchema.index({ patientId: 1, familyMemberId: 1, doctorId: 1, status: 1 });
 secondOpinionRequestSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('SecondOpinionRequest', secondOpinionRequestSchema);

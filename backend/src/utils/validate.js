@@ -1874,7 +1874,13 @@ export const resendOtpSchema = z.object({
 export const googleAuthSchema = z.object({
   idToken: z.string().min(1, 'Google ID token is required'),
   accessToken: z.string().optional(),
-  role: z.enum(['patient', 'doctor', 'hospital_admin', 'technician']).optional().default('patient'),
+  // AUTH-UI: must mirror loginSchema's role enum. This used to allow only
+  // ['patient','doctor','hospital_admin','technician'], so picking Pathologist
+  // (or any of the other seeded roles) and then pressing "Continue with
+  // Google" was rejected with 400 before the handler ever ran. The handler
+  // only ever logs the VERIFIED Google identity in and never trusts this hint
+  // to choose an account (AUTH-B-01/B-02), so widening it cannot escalate.
+  role: z.enum(USER_ROLE_OPTIONS).optional().default('patient'),
 });
 
 // AUTH-B-01 / AUTH-B-02: the account is identified by a VERIFIED Google

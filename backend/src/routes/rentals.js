@@ -225,6 +225,11 @@ router.get('/', protect, async (req, res) => {
     const [rentals, total] = await Promise.all([
       Rental.find(filter)
         .select('-updatedAt -__v')
+        // The portal card renders the asset's name/serial and the vendor's
+        // trading name; without these the list only had ObjectIds and the UI
+        // had nothing human-readable to show. Both are display-only fields.
+        .populate({ path: 'assetUnitId', select: 'productName serial kind status ratePerDay deposit lastSanitisedAt' })
+        .populate({ path: 'vendorId', select: 'name type slug' })
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)

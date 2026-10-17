@@ -132,7 +132,7 @@ const EXPLICIT_STATUSES = new Set([
 labOrderSchema.pre('save', function (next) {
   this.updatedAt = new Date();
   if (this.status && EXPLICIT_STATUSES.has(this.status)) {
-    next();
+    if (typeof next === 'function') next();
     return;
   }
   const testStatuses = this.tests.map(t => t.status);
@@ -145,7 +145,7 @@ labOrderSchema.pre('save', function (next) {
   } else if (testStatuses.some(s => s === 'Sample Collected')) {
     this.status = 'Sample Pending';
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('LabOrder', labOrderSchema);

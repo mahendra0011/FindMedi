@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 /**
  * File 22 P2-31: idle-PIN lock + WebAuthn passkey management.
@@ -185,7 +186,7 @@ export default function SecuritySection() {
 }
 
 function IPAllowlistEditor() {
-  const [ips, setIps] = useState([]);
+  const [ips, setIps] = useState<ApiRow[]>([]);
   const [val, setVal] = useState('');
 
   const add = () => {

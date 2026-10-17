@@ -46,7 +46,7 @@ encounterSchema.pre('save', function (next) {
       this.encounterNo = `ENC-${new Date().getFullYear()}-${pad6()}`;
     }
   } catch { /* never block the write */ }
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.models.Encounter || mongoose.model('Encounter', encounterSchema);

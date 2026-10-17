@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const leaveStatusColors = {
   Pending: 'bg-warning/10 text-warning border-warning/20',
@@ -24,7 +25,7 @@ const leaveTypes = [
 ];
 
 export default function DoctorLeaveRequests() {
-  const [leaves, setLeaves] = useState([]);
+  const [leaves, setLeaves] = useState<ApiRow[]>([]);
   const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);

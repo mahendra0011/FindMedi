@@ -4,13 +4,14 @@ import { TestTube, Search, FlaskConical, Heart, Activity } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const categories = ['Blood', 'Urine', 'Imaging', 'Cardiac', 'Other'];
 
 const categoryIcons = { Blood: FlaskConical, Urine: TestTube, Imaging: Activity, Cardiac: Heart, Other: TestTube };
 
 export default function LabTestCatalog() {
-  const [tests, setTests] = useState([]);
+  const [tests, setTests] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = {
   Operational: 'bg-success/10 text-success',
@@ -24,7 +25,7 @@ const defaultEquipment = [
 ];
 
 export default function LabEquipment() {
-  const [equipment, setEquipment] = useState([]);
+  const [equipment, setEquipment] = useState<ApiRow[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [newEq, setNewEq] = useState({ name: '', type: 'MRI', purchaseDate: '' });
   const [loading, setLoading] = useState(true);

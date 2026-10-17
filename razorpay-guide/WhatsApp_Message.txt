@@ -1,0 +1,37 @@
+*💳 Razorpay Payment Gateway Setup Guide (Website/App ke liye)*
+
+Namaste! 🙏
+Website me online payment accept karne ke liye Razorpay ka account setup karna hota hai. Yeh bahut aasan hai, niche diye steps follow karein:
+
+*1. Account Kahan Banayein?*
+👉 Website: https://razorpay.com par jayein aur *Sign Up* karein.
+(Koi app download karne ki zaroorat nahi hai, seedha browser se ho jayega.)
+
+*2. Bank & KYC Documents kya lagte hain?*
+• Bank Account Number & IFSC (Jisme customer ke paise aayenge)
+• PAN Card
+• Aadhaar Card
+• Cancelled Cheque ya Bank Statement
+
+*3. Website par zaroori Pages (Approval ke liye):*
+Razorpay approve karne se pehle website dekhta hai, isliye website par yeh pages hone zaroori hain:
+• About Us
+• Contact Us (Email, Phone, Address)
+• Terms & Conditions
+• Privacy Policy
+• Refund/Cancellation Policy
+
+*4. Developer ko kya share karna hai?*
+Login karne ke baad:
+👉 *Dashboard -> Settings -> API Keys -> Generate Key*
+Wahan se 2 keys milti hain:
+1. *Key ID*
+2. *Key Secret*
+Yeh dono keys developer ko share karni hain taaki wo website me link kar sakein.
+
+*5. Paise Bank me kaise aate hain?*
+• Customer website par UPI/Card/NetBanking se pay karega.
+• Paise turant aapke Razorpay dashboard me dikhenge.
+• 1-2 din ke andar (T+2 days) automatically aapke bank account me credit ho jate hain (aapko manually kuch nahi karna padta).
+
+Agar setup ke dauran koi bhi doubt ho toh call/message kar sakte hain! 👍

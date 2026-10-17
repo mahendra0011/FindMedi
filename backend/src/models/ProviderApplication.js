@@ -141,8 +141,8 @@ providerApplicationSchema.index({ typeKey: 1, status: 1 });
 providerApplicationSchema.index({ twoPersonApproval: 1, status: 1 });
 
 // Stable, printable reference for the queue - the same idea as Provider.providerId.
-providerApplicationSchema.pre('save', async function generateApplicationId(next) {
-  if (this.applicationId) return next();
+providerApplicationSchema.pre('save', async function generateApplicationId() {
+  if (this.applicationId) return;
   try {
     const App = this.constructor;
     let candidate;
@@ -150,9 +150,9 @@ providerApplicationSchema.pre('save', async function generateApplicationId(next)
       candidate = `APP-${randomBytes(6).toString('hex').toUpperCase()}`;
     } while (await App.exists({ applicationId: candidate }));
     this.applicationId = candidate;
-    return next();
+    return;
   } catch (err) {
-    return next(err);
+    throw err;
   }
 });
 

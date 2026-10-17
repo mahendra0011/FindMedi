@@ -16,6 +16,7 @@ import {
 } from '@/lib/timeSlots';
 import { CompletedCard } from '@/components/TodayAppointmentsSection';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 /**
  * Appointment History Section — shows completed appointments for any selected date.
@@ -49,7 +50,7 @@ export default function AppointmentHistorySection({ appointments }) {
   const [showMore, setShowMore] = useState(false);
 
   // ── Payment history (patient ne is doctor ko jo payments kiye) ──
-  const [payments, setPayments] = useState([]);
+  const [payments, setPayments] = useState<ApiRow[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [paymentSearch, setPaymentSearch] = useState('');
 

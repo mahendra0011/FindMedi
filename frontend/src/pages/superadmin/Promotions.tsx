@@ -8,11 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function Promotions() {
   const [tab, setTab] = useState('coupons');
-  const [coupons, setCoupons] = useState([]);
-  const [listings, setListings] = useState([]);
+  const [coupons, setCoupons] = useState<ApiRow[]>([]);
+  const [listings, setListings] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);

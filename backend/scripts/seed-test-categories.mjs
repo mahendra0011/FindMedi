@@ -7,8 +7,16 @@
  *   node scripts/seed-test-categories.mjs           # dry run (default)
  *   node scripts/seed-test-categories.mjs --apply   # write to DB
  */
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 import { deriveCategoryCode } from '../src/lib/taxonomy.js';
+import { configureMongoDns } from '../src/config/mongoDns.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
+configureMongoDns();
 
 const APPLY = process.argv.includes('--apply');
 const MONGO_URI = process.env.MONGO_URI;

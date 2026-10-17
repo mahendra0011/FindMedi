@@ -33,7 +33,7 @@ payslipSchema.pre('save', function (next) {
   this.gross = (Number(e.basic) || 0) + (Number(e.hra) || 0) + (Number(e.allowances) || 0) + (Number(e.overtime) || 0);
   this.totalDeductions = (Number(d.pf) || 0) + (Number(d.esi) || 0) + (Number(d.pt) || 0) + (Number(d.tds) || 0) + (Number(d.advances) || 0);
   this.net = this.gross - this.totalDeductions;
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.models.Payslip || mongoose.model('Payslip', payslipSchema);

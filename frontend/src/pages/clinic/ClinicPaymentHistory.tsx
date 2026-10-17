@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const typeFilters = ['All', 'appointment', 'test', 'medicine'];
 const statusFilters = ['All', 'completed', 'pending', 'failed', 'refunded'];
@@ -61,7 +62,7 @@ function InfoRow({ icon: Icon, label, value, color = 'text-muted-foreground' }) 
 export default function ClinicPaymentHistory() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');

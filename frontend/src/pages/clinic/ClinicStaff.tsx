@@ -6,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const staffRoles = ['Receptionist', 'Nurse', 'Lab Technician', 'Pharmacist', 'Accountant', 'Helper'];
 
 export default function ClinicStaff() {
-  const [staff, setStaff] = useState([]);
+  const [staff, setStaff] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);

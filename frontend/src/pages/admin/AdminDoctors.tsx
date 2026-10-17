@@ -6,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { useCategories } from '@/hooks/useCategories';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const FALLBACK_SPECIALIZATIONS = ['Cardiology', 'Neurology', 'Orthopaedics', 'Paediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT'];
 
 export default function AdminDoctors() {
-  const [doctors, setDoctors] = useState([]);
+  const [doctors, setDoctors] = useState<ApiRow[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);

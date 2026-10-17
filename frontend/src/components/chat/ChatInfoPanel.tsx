@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { WALLPAPERS, formatBytes, formatDuration } from '@/lib/chatPrefs';
 import { Row, SectionCard, Segmented } from './ChatSettingsPanel';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const TABS = [
   { key: 'info', label: 'Info', icon: UserIcon },
@@ -51,7 +52,7 @@ export default function ChatInfoPanel({
 }) {
   const [tab, setTab] = useState('info');
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState<ApiRow[]>([]);
   const [searching, setSearching] = useState(false);
   const [showWallpapers, setShowWallpapers] = useState(false);
 

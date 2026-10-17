@@ -8,9 +8,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function DoctorRefunds() {
-  const [refunds, setRefunds] = useState([]);
+  const [refunds, setRefunds] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');

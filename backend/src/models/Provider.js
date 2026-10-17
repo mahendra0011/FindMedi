@@ -135,14 +135,26 @@ const providerSchema = new mongoose.Schema({
 
   parentProviderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Provider', default: null, index: true },
   branches: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Provider' }],
+  // 10.md 2.1 / 08.md 3 — claim-listing for govt/imported listings.
+  // `claimedBy` is the RESULT (who ended up owning the listing); this is the
+  // DECISION that produced it, kept on the row so the admin queue can list
+  // what is awaiting review instead of a separate collection going stale.
+  claimRequest: {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    note: { type: String, maxlength: 500, default: '' },
+    status: { type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' },
+    requestedAt: { type: Date, default: null },
+    decidedAt: { type: Date, default: null },
+    decidedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    reason: { type: String, maxlength: 500, default: '' },
+  },
   claimedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   importedFrom: { type: String, maxlength: 120, default: '' },
 }, { timestamps: true });
 
-providerSchema.pre('save', async function preSave(next) {
+providerSchema.pre('save', async function preSave() {
   if (!this.providerId) this.providerId = generate16DigitId();
   if (!this.slug) this.slug = await buildUniqueSlug(this);
-  next();
 });
 
 async function buildUniqueSlug(doc) {

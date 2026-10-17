@@ -24,7 +24,7 @@ const eyeSurgeryLeadSchema = new mongoose.Schema({
 eyeSurgeryLeadSchema.index({ patientId: 1, createdAt: -1 });
 eyeSurgeryLeadSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('EyeSurgeryLead', eyeSurgeryLeadSchema);

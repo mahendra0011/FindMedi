@@ -10,12 +10,12 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1855,
+  "total": 1859,
   "counts": {
     "inherited": 5,
-    "object": 437,
-    "public": 119,
-    "role": 1212,
+    "object": 438,
+    "public": 120,
+    "role": 1214,
     "self": 82
   },
   "byMechanism": {
@@ -39,10 +39,10 @@
     "platformAdminOnly": 15,
     "requireConversationMember": 19,
     "requireMetricsToken": 1,
-    "requireObjectId": 173,
+    "requireObjectId": 175,
     "requirePatientGrant": 4,
     "requireReportScope": 2,
-    "requireRole": 92,
+    "requireRole": 94,
     "requireSosAccess": 7,
     "requireStaff": 4,
     "requireStepUp": 33,
@@ -111,7 +111,7 @@
         "routes": 1
       }
     ],
-    "unnamedHandlerGuard": 324,
+    "unnamedHandlerGuard": 325,
     "note": "AUTHZ-M-01 is OPEN. The alternatives are not necessarily wrong - several predate authorizeObject and carry domain rules it does not model - but the split was previously invisible, and a route can be guarded twice by two mechanisms whose rules were never reconciled."
   },
   "unrecognised": [],
@@ -1070,182 +1070,189 @@
     },
     {
       "file": "auth.js",
-      "line": 392,
+      "line": 424,
       "method": "POST",
       "target": "'/register'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 786,
+      "line": 818,
       "method": "POST",
       "target": "'/verify-otp'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 854,
+      "line": 886,
       "method": "POST",
       "target": "'/resend-otp'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 905,
+      "line": 943,
+      "method": "GET",
+      "target": "'/login-roles'",
+      "tag": "public"
+    },
+    {
+      "file": "auth.js",
+      "line": 968,
       "method": "POST",
       "target": "'/login'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1236,
+      "line": 1307,
       "method": "POST",
       "target": "'/step-up'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 1267,
+      "line": 1338,
       "method": "POST",
       "target": "'/2fa/complete'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1340,
+      "line": 1411,
       "method": "POST",
       "target": "'/google'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1465,
+      "line": 1536,
       "method": "POST",
       "target": "'/google-register'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1572,
+      "line": 1643,
       "method": "POST",
       "target": "'/forgot-password'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1606,
+      "line": 1677,
       "method": "POST",
       "target": "'/reset-password'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1700,
+      "line": 1771,
       "method": "POST",
       "target": "'/doctor-setup'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1738,
+      "line": 1809,
       "method": "POST",
       "target": "'/ambulance-setup'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 1798,
+      "line": 1869,
       "method": "POST",
       "target": "'/provider-staff-setup'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 1881,
+      "line": 1952,
       "method": "GET",
       "target": "'/me'",
       "tag": "self"
     },
     {
       "file": "auth.js",
-      "line": 1888,
+      "line": 1959,
       "method": "PUT",
       "target": "'/change-password'",
       "tag": "self"
     },
     {
       "file": "auth.js",
-      "line": 1952,
+      "line": 2023,
       "method": "POST",
       "target": "'/avatar'",
       "tag": "self"
     },
     {
       "file": "auth.js",
-      "line": 2004,
+      "line": 2075,
       "method": "PUT",
       "target": "'/profile'",
       "tag": "self"
     },
     {
       "file": "auth.js",
-      "line": 2096,
+      "line": 2167,
       "method": "POST",
       "target": "'/logout'",
       "tag": "public"
     },
     {
       "file": "auth.js",
-      "line": 2112,
+      "line": 2183,
       "method": "POST",
       "target": "'/logout-all'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2129,
+      "line": 2200,
       "method": "POST",
       "target": "'/pin'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2146,
+      "line": 2217,
       "method": "POST",
       "target": "'/pin/unlock'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2190,
+      "line": 2261,
       "method": "GET",
       "target": "'/allowed-ips'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2199,
+      "line": 2270,
       "method": "PUT",
       "target": "'/allowed-ips'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2223,
+      "line": 2294,
       "method": "GET",
       "target": "'/sessions'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2277,
+      "line": 2348,
       "method": "DELETE",
       "target": "'/sessions/:jti'",
       "tag": "object"
     },
     {
       "file": "auth.js",
-      "line": 2318,
+      "line": 2389,
       "method": "POST",
       "target": "'/refresh'",
       "tag": "public"
@@ -7671,42 +7678,42 @@
     },
     {
       "file": "mealSubscriptions.js",
-      "line": 60,
+      "line": 67,
       "method": "POST",
       "target": "'/'",
       "tag": "self"
     },
     {
       "file": "mealSubscriptions.js",
-      "line": 95,
+      "line": 102,
       "method": "GET",
       "target": "'/:id'",
       "tag": "self"
     },
     {
       "file": "mealSubscriptions.js",
-      "line": 109,
+      "line": 116,
       "method": "POST",
       "target": "'/:id/pause'",
       "tag": "self"
     },
     {
       "file": "mealSubscriptions.js",
-      "line": 140,
+      "line": 147,
       "method": "POST",
       "target": "'/:id/resume'",
       "tag": "self"
     },
     {
       "file": "mealSubscriptions.js",
-      "line": 184,
+      "line": 191,
       "method": "POST",
       "target": "'/:id/skip'",
       "tag": "self"
     },
     {
       "file": "mealSubscriptions.js",
-      "line": 220,
+      "line": 227,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "self"
@@ -9875,6 +9882,27 @@
       "tag": "role"
     },
     {
+      "file": "providers.js",
+      "line": 480,
+      "method": "POST",
+      "target": "'/:id/claim'",
+      "tag": "object"
+    },
+    {
+      "file": "providers.js",
+      "line": 522,
+      "method": "POST",
+      "target": "'/:id/claim-approve'",
+      "tag": "role"
+    },
+    {
+      "file": "providers.js",
+      "line": 556,
+      "method": "POST",
+      "target": "'/:id/claim-reject'",
+      "tag": "role"
+    },
+    {
       "file": "quality.js",
       "line": 22,
       "method": "GET",
@@ -10821,70 +10849,70 @@
     },
     {
       "file": "rentals.js",
-      "line": 241,
+      "line": 246,
       "method": "GET",
       "target": "'/:id'",
       "tag": "object"
     },
     {
       "file": "rentals.js",
-      "line": 257,
+      "line": 262,
       "method": "POST",
       "target": "'/'",
       "tag": "self"
     },
     {
       "file": "rentals.js",
-      "line": 316,
+      "line": 321,
       "method": "POST",
       "target": "'/:id/approve'",
       "tag": "object"
     },
     {
       "file": "rentals.js",
-      "line": 349,
+      "line": 354,
       "method": "POST",
       "target": "'/:id/reject'",
       "tag": "object"
     },
     {
       "file": "rentals.js",
-      "line": 372,
+      "line": 377,
       "method": "POST",
       "target": "'/:id/cancel'",
       "tag": "object"
     },
     {
       "file": "rentals.js",
-      "line": 400,
+      "line": 405,
       "method": "POST",
       "target": "'/:id/activate'",
       "tag": "object"
     },
     {
       "file": "rentals.js",
-      "line": 429,
+      "line": 434,
       "method": "POST",
       "target": "'/:id/return'",
       "tag": "object"
     },
     {
       "file": "rentals.js",
-      "line": 454,
+      "line": 459,
       "method": "POST",
       "target": "'/:id/inspect'",
       "tag": "object"
     },
     {
       "file": "rentals.js",
-      "line": 483,
+      "line": 488,
       "method": "POST",
       "target": "'/:id/close'",
       "tag": "object"
     },
     {
       "file": "rentals.js",
-      "line": 526,
+      "line": 531,
       "method": "POST",
       "target": "'/:id/deposit-refund'",
       "tag": "object"

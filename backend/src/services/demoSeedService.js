@@ -557,7 +557,7 @@ export async function ensureDemoUsers() {
         await u.save();
       }
 
-      let p = await LawyerProfile.findOne({ userId: u._id });
+      let p = await LawyerProfile.findOne({ $or: [{ userId: u._id }, { barCouncilNumber: d.barCouncilNumber }] });
       if (!p) {
         p = new LawyerProfile({
           userId: u._id,
@@ -1117,8 +1117,57 @@ export async function ensureDemoUsers() {
       logger.info(`Upserted psychiatrist Doctor: ${d.name} (${d.email})`);
     }
 
+    // ─── N. Role accounts behind the File 07 §3.25-§3.30 dashboards ─────────
+    await ensureDashboardRoleAccounts();
+
     logger.info('Demo seed finished: 5 Riders, 5 Assistants, 5 Lawyers, 1 Ambulance Driver, 1 Counsellor, 5 Psychiatrists, and ServiceCities active.');
   } catch (err) {
     logger.warn('Error verifying demo accounts: ' + err.message);
   }
+}
+
+// File 07 §3.25-§3.30: each specialty dashboard is routed to its owner role
+// (App.tsx /dashboard/elder-care and friends), so without an account for the
+// role nobody can log in to reach it. Password is 'password' like every other
+// demo account here; hospitalId scopes them to the first seeded hospital
+// because /api/beds/stats (scopeToHospital) and the elder-care roster filter
+// on hospitalId — a tenant-less account would render placeholder KPIs forever.
+const DASHBOARD_ROLE_ACCOUNTS = [
+  { name: 'Elder Care Admin', email: 'elder.care.admin@findmedi.com', role: 'elder_care_admin', phone: '9826000001' },
+  { name: 'Vaccination Centre Admin', email: 'vaccination.admin@findmedi.com', role: 'vaccination_admin', phone: '9826000002' },
+  { name: 'Diet Kitchen Admin', email: 'diet.kitchen.admin@findmedi.com', role: 'diet_kitchen_admin', phone: '9826000003' },
+  { name: 'Corporate Wellness Admin', email: 'corporate.admin@findmedi.com', role: 'corporate_admin', phone: '9826000004' },
+  { name: 'Child Development Admin', email: 'child.dev.admin@findmedi.com', role: 'child_dev_admin', phone: '9826000005' },
+  { name: 'Specialty Centre Admin', email: 'specialty.centre.admin@findmedi.com', role: 'specialty_centre_admin', phone: '9826000006' },
+];
+
+export async function ensureDashboardRoleAccounts() {
+  if (process.env.NODE_ENV === 'production') return [];
+  const created = [];
+  const hospital = await Hospital.findOne({}).select('_id');
+  for (const a of DASHBOARD_ROLE_ACCOUNTS) {
+    const existing = await User.findOne({ email: a.email });
+    if (existing) {
+      let dirty = false;
+      if (existing.status !== 'active') { existing.status = 'active'; dirty = true; }
+      if (!existing.hospitalId && hospital) { existing.hospitalId = hospital._id; dirty = true; }
+      if (dirty) await existing.save();
+      continue;
+    }
+    const user = new User({
+      name: a.name,
+      email: a.email,
+      password: 'password',
+      role: a.role,
+      phone: a.phone,
+      isVerified: true,
+      status: 'active',
+      approvalStatus: 'approved',
+      ...(hospital ? { hospitalId: hospital._id } : {}),
+    });
+    await user.save();
+    created.push(a.email);
+    logger.info(`Created dashboard role user: ${a.email} (${a.role})`);
+  }
+  return created;
 }

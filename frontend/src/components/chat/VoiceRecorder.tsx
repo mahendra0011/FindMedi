@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Mic, Trash2, Send, Lock, LockOpen, Pause, Play, Square } from 'lucide-react';
 import { formatDuration } from '@/lib/chatPrefs';
+import type { ApiRow } from '@/lib/apiTypes';
 
 /**
  * WhatsApp-style voice recorder.
@@ -16,7 +17,7 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }) {
   const [paused, setPaused] = useState(false);
   const [locked, setLocked] = useState(false);
   const [seconds, setSeconds] = useState(0);
-  const [bars, setBars] = useState([]);
+  const [bars, setBars] = useState<ApiRow[]>([]);
   const [error, setError] = useState('');
 
   const mediaRef = useRef(null);

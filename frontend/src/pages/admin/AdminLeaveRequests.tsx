@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = {
   Pending: 'bg-warning/10 text-warning border-warning/20',
@@ -14,7 +15,7 @@ const statusColors = {
 };
 
 export default function AdminLeaveRequests() {
-  const [leaves, setLeaves] = useState([]);
+  const [leaves, setLeaves] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');

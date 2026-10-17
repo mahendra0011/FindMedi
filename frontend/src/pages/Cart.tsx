@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ export default function Cart() {
   const [savedForLater, setSavedForLater] = useState(() => {
     try { return JSON.parse((localStorage.getItem('findmedi_saved') || localStorage.getItem('mediCore_saved'))) || {}; } catch { return {}; }
   });
-  const [fetchedStores, setFetchedStores] = useState([]);
+  const [fetchedStores, setFetchedStores] = useState<ApiRow[]>([]);
 
   useEffect(() => {
     localStorage.setItem('findmedi_saved', JSON.stringify(savedForLater));

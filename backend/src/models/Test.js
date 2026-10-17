@@ -97,7 +97,7 @@ testSchema.pre('save', function (next) {
   try {
     if (!this.categoryCode && this.category) this.categoryCode = toCategoryCode(this.category);
   } catch { /* best-effort only */ }
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('Test', testSchema);

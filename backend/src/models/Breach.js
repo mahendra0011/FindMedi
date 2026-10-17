@@ -24,7 +24,7 @@ breachSchema.pre('save', function (next) {
   if (!this.deadlineAt && this.detectedAt) {
     this.deadlineAt = new Date(new Date(this.detectedAt).getTime() + 72 * 3600 * 1000);
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 breachSchema.index({ hospitalId: 1, status: 1 });

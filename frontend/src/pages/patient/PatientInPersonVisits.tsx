@@ -22,6 +22,7 @@ import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 import {
   Map, MapMarker, MarkerContent, MapRoute, MapControls
 } from '@/components/ui/map';
+import type { ApiRow } from '@/lib/apiTypes';
 
 // Helper to test if an appointment is Home Visit (offline/home_visit)
 function isInPersonAppointment(appt) {
@@ -80,7 +81,7 @@ export default function PatientInPersonVisits() {
   const navigate = useNavigate();
   const { initiateCall } = useAudioCall();
 
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('today'); // 'today' | 'upcoming' | 'pending' | 'completed'

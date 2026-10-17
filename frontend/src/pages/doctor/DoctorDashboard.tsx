@@ -19,6 +19,7 @@ import { getSocket } from '@/lib/socket';
 import ProviderIncomingCall from '@/components/emergency/ProviderIncomingCall';
 import EmergencyVideoRoom from '@/components/emergency/EmergencyVideoRoom';
 import { userFacingError } from '@/lib/errorCopy';
+import type { ApiRow } from '@/lib/apiTypes';
 
 function isInPersonAppointment(appt) {
   if (!appt) return false;
@@ -63,12 +64,12 @@ const statusColors = {
 export default function DoctorDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [appointments, setAppointments] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  const [bills, setBills] = useState([]);
-  const [labReports, setLabReports] = useState([]);
-  const [refunds, setRefunds] = useState([]);
-  const [patientCarePlans, setPatientCarePlans] = useState([]);
+  const [appointments, setAppointments] = useState<ApiRow[]>([]);
+  const [reviews, setReviews] = useState<ApiRow[]>([]);
+  const [bills, setBills] = useState<ApiRow[]>([]);
+  const [labReports, setLabReports] = useState<ApiRow[]>([]);
+  const [refunds, setRefunds] = useState<ApiRow[]>([]);
+  const [patientCarePlans, setPatientCarePlans] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIncomingCall, setActiveIncomingCall] = useState<any | null>(null);
   // Spec 09: active emergency consultation (post-accept) with 1-tap ALS escalation.

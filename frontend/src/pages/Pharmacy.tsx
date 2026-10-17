@@ -15,6 +15,7 @@ import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 import PatientBanner from '@/components/clinical/PatientBanner';
 import DdiCheckBanner from '@/components/clinical/DdiCheckBanner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const pharmApi = {
   getMedicines: (p = {}) => api.dispatch(() => Promise.resolve({ medicines: [] }), '/pharmacy/medicines?' + new URLSearchParams(p)),
@@ -64,13 +65,13 @@ export default function Pharmacy() {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   // Inventory
-  const [medicines, setMedicines] = useState([]);
+  const [medicines, setMedicines] = useState<ApiRow[]>([]);
   const [newMed, setNewMed] = useState({ name: '', genericName: '', category: 'Antibiotic', form: 'Tablet', manufacturer: '', batchNumber: '', expiryDate: '', purchasePrice: '', sellingPrice: '', currentStock: '', reorderLevel: '10', rackLocation: '' });
   const [editMed, setEditMed] = useState(null);
   const [medFilter, setMedFilter] = useState({ category: '', lowStock: false, expiring: false });
 
   // Prescriptions
-  const [prescriptions, setPrescriptions] = useState([]);
+  const [prescriptions, setPrescriptions] = useState<ApiRow[]>([]);
   const [rxSearch, setRxSearch] = useState('');
   const [newRx, setNewRx] = useState({ patientName: '', diagnosis: '', medicines: [{ medicineName: '', dosage: '', frequency: '1-0-1', duration: '7 days', quantity: 1 }] });
   // T3: major DDI un-overridden → Create Prescription blocked.
@@ -79,32 +80,32 @@ export default function Pharmacy() {
   const [ddiBlockedByRx, setDdiBlockedByRx] = useState<Record<string, boolean>>({});
 
   // Orders
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<ApiRow[]>([]);
   const [orderFilter, setOrderFilter] = useState('All');
   const [orderForm, setOrderForm] = useState({ patientName: '', phone: '', deliveryAddress: '', medicineName: '', qty: '1', price: '0' });
 
   // Delivery
-  const [deliveries, setDeliveries] = useState([]);
+  const [deliveries, setDeliveries] = useState<ApiRow[]>([]);
   const [deliveryForm, setDeliveryForm] = useState({ orderId: '', deliveryPartnerId: '', pickupAddress: '', dropAddress: '', estimatedTime: '' });
 
   // Billing
-  const [bills, setBills] = useState([]);
+  const [bills, setBills] = useState<ApiRow[]>([]);
   const [billFilter, setBillFilter] = useState('All');
 
   // Returns
-  const [returns, setReturns] = useState([]);
+  const [returns, setReturns] = useState<ApiRow[]>([]);
   const [returnForm, setReturnForm] = useState({ orderId: '', reason: '' });
 
   // Staff
-  const [staffList, setStaffList] = useState([]);
+  const [staffList, setStaffList] = useState<ApiRow[]>([]);
   const [newStaff, setNewStaff] = useState({ name: '', role: 'Pharmacist', email: '', phone: '', licenseNumber: '', experience: '', shift: 'Morning' });
 
   // Offers
-  const [offers, setOffers] = useState([]);
+  const [offers, setOffers] = useState<ApiRow[]>([]);
   const [newOffer, setNewOffer] = useState({ title: '', code: '', discount: '', type: 'percentage', minPurchase: '0', maxDiscount: '', validTill: '', usageLimit: '100', isActive: true });
 
   // Reviews
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState<ApiRow[]>([]);
 
   const handleAssignDelivery = async () => {
     try {

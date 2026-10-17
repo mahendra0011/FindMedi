@@ -7,18 +7,19 @@ import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = { Paid: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Overdue: 'bg-destructive/10 text-destructive' };
 
 export default function LabBilling() {
-  const [bills, setBills] = useState([]);
-  const [tests, setTests] = useState([]);
+  const [bills, setBills] = useState<ApiRow[]>([]);
+  const [tests, setTests] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [showForm, setShowForm] = useState(false);
   const [patientName, setPatientName] = useState('');
-  const [selectedTests, setSelectedTests] = useState([]);
+  const [selectedTests, setSelectedTests] = useState<ApiRow[]>([]);
   const [discount, setDiscount] = useState(0);
   const [saving, setSaving] = useState(false);
 

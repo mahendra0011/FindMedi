@@ -5,16 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function LabPackages() {
-  const [packages, setPackages] = useState([]);
-  const [tests, setTests] = useState([]);
+  const [packages, setPackages] = useState<ApiRow[]>([]);
+  const [tests, setTests] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedTests, setSelectedTests] = useState([]);
+  const [selectedTests, setSelectedTests] = useState<ApiRow[]>([]);
   const [discount, setDiscount] = useState(0);
   const [price, setPrice] = useState('');
   const [saving, setSaving] = useState(false);

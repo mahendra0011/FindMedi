@@ -4,6 +4,7 @@ import { X, CalendarDays, Stethoscope, FileText, Pill, Clock, User, AlertCircle,
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateUtils';
+import type { ApiRow } from '@/lib/apiTypes';
 
 /**
  * Modal showing a returning patient's past visit history.
@@ -17,7 +18,7 @@ import { formatDisplayDate } from '@/lib/dateUtils';
  * @param {function} onClose - close handler
  */
 export default function PatientHistoryModal({ patient, patientName, onClose }) {
-  const [records, setRecords] = useState([]);
+  const [records, setRecords] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 

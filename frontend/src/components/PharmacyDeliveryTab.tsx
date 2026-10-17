@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Truck, MapPin, Users, Package, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = {
   pending: 'bg-warning/10 text-warning',
@@ -11,8 +12,8 @@ const statusColors = {
 };
 
 export default function PharmacyDeliveryTab() {
-  const [nearby, setNearby] = useState([]);
-  const [allPartners, setAllPartners] = useState([]);
+  const [nearby, setNearby] = useState<ApiRow[]>([]);
+  const [allPartners, setAllPartners] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

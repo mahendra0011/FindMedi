@@ -83,7 +83,7 @@ ambulanceSchema.index({ 'currentLocation.coordinates': '2dsphere' });
 
 ambulanceSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('Ambulance', ambulanceSchema);

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const LOCALITIES = ['Vijay Nagar', 'Civil Lines', 'Napier Town', 'Marhatal', 'Gol Bazar', 'Sadar Cantt'];
 
@@ -26,7 +27,7 @@ function getLocality(address) {
 export default function BuyMedicine() {
   const navigate = useNavigate();
   const selectedCity = (localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city')) || '';
-  const [allStores, setAllStores] = useState([]);
+  const [allStores, setAllStores] = useState<ApiRow[]>([]);
 
   useEffect(() => {
     const load = async () => {

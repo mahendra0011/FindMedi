@@ -117,7 +117,7 @@ const billingSchema = new mongoose.Schema({
 billingSchema.pre('save', function (next) {
   this.updatedAt = new Date();
   this.balance = this.amount - this.paid;
-  next();
+  if (typeof next === 'function') next();
 });
 
 billingSchema.pre('findOneAndUpdate', function (next) {
@@ -129,15 +129,15 @@ billingSchema.pre('findOneAndUpdate', function (next) {
       const amount = update.amount !== undefined ? update.amount : (currentDoc?.amount || 0);
       const paid = update.paid !== undefined ? update.paid : (currentDoc?.paid || 0);
       self.set({ balance: amount - paid });
-      next();
+      if (typeof next === 'function') next();
     }).catch(() => {
       const amount = update.amount || 0;
       const paid = update.paid || 0;
       self.set({ balance: amount - paid });
-      next();
+      if (typeof next === 'function') next();
     });
   } else {
-    next();
+    if (typeof next === 'function') next();
   }
 });
 

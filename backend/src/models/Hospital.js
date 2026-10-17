@@ -83,11 +83,10 @@ const hospitalSchema = new mongoose.Schema({
 
 hospitalSchema.index({ location: '2dsphere' });
 
-hospitalSchema.pre('save', async function (next) {
+hospitalSchema.pre('save', async function () {
   if (!this.hospitalId) {
     this.hospitalId = generate16DigitId();
   }
-  next();
 });
 
 export default mongoose.model('Hospital', hospitalSchema);

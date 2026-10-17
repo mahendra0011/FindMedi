@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 // File 23 §2/§8: scoped admin-team view — every platform role, not just god-mode.
 const ADMIN_ROLES = [
@@ -20,7 +21,7 @@ const ADMIN_ROLES = [
 ];
 
 export default function SuperAdminTeam() {
-  const [admins, setAdmins] = useState([]);
+  const [admins, setAdmins] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');

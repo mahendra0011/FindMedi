@@ -58,5 +58,5 @@ const supportTicketSchema = new mongoose.Schema({
 
 supportTicketSchema.index({ raisedBy: 1, createdAt: -1 });
 supportTicketSchema.index({ status: 1, createdAt: -1 });
-supportTicketSchema.pre('save', function (next) { this.updatedAt = new Date(); next(); });
+supportTicketSchema.pre('save', function (next) { this.updatedAt = new Date(); if (typeof next === 'function') next(); });
 export default mongoose.model('SupportTicket', supportTicketSchema);

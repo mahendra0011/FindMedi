@@ -19,6 +19,7 @@ import UnifiedSearch from "@/components/search/UnifiedSearch";
 import InstallAppButton from "@/components/InstallAppButton";
 import NationalHelplinesModal from "@/components/emergency/NationalHelplinesModal";
 import AccessibilityControls from "@/components/accessibility/AccessibilityControls";
+import type { ApiRow } from '@/lib/apiTypes';
 
 const heroImage = "https://cdn.hms.hospital/123/01KNC4WSYHF1637VJ39K3KVJ2M.png";
 const doctorImage = "https://alliedsoftech89.wordpress.com/wp-content/uploads/2013/06/medical-doctor-jobs-in-china-expat-jobs-in-china.jpg";
@@ -161,7 +162,7 @@ const getSelectedCity = () => (localStorage.getItem('findmedi_city') || localSto
 const Home = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [doctorsList, setDoctorsList] = useState([]);
+  const [doctorsList, setDoctorsList] = useState<ApiRow[]>([]);
   const [specialtyCounts, setSpecialtyCounts] = useState<Record<string, number | null>>({});
   const [counters, setCounters] = useState(statsData.map(() => 0));
   const [countersVisible, setCountersVisible] = useState(false);

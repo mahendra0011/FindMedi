@@ -68,6 +68,7 @@ import UsersTab from "@/mind/components/admin/UsersTab";
 import RevenueTab from "@/mind/components/admin/RevenueTab";
 import ExportsTab from "@/mind/components/admin/ExportsTab";
 import AnalyticsTab from "@/mind/components/admin/AnalyticsTab";
+import type { ApiRow } from '@/lib/apiTypes';
 
 const themeOptions = [
   { id: "default", name: "Midnight Calm", color: "bg-indigo-500" },
@@ -115,8 +116,8 @@ const AdminDashboard = () => {
   const adminRevenue = useAppSelector(selectAdminRevenue);
   const revenueMonthlyTrends = useAppSelector(selectRevenueMonthlyTrends);
   const [data, setData] = useState(emptyData);
-  const [users, setUsers] = useState([]);
-  const [appointments, setAppointments] = useState([]);
+  const [users, setUsers] = useState<ApiRow[]>([]);
+  const [appointments, setAppointments] = useState<ApiRow[]>([]);
   const packages = useAppSelector(selectSupportPackages);
   const packagesLoading = useAppSelector(selectPackagesStatus) === "loading";
   const [loading, setLoading] = useState(true);

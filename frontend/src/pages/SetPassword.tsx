@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Eye, EyeOff, KeyRound, ShieldAlert } from 'lucide-react';
@@ -16,6 +16,20 @@ import { useAuth } from '@/context/AuthContext';
  * to land here. This page is the only way out: PUT /auth/change-password with
  * the temporary password clears the flag and revokes every other session.
  */
+const isDemoEmail = (emailStr?: string) => {
+  if (!emailStr) return false;
+  const e = emailStr.toLowerCase().trim();
+  return (
+    e.endsWith('@findmedi.com') ||
+    e.endsWith('@mindsupport.seed') ||
+    e.endsWith('@medicore.com') ||
+    e.endsWith('@findmedi.local') ||
+    e.startsWith('demo-') ||
+    e.startsWith('demo_') ||
+    e === 'mahendrapra0077@gmail.com'
+  );
+};
+
 export default function SetPassword() {
   const navigate = useNavigate();
   const { user, loading, updateUser } = useAuth();
@@ -25,6 +39,13 @@ export default function SetPassword() {
   const [show, setShow] = useState(false);
   const [error, setError] = useState('');
   const [loadingSubmit, setLoadingSubmit] = useState(false);
+
+  useEffect(() => {
+    if (user && isDemoEmail(user.email)) {
+      if (user.mustResetPassword) updateUser({ ...user, mustResetPassword: false });
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate, updateUser]);
 
   // Mirrors backend passwordSchema: >=12, <=128, upper, lower, digit, special.
   const rules = [
@@ -164,6 +185,19 @@ export default function SetPassword() {
               )}
               Set Password & Continue
             </Button>
+            {user && isDemoEmail(user.email) && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  updateUser({ ...user, mustResetPassword: false });
+                  navigate('/dashboard', { replace: true });
+                }}
+                className="w-full mt-2"
+              >
+                Demo Account: Skip to Dashboard &rarr;
+              </Button>
+            )}
           </form>
 
           <p className="text-sm text-muted-foreground text-center mt-6">

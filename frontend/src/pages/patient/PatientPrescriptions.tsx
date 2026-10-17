@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusConfig = {
   Active: { label: 'Active', icon: Clock, color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
@@ -16,7 +17,7 @@ const statusConfig = {
 const statusFilters = ['All', 'Active', 'Partially Dispensed', 'Dispensed', 'Cancelled'];
 
 export default function PatientPrescriptions() {
-  const [prescriptions, setPrescriptions] = useState([]);
+  const [prescriptions, setPrescriptions] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');

@@ -185,7 +185,7 @@ const assistantBookingSchema = new mongoose.Schema({
 
 assistantBookingSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 assistantBookingSchema.index({ location: '2dsphere' });

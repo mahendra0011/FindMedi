@@ -49,7 +49,7 @@ const insuranceSchema = new mongoose.Schema({
 
 insuranceSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('Insurance', insuranceSchema);

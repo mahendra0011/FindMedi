@@ -81,7 +81,7 @@ prescriptionSchema.pre('save', function (next) {
   const someDispensed = this.medicines.some(m => m.isDispensed);
   if (allDispensed) this.status = 'Dispensed';
   else if (someDispensed) this.status = 'Partially Dispensed';
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('Prescription', prescriptionSchema);

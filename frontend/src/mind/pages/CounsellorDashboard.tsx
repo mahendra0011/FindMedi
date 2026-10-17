@@ -150,6 +150,7 @@ import {
   initials,
   normalizeNotification,
 } from "@/mind/lib/providerDashboardShared";
+import type { ApiRow } from '@/lib/apiTypes';
 const CounsellorDashboard = () => {
   const { toast } = useToast();
   const dispatch = useAppDispatch();
@@ -163,7 +164,7 @@ const CounsellorDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState({});
   const [availabilityRows, setAvailabilityRows] = useState(() => parseAvailabilityRows([]));
-  const [unavailableDates, setUnavailableDates] = useState([]);
+  const [unavailableDates, setUnavailableDates] = useState<ApiRow[]>([]);
   const [unavailableDateDraft, setUnavailableDateDraft] = useState("");
   const [bookingEnabled, setBookingEnabled] = useState(true);
   const [meetLink, setMeetLink] = useState("");
@@ -195,7 +196,7 @@ const CounsellorDashboard = () => {
   const [notificationSettings, setNotificationSettings] = useState(defaultNotificationSettings);
   const [providerSettings, setProviderSettings] = useState(defaultProviderSettings);
   const [theme, setTheme] = useState(() => localStorage.getItem("mindsupport_counsellor_theme") || "default");
-  const [customPackages, setCustomPackages] = useState([]);
+  const [customPackages, setCustomPackages] = useState<ApiRow[]>([]);
   const [activeChatPeer, setActiveChatPeer] = useState<string | null>(null);
   const [activeChatPeerName, setActiveChatPeerName] = useState<string>("");
 
@@ -942,7 +943,7 @@ function UpcomingAppointmentCard({ appointment, packageBadge, draft, onDraft, on
 // Prescriptions stay psychiatrist-only (medical scope).
 function CounsellorAssignments({ patients = [] }) {
   const { toast } = useToast();
-  const [assignments, setAssignments] = useState([]);
+  const [assignments, setAssignments] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ userId: "", title: "", description: "", category: "other", dueDate: "" });

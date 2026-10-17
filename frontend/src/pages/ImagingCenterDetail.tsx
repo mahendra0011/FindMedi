@@ -21,6 +21,7 @@ import { api, resolveFileUrl } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const CATEGORIES = ['All', 'MRI', 'CT Scan', 'X-Ray', 'Ultrasound', 'Mammography'];
 
@@ -96,9 +97,9 @@ export default function ImagingCenterDetail() {
   const { entries, addItem, updateQty } = useCart();
 
   const [clinic, setClinic] = useState(null);
-  const [allTests, setAllTests] = useState([]);
-  const [packages, setPackages] = useState([]);
-  const [reviewsData, setReviewsData] = useState([]);
+  const [allTests, setAllTests] = useState<ApiRow[]>([]);
+  const [packages, setPackages] = useState<ApiRow[]>([]);
+  const [reviewsData, setReviewsData] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRx, setShowRx] = useState(false);
   const [uploadedRx, setUploadedRx] = useState(null);

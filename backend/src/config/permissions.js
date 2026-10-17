@@ -47,7 +47,9 @@ export const ROLE_EQUIVALENTS = {
   infection_control_nurse: ['nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse', 'nursing_supervisor', 'matron'],
   nursing_supervisor: ['nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse', 'nursing_supervisor', 'matron'],
   matron: ['nurse', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse', 'nursing_supervisor', 'matron'],
-  receptionist: ['receptionist', 'front_desk'],
+  // `receptionist` is declared ONCE, below, with the wider set that also holds
+  // radiology_receptionist — this earlier duplicate was shadowed by it (the
+  // last key wins) and was only ever a no-dupe-keys lint error.
   front_desk: ['receptionist', 'front_desk'],
   medical_director: ['medical_director', 'cmo', 'hospital_owner', 'medical_superintendent'],
   cmo: ['medical_director', 'cmo', 'hospital_owner', 'medical_superintendent'],
@@ -541,9 +543,14 @@ export const ROLE_PERMISSIONS = {
   ],
   medical_reviewer: ['content:read', 'content:write', 'notifications:read'],
   // ── File 07 §3.25 to §3.30 specialty vertical roles ───────────────────────
+  // nursing:read is the non-PHI grant that lets elder_care_admin open its own
+  // resident roster: GET /eldercare/residents is authorize('records:read',
+  // 'nursing:read'), and records:read is break-glass-classed so it is NOT the
+  // intended door for a facility manager.
   elder_care_admin: [
     'appointments:read', 'appointments:write', 'patients:read', 'billing:read',
     'staff:manage', 'reports:read', 'notifications:read', 'chat:read', 'chat:write',
+    'nursing:read',
   ],
   vaccination_admin: [
     'appointments:read', 'appointments:write', 'patients:read', 'billing:read',

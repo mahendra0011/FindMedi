@@ -26,6 +26,7 @@ import ReviewDialog from '@/components/ReviewDialog';
 import BookingModal from '@/components/BookingModal';
 import DoctorCard from '@/components/DoctorCard';
 import { getISTDateString } from '@/lib/dateUtils';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -61,11 +62,11 @@ export default function HospitalDoctor() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [doctor, setDoctor] = useState(null);
-  const [relatedDoctors, setRelatedDoctors] = useState([]);
-  const [departmentDoctors, setDepartmentDoctors] = useState([]);
+  const [relatedDoctors, setRelatedDoctors] = useState<ApiRow[]>([]);
+  const [departmentDoctors, setDepartmentDoctors] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState<ApiRow[]>([]);
 
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);

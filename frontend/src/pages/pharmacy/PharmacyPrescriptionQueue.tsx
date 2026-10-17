@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api, resolveFileUrl } from '@/lib/api';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 // SLA helpers
 function minutesSince(iso) {
@@ -45,7 +46,7 @@ const medicineStatusBadge = (isDispensed) => (
 );
 
 export default function PharmacyPrescriptionQueue() {
-  const [queue, setQueue] = useState([]);
+  const [queue, setQueue] = useState<ApiRow[]>([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
   const [selectedRx, setSelectedRx] = useState(null);

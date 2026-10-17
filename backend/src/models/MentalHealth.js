@@ -159,5 +159,5 @@ mhSchema.index({ 'crisisEvents.acknowledgedAt': 1, 'crisisEvents.responseDueAt':
 // enforcement path, not just a performance nicety.
 mhSchema.index({ patientId: 1, createdAt: -1 });
 
-mhSchema.pre('save', function (next) { this.updatedAt = new Date(); next(); });
+mhSchema.pre('save', function (next) { this.updatedAt = new Date(); if (typeof next === 'function') next(); });
 export default mongoose.model('MentalHealth', mhSchema);

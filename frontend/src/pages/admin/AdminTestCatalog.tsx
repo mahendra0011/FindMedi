@@ -8,13 +8,14 @@ import { api } from '@/lib/api';
 
 // subcatogary.md Part C §4 — Canonical test categories
 import { FALLBACK_TEST_CATEGORIES } from '@/data/testCategoriesFallback';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const DEPARTMENTS = ['Pathology', 'Radiology', 'Cardiology', 'Health Packages'];
 const REPORT_TIMES = ['30 mins', '1 hr', '2 hrs', '6 hrs', '12 hrs', '24 hrs', '48 hrs', '72 hrs'];
 
 export default function AdminTestCatalog() {
   const [categories, setCategories] = useState(FALLBACK_TEST_CATEGORIES);
-  const [tests, setTests] = useState([]);
+  const [tests, setTests] = useState<ApiRow[]>([]);
   const [stats, setStats] = useState({ total: 0, popular: 0, homeCollection: 0, prescriptionReq: 0, categories: 0 });
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('');

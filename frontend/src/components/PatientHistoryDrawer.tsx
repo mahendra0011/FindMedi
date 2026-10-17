@@ -5,6 +5,7 @@ import {
 import { X, CalendarDays, Stethoscope, Pill, User, AlertCircle, FileText } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateUtils';
+import type { ApiRow } from '@/lib/apiTypes';
 
 /**
  * Bottom-sliding popup showing a returning patient's past visit history.
@@ -20,7 +21,7 @@ import { formatDisplayDate } from '@/lib/dateUtils';
  *  - onOpenChange: fn(open)    (closes the drawer)
  */
 export default function PatientHistoryDrawer({ open, patient, patientName, onOpenChange }) {
-  const [records, setRecords] = useState([]);
+  const [records, setRecords] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 

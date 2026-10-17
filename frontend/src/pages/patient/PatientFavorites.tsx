@@ -15,6 +15,7 @@ import HospitalCard from '@/components/HospitalCard';
 import ClinicCard from '@/components/ClinicCard';
 import DiagnosticCenterCard from '@/components/DiagnosticCenterCard';
 import PharmacyCard from '@/components/PharmacyCard';
+import type { ApiRow } from '@/lib/apiTypes';
 
 function patientRequest(path, opts = {}) {
   return api.dispatch(null, path, opts);
@@ -74,7 +75,7 @@ function GenericCard({ favorite }) {
 
 export default function PatientFavorites() {
   const navigate = useNavigate();
-  const [favorites, setFavorites] = useState([]);
+  const [favorites, setFavorites] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
 

@@ -207,7 +207,7 @@ const facilitySchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-facilitySchema.pre('save', async function (next) {
+facilitySchema.pre('save', async function () {
   if (!this.facilityId) {
     this.facilityId = generate16DigitId();
   }
@@ -220,7 +220,6 @@ facilitySchema.pre('save', async function (next) {
   } catch {
     // ignore: a normalization failure must not fail the write
   }
-  next();
 });
 
 facilitySchema.index({ type: 1, status: 1 });

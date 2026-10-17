@@ -16,7 +16,15 @@
  * `version` so applications filed under the old shape stay pinned to it
  * (10.md 2.2 - configVersion on the application).
  */
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
+import { configureMongoDns } from '../src/config/mongoDns.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
+configureMongoDns();
 
 const APPLY = process.argv.includes('--apply');
 const MONGO_URI = process.env.MONGO_URI;

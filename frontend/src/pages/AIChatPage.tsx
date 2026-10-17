@@ -16,17 +16,18 @@ import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
 import TypewriterText from '@/components/TypewriterText';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function AIChatPage() {
   // State
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<ApiRow[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [chatSessions, setChatSessions] = useState([]);
+  const [chatSessions, setChatSessions] = useState<ApiRow[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   
   // Toggles & Settings

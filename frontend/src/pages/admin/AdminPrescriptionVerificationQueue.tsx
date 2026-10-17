@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const verificationStatusColors = {
   pending: 'bg-warning/10 text-warning',
@@ -41,7 +42,7 @@ function urgencyLevel(iso) {
 }
 
 export default function AdminPrescriptionVerificationQueue() {
-  const [queue, setQueue] = useState([]);
+  const [queue, setQueue] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('pending');

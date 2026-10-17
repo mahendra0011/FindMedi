@@ -45,7 +45,7 @@ const equipmentSchema = new mongoose.Schema({
 
 equipmentSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('Equipment', equipmentSchema);

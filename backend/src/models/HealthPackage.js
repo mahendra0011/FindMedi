@@ -42,7 +42,7 @@ healthPackageSchema.pre('save', function (next) {
   if (this.originalPrice > 0) {
     this.discount = Math.round((1 - this.packagePrice / this.originalPrice) * 100);
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 // PAY-M-06: list price, sale price and discount must round together or the

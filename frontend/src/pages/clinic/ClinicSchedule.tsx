@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 import { toast } from 'sonner';
 import { userFacingError } from '@/lib/errorCopy';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -47,9 +48,9 @@ export default function ClinicSchedule() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [selectedSlots, setSelectedSlots] = useState([]);
+  const [selectedSlots, setSelectedSlots] = useState<ApiRow[]>([]);
   const [schedule, setSchedule] = useState({});
-  const [leaves, setLeaves] = useState([]);
+  const [leaves, setLeaves] = useState<ApiRow[]>([]);
   const [newLeave, setNewLeave] = useState('');
   const [slotDuration, setSlotDuration] = useState('15');
   const [bufferPerHour, setBufferPerHour] = useState('1');
@@ -63,7 +64,7 @@ export default function ClinicSchedule() {
   const [dateDisabledSlots, setDateDisabledSlots] = useState({});
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
   // Slots already booked by patients for the selected date (read-only)
-  const [bookedSlots, setBookedSlots] = useState([]);
+  const [bookedSlots, setBookedSlots] = useState<ApiRow[]>([]);
 
   const patientsPerHour = useMemo(() => Math.floor(60 / parseInt(slotDuration || 15)), [slotDuration]);
   const totalWorkingMinutes = useMemo(() => {

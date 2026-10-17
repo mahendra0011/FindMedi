@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = {
   approved: 'bg-success/10 text-success',
@@ -17,7 +18,7 @@ const statusColors = {
 };
 
 export default function PlatformStats() {
-  const [allHospitals, setAllHospitals] = useState([]);
+  const [allHospitals, setAllHospitals] = useState<ApiRow[]>([]);
   const [trendData, setTrendData] = useState(null);
   const [commissionStats, setCommissionStats] = useState(null);
   const [loading, setLoading] = useState(true);

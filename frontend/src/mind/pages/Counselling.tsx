@@ -80,6 +80,7 @@ import {
   Brain,
   X,
 } from "lucide-react";
+import type { ApiRow } from '@/lib/apiTypes';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -138,11 +139,11 @@ const Counselling = () => {
   const counsellors = useAppSelector(selectCounsellors);
   const counsellorsStatus = useAppSelector(selectCounsellorsStatus);
   const loading = counsellorsStatus === "idle" || counsellorsStatus === "loading";
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState<ApiRow[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [selectedPlanId, setSelectedPlanId] = useState("short-term");
-  const [concernTags, setConcernTags] = useState([]);
+  const [concernTags, setConcernTags] = useState<ApiRow[]>([]);
   const [genderFilter, setGenderFilter] = useState("");
   const [languageFilter, setLanguageFilter] = useState("");
   const [consultMode, setConsultMode] = useState("");
@@ -882,7 +883,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
   const isMentor = counsellor?.counsellorType === "mentor";
   const badgeLabel = counsellor?.badge || (isMentor ? "Community Mentor" : "Verified Professional");
 
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState<ApiRow[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [selectedMode, setSelectedMode] = useState("google-meet");
   const [showIntakeDetails, setShowIntakeDetails] = useState(false);

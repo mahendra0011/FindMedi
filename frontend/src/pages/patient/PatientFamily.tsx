@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 function patientRequest(path, opts = {}) {
   return api.dispatch(null, path, opts);
@@ -27,7 +28,7 @@ const relationColors = {
 
 export default function PatientFamily() {
   const { user } = useAuth();
-  const [family, setFamily] = useState([]);
+  const [family, setFamily] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [newMember, setNewMember] = useState({ name: '', relation: 'Spouse', gender: 'Male', phone: '', bloodGroup: '' });

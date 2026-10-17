@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const CATEGORY_ICONS = {
   payment: CreditCard, sms: MessageSquare, email: Mail, storage: HardDrive,
@@ -23,11 +24,11 @@ const CATEGORY_LABELS = {
 };
 
 export default function Integrations() {
-  const [integrations, setIntegrations] = useState([]);
+  const [integrations, setIntegrations] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [showKeys, setShowKeys] = useState({});
-  const [webhooks, setWebhooks] = useState([]);
+  const [webhooks, setWebhooks] = useState<ApiRow[]>([]);
   const [showWebhookForm, setShowWebhookForm] = useState(false);
   const [whForm, setWhForm] = useState({ name: '', url: '', events: '' });
 

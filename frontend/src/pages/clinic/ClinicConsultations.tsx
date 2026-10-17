@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const typeIcons = {
   Prescription: { icon: Pill, color: 'text-success', bg: 'bg-success/10' },
@@ -16,7 +17,7 @@ const typeIcons = {
 
 export default function ClinicConsultations() {
   const { user } = useAuth();
-  const [records, setRecords] = useState([]);
+  const [records, setRecords] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');

@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { bookTestLab } from '@/lib/testBooking';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const serviceIcons = {
   bp_check: Thermometer,
@@ -78,9 +79,9 @@ const buildLabBookings = (bills, catalog, user) => (bills || [])
 
 export default function PatientServices() {
   const { user } = useAuth();
-  const [services, setServices] = useState([]);
-  const [selectedServices, setSelectedServices] = useState([]);
-  const [bookedServices, setBookedServices] = useState([]);
+  const [services, setServices] = useState<ApiRow[]>([]);
+  const [selectedServices, setSelectedServices] = useState<ApiRow[]>([]);
+  const [bookedServices, setBookedServices] = useState<ApiRow[]>([]);
   const [lastBooking, setLastBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);

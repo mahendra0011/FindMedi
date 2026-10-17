@@ -3,12 +3,13 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import DoctorRecordsDashboard from '@/components/DoctorRecordsDashboard';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function DoctorPrescriptions() {
   const { user } = useAuth();
-  const [records, setRecords] = useState([]);
-  const [bills, setBills] = useState([]);
-  const [invoices, setInvoices] = useState([]);
+  const [records, setRecords] = useState<ApiRow[]>([]);
+  const [bills, setBills] = useState<ApiRow[]>([]);
+  const [invoices, setInvoices] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadAll = useCallback(async () => {

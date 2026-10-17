@@ -55,5 +55,5 @@ disputeSchema.index({ 'appeal.status': 1, createdAt: -1 });
 
 disputeSchema.index({ status: 1, createdAt: -1 });
 disputeSchema.index({ raisedBy: 1, createdAt: -1 });
-disputeSchema.pre('save', function (next) { this.updatedAt = new Date(); next(); });
+disputeSchema.pre('save', function (next) { this.updatedAt = new Date(); if (typeof next === 'function') next(); });
 export default mongoose.model('Dispute', disputeSchema);

@@ -224,7 +224,7 @@ lawyerBookingSchema.pre('save', function (next) {
   if (!this.caseThreadId) {
     this.caseThreadId = this._id;
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 lawyerBookingSchema.index({ location: '2dsphere' });

@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import BookingModal from '@/components/BookingModal';
 import NavigationBar from '@/mind/components/Navigation';
 import Footer from '@/mind/components/Footer';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const PSYCH_CATEGORIES = [
   { name: 'Depression', icon: Heart, color: 'from-red-500/20 to-red-500/5', textColor: 'text-red-500', keywords: ['depress', 'mood disorder', 'dysthymia'] },
@@ -69,8 +70,8 @@ function matchesCategory(doc, category) {
 export default function Psychiatrists() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [doctors, setDoctors] = useState([]);
-  const [allDoctors, setAllDoctors] = useState([]);
+  const [doctors, setDoctors] = useState<ApiRow[]>([]);
+  const [allDoctors, setAllDoctors] = useState<ApiRow[]>([]);
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [loading, setLoading] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -109,8 +110,8 @@ export default function Psychiatrists() {
   const [sortBy, setSortBy] = useState('relevance');
   const [loadError, setLoadError] = useState('');
 
-  const [qualificationFilter, setQualificationFilter] = useState([]);
-  const [languageFilter, setLanguageFilter] = useState([]);
+  const [qualificationFilter, setQualificationFilter] = useState<ApiRow[]>([]);
+  const [languageFilter, setLanguageFilter] = useState<ApiRow[]>([]);
 
   const [selectedCity, setSelectedCity] = useState(() => (localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city')) || '');
 

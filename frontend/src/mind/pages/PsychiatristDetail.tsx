@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import BookingModal from '@/components/BookingModal';
 import NavigationBar from '@/mind/components/Navigation';
 import Footer from '@/mind/components/Footer';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const MODE_META = [
   { id: 'video', label: 'Video Consultation', icon: Video },
@@ -94,9 +95,9 @@ export default function PsychiatristDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [doctor, setDoctor] = useState(null);
-  const [reviews, setReviews] = useState([]);
-  const [relatedDoctors, setRelatedDoctors] = useState([]);
-  const [departmentDoctors, setDepartmentDoctors] = useState([]);
+  const [reviews, setReviews] = useState<ApiRow[]>([]);
+  const [relatedDoctors, setRelatedDoctors] = useState<ApiRow[]>([]);
+  const [departmentDoctors, setDepartmentDoctors] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showBooking, setShowBooking] = useState(false);

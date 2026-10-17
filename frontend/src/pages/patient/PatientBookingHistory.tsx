@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
 
@@ -36,7 +37,7 @@ function formatShortDate(d) {
 export default function PatientBookingHistory({ initialType }: { initialType?: string } = {}) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [bookings, setBookings] = useState([]);
+  const [bookings, setBookings] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState(initialType || 'All');
   const [dateRange, setDateRange] = useState('All Time');

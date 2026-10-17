@@ -38,6 +38,7 @@ import { isHomeVisitAppointment } from '@/lib/appointmentModes';
 import {
   Map, MapMarker, MarkerContent, MapRoute, MapControls
 } from '@/components/ui/map';
+import type { ApiRow } from '@/lib/apiTypes';
 
 // Calculate straight-line approximate distance in km (Haversine formula)
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
@@ -84,7 +85,7 @@ export default function DoctorInPersonAppointments() {
   const navigate = useNavigate();
   const { initiateCall } = useAudioCall();
 
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('today'); // 'today' | 'upcoming' | 'completed' | 'all'

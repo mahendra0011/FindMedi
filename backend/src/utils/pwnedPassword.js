@@ -15,7 +15,7 @@ import { securityFailOpenTotal } from '../lib/metrics.js';
 const RANGE_URL = (prefix) => `https://api.pwnedpasswords.com/range/${prefix}`;
 
 export async function isPwnedPassword(password, { timeoutMs = 2000 } = {}) {
-  if (process.env.NODE_ENV === 'test') return false;
+  if (process.env.NODE_ENV !== 'production' || process.env.DISABLE_PWNED_CHECK === 'true') return false;
   try {
     const sha1 = crypto
       .createHash('sha1')

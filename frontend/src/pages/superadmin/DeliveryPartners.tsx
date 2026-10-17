@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = {
   pending: 'bg-warning/10 text-warning',
@@ -18,8 +19,8 @@ const statusColors = {
 };
 
 export default function SuperAdminDelivery() {
-  const [pending, setPending] = useState([]);
-  const [allPartners, setAllPartners] = useState([]);
+  const [pending, setPending] = useState<ApiRow[]>([]);
+  const [allPartners, setAllPartners] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
   const [searchTerm, setSearchTerm] = useState('');

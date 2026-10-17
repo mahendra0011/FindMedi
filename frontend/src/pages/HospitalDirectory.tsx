@@ -11,6 +11,7 @@ import HospitalCard from '@/components/HospitalCard';
 
 import { CANONICAL_SPECIALTIES } from '@/data/specialties';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
+import type { ApiRow } from '@/lib/apiTypes';
 
 // subcatogary.md Part B — Canonical specialties list derived from taxonomy (Psychology removed)
 const ALL_SPECIALTIES = CANONICAL_SPECIALTIES.map((spec) => {
@@ -30,8 +31,8 @@ const INITIAL_VISIBLE = 14;
 
 export default function HospitalDirectory() {
   const [searchParams] = useSearchParams();
-  const [hospitals, setHospitals] = useState([]);
-  const [allHospitals, setAllHospitals] = useState([]);
+  const [hospitals, setHospitals] = useState<ApiRow[]>([]);
+  const [allHospitals, setAllHospitals] = useState<ApiRow[]>([]);
   const [search, setSearch] = useState(searchParams.get('q') || searchParams.get('search') || '');
   const [cityFilter, setCityFilter] = useState(
     () => searchParams.get('city') || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city') || ''
@@ -71,13 +72,13 @@ export default function HospitalDirectory() {
   const [filterInsurance, setFilterInsurance] = useState(false);
   const [filterBedAvailable, setFilterBedAvailable] = useState(false);
   const [filterCategory, setFilterCategory] = useState<string[]>([]);
-  const [filterAccreditation, setFilterAccreditation] = useState([]);
+  const [filterAccreditation, setFilterAccreditation] = useState<ApiRow[]>([]);
   const [filterBedSize, setFilterBedSize] = useState('');
   const [filterAmbulance, setFilterAmbulance] = useState(false);
   const [filterEstablished, setFilterEstablished] = useState('');
-  const [filterFacilities, setFilterFacilities] = useState([]);
+  const [filterFacilities, setFilterFacilities] = useState<ApiRow[]>([]);
   const [filterDoctorsRange, setFilterDoctorsRange] = useState('');
-  const [filterPayment, setFilterPayment] = useState([]);
+  const [filterPayment, setFilterPayment] = useState<ApiRow[]>([]);
   const [filterInsuranceProvider, setFilterInsuranceProvider] = useState('');
 
   // Healthcare catalogue se aaye query params (?type= ?category= ?emergency= ?specialty= ?q=)

@@ -170,7 +170,7 @@ emergencyRequestSchema.index({ location: '2dsphere' });
 
 emergencyRequestSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('EmergencyRequest', emergencyRequestSchema);

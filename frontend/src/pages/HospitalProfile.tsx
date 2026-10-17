@@ -53,6 +53,7 @@ const EXPERIENCE_RANGES = [
 
 // ─── Specialty Theme Colors ────────────────────────────────────────────────
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
+import type { ApiRow } from '@/lib/apiTypes';
 
 function getSpecTheme(spec: string) {
   const v = getSpecialtyVisual(spec);
@@ -71,8 +72,8 @@ export default function HospitalProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [hospital, setHospital] = useState(null);
-  const [doctors, setDoctors] = useState([]);
-  const [reviews, setReviews] = useState([]);
+  const [doctors, setDoctors] = useState<ApiRow[]>([]);
+  const [reviews, setReviews] = useState<ApiRow[]>([]);
   const [docSearch, setDocSearch] = useState('');
   const [docSpecFilter, setDocSpecFilter] = useState('All');
   const [doctorSectionTab, setDoctorSectionTab] = useState('doctors');
@@ -86,7 +87,7 @@ export default function HospitalProfile() {
   const [notFound, setNotFound] = useState(false);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [activePhoto, setActivePhoto] = useState(0);
-  const [suggestedHospitals, setSuggestedHospitals] = useState([]);
+  const [suggestedHospitals, setSuggestedHospitals] = useState<ApiRow[]>([]);
   const [isFavorited, setIsFavorited] = useState(() => localStorage.getItem(`fav_hospital_${id}`) === 'true');
   const toggleFavorite = async () => {
     const next = !isFavorited;
@@ -109,7 +110,7 @@ export default function HospitalProfile() {
   const [testHomeFilter, setTestHomeFilter] = useState('all');
   const [testSort, setTestSort] = useState('popularity');
   const [priceRange, setPriceRange] = useState('all');
-  const [testCatalog, setTestCatalog] = useState([]);
+  const [testCatalog, setTestCatalog] = useState<ApiRow[]>([]);
 
   const carouselRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);

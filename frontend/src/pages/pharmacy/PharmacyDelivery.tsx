@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = {
   'Pending Pickup': 'bg-warning/10 text-warning',
@@ -14,8 +15,8 @@ const statusColors = {
 };
 
 export default function PharmacyDelivery() {
-  const [deliveries, setDeliveries] = useState([]);
-  const [orders, setOrders] = useState([]);
+  const [deliveries, setDeliveries] = useState<ApiRow[]>([]);
+  const [orders, setOrders] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');

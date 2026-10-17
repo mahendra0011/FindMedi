@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = {
   Pending: 'bg-warning/10 text-warning', Processing: 'bg-info/10 text-info',
@@ -12,7 +13,7 @@ const statusColors = {
 };
 
 export default function PharmacyOrders() {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<ApiRow[]>([]);
   const [status, setStatus] = useState('All');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);

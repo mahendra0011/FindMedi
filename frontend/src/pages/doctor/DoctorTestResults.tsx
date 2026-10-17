@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = {
   pending: 'bg-warning/10 text-warning',
@@ -17,7 +18,7 @@ const statusColors = {
 };
 
 export default function DoctorTestResults() {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');

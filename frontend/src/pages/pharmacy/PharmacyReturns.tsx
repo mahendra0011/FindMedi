@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const statusColors = {
   Pending: 'bg-warning/10 text-warning', Approved: 'bg-success/10 text-success',
@@ -13,7 +14,7 @@ const statusColors = {
 };
 
 export default function PharmacyReturns() {
-  const [returns, setReturns] = useState([]);
+  const [returns, setReturns] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 

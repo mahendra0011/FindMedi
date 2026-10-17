@@ -23,6 +23,7 @@ import DoctorActiveEmergencyHUD from '@/components/emergency/DoctorActiveEmergen
 import { useDoctorEmergencyGps } from '@/hooks/useDoctorEmergencyGps';
 import { getSocket } from '@/lib/socket';
 import { userFacingError } from '@/lib/errorCopy';
+import type { ApiRow } from '@/lib/apiTypes';
 
 function getAppointmentModeMeta(appt) {
   if (!appt) return { key: 'clinic', label: 'In Clinic', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' };
@@ -87,13 +88,13 @@ const clinicTips = [
 export default function ClinicDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [appointments, setAppointments] = useState([]);
-  const [bills, setBills] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [reviews, setReviews] = useState([]);
-const [refunds, setRefunds] = useState([]);
-  const [patients, setPatients] = useState([]);
-  const [testRequests, setTestRequests] = useState([]);
+  const [appointments, setAppointments] = useState<ApiRow[]>([]);
+  const [bills, setBills] = useState<ApiRow[]>([]);
+  const [payments, setPayments] = useState<ApiRow[]>([]);
+  const [reviews, setReviews] = useState<ApiRow[]>([]);
+const [refunds, setRefunds] = useState<ApiRow[]>([]);
+  const [patients, setPatients] = useState<ApiRow[]>([]);
+  const [testRequests, setTestRequests] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [apptTab, setApptTab] = useState('pending');
   const [tipIndex, setTipIndex] = useState(0);

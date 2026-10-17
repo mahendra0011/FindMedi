@@ -87,11 +87,10 @@ const supplierSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 
-supplierSchema.pre('save', async function (next) {
+supplierSchema.pre('save', async function () {
   if (!this.supplierId) {
     this.supplierId = generateTimestampedId('SUP');
   }
-  next();
 });
 
 export default mongoose.model('Supplier', supplierSchema);

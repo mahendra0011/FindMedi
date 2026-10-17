@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 // Statuses must match the LabBooking model enum — earlier this page used a
 // private vocabulary (Requested/Assigned/Collected/Received at Lab) that the
@@ -32,8 +33,8 @@ const mapBooking = (b, i) => ({
 });
 
 export default function LabSampleCollection() {
-  const [collections, setCollections] = useState([]);
-  const [phlebotomists, setPhlebotomists] = useState([]);
+  const [collections, setCollections] = useState<ApiRow[]>([]);
+  const [phlebotomists, setPhlebotomists] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [assigning, setAssigning] = useState(null);

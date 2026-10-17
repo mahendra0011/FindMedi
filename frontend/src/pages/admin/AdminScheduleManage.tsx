@@ -7,9 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import ClinicSchedule from '@/pages/clinic/ClinicSchedule';
 import ScheduleChangeRequestModal from '@/components/ScheduleChangeRequestModal';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function AdminScheduleManage() {
-  const [doctors, setDoctors] = useState([]);
+  const [doctors, setDoctors] = useState<ApiRow[]>([]);
   const [search, setSearch] = useState('');
   const [specialization, setSpecialization] = useState('All');
   const [loading, setLoading] = useState(true);

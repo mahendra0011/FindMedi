@@ -14,10 +14,11 @@ import { api } from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateUtils';
 import { toast } from 'sonner';
 import FeedbackPrompt from '@/components/feedback/FeedbackPrompt';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function PatientAppointments() {
   const navigate = useNavigate();
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('upcoming');

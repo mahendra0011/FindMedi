@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api, txToEarningsBill } from '@/lib/api';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import type { ApiRow } from '@/lib/apiTypes';
 
 /* ─── Premium Skeleton Loader ─────────────────────── */
 function EarningsSkeleton() {
@@ -74,8 +75,8 @@ function EarningsSkeleton() {
 /* ─── Main Page ───────────────────────────────────── */
 export default function ClinicEarnings() {
   const { user } = useAuth();
-  const [bills, setBills] = useState([]);
-  const [payments, setPayments] = useState([]);
+  const [bills, setBills] = useState<ApiRow[]>([]);
+  const [payments, setPayments] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [, setRefreshing] = useState(false);
 

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const consultationApi = {
   getTokens: async (p) => {
@@ -102,7 +103,7 @@ export default function DoctorConsultation() {
   const [consultForm, setConsultForm] = useState(emptyConsultation);
   const [activeConsultTab, setActiveConsultTab] = useState('vitals');
   const [showHistory, setShowHistory] = useState(false);
-  const [patientHistory, setPatientHistory] = useState([]);
+  const [patientHistory, setPatientHistory] = useState<ApiRow[]>([]);
 
   const { data: tokensData } = useQuery({
     queryKey: ['consultation-tokens', search, deptFilter],

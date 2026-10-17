@@ -19,6 +19,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useVideoCall } from '@/context/VideoCallContext';
 import { formatDisplayDate } from '@/lib/dateUtils';
+import type { ApiRow } from '@/lib/apiTypes';
 
 function VirtualBackgroundToggle() {
   const [blur, setBlur] = useState(false);
@@ -54,7 +55,7 @@ export default function DoctorVideoCalls() {
     navigate(chatPath, { state: { targetUserId: peerId } });
   };
 
-  const [calls, setCalls] = useState([]);
+  const [calls, setCalls] = useState<ApiRow[]>([]);
   const [stats, setStats] = useState({
     totalCalls: 0,
     missedCalls: 0,
@@ -73,7 +74,7 @@ export default function DoctorVideoCalls() {
 
   // Quick Dial Modal
   const [showDialModal, setShowDialModal] = useState(false);
-  const [contacts, setContacts] = useState([]);
+  const [contacts, setContacts] = useState<ApiRow[]>([]);
   const [contactSearch, setContactSearch] = useState('');
   const [loadingContacts, setLoadingContacts] = useState(false);
 

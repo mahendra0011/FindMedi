@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
 import DiagnosticCenterCard from '@/components/DiagnosticCenterCard';
 import ReviewDialog from '@/components/ReviewDialog';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const CATEGORIES = ['All', 'Pathology Tests', 'Imaging Tests', 'Cardiac Tests', 'Health Packages'];
 
@@ -141,10 +142,10 @@ export default function DiagnosticCenterDetail() {
     }
   };
   const [selectedSlot, setSelectedSlot] = useState('');
-  const [testsData, setTestsData] = useState([]);
-  const [packagesData, setPackagesData] = useState([]);
-  const [reviewsData, setReviewsData] = useState([]);
-  const [nearbyLabs, setNearbyLabs] = useState([]);
+  const [testsData, setTestsData] = useState<ApiRow[]>([]);
+  const [packagesData, setPackagesData] = useState<ApiRow[]>([]);
+  const [reviewsData, setReviewsData] = useState<ApiRow[]>([]);
+  const [nearbyLabs, setNearbyLabs] = useState<ApiRow[]>([]);
   useEffect(() => {
     const load = async () => {
       setLoading(true);

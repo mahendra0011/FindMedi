@@ -6,11 +6,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 export default function PatientWriteReview() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [doctors, setDoctors] = useState([]);
+  const [doctors, setDoctors] = useState<ApiRow[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');

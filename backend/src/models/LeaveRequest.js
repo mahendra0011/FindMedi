@@ -20,7 +20,7 @@ leaveRequestSchema.pre('save', function (next) {
   if (this.status !== 'Pending' && !this.reviewedAt) {
     this.reviewedAt = new Date();
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('LeaveRequest', leaveRequestSchema);

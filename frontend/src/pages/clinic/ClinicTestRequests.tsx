@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const STATUS_CONFIG = {
   Pending: { color: 'bg-amber-500/10 text-amber-600 border-amber-200', icon: Clock, label: 'Pending' },
@@ -36,7 +37,7 @@ const VISIT_ICONS = {
 };
 
 export default function ClinicTestRequests() {
-  const [bookings, setBookings] = useState([]);
+  const [bookings, setBookings] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');

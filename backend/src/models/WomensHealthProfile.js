@@ -19,7 +19,7 @@ const womensHealthProfileSchema = new mongoose.Schema({
 womensHealthProfileSchema.index({ userId: 1, familyMemberId: 1 });
 womensHealthProfileSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('WomensHealthProfile', womensHealthProfileSchema);

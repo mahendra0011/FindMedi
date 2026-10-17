@@ -26,6 +26,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 import { isOfflineAppointment, isOfflineClinicAppointment, isHomeVisitAppointment } from '@/lib/appointmentModes';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
 
@@ -64,7 +65,7 @@ export default function DoctorAppointments() {
     ? 'history'
     : 'approved';
   const [approvedSubTab, setApprovedSubTab] = useState(location.pathname.endsWith('/upcoming') ? 'upcoming' : 'today');
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState<ApiRow[]>([]);
   const [calDate, setCalDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
   const [loading, setLoading] = useState(true);
@@ -82,8 +83,8 @@ export default function DoctorAppointments() {
       toast.success(`${morning.length} slots shifted by ${bulkShiftHours}h (emergency delay)`);
     } catch { toast.error('Bulk reschedule failed'); }
   };
-  const [bookedSlots, setBookedSlots] = useState([]);
-  const [dateDisabledSlots, setDateDisabledSlots] = useState([]);
+  const [bookedSlots, setBookedSlots] = useState<ApiRow[]>([]);
+  const [dateDisabledSlots, setDateDisabledSlots] = useState<ApiRow[]>([]);
   const [completeId, setCompleteId] = useState(null);
   const [reportType, setReportType] = useState('Prescription');
   const [billModal, setBillModal] = useState(null);

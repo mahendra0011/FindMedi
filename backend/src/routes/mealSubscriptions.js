@@ -48,7 +48,14 @@ router.get('/', async (req, res) => {
   try {
     const filter = { userId: actorId(req) };
     if (req.query.status) filter.status = req.query.status;
-    const rows = await MealSubscription.find(filter).sort({ createdAt: -1 }).limit(100).lean();
+    // planId/providerId are display-only here: the portal card needs the plan
+    // name and the kitchen's trading name, neither of which lives on the row.
+    const rows = await MealSubscription.find(filter)
+      .populate({ path: 'providerId', select: 'name type slug' })
+      .populate({ path: 'planId', select: 'name price duration' })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
     return res.json({ subscriptions: rows });
   } catch (err) {
     logger.error(`List meal subscriptions error: ${err.message}`);

@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const STATUS_COLORS = {
   Pending:  'bg-amber-500/10 text-amber-600 border-amber-200',
@@ -49,7 +50,7 @@ function urgencyLevel(iso) {
 
 
 export default function LabPrescriptionQueue() {
-  const [queue,        setQueue]        = useState([]);
+  const [queue,        setQueue]        = useState<ApiRow[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [search,       setSearch]       = useState('');
   const [filter,       setFilter]       = useState('All');

@@ -109,7 +109,7 @@ otpSchema.pre('save', function(next) {
   } catch {
     // Never block saving on algo bookkeeping
   }
-  next();
+  if (typeof next === 'function') next();
 });
 
 /**

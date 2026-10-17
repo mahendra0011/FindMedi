@@ -7,6 +7,7 @@ import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { userFacingError } from '@/lib/errorCopy';
+import type { ApiRow } from '@/lib/apiTypes';
 
 // FE-B-05: the superadmin console is the one place where a raw server string is
 // most tempting to keep — an operator debugging needs detail. But this page
@@ -17,9 +18,9 @@ const serverMsg = (err, fallback) => userFacingError(err, { fallback });
 
 // SA-M5: active sessions (kill switch) + payout four-eyes queue + 2FA enrolment readout.
 export default function Security() {
-  const [sessions, setSessions] = useState([]);
-  const [admins, setAdmins] = useState([]);
-  const [payouts, setPayouts] = useState([]);
+  const [sessions, setSessions] = useState<ApiRow[]>([]);
+  const [admins, setAdmins] = useState<ApiRow[]>([]);
+  const [payouts, setPayouts] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import type { ApiRow } from '@/lib/apiTypes';
 
 const typeIcons = {
   booking: CalendarDays,
@@ -30,7 +31,7 @@ const filters = ['All', 'Booking', 'Reminder', 'Alert', 'Update', 'Review', 'Bil
 
 export default function ClinicNotifications() {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState<ApiRow[]>([]);
   const [filter, setFilter] = useState('All');
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

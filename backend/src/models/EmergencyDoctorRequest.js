@@ -123,7 +123,7 @@ const emergencyDoctorRequestSchema = new mongoose.Schema({
 emergencyDoctorRequestSchema.index({ location: '2dsphere' });
 emergencyDoctorRequestSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  next();
+  if (typeof next === 'function') next();
 });
 
 export default mongoose.model('EmergencyDoctorRequest', emergencyDoctorRequestSchema);
