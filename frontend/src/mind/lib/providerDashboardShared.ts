@@ -77,7 +77,7 @@ function parseAvailabilityRows(items = []) {
   return items.map((item, index) => {
     const text = String(item || "");
     const match = text.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*:?\s*(\d{1,2}:?\d{0,2})\s*(?:-|–|to)\s*(\d{1,2}:?\d{0,2})/i);
-    const dayMap = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
+    const dayMap: Unmodelled = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
     const normalizeTime = (value: Unmodelled, fallback: Unmodelled) => {
       const raw = String(value || "").replace(/[^0-9:]/g, "");
       if (!raw) return fallback;
@@ -137,7 +137,7 @@ function sessionStatusLabel(status = "") {
 }
 
 function counsellingModeLabel(mode = "") {
-  const labels = {
+  const labels: Unmodelled = {
     "google-meet": "Google Meet",
     "voice-call": "Voice Call",
     "in-person": "In-person",

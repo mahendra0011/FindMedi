@@ -23,7 +23,7 @@ const defaultTests = [
   { _id: 't8', name: 'Thyroid Panel', price: 500, mrp: 650, category: 'Lab', department: 'Pathology', reportTime: '24 hrs' },
 ];
 
-const categoryIcons = {
+const categoryIcons: Unmodelled = {
   Basic: Heart, Lab: FlaskConical, Imaging: Activity, Cardiac: Activity, Other: TestTube,
 };
 
@@ -34,7 +34,7 @@ export default function ClinicTests() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [deptFilter, setDeptFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [editTest, setEditTest] = useState(null);
+  const [editTest, setEditTest] = useState<Unmodelled>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: '', category: 'Lab', department: 'Pathology', price: '', mrp: '',
@@ -125,7 +125,7 @@ export default function ClinicTests() {
         toast.success('Test added');
       }
       resetForm();
-    } catch (e) { toast.error(e.message || 'Failed to save'); }
+    } catch (e: any) { toast.error(e.message || 'Failed to save'); }
     setSaving(false);
   };
 
@@ -155,7 +155,7 @@ export default function ClinicTests() {
       await api.deleteTest(id);
       setTests(prev => prev.filter(t => t._id !== id));
       toast.success('Test deleted');
-    } catch (e) { toast.error(e.message || 'Failed to delete'); }
+    } catch (e: any) { toast.error(e.message || 'Failed to delete'); }
   };
 
   const calcDiscount = (mrp: Unmodelled, price: Unmodelled) => {

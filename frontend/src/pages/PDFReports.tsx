@@ -225,7 +225,7 @@ export default function PDFReports() {
       window.URL.revokeObjectURL(url);
       a.remove();
       setStatusMessage('PDF downloaded successfully.');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating PDF:', error);
       setErrorMessage(error.message || 'Error generating PDF');
     }
@@ -262,7 +262,7 @@ export default function PDFReports() {
       }
 
       setStatusMessage('Report emailed successfully.');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending email:', error);
       setErrorMessage(error.message || 'Error sending email');
     }

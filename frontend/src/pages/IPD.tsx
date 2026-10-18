@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import PatientBanner from '@/components/clinical/PatientBanner';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const ipdApi = {
+const ipdApi: Unmodelled = {
   getBeds: (p = {}) => api.dispatch(() => Promise.resolve({ beds: [] }), '/ipd/beds?' + new URLSearchParams(p)),
   createBed: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/ipd/beds', { method: 'POST', body: JSON.stringify(b) }),
   updateBed: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ipd/beds/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
@@ -23,7 +23,7 @@ const ipdApi = {
   getStats: () => api.dispatch(() => Promise.resolve({ totalBeds: 0, available: 0, occupied: 0, cleaning: 0, maintenance: 0, totalAdmissions: 0, activePatients: 0 }), '/ipd/stats'),
 };
 
-const wardColors = {
+const wardColors: Unmodelled = {
   General: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
   'Semi-Private': 'bg-green-500/10 text-green-600 border-green-500/20',
   Private: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
@@ -33,7 +33,7 @@ const wardColors = {
   Emergency: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
 };
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Available: 'bg-success/10 text-success',
   Occupied: 'bg-destructive/10 text-destructive',
   'Under Cleaning': 'bg-warning/10 text-warning',
@@ -41,14 +41,14 @@ const statusColors = {
 };
 
 export default function IPD() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [tab, setTab] = useState('beds');
   const [search, setSearch] = useState('');
   const [wardFilter, setWardFilter] = useState('All');
   const [showAdd, setShowAdd] = useState(false);
   const [newBed, setNewBed] = useState({ bedNumber: '', ward: 'General', bedType: 'General', dailyRate: '', floor: '', isAC: false });
   const [newAdmission, setNewAdmission] = useState({ patientName: '', patientId: '', bedId: '', primaryDiagnosis: '', source: 'OPD', attendantName: '', attendantPhone: '', estimatedStay: '' });
-  const [expandedAdmId, setExpandedAdmId] = useState(null);
+  const [expandedAdmId, setExpandedAdmId] = useState<Unmodelled>(null);
   const [admTab, setAdmTab] = useState('nursing');
   const [newVitals, setNewVitals] = useState({ shift: 'Morning', bp: '', pulse: '', temperature: '', spO2: '', bloodSugar: '', weight: '' });
   const [newMar, setNewMar] = useState({ medicineName: '', dose: '', route: 'Oral', frequency: '', status: 'Given' });

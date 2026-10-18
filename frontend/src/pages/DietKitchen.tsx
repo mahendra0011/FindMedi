@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { toast } from '@/components/ui/sonner';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const dietApi = {
+const dietApi: Unmodelled = {
   getOrders: (p: Unmodelled) => api.getDietOrders(p),
   createOrder: (b: Unmodelled) => api.createDietOrder(b),
   deliverMeal: (id: Unmodelled, b: Unmodelled) => api.deliverMeal(id, b),
@@ -19,7 +19,7 @@ const dietApi = {
   getStats: () => api.getDietStats(),
 };
 
-const dietTypeColors = {
+const dietTypeColors: Unmodelled = {
   Regular: 'bg-success/10 text-success', Diabetic: 'bg-info/10 text-info',
   'Low Sodium': 'bg-primary/10 text-primary', Liquid: 'bg-warning/10 text-warning',
   Soft: 'bg-orange-500/10 text-orange-600', 'High Protein': 'bg-purple-500/10 text-purple-600',
@@ -30,16 +30,16 @@ const dietTypeColors = {
 const mealTypes = ['Breakfast', 'Lunch', 'Evening Snack', 'Dinner'];
 
 export default function DietKitchen() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [expandedId, setExpandedId] = useState(null);
+  const [expandedId, setExpandedId] = useState<Unmodelled>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showReview, setShowReview] = useState(false);
-  const [reviewOrder, setReviewOrder] = useState(null);
+  const [reviewOrder, setReviewOrder] = useState<Unmodelled>(null);
   const [reviewNotes, setReviewNotes] = useState('');
   const [reviewStatus, setReviewStatus] = useState('Approved');
-  const [showFeedback, setShowFeedback] = useState(null);
+  const [showFeedback, setShowFeedback] = useState<Unmodelled>(null);
   const [feedbackData, setFeedbackData] = useState({ taste: 'Good', quantity: 'Adequate', comments: '' });
   const [newOrder, setNewOrder] = useState({
     patientName: '', patientId: '', ward: '', bedNumber: '', dietType: 'Regular',

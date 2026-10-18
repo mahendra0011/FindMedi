@@ -88,7 +88,7 @@ export default function PatientVitals() {
       if (remRes.status === 'fulfilled') {
         setVitalsReminders(remRes.value.reminders || []);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       toast.error('Failed to load vitals data');
     } finally {

@@ -57,7 +57,7 @@ export default function ReviewDialog({ open, onOpenChange, entityType, entityId,
       onReviewSubmitted?.(review);
       resetForm();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       toast.error(userFacingError(error, { fallback: 'Failed to submit review. Please try again.' }));
     } finally {
       setSubmitting(false);

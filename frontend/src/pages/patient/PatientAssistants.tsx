@@ -47,7 +47,7 @@ export default function PatientAssistants() {
       setActiveBooking(activeRes?.activeBooking || null);
       setBookings(historyRes?.bookings || []);
       setFavorites(favRes?.favorites || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
     } finally {
       setLoading(false);

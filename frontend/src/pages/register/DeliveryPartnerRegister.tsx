@@ -29,7 +29,7 @@ export default function DeliveryPartnerRegister() {
       await api.post('/delivery-partners/register', form);
       toast.success('Submitted for verification');
       navigate('/delivery/documents');
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.message || 'Submission failed');
     }
   };

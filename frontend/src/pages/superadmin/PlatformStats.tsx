@@ -19,8 +19,8 @@ const statusColors = {
 
 export default function PlatformStats() {
   const [allHospitals, setAllHospitals] = useState<ApiRow[]>([]);
-  const [trendData, setTrendData] = useState(null);
-  const [commissionStats, setCommissionStats] = useState(null);
+  const [trendData, setTrendData] = useState<Unmodelled>(null);
+  const [commissionStats, setCommissionStats] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

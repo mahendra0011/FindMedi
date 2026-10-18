@@ -17,7 +17,7 @@ export default function LabReviews() {
         const hospitalId = user?.facilityId || user?.hospitalId || user?.id || user?._id;
         const data = await api.getReviews({ hospitalId });
         setReviews(data?.length > 0 ? data : []);
-      } catch (error) {
+      } catch (error: any) {
         console.error(error);
         setReviews([]);
         toast.error('Failed to load reviews');
@@ -31,7 +31,7 @@ export default function LabReviews() {
       await api.deleteReview(id);
       setReviews(prev => prev.filter(r => r._id !== id));
       toast.success('Review deleted');
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.message || 'Failed to delete review');
     }
   };

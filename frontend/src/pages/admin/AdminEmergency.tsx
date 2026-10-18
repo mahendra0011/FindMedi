@@ -8,13 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const severityColors = {
+const severityColors: Unmodelled = {
   Critical: { bg: 'bg-red-500/10', text: 'text-red-600', border: 'border-red-500', icon: '🚨' },
   Serious: { bg: 'bg-orange-500/10', text: 'text-orange-600', border: 'border-orange-500', icon: '⚠️' },
   Stable: { bg: 'bg-green-500/10', text: 'text-green-600', border: 'border-green-500', icon: '✅' },
 };
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Pending: { bg: 'bg-yellow-500/10', text: 'text-yellow-600' },
   Assigned: { bg: 'bg-blue-500/10', text: 'text-blue-600' },
   'Under Treatment': { bg: 'bg-purple-500/10', text: 'text-purple-600' },

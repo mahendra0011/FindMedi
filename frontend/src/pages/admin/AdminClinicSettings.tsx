@@ -14,7 +14,7 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const DAY_LABELS = { monday:'Monday', tuesday:'Tuesday', wednesday:'Wednesday', thursday:'Thursday', friday:'Friday', saturday:'Saturday', sunday:'Sunday' };
+const DAY_LABELS: Unmodelled = { monday:'Monday', tuesday:'Tuesday', wednesday:'Wednesday', thursday:'Thursday', friday:'Friday', saturday:'Saturday', sunday:'Sunday' };
 
 export default function AdminClinicSettings() {
   const [loading, setLoading] = useState(true);
@@ -76,7 +76,7 @@ export default function AdminClinicSettings() {
           ambulanceService: Boolean(f.ambulanceService),
           refundOnMissedOrCancelled: f.refundOnMissedOrCancelled !== false,
         });
-      } catch (e) {
+      } catch (e: any) {
         console.error(e);
         toast.error('Failed to load clinic data');
       }
@@ -127,7 +127,7 @@ export default function AdminClinicSettings() {
         details: { ...(f.details || {}), website: form.website, insurance: form.insurance },
       });
       toast.success('Clinic settings updated successfully');
-    } catch (e) {
+    } catch (e: any) {
       toast.error(e.message || 'Failed to update settings');
     }
     setSaving(false);

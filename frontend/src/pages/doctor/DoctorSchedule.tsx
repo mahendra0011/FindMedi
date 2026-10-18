@@ -15,7 +15,7 @@ const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'
 
 export default function DoctorSchedule() {
   const { user } = useAuth();
-  const [doctor, setDoctor] = useState(null);
+  const [doctor, setDoctor] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export default function DoctorSchedule() {
         if (myDoc) {
           setDoctor(myDoc);
         }
-      } catch (e) { toast.error(e.message); }
+      } catch (e: any) { toast.error(e.message); }
       setLoading(false);
     };
     load();

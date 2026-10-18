@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api, resolveFileUrl } from '@/lib/api';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const categoryConfig = {
+const categoryConfig: Unmodelled = {
   prescription:     { icon: Pill,         color: 'text-success',     bg: 'bg-success/10',     label: 'Prescriptions' },
   lab_report:       { icon: FlaskConical, color: 'text-warning',     bg: 'bg-warning/10',     label: 'Lab Reports' },
   discharge_summary:{ icon: FileText,     color: 'text-info',        bg: 'bg-info/10',        label: 'Discharge Summaries' },
@@ -26,7 +26,7 @@ export default function PatientRecords() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
-  const [viewRecord, setViewRecord] = useState(null);
+  const [viewRecord, setViewRecord] = useState<Unmodelled>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -38,7 +38,7 @@ export default function PatientRecords() {
       setAppointments(Array.isArray(a) ? a : (a?.appointments || a?.data || []));
       const recordsArray = Array.isArray(r) ? r : (r?.records || r?.data || []);
       setRecords(recordsArray);
-    } catch (e) { console.error(e); toast.error('Failed to load records'); }
+    } catch (e: any) { console.error(e); toast.error('Failed to load records'); }
     setLoading(false);
   };
 
@@ -53,7 +53,7 @@ export default function PatientRecords() {
   const getPatientRecords = (date: Unmodelled) => records.filter(r => r.date === date);
   
   const getCategoryCounts = (recs: Unmodelled) => {
-    const counts = {};
+    const counts: Unmodelled = {};
     Object.keys(categoryConfig).forEach(key => counts[key] = 0);
     recs.forEach((r: Unmodelled) => {
       const type = (r.type || '').toLowerCase().replace(/\s+/g, '_');

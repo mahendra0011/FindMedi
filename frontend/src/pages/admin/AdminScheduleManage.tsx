@@ -15,12 +15,12 @@ export default function AdminScheduleManage() {
   const [specialization, setSpecialization] = useState('All');
   const [loading, setLoading] = useState(true);
   // Selected doctor for editing schedule (null = show list view)
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<Unmodelled>(null);
   // Pending schedule change requests keyed by doctorId
-  const [pendingRequests, setPendingRequests] = useState({});
+  const [pendingRequests, setPendingRequests] = useState<ApiRow>({});
   // Modal state
-  const [modalRequest, setModalRequest] = useState(null);
-  const [modalDoctor, setModalDoctor] = useState(null);
+  const [modalRequest, setModalRequest] = useState<Unmodelled>(null);
+  const [modalDoctor, setModalDoctor] = useState<Unmodelled>(null);
 
   // Load doctors
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function AdminScheduleManage() {
       try {
         const data = await api.getDoctors({ search, includeAll: 'true' });
         setDoctors(data?.data || data || []);
-      } catch (e) {
+      } catch (e: any) {
         console.error(e);
       }
       setLoading(false);
@@ -44,14 +44,14 @@ export default function AdminScheduleManage() {
       try {
         const res = await api.getPendingScheduleChangeRequests();
         const requests = res?.requests || res || [];
-        const map = {};
+        const map: Unmodelled = {};
         requests.forEach((r: Unmodelled) => {
           // Use the populated doctorId._id or the stored doctorId — normalize to string
           const docId = r.doctorId?._id || r.doctorId;
           if (docId) map[String(docId)] = r;
         });
         setPendingRequests(map);
-      } catch (e) {
+      } catch (e: any) {
         console.error(e);
       }
     };
@@ -86,7 +86,7 @@ export default function AdminScheduleManage() {
   const handleDecision = (requestId: Unmodelled, decision: Unmodelled) => {
     // Remove from pending map
     setPendingRequests(prev => {
-      const next = { ...prev };
+      const next: Unmodelled = { ...prev };
       // Remove by matching requestId value
       Object.keys(next).forEach(k => {
         if (String(next[k]._id) === String(requestId)) delete next[k];

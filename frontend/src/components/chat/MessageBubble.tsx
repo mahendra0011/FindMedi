@@ -91,7 +91,7 @@ function LinkPreview({ url, isMine }: Unmodelled) {
 /* ─────────────────────────── media players ─────────────────────────── */
 
 function AudioPlayer({ url, isMine, duration, isVoice }: Unmodelled) {
-  const ref = useRef(null);
+  const ref: Unmodelled = useRef<Unmodelled>(null);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [progress, setProgress] = useState(0);
@@ -99,7 +99,7 @@ function AudioPlayer({ url, isMine, duration, isVoice }: Unmodelled) {
   const bars = useMemo(() => Array.from({ length: 34 }, () => 18 + Math.round(Math.random() * 82)), [url]);
 
   const toggle = () => {
-    const el = ref.current;
+    const el: Unmodelled = ref.current;
     if (!el) return;
     if (playing) { el.pause(); setPlaying(false); } else { el.play(); setPlaying(true); }
   };
@@ -213,10 +213,10 @@ export default function MessageBubble({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [translated, setTranslated] = useState('');
-  const pressTimer = useRef(null);
-  const touchStart = useRef(null);
+  const pressTimer = useRef<Unmodelled>(null);
+  const touchStart = useRef<Unmodelled>(null);
   const [swipeX, setSwipeX] = useState(0);
-  const wrapRef = useRef(null);
+  const wrapRef: Unmodelled = useRef<Unmodelled>(null);
 
   useEffect(() => {
     if (!menuOpen && !pickerOpen) return;
@@ -258,7 +258,7 @@ export default function MessageBubble({
     startPress();
   };
   const onTouchMove = (e: Unmodelled) => {
-    const start = touchStart.current;
+    const start: Unmodelled = touchStart.current;
     if (!start) return;
     const dx = e.touches[0].clientX - start.x;
     const dy = Math.abs(e.touches[0].clientY - start.y);
@@ -556,7 +556,7 @@ export function UnreadDivider({ count }: Unmodelled) {
 }
 
 export function SystemNotice({ text, tone = 'info' }: Unmodelled) {
-  const tones = {
+  const tones: Unmodelled = {
     info: 'bg-muted/80 text-muted-foreground border-border',
     warn: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
     danger: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30',

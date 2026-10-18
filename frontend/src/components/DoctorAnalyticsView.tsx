@@ -22,7 +22,7 @@ const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 /* ─── Animated Counter ─────────────────────────────── */
 function AnimatedCounter({ value, duration = 1200 }: Unmodelled) {
   const [display, setDisplay] = useState(0);
-  const ref = useRef(null);
+  const ref = useRef<Unmodelled>(null);
   useEffect(() => {
     const startTime = Date.now();
     const animate = () => {
@@ -129,7 +129,7 @@ function HeroCard({ icon: Icon, label, value, color, gradient, shadow, delay = 0
    MAIN COMPONENT
    ═══════════════════════════════════════════════════════ */
 export default function DoctorAnalyticsView({ appointments = [], patients = [], bills = [], labBookings = [], title = 'Analytics' }) {
-  const stats = useMemo(() => {
+  const stats: Unmodelled = useMemo(() => {
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -162,7 +162,7 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
     const completedTests = labBookings.filter(t => t.status === 'Completed').length;
 
     // ═══ DAILY TRENDS (30d) ═══
-    const dailyApptMap = {};
+    const dailyApptMap: Unmodelled = {};
     appointments.forEach(a => {
       if (!a.date) return;
       const key = a.date.slice(0, 10);
@@ -178,15 +178,15 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
     }
 
     // ═══ STATUS PIE ═══
-    const sc = {};
+    const sc: Unmodelled = {};
     appointments.forEach(a => { const s = a.status || 'Pending'; sc[s] = (sc[s] || 0) + 1; });
-    const sColors = { 'Completed': '#10b981', 'Cancelled': '#ef4444', 'Pending': '#f59e0b', 'Confirmed': '#3b82f6', 'In Queue': '#6366f1', 'Serving': '#8b5cf6', 'Missed': '#94a3b8' };
+    const sColors: Unmodelled = { 'Completed': '#10b981', 'Cancelled': '#ef4444', 'Pending': '#f59e0b', 'Confirmed': '#3b82f6', 'In Queue': '#6366f1', 'Serving': '#8b5cf6', 'Missed': '#94a3b8' };
     const statusData = Object.entries(sc).map(([name, value]) => ({ name, value, color: sColors[name] || '#6366f1' }));
 
     // ═══ TYPE PIE ═══
-    const tc = {};
-    appointments.forEach(a => { const t = a.type || 'Consultation'; tc[t] = (tc[t] || 0) + 1; });
-    const tColors = { 'Consultation': '#3b82f6', 'Follow-up': '#8b5cf6', 'Check-up': '#10b981', 'Emergency': '#ef4444' };
+    const tc: Unmodelled = {};
+    appointments.forEach(a => { const t: Unmodelled = a.type || 'Consultation'; tc[t] = (tc[t] || 0) + 1; });
+    const tColors: Unmodelled = { 'Consultation': '#3b82f6', 'Follow-up': '#8b5cf6', 'Check-up': '#10b981', 'Emergency': '#ef4444' };
     const typeData = Object.entries(tc).map(([name, value]) => ({ name, value, color: tColors[name] || '#6366f1' }));
 
     // ═══ MONTHLY (6m) ═══
@@ -215,7 +215,7 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
     const peakSlot = [...peakHours].sort((a, b) => b.value - a.value)[0];
 
     // ═══ HEATMAP (proper calendar weeks, Mon-Sun) ═══
-    const heatmapRows = [];
+    const heatmapRows: Unmodelled = [];
     // Go back 27 days to cover ~4 weeks, find the Monday of that week
     const startRef = new Date(now);
     startRef.setDate(startRef.getDate() - 27);
@@ -224,7 +224,7 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
     startRef.setDate(startRef.getDate() + mondayOffset);
 
     const HEAT_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    for (let w = 0; w < 4; w++) {
+    for (let w: Unmodelled = 0; w < 4; w++) {
       const weekRow = { week: `W${w + 1}`, cells: [] };
       for (let d = 0; d < 7; d++) {
         const cellDate = new Date(startRef);
@@ -244,9 +244,9 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
     heatmapRows.forEach(w => w.cells.forEach(c => { if (c.value > heatMax) heatMax = c.value; }));
 
     // ═══ TEST STATUS ═══
-    const tsc = {};
+    const tsc: Unmodelled = {};
     labBookings.forEach(t => { const s = t.status || 'Pending'; tsc[s] = (tsc[s] || 0) + 1; });
-    const tsColors = { 'Pending': '#f59e0b', 'Confirmed': '#3b82f6', 'Sample Collected': '#8b5cf6', 'Processing': '#6366f1', 'Completed': '#10b981', 'Cancelled': '#ef4444', 'Rescheduled': '#f97316' };
+    const tsColors: Unmodelled = { 'Pending': '#f59e0b', 'Confirmed': '#3b82f6', 'Sample Collected': '#8b5cf6', 'Processing': '#6366f1', 'Completed': '#10b981', 'Cancelled': '#ef4444', 'Rescheduled': '#f97316' };
     const testStatusData = Object.entries(tsc).map(([name, value]) => ({ name, value, color: tsColors[name] || '#6366f1' }));
 
     return {

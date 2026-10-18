@@ -4,9 +4,9 @@ import { getSocket, joinRoom } from '@/lib/socket';
 import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function DeliveryTrackingMap({ orderId, pickup, drop, partner }: Unmodelled) {
-  const mapRef = useRef(null);
-  const markerRef = useRef(null);
-  const [position, setPosition] = useState(null);
+  const mapRef = useRef<Unmodelled>(null);
+  const markerRef: Unmodelled = useRef<Unmodelled>(null);
+  const [position, setPosition] = useState<Unmodelled>(null);
   const [status, setStatus] = useState('Assigned');
 
   useEffect(() => {

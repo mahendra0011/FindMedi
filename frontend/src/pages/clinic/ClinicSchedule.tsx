@@ -44,12 +44,12 @@ function generateTimeSlots(startTime: Unmodelled, endTime: Unmodelled, slotDurat
 
 export default function ClinicSchedule() {
   const { user } = useAuth();
-  const [doctor, setDoctor] = useState(null);
+  const [doctor, setDoctor] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [selectedSlots, setSelectedSlots] = useState<ApiRow[]>([]);
-  const [schedule, setSchedule] = useState({});
+  const [schedule, setSchedule] = useState<ApiRow>({});
   const [leaves, setLeaves] = useState<ApiRow[]>([]);
   const [newLeave, setNewLeave] = useState('');
   const [slotDuration, setSlotDuration] = useState('15');
@@ -61,7 +61,7 @@ export default function ClinicSchedule() {
   const [bookingWindow, setBookingWindow] = useState({ unit: 'weeks', value: 2 });
 
   // Per-date disabled slots: { "2026-07-27": ["09:00 AM", ...] }
-  const [dateDisabledSlots, setDateDisabledSlots] = useState({});
+  const [dateDisabledSlots, setDateDisabledSlots] = useState<ApiRow>({});
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
   // Slots already booked by patients for the selected date (read-only)
   const [bookedSlots, setBookedSlots] = useState<ApiRow[]>([]);
@@ -104,7 +104,7 @@ export default function ClinicSchedule() {
           if (myDoc.bookingWindow) setBookingWindow({ unit: myDoc.bookingWindow.unit || 'weeks', value: myDoc.bookingWindow.value ?? 2 });
           if (myDoc.dateDisabledSlots) setDateDisabledSlots(myDoc.dateDisabledSlots);
         }
-      } catch (e) { console.error(e); }
+      } catch (e: any) { console.error(e); }
       setLoading(false);
     };
     load();
@@ -159,7 +159,7 @@ export default function ClinicSchedule() {
   const clearDateDisabled = () => {
     if (!selectedDate) return;
     setDateDisabledSlots(prev => {
-      const next = { ...prev };
+      const next: Unmodelled = { ...prev };
       delete next[selectedDate];
       return next;
     });
@@ -183,7 +183,7 @@ export default function ClinicSchedule() {
       setSaved(true);
       toast.success('Schedule saved');
       setTimeout(() => setSaved(false), 2500);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error(userFacingError(e, { fallback: 'Failed to save schedule' }));
     }

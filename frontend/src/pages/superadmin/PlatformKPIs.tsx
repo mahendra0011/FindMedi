@@ -36,7 +36,7 @@ const AnimatedCard = ({ children, delay = 0 }: Unmodelled) => (
 );
 
 export default function PlatformKPIs() {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
   const [isUnitEconomicsOpen, setIsUnitEconomicsOpen] = useState(false);
 

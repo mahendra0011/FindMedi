@@ -257,7 +257,7 @@ export default function BookAssistant() {
           socket.off('assistant:no_responders_found', handleNoResponders);
           socket.off('assistant_booking_updated', handleGeneralUpdate);
         };
-      } catch (err) {
+      } catch (err: any) {
         console.warn('Socket connection error in BookAssistant:', err);
       }
     })();

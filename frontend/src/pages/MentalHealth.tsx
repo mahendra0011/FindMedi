@@ -4,9 +4,9 @@ import { Search, Plus, Clock, X, Brain, CheckCircle, AlertTriangle, User, FileTe
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
-import type { Unmodelled } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const mhApi = {
+const mhApi: Unmodelled = {
   getCases: (p: Unmodelled) => api.dispatch(() => Promise.resolve({ cases: [] }), '/mentalhealth?' + new URLSearchParams(p)),
   createCase: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/mentalhealth', { method: 'POST', body: JSON.stringify(b) }),
   addAssessment: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/mentalhealth/${id}/assessment`, { method: 'PUT', body: JSON.stringify(b) }),
@@ -17,7 +17,7 @@ const mhApi = {
   getStats: () => api.dispatch(() => Promise.resolve({ active: 0, critical: 0, followUp: 0, total: 0 }), '/mentalhealth/stats'),
 };
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Active: 'bg-primary/10 text-primary',
   'Under Treatment': 'bg-warning/10 text-warning',
   'Follow-up': 'bg-info/10 text-info',
@@ -25,7 +25,7 @@ const statusColors = {
   Referred: 'bg-purple-500/10 text-purple-600',
 };
 
-const riskColors = {
+const riskColors: Unmodelled = {
   Low: 'bg-success/10 text-success',
   Medium: 'bg-warning/10 text-warning',
   High: 'bg-destructive/10 text-destructive',
@@ -46,20 +46,20 @@ const mseCategories = [
 ];
 
 export default function MentalHealth() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [expandedId, setExpandedId] = useState(null);
+  const [expandedId, setExpandedId] = useState<Unmodelled>(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [showAssessment, setShowAssessment] = useState(null);
+  const [showAssessment, setShowAssessment] = useState<Unmodelled>(null);
   const [assessmentData, setAssessmentData] = useState({ presentingComplaint: '', history: '', riskLevel: 'Low', diagnosis: '', icdCode: '' });
-  const [showMse, setShowMse] = useState(null);
-  const [mseData, setMseData] = useState({});
-  const [showPlan, setShowPlan] = useState(null);
+  const [showMse, setShowMse] = useState<Unmodelled>(null);
+  const [mseData, setMseData] = useState<ApiRow>({});
+  const [showPlan, setShowPlan] = useState<Unmodelled>(null);
   const [planData, setPlanData] = useState({ treatmentType: 'Medication', therapyType: 'CBT', frequency: 'Weekly', duration: '12 weeks', goals: '', medications: '' });
-  const [showSession, setShowSession] = useState(null);
+  const [showSession, setShowSession] = useState<Unmodelled>(null);
   const [sessionData, setSessionData] = useState({ therapyType: 'CBT', notes: '', patientResponse: 'Good', nextSession: '' });
-  const [showConfidentiality, setShowConfidentiality] = useState(null);
+  const [showConfidentiality, setShowConfidentiality] = useState<Unmodelled>(null);
   const [confData, setConfData] = useState({ consentGiven: false, shareWithFamily: false, shareWithDoctor: true, accessLevel: 'Care Team Only', notes: '' });
   const [newCase, setNewCase] = useState({ patientName: '', source: 'Doctor', diagnosis: '', riskLevel: 'Low', notes: '', isConfidential: false });
 

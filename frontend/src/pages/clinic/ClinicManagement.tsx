@@ -6,14 +6,14 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { Unmodelled } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function ClinicManagement() {
   const { user } = useAuth();
-  const [clinicProfile, setClinicProfile] = useState(null);
+  const [clinicProfile, setClinicProfile] = useState<Unmodelled>(null);
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({});
+  const [editing, setEditing] = useState<Unmodelled>(null);
+  const [form, setForm] = useState<ApiRow>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [newFacility, setNewFacility] = useState('');
@@ -51,7 +51,7 @@ export default function ClinicManagement() {
       setSaved(true);
       toast.success('Clinic settings updated successfully');
       setTimeout(() => setSaved(false), 2000);
-    } catch (e) { toast.error(e.message || 'Failed to save'); }
+    } catch (e: any) { toast.error(e.message || 'Failed to save'); }
     setSaving(false);
   };
 

@@ -61,7 +61,7 @@ function MyAutoConfirmToggle() {
 
 export default function DoctorProfile() {
   const { user } = useAuth();
-  const [doctor, setDoctor] = useState(null);
+  const [doctor, setDoctor] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -164,7 +164,7 @@ export default function DoctorProfile() {
           setClinicTreatments((cp.clinic_treatments || []).join(', '));
           setClinicInsurance((cp.clinic_insurance || []).join(', '));
         }
-      } catch (e) { toast.error(e.message); }
+      } catch (e: any) { toast.error(e.message); }
       setLoading(false);
     };
     load();
@@ -199,7 +199,7 @@ export default function DoctorProfile() {
       await api.updateProfile({ bio: body.bio, phone: body.phone, address: body.location });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (e) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
     setSaving(false);
   };
 
@@ -210,7 +210,7 @@ export default function DoctorProfile() {
     try {
       const res = await api.uploadDoctorSignature(doctor._id, file);
       setSignatureUrl(res.signatureUrl);
-    } catch (err) { toast.error(err.message); }
+    } catch (err: any) { toast.error(err.message); }
     setSignatureUploading(false);
   };
 

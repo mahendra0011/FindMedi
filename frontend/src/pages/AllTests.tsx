@@ -68,7 +68,7 @@ export default function AllTests() {
       try {
         const res = await api.getLabTests();
         setTests(res.tests || []);
-      } catch (e) { console.error(e); }
+      } catch (e: any) { console.error(e); }
       setLoading(false);
     };
     load();

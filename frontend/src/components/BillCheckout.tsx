@@ -16,7 +16,7 @@ export default function BillCheckout({
   discountCode = '',
 }: any) {
   const TypeIcon = serviceType === 'appointment' ? Stethoscope : serviceType === 'test' ? Beaker : Pill;
-  const serviceLabel = { appointment: 'Appointment', test: 'Lab Test', medicine: 'Medicine Order' };
+  const serviceLabel: Unmodelled = { appointment: 'Appointment', test: 'Lab Test', medicine: 'Medicine Order' };
 
   const itemTotal = lineItems.reduce((s: Unmodelled, it: Unmodelled) => s + (it.price || 0) * (it.qty || 1), 0);
   const calcHomeFee = serviceType === 'test' ? (homeCollectionFee ?? 0) : 0;

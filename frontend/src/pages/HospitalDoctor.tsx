@@ -61,7 +61,7 @@ export default function HospitalDoctor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [doctor, setDoctor] = useState(null);
+  const [doctor, setDoctor] = useState<Unmodelled>(null);
   const [relatedDoctors, setRelatedDoctors] = useState<ApiRow[]>([]);
   const [departmentDoctors, setDepartmentDoctors] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +91,7 @@ export default function HospitalDoctor() {
     }
   };
   const [showFullBio, setShowFullBio] = useState(false);
-  const [expandedFaq, setExpandedFaq] = useState(null);
+  const [expandedFaq, setExpandedFaq] = useState<Unmodelled>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -139,7 +139,7 @@ export default function HospitalDoctor() {
       const rv = await api.getReviews({ doctorId: id }).catch(() => []);
       if (Array.isArray(rv) && rv.length > 0) setReviews(rv);
       setTimeout(() => setReviewSubmitted(false), 3000);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
     }
   };
@@ -155,7 +155,7 @@ export default function HospitalDoctor() {
   };
 
   const ratingBreakdown = () => {
-    const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    const counts: Unmodelled = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     (Array.isArray(reviews) ? reviews : []).forEach(r => { if (r.rating >= 1 && r.rating <= 5) counts[r.rating]++; });
     const max = Math.max(...Object.values(counts), 1);
     return Object.entries(counts).reverse().map(([star, count]) => (

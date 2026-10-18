@@ -48,7 +48,7 @@ export default function AdminAssistants() {
         const res = await api.getAssistantAnalytics();
         setAnalytics(res);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch admin assistant data', err);
     } finally {
       setLoading(false);

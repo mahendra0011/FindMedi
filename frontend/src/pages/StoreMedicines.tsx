@@ -31,7 +31,7 @@ const DISCOUNT_RANGES = [
 export default function StoreMedicines() {
   const { storeId } = useParams();
   const navigate = useNavigate();
-  const [store, setStore] = useState(null);
+  const [store, setStore] = useState<Unmodelled>(null);
   const [allMeds, setAllMeds] = useState<ApiRow[]>([]);
   const [_loading, setLoading] = useState(true);
   const { addItem, updateQty, entries } = useCart();
@@ -87,8 +87,8 @@ export default function StoreMedicines() {
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');
   const [brandFilter, setBrandFilter] = useState('All');
-  const [priceRange, setPriceRange] = useState(null);
-  const [discountFilter, setDiscountFilter] = useState(null);
+  const [priceRange, setPriceRange] = useState<Unmodelled>(null);
+  const [discountFilter, setDiscountFilter] = useState<Unmodelled>(null);
   const [rxFilter, setRxFilter] = useState('all');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState('popularity');

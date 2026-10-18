@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import type { Unmodelled } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 
 export default function OrderConfirmation() {
@@ -20,10 +20,10 @@ export default function OrderConfirmation() {
   const flowType  = searchParams.get('type') || 'medicine';
   const { entries, stores } = useCart();
   const { user } = useAuth();
-  const [snapshotStores] = useState(null);
+  const [snapshotStores] = useState<Unmodelled>(null);
   const [snapshotTotal] = useState(0);
   const [countdown] = useState(30);
-  const [storeNames, setStoreNames] = useState({});
+  const [storeNames, setStoreNames] = useState<ApiRow>({});
 
   const getStore = (storeId: Unmodelled) => {
     const name = storeNames[storeId];
@@ -36,7 +36,7 @@ export default function OrderConfirmation() {
         try {
           const facilities = await api.getFacilities({ type: 'pharmacy' });
           const list = Array.isArray(facilities) ? facilities : (facilities?.facilities || facilities?.data || []);
-          const map = {};
+          const map: Unmodelled = {};
           list.forEach((f: Unmodelled) => { map[f._id] = f.name; map[f.id] = f.name; });
           storeIds.forEach(sid => {
             if (sid) {

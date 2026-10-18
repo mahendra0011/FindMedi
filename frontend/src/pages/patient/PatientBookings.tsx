@@ -17,7 +17,7 @@ import { api } from '@/lib/api';
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const BOOKING_STATUS = {
+const BOOKING_STATUS: Unmodelled = {
   Scheduled: { label: 'Scheduled', color: 'bg-blue-500/10 text-blue-600 border-blue-500/30', icon: Clock },
   Confirmed: { label: 'Confirmed', color: 'bg-blue-500/10 text-blue-600 border-blue-500/30', icon: CheckCircle2 },
   'Sample Collected': { label: 'Sample Collected', color: 'bg-purple-500/10 text-purple-600 border-purple-500/30', icon: Syringe },
@@ -68,11 +68,11 @@ export default function PatientBookings() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
+  const [loadError, setLoadError] = useState<Unmodelled>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
-  const [intakeModal, setIntakeModal] = useState(null);
+  const [intakeModal, setIntakeModal] = useState<Unmodelled>(null);
   const [intakeData, setIntakeData] = useState({
     chiefComplaint: '', symptomsDuration: '', pastMedicalHistory: '', currentMedications: '', allergies: ''
   });
@@ -91,7 +91,7 @@ export default function PatientBookings() {
       ];
       setBookings(normalized);
       setLoadError(null); // clear any previous error on success
-    } catch (e) {
+    } catch (e: any) {
       // Transient errors (503 / network) ko error screen me convert mat karo —
       // axios interceptor already GET retry karta hai, aur realtime hook +
       // manual retry se data aa jayega. Sirf genuine server error (4xx, auth

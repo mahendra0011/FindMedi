@@ -50,7 +50,7 @@ export default function AdminLawyers() {
         const res = await api.getLawyerAnalytics();
         setAnalytics(res);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch admin lawyer data:', err);
     } finally {
       setLoading(false);

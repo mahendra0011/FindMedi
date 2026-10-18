@@ -11,7 +11,7 @@ export default function AdminDepartments() {
   const [departments, setDepartments] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editId, setEditId] = useState(null);
+  const [editId, setEditId] = useState<Unmodelled>(null);
   const [form, setForm] = useState({ name: '', description: '', head: '', active: true, fees_structure: 0 });
 
   const loadDepartments = useCallback(async () => {

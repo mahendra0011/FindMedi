@@ -189,7 +189,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
         if (videoInputs.length > 0 && !selectedCameraId) {
           setSelectedCameraId(videoInputs[0].deviceId);
         }
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Media devices enumeration error:', e);
       }
     }
@@ -291,7 +291,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
         localVideoElemRef.current.srcObject = stream;
       }
       return stream;
-    } catch (err1080p) {
+    } catch (err1080p: any) {
       console.warn('1080p constraint fallback to standard HD:', err1080p);
       // Fallback to standard HD 720p / default
       try {
@@ -315,7 +315,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
           localVideoElemRef.current.srcObject = fallbackStream;
         }
         return fallbackStream;
-      } catch (fallbackErr) {
+      } catch (fallbackErr: any) {
         const name = errName(fallbackErr);
         if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
           toast.error('Camera & Microphone permission denied. Please allow access.');
@@ -368,7 +368,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
         localVideoElemRef.current.srcObject = localStream;
       }
       toast.success('Camera switched');
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Switch camera error:', e);
       toast.error('Could not switch camera');
     }
@@ -410,7 +410,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
         localVideoElemRef.current.srcObject = localStream;
       }
       toast.info(`Camera flipped to ${nextFacing === 'user' ? 'Front' : 'Rear'}`);
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Flip facing mode error:', e);
       toast.error('Could not flip camera');
     }
@@ -479,7 +479,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
       try {
         await remoteVideoElemRef.current.setSinkId(deviceId);
         toast.success('Audio output device updated');
-      } catch (e) {
+      } catch (e: any) {
         console.warn('setSinkId error:', e);
       }
     }
@@ -503,7 +503,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
       } else if (remoteVideoElemRef.current.requestPictureInPicture) {
         await remoteVideoElemRef.current.requestPictureInPicture();
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn('PiP error:', e);
       // Fallback to in-app minimized dock
       setIsMinimized((prev) => !prev);
@@ -555,7 +555,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
         const s = getSocket();
         if (activePeer?.id) s.emit('videocall:screen_share', { to: activePeer.id, isSharing: false });
         toast.info('Screen sharing stopped — webcam restored');
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Revert webcam error:', e);
       }
     } else {
@@ -611,9 +611,9 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
             setIsScreenSharing(false);
             if (activePeer?.id) s.emit('videocall:screen_share', { to: activePeer.id, isSharing: false });
             toast.info('Screen share ended');
-          } catch (err) {}
+          } catch (err: any) {}
         };
-      } catch (err) {
+      } catch (err: any) {
         if (errName(err) !== 'NotAllowedError') {
           toast.error('Screen sharing could not be started');
         }
@@ -650,7 +650,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
     try {
       await updateCallStatus(currentCallLogId, 'completed', callDuration, textToSave);
       toast.success('Clinical consultation notes saved to call record');
-    } catch (e) {
+    } catch (e: any) {
       toast.error('Failed to save clinical notes');
     }
   }, [currentCallLogId, clinicalNotes, callDuration]);
@@ -680,7 +680,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
       document.body.removeChild(link);
 
       toast.success('High-resolution clinical snapshot captured and downloaded');
-    } catch (e) {
+    } catch (e: any) {
       toast.error('Failed to capture snapshot');
     }
   }, [activePeer]);
@@ -699,7 +699,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
         setCurrentCallLogId(json.call._id);
         return json.call._id;
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Failed to log video call initiate:', e);
     }
     return null;
@@ -719,7 +719,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
         credentials: 'include',
         body: JSON.stringify({ status, duration, notes }),
       });
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Failed to update call status:', e);
     }
   };
@@ -798,7 +798,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
               }
             }
           });
-        } catch (e) {}
+        } catch (e: any) {}
       }
     }, 3500);
 
@@ -874,7 +874,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
           setActivePeer(null);
         }, 2000);
       }, CALL_TIMEOUT_SECONDS * 1000);
-    } catch (err) {
+    } catch (err: any) {
       cleanupMediaAndPeer();
       setCallState('idle');
       setActivePeer(null);
@@ -919,7 +919,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
       if (currentCallLogId) {
         updateCallStatus(currentCallLogId, 'completed');
       }
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Failed to start camera for video call');
       rejectVideoCall();
     }
@@ -1057,7 +1057,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
           to: activePeer?.id,
           offer,
         });
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Error creating WebRTC video offer:', e);
       }
     };
@@ -1090,7 +1090,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
         callTimerRef.current = setInterval(() => {
           setCallDuration((prev) => prev + 1);
         }, 1000);
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Error handling WebRTC video offer:', e);
       }
     };
@@ -1110,7 +1110,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
             setCallDuration((prev) => prev + 1);
           }, 1000);
         }
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Error setting WebRTC video answer:', e);
       }
     };
@@ -1121,7 +1121,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
         if (pc && data.candidate) {
           await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
         }
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Error adding video ICE candidate:', e);
       }
     };

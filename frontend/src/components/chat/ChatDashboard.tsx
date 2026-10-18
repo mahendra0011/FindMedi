@@ -37,7 +37,7 @@ export default function ChatDashboard() {
   const { user } = useAuth();
   const meId = uid(user?.id || user?._id);
 
-  const audioCallCtx = useAudioCall();
+  const audioCallCtx: Unmodelled = useAudioCall();
   const videoCallCtx = useVideoCall();
 
   // ── Core lists ──
@@ -50,28 +50,28 @@ export default function ChatDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // ── Active conversation ──
-  const [selectedId, setSelectedId] = useState(null);
+  const [selectedId, setSelectedId] = useState<Unmodelled>(null);
   const [messages, setMessages] = useState<ApiRow[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [unreadDividerId, setUnreadDividerId] = useState(null);
+  const [unreadDividerId, setUnreadDividerId] = useState<Unmodelled>(null);
   const [gallery, setGallery] = useState({ media: [], links: [], files: [], voice: [] });
   const [starred, setStarred] = useState<ApiRow[]>([]);
 
   // ── Composer ──
   const [draftText, setDraftText] = useState('');
-  const [replyTo, setReplyTo] = useState(null);
-  const [editMessage, setEditMessage] = useState(null);
+  const [replyTo, setReplyTo] = useState<Unmodelled>(null);
+  const [editMessage, setEditMessage] = useState<Unmodelled>(null);
   const [showEmoji, setShowEmoji] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<ApiRow[]>([]);
-  const fileInputRef = useRef(null);
+  const fileInputRef: Unmodelled = useRef<Unmodelled>(null);
   const [highlightId, setHighlightId] = useState<any>(null);
   const [recordingVoice, setRecordingVoice] = useState(false);
 
   // ── Realtime indicators ──
-  const [typingUsers, setTypingUsers] = useState({});
-  const [recordingUsers, setRecordingUsers] = useState({});
-  const [onlineUsers, setOnlineUsers] = useState({});
+  const [typingUsers, setTypingUsers] = useState<ApiRow>({});
+  const [recordingUsers, setRecordingUsers] = useState<ApiRow>({});
+  const [onlineUsers, setOnlineUsers] = useState<ApiRow>({});
   const [connected, setConnected] = useState(true);
   const [queuedCount, setQueuedCount] = useState(0);
 
@@ -83,21 +83,21 @@ export default function ChatDashboard() {
   // ── Selection / forward ──
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedMessages, setSelectedMessages] = useState<ApiRow[]>([]);
-  const [forwardMessageIds, setForwardMessageIds] = useState(null);
+  const [forwardMessageIds, setForwardMessageIds] = useState<Unmodelled>(null);
 
   // ── Panels / dialogs ──
   const [showSettings, setShowSettings] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const [reactionDetails, setReactionDetails] = useState(null);
-  const [viewer, setViewer] = useState(null);
-  const [messageInfo, setMessageInfo] = useState(null);
+  const [reactionDetails, setReactionDetails] = useState<Unmodelled>(null);
+  const [viewer, setViewer] = useState<Unmodelled>(null);
+  const [messageInfo, setMessageInfo] = useState<Unmodelled>(null);
 
   // ── Prefs & privacy ──
   const [prefs, setPrefsState] = useState(DEFAULT_CHAT_PREFS);
-  const [privacy, setPrivacy] = useState({});
+  const [privacy, setPrivacy] = useState<ApiRow>({});
   const [theme, setTheme] = useState('system');
-  const [storage, setStorage] = useState(null);
-  const [backup, setBackup] = useState({});
+  const [storage, setStorage] = useState<Unmodelled>(null);
+  const [backup, setBackup] = useState<ApiRow>({});
   const [backupRunning, setBackupRunning] = useState(false);
   const [pinSet, setPinSet] = useState(false);
 
@@ -116,7 +116,7 @@ export default function ChatDashboard() {
       const { data } = await api.put('/chat/privacy', { [key]: value });
       setPrivacy(data);
       setBackup(data.backup || {});
-    } catch (err) {
+    } catch (err: any) {
       setPrivacy(prev);
       toast.error(userFacingError(err, { fallback: 'Setting save nahi hui' }));
     }
@@ -215,18 +215,18 @@ export default function ChatDashboard() {
 
   /* ── Socket.IO: presence, realtime messages, typing/recording, sync ── */
   /* ── Refs, drafts, offline queue flush ── */
-  const scrollRef = useRef(null);
-  const selectedIdRef = useRef(null);
-  const replyToRef = useRef(null);
-  const typingTimerRef = useRef(null);
-  const [drafts, setDrafts] = useState({});
+  const scrollRef = useRef<Unmodelled>(null);
+  const selectedIdRef = useRef<Unmodelled>(null);
+  const replyToRef = useRef<Unmodelled>(null);
+  const typingTimerRef = useRef<Unmodelled>(null);
+  const [drafts, setDrafts] = useState<ApiRow>({});
 
   useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
   useEffect(() => { replyToRef.current = replyTo; }, [replyTo]);
   useEffect(() => { setDrafts(readDrafts()); }, []);
 
   const scrollToBottom = useCallback((smooth = true) => {
-    const el = scrollRef.current;
+    const el: Unmodelled = scrollRef.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
   }, []);
 
@@ -242,7 +242,7 @@ export default function ChatDashboard() {
         setMessages((prev) => prev.map((m) => (m._id === item.clientGeneratedId ? data : m)));
         dequeueMessage(meId, item.clientGeneratedId);
         sent += 1;
-      } catch (err) {
+      } catch (err: any) {
         if (err.response) {
           // permanent rejection — queue se hatao, failed mark karo
           setMessages((prev) => prev.map((m) => (m._id === item.clientGeneratedId ? { ...m, status: 'failed' } : m)));
@@ -390,7 +390,7 @@ export default function ChatDashboard() {
       api.put(`/chat/messages/delivered/${id}`).catch(() => {});
       setConversations((prev) => prev.map((c) => (uid(c._id) === uid(id) ? { ...c, unread: 0 } : c)));
       requestAnimationFrame(() => scrollToBottom(false));
-    } catch (err) {
+    } catch (err: any) {
       toast.error(userFacingError(err, { fallback: 'Messages load nahi hue' }));
     } finally { setLoadingMessages(false); }
   }, [scrollToBottom]);
@@ -461,7 +461,7 @@ export default function ChatDashboard() {
     const convId = selectedIdRef.current;
     if (!convId || (!text.trim() && !attachments.length)) return;
     const clientGeneratedId = `c-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const replySnapshot = replyToRef.current;
+    const replySnapshot: Unmodelled = replyToRef.current;
     setMessages((prev) => [...prev, {
       _id: clientGeneratedId, clientGeneratedId, conversationId: convId,
       sender: { _id: meId, name: user?.name || '', avatar: user?.avatar || '' },
@@ -487,7 +487,7 @@ export default function ChatDashboard() {
       const { data } = await api.post('/chat/messages', payload);
       setMessages((prev) => prev.map((m) => (m._id === clientGeneratedId ? data : m)));
       refreshConversations();
-    } catch (err) {
+    } catch (err: any) {
       if (!err.response) {
         enqueueMessage(meId, payload);
         setQueuedCount(readQueue(meId).length);
@@ -534,7 +534,7 @@ export default function ChatDashboard() {
         : mime?.startsWith('video/') ? 'video'
           : mime?.startsWith('audio/') ? 'audio' : 'file';
       await sendMessage({ text: draftText.trim(), type, attachments: uploaded });
-    } catch (err) {
+    } catch (err: any) {
       setUploading(false);
       toast.error(userFacingError(err, { fallback: 'Upload fail' }));
     }
@@ -546,7 +546,7 @@ export default function ChatDashboard() {
       const meta = await uploadDataUrl(dataUrl, `voice-${Date.now()}.webm`);
       setUploading(false);
       await sendMessage({ type: 'voice', attachments: [{ ...meta, duration }] });
-    } catch (err) {
+    } catch (err: any) {
       setUploading(false);
       toast.error(userFacingError(err, { fallback: 'Voice message fail' }));
     }
@@ -565,7 +565,7 @@ export default function ChatDashboard() {
       const { data } = await api.put(`/chat/messages/${messageId}`, { content });
       setMessages((prev) => prev.map((m) => (m._id === messageId ? { ...m, ...data, edited: true } : m)));
       setEditMessage(null);
-    } catch (err) { toast.error(userFacingError(err, { fallback: 'Edit fail' })); }
+    } catch (err: any) { toast.error(userFacingError(err, { fallback: 'Edit fail' })); }
   }, []);
 
   const handleDelete = useCallback(async (messageId: Unmodelled, scope: Unmodelled) => {
@@ -574,7 +574,7 @@ export default function ChatDashboard() {
       setMessages((prev) => (scope === 'everyone'
         ? prev.map((m) => (m._id === messageId ? { ...m, deletedForEveryone: true, content: '', attachments: [] } : m))
         : prev.filter((m) => m._id !== messageId)));
-    } catch (err) { toast.error(userFacingError(err, { fallback: 'Delete fail' })); }
+    } catch (err: any) { toast.error(userFacingError(err, { fallback: 'Delete fail' })); }
   }, []);
 
   const handleStar = useCallback(async (messageId: Unmodelled, current: Unmodelled) => {
@@ -590,7 +590,7 @@ export default function ChatDashboard() {
       await api.put(`/chat/${convId}/pin-message`, { messageId });
       setConversations((prev) => prev.map((c) => (uid(c._id) === uid(convId) ? { ...c, pinnedMessageId: messageId } : c)));
       toast.success(messageId ? 'Message pinned' : 'Unpinned');
-    } catch (err) { toast.error(userFacingError(err, { fallback: 'Pin fail' })); }
+    } catch (err: any) { toast.error(userFacingError(err, { fallback: 'Pin fail' })); }
   }, []);
 
   const handleCopy = useCallback((message: Unmodelled) => {
@@ -605,7 +605,7 @@ export default function ChatDashboard() {
       toast.success('Message forward ho gaya');
       setForwardMessageIds(null); setSelectedMessages([]); setSelectionMode(false);
       refreshConversations();
-    } catch (err) { toast.error(userFacingError(err, { fallback: 'Forward fail' })); }
+    } catch (err: any) { toast.error(userFacingError(err, { fallback: 'Forward fail' })); }
   }, [forwardMessageIds, refreshConversations]);
 
   const handleRetry = useCallback((message: Unmodelled) => {
@@ -635,7 +635,7 @@ export default function ChatDashboard() {
       });
       toast.success('Report bhej diya');
       refreshSideData();
-    } catch (err) { toast.error(userFacingError(err, { fallback: 'Report fail' })); }
+    } catch (err: any) { toast.error(userFacingError(err, { fallback: 'Report fail' })); }
   }, [peer, refreshSideData]);
 
   /* ── Conversation actions ── */
@@ -645,7 +645,7 @@ export default function ChatDashboard() {
     try {
       await api.put(`/chat/settings/${convId}`, { action, value });
       await refreshConversations();
-    } catch (err) { toast.error(userFacingError(err, { fallback: 'Action fail' })); }
+    } catch (err: any) { toast.error(userFacingError(err, { fallback: 'Action fail' })); }
   }, [refreshConversations]);
 
   const markUnread = useCallback(async (convId: Unmodelled) => {
@@ -662,7 +662,7 @@ export default function ChatDashboard() {
       await api.delete(`/chat/${convId}/clear`);
       setMessages([]);
       toast.success('Chat clear ho gayi (sirf aapke liye)');
-    } catch (err) { toast.error(userFacingError(err, { fallback: 'Clear fail' })); }
+    } catch (err: any) { toast.error(userFacingError(err, { fallback: 'Clear fail' })); }
   }, []);
 
   const deleteChat = useCallback(async () => {
@@ -673,7 +673,7 @@ export default function ChatDashboard() {
       setConversations((prev) => prev.filter((c) => uid(c._id) !== uid(convId)));
       setSelectedId(null); setMessages([]);
       toast.success('Chat delete ho gayi');
-    } catch (err) { toast.error(userFacingError(err, { fallback: 'Delete fail' })); }
+    } catch (err: any) { toast.error(userFacingError(err, { fallback: 'Delete fail' })); }
   }, []);
 
   const exportChat = useCallback(() => {
@@ -697,7 +697,7 @@ export default function ChatDashboard() {
       await api.put(`/chat/conversations/${conv._id}/request`, { action });
       refreshSideData(); refreshConversations();
       toast.success(action === 'accept' ? 'Request accept ho gayi' : 'Request hata di');
-    } catch (err) { toast.error(userFacingError(err, { fallback: 'Action fail' })); }
+    } catch (err: any) { toast.error(userFacingError(err, { fallback: 'Action fail' })); }
   }, [refreshSideData, refreshConversations]);
 
   const startChat = useCallback(async (contact: Unmodelled) => {
@@ -706,7 +706,7 @@ export default function ChatDashboard() {
       const { data } = await api.post('/chat/conversations', { targetUserId: targetId });
       await refreshConversations();
       await openConversation(data._id);
-    } catch (err) { toast.error(userFacingError(err, { fallback: 'Chat start nahi hui' })); }
+    } catch (err: any) { toast.error(userFacingError(err, { fallback: 'Chat start nahi hui' })); }
   }, [refreshConversations, openConversation]);
 
   const searchInChat = useCallback(async (q: Unmodelled) => {
@@ -731,7 +731,7 @@ export default function ChatDashboard() {
       const { data } = await api.post('/chat/backup/run');
       setBackup((b) => ({ ...b, lastBackupAt: data.at }));
       toast.success('Backup complete');
-    } catch (err) { toast.error(userFacingError(err, { fallback: 'Backup fail' })); }
+    } catch (err: any) { toast.error(userFacingError(err, { fallback: 'Backup fail' })); }
     finally { setBackupRunning(false); }
   }, []);
 
@@ -741,7 +741,7 @@ export default function ChatDashboard() {
       setPinSet(true);
       toast.success('PIN set ho gaya');
       return true;
-    } catch (err) { toast.error(userFacingError(err, { fallback: 'PIN set fail' })); return false; }
+    } catch (err: any) { toast.error(userFacingError(err, { fallback: 'PIN set fail' })); return false; }
   }, []);
 
   const onThemeChange = useCallback((next: Unmodelled) => {
@@ -767,7 +767,7 @@ export default function ChatDashboard() {
       await api.put(`/chat/settings/${conv._id}`, { action: 'block', value: false });
       refreshSideData(); refreshConversations();
       toast.success('Unblock ho gaya');
-    } catch (err) { toast.error(userFacingError(err, { fallback: 'Unblock fail' })); }
+    } catch (err: any) { toast.error(userFacingError(err, { fallback: 'Unblock fail' })); }
   }, [conversations, meId, refreshSideData, refreshConversations]);
 
   /* ── Wallpaper apply ── */

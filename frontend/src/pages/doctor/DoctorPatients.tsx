@@ -32,7 +32,7 @@ export default function DoctorPatients() {
 
       setAppointments(myAppointments);
       setRecords(r?.data || r?.records || r || []);
-    } catch (e) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
     setLoading(false);
   };
 

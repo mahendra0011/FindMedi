@@ -66,7 +66,7 @@ export default function PatientRides() {
       setActiveRide(activeRes.ride || null);
       setRides(historyRes.rides || []);
       setTotalRides(historyRes.total || 0);
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Failed to load ride history');
     } finally {
       setLoading(false);

@@ -326,7 +326,7 @@ export default function Login() {
         });
         tokenClient.requestAccessToken({ prompt: 'select_account' });
         return;
-      } catch (oauthErr) {
+      } catch (oauthErr: any) {
         console.warn('initTokenClient failed, falling back to ID prompt:', oauthErr);
       }
     }

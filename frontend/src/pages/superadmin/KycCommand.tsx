@@ -55,10 +55,10 @@ function itemSub(item: Unmodelled) {
 export default function KycCommand() {
   const [active, setActive] = useState('hospitals');
   const [items, setItems] = useState<ApiRow[]>([]);
-  const [counts, setCounts] = useState({});
+  const [counts, setCounts] = useState<ApiRow>({});
   const [loading, setLoading] = useState(true);
-  const [actingId, setActingId] = useState(null);
-  const [rejectingId, setRejectingId] = useState(null);
+  const [actingId, setActingId] = useState<Unmodelled>(null);
+  const [rejectingId, setRejectingId] = useState<Unmodelled>(null);
   const [rejectReason, setRejectReason] = useState('');
 
   const loadQueue = useCallback(async (key: Unmodelled, silent = false) => {
@@ -74,7 +74,7 @@ export default function KycCommand() {
 
   const loadCounts = useCallback(async () => {
     const settled = await Promise.allSettled(QUEUES.map((q) => q.fetch().catch(() => [])));
-    const next = {};
+    const next: Unmodelled = {};
     settled.forEach((r, i) => {
       const list = r.status === 'fulfilled' ? r.value : [];
       next[QUEUES[i].key] = Array.isArray(list) ? list.length : 0;

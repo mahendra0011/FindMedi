@@ -11,7 +11,7 @@ const reportsApi = {
   exportPDF: (type: Unmodelled, params: Unmodelled) => api.dispatch(() => Promise.resolve({ url: '#' }), `/reports/${type}/pdf`, { method: 'POST', body: JSON.stringify(params) }),
 };
 
-const reportCategories = {
+const reportCategories: Unmodelled = {
   daily: [
     { key: 'opd', label: 'OPD Count', icon: Users, description: 'Outpatient visits today' },
     { key: 'ipd', label: 'IPD Census', icon: Activity, description: 'Inpatient census today' },
@@ -36,10 +36,10 @@ const reportCategories = {
 
 export default function Reports() {
   const [reportType, setReportType] = useState('daily');
-  const [selectedReport, setSelectedReport] = useState(null);
+  const [selectedReport, setSelectedReport] = useState<Unmodelled>(null);
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
   const [department, setDepartment] = useState('');
-  const [reportData, setReportData] = useState(null);
+  const [reportData, setReportData] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchReport = async (type: Unmodelled) => {

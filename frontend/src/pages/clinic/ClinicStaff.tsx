@@ -14,7 +14,7 @@ export default function ClinicStaff() {
   const [staff, setStaff] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState(null);
+  const [editing, setEditing] = useState<Unmodelled>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -52,7 +52,7 @@ export default function ClinicStaff() {
       setShowForm(false);
       setEditing(null);
       setName(''); setEmail(''); setPhone(''); setRole('Receptionist');
-    } catch (e) { toast.error(e.message || 'Failed to save'); }
+    } catch (e: any) { toast.error(e.message || 'Failed to save'); }
     setSaving(false);
   };
 
@@ -61,7 +61,7 @@ export default function ClinicStaff() {
       await api.deleteClinicStaff(id);
       setStaff(staff.filter(s => s._id !== id));
       toast.success('Staff removed');
-    } catch (e) { toast.error(e.message || 'Failed to delete'); }
+    } catch (e: any) { toast.error(e.message || 'Failed to delete'); }
   };
 
   const openEdit = (member: Unmodelled) => {

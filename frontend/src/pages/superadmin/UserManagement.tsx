@@ -50,7 +50,7 @@ export default function UserManagementTab() {
     try { await api.unflagUser(id); toast.success('User unflagged'); loadUsers(); } catch { toast.error('Failed to unflag user'); }
   };
 
-  const roleColors = {
+  const roleColors: Unmodelled = {
     superadmin: 'bg-destructive/10 text-destructive',
     admin: 'bg-primary/10 text-primary',
     doctor: 'bg-info/10 text-info',
@@ -59,7 +59,7 @@ export default function UserManagementTab() {
     lab_owner: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
     pharmacy_owner: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   };
-  const roleIcons = { superadmin: Shield, admin: Shield, doctor: Stethoscope, clinic_doctor: Stethoscope, patient: UserRound, lab_owner: Activity, pharmacy_owner: Activity };
+  const roleIcons: Unmodelled = { superadmin: Shield, admin: Shield, doctor: Stethoscope, clinic_doctor: Stethoscope, patient: UserRound, lab_owner: Activity, pharmacy_owner: Activity };
 
   const columns = [
     {

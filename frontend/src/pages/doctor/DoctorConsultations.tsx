@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const typeIcons = {
+const typeIcons: Unmodelled = {
   Prescription: { icon: Pill, color: 'text-success', bg: 'bg-success/10' },
   'Lab Report': { icon: FlaskConical, color: 'text-warning', bg: 'bg-warning/10' },
   Diagnosis: { icon: Activity, color: 'text-primary', bg: 'bg-primary/10' },
@@ -24,7 +24,7 @@ export default function DoctorConsultations() {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
-  const [expanded, setExpanded] = useState(null);
+  const [expanded, setExpanded] = useState<Unmodelled>(null);
   
   // Form fields
   const [patientName, setPatientName] = useState('');
@@ -47,7 +47,7 @@ export default function DoctorConsultations() {
       setRecords(recordsArray.filter((r: Unmodelled) => 
         r.doctor?.toLowerCase().includes(user?.name?.toLowerCase())
       ));
-    } catch (e) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
     setLoading(false);
   };
 
@@ -66,7 +66,7 @@ export default function DoctorConsultations() {
       a.download = `prescription-${recordId.slice(-8)}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (e) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const filteredRecords = records.filter(r => {
@@ -103,7 +103,7 @@ export default function DoctorConsultations() {
       setDiagnosis(''); setPrescription(''); setNotes('');
       setChiefComplaints(''); setAdvice(''); setFollowUp('');
       loadRecords();
-    } catch (e) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const resetForm = () => {

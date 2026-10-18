@@ -163,7 +163,7 @@ const Counselling = () => {
   const [feeRange, setFeeRange] = useState([0, 5000]);
   // Doctor-jaisa Book Appointment (BookingModal) — counsellor ke liye
   const [showBooking, setShowBooking] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<Unmodelled>(null);
   const [resolvingDoctor, setResolvingDoctor] = useState(false);
 
   // Counsellor ka Doctor doc nikalo (booking/slots/payment sab Doctor model se chalta hai).
@@ -212,7 +212,7 @@ const Counselling = () => {
     }
   };
 
-  const concernToPlan = useMemo(() => ({
+  const concernToPlan: Unmodelled = useMemo(() => ({
     "Immediate support": "one-time", "One-off guidance": "one-time", "Quick check-in": "one-time",
     "Stress": "short-term", "Anxiety": "short-term", "Student Pressure": "short-term", "Loneliness": "short-term",
     "Mild depression": "medium-term", "Relationship issues": "medium-term",
@@ -916,7 +916,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
 
   const totalReviews = reviews.length;
   const avgRating = totalReviews > 0 ? (reviews.reduce((s, r) => s + (r.averageRating || r.rating || 0), 0) / totalReviews) : Number(counsellor?.rating || 0);
-  const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  const breakdown: Unmodelled = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
   reviews.forEach((r) => {
     const star = Math.round(r.averageRating || r.rating || 0);
     if (star >= 1 && star <= 5) breakdown[star]++;
@@ -934,7 +934,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
   );
 
   const ratingBreakdown = () => {
-    const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    const counts: Unmodelled = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     reviews.forEach(r => { if (r.rating >= 1 && r.rating <= 5) counts[Math.round(r.rating)]++; });
     const max = Math.max(...Object.values(counts), 1);
     return Object.entries(counts).reverse().map(([star, count]) => (
@@ -975,7 +975,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
       setReviews((prev) => [created, ...prev]);
       setReviewForm({ rating: 5, comment: "", submitting: false });
       toast({ title: "Review submitted", description: "Thank you for your feedback!" });
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Could not submit review", description: error?.message || "" });
       setReviewForm((f) => ({ ...f, submitting: false }));
     }
@@ -992,7 +992,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
         setReportReason("");
         setReportDetails("");
       }
-    } catch (err) {
+    } catch (err: any) {
       toast({ variant: "destructive", title: "Failed", description: err.message });
     } finally { setSubmitting(false); }
   };
@@ -1034,7 +1034,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
     { key: "saturday", label: "Saturday" },
     { key: "sunday", label: "Sunday" },
   ];
-  const availabilityMap = {};
+  const availabilityMap: Unmodelled = {};
   (counsellor.availability || []).forEach((entry: Unmodelled) => {
     const day = entry.split(":")[0]?.trim().toLowerCase();
     if (day) availabilityMap[day] = entry;

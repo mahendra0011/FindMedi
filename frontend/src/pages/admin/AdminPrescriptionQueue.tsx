@@ -8,7 +8,7 @@ import { toast } from '@/components/ui/sonner';
 import { api, resolveFileUrl } from '@/lib/api';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Active: 'bg-warning/10 text-warning',
   Dispensed: 'bg-success/10 text-success',
   'Partially Dispensed': 'bg-info/10 text-info',
@@ -20,7 +20,7 @@ export default function AdminPrescriptionQueue() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
-  const [selectedRx, setSelectedRx] = useState(null);
+  const [selectedRx, setSelectedRx] = useState<Unmodelled>(null);
   const [barcode, setBarcode] = useState('');
   const [selectedIds, setSelectedIds] = useState<ApiRow[]>([]);
 

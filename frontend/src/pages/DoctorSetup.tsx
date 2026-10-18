@@ -64,7 +64,7 @@ export default function DoctorSetup() {
       // Send OTP for verification
       await api.resendOTP({ email });
       setStep('otp');
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || 'Setup failed. Please try again.');
     } finally {
       setLoading(false);
@@ -79,7 +79,7 @@ export default function DoctorSetup() {
     try {
       await api.verifyOTP({ email, otp });
       setStep('done');
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || 'OTP verification failed');
     } finally {
       setLoading(false);
@@ -93,7 +93,7 @@ export default function DoctorSetup() {
       await api.resendOTP({ email });
       setError('');
       toast.success('OTP resent to your email');
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || 'Failed to resend OTP');
     } finally {
       setLoading(false);

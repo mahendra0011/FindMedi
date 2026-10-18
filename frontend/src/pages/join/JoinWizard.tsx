@@ -489,7 +489,7 @@ export default function JoinWizard() {
         if (list.length > 0) {
           setTypes(list);
         }
-      } catch (err) {
+      } catch (err: any) {
         if (cancelled) return;
         setLoadError(err instanceof Error ? err.message : 'API offline — displaying catalog fallback');
       } finally {
@@ -605,7 +605,7 @@ export default function JoinWizard() {
           setSaveState('saved');
         }
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Failed to resume application from server', e);
     }
   }, [types, fieldByKey, fetchMyApplications]);
@@ -843,7 +843,7 @@ export default function JoinWizard() {
       setSubmitted(true);
       setNeedsInfoItems([]);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err) {
+    } catch (err: any) {
       setStepError(err instanceof Error ? err.message : 'Submit failed. Please verify required fields and documents.');
     } finally {
       setSubmitting(false);
@@ -884,7 +884,7 @@ export default function JoinWizard() {
           setSaveState('saved');
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       setAuthError(err instanceof Error ? err.message : 'Authentication failed');
     } finally {
       setAuthLoading(false);
@@ -2058,7 +2058,7 @@ function DocsStep({
 
       setDone((d) => ({ ...d, [doc.key]: true }));
       setFileNames((f) => ({ ...f, [doc.key]: file.name }));
-    } catch (e) {
+    } catch (e: any) {
       setErr(e instanceof Error ? e.message : 'Document upload failed. Check format and file size (< 10MB).');
     } finally {
       setBusy(null);

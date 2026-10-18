@@ -9,7 +9,7 @@ import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = { Paid: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Overdue: 'bg-destructive/10 text-destructive' };
+const statusColors: Unmodelled = { Paid: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Overdue: 'bg-destructive/10 text-destructive' };
 
 export default function LabBilling() {
   const [bills, setBills] = useState<ApiRow[]>([]);
@@ -80,7 +80,7 @@ export default function LabBilling() {
       }, ...prev]);
       setShowForm(false);
       setPatientName(''); setSelectedTests([]); setDiscount(0);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
     setSaving(false);
   };
 
@@ -88,7 +88,7 @@ export default function LabBilling() {
     try {
       await api.updateLabBooking(id, { status: 'Paid' });
       setBills(prev => prev.map(b => b._id === id ? { ...b, status: 'Paid' } : b));
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const totalCollected = bills.filter(b => b.status === 'Paid').reduce((s, b) => s + (b.total || b.amount), 0);

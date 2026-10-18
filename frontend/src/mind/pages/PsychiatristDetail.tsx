@@ -32,7 +32,7 @@ const PSYCH_PLANS = [
 ];
 
 const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-const DAY_LABELS = {
+const DAY_LABELS: Unmodelled = {
   monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday',
   friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday',
 };
@@ -94,7 +94,7 @@ function doctor_is_saved(id: Unmodelled) {
 export default function PsychiatristDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [doctor, setDoctor] = useState(null);
+  const [doctor, setDoctor] = useState<Unmodelled>(null);
   const [reviews, setReviews] = useState<ApiRow[]>([]);
   const [relatedDoctors, setRelatedDoctors] = useState<ApiRow[]>([]);
   const [departmentDoctors, setDepartmentDoctors] = useState<ApiRow[]>([]);
@@ -105,7 +105,7 @@ export default function PsychiatristDetail() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [showFullBio, setShowFullBio] = useState(false);
-  const [expandedFaq, setExpandedFaq] = useState(null);
+  const [expandedFaq, setExpandedFaq] = useState<Unmodelled>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [selectedPlanId, setSelectedPlanId] = useState('oneTime');
@@ -113,7 +113,7 @@ export default function PsychiatristDetail() {
   const [showIntakeDetails, setShowIntakeDetails] = useState(false);
 
   // Fallback multiplier for consultation modes if explicit fee isn't set
-  const MODE_RATIOS = {
+  const MODE_RATIOS: Unmodelled = {
     video: 1,
     audio: 0.8,
     chat: 0.6,
@@ -223,7 +223,7 @@ export default function PsychiatristDetail() {
   );
 
   const ratingBreakdown = () => {
-    const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    const counts: Unmodelled = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     (Array.isArray(reviews) ? reviews : []).forEach(r => { if (r.rating >= 1 && r.rating <= 5) counts[r.rating]++; });
     const max = Math.max(...Object.values(counts), 1);
     return Object.entries(counts).reverse().map(([star, count]) => (

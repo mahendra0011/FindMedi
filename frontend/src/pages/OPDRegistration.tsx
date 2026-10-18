@@ -18,7 +18,7 @@ export default function OPDRegistration() {
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(empty);
-  const [printPatient, setPrintPatient] = useState(null);
+  const [printPatient, setPrintPatient] = useState<Unmodelled>(null);
 
   const { data: patients = [] } = useQuery({
     queryKey: ['opd-patients', search],

@@ -50,15 +50,15 @@ export default function ClinicAppointments() {
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
 
   // Modals
-  const [rescheduleId, setRescheduleId] = useState(null);
+  const [rescheduleId, setRescheduleId] = useState<Unmodelled>(null);
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
   const [bookedSlots, setBookedSlots] = useState<ApiRow[]>([]);
   const [dateDisabledSlots, setDateDisabledSlots] = useState<ApiRow[]>([]);
-  const [completeId, setCompleteId] = useState(null);
+  const [completeId, setCompleteId] = useState<Unmodelled>(null);
   const [billAmount, setBillAmount] = useState(500);
   const [billModal, setBillModal] = useState(false);
-  const [detailsApt, setDetailsApt] = useState(null);
+  const [detailsApt, setDetailsApt] = useState<Unmodelled>(null);
   const [showWalkInModal, setShowWalkInModal] = useState(false);
 
   // Prescription modal state
@@ -74,7 +74,7 @@ export default function ClinicAppointments() {
       const data = await api.getAppointments({ status: 'All', limit: 100, ...searchParams });
       const raw = data?.appointments || data?.data || data || [];
       setAppointments(raw);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       // Transient network errors interceptor me already retry ho jaate hain —
       // sirf genuine server errors par hi user ko batana chahiye.
@@ -137,7 +137,7 @@ export default function ClinicAppointments() {
   }).length;
 
   const handleStatus = async (id: Unmodelled, status: Unmodelled, extra = {}) => {
-    try { await api.updateAppointment(id, { status, ...extra }); loadAppointments(); } catch (e) { console.error(e); toast.error('Failed to update appointment'); }
+    try { await api.updateAppointment(id, { status, ...extra }); loadAppointments(); } catch (e: any) { console.error(e); toast.error('Failed to update appointment'); }
   };
 
   const handleReschedule = async () => {
@@ -147,7 +147,7 @@ export default function ClinicAppointments() {
       toast.success('Appointment rescheduled');
       setRescheduleId(null); setNewDate(''); setNewTime('');
       loadAppointments();
-    } catch (e) { console.error(e); toast.error('Failed to reschedule appointment'); }
+    } catch (e: any) { console.error(e); toast.error('Failed to reschedule appointment'); }
   };
 
   const openPrescriptionModal = useCallback((apt: Unmodelled) => {
@@ -174,7 +174,7 @@ export default function ClinicAppointments() {
     setPrescriptionData({ ...prescriptionData, medications: prescriptionData.medications.filter((_, i) => i !== index) });
   };
   const updateMedication = (index: Unmodelled, field: Unmodelled, value: Unmodelled) => {
-    const meds = [...prescriptionData.medications]; meds[index][field] = value;
+    const meds: Unmodelled = [...prescriptionData.medications]; meds[index][field] = value;
     setPrescriptionData({ ...prescriptionData, medications: meds });
   };
 
@@ -207,7 +207,7 @@ export default function ClinicAppointments() {
       toast.success('Prescription generated');
       setShowPrescriptionModal(false);
       loadAppointments();
-    } catch (e) { console.error(e); toast.error('Failed to generate prescription'); }
+    } catch (e: any) { console.error(e); toast.error('Failed to generate prescription'); }
   };
 
   const handleGenerateBill = async () => {
@@ -234,7 +234,7 @@ export default function ClinicAppointments() {
       setBillModal(false);
       setCompleteId(null);
       loadAppointments();
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const handleDownloadPrescription = async (apt: Unmodelled) => {
@@ -253,7 +253,7 @@ export default function ClinicAppointments() {
           description: (rx.prescription || '').slice(0, 120),
         });
       }
-    } catch (e) { console.error(e); toast.error('Failed to load prescription'); }
+    } catch (e: any) { console.error(e); toast.error('Failed to load prescription'); }
   };
 
   // Calendar widget (shared by both views)

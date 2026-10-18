@@ -11,14 +11,14 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const priorityStyles = {
+const priorityStyles: Unmodelled = {
   urgent: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/10',
   high: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/10',
   normal: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/10',
   low: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/10',
 };
 
-const priorityIcons = { urgent: AlertCircle, high: AlertTriangle, normal: Info, low: Info };
+const priorityIcons: Unmodelled = { urgent: AlertCircle, high: AlertTriangle, normal: Info, low: Info };
 
 export default function AdminAnnouncements() {
   const [announcements, setAnnouncements] = useState<ApiRow[]>([]);
@@ -53,7 +53,7 @@ export default function AdminAnnouncements() {
       toast.success('Announcement sent successfully');
       setTitle(''); setMessage(''); setPriority('normal'); setTargetRoles(['all']);
       await load();
-    } catch (e) { toast.error(e.message || 'Failed to send'); }
+    } catch (e: any) { toast.error(e.message || 'Failed to send'); }
     setSending(false);
   };
 

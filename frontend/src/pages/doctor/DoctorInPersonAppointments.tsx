@@ -90,10 +90,10 @@ export default function DoctorInPersonAppointments() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('today'); // 'today' | 'upcoming' | 'completed' | 'all'
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedApptId, setSelectedApptId] = useState(null);
+  const [selectedApptId, setSelectedApptId] = useState<Unmodelled>(null);
 
   // Modals
-  const [intakeAppt, setIntakeAppt] = useState(null);
+  const [intakeAppt, setIntakeAppt] = useState<Unmodelled>(null);
   const [updatingTransit, setUpdatingTransit] = useState(false);
 
   // Clinic coordinates (from doctor's facility or central default)
@@ -121,7 +121,7 @@ export default function DoctorInPersonAppointments() {
         const firstActive = homeVisits.find((a: Unmodelled) => (a.status || '').toLowerCase() !== 'completed') || homeVisits[0];
         setSelectedApptId(firstActive._id);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Failed to load home visits:', err);
       toast.error('Could not load home visits');
     } finally {
@@ -144,7 +144,7 @@ export default function DoctorInPersonAppointments() {
       await api.updateAppointment(id, { status, ...extra });
       toast.success(`Home visit request ${status === 'Confirmed' ? 'accepted' : 'updated'}`);
       loadAppointments(true);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error('Failed to update home visit');
     }
@@ -265,7 +265,7 @@ export default function DoctorInPersonAppointments() {
       await api.updateAppointmentTransit(apptId, { transitStatus: newStatus });
       toast.success(`Patient marked as ${newStatus === 'arrived' ? 'Arrived at Clinic' : 'On the Way'}`);
       loadAppointments(true);
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Failed to update transit status');
     } finally {
       setUpdatingTransit(false);
@@ -278,7 +278,7 @@ export default function DoctorInPersonAppointments() {
       await api.updateAppointment(apptId, { status: 'In Queue', checkedInAt: new Date() });
       toast.success('Patient checked in and added to queue');
       loadAppointments(true);
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Failed to check in patient');
     }
   };

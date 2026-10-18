@@ -12,7 +12,7 @@ import type { Unmodelled } from '@/lib/apiTypes';
 //   alert: { alertId, kind: 'code_blue'|'lab_panic'|'mtp', title, detail,
 //            toneType, actionLabel, room }
 //   onAcked(ack), onAction()
-const KIND_STYLE = {
+const KIND_STYLE: Unmodelled = {
   code_blue: {
     icon: Siren,
     ring: 'border-sky-400',

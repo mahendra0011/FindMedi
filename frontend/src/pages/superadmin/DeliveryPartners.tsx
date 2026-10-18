@@ -11,7 +11,7 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = {
+const statusColors: Unmodelled = {
   pending: 'bg-warning/10 text-warning',
   approved: 'bg-success/10 text-success',
   rejected: 'bg-destructive/10 text-destructive',
@@ -24,7 +24,7 @@ export default function SuperAdminDelivery() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
   const [searchTerm, setSearchTerm] = useState('');
-  const [rejectingId, setRejectingId] = useState(null);
+  const [rejectingId, setRejectingId] = useState<Unmodelled>(null);
   const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => {

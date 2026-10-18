@@ -87,10 +87,10 @@ const PeerSupport = () => {
     const uid = useMemo(() => getOrCreateAnonUID(), []);
     const alias = useMemo(() => aliasFromUID(uid), [uid]);
     const [postContent, setPostContent] = useState("");
-    const postContentRef = useRef(null);
+    const postContentRef: Unmodelled = useRef<Unmodelled>(null);
     const [editingPostId, setEditingPostId] = useState("");
     const [editingPostContent, setEditingPostContent] = useState("");
-    const [selectedPost, setSelectedPost] = useState(null);
+    const [selectedPost, setSelectedPost] = useState<Unmodelled>(null);
     const [comments, setComments] = useState<ApiRow[]>([]);
     const [commentContent, setCommentContent] = useState("");
     const ownerId = uid;
@@ -121,7 +121,7 @@ const PeerSupport = () => {
                     }
                 }
             }
-            catch (e) {
+            catch (e: any) {
                 console.error(e);
             }
         }
@@ -139,7 +139,7 @@ const PeerSupport = () => {
             const list = await listPosts(activeCategory === "All" ? undefined : activeCategory);
             setPosts(list);
         }
-        catch (e) {
+        catch (e: any) {
             toast({ variant: "destructive", title: "Failed to load posts", description: e?.message || "" });
         }
         finally {
@@ -162,7 +162,7 @@ const PeerSupport = () => {
             await reloadPosts();
             toast({ title: "Posted successfully" });
         }
-        catch (e) {
+        catch (e: any) {
             toast({ title: "Post failed", description: e?.message || "", variant: "destructive" });
         }
         finally {
@@ -202,7 +202,7 @@ const PeerSupport = () => {
             await reloadPosts();
             toast({ title: "Post updated" });
         }
-        catch (e) {
+        catch (e: any) {
             toast({ title: "Edit failed", description: e?.message || "", variant: "destructive" });
         }
         finally {
@@ -224,7 +224,7 @@ const PeerSupport = () => {
             await reloadPosts();
             toast({ title: "Post deleted" });
         }
-        catch (e) {
+        catch (e: any) {
             toast({ title: "Delete failed", description: e?.message || "", variant: "destructive" });
         }
         finally {
@@ -237,7 +237,7 @@ const PeerSupport = () => {
             const cs = await listComments(p.id);
             setComments(cs);
         }
-        catch (e) {
+        catch (e: any) {
             toast({ title: "Failed to load comments", description: e?.message || "", variant: "destructive" });
         }
     }
@@ -255,7 +255,7 @@ const PeerSupport = () => {
             setComments(cs);
             await reloadPosts();
         }
-        catch (e) {
+        catch (e: any) {
             toast({ title: "Comment failed", description: e?.message || "", variant: "destructive" });
         }
         finally {
@@ -267,7 +267,7 @@ const PeerSupport = () => {
             await votePost(p.id, dir);
             await reloadPosts();
         }
-        catch (e) {
+        catch (e: any) {
             toast({ title: "Vote failed", description: e?.message || "", variant: "destructive" });
         }
     }
@@ -280,7 +280,7 @@ const PeerSupport = () => {
             setEmergencySubmitted(true);
             toast({ title: "Contact submitted", description: "A support team member will reach out to you shortly." });
         }
-        catch (e) {
+        catch (e: any) {
             toast({ variant: "destructive", title: "Failed to submit", description: e?.message || "" });
         }
         finally {

@@ -73,7 +73,7 @@ const REVIEWS_DATA = [
 ];
 
 const DAY_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-const DAY_LABELS = { sunday: 'Sunday', monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday' };
+const DAY_LABELS: Unmodelled = { sunday: 'Sunday', monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday' };
 
 const AMENITIES_LIST = [
   { key:'parking', label:'Parking', icon:Car },
@@ -111,11 +111,11 @@ export default function DiagnosticCenterDetail() {
   const navigate = useNavigate();
   const { entries, addItem, updateQty } = useCart();
 
-  const [facility, setFacility] = useState(null);
+  const [facility, setFacility] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
   const [showRx, setShowRx] = useState(false);
-  const [uploadedRx, setUploadedRx] = useState(null);
-  const [copiedCode, setCopiedCode] = useState(null);
+  const [uploadedRx, setUploadedRx] = useState<Unmodelled>(null);
+  const [copiedCode, setCopiedCode] = useState<Unmodelled>(null);
   const [labSectionTab, setLabSectionTab] = useState('tests');
   const [medSearch, setMedSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');
@@ -154,7 +154,7 @@ export default function DiagnosticCenterDetail() {
         const result = await api.getFacility(clinicId);
         fac = result?.facility || result;
         if (fac && fac.type !== 'lab') fac = null;
-      } catch (e) {
+      } catch (e: any) {
         console.error(e);
       }
       setFacility(fac);
@@ -169,7 +169,7 @@ export default function DiagnosticCenterDetail() {
         setPackagesData(pkgs || PACKAGES);
         setReviewsData(reviews || REVIEWS_DATA);
         setNearbyLabs(Array.isArray(nearby) ? nearby : nearby?.facilities || SUGGESTED_LABS);
-      } catch (e) { console.error(e); }
+      } catch (e: any) { console.error(e); }
       setLoading(false);
     };
     load();

@@ -89,7 +89,7 @@ export default function PatientCarePlan() {
       if (remsRes.status === 'fulfilled') {
         setExistingReminders(remsRes.value.reminders || []);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       toast.error('Failed to load care plans');
     } finally {
@@ -111,7 +111,7 @@ export default function PatientCarePlan() {
       if (todayRes.status === 'fulfilled') {
         setTodayChecklist(todayRes.value);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
     }
   };

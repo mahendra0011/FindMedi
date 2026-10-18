@@ -24,7 +24,7 @@ export default function PendingApproval() {
         if (user?.approvalStatus === 'approved' || user?.doctorApproved) {
           window.location.hash = '#/dashboard';
         }
-      } catch (e) { console.error('Polling check failed:', e);
+      } catch (e: any) { console.error('Polling check failed:', e);
       } finally {
         setChecking(false);
       }

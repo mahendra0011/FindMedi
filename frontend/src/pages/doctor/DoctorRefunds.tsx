@@ -15,7 +15,7 @@ export default function DoctorRefunds() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState<Unmodelled>(null);
 
   const load = async () => {
     setLoading(true);

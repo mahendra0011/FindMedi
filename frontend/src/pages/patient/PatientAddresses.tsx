@@ -23,7 +23,7 @@ export default function PatientAddresses() {
   const [addresses, setAddresses] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editId, setEditId] = useState(null);
+  const [editId, setEditId] = useState<Unmodelled>(null);
   const [form, setForm] = useState({ label: 'Home', address: '', city: '', state: '', pincode: '', phone: user?.phone || '', isDefault: false });
 
   const load = async () => {

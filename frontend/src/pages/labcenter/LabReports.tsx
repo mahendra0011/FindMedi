@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { api, getApiBaseUrl } from '@/lib/api';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = {
+const statusColors: Unmodelled = {
   'Pending Upload': 'bg-warning/10 text-warning',
   'Uploaded': 'bg-info/10 text-info',
   'Delivered': 'bg-success/10 text-success',
@@ -232,7 +232,7 @@ export default function LabReports() {
       const data = await api.getLabBookings();
       const list = Array.isArray(data) ? data : (data?.bookings || data?.data || []);
       setReports(list || []);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       setReports([]);
     } finally {
@@ -244,14 +244,14 @@ export default function LabReports() {
     try {
       await api.updateLabBooking(id, { reportStatus: 'Uploaded', notes: 'Report uploaded', notified: false });
       setReports(prev => prev.map(r => r._id === id ? { ...r, reportStatus: 'Uploaded', notes: 'Report uploaded', notified: false } : r));
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const handleDownload = async (id: Unmodelled) => {
     try {
       await api.updateLabBooking(id, { notified: true });
       window.open(getApiBaseUrl() + '/lab/bookings/' + id + '/report', '_blank');
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const handleNotify = async (id: Unmodelled) => {
@@ -259,7 +259,7 @@ export default function LabReports() {
       await api.updateLabBooking(id, { reportStatus: 'Delivered', notified: true });
       setReports(prev => prev.map(r => r._id === id ? { ...r, reportStatus: 'Delivered', notified: true } : r));
       await api.createNotification({ title: 'Report Ready', message: 'Your lab report is ready for download', type: 'records' });
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const dispatch = async (id: Unmodelled) => {

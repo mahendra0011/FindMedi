@@ -16,7 +16,7 @@ import { useAutoRetry, AUTO_RETRY_STATUS } from '@/hooks/useAutoRetry';
 import { usePreferredPharmacies } from '@/context/PreferredPharmacyContext';
 import { toast } from 'sonner';
 import { userFacingError } from '@/lib/errorCopy';
-import type { Unmodelled } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const CROSS_STORE_MEDS = [
 ];
@@ -60,7 +60,7 @@ const STEPS = [
 export default function Checkout() {
   const navigate = useNavigate();
   const { entries, stores, addItem, removeItem, clearCart } = useCart();
-  const fileInputRef = useRef(null);
+  const fileInputRef: Unmodelled = useRef<Unmodelled>(null);
   const { user } = useAuth();
   const autoRetry = useAutoRetry();
   const { autoRetryEnabled, setAutoRetry: setPreferredAutoRetry } = usePreferredPharmacies();
@@ -73,37 +73,37 @@ export default function Checkout() {
   const [addressList, setAddressList] = useState(SAVED_ADDRESSES);
   const [addressVersion, setAddressVersion] = useState(0);
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<Unmodelled>(null);
   const [showCouponInput, setShowCouponInput] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [payOnDelivery, setPayOnDelivery] = useState(true);
   const [saveCard, setSaveCard] = useState(false);
   const [showRxModal, setShowRxModal] = useState(false);
   // rxStatus: per-entry map — 'pending' | 'verified' | 'rejected'
-  const [rxStatus, setRxStatus] = useState({});
-  const [rxRejection, setRxRejection] = useState({});
-  const [uploadedFiles, setUploadedFiles] = useState({});
-  const [oosFallback, setOosFallback] = useState(null);
+  const [rxStatus, setRxStatus] = useState<ApiRow>({});
+  const [rxRejection, setRxRejection] = useState<ApiRow>({});
+  const [uploadedFiles, setUploadedFiles] = useState<ApiRow>({});
+  const [oosFallback, setOosFallback] = useState<Unmodelled>(null);
   const [savedPrescriptions, setSavedPrescriptions] = useState(() => {
     try { return JSON.parse((localStorage.getItem(SAVED_PRESCRIPTIONS_KEY) || localStorage.getItem(LEGACY_SAVED_PRESCRIPTIONS_KEY))) || []; } catch { return []; }
   });
-  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState<Unmodelled>(null);
   const [rxConfirmed, setRxConfirmed] = useState(false);
 
-  const [storeMap, setStoreMap] = useState({});
+  const [storeMap, setStoreMap] = useState<ApiRow>({});
 
   useEffect(() => {
     const load = async () => {
       try {
         const res = await api.getFacilities({ type: 'pharmacy' });
         const list = Array.isArray(res) ? res : (res?.facilities || res?.data || []);
-        const map = {};
+        const map: Unmodelled = {};
         list.forEach((f: Unmodelled) => {
           const id = f._id || f.id;
           map[id] = { id, name: f.name || f.storeName, deliveryCharges: f.deliveryCharges || 20, freeDeliveryAbove: f.freeDeliveryAbove || 200 };
         });
         setStoreMap(map);
-      } catch (e) { console.error(e); }
+      } catch (e: any) { console.error(e); }
     };
     load();
   }, []);
@@ -112,7 +112,7 @@ export default function Checkout() {
   const hasRxItems = entries.some((e: Unmodelled) => e.item.rx);
   const findAlternatives = (entry: Unmodelled, allMeds: Unmodelled) => allMeds.filter((m: Unmodelled) => m.name === entry.item.name && m.storeId !== entry.storeId && m.inStock);
 
-  const subtotalByStore = {};
+  const subtotalByStore: Unmodelled = {};
   entries.forEach((e: Unmodelled) => {
     if (!subtotalByStore[e.storeId]) subtotalByStore[e.storeId] = 0;
     subtotalByStore[e.storeId] += e.item.price * e.qty;
@@ -144,7 +144,7 @@ export default function Checkout() {
       } else {
         toast.error(res?.message || 'Invalid coupon code');
       }
-    } catch (e) {
+    } catch (e: any) {
       toast.error(userFacingError(e, { fallback: 'Failed to validate coupon' }));
     }
   };
@@ -244,7 +244,7 @@ export default function Checkout() {
               params.set('method', paymentMethod);
               navigate(`/payment-gateway?${params}`);
             }
-          } catch (e) {
+          } catch (e: any) {
             toast.error(userFacingError(e, { fallback: 'Failed to place order' }));
           }
         },
@@ -300,7 +300,7 @@ export default function Checkout() {
         params.set('method', paymentMethod);
         navigate(`/payment-gateway?${params}`);
       }
-    } catch (e) {
+    } catch (e: any) {
       toast.error(userFacingError(e, { fallback: 'Failed to place order' }));
     }
   };
@@ -389,7 +389,7 @@ export default function Checkout() {
                  setAddressVersion(v => v + 1);
                  try {
                    await api.dispatch(null, '/patient/addresses', { method:'POST', body: JSON.stringify({ address: `${newAddress.full}, ${newAddress.city}, ${newAddress.pincode}`, label: 'Other' }) });
-                 } catch (e) {
+                 } catch (e: any) {
                    console.error('Failed to save address:', e);
                  }
                  toast.success('New address saved'); }}>Save Address</Button>
@@ -927,7 +927,7 @@ export default function Checkout() {
                  localStorage.setItem(SAVED_PRESCRIPTIONS_KEY, JSON.stringify(saved));
 
                  // Mark all Rx entries as pending
-                 const updated = {};
+                 const updated: Unmodelled = {};
                  rxEntries.forEach((e: Unmodelled) => { updated[e.key] = 'pending'; });
                  setRxStatus(updated);
                  setRxRejection({});
@@ -948,7 +948,7 @@ export default function Checkout() {
 
                    if (res?.verified) {
                      setRxStatus(prev => {
-                       const verified = { ...prev };
+                       const verified: Unmodelled = { ...prev };
                        rxEntries.forEach((e: Unmodelled) => { verified[e.key] = 'verified'; });
                        return verified;
                      });
@@ -956,12 +956,12 @@ export default function Checkout() {
 } else {
                       const reason = res?.reason || REJECTION_REASONS[Math.floor(Math.random() * REJECTION_REASONS.length)];
                       setRxStatus(prev => {
-                        const rejected = { ...prev };
+                        const rejected: Unmodelled = { ...prev };
                         rxEntries.forEach((e: Unmodelled) => { rejected[e.key] = 'rejected'; });
                         return rejected;
                       });
                       setRxRejection(prev => {
-                        const r = { ...prev };
+                        const r: Unmodelled = { ...prev };
                         rxEntries.forEach((e: Unmodelled) => { r[e.key] = reason; });
                         return r;
                       });

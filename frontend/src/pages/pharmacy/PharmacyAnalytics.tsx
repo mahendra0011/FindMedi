@@ -38,7 +38,7 @@ export default function PharmacyAnalytics() {
       api.getPharmacyOrders({}),
     ]).then(([stats, ordersRes]) => {
       const orders = Array.isArray(ordersRes) ? ordersRes : (ordersRes?.orders || ordersRes?.data || []);
-      const medRevenue = {};
+      const medRevenue: Unmodelled = {};
       orders.forEach((o: Unmodelled) => (o.items || []).forEach((item: Unmodelled) => {
         medRevenue[item.medicineName] = (medRevenue[item.medicineName] || 0) + (item.price * item.qty);
       }));

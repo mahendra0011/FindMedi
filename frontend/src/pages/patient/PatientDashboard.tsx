@@ -60,7 +60,7 @@ const StatusBadge = ({ status, mapping }: Unmodelled) => {
   return <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${colors[status] || 'bg-muted text-muted-foreground'}`}>{status}</span>;
 };
 
-const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
+const methodIcons: Unmodelled = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
 
 const Modal = ({ title, children, onClose }: Unmodelled) => (
   <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -139,7 +139,7 @@ export default function PatientDashboard() {
       cancelled = true;
     };
   }, []);
-  const [showModal, setShowModal] = useState(null);
+  const [showModal, setShowModal] = useState<Unmodelled>(null);
   const [appointments, setAppointments] = useState<ApiRow[]>([]);
   const [bills, setBills] = useState<ApiRow[]>([]);
   const [medOrders, setMedOrders] = useState<ApiRow[]>([]);
@@ -149,7 +149,7 @@ export default function PatientDashboard() {
   const [notifs, setNotifs] = useState<ApiRow[]>([]);
   const [reviews, setReviews] = useState<ApiRow[]>([]);
   const [refunds, setRefunds] = useState<ApiRow[]>([]);
-  const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelTarget, setCancelTarget] = useState<Unmodelled>(null);
   const [tipIndex, setTipIndex] = useState(0);
   const [greeting, setGreeting] = useState('');
   const [payments, setPayments] = useState<ApiRow[]>([]);
@@ -299,7 +299,7 @@ export default function PatientDashboard() {
             labName: rec.data?.labName || rec.data?.facilityName || '',
           })));
         }
-      } catch (e) { console.error(e); showToast('Failed to load dashboard data', 'error'); }
+      } catch (e: any) { console.error(e); showToast('Failed to load dashboard data', 'error'); }
     };
     load();
   }, [user?.id]);
@@ -334,7 +334,7 @@ export default function PatientDashboard() {
   const tileText = persona === 'elderly' ? 'text-sm' : 'text-xs';
   const tileDescText = persona === 'elderly' ? 'text-xs' : 'text-[10px]';
 
-  const statValues = {
+  const statValues: Unmodelled = {
     'Upcoming Appts': upcomingAppts.length,
     'Active Prescriptions': activeRxCount,
     'Active Orders': activeOrders,

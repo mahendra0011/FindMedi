@@ -95,7 +95,7 @@ export default function DoctorVideoCalls() {
       if (statsRes?.success) {
         setStats(statsRes.stats || {});
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Failed to load video call logs:', err);
       toast.error('Could not load video call history');
     } finally {
@@ -132,7 +132,7 @@ export default function DoctorVideoCalls() {
       // Stop test tracks immediately
       stream.getTracks().forEach((t) => t.stop());
       toast.success(is1080p ? 'Full HD 1080p Camera & Mic Ready!' : 'Camera & Mic active (Adaptive resolution ready)');
-    } catch (e) {
+    } catch (e: any) {
       setHwStatus({ tested: true, camera: false, mic: false, hd1080p: false });
       toast.error('Permission denied or no camera found');
     } finally {
@@ -149,7 +149,7 @@ export default function DoctorVideoCalls() {
       if (res?.success) {
         setContacts(res.contacts || []);
       }
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Could not load patient directory');
     } finally {
       setLoadingContacts(false);
@@ -164,7 +164,7 @@ export default function DoctorVideoCalls() {
         setCalls((prev) => prev.filter((c) => c._id !== callId));
         toast.success('Log deleted');
       }
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Failed to delete log');
     }
   };

@@ -22,7 +22,7 @@ export default function DoctorAnalytics() {
             labBookings: res.labBookings || [],
           });
         }
-      } catch (e) {
+      } catch (e: any) {
         toast.error(e.message || 'Failed to load analytics');
       } finally {
         setLoading(false);

@@ -122,7 +122,7 @@ export default function Signup() {
         googleIdToken: idToken || '',
       };
       localStorage.setItem('google_signup', JSON.stringify(signupData));
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || 'Google sign-in failed');
     } finally {
       setGoogleLoading(false);
@@ -154,7 +154,7 @@ export default function Signup() {
         });
         tokenClient.requestAccessToken({ prompt: 'select_account' });
         return;
-      } catch (oauthErr) {
+      } catch (oauthErr: any) {
         console.warn('initTokenClient fallback:', oauthErr);
       }
     }
@@ -258,7 +258,7 @@ export default function Signup() {
         if (data?.sentTo) params.set('sentTo', data.sentTo);
         navigate(`/verify-otp?${params.toString()}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || 'Signup failed');
     } finally {
       setLoading(false);

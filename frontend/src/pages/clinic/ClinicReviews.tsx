@@ -16,7 +16,7 @@ export default function ClinicReviews() {
       try {
         const data = await api.getReviews();
         setReviews(data.filter((r: Unmodelled) => r.doctorName === user?.name));
-      } catch (e) { console.error(e); }
+      } catch (e: any) { console.error(e); }
       setLoading(false);
     };
     load();

@@ -9,7 +9,7 @@ import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function ClinicCard({ clinic }: Unmodelled) {
   const [showBooking, setShowBooking] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<Unmodelled>(null);
   const fallbackDist = '0.8';
 
   return (

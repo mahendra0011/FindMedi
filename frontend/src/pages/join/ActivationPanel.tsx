@@ -143,7 +143,7 @@ export default function ActivationPanel({
       setEmail('');
       setName('');
       await loadStaff();
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err instanceof Error ? err.message : 'Could not send the invitation');
     } finally {
       setSending(false);
@@ -156,7 +156,7 @@ export default function ActivationPanel({
       await api.del(`/provider-staff/invites/${inviteId}${providerId ? `?providerId=${encodeURIComponent(providerId)}` : ''}`);
       toast.success('Invitation revoked');
       await loadStaff();
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err instanceof Error ? err.message : 'Could not revoke the invitation');
     } finally {
       setRevoking('');

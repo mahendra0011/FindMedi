@@ -22,7 +22,7 @@ export default function AdminTestCatalog() {
   const [catFilter, setCatFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editId, setEditId] = useState(null);
+  const [editId, setEditId] = useState<Unmodelled>(null);
   const [form, setForm] = useState({
     name: '', category: 'Blood Tests', categoryCode: 'TEST.BLOOD_BASICS', department: 'Pathology', price: '', mrp: '',
     reportTime: '24 hrs', prescriptionReq: false, homeCollection: false,

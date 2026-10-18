@@ -17,7 +17,7 @@ const patientApi = {
   deleteFamily:  (id: Unmodelled)      => patientRequest(`/patient/family/${id}`, { method:'DELETE' }),
 };
 
-const relationColors = {
+const relationColors: Unmodelled = {
   Spouse: 'text-rose-500 bg-rose-500/10',
   Child: 'text-blue-500 bg-blue-500/10',
   Parent: 'text-amber-500 bg-amber-500/10',

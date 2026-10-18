@@ -86,9 +86,9 @@ export default function PatientInPersonVisits() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('today'); // 'today' | 'upcoming' | 'pending' | 'completed'
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedApptId, setSelectedApptId] = useState(null);
+  const [selectedApptId, setSelectedApptId] = useState<Unmodelled>(null);
   const [updatingTransit, setUpdatingTransit] = useState(false);
-  const [intakeAppt, setIntakeAppt] = useState(null);
+  const [intakeAppt, setIntakeAppt] = useState<Unmodelled>(null);
 
   // User's live GPS coordinates (browser or fallback)
   const [userLocation, setUserLocation] = useState([77.2090, 28.6139]); // Default Central Delhi
@@ -128,7 +128,7 @@ export default function PatientInPersonVisits() {
         const firstActive = inPerson.find((a: Unmodelled) => (a.status || '').toLowerCase() !== 'completed') || inPerson[0];
         setSelectedApptId(firstActive._id);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Failed to load home visits:', err);
       toast.error('Could not load home visits');
     } finally {
@@ -239,7 +239,7 @@ export default function PatientInPersonVisits() {
           : 'Status updated: Marked as Arrived at Clinic Waiting Room!'
       );
       loadAppointments(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update transit status:', err);
       toast.error('Failed to update transit status');
     } finally {

@@ -15,7 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { DataGrid } from '@/components/ui/System';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Completed: 'bg-success/10 text-success',
   Processing: 'bg-info/10 text-info',
   Pending: 'bg-warning/10 text-warning',
@@ -25,7 +25,7 @@ const statusColors = {
 export default function PharmacyBusinessDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState<Unmodelled>(null);
   const [orders, setOrders] = useState<ApiRow[]>([]);
   const [orderTab, setOrderTab] = useState('pending');
   const [lowStock, setLowStock] = useState<ApiRow[]>([]);
@@ -73,7 +73,7 @@ export default function PharmacyBusinessDashboard() {
         setRefunds((rf?.returns || rf?.data || []).slice(0, 5));
         const failed = results.filter(r => r.status === 'rejected');
         if (failed.length > 0) toast.error(`Failed to load ${failed.length} data source(s)`);
-      } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
+      } catch (e: any) { console.error(e); toast.error('Failed to load dashboard data'); }
       if (mounted.current) setLoading(false);
     };
     load();

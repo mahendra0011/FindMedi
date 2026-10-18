@@ -10,7 +10,7 @@ import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
 import { getISTDateString } from '@/lib/dateUtils';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Pending: { bg: 'bg-warning/10', text: 'text-warning' },
   Confirmed: { bg: 'bg-success/10', text: 'text-success' },
   Completed: { bg: 'bg-primary/10', text: 'text-primary' },
@@ -94,7 +94,7 @@ export default function LabCenterDashboard() {
         }
         const failed = results.filter(r => r.status === 'rejected');
         if (failed.length > 0) toast.error(`Failed to load ${failed.length} data source(s)`);
-      } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
+      } catch (e: any) { console.error(e); toast.error('Failed to load dashboard data'); }
       if (mounted.current) setLoading(false);
     };
     load();

@@ -17,7 +17,7 @@ export default function OTPVerification() {
   const email = searchParams.get('email') || user?.email || '';
   const deliveryState = searchParams.get('delivery');
   const sentTo = searchParams.get('sentTo') || email;
-  const otpInputRef = useRef(null);
+  const otpInputRef: Unmodelled = useRef<Unmodelled>(null);
 
   const [otp, setOtp] = useState('');
   const [isOtpFocused, setIsOtpFocused] = useState(false);
@@ -83,7 +83,7 @@ export default function OTPVerification() {
       }
 
       navigate('/dashboard');
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || 'Invalid OTP. Please try again.');
     } finally {
       setLoading(false);
@@ -101,7 +101,7 @@ export default function OTPVerification() {
         ? 'Email simulation is enabled on this server. Configure Brevo to send real emails.'
         : `A fresh verification code was sent to ${data?.sentTo || email}.`);
       setResendCooldown(60);
-    } catch (err) {
+    } catch (err: any) {
       setDeliveryProblem(true);
       if (err.waitSeconds) setResendCooldown(err.waitSeconds);
       setError(err.message || 'Failed to resend OTP');

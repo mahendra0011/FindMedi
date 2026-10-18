@@ -37,7 +37,7 @@ export default function AutoRetryPanel({ orderContext, onPriceConfirm, onStoreSe
       try {
         await api.forwardPharmacyOrder(orderId, { facilityId: storeId });
         return true;
-      } catch (e) {
+      } catch (e: any) {
         toast.error('Auto-forward failed: ' + ((e as Error).message || 'Unknown error'));
         return false;
       }

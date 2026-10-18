@@ -260,11 +260,11 @@ const [testSort, setTestSort] = useState('popularity');
             const r = await api.getReviews({ doctorId: loadedDoctors[0]._id });
             const revs = Array.isArray(r) ? r : r?.reviews || [];
             if (revs.length > 0) setReviews(revs);
-          } catch (e) { console.error(e); }
+          } catch (e: any) { console.error(e); }
         } else {
           setReviews([]);
         }
-      } catch (facilityError) {
+      } catch (facilityError: any) {
         try {
           const doc = await api.getDoctor(clinicId);
           setDoctor(doc);
@@ -294,7 +294,7 @@ const [testSort, setTestSort] = useState('popularity');
             }));
             setTests(mapped);
           } catch { setTests([]); }
-        } catch (doctorError) {
+        } catch (doctorError: any) {
           console.error(facilityError);
           console.error(doctorError);
           setDoctor(null);

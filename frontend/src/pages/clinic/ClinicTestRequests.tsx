@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const STATUS_CONFIG = {
+const STATUS_CONFIG: Unmodelled = {
   Pending: { color: 'bg-amber-500/10 text-amber-600 border-amber-200', icon: Clock, label: 'Pending' },
   Confirmed: { color: 'bg-blue-500/10 text-blue-600 border-blue-200', icon: CheckCircle, label: 'Confirmed' },
   'Sample Collected': { color: 'bg-cyan-500/10 text-cyan-600 border-cyan-200', icon: FlaskConical, label: 'Sample Collected' },
@@ -23,14 +23,14 @@ const STATUS_CONFIG = {
   Rescheduled: { color: 'bg-orange-500/10 text-orange-600 border-orange-200', icon: Calendar, label: 'Rescheduled' },
 };
 
-const PAYMENT_CONFIG = {
+const PAYMENT_CONFIG: Unmodelled = {
   Pending: { color: 'bg-amber-500/10 text-amber-600', label: 'Pending' },
   Paid: { color: 'bg-emerald-500/10 text-emerald-600', label: 'Paid' },
   'Partially Paid': { color: 'bg-blue-500/10 text-blue-600', label: 'Partial' },
   Refunded: { color: 'bg-red-500/10 text-red-600', label: 'Refunded' },
 };
 
-const VISIT_ICONS = {
+const VISIT_ICONS: Unmodelled = {
   'Walk-in': User,
   'Home Collection': Home,
   'Appointment': Calendar,
@@ -44,7 +44,7 @@ export default function ClinicTestRequests() {
   const [paymentFilter, setPaymentFilter] = useState('All');
   const [visitFilter, setVisitFilter] = useState('All');
   const [dateFilter, setDateFilter] = useState('');
-  const [updating, setUpdating] = useState(null);
+  const [updating, setUpdating] = useState<Unmodelled>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -56,7 +56,7 @@ export default function ClinicTestRequests() {
       const res = await api.getLabBookings(params);
       const list = res?.bookings || res?.data || [];
       setBookings(list);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error('Failed to load test requests');
       setBookings([]);
@@ -86,7 +86,7 @@ export default function ClinicTestRequests() {
       await api.updateLabBooking(id, { status: newStatus });
       setBookings(prev => prev.map(b => b._id === id ? { ...b, status: newStatus } : b));
       toast.success(`Status updated to ${newStatus}`);
-    } catch (e) {
+    } catch (e: any) {
       toast.error(e.message || 'Failed to update status');
     }
     setUpdating(null);
@@ -98,7 +98,7 @@ export default function ClinicTestRequests() {
       await api.updateLabBooking(id, { paymentStatus: newPayment });
       setBookings(prev => prev.map(b => b._id === id ? { ...b, paymentStatus: newPayment } : b));
       toast.success(`Payment status updated to ${newPayment}`);
-    } catch (e) {
+    } catch (e: any) {
       toast.error(e.message || 'Failed to update payment status');
     }
     setUpdating(null);

@@ -104,7 +104,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: Unmodelled)
 }
 
 export default function LabBusinessLayout() {
-  const mainRef = useRef(null);
+  const mainRef: Unmodelled = useRef<Unmodelled>(null);
   const location = useLocation();
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = useState(false);

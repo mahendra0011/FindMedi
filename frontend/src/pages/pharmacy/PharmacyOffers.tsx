@@ -11,13 +11,13 @@ export default function PharmacyOffers() {
   const [offers, setOffers] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editItem, setEditItem] = useState(null);
+  const [editItem, setEditItem] = useState<Unmodelled>(null);
   const [form, setForm] = useState({ title:'', description:'', discountType:'percentage', discountValue:'', validFrom:'', validUntil:'', minPurchase:'', isActive:true });
 
   const load = async () => {
     setLoading(true);
     try { const res = await api.getPharmacyOffers(); setOffers(res.offers || []); }
-    catch (e) { console.error(e); }
+    catch (e: any) { console.error(e); }
     setLoading(false);
   };
 
@@ -31,13 +31,13 @@ export default function PharmacyOffers() {
       if (editItem) { await api.updatePharmacyOffer(editItem._id, form); toast.success('Offer updated'); }
       else { await api.createPharmacyOffer(form); toast.success('Offer created'); }
       setShowModal(false); load();
-    } catch (e) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Delete this offer?')) return;
     try { await api.deletePharmacyOffer(id); toast.success('Deleted'); load(); }
-    catch (e) { toast.error(e.message); }
+    catch (e: any) { toast.error(e.message); }
   };
 
   return (

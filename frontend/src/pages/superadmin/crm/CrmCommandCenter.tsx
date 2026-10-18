@@ -56,7 +56,7 @@ export default function CrmCommandCenter() {
         : '/crm/command-center';
       const res = await apiClient.get(url);
       setData(res.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load CRM command center', err);
     } finally {
       setLoading(false);

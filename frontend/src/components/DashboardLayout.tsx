@@ -5,7 +5,7 @@ import AppSidebar from './AppSidebar';
 import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function DashboardLayout({ children }: Unmodelled) {
-  const mainRef = useRef(null);
+  const mainRef: Unmodelled = useRef<Unmodelled>(null);
   const location = useLocation();
   const isMobile = useIsMobile();
   const isAIChat = location.pathname === '/ai-chat';

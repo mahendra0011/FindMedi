@@ -46,7 +46,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }: Unmod
   const [bookingTime, setBookingTime] = useState('');
   const [selectedHour, setSelectedHour] = useState('');
   const [notes, setNotes] = useState('');
-  const [slotCounts, setSlotCounts] = useState({});
+  const [slotCounts, setSlotCounts] = useState<ApiRow>({});
   const [fullSlots, setFullSlots] = useState<ApiRow[]>([]);
   const [dateDisabledSlots, setDateDisabledSlots] = useState<ApiRow[]>([]);
   const [pendingDisabledSlots, setPendingDisabledSlots] = useState<ApiRow[]>([]);
@@ -59,7 +59,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }: Unmod
   const doctorId = user?.doctorProfileId || null;
 
   // Doctor profile fetch — real schedule (time_slots), fee, slotDuration
-  const [doctorProfile, setDoctorProfile] = useState(null);
+  const [doctorProfile, setDoctorProfile] = useState<Unmodelled>(null);
   useEffect(() => {
     if (!doctorId) return;
     api.getDoctor(doctorId)
@@ -83,7 +83,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }: Unmod
         } else {
           const arr = Array.isArray(res) ? res : [];
           setFullSlots(arr);
-          const counts = {};
+          const counts: Unmodelled = {};
           arr.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
           setSlotCounts(counts);
           setDateDisabledSlots([]);
@@ -129,7 +129,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }: Unmod
       const { hour } = parseTime(t);
       if (hour != null) enabledHours.add(hour);
     });
-    const groups = {};
+    const groups: Unmodelled = {};
     [...enabledHours].sort((a, b) => a - b).forEach(h => {
       const h12 = h % 12 === 0 ? 12 : h % 12;
       const key = `${h12}:00 ${h >= 12 ? 'PM' : 'AM'}`;
@@ -198,7 +198,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }: Unmod
             allergies: intakeForm.allergies,
             familyHistory: intakeForm.familyHistory,
           });
-        } catch (e) { console.error('Intake save failed:', e); }
+        } catch (e: any) { console.error('Intake save failed:', e); }
       }
       toast.success(res?.duplicate
         ? `Walk-in "${form.name}" already booked for ${bookingTime}`
@@ -210,7 +210,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }: Unmod
       setNotes('');
       setStep(1);
       onPatientCreated?.();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error(userFacingError(e, { fallback: 'Failed to book walk-in' }));
     } finally {

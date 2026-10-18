@@ -59,7 +59,7 @@ export default function Broadcast() {
       setPriority('normal');
       setSelectedRoles(['all']);
       load();
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err?.message || 'Failed to send broadcast');
     }
     setSending(false);

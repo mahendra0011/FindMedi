@@ -56,7 +56,7 @@ export default function PatientReviews() {
       const reviewsList = r?.reviews || r?.data || r || [];
       const uid = String(user?.id || user?._id || "");
       setReviews(Array.isArray(reviewsList) ? reviewsList.filter(rv => rv.patientName === user?.name || (uid && String(rv.patientId || rv.patient_id || "") === uid)) : []);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
     setLoading(false);
   };
 

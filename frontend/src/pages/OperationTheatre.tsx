@@ -4,9 +4,9 @@ import { Search, Plus, Clock, X, Scissors, CheckCircle, AlertTriangle, Clipboard
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
-import type { Unmodelled } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const otApi = {
+const otApi: Unmodelled = {
   getSurgeries: (p: Unmodelled) => api.dispatch(() => Promise.resolve({ surgeries: [] }), '/ot/surgeries?' + new URLSearchParams(p)),
   createSurgery: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/ot/surgeries', { method: 'POST', body: JSON.stringify(b) }),
   startPreOp: (id: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ot/surgeries/${id}/pre-op`, { method: 'PUT' }),
@@ -18,7 +18,7 @@ const otApi = {
   getStats: () => api.dispatch(() => Promise.resolve({ total: 0, scheduled: 0, inProgress: 0, completed: 0, today: 0 }), '/ot/stats'),
 };
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Scheduled: 'bg-primary/10 text-primary', 'Pre-Op': 'bg-warning/10 text-warning',
   'In Progress': 'bg-destructive/10 text-destructive', Recovery: 'bg-info/10 text-info',
   'Ward Shifted': 'bg-purple-500/10 text-purple-600',
@@ -52,14 +52,14 @@ const preOpChecklistItems = [
 ];
 
 export default function OperationTheatre() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [expandedId, setExpandedId] = useState(null);
+  const [expandedId, setExpandedId] = useState<Unmodelled>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
-  const [checklistSurgery, setChecklistSurgery] = useState(null);
-  const [checklist, setChecklist] = useState({});
+  const [checklistSurgery, setChecklistSurgery] = useState<Unmodelled>(null);
+  const [checklist, setChecklist] = useState<ApiRow>({});
   const [showRecovery, setShowRecovery] = useState(false);
   const [recoveryData, setRecoveryData] = useState({ bp: '', pulse: '', spO2: '', consciousness: 'Awake', painLevel: '0', notes: '' });
   const [newSurgery, setNewSurgery] = useState({

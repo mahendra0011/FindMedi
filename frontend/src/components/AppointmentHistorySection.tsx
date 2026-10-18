@@ -60,7 +60,7 @@ export default function AppointmentHistorySection({ appointments }: Unmodelled) 
       const res = await api.getTransactions({ limit: 100 });
       const list = res?.data || res?.payments || [];
       setPayments(list);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error('Failed to load payment history');
     }
@@ -125,8 +125,8 @@ export default function AppointmentHistorySection({ appointments }: Unmodelled) 
   const completionLabel = (a: Unmodelled) => completionTimeLabel(a) || 'Completed';
 
   const hourSlots = useMemo(() => getHourSlots(), []);
-  const [selectedHour, setSelectedHour] = useState(null);
-  const [selectedSubSlot, setSelectedSubSlot] = useState(null);
+  const [selectedHour, setSelectedHour] = useState<Unmodelled>(null);
+  const [selectedSubSlot, setSelectedSubSlot] = useState<Unmodelled>(null);
 
   const subSlots = useMemo(() => {
     if (selectedHour) return getSubSlotsForHour(selectedHour);
@@ -177,8 +177,8 @@ export default function AppointmentHistorySection({ appointments }: Unmodelled) 
   }, [completedAll, today]);
 
   // Date with the most completed appointments
-  const busiestDay = useMemo(() => {
-    const map = {};
+  const busiestDay: Unmodelled = useMemo(() => {
+    const map: Unmodelled = {};
     completedAll.forEach((a: Unmodelled) => {
       const d = a.date || '';
       map[d] = (map[d] || 0) + 1;
@@ -647,7 +647,7 @@ export default function AppointmentHistorySection({ appointments }: Unmodelled) 
 
 /* ── Status tile for the Status Overview panel ── */
 function StatusTile({ icon: Icon, label, value, tone = 'primary' }: Unmodelled) {
-  const toneMap = {
+  const toneMap: Unmodelled = {
     primary: 'text-primary',
     success: 'text-success',
     warning: 'text-warning',
@@ -664,13 +664,13 @@ function StatusTile({ icon: Icon, label, value, tone = 'primary' }: Unmodelled) 
 }
 
 /* ── Payment helpers ── */
-const paymentStatusConfig = {
+const paymentStatusConfig: Unmodelled = {
   completed: { label: 'Paid', color: 'bg-emerald-500/10 text-emerald-600', icon: CheckCircle },
   pending: { label: 'Pending', color: 'bg-amber-500/10 text-amber-600', icon: Clock },
   failed: { label: 'Failed', color: 'bg-red-500/10 text-red-600', icon: AlertCircle },
   refunded: { label: 'Refunded', color: 'bg-blue-500/10 text-blue-600', icon: RotateCcw },
 };
-const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
+const methodIcons: Unmodelled = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
 
 function formatDateTime(d: Unmodelled) {
   if (!d) return '';

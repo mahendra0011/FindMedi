@@ -50,7 +50,7 @@ export default function ForgotPassword() {
       const data = await api.forgotPassword({ email });
       setMessage(data.message || 'Password reset OTP sent to your email.');
       setStep('reset');
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || 'Unable to send password reset OTP');
     } finally {
       setLoading(false);
@@ -80,7 +80,7 @@ export default function ForgotPassword() {
       const data = await api.resetPassword({ email, otp, password });
       setMessage(data.message || 'Password updated successfully.');
       setStep('done');
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || 'Unable to reset password');
     } finally {
       setLoading(false);
@@ -95,7 +95,7 @@ export default function ForgotPassword() {
       await api.forgotPassword({ email });
       setMessage('A fresh reset OTP has been sent to your email.');
       setResendCooldown(60);
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || 'Failed to resend OTP');
     } finally {
       setResendLoading(false);

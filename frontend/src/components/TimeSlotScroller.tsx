@@ -73,8 +73,8 @@ export default function TimeSlotScroller({
   selectedSubSlot: externalSelectedSubSlot,
   onSelectSubSlot: externalOnSelectSubSlot,
 }: Unmodelled) {
-  const [internalSelectedHour, setInternalSelectedHour] = useState(null);
-  const [internalSelectedSubSlot, setInternalSelectedSubSlot] = useState(null);
+  const [internalSelectedHour, setInternalSelectedHour] = useState<Unmodelled>(null);
+  const [internalSelectedSubSlot, setInternalSelectedSubSlot] = useState<Unmodelled>(null);
 
   // Use external state if provided, otherwise internal
   const selectedHour = externalSelectedHour !== undefined ? externalSelectedHour : internalSelectedHour;
@@ -88,7 +88,7 @@ export default function TimeSlotScroller({
 
   // Build a map of time → appointment for quick lookup
   const appointmentMap = useMemo(() => {
-    const map = {};
+    const map: Unmodelled = {};
     appointments.forEach(apt => {
       if (apt.time) {
         map[apt.time] = apt;

@@ -27,7 +27,7 @@ function urgencyLevel(iso: Unmodelled) {
   return null;
 }
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Active: 'bg-warning/10 text-warning',
   Dispensed: 'bg-success/10 text-success',
   'Partially Dispensed': 'bg-info/10 text-info',
@@ -49,7 +49,7 @@ export default function PharmacyPrescriptionQueue() {
   const [queue, setQueue] = useState<ApiRow[]>([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
-  const [selectedRx, setSelectedRx] = useState(null);
+  const [selectedRx, setSelectedRx] = useState<Unmodelled>(null);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -57,7 +57,7 @@ export default function PharmacyPrescriptionQueue() {
     try {
       const res = await api.getPharmacyPrescriptions({});
       setQueue(res.prescriptions || []);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   useEffect(() => { load(); }, []);
@@ -79,7 +79,7 @@ export default function PharmacyPrescriptionQueue() {
       if (selectedRx?._id === rxId) setSelectedRx(updated);
       setSuccessMsg('Medicine dispensed successfully');
       setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (e) {
+    } catch (e: any) {
       setError(e.message || 'Failed to dispense medicine');
       setTimeout(() => setError(''), 3000);
     }
@@ -93,7 +93,7 @@ export default function PharmacyPrescriptionQueue() {
       setQueue(prev => prev.map(r => r._id === id ? { ...r, status: 'Cancelled' } : r));
       setSuccessMsg('Prescription cancelled');
       setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const totalActive    = queue.filter(r => r.status === 'Active').length;

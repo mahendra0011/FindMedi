@@ -23,12 +23,12 @@ export default function AIChatPage() {
   const [messages, setMessages] = useState<ApiRow[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedImage, setSelectedImage] = useState<Unmodelled>(null);
+  const [selectedFile, setSelectedFile] = useState<Unmodelled>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [chatSessions, setChatSessions] = useState<ApiRow[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [currentSessionId, setCurrentSessionId] = useState<Unmodelled>(null);
   
   // Toggles & Settings
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
@@ -40,19 +40,19 @@ export default function AIChatPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Edit / Chat Management State
-  const [editingSessionId, setEditingSessionId] = useState(null);
+  const [editingSessionId, setEditingSessionId] = useState<Unmodelled>(null);
   const [editTitle, setEditTitle] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [dragActive, setDragActive] = useState(false);
 
   // Refs
-  const messagesEndRef = useRef(null);
-  const fileInputRef = useRef(null);
-  const documentInputRef = useRef(null);
-  const cameraInputRef = useRef(null);
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-  const textareaRef = useRef(null);
+  const messagesEndRef: Unmodelled = useRef<Unmodelled>(null);
+  const fileInputRef: Unmodelled = useRef<Unmodelled>(null);
+  const documentInputRef: Unmodelled = useRef<Unmodelled>(null);
+  const cameraInputRef: Unmodelled = useRef<Unmodelled>(null);
+  const videoRef: Unmodelled = useRef<Unmodelled>(null);
+  const streamRef: Unmodelled = useRef<Unmodelled>(null);
+  const textareaRef: Unmodelled = useRef<Unmodelled>(null);
 
   // Settings State
   const [settings, setSettings] = useState({
@@ -111,7 +111,7 @@ export default function AIChatPage() {
           videoRef.current.srcObject = stream;
         }
       }, 100);
-    } catch (err) {
+    } catch (err: any) {
       toast.error("Camera access denied or unavailable.");
       cameraInputRef.current?.click();
     }
@@ -127,7 +127,7 @@ export default function AIChatPage() {
 
   const capturePhoto = () => {
     if (videoRef.current) {
-      const canvas = document.createElement('canvas');
+      const canvas: Unmodelled = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
       const ctx = canvas.getContext('2d');

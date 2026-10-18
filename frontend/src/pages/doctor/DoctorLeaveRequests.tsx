@@ -7,9 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const leaveStatusColors = {
+const leaveStatusColors: Unmodelled = {
   Pending: 'bg-warning/10 text-warning border-warning/20',
   Approved: 'bg-success/10 text-success border-success/20',
   Rejected: 'bg-destructive/10 text-destructive border-destructive/20',
@@ -26,7 +26,7 @@ const leaveTypes = [
 
 export default function DoctorLeaveRequests() {
   const [leaves, setLeaves] = useState<ApiRow[]>([]);
-  const [balance, setBalance] = useState(null);
+  const [balance, setBalance] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -42,7 +42,7 @@ export default function DoctorLeaveRequests() {
       const leavesRes = await api.getLeaveRequests();
       setLeaves(leavesRes?.leaves || []);
       setBalance(leavesRes?.balance || null);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
     setLoading(false);
   };
 
@@ -113,7 +113,7 @@ export default function DoctorLeaveRequests() {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
             {Object.entries(balance).filter(([k]) => k !== 'maternity').map(([key, val]) => {
               const remaining = val.total - val.used;
-              const labels = { sick: 'Sick Leave', casual: 'Casual Leave', earned: 'Earned Leave', personal: 'Personal Leave' };
+              const labels: Unmodelled = { sick: 'Sick Leave', casual: 'Casual Leave', earned: 'Earned Leave', personal: 'Personal Leave' };
               return (
                 <div key={key} className="bg-card rounded-lg p-3 text-center border border-border/40">
                   <p className={`text-lg font-bold ${remaining > 0 ? 'text-primary' : 'text-destructive'}`}>{remaining}</p>

@@ -133,7 +133,7 @@ export function DataGrid({
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState<ApiRow[]>([]);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize });
-  const parentRef = useRef(null);
+  const parentRef = useRef<Unmodelled>(null);
 
   // Keep the pager's pageSize in sync when the prop changes.
   useEffect(() => {
@@ -406,7 +406,7 @@ export function EntityPicker({ label, search, onSelect, renderOption, placeholde
   const [q, setQ] = useState('');
   const [options, setOptions] = useState<ApiRow[]>([]);
   const [open, setOpen] = useState(false);
-  const boxRef = useRef(null);
+  const boxRef: Unmodelled = useRef<Unmodelled>(null);
   const inputId = useId();
 
   useEffect(() => {

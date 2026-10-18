@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { userFacingError } from '@/lib/errorCopy';
-import type { Unmodelled } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -56,8 +56,8 @@ function formatLeaves(arr: Unmodelled) {
  * Admin ticks checkboxes for fields they agree with, then clicks "Confirm".
  */
 export default function ScheduleChangeRequestModal({ request, doctor, onClose, onDecision }: Unmodelled) {
-  const [checkedFields, setCheckedFields] = useState({});
-  const [decision, setDecision] = useState(null); // 'approve' | 'reject'
+  const [checkedFields, setCheckedFields] = useState<ApiRow>({});
+  const [decision, setDecision] = useState<Unmodelled>(null); // 'approve' | 'reject'
   const [adminNote, setAdminNote] = useState('');
   const [rejectionNote, setRejectionNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -195,7 +195,7 @@ export default function ScheduleChangeRequestModal({ request, doctor, onClose, o
   };
 
   const selectAll = () => {
-    const all = {};
+    const all: Unmodelled = {};
     fields.forEach(f => { all[f.key] = true; });
     setCheckedFields(all);
   };
@@ -226,7 +226,7 @@ export default function ScheduleChangeRequestModal({ request, doctor, onClose, o
         : `Request rejected for ${request.doctorName || 'doctor'}`);
       onDecision?.(request._id, decision);
       onClose();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error(userFacingError(e, { fallback: 'Failed to process request' }));
     }

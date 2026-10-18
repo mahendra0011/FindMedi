@@ -71,7 +71,7 @@ export default function HospitalProfile() {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
-  const [hospital, setHospital] = useState(null);
+  const [hospital, setHospital] = useState<Unmodelled>(null);
   const [doctors, setDoctors] = useState<ApiRow[]>([]);
   const [reviews, setReviews] = useState<ApiRow[]>([]);
   const [docSearch, setDocSearch] = useState('');
@@ -112,11 +112,11 @@ export default function HospitalProfile() {
   const [priceRange, setPriceRange] = useState('all');
   const [testCatalog, setTestCatalog] = useState<ApiRow[]>([]);
 
-  const carouselRef = useRef(null);
+  const carouselRef = useRef<Unmodelled>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const scrollCarousel = (dir: Unmodelled) => {
-    const el = carouselRef.current;
+    const el: Unmodelled = carouselRef.current;
     if (!el) return;
     const amount = el.clientWidth * 0.85;
     el.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' });
@@ -212,13 +212,13 @@ export default function HospitalProfile() {
     setShowBookingModal(true);
   };
 
-  const [testCart, setTestCart] = useState({});
+  const [testCart, setTestCart] = useState<ApiRow>({});
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState(null);
+  const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState<Unmodelled>(null);
   const { user } = useAuth();
 
   const [testPaymentLoading, setTestPaymentLoading] = useState(false);
-  const [testPaymentResult, setTestPaymentResult] = useState(null);
+  const [testPaymentResult, setTestPaymentResult] = useState<Unmodelled>(null);
   const [testPaymentStep, setTestPaymentStep] = useState('method');
 
   const handleTestPayment = async () => {
@@ -251,7 +251,7 @@ export default function HospitalProfile() {
       setTestPaymentResult(result);
       setTestBookingStep(6);
       toast.success('Payment successful! Test booking confirmed.');
-    } catch (e) {
+    } catch (e: any) {
       const msg = userFacingError(e, { fallback: '' });
       if (isBookingConflictError(msg)) {
         setTestBookingStep(6);
@@ -273,7 +273,7 @@ export default function HospitalProfile() {
   const [testPaymentMethod, setTestPaymentMethod] = useState('upi');
   const addTestToCart = (testId: Unmodelled) => setTestCart(p => ({ ...p, [testId]: (p[testId] || 0) + 1 }));
   const removeTestFromCart = (testId: Unmodelled) => setTestCart(p => {
-    const next = { ...p };
+    const next: Unmodelled = { ...p };
     if (next[testId] <= 1) delete next[testId];
     else next[testId]--;
     return next;

@@ -71,7 +71,7 @@ export default function DoctorAppointments() {
   const [loading, setLoading] = useState(true);
 
   // Modals
-  const [rescheduleId, setRescheduleId] = useState(null);
+  const [rescheduleId, setRescheduleId] = useState<Unmodelled>(null);
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
   const [bulkShiftHours, setBulkShiftHours] = useState(1);
@@ -85,12 +85,12 @@ export default function DoctorAppointments() {
   };
   const [bookedSlots, setBookedSlots] = useState<ApiRow[]>([]);
   const [dateDisabledSlots, setDateDisabledSlots] = useState<ApiRow[]>([]);
-  const [completeId, setCompleteId] = useState(null);
+  const [completeId, setCompleteId] = useState<Unmodelled>(null);
   const [reportType, setReportType] = useState('Prescription');
-  const [billModal, setBillModal] = useState(null);
+  const [billModal, setBillModal] = useState<Unmodelled>(null);
   const [billAmount, setBillAmount] = useState(500);
   const [showWalkInModal, setShowWalkInModal] = useState(false);
-  const [detailsApt, setDetailsApt] = useState(null);
+  const [detailsApt, setDetailsApt] = useState<Unmodelled>(null);
 
   const [prescriptionData, setPrescriptionData] = useState(initialPrescriptionData);
   const [labReportData, setLabReportData] = useState(initialLabReportData);
@@ -106,7 +106,7 @@ export default function DoctorAppointments() {
       const data = await api.getAppointments({ status: 'All', limit: 100, ...searchParams });
       const raw = data?.appointments || data?.data || data || [];
       setAppointments(raw);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       // Transient network errors interceptor me already retry ho jaate hain —
       // sirf genuine server errors par hi user ko batana chahiye.
@@ -170,7 +170,7 @@ export default function DoctorAppointments() {
   }).length;
 
   const handleStatus = async (id: Unmodelled, status: Unmodelled, extra = {}) => {
-    try { await api.updateAppointment(id, { status, ...extra }); loadAppointments(); } catch (e) { console.error(e); toast.error('Failed to update appointment'); }
+    try { await api.updateAppointment(id, { status, ...extra }); loadAppointments(); } catch (e: any) { console.error(e); toast.error('Failed to update appointment'); }
   };
 
   const handleReschedule = async () => {
@@ -180,7 +180,7 @@ export default function DoctorAppointments() {
       toast.success('Appointment rescheduled');
       setRescheduleId(null); setNewDate(''); setNewTime('');
       loadAppointments();
-    } catch (e) { console.error(e); toast.error('Failed to reschedule appointment'); }
+    } catch (e: any) { console.error(e); toast.error('Failed to reschedule appointment'); }
   };
 
   const openReportModal = useCallback((apt: Unmodelled, type: Unmodelled) => {
@@ -221,7 +221,7 @@ export default function DoctorAppointments() {
 
   const updateMedication = (type: Unmodelled, index: Unmodelled, field: Unmodelled, value: Unmodelled) => {
     if (type === 'Prescription') {
-      const meds = [...prescriptionData.medications]; meds[index][field] = value;
+      const meds: Unmodelled = [...prescriptionData.medications]; meds[index][field] = value;
       setPrescriptionData({ ...prescriptionData, medications: meds });
     } else {
       const meds = [...dischargeData.medications]; meds[index][field] = value;
@@ -258,7 +258,7 @@ export default function DoctorAppointments() {
       toast.success('Prescription generated');
       setShowReportModal(false);
       loadAppointments();
-    } catch (e) { console.error(e); toast.error('Failed to generate prescription'); }
+    } catch (e: any) { console.error(e); toast.error('Failed to generate prescription'); }
   };
 
   const handleGenerateLabReport = async () => {
@@ -287,7 +287,7 @@ export default function DoctorAppointments() {
       toast.success('Lab report generated');
       setShowReportModal(false);
       loadAppointments();
-    } catch (e) { console.error(e); toast.error('Failed to generate lab report'); }
+    } catch (e: any) { console.error(e); toast.error('Failed to generate lab report'); }
   };
 
   const handleGenerateDischargeSummary = async () => {
@@ -318,7 +318,7 @@ export default function DoctorAppointments() {
       toast.success('Discharge summary generated');
       setShowReportModal(false);
       loadAppointments();
-    } catch (e) { console.error(e); toast.error('Failed to generate discharge summary'); }
+    } catch (e: any) { console.error(e); toast.error('Failed to generate discharge summary'); }
   };
 
   const handleGenerateBill = async () => {
@@ -337,7 +337,7 @@ export default function DoctorAppointments() {
       toast.success('Bill generated');
       setBillModal(null); setCompleteId(null);
       loadAppointments();
-    } catch (e) { console.error(e); toast.error('Failed to generate bill'); }
+    } catch (e: any) { console.error(e); toast.error('Failed to generate bill'); }
   };
 
   // Calendar widget (shared by both views)

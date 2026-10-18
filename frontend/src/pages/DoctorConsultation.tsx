@@ -60,7 +60,7 @@ const consultationApi = {
   },
 };
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Waiting: 'bg-warning/10 text-warning',
   Called: 'bg-info/10 text-info',
   'In Consultation': 'bg-primary/10 text-primary',
@@ -68,7 +68,7 @@ const statusColors = {
   Skipped: 'bg-destructive/10 text-destructive',
 };
 
-const triageColors = {
+const triageColors: Unmodelled = {
   Emergency: 'bg-destructive text-destructive-foreground',
   Urgent: 'bg-orange-500 text-white',
   Normal: 'bg-primary text-primary-foreground',
@@ -98,7 +98,7 @@ export default function DoctorConsultation() {
   const [tab, setTab] = useState('queue');
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('All');
-  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedPatient, setSelectedPatient] = useState<Unmodelled>(null);
   const [showConsult, setShowConsult] = useState(false);
   const [consultForm, setConsultForm] = useState(emptyConsultation);
   const [activeConsultTab, setActiveConsultTab] = useState('vitals');
@@ -183,7 +183,7 @@ export default function DoctorConsultation() {
       if (selectedPatient?._id) {
         await consultationApi.completeToken(selectedPatient._id);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
     }
   };

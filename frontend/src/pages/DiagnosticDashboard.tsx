@@ -16,7 +16,7 @@ import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 
-const labApi = {
+const labApi: Unmodelled = {
   getOrders: (p: Unmodelled) => api.getLabOrders(p),
   getStats: () => api.getLabStats(),
   getTests: (p: Unmodelled) => api.getTests(p),
@@ -46,13 +46,13 @@ export default function DiagnosticDashboard() {
   const qc = useQueryClient();
   const [tab, setTab] = useState('overview');
   const [search, setSearch] = useState('');
-  const [showModal, setShowModal] = useState(null);
-  const [toast, setToast] = useState(null);
+  const [showModal, setShowModal] = useState<Unmodelled>(null);
+  const [toast, setToast] = useState<Unmodelled>(null);
   const [dispatchForm, setDispatchForm] = useState({ dropAddress: '', deliveryFee: '40', deliveryPartnerId: '', notes: '' });
 
   // Tests
   const [testForm, setTestForm] = useState({ name: '', category: 'Blood Test', department: 'Pathology', price: '', mrp: '', reportTime: '24 hrs', prescriptionReq: false, homeCollection: false, homeCollectionFee: '50', popular: false, nablAccredited: false, description: '', preparation: '' });
-  const [editTestId, setEditTestId] = useState(null);
+  const [editTestId, setEditTestId] = useState<Unmodelled>(null);
 
   // Bookings
   const [bookingFilter, setBookingFilter] = useState('All');
@@ -60,11 +60,11 @@ export default function DiagnosticDashboard() {
 
   // Equipment
   const [equipForm, setEquipForm] = useState({ name: '', type: 'MRI', model: '', serialNumber: '', manufacturer: '', installationDate: '', nextMaintenanceDate: '', status: 'Operational', location: '', notes: '' });
-  const [editEquipId, setEditEquipId] = useState(null);
+  const [editEquipId, setEditEquipId] = useState<Unmodelled>(null);
 
   // Packages
   const [pkgForm, setPkgForm] = useState({ name: '', category: 'Basic', description: '', testNames: '', originalPrice: '', packagePrice: '', popular: false, homeCollectionAvailable: false, reportTime: '24-48 hrs' });
-  const [editPkgId, setEditPkgId] = useState(null);
+  const [editPkgId, setEditPkgId] = useState<Unmodelled>(null);
 
   // Staff
   const [newStaff, setNewStaff] = useState({ name: '', role: 'Lab Technician', email: '', phone: '', licenseNumber: '', experience: '' });

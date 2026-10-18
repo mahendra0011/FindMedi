@@ -54,7 +54,7 @@ function getAppointmentModeMeta(appt: Unmodelled) {
   return { key: 'hospital', label: 'In Hospital', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' };
 }
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Confirmed: { bg: 'bg-success/10', text: 'text-success', border: 'border-success/20' },
   Pending: { bg: 'bg-warning/10', text: 'text-warning', border: 'border-warning/20' },
   Completed: { bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/20' },
@@ -76,7 +76,7 @@ export default function DoctorDashboard() {
   const [activeEmergencyConsultId, setActiveEmergencyConsultId] = useState<string | null>(null);
   const [consultVideoOpen, setConsultVideoOpen] = useState(false);
   const mounted = useRef(true);
-  const appointmentsSectionRef = useRef(null);
+  const appointmentsSectionRef: Unmodelled = useRef<Unmodelled>(null);
   const handleStatClick = (tab: Unmodelled) => {
     setApptTab(tab);
     appointmentsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -128,7 +128,7 @@ export default function DoctorDashboard() {
           toast.error(`Failed to load ${failed.length} data source(s)`);
         }
       }
-    } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
+    } catch (e: any) { console.error(e); toast.error('Failed to load dashboard data'); }
     if (mounted.current) setLoading(false);
   }, [user?.name, user?._id, user?.doctorProfileId]);
 
@@ -216,7 +216,7 @@ export default function DoctorDashboard() {
       await api.updateAppointment(id, { status });
       toast.success(`Appointment marked as ${status}`);
       load(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       toast.error(`Failed to update status: ${err.message || 'Error'}`);
     }

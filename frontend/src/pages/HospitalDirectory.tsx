@@ -120,7 +120,7 @@ export default function HospitalDirectory() {
       const data = await api.getHospitals(params);
       const list = Array.isArray(data) ? data : (data?.data || data?.hospitals || []);
       setAllHospitals(list);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
     setLoading(false);
   };
 

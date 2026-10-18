@@ -4,11 +4,11 @@ import { TestTube, Search, FlaskConical, Heart, Activity } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const categories = ['Blood', 'Urine', 'Imaging', 'Cardiac', 'Other'];
 
-const categoryIcons = { Blood: FlaskConical, Urine: TestTube, Imaging: Activity, Cardiac: Heart, Other: TestTube };
+const categoryIcons: Unmodelled = { Blood: FlaskConical, Urine: TestTube, Imaging: Activity, Cardiac: Heart, Other: TestTube };
 
 export default function LabTestCatalog() {
   const [tests, setTests] = useState<ApiRow[]>([]);
@@ -21,7 +21,7 @@ export default function LabTestCatalog() {
       try {
         const res = await api.getLabTests();
         setTests(res.tests || []);
-      } catch (e) { console.error(e); }
+      } catch (e: any) { console.error(e); }
       setLoading(false);
     };
     load();

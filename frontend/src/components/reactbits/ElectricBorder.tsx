@@ -12,9 +12,9 @@ const ElectricBorder = ({
   className,
   style,
 }: Unmodelled) => {
-  const canvasRef = useRef(null);
-  const containerRef = useRef(null);
-  const animationRef = useRef(null);
+  const canvasRef = useRef<Unmodelled>(null);
+  const containerRef = useRef<Unmodelled>(null);
+  const animationRef = useRef<Unmodelled>(null);
   const timeRef = useRef(0);
   const lastFrameTimeRef = useRef(0);
 
@@ -128,11 +128,11 @@ const ElectricBorder = ({
   );
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
+    const canvas: Unmodelled = canvasRef.current;
+    const container: Unmodelled = containerRef.current;
     if (!canvas || !container) return undefined;
 
-    const ctx = canvas.getContext('2d');
+    const ctx: Unmodelled = canvas.getContext('2d');
     if (!ctx) return undefined;
 
     const octaves = 10;

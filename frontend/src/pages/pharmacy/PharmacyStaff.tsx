@@ -11,13 +11,13 @@ export default function PharmacyStaff() {
   const [staff, setStaff] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editItem, setEditItem] = useState(null);
+  const [editItem, setEditItem] = useState<Unmodelled>(null);
   const [form, setForm] = useState({ name:'', email:'', phone:'', role:'pharmacist', joinedAt:'' });
 
   const load = async () => {
     setLoading(true);
     try { const res = await api.getPharmacyStaff(); setStaff(res.staff || []); }
-    catch (e) { console.error(e); }
+    catch (e: any) { console.error(e); }
     setLoading(false);
   };
 
@@ -31,13 +31,13 @@ export default function PharmacyStaff() {
       if (editItem) { await api.updatePharmacyStaff(editItem._id, form); toast.success('Staff updated'); }
       else { await api.createPharmacyStaff(form); toast.success('Staff added'); }
       setShowModal(false); load();
-    } catch (e) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Remove this staff member?')) return;
     try { await api.deletePharmacyStaff(id); toast.success('Removed'); load(); }
-    catch (e) { toast.error(e.message); }
+    catch (e: any) { toast.error(e.message); }
   };
 
   return (

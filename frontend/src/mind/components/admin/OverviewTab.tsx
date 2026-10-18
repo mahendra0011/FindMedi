@@ -153,7 +153,7 @@ export default function OverviewTab({ data, users, totals, loading, load, export
                     Object.entries(data.stats.usersByRole).map(([name, count]) => {
                       const total = Object.values(data.stats.usersByRole).reduce((a, b) => a + b, 0);
                       const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
-                      const colors = {
+                      const colors: Unmodelled = {
                         user: { bar: "from-blue-500 to-blue-400", dot: "bg-blue-500" },
                         counsellor: { bar: "from-emerald-500 to-emerald-400", dot: "bg-emerald-500" },
                         admin: { bar: "from-violet-500 to-violet-400", dot: "bg-violet-500" },
@@ -193,7 +193,7 @@ export default function OverviewTab({ data, users, totals, loading, load, export
                     Object.entries(data.stats.appointmentsByStatus).map(([name, count]) => {
                       const total = Object.values(data.stats.appointmentsByStatus).reduce((a, b) => a + b, 0);
                       const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
-                      const colors = {
+                      const colors: Unmodelled = {
                         completed: { bar: "from-emerald-500 to-emerald-400", dot: "bg-emerald-500" },
                         pending: { bar: "from-amber-500 to-amber-400", dot: "bg-amber-500" },
                         cancelled: { bar: "from-rose-500 to-rose-400", dot: "bg-rose-500" },

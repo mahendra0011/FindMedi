@@ -122,7 +122,7 @@ export default function DeliveryDashboard() {
     };
   }, [profile?._id, profile?.isOnline, deliveries.active]);
 
-  const [loadError, setLoadError] = useState(null);
+  const [loadError, setLoadError] = useState<Unmodelled>(null);
 
   const loadData = async (isSilent = false) => {
     if (!isSilent) setLoading(true);

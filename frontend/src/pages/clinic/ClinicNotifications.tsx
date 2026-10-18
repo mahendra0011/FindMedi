@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const typeIcons = {
+const typeIcons: Unmodelled = {
   booking: CalendarDays,
   reminder: Clock,
   alert: AlertTriangle,
@@ -17,7 +17,7 @@ const typeIcons = {
   prescription: Pill,
   message: MessageSquare,
 };
-const typeColors = {
+const typeColors: Unmodelled = {
   booking: 'bg-blue-100 text-blue-600',
   reminder: 'bg-amber-100 text-amber-600',
   alert: 'bg-red-100 text-red-600',
@@ -37,14 +37,14 @@ export default function ClinicNotifications() {
   const [search, setSearch] = useState('');
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [detailModal, setDetailModal] = useState(null);
+  const [detailModal, setDetailModal] = useState<Unmodelled>(null);
 
   const loadNotifications = async () => {
     setLoading(true);
     try {
       const data = await api.getNotifications({ doctor: user?.name, type: filter });
       setNotifications(data?.data || data || []);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
     setLoading(false);
   };
 
@@ -64,21 +64,21 @@ export default function ClinicNotifications() {
     try {
       await api.markNotificationRead(id);
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const markAllRead = async () => {
     try {
       await api.markAllRead();
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const clearAll = async () => {
     try {
       await Promise.all(notifications.map(n => api.deleteNotification(n._id)));
       setNotifications([]);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const deleteSelected = async () => {
@@ -87,7 +87,7 @@ export default function ClinicNotifications() {
       setNotifications(prev => prev.filter(n => !selectedIds.has(n._id)));
       setSelectedIds(new Set());
       setBulkMode(false);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const toggleSelect = (id: Unmodelled) => {

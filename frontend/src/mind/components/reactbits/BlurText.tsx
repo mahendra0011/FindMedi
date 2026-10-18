@@ -4,7 +4,7 @@ import type { Unmodelled } from '@/lib/apiTypes';
 
 const buildKeyframes = (from: Unmodelled, steps: Unmodelled) => {
   const keys = new Set([...Object.keys(from), ...steps.flatMap((s: Unmodelled) => Object.keys(s))]);
-  const keyframes = {};
+  const keyframes: Unmodelled = {};
 
   keys.forEach((k) => {
     keyframes[k] = [from[k], ...steps.map((s: Unmodelled) => s[k])];
@@ -29,7 +29,7 @@ const BlurText = ({
 }: Unmodelled) => {
   const elements = animateBy === "words" ? text.split(" ") : text.split("");
   const [inView, setInView] = useState(false);
-  const ref = useRef(null);
+  const ref = useRef<Unmodelled>(null);
 
   useEffect(() => {
     if (!ref.current) return undefined;

@@ -163,7 +163,7 @@ const PsychiatristDashboard = () => {
   const revenueMonthly = useAppSelector(selectRevenueMonthlyTrends);
   const [data, setData] = useState(fallback);
   const [loading, setLoading] = useState(true);
-  const [notes, setNotes] = useState({});
+  const [notes, setNotes] = useState<ApiRow>({});
   const [availabilityRows, setAvailabilityRows] = useState(() => parseAvailabilityRows([]));
   const [unavailableDates, setUnavailableDates] = useState<ApiRow[]>([]);
   const [unavailableDateDraft, setUnavailableDateDraft] = useState("");
@@ -173,11 +173,11 @@ const PsychiatristDashboard = () => {
   const [sessionFilter, setSessionFilter] = useState("all");
   const [sessionTypeFilter, setSessionTypeFilter] = useState("all");
   const [sessionSearch, setSessionSearch] = useState("");
-  const [sessionDrafts, setSessionDrafts] = useState({});
+  const [sessionDrafts, setSessionDrafts] = useState<ApiRow>({});
   const [patientRiskFilter, setPatientRiskFilter] = useState("all");
   const [packageSearch, setPackageSearch] = useState("");
   const [packageStatusFilter, setPackageStatusFilter] = useState("all");
-  const [selectedPackageForDetail, setSelectedPackageForDetail] = useState(null);
+  const [selectedPackageForDetail, setSelectedPackageForDetail] = useState<Unmodelled>(null);
   const [usernameDraft, setUsernameDraft] = useState("");
   const [profileDraft, setProfileDraft] = useState({
     specialization: "",
@@ -235,7 +235,7 @@ const load = useCallback(async () => {
         payoutBank: { ...defaultProviderSettings.payoutBank, ...(next.profile?.providerSettings?.payoutBank || {}) },
       });
       setSelectedPatientId((current) => current || next.patients?.[0]?.id || "");
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Unable to load dashboard", description: error?.message || "" });
     } finally {
       setLoading(false);
@@ -296,8 +296,8 @@ const load = useCallback(async () => {
     localStorage.setItem("mindsupport_psychiatrist_theme", theme);
   }, [theme]);
 
-  const appointments = useMemo(() => data.appointments || [], [data.appointments]);
-  const patients = useMemo(() => data.patients || [], [data.patients]);
+  const appointments: Unmodelled = useMemo(() => data.appointments || [], [data.appointments]);
+  const patients: Unmodelled = useMemo(() => data.patients || [], [data.patients]);
   const today = todayYMD();
 
   const pending = appointments.filter((item) => item.status === "pending");
@@ -311,9 +311,9 @@ const load = useCallback(async () => {
         .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`)),
     [appointments]
   );
-  const selectedPatient = patients.find((patient) => patient.id === selectedPatientId) || patients[0];
+  const selectedPatient: Unmodelled = patients.find((patient) => patient.id === selectedPatientId) || patients[0];
 
-  const allPackages = useMemo(() => data.allPackages || [], [data.allPackages]);
+  const allPackages: Unmodelled = useMemo(() => data.allPackages || [], [data.allPackages]);
   const packageSummary = useMemo(() => data.packageSummary || {
     activeCount: 0,
     expiringSoonCount: 0,
@@ -327,10 +327,10 @@ const load = useCallback(async () => {
   // Helper: get display label for package session badge e.g. "📦 Package Session 3/8"
   const getPackageBadgeLabel = useCallback((appointment: Unmodelled) => {
     if (!appointment?.packageId) return null;
-    const pkg = allPackages.find((p) => String(p.id) === String(appointment.packageId));
+    const pkg: Unmodelled = allPackages.find((p) => String(p.id) === String(appointment.packageId));
     if (!pkg) return "📦 Package Session";
     // Position among sessions of same package (sorted chronologically)
-    const related = appointments
+    const related: Unmodelled = appointments
       .filter((a) => String(a.packageId) === String(appointment.packageId))
       .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
     const idx = related.findIndex((a) => String(a.id) === String(appointment.id));
@@ -394,7 +394,7 @@ const load = useCallback(async () => {
       await api.put(`/api/appointments/${appointmentId}`, payload);
       toast({ title: successTitle });
       await load();
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Update failed", description: error?.message || "" });
     }
   };
@@ -404,7 +404,7 @@ const load = useCallback(async () => {
       await api.post("/api/meet/create", { appointmentId, meetingLink: sharedLink });
       toast({ title: "Shared Google Meet ready", description: "User Join and counsellor Open Meet now use the same room." });
       await load();
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Meet link failed", description: error?.message || "" });
     }
   };
@@ -432,7 +432,7 @@ const load = useCallback(async () => {
       if (!url) throw new Error("Upload returned no URL");
       setProfileDraft((prev) => ({ ...prev, profilePhotoUrl: url }));
       toast({ title: "Photo uploaded", description: "Save your profile to apply the change." });
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Upload failed", description: error?.message || "Could not upload photo." });
     } finally {
       setUploadingPhoto(false);
@@ -468,7 +468,7 @@ const load = useCallback(async () => {
       ]);
       toast({ title: "Profile tools updated" });
       await load();
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Update failed", description: error?.message || "" });
     }
   };
@@ -548,7 +548,7 @@ const load = useCallback(async () => {
       await api.put("/api/counsellor/packages", { packages: cleaned });
       toast({ title: "Packages saved", description: "Your custom packages are live on your profile." });
       await load();
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Failed to save packages", description: error?.message || "" });
     }
   };

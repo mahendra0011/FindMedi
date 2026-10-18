@@ -7,8 +7,8 @@ import { useNotificationCount } from '@/context/NotificationContext';
 import { api } from '@/lib/api';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const typeIcons = { reminder: Calendar, payment: CreditCard, appointment: Calendar, records: FileText, system: AlertCircle };
-const typeColors = { reminder: 'bg-warning/10 text-warning', payment: 'bg-success/10 text-success', appointment: 'bg-info/10 text-info', records: 'bg-primary/10 text-primary', system: 'bg-purple-500/10 text-purple-600' };
+const typeIcons: Unmodelled = { reminder: Calendar, payment: CreditCard, appointment: Calendar, records: FileText, system: AlertCircle };
+const typeColors: Unmodelled = { reminder: 'bg-warning/10 text-warning', payment: 'bg-success/10 text-success', appointment: 'bg-info/10 text-info', records: 'bg-primary/10 text-primary', system: 'bg-purple-500/10 text-purple-600' };
 
 export default function Notifications() {
   const { user } = useAuth();
@@ -27,7 +27,7 @@ export default function Notifications() {
         filtered = list.filter((n: Unmodelled) => n.userId === userId);
       }
       setNotifications(filtered);
-    } catch (e) { 
+    } catch (e: any) { 
       console.error(e);
       setNotifications([]);
     }
@@ -42,7 +42,7 @@ export default function Notifications() {
       await api.markNotificationRead(id); 
       loadNotifications();
       refreshCount();
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const handleMarkAllRead = async () => {
@@ -50,7 +50,7 @@ export default function Notifications() {
       await api.markAllRead();
       loadNotifications();
       refreshCount();
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const handleDelete = async (id: Unmodelled) => {
@@ -58,7 +58,7 @@ export default function Notifications() {
       await api.deleteNotification(id); 
       loadNotifications();
       refreshCount();
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const handleClearAll = async () => {
@@ -67,7 +67,7 @@ export default function Notifications() {
       await api.clearAllNotifications();
       loadNotifications();
       refreshCount();
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;

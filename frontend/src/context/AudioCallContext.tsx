@@ -31,9 +31,9 @@ export function AudioCallProvider({ children }: Unmodelled) {
 
   // Call States: 'idle' | 'calling' | 'ringing' | 'connecting' | 'connected' | 'ended' | 'busy' | 'timeout'
   const [callState, setCallState] = useState('idle');
-  const [activePeer, setActivePeer] = useState(null); // { id, name, avatar, role, phone, appointmentId }
+  const [activePeer, setActivePeer] = useState<Unmodelled>(null); // { id, name, avatar, role, phone, appointmentId }
   const [isCaller, setIsCaller] = useState(false);
-  const [currentCallLogId, setCurrentCallLogId] = useState(null);
+  const [currentCallLogId, setCurrentCallLogId] = useState<Unmodelled>(null);
 
   // Audio Controls
   const [isMuted, setIsMuted] = useState(false);
@@ -52,18 +52,18 @@ export function AudioCallProvider({ children }: Unmodelled) {
   const [clinicalNotes, setClinicalNotes] = useState('');
 
   // References
-  const peerConnectionRef = useRef(null);
-  const localStreamRef = useRef(null);
-  const remoteStreamRef = useRef(null);
-  const remoteAudioElemRef = useRef(null);
-  const callTimerRef = useRef(null);
-  const recordingTimerRef = useRef(null);
-  const timeoutTimerRef = useRef(null);
-  const qualityIntervalRef = useRef(null);
-  const stopToneRef = useRef(null);
-  const mediaRecorderRef = useRef(null);
+  const peerConnectionRef: Unmodelled = useRef<Unmodelled>(null);
+  const localStreamRef: Unmodelled = useRef<Unmodelled>(null);
+  const remoteStreamRef: Unmodelled = useRef<Unmodelled>(null);
+  const remoteAudioElemRef: Unmodelled = useRef<Unmodelled>(null);
+  const callTimerRef = useRef<Unmodelled>(null);
+  const recordingTimerRef = useRef<Unmodelled>(null);
+  const timeoutTimerRef = useRef<Unmodelled>(null);
+  const qualityIntervalRef = useRef<Unmodelled>(null);
+  const stopToneRef = useRef<Unmodelled>(null);
+  const mediaRecorderRef: Unmodelled = useRef<Unmodelled>(null);
   const recordedChunksRef = useRef([]);
-  const recordingAudioCtxRef = useRef(null);
+  const recordingAudioCtxRef: Unmodelled = useRef<Unmodelled>(null);
 
   // Create remote audio element on mount
   useEffect(() => {
@@ -82,7 +82,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const outputs = devices.filter((d) => d.kind === 'audiooutput');
         setAudioDevices(outputs);
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Audio devices enumeration error:', e);
       }
     }
@@ -127,13 +127,13 @@ export function AudioCallProvider({ children }: Unmodelled) {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       try {
         mediaRecorderRef.current.stop();
-      } catch (e) {}
+      } catch (e: any) {}
     }
 
     if (recordingAudioCtxRef.current && recordingAudioCtxRef.current.state !== 'closed') {
       try {
         recordingAudioCtxRef.current.close();
-      } catch (e) {}
+      } catch (e: any) {}
     }
 
     // Stop local audio tracks
@@ -162,7 +162,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
       try {
         await remoteAudioElemRef.current.setSinkId(deviceId);
         toast.success(`Audio output changed`);
-      } catch (err) {
+      } catch (err: any) {
         console.warn('setSinkId error:', err);
       }
     }
@@ -171,7 +171,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
   // Toggle speaker phone
   const toggleSpeaker = useCallback(() => {
     setIsSpeakerOn((prev) => {
-      const next = !prev;
+      const next: Unmodelled = !prev;
       if (remoteAudioElemRef.current) {
         remoteAudioElemRef.current.volume = next ? 1.0 : 0.4;
       }
@@ -205,7 +205,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
         setCurrentCallLogId(json.call._id);
         return json.call._id;
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Failed to log call initiate:', e);
     }
     return null;
@@ -220,7 +220,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
         credentials: 'include',
         body: JSON.stringify({ status, duration, notes }),
       });
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Failed to update call status:', e);
     }
   };
@@ -234,7 +234,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
     try {
       await updateCallStatus(currentCallLogId, 'completed', callDuration, textToSave);
       toast.success('Clinical consultation notes saved to audio call record');
-    } catch (e) {
+    } catch (e: any) {
       toast.error('Failed to save clinical notes');
     }
   }, [currentCallLogId, clinicalNotes, callDuration]);
@@ -251,7 +251,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
         body: formData,
       });
       toast.success('Call audio recording saved to history');
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Failed to upload call recording:', e);
     }
   };
@@ -271,7 +271,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
       localStreamRef.current = stream;
       setIsMuted(false);
       return stream;
-    } catch (err) {
+    } catch (err: any) {
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         toast.error('Microphone permission was denied. Please allow mic access in your browser.');
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
@@ -337,7 +337,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
       }, 1000);
 
       toast.info('Call recording started');
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Recording initiation failed:', e);
       toast.error('Could not start call recording');
     }
@@ -422,7 +422,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
               }
             }
           });
-        } catch (e) {}
+        } catch (e: any) {}
       }
     }, 4000);
 
@@ -495,7 +495,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
           setActivePeer(null);
         }, 2000);
       }, CALL_TIMEOUT_SECONDS * 1000);
-    } catch (err) {
+    } catch (err: any) {
       cleanupMediaAndPeer();
       setCallState('idle');
       setActivePeer(null);
@@ -539,7 +539,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
       if (currentCallLogId) {
         updateCallStatus(currentCallLogId, 'completed');
       }
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Failed to connect audio call');
       rejectCall();
     }
@@ -669,7 +669,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
       setCallState('connecting');
 
       try {
-        const pc = createPeerConnection(activePeer?.id, true);
+        const pc: Unmodelled = createPeerConnection(activePeer?.id, true);
 
         if (localStreamRef.current) {
           localStreamRef.current.getTracks().forEach((track: Unmodelled) => pc.addTrack(track, localStreamRef.current));
@@ -685,7 +685,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
           to: activePeer?.id,
           offer,
         });
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Error creating WebRTC offer:', e);
       }
     };
@@ -719,7 +719,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
         callTimerRef.current = setInterval(() => {
           setCallDuration((prev) => prev + 1);
         }, 1000);
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Error handling WebRTC offer:', e);
       }
     };
@@ -739,7 +739,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
             setCallDuration((prev) => prev + 1);
           }, 1000);
         }
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Error setting WebRTC answer:', e);
       }
     };
@@ -751,7 +751,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
         if (pc && data.candidate) {
           await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
         }
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Error adding ICE candidate:', e);
       }
     };

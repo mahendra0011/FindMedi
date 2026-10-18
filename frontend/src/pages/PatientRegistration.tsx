@@ -30,7 +30,7 @@ export default function PatientRegistration() {
   const [search, setSearch] = useState('');
   const [showRegister, setShowRegister] = useState(false);
   const [newPatient, setNewPatient] = useState({ name: '', email: '', phone: '', gender: 'Male', dateOfBirth: '', address: '', bloodGroup: 'A+', emergencyContact: '', emergencyPhone: '' });
-  const [registeredPatient, setRegisteredPatient] = useState(null);
+  const [registeredPatient, setRegisteredPatient] = useState<Unmodelled>(null);
 
   const { data: searchData } = useQuery({ queryKey: ['patient-search', search], queryFn: () => regApi.search(search), enabled: search.length > 2 });
   const { data: stats } = useQuery({ queryKey: ['reg-stats'], queryFn: regApi.getStats });

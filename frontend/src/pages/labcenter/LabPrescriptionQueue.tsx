@@ -14,7 +14,7 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const STATUS_COLORS = {
+const STATUS_COLORS: Unmodelled = {
   Pending:  'bg-amber-500/10 text-amber-600 border-amber-200',
   Verified: 'bg-emerald-500/10 text-emerald-600 border-emerald-200',
   Rejected: 'bg-red-500/10 text-red-600 border-red-200',
@@ -54,10 +54,10 @@ export default function LabPrescriptionQueue() {
   const [loading,      setLoading]      = useState(true);
   const [search,       setSearch]       = useState('');
   const [filter,       setFilter]       = useState('All');
-  const [selectedRx,   setSelectedRx]   = useState(null);
+  const [selectedRx,   setSelectedRx]   = useState<Unmodelled>(null);
   const [showPanel,    setShowPanel]    = useState(false);
   const [showRejectDlg,setShowRejectDlg]= useState(false);
-  const [rejectTarget, setRejectTarget] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState<Unmodelled>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [processing,   setProcessing]   = useState(false);
 
@@ -88,7 +88,7 @@ export default function LabPrescriptionQueue() {
     return matchSearch && matchFilter;
   });
 
-  const counts = {
+  const counts: Unmodelled = {
     All:      queue.length,
     Pending:  queue.filter(r => r.status === 'Pending').length,
     Verified: queue.filter(r => r.status === 'Verified').length,

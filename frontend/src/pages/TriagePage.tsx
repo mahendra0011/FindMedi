@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const triageApi = {
+const triageApi: Unmodelled = {
   getAll: (p = {}) => api.dispatch(() => Promise.resolve({ entries: [] }), '/triage?' + new URLSearchParams(p)),
   create: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/triage', { method: 'POST', body: JSON.stringify(b) }),
   update: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/triage/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
@@ -16,7 +16,7 @@ const triageApi = {
   getStats: () => api.dispatch(() => Promise.resolve({ total: 0, immediate: 0, urgent: 0, lessUrgent: 0, active: 0, today: 0, mlc: 0 }), '/triage/stats/main'),
 };
 
-const triageColors = {
+const triageColors: Unmodelled = {
   'P1-Immediate': 'bg-destructive text-destructive-foreground',
   'P2-Urgent': 'bg-orange-500 text-white',
   'P3-Less Urgent': 'bg-warning text-warning-foreground',
@@ -25,10 +25,10 @@ const triageColors = {
 };
 
 export default function TriagePage() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [search, setSearch] = useState('');
   const [triageFilter, setTriageFilter] = useState('All');
-  const [expandedId, setExpandedId] = useState(null);
+  const [expandedId, setExpandedId] = useState<Unmodelled>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [newEntry, setNewEntry] = useState({
     patientName: '', age: '', gender: 'Male', phone: '', arrivalMode: 'Walk-in', broughtBy: '',

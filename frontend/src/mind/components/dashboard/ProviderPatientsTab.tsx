@@ -94,7 +94,7 @@ export function ProviderPatientsTab({
               "from-amber-500 to-orange-400",
             ];
             const pc = progressColors[idx % progressColors.length];
-            const riskColors = {
+            const riskColors: Unmodelled = {
               low: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600",
               moderate: "border-amber-500/30 bg-amber-500/10 text-amber-600",
               high: "border-rose-500/30 bg-rose-500/10 text-rose-600",

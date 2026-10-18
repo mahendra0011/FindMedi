@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusConfig = {
+const statusConfig: Unmodelled = {
   Active: { label: 'Active', icon: Clock, color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
   Dispensed: { label: 'Dispensed', icon: CheckCircle2, color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
   'Partially Dispensed': { label: 'Partially Dispensed', icon: Loader2, color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
@@ -21,14 +21,14 @@ export default function PatientPrescriptions() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
-  const [selectedRx, setSelectedRx] = useState(null);
+  const [selectedRx, setSelectedRx] = useState<Unmodelled>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
         const res = await api.getPharmacyPrescriptions({});
         setPrescriptions(res.prescriptions || []);
-      } catch (e) { console.error(e); }
+      } catch (e: any) { console.error(e); }
       setLoading(false);
     };
     load();

@@ -114,7 +114,7 @@ function PastVisitCard({ record }: Unmodelled) {
   const doctorName = record.doctor || record.doctorId?.name || '';
   const type = record.type || 'diagnosis';
 
-  const typeLabels = {
+  const typeLabels: Unmodelled = {
     prescription: 'Prescription',
     lab_report: 'Lab Report',
     diagnosis: 'Diagnosis',
@@ -123,7 +123,7 @@ function PastVisitCard({ record }: Unmodelled) {
     bill_invoice: 'Bill',
     payment_invoice: 'Invoice',
   };
-  const typeColors = {
+  const typeColors: Unmodelled = {
     prescription: 'bg-success/10 text-success',
     lab_report: 'bg-info/10 text-info',
     diagnosis: 'bg-primary/10 text-primary',

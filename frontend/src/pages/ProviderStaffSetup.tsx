@@ -60,7 +60,7 @@ export default function ProviderStaffSetup() {
         ...(name.trim() ? { name: name.trim() } : {}),
       })) as unknown as SetupResult;
       setDone(res);
-    } catch (err) {
+    } catch (err: any) {
       setError(err instanceof Error ? err.message : 'This invitation link is invalid, already used, or has expired.');
     } finally {
       setLoading(false);

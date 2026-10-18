@@ -9,11 +9,11 @@ import { cn } from '@/lib/utils';
 import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import BillCheckout from '@/components/BillCheckout';
 import { userFacingError } from '@/lib/errorCopy';
-import type { Unmodelled } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const UPI_APPS = ['Google Pay', 'PhonePe', 'Paytm', 'BHIM', 'CRED'];
 
-const PAYMENT_METHODS = {
+const PAYMENT_METHODS: Unmodelled = {
   upi: { label:'UPI', icon: Smartphone },
   card: { label:'Debit / Credit Card', icon: CreditCard },
   netbanking: { label:'Net Banking', icon: Building },
@@ -39,10 +39,10 @@ export default function PaymentGateway() {
   const [saveCard, setSaveCard] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [_paying, setPaying] = useState(false);
-  const [storeNames, setStoreNames] = useState({});
-  const [order, setOrder] = useState(null);
+  const [storeNames, setStoreNames] = useState<ApiRow>({});
+  const [order, setOrder] = useState<Unmodelled>(null);
   const [orderLoading, setOrderLoading] = useState(true);
-  const [payResult, setPayResult] = useState(null);
+  const [payResult, setPayResult] = useState<Unmodelled>(null);
   const total = Number(order?.total ?? requestedTotal);
   useEffect(() => {
     if (storeIds.length === 0) return;
@@ -50,7 +50,7 @@ export default function PaymentGateway() {
       try {
         const res = await api.getFacilities({ type: 'pharmacy' });
         const list = Array.isArray(res) ? res : (res?.facilities || res?.data || []);
-        const map = {};
+        const map: Unmodelled = {};
         list.forEach((f: Unmodelled) => { map[f._id] = f.name; map[f.id] = f.name; });
         storeIds.forEach(sid => {
           if (sid) {
@@ -106,7 +106,7 @@ export default function PaymentGateway() {
       }, { headers: { 'Idempotency-Key': globalThis.crypto?.randomUUID?.() || `${orderIds[0]}-${Date.now()}` } });
       setPayResult(res);
       setStep('success');
-    } catch (e) {
+    } catch (e: any) {
       const msg = userFacingError(e, { fallback: '' });
       const status = e.response?.status;
       if (status === 200 && msg.includes('already be completed')) {

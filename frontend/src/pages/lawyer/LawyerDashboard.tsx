@@ -267,7 +267,7 @@ export default function LawyerDashboard() {
           return [...kept, ...serverRequests.filter((r) => !keptIds.has(String(r._id)))];
         });
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to load lawyer dashboard', e);
     } finally {
       setLoading(false);

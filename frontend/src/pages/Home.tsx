@@ -167,7 +167,7 @@ const Home = () => {
   const [counters, setCounters] = useState(statsData.map(() => 0));
   const [countersVisible, setCountersVisible] = useState(false);
   const [ctaPointer, setCtaPointer] = useState({ x: 50, y: 50 });
-  const statsRef = useRef(null);
+  const statsRef = useRef<Unmodelled>(null);
 
   useEffect(() => {
     const load = async () => {

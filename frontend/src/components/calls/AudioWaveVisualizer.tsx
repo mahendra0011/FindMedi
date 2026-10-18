@@ -7,13 +7,13 @@ import type { Unmodelled } from '@/lib/apiTypes';
  * Otherwise provides a smooth rhythmic breathing wave.
  */
 export default function AudioWaveVisualizer({ stream, isMuted = false, active = true, barCount = 18 }: Unmodelled) {
-  const canvasRef = useRef(null);
+  const canvasRef = useRef<Unmodelled>(null);
 
   useEffect(() => {
     if (!active || isMuted) {
-      const canvas = canvasRef.current;
+      const canvas: Unmodelled = canvasRef.current;
       if (!canvas) return;
-      const ctx = canvas.getContext('2d');
+      const ctx: Unmodelled = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       return;
     }
@@ -36,7 +36,7 @@ export default function AudioWaveVisualizer({ stream, isMuted = false, active = 
         analyser.fftSize = 64;
         source.connect(analyser);
         dataArray = new Uint8Array(analyser.frequencyBinCount);
-      } catch (e) {
+      } catch (e: any) {
         // Fallback to simulated rhythm
       }
     }

@@ -65,12 +65,12 @@ function isAuthError(status: Unmodelled, message: Unmodelled) {
 export default function FileUpload() {
   const { user, logout } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [uploadResult, setUploadResult] = useState(null);
+  const [uploadResult, setUploadResult] = useState<Unmodelled>(null);
   const [uploadType, setUploadType] = useState('image');
   const [files, setFiles] = useState<ApiRow[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef(null);
+  const fileInputRef: Unmodelled = useRef<Unmodelled>(null);
 
   // Google Drive integration state
   const [searchParams, setSearchParams] = useSearchParams();
@@ -105,7 +105,7 @@ export default function FileUpload() {
       if (res?.url) {
         window.location.href = res.url;
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Drive connect error:', e);
       setUploadResult({
         success: false,
@@ -120,7 +120,7 @@ export default function FileUpload() {
       await api.disconnectDrive();
       setDriveStatus(prev => ({ ...prev, connected: false }));
       setUploadResult(null);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Drive disconnect error:', e);
     }
   };
@@ -138,7 +138,7 @@ export default function FileUpload() {
           uploadedAt: r.createdAt || r.data?.date,
         }));
       setFiles(filesWithUploads);
-    } catch (error) {
+    } catch (error: any) {
       if (error?.status === 401 || isAuthError(error?.status, error?.message)) {
         handleSessionExpired();
       } else {
@@ -226,7 +226,7 @@ export default function FileUpload() {
 
       fetchUploadedFiles();
       if (fileInputRef.current) fileInputRef.current.value = '';
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
       if (error?.status === 401 || isAuthError(error?.status, error?.message)) {
         handleSessionExpired();

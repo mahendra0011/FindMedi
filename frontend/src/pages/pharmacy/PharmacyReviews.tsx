@@ -23,7 +23,7 @@ export default function PharmacyReviews() {
         const res = await api.getReviews({ hospitalId });
         const data = res.reviews || res || [];
         setReviews(Array.isArray(data) ? data : []);
-      } catch (e) { console.error(e); }
+      } catch (e: any) { console.error(e); }
       setLoading(false);
     };
     load();

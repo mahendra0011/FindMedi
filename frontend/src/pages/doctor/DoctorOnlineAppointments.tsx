@@ -64,10 +64,10 @@ export default function DoctorOnlineAppointments() {
   const [calDate, setCalDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
   const [loading, setLoading] = useState(true);
-  const [detailsApt, setDetailsApt] = useState(null);
+  const [detailsApt, setDetailsApt] = useState<Unmodelled>(null);
 
   // Prescription modal states
-  const [completeId, setCompleteId] = useState(null);
+  const [completeId, setCompleteId] = useState<Unmodelled>(null);
   const [prescriptionData, setPrescriptionData] = useState(initialPrescriptionData);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
 
@@ -81,7 +81,7 @@ export default function DoctorOnlineAppointments() {
       const all = data?.appointments || data?.data || data || [];
       setAllAppointments(all);
       setAppointments(all.filter(isOnlineAppointment));
-    } catch (e) {
+    } catch (e: any) {
       const status = e?.status || e?.response?.status;
       if (status && status !== 503) toast.error('Failed to load online appointments');
     }
@@ -119,7 +119,7 @@ export default function DoctorOnlineAppointments() {
       await api.updateAppointment(id, { status, ...extra });
       toast.success('Appointment updated');
       loadAppointments();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error('Failed to update appointment');
     }
@@ -157,7 +157,7 @@ export default function DoctorOnlineAppointments() {
   };
 
   const updateMedication = (index: Unmodelled, field: Unmodelled, value: Unmodelled) => {
-    const meds = [...prescriptionData.medications];
+    const meds: Unmodelled = [...prescriptionData.medications];
     meds[index][field] = value;
     setPrescriptionData({ ...prescriptionData, medications: meds });
   };
@@ -196,7 +196,7 @@ export default function DoctorOnlineAppointments() {
       toast.success('Prescription generated successfully');
       setShowPrescriptionModal(false);
       loadAppointments();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error('Failed to generate prescription');
     }

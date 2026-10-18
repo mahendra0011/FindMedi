@@ -38,7 +38,7 @@ export function playEmergencyDoctorSiren() {
       oscillator.frequency.setTargetAtTime(freq, audioContext.currentTime, 0.05);
       isHigh = !isHigh;
     }, 450);
-  } catch (err) {
+  } catch (err: any) {
     console.warn('Web Audio emergency alert autoplay blocked by browser policy:', err);
   }
 }

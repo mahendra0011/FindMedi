@@ -3,6 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { getSocket, joinRoom } from '@/lib/socket';
 import ClinicSchedule from '@/pages/clinic/ClinicSchedule';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /**
  * Wrapper page for hospital doctors at /doctor/schedule.
@@ -18,16 +19,16 @@ import ClinicSchedule from '@/pages/clinic/ClinicSchedule';
  */
 export default function DoctorScheduleEdit() {
   const { user } = useAuth();
-  const [rejectedRequest, setRejectedRequest] = useState(null);
-  const [pendingRequest, setPendingRequest] = useState(null);
-  const [latestRequest, setLatestRequest] = useState(null);
+  const [rejectedRequest, setRejectedRequest] = useState<Unmodelled>(null);
+  const [pendingRequest, setPendingRequest] = useState<Unmodelled>(null);
+  const [latestRequest, setLatestRequest] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
   // Bumped when a pending request transitions to a reviewed state —
   // triggers ClinicSchedule to re-fetch the doctor's live schedule.
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   // Ref to always call the latest loadRequests from the socket listener
   // without causing the socket connection to reconnect on every status change
-  const loadRequestsRef = useRef(null);
+  const loadRequestsRef = useRef<Unmodelled>(null);
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
@@ -56,7 +57,7 @@ export default function DoctorScheduleEdit() {
         setPendingRequest(null);
         setRejectedRequest(null);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to load schedule change requests', e);
     }
     setLoading(false);

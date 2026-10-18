@@ -145,7 +145,7 @@ const SessionSchedule = () => {
   const [booking, setBooking] = useState({ mode: "google-meet", date: "", time: "" });
   const [concern, setConcern] = useState("");
   const packageId = params.get("packageId");
-  const [userPackage, setUserPackage] = useState(null);
+  const [userPackage, setUserPackage] = useState<Unmodelled>(null);
   const [packageLoading, setPackageLoading] = useState(false);
   const [intakeSubmitted, setIntakeSubmitted] = useState(false);
   const [confirmationEmail, setConfirmationEmail] = useState("");
@@ -239,7 +239,7 @@ const SessionSchedule = () => {
           : `${selectedCounsellor.name} is confirmed for ${selectedPlan.name}. Payment receipt sent to your email.`,
       });
       dispatch(fetchCounsellors());
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Booking failed", description: error?.message || "" });
     } finally {
       setSubmitting(false);

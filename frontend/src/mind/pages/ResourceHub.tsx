@@ -155,7 +155,7 @@ const ResourceHub = () => {
     const [tags, setTags] = useState<ApiRow[]>([]);
     const [minDur, setMinDur] = useState("");
     const [maxDur, setMaxDur] = useState("");
-    const [playingAudio, setPlayingAudio] = useState(null);
+    const [playingAudio, setPlayingAudio] = useState<Unmodelled>(null);
     const [activeTab, setActiveTab] = useState("all");
     const [showAllFilters, setShowAllFilters] = useState(false);
     const lastCategory = (localStorage.getItem("lastCategory") || "").trim();
@@ -195,7 +195,7 @@ const ResourceHub = () => {
             const merged = [...platform, ...(Array.isArray(yt) ? yt : [])];
             setResources(merged);
         }
-        catch (e) {
+        catch (e: any) {
             toast({
                 variant: "destructive",
                 title: "Failed to load resources",
@@ -490,8 +490,8 @@ function ResourceGrid({ items, loading, typeLabel, playingAudio, onPlayAudio }: 
           </div>);
     }
     if (items.length === 0) {
-        const iconMap = { video: Video, article: FileText, audiobook: Headphones, audio: Volume2, pdf: File, blog: FileText };
-        const labelMap = { video: "videos", article: "articles", audiobook: "audiobooks", audio: "audio", pdf: "PDFs", blog: "blogs" };
+        const iconMap: Unmodelled = { video: Video, article: FileText, audiobook: Headphones, audio: Volume2, pdf: File, blog: FileText };
+        const labelMap: Unmodelled = { video: "videos", article: "articles", audiobook: "audiobooks", audio: "audio", pdf: "PDFs", blog: "blogs" };
         const IconComp = iconMap[typeLabel] || BookOpen;
         const label = labelMap[typeLabel] || "resources";
         return (<div className="flex flex-col items-center justify-center py-16 text-center">
@@ -628,12 +628,12 @@ function ArticleCard({ resource: r }: Unmodelled) {
 }
 
 function AudiobookCard({ resource: r, isPlaying, onPlay }: Unmodelled) {
-    const audioRef = useRef(null);
+    const audioRef = useRef<Unmodelled>(null);
     const [progress, setProgress] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     useEffect(() => {
-        const audio = audioRef.current;
+        const audio: Unmodelled = audioRef.current;
         if (!audio) return;
         const onTimeUpdate = () => {
             setCurrentTime(audio.currentTime);

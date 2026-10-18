@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { Truck, MapPin, Users, Package, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = {
+const statusColors: Unmodelled = {
   pending: 'bg-warning/10 text-warning',
   approved: 'bg-success/10 text-success',
   rejected: 'bg-destructive/10 text-destructive',

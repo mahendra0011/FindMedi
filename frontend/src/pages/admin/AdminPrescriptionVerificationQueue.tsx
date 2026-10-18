@@ -12,13 +12,13 @@ import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const verificationStatusColors = {
+const verificationStatusColors: Unmodelled = {
   pending: 'bg-warning/10 text-warning',
   verified: 'bg-success/10 text-success',
   rejected: 'bg-destructive/10 text-destructive',
 };
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Active: 'bg-warning/10 text-warning',
   Dispensed: 'bg-success/10 text-success',
   'Partially Dispensed': 'bg-info/10 text-info',
@@ -46,7 +46,7 @@ export default function AdminPrescriptionVerificationQueue() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('pending');
-  const [selectedRx, setSelectedRx] = useState(null);
+  const [selectedRx, setSelectedRx] = useState<Unmodelled>(null);
   const [verifyNotes, setVerifyNotes] = useState('');
   const [actionType, setActionType] = useState('verify');
   const [zoom, setZoom] = useState(1);
@@ -80,7 +80,7 @@ export default function AdminPrescriptionVerificationQueue() {
       } else {
         toast.success(`Prescription #${selectedRx.prescriptionId} rejected`);
       }
-    } catch (e) {
+    } catch (e: any) {
       toast.error(e.message || 'Failed to process prescription');
     }
   };
@@ -142,8 +142,8 @@ export default function AdminPrescriptionVerificationQueue() {
 
       <div className="flex gap-2 flex-wrap">
         {['pending', 'verified', 'rejected'].map(f => {
-          const labels = { pending: 'Pending', verified: 'Verified', rejected: 'Rejected' };
-          const icons = { pending: Clock, verified: CheckCircle, rejected: XCircle };
+          const labels: Unmodelled = { pending: 'Pending', verified: 'Verified', rejected: 'Rejected' };
+          const icons: Unmodelled = { pending: Clock, verified: CheckCircle, rejected: XCircle };
           const Icon = icons[f];
           return (
             <button key={f} onClick={() => setFilter(f)}

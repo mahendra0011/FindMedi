@@ -38,19 +38,19 @@ export default function BookingModal({
   const [bookedSlots, setBookedSlots] = useState<ApiRow[]>([]);
   const [lockedSlots, setLockedSlots] = useState<ApiRow[]>([]);
   const [lockingSlot, setLockingSlot] = useState(false);
-  const [slotCounts, setSlotCounts] = useState({});
+  const [slotCounts, setSlotCounts] = useState<ApiRow>({});
   const [dateDisabledSlots, setDateDisabledSlots] = useState<ApiRow[]>([]);
   const [pendingDisabledSlots, setPendingDisabledSlots] = useState<ApiRow[]>([]);
-  const [bookingWindow, setBookingWindow] = useState(null);
-  const [selectedHour, setSelectedHour] = useState(null);
+  const [bookingWindow, setBookingWindow] = useState<Unmodelled>(null);
+  const [selectedHour, setSelectedHour] = useState<Unmodelled>(null);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
-  const [bookingDetails, setBookingDetails] = useState(null);
+  const [bookingDetails, setBookingDetails] = useState<Unmodelled>(null);
   const [appointmentMode, setAppointmentMode] = useState('offline');
   // Mind package selection (counsellor/psychiatrist booking me alag section)
   const [selectedPackageId, setSelectedPackageId] = useState('single');
-  const [packageInfoId, setPackageInfoId] = useState(null);
+  const [packageInfoId, setPackageInfoId] = useState<Unmodelled>(null);
   const [intakeFormData, setIntakeFormData] = useState({
     chiefComplaint: '', chiefComplaintOther: '', symptomsDuration: '',
     pastMedicalHistory: { hasHistory: null, details: '' },
@@ -64,7 +64,7 @@ export default function BookingModal({
 
   // Booking target: 'self' | 'family' | 'other'
   const [bookingFor, setBookingFor] = useState('self');
-  const [selectedFamilyMember, setSelectedFamilyMember] = useState(null);
+  const [selectedFamilyMember, setSelectedFamilyMember] = useState<Unmodelled>(null);
   const [familyMembers, setFamilyMembers] = useState<ApiRow[]>([]);
   const [fetchingFamily, setFetchingFamily] = useState(false);
   const [otherPatient, setOtherPatient] = useState({ name: '', gender: 'Male', phone: '', age: '', bloodGroup: '' });
@@ -183,7 +183,7 @@ export default function BookingModal({
     return Number(fees.offline || doc.offline_fee || doc.consultation_fees || doc.fees || 0);
   };
   // Fallback multipliers for counsellor/psychiatrist jab appointmentFees set nahi hai
-  const MODE_FALLBACK_MULT = { video: 1, audio: 0.8, call: 0.8, voice: 0.8, chat: 0.6, offline: 1, home_visit: 1.2, home: 1.2 };
+  const MODE_FALLBACK_MULT: Unmodelled = { video: 1, audio: 0.8, call: 0.8, voice: 0.8, chat: 0.6, offline: 1, home_visit: 1.2, home: 1.2 };
   const hasExplicitModeFees = !!(currentDoc?.appointmentFees?.video || currentDoc?.appointmentFees?.chat || currentDoc?.appointmentFees?.audio || currentDoc?.video_fee || currentDoc?.chat_fee || currentDoc?.audio_fee);
   const getResolvedModeFee = (mode: Unmodelled, doc: Unmodelled) => {
     if (!doc) return 0;
@@ -196,7 +196,7 @@ export default function BookingModal({
 
   // ---- Mind packages (counsellor/psychiatrist ke supportPlanPrices se) ----
   // Sirf packages dikhte hain + har package par (i) button se complete details.
-  const PLAN_META = {
+  const PLAN_META: Unmodelled = {
     shortTerm: { name: 'Short-Term Pack', sessions: 4, validity: '30 days', desc: '4 sessions — stress, anxiety, exam pressure ke liye.' },
     mediumTerm: { name: 'Medium-Term Pack', sessions: 8, validity: '60 days', desc: '8 sessions — recovery aur personal growth ke liye.' },
     longTerm: { name: 'Long-Term Pack', sessions: 12, validity: '90 days', desc: '12 sessions — lambi therapy aur steady progress ke liye.' },
@@ -233,7 +233,7 @@ export default function BookingModal({
       const isMindProvider = spec.includes('counsell') || spec.includes('psychiatr') || spec.includes('psycholog');
       if (isMindProvider) {
         const base = Number(doc.consultation_fees || doc.fees || 800) || 800;
-        const fallback = {
+        const fallback: Unmodelled = {
           shortTerm: Math.round(base * 4 * 0.85),
           mediumTerm: Math.round(base * 8 * 0.75),
           longTerm: Math.round(base * 12 * 0.70),
@@ -309,7 +309,7 @@ export default function BookingModal({
           const arr = Array.isArray(res) ? res : [];
           setBookedSlots(arr);
           setLockedSlots([]);
-          const counts = {};
+          const counts: Unmodelled = {};
           arr.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
           setSlotCounts(counts);
           setDateDisabledSlots([]);
@@ -347,7 +347,7 @@ export default function BookingModal({
           setLockingSlot(false);
           return;
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn('Slot lock failed', err);
       } finally {
         setLockingSlot(false);
@@ -366,7 +366,7 @@ export default function BookingModal({
     try {
       await api.joinWaitlist({ doctorId: currentDoc._id, date: bookingDate, time: bookingTime });
       toast.success("You're on the waitlist. We'll alert you the moment this slot opens (15 minutes to claim it).");
-    } catch (err) {
+    } catch (err: any) {
       toast.error(userFacingError(err));
     } finally {
       setWaitlistLoading(false);
@@ -448,7 +448,7 @@ export default function BookingModal({
             });
             paidCount += 1;
           }
-        } catch (payErr) {
+        } catch (payErr: any) {
           // Partial: the series and the paid visits are real; unpaid children
           // die via the existing 15-minute sweeps, exactly like an abandoned
           // single checkout. Say so instead of pretending the booking failed.
@@ -470,7 +470,7 @@ export default function BookingModal({
         });
         setBookingStep(5);
         if (onSuccess) onSuccess();
-      } catch (e) {
+      } catch (e: any) {
         toast.error(userFacingError(e));
       } finally {
         setPaymentLoading(false);
@@ -500,7 +500,7 @@ export default function BookingModal({
           processingRef.current = false;
           return;
         }
-      } catch (_) { /* proceed even if check fails — server will catch duplicates */ }
+      } catch (_: any) { /* proceed even if check fails — server will catch duplicates */ }
 
       const fees = effectiveFee;
       if (!fees || fees <= 0) {
@@ -584,7 +584,7 @@ export default function BookingModal({
       setBookingStep(5);
       if (onSuccess) onSuccess();
 
-    } catch (e) {
+    } catch (e: any) {
       const msg = userFacingError(e, { fallback: '' });
       const status = e.response?.status;
       // Already-paid idempotency case — treat as success
@@ -612,7 +612,7 @@ export default function BookingModal({
                 } else {
                   const arr = Array.isArray(res) ? res : [];
                   setBookedSlots(arr);
-                  const counts = {};
+                  const counts: Unmodelled = {};
                   arr.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
                   setSlotCounts(counts);
                   setDateDisabledSlots([]);
@@ -624,7 +624,7 @@ export default function BookingModal({
       } else {
         toast.error(msg || 'Booking failed');
         if (apptId) {
-          try { await api.deleteAppointment(apptId); } catch (_) {}
+          try { await api.deleteAppointment(apptId); } catch (_: any) {}
         }
       }
     }

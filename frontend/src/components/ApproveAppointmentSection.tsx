@@ -58,10 +58,10 @@ export default function ApproveAppointmentSection({ appointments, allAppointment
   const [modeFilter, setModeFilter] = useState('all'); // 'all' | 'clinic' | 'home'
 
   // Shared reject modal target (used by cards AND recent requests)
-  const [rejectTarget, setRejectTarget] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState<Unmodelled>(null);
   const [rejectReasonInput, setRejectReasonInput] = useState('');
   // Expanded inline form (recent requests panel)
-  const [expandedId, setExpandedId] = useState(null);
+  const [expandedId, setExpandedId] = useState<Unmodelled>(null);
 
   const getDaysInMonth = (date: Unmodelled) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   const getFirstDay = (date: Unmodelled) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
@@ -90,8 +90,8 @@ export default function ApproveAppointmentSection({ appointments, allAppointment
   );
 
   const hourSlots = useMemo(() => getHourSlots(), []);
-  const [selectedHour, setSelectedHour] = useState(null);
-  const [selectedSubSlot, setSelectedSubSlot] = useState(null);
+  const [selectedHour, setSelectedHour] = useState<Unmodelled>(null);
+  const [selectedSubSlot, setSelectedSubSlot] = useState<Unmodelled>(null);
 
   const subSlots = useMemo(() => {
     if (selectedHour) return getSubSlotsForHour(selectedHour);
@@ -391,7 +391,7 @@ export default function ApproveAppointmentSection({ appointments, allAppointment
                             setSelectedDate(apt.date);
                             try {
                               setCalDate(new Date(apt.date + 'T00:00:00'));
-                            } catch (_) {}
+                            } catch (_: any) {}
                           }
                         }}
                         className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors border ${

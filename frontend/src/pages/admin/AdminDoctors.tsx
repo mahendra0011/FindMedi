@@ -15,7 +15,7 @@ export default function AdminDoctors() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editId, setEditId] = useState(null);
+  const [editId, setEditId] = useState<Unmodelled>(null);
   const [form, setForm] = useState({ name: '', specialization: 'Cardiology', experience: '', phone: '', email: '', qualifications: '', available: true });
   const { names: specializations } = useCategories('specialty', FALLBACK_SPECIALIZATIONS);
 

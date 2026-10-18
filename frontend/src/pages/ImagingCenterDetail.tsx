@@ -96,14 +96,14 @@ export default function ImagingCenterDetail() {
   const navigate = useNavigate();
   const { entries, addItem, updateQty } = useCart();
 
-  const [clinic, setClinic] = useState(null);
+  const [clinic, setClinic] = useState<Unmodelled>(null);
   const [allTests, setAllTests] = useState<ApiRow[]>([]);
   const [packages, setPackages] = useState<ApiRow[]>([]);
   const [reviewsData, setReviewsData] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRx, setShowRx] = useState(false);
-  const [uploadedRx, setUploadedRx] = useState(null);
-  const [copiedCode, setCopiedCode] = useState(null);
+  const [uploadedRx, setUploadedRx] = useState<Unmodelled>(null);
+  const [copiedCode, setCopiedCode] = useState<Unmodelled>(null);
   const [medSearch, setMedSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');
   const [selectedSlot, setSelectedSlot] = useState('');
@@ -116,7 +116,7 @@ export default function ImagingCenterDetail() {
       try {
         const result = await api.getFacility(clinicId);
         fac = result?.facility || result;
-      } catch (_e) { console.error(_e); }
+      } catch (_e: any) { console.error(_e); }
       
       setClinic({
         _id: fac?._id || clinicId,
@@ -176,7 +176,7 @@ export default function ImagingCenterDetail() {
         setAllTests(tests.length > 0 ? tests : ALL_TESTS);
         setPackages(Array.isArray(pkgsRes) ? pkgsRes : (pkgsRes?.packages?.length > 0 ? pkgsRes.packages : PACKAGES));
         setReviewsData(Array.isArray(reviewsRes) ? reviewsRes : reviewsRes?.reviews || []);
-      } catch (_e) { console.error(_e); }
+      } catch (_e: any) { console.error(_e); }
       setLoading(false);
     };
     load();

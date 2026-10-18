@@ -57,7 +57,7 @@ export default function ClinicPrescriptions() {
 
       setBills(billList);
       setInvoices(invoiceList);
-    } catch (e) {
+    } catch (e: any) {
       toast.error(e.message || 'Failed to load records');
     }
     setLoading(false);

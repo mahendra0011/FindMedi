@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const roleColors = {
+const roleColors: Unmodelled = {
   superadmin: 'bg-destructive/10 text-destructive',
   admin: 'bg-primary/10 text-primary',
   doctor: 'bg-info/10 text-info',
@@ -17,7 +17,7 @@ const roleColors = {
   lab_owner: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
   pharmacy_owner: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 };
-const roleIcons = { superadmin: Shield, admin: Shield, doctor: Stethoscope, clinic_doctor: Stethoscope, patient: UserRound, lab_owner: Activity, pharmacy_owner: Activity };
+const roleIcons: Unmodelled = { superadmin: Shield, admin: Shield, doctor: Stethoscope, clinic_doctor: Stethoscope, patient: UserRound, lab_owner: Activity, pharmacy_owner: Activity };
 
 const allRoleFilters = ['All', 'superadmin', 'hospital_admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'pharmacy_owner'];
 const hospitalRoleFilters = ['All', 'hospital_admin', 'doctor', 'patient', 'nurse', 'radiologist', 'dietitian', 'physiotherapist', 'counselor', 'accountant', 'security', 'technician', 'helper'];

@@ -20,8 +20,8 @@ export default function DoctorCallRoom() {
   const { user } = useAuth();
   
   const [loading, setLoading] = useState(true);
-  const [appointment, setAppointment] = useState(null);
-  const [patient, setPatient] = useState(null);
+  const [appointment, setAppointment] = useState<Unmodelled>(null);
+  const [patient, setPatient] = useState<Unmodelled>(null);
   
   // Call Controls State
   const [isMuted, setIsMuted] = useState(false);
@@ -65,7 +65,7 @@ export default function DoctorCallRoom() {
             : apt.preConsultationDetails.chiefComplaint || ''
           );
         }
-      } catch (err) {
+      } catch (err: any) {
         toast.error('Failed to load appointment details');
       } finally {
         setLoading(false);
@@ -131,7 +131,7 @@ export default function DoctorCallRoom() {
       
       toast.success('Prescription saved and sent to patient');
       handleEndCall();
-    } catch (e) {
+    } catch (e: any) {
       toast.error('Failed to save prescription');
       console.error(e);
     } finally {
@@ -140,7 +140,7 @@ export default function DoctorCallRoom() {
   };
 
   const updateMedication = (index: Unmodelled, field: Unmodelled, value: Unmodelled) => {
-    const meds = [...medications];
+    const meds: Unmodelled = [...medications];
     meds[index][field] = value;
     setMedications(meds);
   };

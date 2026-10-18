@@ -20,7 +20,7 @@ export default function Promotions() {
   const [form, setForm] = useState({ code: '', description: '', discountType: 'percentage', discountValue: '', minOrderValue: 0, maxDiscount: 0, usageLimit: 0, applicableServices: ['all'], validFrom: '', validUntil: '' });
   const [listForm, setListForm] = useState({ facilityId: '', facilityType: 'hospital', facilityName: '', startDate: '', endDate: '', placement: 'homepage' });
   const [showListForm, setShowListForm] = useState(false);
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState<Unmodelled>(null);
 
   const load = async () => {
     setLoading(true);
@@ -47,7 +47,7 @@ export default function Promotions() {
       setShowForm(false);
       setForm({ code: '', description: '', discountType: 'percentage', discountValue: '', minOrderValue: 0, maxDiscount: 0, usageLimit: 0, applicableServices: ['all'], validFrom: '', validUntil: '' });
       load();
-    } catch (err) { toast.error(err?.message || 'Failed to create coupon'); }
+    } catch (err: any) { toast.error(err?.message || 'Failed to create coupon'); }
   };
 
   const handleCreateListing = async (e: Unmodelled) => {
@@ -58,7 +58,7 @@ export default function Promotions() {
       setShowListForm(false);
       setListForm({ facilityId: '', facilityType: 'hospital', facilityName: '', startDate: '', endDate: '', placement: 'homepage' });
       load();
-    } catch (err) { toast.error(err?.message || 'Failed to create listing'); }
+    } catch (err: any) { toast.error(err?.message || 'Failed to create listing'); }
   };
 
   const handleToggleCoupon = async (c: Unmodelled) => {

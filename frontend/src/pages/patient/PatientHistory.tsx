@@ -12,14 +12,14 @@ const typeFilters = ['All', 'appointment', 'test', 'medicine'];
 const statusFilters = ['All', 'completed', 'pending', 'failed', 'refunded'];
 const dateRanges = ['All Time', 'This Month', 'Last Month', 'Last 3 Months'];
 
-const statusConfig = {
+const statusConfig: Unmodelled = {
   completed: { label: 'Paid', color: 'bg-emerald-500/10 text-emerald-600', icon: CheckCircle },
   pending: { label: 'Pending', color: 'bg-amber-500/10 text-amber-600', icon: Clock },
   failed: { label: 'Failed', color: 'bg-red-500/10 text-red-600', icon: AlertCircle },
   refunded: { label: 'Refunded', color: 'bg-blue-500/10 text-blue-600', icon: RotateCcw },
 };
 
-const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
+const methodIcons: Unmodelled = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
 
 function formatDate(d: Unmodelled) {
   if (!d) return '';
@@ -57,7 +57,7 @@ export default function PatientHistory() {
       const res = await api.getTransactions(filter);
       const list = res?.data || res?.payments || [];
       setTransactions(list);
-    } catch (e) { 
+    } catch (e: any) { 
       console.error(e); 
       toast.error('Failed to load payment history'); 
     }

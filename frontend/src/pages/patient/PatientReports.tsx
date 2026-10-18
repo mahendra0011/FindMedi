@@ -13,7 +13,7 @@ import type { Unmodelled } from '@/lib/apiTypes';
 
 const UPLOAD_BASE = getServerOrigin();
 
-const tabConfig = {
+const tabConfig: Unmodelled = {
   prescriptions: { label: 'Prescriptions', icon: Pill, color: 'text-blue-500', bg: 'bg-blue-500/10' },
   labReports: { label: 'Lab Reports', icon: FlaskConical, color: 'text-purple-500', bg: 'bg-purple-500/10' },
   dischargeSummaries: { label: 'Discharge', icon: HeartPulse, color: 'text-rose-500', bg: 'bg-rose-500/10' },
@@ -46,7 +46,7 @@ export default function MyReports() {
       const labReports = allRecords.filter((r: Unmodelled) => r.type === 'lab_report');
       const dischargeSummaries = allRecords.filter((r: Unmodelled) => r.type === 'discharge_summary');
       setReports({ prescriptions, labReports, dischargeSummaries });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching reports:', error);
     }
     setLoading(false);
@@ -64,7 +64,7 @@ export default function MyReports() {
       } else {
         toast.info('Please contact the hospital to get a copy of your discharge summary');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error downloading report:', error);
     }
   };

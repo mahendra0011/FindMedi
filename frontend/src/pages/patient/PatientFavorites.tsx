@@ -108,7 +108,7 @@ export default function PatientFavorites() {
   // Live counts per type
   const counts = useMemo(() => {
     const list = Array.isArray(favorites) ? favorites : [];
-    const c = { all: list.length };
+    const c: Unmodelled = { all: list.length };
     list.forEach((f) => { c[f.refType] = (c[f.refType] || 0) + 1; });
     return c;
   }, [favorites]);

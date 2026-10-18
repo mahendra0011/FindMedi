@@ -13,23 +13,23 @@ import type { Unmodelled } from '@/lib/apiTypes';
 export default function IntakeFormStep({ formData, setFormData, onNext, onBack }: any) {
   const [uploadingPrescription, setUploadingPrescription] = useState(false);
   const [uploadingReport, setUploadingReport] = useState(false);
-  const [uploadMenu, setUploadMenu] = useState(null); // 'prescription' | 'report' | null
+  const [uploadMenu, setUploadMenu] = useState<Unmodelled>(null); // 'prescription' | 'report' | null
   
   const [activeSection, setActiveSection] = useState('chief_complaint');
 
-  const prescriptionInputRef = useRef(null);
-  const reportInputRef = useRef(null);
-  const prescriptionCameraRef = useRef(null);
-  const reportCameraRef = useRef(null);
+  const prescriptionInputRef: Unmodelled = useRef<Unmodelled>(null);
+  const reportInputRef: Unmodelled = useRef<Unmodelled>(null);
+  const prescriptionCameraRef: Unmodelled = useRef<Unmodelled>(null);
+  const reportCameraRef: Unmodelled = useRef<Unmodelled>(null);
 
-  const sectionRefs = {
-    chief_complaint: useRef(null),
-    past_history: useRef(null),
-    current_treatment: useRef(null),
-    test_reports: useRef(null),
-    current_meds: useRef(null),
-    allergies: useRef(null),
-    family_history: useRef(null)
+  const sectionRefs: Unmodelled = {
+    chief_complaint: useRef<Unmodelled>(null),
+    past_history: useRef<Unmodelled>(null),
+    current_treatment: useRef<Unmodelled>(null),
+    test_reports: useRef<Unmodelled>(null),
+    current_meds: useRef<Unmodelled>(null),
+    allergies: useRef<Unmodelled>(null),
+    family_history: useRef<Unmodelled>(null)
   };
 
   const handleUpload = async (e: Unmodelled, setUploading: Unmodelled, fieldPath: Unmodelled) => {
@@ -63,7 +63,7 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
       } else {
         throw new Error('Upload succeeded but no URL returned');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Upload error:', err);
       const errorMsg = err.response?.data?.error || userFacingError(err, { fallback: 'Failed to upload file' });
       toast.error(`Upload failed: ${errorMsg}. Please try again.`);

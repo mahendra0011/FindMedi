@@ -8,7 +8,7 @@ import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const statusConfig = {
+const statusConfig: Unmodelled = {
   Active: { label: 'Active', icon: CheckCircle, color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
   Discharged: { label: 'Discharged', icon: HeartPulse, color: 'bg-muted text-muted-foreground border-border/40' },
   Critical: { label: 'Critical', icon: AlertTriangle, color: 'bg-red-500/10 text-red-600 border-red-500/20' },

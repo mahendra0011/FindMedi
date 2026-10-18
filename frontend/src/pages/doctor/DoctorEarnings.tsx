@@ -100,7 +100,7 @@ export default function DoctorEarnings() {
         toast.error('Failed to load some earnings data');
       }
       if (isRefresh) toast.success('Earnings data refreshed');
-    } catch (e) {
+    } catch (e: any) {
       toast.error(e.message || 'Failed to load earnings');
     }
 

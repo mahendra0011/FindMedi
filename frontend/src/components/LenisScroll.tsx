@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import type { Unmodelled } from '@/lib/apiTypes';
 
 export function LenisScroll({ children }: Unmodelled) {
-  const lenisRef = useRef(null);
+  const lenisRef: Unmodelled = useRef<Unmodelled>(null);
   const frameRef = useRef(0);
   const location = useLocation();
   const useSmoothScroll = location.pathname === '/';

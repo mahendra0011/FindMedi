@@ -12,7 +12,7 @@ export default function LabPackages() {
   const [tests, setTests] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState(null);
+  const [editing, setEditing] = useState<Unmodelled>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedTests, setSelectedTests] = useState<ApiRow[]>([]);
@@ -29,7 +29,7 @@ export default function LabPackages() {
         ]);
         setPackages(pkgRes.packages || []);
         setTests(testRes.tests || []);
-      } catch (e) { console.error(e); }
+      } catch (e: any) { console.error(e); }
       setLoading(false);
     };
     load();
@@ -55,7 +55,7 @@ export default function LabPackages() {
       setShowForm(false);
       setEditing(null);
       setName(''); setDescription(''); setSelectedTests([]); setDiscount(0); setPrice('');
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
     setSaving(false);
   };
 

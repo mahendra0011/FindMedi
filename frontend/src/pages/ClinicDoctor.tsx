@@ -161,7 +161,7 @@ export default function ClinicDoctor() {
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
-      try { await navigator.share({ title: doctor?.name || 'Doctor Profile', url }); } catch (e) { console.error(e); }
+      try { await navigator.share({ title: doctor?.name || 'Doctor Profile', url }); } catch (e: any) { console.error(e); }
     } else {
       await navigator.clipboard.writeText(url);
       toast.success('Link copied to clipboard!');
@@ -185,7 +185,7 @@ export default function ClinicDoctor() {
       const rv = await api.getReviews({ doctorId: id }).catch(() => []);
       if (Array.isArray(rv) && rv.length > 0) setReviews(rv);
       setTimeout(() => setReviewSubmitted(false), 3000);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
     }
   };

@@ -12,12 +12,12 @@ import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const CATEGORY_ICONS = {
+const CATEGORY_ICONS: Unmodelled = {
   payment: CreditCard, sms: MessageSquare, email: Mail, storage: HardDrive,
   maps: Map, webhook: Webhook, analytics: Settings, other: Settings,
 };
 
-const CATEGORY_LABELS = {
+const CATEGORY_LABELS: Unmodelled = {
   payment: 'Payment Gateways', sms: 'SMS Providers', email: 'Email Services',
   storage: 'File Storage', maps: 'Map Services', webhook: 'Webhooks',
   analytics: 'Analytics', other: 'Other',
@@ -26,8 +26,8 @@ const CATEGORY_LABELS = {
 export default function Integrations() {
   const [integrations, setIntegrations] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState(null);
-  const [showKeys, setShowKeys] = useState({});
+  const [selected, setSelected] = useState<Unmodelled>(null);
+  const [showKeys, setShowKeys] = useState<ApiRow>({});
   const [webhooks, setWebhooks] = useState<ApiRow[]>([]);
   const [showWebhookForm, setShowWebhookForm] = useState(false);
   const [whForm, setWhForm] = useState({ name: '', url: '', events: '' });
@@ -89,7 +89,7 @@ export default function Integrations() {
     try { await api.deleteWebhook(provider, webhookId); loadWebhooks(provider); } catch { toast.error('Failed to delete'); }
   };
 
-  const grouped = {};
+  const grouped: Unmodelled = {};
   (Array.isArray(integrations) ? integrations : []).forEach(i => {
     if (!grouped[i.category]) grouped[i.category] = [];
     grouped[i.category].push(i);

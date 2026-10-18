@@ -5,14 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Upload, Download, FileSpreadsheet, Users, Stethoscope, CreditCard, CalendarDays, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { apiClient, getApiBaseUrl, api } from '@/lib/api';
-import type { Unmodelled } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const API_URL = getApiBaseUrl();
 
 export default function ImportExport() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [importResults, setImportResults] = useState({});
+  const [importResults, setImportResults] = useState<ApiRow>({});
 
   const handleExport = async (type: Unmodelled, format = 'excel') => {
     setLoading(true);
@@ -30,7 +30,7 @@ export default function ImportExport() {
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Export error:', error);
     }
     setLoading(false);
@@ -55,7 +55,7 @@ export default function ImportExport() {
         throw new Error(data?.message || data?.error || 'Import failed');
       }
       setImportResults(prev => ({ ...prev, [type]: data }));
-    } catch (error) {
+    } catch (error: any) {
       setImportResults(prev => ({ ...prev, [type]: { success: false, error: error.message } }));
     }
     setLoading(false);

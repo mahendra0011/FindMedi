@@ -13,7 +13,7 @@ import { userFacingError } from '@/lib/errorCopy';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 function RevenueOverview() {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -128,9 +128,9 @@ function RevenueOverview() {
 
 function CommissionConfigTab() {
   const [configs, setConfigs] = useState<ApiRow[]>([]);
-  const [stats, setStats] = useState(null);
-  const [editId, setEditId] = useState(null);
-  const [editFields, setEditFields] = useState({});
+  const [stats, setStats] = useState<Unmodelled>(null);
+  const [editId, setEditId] = useState<Unmodelled>(null);
+  const [editFields, setEditFields] = useState<ApiRow>({});
   const [loading, setLoading] = useState(true);
 
   const fetchConfigs = useCallback(async () => {
@@ -393,7 +393,7 @@ function PayoutsTab() {
       await api.markPayoutPaid(id, { transactionRef: `TXN-${crypto.randomUUID()}` });
       toast.success('Payout marked as paid');
       fetchPayouts(page);
-    } catch (err) {
+    } catch (err: any) {
       // SA-M5: four-eyes 403 surfaces exactly how many approvals are still missing.
       toast.error(serverMsg(err));
       fetchPayouts(page);
@@ -405,10 +405,10 @@ function PayoutsTab() {
       await api.approvePayout(id);
       toast.success('Approval recorded');
       fetchPayouts(page);
-    } catch (err) { toast.error(serverMsg(err)); }
+    } catch (err: any) { toast.error(serverMsg(err)); }
   };
 
-  const statusTotals = {};
+  const statusTotals: Unmodelled = {};
   (Array.isArray(payoutStats) ? payoutStats : []).forEach(s => { statusTotals[s._id] = { total: s.total || 0, count: s.count || 0 }; });
 
   return (

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const invApi = {
+const invApi: Unmodelled = {
   getItems: (p: Unmodelled) => api.getInventoryItems(p),
   createItem: (b: Unmodelled) => api.createInventoryItem(b),
   addStock: (id: Unmodelled, b: Unmodelled) => api.addInventoryStock(id, b),
@@ -18,11 +18,11 @@ const invApi = {
 };
 
 export default function Inventory() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('items');
   const [showAdd, setShowAdd] = useState(false);
-  const [showIssue, setShowIssue] = useState(null);
+  const [showIssue, setShowIssue] = useState<Unmodelled>(null);
   const [issueData, setIssueData] = useState({ department: '', quantity: '1', issuedTo: '', purpose: '' });
   const [showPR, setShowPR] = useState(false);
   const [prData, setPrData] = useState({ itemName: '', quantity: '1', urgency: 'Routine', reason: '' });

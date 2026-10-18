@@ -21,8 +21,8 @@ export default function LabStaff() {
   const [staffList, setStaffList] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [editId, setEditId] = useState<Unmodelled>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Unmodelled>(null);
   const [form, setForm] = useState({ name:'', role:'', email:'', phone:'', department:'', qualification:'', status:'Active', joinDate:'' });
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export default function LabStaff() {
       setLoading(true);
       const data = await api.getStaff();
       setStaffList(Array.isArray(data) ? data : (data?.staff || []));
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       setStaffList([]);
       toast.error('Failed to load staff list');
@@ -59,7 +59,7 @@ export default function LabStaff() {
       setShowForm(false); 
       setEditId(null); 
       setForm({ name:'', role:'', email:'', phone:'', department:'', qualification:'', status:'Active', joinDate:'' });
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.message || 'An error occurred while saving staff');
     }
   };
@@ -75,7 +75,7 @@ export default function LabStaff() {
       await api.deleteStaff(id);
       toast.success('Staff removed');
       fetchStaff();
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.message || 'Failed to remove staff');
     }
   };

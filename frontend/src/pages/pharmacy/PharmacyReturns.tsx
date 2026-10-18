@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Pending: 'bg-warning/10 text-warning', Approved: 'bg-success/10 text-success',
   Refunded: 'bg-info/10 text-info', Rejected: 'bg-destructive/10 text-destructive',
 };
@@ -21,7 +21,7 @@ export default function PharmacyReturns() {
   const load = useCallback(async () => {
     setLoading(true);
     try { const res = await api.getPharmacyReturns({ search }); setReturns(res.returns || []); }
-    catch (e) { toast.error(e.message); }
+    catch (e: any) { toast.error(e.message); }
     setLoading(false);
   }, [search]);
 
@@ -29,7 +29,7 @@ export default function PharmacyReturns() {
 
   const updateStatus = async (id: Unmodelled, status: Unmodelled) => {
     try { await api.updatePharmacyReturn(id, { status }); toast.success(`Return ${status}`); load(); }
-    catch (e) { toast.error(e.message); }
+    catch (e: any) { toast.error(e.message); }
   };
 
   const columns = [

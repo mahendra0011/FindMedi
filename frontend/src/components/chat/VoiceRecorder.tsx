@@ -20,13 +20,13 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: U
   const [bars, setBars] = useState<ApiRow[]>([]);
   const [error, setError] = useState('');
 
-  const mediaRef = useRef(null);
-  const streamRef = useRef(null);
+  const mediaRef: Unmodelled = useRef<Unmodelled>(null);
+  const streamRef: Unmodelled = useRef<Unmodelled>(null);
   const chunksRef = useRef([]);
-  const rafRef = useRef(null);
-  const timerRef = useRef(null);
-  const audioCtxRef = useRef(null);
-  const secondsRef = useRef(0);
+  const rafRef = useRef<Unmodelled>(null);
+  const timerRef = useRef<Unmodelled>(null);
+  const audioCtxRef: Unmodelled = useRef<Unmodelled>(null);
+  const secondsRef: Unmodelled = useRef(0);
 
   const stopStream = () => {
     streamRef.current?.getTracks().forEach((t: Unmodelled) => t.stop());
@@ -117,7 +117,7 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: U
   };
 
   const togglePause = () => {
-    const rec = mediaRef.current;
+    const rec: Unmodelled = mediaRef.current;
     if (!rec) return;
     if (paused) { rec.resume(); setPaused(false); } else { rec.pause(); setPaused(true); }
   };

@@ -19,7 +19,7 @@ export default function AdminBedManagement() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [view, setView] = useState('cards');
-  const [editId, setEditId] = useState(null);
+  const [editId, setEditId] = useState<Unmodelled>(null);
   const [form, setForm] = useState({ bedNumber: '', ward: 'General', bedType: 'General', dailyRate: '', floor: '', isAC: false });
 
   const loadBeds = useCallback(async () => {
@@ -79,7 +79,7 @@ export default function AdminBedManagement() {
 
   const filtered = beds.filter(b => !search || b.bedNumber.toLowerCase().includes(search.toLowerCase()) || b.ward.toLowerCase().includes(search.toLowerCase()));
 
-  const statusColor = { Available: 'bg-emerald-500/10 text-emerald-600', Occupied: 'bg-red-500/10 text-red-600', 'Under Cleaning': 'bg-amber-500/10 text-amber-600', Maintenance: 'bg-gray-500/10 text-gray-600' };
+  const statusColor: Unmodelled = { Available: 'bg-emerald-500/10 text-emerald-600', Occupied: 'bg-red-500/10 text-red-600', 'Under Cleaning': 'bg-amber-500/10 text-amber-600', Maintenance: 'bg-gray-500/10 text-gray-600' };
 
   return (
     <div className="space-y-6">

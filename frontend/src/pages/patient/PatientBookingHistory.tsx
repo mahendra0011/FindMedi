@@ -15,7 +15,7 @@ const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11
 const typeFilters = ['All', 'appointment', 'test', 'medicine'];
 const dateRanges = ['All Time', 'This Month', 'Last Month', 'Last 3 Months'];
 
-const statusConfig = {
+const statusConfig: Unmodelled = {
   Confirmed: { label: 'Confirmed', color: 'bg-emerald-500/10 text-emerald-600', icon: CheckCircle },
   Pending: { label: 'Pending', color: 'bg-amber-500/10 text-amber-600', icon: Clock },
   Completed: { label: 'Completed', color: 'bg-blue-500/10 text-blue-600', icon: CheckCircle },
@@ -42,8 +42,8 @@ export default function PatientBookingHistory({ initialType }: { initialType?: s
   const [typeFilter, setTypeFilter] = useState(initialType || 'All');
   const [dateRange, setDateRange] = useState('All Time');
   const [showDateDropdown, setShowDateDropdown] = useState(false);
-  const [cancelId, setCancelId] = useState(null);
-  const [rescheduleId, setRescheduleId] = useState(null);
+  const [cancelId, setCancelId] = useState<Unmodelled>(null);
+  const [rescheduleId, setRescheduleId] = useState<Unmodelled>(null);
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
 
@@ -56,7 +56,7 @@ export default function PatientBookingHistory({ initialType }: { initialType?: s
       toast.success('Appointment cancelled');
       setCancelId(null);
       loadData();
-    } catch (e) { toast.error('Failed to cancel appointment'); }
+    } catch (e: any) { toast.error('Failed to cancel appointment'); }
   };
 
   const handleReschedule = async () => {
@@ -66,7 +66,7 @@ export default function PatientBookingHistory({ initialType }: { initialType?: s
       toast.success('Appointment rescheduled');
       setRescheduleId(null); setNewDate(''); setNewTime('');
       loadData();
-    } catch (e) { toast.error('Failed to reschedule appointment'); }
+    } catch (e: any) { toast.error('Failed to reschedule appointment'); }
   };
 
   const loadData = async () => {
@@ -108,7 +108,7 @@ export default function PatientBookingHistory({ initialType }: { initialType?: s
       );
 
       setBookings(merged);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error('Failed to load booking history');
     }

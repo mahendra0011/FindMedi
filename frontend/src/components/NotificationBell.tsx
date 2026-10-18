@@ -13,7 +13,7 @@ export default function NotificationBell({ className = '', onClick }: any = {}) 
       const list = (await api.getNotifications({}))?.data || [];
       const unread = list.filter((n: Unmodelled) => !n.read).length;
       if (unread !== count) refreshCount();
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
   
   return (

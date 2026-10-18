@@ -76,7 +76,7 @@ export default function Psychiatrists() {
   const [loading, setLoading] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<Unmodelled>(null);
   const [savedIds, setSavedIds] = useState(() => {
     try { return JSON.parse(localStorage.getItem('fav_doctor_ids') || '[]'); } catch { return []; }
   });
@@ -141,7 +141,7 @@ export default function Psychiatrists() {
       const data = await api.getDoctors(params).catch(() => { throw new Error('Failed to load psychiatrists'); });
       const docList = Array.isArray(data) ? data : (data?.doctors || data?.data || []);
       setAllDoctors((Array.isArray(docList) ? docList : []).filter(isPsychiatrist));
-    } catch (e) { setLoadError(e.message || 'Failed to load psychiatrists'); setAllDoctors([]); }
+    } catch (e: any) { setLoadError(e.message || 'Failed to load psychiatrists'); setAllDoctors([]); }
     setLoading(false);
   };
 

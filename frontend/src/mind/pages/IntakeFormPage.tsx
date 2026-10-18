@@ -78,7 +78,7 @@ export default function IntakeFormPage() {
         toast({ title: "Intake submitted", description: "You can now book your first session" });
         navigate(`/mind/session-schedule?packageId=${packageId}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to submit", variant: "destructive" });
     } finally {
       setSubmitting(false);

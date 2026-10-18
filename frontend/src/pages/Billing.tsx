@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import PatientBanner from '@/components/clinical/PatientBanner';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const statusCls = {
+const statusCls: Unmodelled = {
   Paid:    'bg-success/10 text-success',
   Pending: 'bg-warning/10 text-warning',
   Overdue: 'bg-destructive/10 text-destructive',
@@ -19,7 +19,7 @@ const STATUSES = ['All','Paid','Pending','Overdue','Partial'];
 const empty = { patient:'', doctor:'', service:'', amount:'', discount:'', paid:'0', status:'Pending', date:'', dueDate:'' };
 
 export default function Billing() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [modal, setModal] = useState(false);
@@ -65,7 +65,7 @@ export default function Billing() {
   const downloadInvoice = async (bill: Unmodelled) => {
     try {
       await downloadInvoicePdf(bill._id, `${bill.invoiceId || 'invoice'}.pdf`);
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.message || 'Unable to download invoice');
     }
   };

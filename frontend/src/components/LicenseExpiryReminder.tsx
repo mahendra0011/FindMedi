@@ -25,7 +25,7 @@ export default function LicenseExpiryReminder() {
           });
           setExpiringLicenses(expiring);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to fetch licenses for expiry check', err);
       }
     };

@@ -139,7 +139,7 @@ const loadDoctors = async () => {
       const data = await api.getDoctors(params).catch(() => { throw new Error('Failed to load doctors'); });
       const docList = Array.isArray(data) ? data : (data?.doctors || data?.data || []);
       setAllDoctors(Array.isArray(docList) ? docList : []);
-    } catch (e) { setLoadError(e instanceof Error ? e.message : 'Failed to load doctors'); setAllDoctors([]); }
+    } catch (e: any) { setLoadError(e instanceof Error ? e.message : 'Failed to load doctors'); setAllDoctors([]); }
     setLoading(false);
   };
 

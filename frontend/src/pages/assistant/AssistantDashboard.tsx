@@ -303,7 +303,7 @@ export default function AssistantDashboard() {
       setActiveBooking(activeRes?.activeBooking || null);
       setHistory(historyRes?.bookings || []);
       setIncomingRequests(pendingRes?.requests || []);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to load assistant dashboard', e);
     } finally {
       setLoading(false);

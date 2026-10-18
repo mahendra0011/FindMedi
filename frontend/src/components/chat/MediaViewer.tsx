@@ -14,7 +14,7 @@ export default function MediaViewer({ items = [], index = 0, onClose, onForward,
   const [current, setCurrent] = useState(index);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [dragFrom, setDragFrom] = useState(null);
+  const [dragFrom, setDragFrom] = useState<Unmodelled>(null);
   const [caption, setCaption] = useState('');
 
   const item = items[current];

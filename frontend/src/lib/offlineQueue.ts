@@ -27,7 +27,7 @@ const tx = async (mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRe
       if (r && 'onsuccess' in r) {
         (r as IDBRequest).onsuccess = () => { out = (r as IDBRequest).result; };
       }
-    } catch (e) { reject(e); return; }
+    } catch (e: any) { reject(e); return; }
     t.oncomplete = () => { db.close(); resolve(out); };
     t.onerror = () => { db.close(); reject(t.error); };
   });

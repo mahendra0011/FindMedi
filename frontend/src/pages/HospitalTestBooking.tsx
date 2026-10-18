@@ -49,7 +49,7 @@ export default function HospitalTestBooking() {
   const [rxFilter, setRxFilter] = useState('all');
   const [collectionFilter, setCollectionFilter] = useState('all');
   const [sortFilter, setSortFilter] = useState('popularity');
-  const [testCart, setTestCart] = useState({});
+  const [testCart, setTestCart] = useState<ApiRow>({});
   const [showBooking, setShowBooking] = useState(false);
   const [bookingStep, setBookingStep] = useState(1);
   const [collectionMode, setCollectionMode] = useState('lab');
@@ -57,14 +57,14 @@ export default function HospitalTestBooking() {
   const [selectedSlot, setSelectedSlot] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [bookingId, setBookingId] = useState('');
-  const [paymentResult, setPaymentResult] = useState(null);
-  const [hospital, setHospital] = useState(null);
+  const [paymentResult, setPaymentResult] = useState<Unmodelled>(null);
+  const [hospital, setHospital] = useState<Unmodelled>(null);
   const { user } = useAuth();
   const [tests, setTests] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [_bookingConfirmed, setBookingConfirmed] = useState(false);
   const [_bookingLoading, setBookingLoading] = useState(false);
-  const [prescriptionFile, setPrescriptionFile] = useState(null);
+  const [prescriptionFile, setPrescriptionFile] = useState<Unmodelled>(null);
   const [prescriptionPreview, setPrescriptionPreview] = useState('');
 
   // Generate next 6 days for date selection
@@ -156,7 +156,7 @@ export default function HospitalTestBooking() {
           popular: t.popular || false,
         }));
         setTests(mapped);
-      } catch (e) { console.error(e); }
+      } catch (e: any) { console.error(e); }
       setLoading(false);
     };
     load();
@@ -164,7 +164,7 @@ export default function HospitalTestBooking() {
 
   const addToCart = (testId: Unmodelled) => setTestCart(p => ({ ...p, [testId]: (p[testId] || 0) + 1 }));
   const removeFromCart = (testId: Unmodelled) => setTestCart(p => {
-    const next = { ...p };
+    const next: Unmodelled = { ...p };
     if (next[testId] <= 1) delete next[testId];
     else next[testId]--;
     return next;
@@ -322,7 +322,7 @@ export default function HospitalTestBooking() {
       setBookingConfirmed(true);
       setBookingStep(6);
       toast.success('Booking confirmed!');
-    } catch (e) {
+    } catch (e: any) {
       const msg = userFacingError(e, { fallback: '' });
       if (isBookingConflictError(msg)) {
         setBookingId(bookingId || 'MED' + crypto.randomUUID());

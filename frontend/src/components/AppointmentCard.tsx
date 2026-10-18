@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDisplayDate } from '@/lib/dateUtils';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /**
  * Convert a number to an ordinal string: 1 → "1st", 2 → "2nd", 3 → "3rd".
@@ -16,7 +17,7 @@ export function ordinal(n: number) {
 }
 
 // Extended status colour/pill maps (shared between Doctor & Clinic)
-export const statusColors = {
+export const statusColors: Unmodelled = {
   Pending:    'bg-amber-50 text-amber-600 border border-amber-200',
   Confirmed:  'bg-success/10 text-success',
   Cancelled:  'bg-destructive/10 text-destructive',
@@ -37,13 +38,13 @@ export const statusDot = {
 };
 
 // Priority → left accent border + badge
-export const priorityAccent = {
+export const priorityAccent: Unmodelled = {
   Emergency: 'border-l-4 border-destructive',
   Urgent:    'border-l-4 border-warning',
   Normal:    'border-l-4 border-transparent',
 };
 
-export const priorityBadge = {
+export const priorityBadge: Unmodelled = {
   Emergency: 'bg-destructive/10 text-destructive',
   Urgent:    'bg-warning/10 text-warning',
 };

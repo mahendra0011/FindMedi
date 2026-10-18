@@ -44,7 +44,7 @@ const talkOptions = [
   },
 ];
 
-const iconMap = {
+const iconMap: Unmodelled = {
   "google-meet": Video,
   "voice-call": Phone,
   "in-person": MapPin,

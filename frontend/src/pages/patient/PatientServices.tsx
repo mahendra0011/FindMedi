@@ -8,7 +8,7 @@ import { bookTestLab } from '@/lib/testBooking';
 import { toast } from 'sonner';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const serviceIcons = {
+const serviceIcons: Unmodelled = {
   bp_check: Thermometer,
   blood_sugar: Droplets,
   fbc: Activity,
@@ -19,14 +19,14 @@ const serviceIcons = {
   thyroid: TestTube,
 };
 
-const categoryColors = {
+const categoryColors: Unmodelled = {
   Basic: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
   Lab: 'bg-green-500/10 text-green-500 border-green-500/20',
   Imaging: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
   Cardiac: 'bg-red-500/10 text-red-500 border-red-500/20',
 };
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Paid: 'bg-success/10 text-success',
   Pending: 'bg-warning/10 text-warning',
   Overdue: 'bg-destructive/10 text-destructive',
@@ -82,7 +82,7 @@ export default function PatientServices() {
   const [services, setServices] = useState<ApiRow[]>([]);
   const [selectedServices, setSelectedServices] = useState<ApiRow[]>([]);
   const [bookedServices, setBookedServices] = useState<ApiRow[]>([]);
-  const [lastBooking, setLastBooking] = useState(null);
+  const [lastBooking, setLastBooking] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -98,7 +98,7 @@ export default function PatientServices() {
       setServices(servicesList);
       const bills = billingData?.bills || billingData?.data || [];
       setBookedServices(buildLabBookings(bills, servicesList, user));
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
     setLoading(false);
   }, [user]);
 
@@ -147,7 +147,7 @@ export default function PatientServices() {
       }
       setSuccess(true);
       setSelectedServices([]);
-    } catch (e) { console.error(e); toast?.error?.(e.message || 'Booking failed'); }
+    } catch (e: any) { console.error(e); toast?.error?.(e.message || 'Booking failed'); }
     setBooking(false);
   };
 

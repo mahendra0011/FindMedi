@@ -27,7 +27,7 @@ const QUEUE_TABS = [
 ];
 
 // SA-3: per-queue approve/reject wiring for the unified KYC queue.
-const QUEUE_ACTIONS = {
+const QUEUE_ACTIONS: Unmodelled = {
   hospitals: { approve: (id: Unmodelled) => api.approveHospital(id), reject: (id: Unmodelled, reason: Unmodelled) => api.rejectHospital(id, { reason }) },
   facilities: { approve: (id: Unmodelled) => api.approveFacility(id), reject: null },
   delivery: { approve: (id: Unmodelled) => api.approveDeliveryBoy(id, { action: 'approve' }), reject: (id: Unmodelled, reason: Unmodelled) => api.approveDeliveryBoy(id, { action: 'reject', reason }) },
@@ -50,8 +50,8 @@ export default function PendingApprovals() {
   const [aggregated, setAggregated] = useState({ facilities: [], delivery: [], riders: [], assistants: [], lawyers: [] });
   const [activeQueue, setActiveQueue] = useState('hospitals');
   const [loading, setLoading] = useState(true);
-  const [actingId, setActingId] = useState(null);
-  const [rejectingId, setRejectingId] = useState(null);
+  const [actingId, setActingId] = useState<Unmodelled>(null);
+  const [rejectingId, setRejectingId] = useState<Unmodelled>(null);
   const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => {
@@ -130,7 +130,7 @@ export default function PendingApprovals() {
   }
 
   const queueItems = activeQueue === 'hospitals' ? pendingHospitals : (aggregated[activeQueue] || []);
-  const queueCounts = {
+  const queueCounts: Unmodelled = {
     hospitals: pendingHospitals.length,
     facilities: aggregated.facilities.length,
     delivery: aggregated.delivery.length,

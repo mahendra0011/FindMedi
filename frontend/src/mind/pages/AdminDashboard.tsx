@@ -123,7 +123,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [announcement, setAnnouncement] = useState("");
   const [showPackageForm, setShowPackageForm] = useState(false);
-  const [editingPackage, setEditingPackage] = useState(null);
+  const [editingPackage, setEditingPackage] = useState<Unmodelled>(null);
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
@@ -149,7 +149,7 @@ const AdminDashboard = () => {
       dispatch(setAdminRevenueFromDashboard({ revenue: dashboard.revenue, analytics: dashboard.analytics }));
       setUsers(userList);
       setAppointments(appts);
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Admin data unavailable", description: error?.message || "" });
     } finally {
       setLoading(false);
@@ -193,7 +193,7 @@ const AdminDashboard = () => {
       toast({ title: "Account created", description: `${newUser.role} account is ready.` });
       setNewUser({ name: "", email: "", password: "password123", role: "user", specialization: "" });
       await load();
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Create failed", description: error?.message || "" });
     }
   };
@@ -203,7 +203,7 @@ const AdminDashboard = () => {
       await api.patch(`/api/admin/users/${user.id}`, { status });
       toast({ title: "Account updated" });
       await load();
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Update failed", description: error?.message || "" });
     }
   };
@@ -213,7 +213,7 @@ const AdminDashboard = () => {
       await api.patch(`/api/admin/users/${user.id}`, payload);
       toast({ title: success });
       await load();
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Update failed", description: error?.message || "" });
     }
   };
@@ -226,7 +226,7 @@ const AdminDashboard = () => {
         reports: (prev.reports || []).map((r) => (r.id === report.id ? { ...r, status } : r)),
       }));
       toast({ title: `Report marked as ${status}` });
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Failed to update report", description: error?.message || "" });
     }
   };
@@ -236,7 +236,7 @@ const AdminDashboard = () => {
       await api.delete(`/api/admin/users/${user.id}`);
       toast({ title: "Account deleted", description: `${user.email} was removed from the platform.` });
       await load();
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Delete failed", description: error?.message || "" });
     }
   };
@@ -249,7 +249,7 @@ const AdminDashboard = () => {
         description: status === "approved" ? `${result.fullName} now has counsellor access.` : undefined,
       });
       await load();
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Review failed", description: error?.message || "" });
     }
   };
@@ -262,7 +262,7 @@ const AdminDashboard = () => {
         description: `${review.counsellor || "Counsellor"} rating moderation saved.`,
       });
       await load();
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Moderation failed", description: error?.message || "" });
     }
   };
@@ -304,7 +304,7 @@ const sendAnnouncement = async () => {
       toast({ title: "Announcement sent", description: "Platform notification is available to all dashboards." });
       setAnnouncement("");
       await load();
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Announcement failed", description: error?.message || "" });
     }
   };

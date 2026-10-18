@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const categoryConfig = {
+const categoryConfig: Unmodelled = {
   prescription:     { icon: Pill,         color: 'text-success',     bg: 'bg-success/10',     label: 'Prescriptions' },
   lab_report:       { icon: FlaskConical, color: 'text-warning',     bg: 'bg-warning/10',     label: 'Lab Reports' },
   discharge_summary:{ icon: FileText,     color: 'text-info',        bg: 'bg-info/10',        label: 'Discharge Summaries' },
@@ -20,7 +20,7 @@ export default function MedicalRecords() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
-  const [expandedDoctor, setExpandedDoctor] = useState(null);
+  const [expandedDoctor, setExpandedDoctor] = useState<Unmodelled>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['records', search, categoryFilter],
@@ -52,7 +52,7 @@ export default function MedicalRecords() {
   const doctorList = Object.values(doctorGroups);
 
   const getCategoryCounts = (recs: Unmodelled) => {
-    const counts = {};
+    const counts: Unmodelled = {};
     Object.keys(categoryConfig).forEach(key => counts[key] = 0);
     (Array.isArray(recs) ? recs : []).forEach(r => {
       const type = (r.type || '').toLowerCase().replace(/\s+/g, '_');

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const physioApi = {
+const physioApi: Unmodelled = {
   getReferrals: (p: Unmodelled) => api.dispatch(() => Promise.resolve({ referrals: [] }), '/physio/referrals?' + new URLSearchParams(p)),
   createReferral: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/physio/referrals', { method: 'POST', body: JSON.stringify(b) }),
   startAssessment: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/physio/referrals/${id}/assess`, { method: 'PUT', body: JSON.stringify(b) }),
@@ -18,7 +18,7 @@ const physioApi = {
   getStats: () => api.dispatch(() => Promise.resolve({ active: 0, inProgress: 0, completed: 0, total: 0 }), '/physio/stats'),
 };
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Referred: 'bg-primary/10 text-primary',
   Assessed: 'bg-info/10 text-info',
   'In Progress': 'bg-warning/10 text-warning',
@@ -28,20 +28,20 @@ const statusColors = {
 };
 
 export default function Physiotherapy() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [expandedId, setExpandedId] = useState(null);
+  const [expandedId, setExpandedId] = useState<Unmodelled>(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [showAssessment, setShowAssessment] = useState(null);
+  const [showAssessment, setShowAssessment] = useState<Unmodelled>(null);
   const [assessmentData, setAssessmentData] = useState({ painScale: '5', rangeOfMotion: '', strengthTest: '', functionalAssessment: '', objective: '', notes: '' });
-  const [showPlan, setShowPlan] = useState(null);
+  const [showPlan, setShowPlan] = useState<Unmodelled>(null);
   const [planData, setPlanData] = useState({ therapyType: 'Exercise Therapy', sessionsTotal: '10', frequency: '3x/week', duration: '30', goals: '', precautions: '' });
-  const [showSession, setShowSession] = useState(null);
+  const [showSession, setShowSession] = useState<Unmodelled>(null);
   const [sessionData, setSessionData] = useState({ exercises: '', painBefore: '5', painAfter: '3', progress: '', therapist: '' });
-  const [showReview, setShowReview] = useState(null);
+  const [showReview, setShowReview] = useState<Unmodelled>(null);
   const [reviewData, setReviewData] = useState({ progress: 'Improved', painComparison: 'Decreased', planAdjustment: '', continueSessions: true });
-  const [showDischarge, setShowDischarge] = useState(null);
+  const [showDischarge, setShowDischarge] = useState<Unmodelled>(null);
   const [dischargeData, setDischargeData] = useState({ outcome: 'Improved', homeExercisePlan: '', precautions: '', followUpDate: '', summary: '' });
   const [newReferral, setNewReferral] = useState({ patientName: '', patientId: '', diagnosis: '', referringDoctor: '', priority: 'Routine', notes: '' });
 

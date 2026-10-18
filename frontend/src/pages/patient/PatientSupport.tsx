@@ -7,8 +7,8 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const ticketStatusColors = { Open: 'bg-warning/10 text-warning', 'In Progress': 'bg-info/10 text-info', Resolved: 'bg-success/10 text-success', Closed: 'bg-muted text-muted-foreground' };
-const ticketStatusIcons = { Open: AlertCircle, 'In Progress': Clock, Resolved: CheckCircle2, Closed: TicketCheck };
+const ticketStatusColors: Unmodelled = { Open: 'bg-warning/10 text-warning', 'In Progress': 'bg-info/10 text-info', Resolved: 'bg-success/10 text-success', Closed: 'bg-muted text-muted-foreground' };
+const ticketStatusIcons: Unmodelled = { Open: AlertCircle, 'In Progress': Clock, Resolved: CheckCircle2, Closed: TicketCheck };
 
 export default function PatientSupport() {
   const [subject, setSubject] = useState('');

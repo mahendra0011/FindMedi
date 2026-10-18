@@ -10,7 +10,7 @@ import FeedbackPrompt from '@/components/feedback/FeedbackPrompt';
 import { api } from '@/lib/api';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusConfig = {
+const statusConfig: Unmodelled = {
   Pending: { label: 'Pending', icon: Clock, color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
   Shipped: { label: 'Shipped', icon: Truck, color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
   Delivered: { label: 'Delivered', icon: CheckCircle2, color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
@@ -18,7 +18,7 @@ const statusConfig = {
   Processing: { label: 'Processing', icon: Loader2, color: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
 };
 
-const paymentColors = {
+const paymentColors: Unmodelled = {
   Unpaid: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
   Paid: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   Refunded: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
@@ -39,7 +39,7 @@ export default function PatientMedicineOrders() {
       try {
         const res = await api.getPharmacyOrders({});
         setOrders(res.orders || []);
-      } catch (e) { console.error(e); }
+      } catch (e: any) { console.error(e); }
       setLoading(false);
     };
     load();

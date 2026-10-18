@@ -18,7 +18,7 @@ const renderStars = (rating: Unmodelled) => (
 );
 
 const ProviderIcon = ({ type }: Unmodelled) => {
-  const icons = {
+  const icons: Unmodelled = {
     hospital: Building2,
     clinic: Stethoscope,
     lab_technician: Microscope,
@@ -37,7 +37,7 @@ const PrescriptionBadge = ({ required }: Unmodelled) => (
 );
 
 const TagPill = ({ icon: Icon, children, variant = 'default' }: Unmodelled) => {
-  const variants = {
+  const variants: Unmodelled = {
     default: 'bg-primary/10 text-primary border-primary/20',
     success: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
     amber: 'bg-amber-500/10 text-amber-600 border-amber-500/20',

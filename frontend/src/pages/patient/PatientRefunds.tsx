@@ -3,11 +3,11 @@ import { motion } from 'framer-motion';
 import { RotateCcw, Search, Calendar, Clock, IndianRupee, AlertCircle, Loader2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusFilters = ['All', 'Pending', 'Processing', 'Refunded', 'Failed'];
 
-const statusConfig = {
+const statusConfig: Unmodelled = {
   Pending: { label: 'Pending', color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', icon: Clock },
   Processing: { label: 'Processing', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', icon: Loader2 },
   Refunded: { label: 'Refunded', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20', icon: RotateCcw },

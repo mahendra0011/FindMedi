@@ -10,8 +10,8 @@ import TenantQuotas from './TenantQuotas';
 import type { Unmodelled } from '@/lib/apiTypes';
 
 function SystemSettingsTab() {
-  const [settings, setSettings] = useState(null);
-  const [editKey, setEditKey] = useState(null);
+  const [settings, setSettings] = useState<Unmodelled>(null);
+  const [editKey, setEditKey] = useState<Unmodelled>(null);
   const [editValue, setEditValue] = useState('');
   const [loading, setLoading] = useState(true);
 

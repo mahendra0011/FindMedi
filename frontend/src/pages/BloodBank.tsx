@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const bbApi = {
+const bbApi: Unmodelled = {
   getUnits: (p: Unmodelled) => api.getBloodUnits(p),
   addUnit: (b: Unmodelled) => api.addBloodUnit(b),
   getRequests: (p: Unmodelled) => api.getBloodRequests(p),
@@ -23,7 +23,7 @@ const bbApi = {
 
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
-const compatibleDonors = {
+const compatibleDonors: Unmodelled = {
   'A+': ['A+', 'A-', 'O+', 'O-'],
   'A-': ['A-', 'O-'],
   'B+': ['B+', 'B-', 'O+', 'O-'],
@@ -35,15 +35,15 @@ const compatibleDonors = {
 };
 
 export default function BloodBank() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [tab, setTab] = useState('inventory');
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [showCrossMatch, setShowCrossMatch] = useState(null);
+  const [showCrossMatch, setShowCrossMatch] = useState<Unmodelled>(null);
   const [crossMatchData, setCrossMatchData] = useState({ patientGroup: '', donorUnitId: '', compatibility: 'Compatible', crossMatchResult: 'Compatible', technician: '' });
-  const [showTransfusion, setShowTransfusion] = useState(null);
+  const [showTransfusion, setShowTransfusion] = useState<Unmodelled>(null);
   const [transfusionData, setTransfusionData] = useState({ preBp: '', prePulse: '', preTemp: '', startTime: '', nurseName: '' });
-  const [showReaction, setShowReaction] = useState(null);
+  const [showReaction, setShowReaction] = useState<Unmodelled>(null);
   const [reactionData, setReactionData] = useState({ reactionType: 'Fever', severity: 'Mild', symptoms: '', actionTaken: '', stopped: false });
   const [newUnit, setNewUnit] = useState({ bloodGroup: 'O+', donorName: '', donationDate: '', expiryDate: '', volume: 450, components: ['Whole Blood'], hiv: 'Negative', hbsag: 'Negative', hcv: 'Negative', malaria: 'Negative', vdrl: 'Negative' });
   const [newReq, setNewReq] = useState({ patientName: '', patientId: '', bloodGroup: 'O+', unitsRequired: 1, reason: '', priority: 'Routine' });

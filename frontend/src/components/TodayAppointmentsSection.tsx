@@ -92,8 +92,8 @@ export default function TodayAppointmentsSection({
   }, [shownRightAppointments, completedSearch]);
 
   // Hour filter (null = show all hours of the day). Sub-slot filter (null = all sub-slots).
-  const [selectedHour, setSelectedHour] = useState(null);
-  const [selectedSubSlot, setSelectedSubSlot] = useState(null);
+  const [selectedHour, setSelectedHour] = useState<Unmodelled>(null);
+  const [selectedSubSlot, setSelectedSubSlot] = useState<Unmodelled>(null);
 
   // Sub-slot row: when an hour is filtered show its sub-slots, otherwise all sub-slots present today
   const subSlots = useMemo(() => {
@@ -115,14 +115,14 @@ export default function TodayAppointmentsSection({
   }, [hourAppointments, selectedSubSlot]);
 
   // Highlighted patient in the left panel list (cards are always all visible in the middle)
-  const [, setSelectedAptId] = useState(null);
+  const [, setSelectedAptId] = useState<Unmodelled>(null);
 
   // History modal
-  const [historyPatient, setHistoryPatient] = useState(null);
+  const [historyPatient, setHistoryPatient] = useState<Unmodelled>(null);
   // File viewer popup — blob URLs are revoked on close to avoid leaks.
-  const [fileViewerUrl, setFileViewerUrl] = useState(null);
-  const [fileViewerRawUrl, setFileViewerRawUrl] = useState(null);
-  const [fileViewerType, setFileViewerType] = useState(null); // 'image' | 'pdf' | 'other'
+  const [fileViewerUrl, setFileViewerUrl] = useState<Unmodelled>(null);
+  const [fileViewerRawUrl, setFileViewerRawUrl] = useState<Unmodelled>(null);
+  const [fileViewerType, setFileViewerType] = useState<Unmodelled>(null); // 'image' | 'pdf' | 'other'
   const [fileViewerLoading, setFileViewerLoading] = useState(false);
   const [fileViewerError, setFileViewerError] = useState(false);
 
@@ -150,7 +150,7 @@ export default function TodayAppointmentsSection({
       setFileViewerUrl(preview.url);
       setFileViewerRawUrl(preview.rawUrl || url);
       setFileViewerType(preview.type);
-    } catch (err) {
+    } catch (err: any) {
       console.error('File preview error:', err);
       setFileViewerUrl(resolveFileUrl(url));
       setFileViewerType('other');
@@ -222,7 +222,7 @@ export default function TodayAppointmentsSection({
             notes: note.trim(),
             data: { date: selectedDate, note: note.trim() },
           });
-        } catch (noteErr) {
+        } catch (noteErr: any) {
           console.error('Quick note save failed:', noteErr);
         }
       }
@@ -231,7 +231,7 @@ export default function TodayAppointmentsSection({
       setSelectedAptId(null);
       onRefresh();
       return true;
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error('Failed to complete appointment');
       return false;
@@ -243,7 +243,7 @@ export default function TodayAppointmentsSection({
       await api.updateAppointment(apt._id, { status: 'Confirmed' });
       toast.success('Appointment reverted to Confirmed');
       onRefresh();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error('Failed to revert appointment');
     }
@@ -271,7 +271,7 @@ export default function TodayAppointmentsSection({
           description: (rx.prescription || '').slice(0, 120),
         });
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error('Failed to load prescription');
     }
@@ -678,7 +678,7 @@ function PatientDetailCard({
                       notes: absentNote.trim(),
                       data: { date: selectedDate, note: absentNote.trim(), reason: 'absent' },
                     });
-                  } catch (noteErr) {
+                  } catch (noteErr: any) {
                     console.error('Absent note save failed:', noteErr);
                   }
                 }
@@ -686,7 +686,7 @@ function PatientDetailCard({
                 setMarkingAbsent(false);
                 setAbsentNote('');
                 onRefresh?.();
-              } catch (e) {
+              } catch (e: any) {
                 toast.error(e.message || 'Failed to mark absent');
               }
             }}

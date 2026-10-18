@@ -168,7 +168,7 @@ export function startAlarmSound(presetId = 'classic_alarm', customSoundUrl?: str
       } else {
         playClassicAlarmCycle(ctx, masterGain);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Audio cycle failed:', e);
     }
   };

@@ -42,7 +42,7 @@ export default function DashboardOverviewPage() {
       try {
         const res = await api.getDashOverview({ from, to, compare: compare ? '1' : '0' });
         if (!cancelled) { setData(res as OverviewData); setError(''); }
-      } catch (e) {
+      } catch (e: any) {
         if (!cancelled) { setData(null); setError(e instanceof Error ? e.message : 'Overview unavailable'); }
       } finally {
         if (!cancelled) setLoading(false);

@@ -156,7 +156,7 @@ export default function UpcomingAppointmentsSection({
 
   // Group filtered appointments by date for structured reading
   const groupedByDate = useMemo(() => {
-    const groups = {};
+    const groups: Unmodelled = {};
     filteredAppointments.forEach(apt => {
       const dateKey = apt.date || 'Unknown';
       if (!groups[dateKey]) groups[dateKey] = [];

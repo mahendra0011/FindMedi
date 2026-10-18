@@ -84,7 +84,7 @@ export default function LawyerProfile() {
         } else {
           setNotFound(true);
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error('Failed to load advocate profile:', e);
         setNotFound(true);
       } finally {

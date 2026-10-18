@@ -27,7 +27,7 @@ export default function EmergencyWarRoom() {
   const [blastTitle, setBlastTitle] = useState('');
   const [blastMsg, setBlastMsg] = useState('');
   const [blasting, setBlasting] = useState(false);
-  const [lockingAlert, setLockingAlert] = useState(null);
+  const [lockingAlert, setLockingAlert] = useState<Unmodelled>(null);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -60,17 +60,17 @@ export default function EmergencyWarRoom() {
         const bump = () => load(true);
         const clinical = (kind: Unmodelled) => (payload: Unmodelled) => {
           const tone = payload?.toneType === 'lab_panic' ? 'lab_panic' : payload?.toneType === 'code_blue' ? 'code_blue' : 'siren';
-          const titles = {
+          const titles: Unmodelled = {
             code_blue: payload?.patientName ? `Cardiac arrest — ${payload.patientName}` : 'Cardiac arrest',
             lab_panic: payload?.testName ? `${payload.testName}: ${payload.value}` : 'Critical lab value',
             mtp: payload?.bloodGroup ? `Pack ${payload?.units || 4} units ${payload.bloodGroup}` : 'MTP activated',
           };
-          const details = {
+          const details: Unmodelled = {
             code_blue: `Ward ${payload?.ward || '-'} · Bed ${payload?.bedId || '-'}${payload?.note ? ` · ${payload.note}` : ''}`,
             lab_panic: `${payload?.patientName || ''}${payload?.countermeasure ? ` → ${payload.countermeasure}` : ''}`,
             mtp: `Requested by ${payload?.requester || 'ER'} · Hospital ${payload?.hospitalId || ''}`,
           };
-          const actions = {
+          const actions: Unmodelled = {
             code_blue: 'START RESUSCITATION TIMER',
             lab_panic: 'OPEN ORDER + COUNTERMEASURE',
             mtp: 'DISPATCH PACK 4U O-NEG',
@@ -142,7 +142,7 @@ export default function EmergencyWarRoom() {
       toast.success(`Disaster blast sent to ${res.recipientCount ?? 'all'} recipients`);
       setBlastTitle('');
       setBlastMsg('');
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.message || 'Broadcast failed');
     } finally {
       setBlasting(false);

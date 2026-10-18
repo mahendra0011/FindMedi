@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import type { Unmodelled } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const inr = (n: Unmodelled) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 const countOf = (res: Unmodelled, keys = []) => {
@@ -16,7 +16,7 @@ const countOf = (res: Unmodelled, keys = []) => {
 };
 
 // Per-role widget wiring — every call exists in lib/api.js and fails soft.
-const ROLE_CONFIG = {
+const ROLE_CONFIG: Unmodelled = {
   nurse: {
     title: 'Nursing Console',
     calls: [
@@ -167,13 +167,13 @@ export default function StaffDashboard() {
   const { user } = useAuth();
   const role = user?.role || 'staff';
   const conf = ROLE_CONFIG[role] || ROLE_CONFIG.helper;
-  const [stats, setStats] = useState({});
+  const [stats, setStats] = useState<ApiRow>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     (async () => {
-      const out = {};
+      const out: Unmodelled = {};
       await Promise.all(conf.calls.map(async (c: Unmodelled) => {
         try {
           const res = await c.run();

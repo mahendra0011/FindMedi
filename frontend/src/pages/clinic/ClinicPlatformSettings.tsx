@@ -18,7 +18,7 @@ export default function ClinicPlatformSettings() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [autoConfirm, setAutoConfirm] = useState(true);
-  const [doctorId, setDoctorId] = useState(null);
+  const [doctorId, setDoctorId] = useState<Unmodelled>(null);
   const [signatureUrl, setSignatureUrl] = useState('');
   const [signatureUploading, setSignatureUploading] = useState(false);
 
@@ -49,7 +49,7 @@ export default function ClinicPlatformSettings() {
         if (settings?.autoConfirmAppointment !== undefined) {
           setAutoConfirm(settings.autoConfirmAppointment);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load facility settings:', err);
       } finally {
         setLoading(false);
@@ -87,7 +87,7 @@ export default function ClinicPlatformSettings() {
           setEstablishmentLicense(String(pick('establishmentLicense', '')));
           setEstablishmentLicenseExpiry(String(pick('establishmentLicenseExpiry', '')));
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load doctor:', err);
       }
     };
@@ -138,7 +138,7 @@ export default function ClinicPlatformSettings() {
       setSaved(true);
       toast.success('Settings saved successfully');
       setTimeout(() => setSaved(false), 2000);
-    } catch (err) {
+    } catch (err: any) {
       toast.error(userFacingError(err, { fallback: 'Failed to save settings' }));
     } finally {
       setSaving(false);
@@ -153,7 +153,7 @@ export default function ClinicPlatformSettings() {
       const res = await api.uploadDoctorSignature(doctorId, file);
       setSignatureUrl(res.signatureUrl);
       toast.success('Signature uploaded successfully');
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.message || 'Failed to upload signature');
     }
     setSignatureUploading(false);

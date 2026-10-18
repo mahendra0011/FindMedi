@@ -102,7 +102,7 @@ export default function FindVehicle() {
           setVehicleType(res.ride.vehicleType);
           setIsEmergency(res.ride.isEmergency);
         }
-      } catch (err) {
+      } catch (err: any) {
         // No active ride
       } finally {
         setFetchingActive(false);

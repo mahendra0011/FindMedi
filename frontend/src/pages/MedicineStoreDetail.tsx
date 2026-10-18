@@ -92,18 +92,18 @@ export default function MedicineStoreDetail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { entries, addItem, updateQty } = useCart();
-  const [store, setStore] = useState(null);
+  const [store, setStore] = useState<Unmodelled>(null);
   const [suggestedStores, setSuggestedStores] = useState<ApiRow[]>([]);
   const [allMeds, setAllMeds] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRx, setShowRx] = useState(false);
-  const [uploadedRx, setUploadedRx] = useState(null);
-  const [copiedCode, setCopiedCode] = useState(null);
-  const medicinesRef = useRef(null);
-  const fileInputRef = useRef(null);
+  const [uploadedRx, setUploadedRx] = useState<Unmodelled>(null);
+  const [copiedCode, setCopiedCode] = useState<Unmodelled>(null);
+  const medicinesRef: Unmodelled = useRef<Unmodelled>(null);
+  const fileInputRef: Unmodelled = useRef<Unmodelled>(null);
   const [medSearch, setMedSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');
-  const [expandedFaq, setExpandedFaq] = useState(null);
+  const [expandedFaq, setExpandedFaq] = useState<Unmodelled>(null);
   const [reviewsData, setReviewsData] = useState<ApiRow[]>([]);
   const [isFavorited, setIsFavorited] = useState(() => localStorage.getItem(`fav_store_${storeId}`) === 'true');
   const toggleFavorite = async () => {

@@ -14,10 +14,10 @@ import { useCart } from '@/context/CartContext';
 import { FLOW_TYPE, TRACKING_STAGES } from '@/hooks/useBookingFlow';
 import { api, getApiBaseUrl } from '@/lib/api';
 import { toast } from 'sonner';
-import type { Unmodelled } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 // ─── Icon map (string key → Lucide component) ─────────────────────────────────
-const ICON_MAP = {
+const ICON_MAP: Unmodelled = {
   Package, CheckCircle2, Clock, Truck, Home, Store, FlaskConical,
   Activity, FileText, Calendar, Bell, User, Microscope,
 };
@@ -70,7 +70,7 @@ export default function OrderTracking() {
   const flowType = Object.values(FLOW_TYPE).includes(rawType) ? rawType : FLOW_TYPE.MEDICINE;
   const meta     = FLOW_META[flowType];
 
-  const [orderData, setOrderData] = useState(null);
+  const [orderData, setOrderData] = useState<Unmodelled>(null);
   const [_loadingOrder, setLoadingOrder] = useState(true);
 
   useEffect(() => {
@@ -80,25 +80,25 @@ export default function OrderTracking() {
         const res = await api.getOrder(orderId);
         const ord = res?.order || res;
         if (ord) setOrderData(ord);
-      } catch (e) { console.error('Failed to load order:', e); } finally { setLoadingOrder(false); }
+      } catch (e: any) { console.error('Failed to load order:', e); } finally { setLoadingOrder(false); }
     };
     load();
   }, [orderId]);
 
-  const [storeNameMap, setStoreNameMap] = useState({});
+  const [storeNameMap, setStoreNameMap] = useState<ApiRow>({});
   useEffect(() => {
     const load = async () => {
       try {
         const res = await api.getFacilities({ type: 'pharmacy' });
         const list = Array.isArray(res) ? res : (res?.facilities || res?.data || []);
-        const map = {};
+        const map: Unmodelled = {};
         list.forEach((f: Unmodelled) => { map[f._id] = f.name; map[f.id] = f.name; });
         if (storeId) {
           const found = list.find((f: Unmodelled) => f._id === storeId || f.id === storeId);
           if (found) map[storeId] = found.name;
         }
         setStoreNameMap(map);
-      } catch (e) { console.error('Failed to load facilities:', e); }
+      } catch (e: any) { console.error('Failed to load facilities:', e); }
     };
     load();
   }, [storeId]);
@@ -165,7 +165,7 @@ export default function OrderTracking() {
     try {
       if (orderId) await api.updatePharmacyOrder(orderId, { status: 'Cancelled' });
       toast.success('Order cancelled. Refund will be processed within 3-5 business days.');
-    } catch (e) { console.error('Cancel order failed:', e); toast.error('Failed to cancel order. Please try again.'); }
+    } catch (e: any) { console.error('Cancel order failed:', e); toast.error('Failed to cancel order. Please try again.'); }
   };
 
   const handleSubmitReview = async () => {
@@ -173,7 +173,7 @@ export default function OrderTracking() {
     try {
       await api.createReview({ rating: reviewRating, comment: reviewComment || '', targetId: storeId, targetType: 'pharmacy' });
       toast.success(`Thank you! Your ${reviewRating}-star review has been submitted.`);
-    } catch (e) { console.error('Submit review failed:', e); toast.error('Failed to submit review. Please try again.'); }
+    } catch (e: any) { console.error('Submit review failed:', e); toast.error('Failed to submit review. Please try again.'); }
     setShowReviewModal(false);
     setReviewRating(0);
     setReviewComment('');
@@ -184,7 +184,7 @@ export default function OrderTracking() {
     try {
       await api.createPharmacyReturn({ orderId, reason: returnReason, status: 'Requested' });
       toast.success(`Return request submitted. We'll contact you within 24 hours.`);
-    } catch (e) { console.error('Return request failed:', e); toast.error('Failed to submit return request. Please try again.'); }
+    } catch (e: any) { console.error('Return request failed:', e); toast.error('Failed to submit return request. Please try again.'); }
     setShowReturnModal(false);
     setReturnReason('');
   };

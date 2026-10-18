@@ -71,7 +71,7 @@ function ActiveSessions() {
     try {
       const res = await api.getSessions();
       setSessions(Array.isArray(res?.sessions) ? (res.sessions as AuthSession[]) : []);
-    } catch (e) {
+    } catch (e: any) {
       toast.error(userFacingError(e, { fallback: 'Could not load your sessions' }));
     } finally {
       setBusy(false);
@@ -94,7 +94,7 @@ function ActiveSessions() {
       // and briefly show a row that is already gone.
       setSessions((s) => s.filter((x) => x.jti !== jti));
       toast.success('Session signed out');
-    } catch (e) {
+    } catch (e: any) {
       toast.error(userFacingError(e, { fallback: 'Could not sign that session out' }));
     } finally {
       setBusy(false);
@@ -108,7 +108,7 @@ function ActiveSessions() {
       // The server just revoked THIS session too, so the app has to follow it
       // out rather than leave a dead session on screen.
       window.location.href = '/login';
-    } catch (e) {
+    } catch (e: any) {
       toast.error(userFacingError(e, { fallback: 'Could not sign out everywhere' }));
       setBusy(false);
     }
@@ -209,7 +209,7 @@ export default function PatientSettings() {
         },
       });
       toast.success('Settings saved successfully');
-    } catch (e) {
+    } catch (e: any) {
       toast.error(userFacingError(e, { fallback: 'Failed to save settings' }));
     } finally {
       setSaving(false);

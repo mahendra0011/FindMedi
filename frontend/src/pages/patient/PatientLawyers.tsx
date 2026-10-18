@@ -62,7 +62,7 @@ export default function PatientLawyers() {
       setCases(casesRes?.cases || []);
       setDocuments(docsRes?.documents || []);
       setFavorites(favRes?.favorites || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch legal console data:', err);
     } finally {
       setLoading(false);
@@ -131,7 +131,7 @@ export default function PatientLawyers() {
           socket.off('lawyer:no_responders_found', handleNoResponders);
           socket.off('lawyer_booking_updated', handleGeneralUpdate);
         };
-      } catch (err) {
+      } catch (err: any) {
         console.warn('Socket connection error in PatientLawyers:', err);
       }
     })();

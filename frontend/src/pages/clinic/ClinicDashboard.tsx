@@ -46,7 +46,7 @@ function getAppointmentModeMeta(appt: Unmodelled) {
 }
 
 const StatusBadge = ({ status }: Unmodelled) => {
-  const colors = {
+  const colors: Unmodelled = {
     Confirmed: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Completed: 'bg-success/10 text-success',
     Cancelled: 'bg-destructive/10 text-destructive', Shipped: 'bg-info/10 text-info', Delivered: 'bg-success/10 text-success',
     Active: 'bg-info/10 text-info', Dispensed: 'bg-success/10 text-success', Ready: 'bg-success/10 text-success',
@@ -55,7 +55,7 @@ const StatusBadge = ({ status }: Unmodelled) => {
   return <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${colors[status] || 'bg-muted text-muted-foreground'}`}>{status}</span>;
 };
 
-const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
+const methodIcons: Unmodelled = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
 
 // 8-card stats grid — interactive colored tiles
 const statCards = [
@@ -99,7 +99,7 @@ const [refunds, setRefunds] = useState<ApiRow[]>([]);
   const [apptTab, setApptTab] = useState('pending');
   const [tipIndex, setTipIndex] = useState(0);
   const [greeting, setGreeting] = useState('');
-  const [scheduleData, setScheduleData] = useState(null);
+  const [scheduleData, setScheduleData] = useState<Unmodelled>(null);
   const [isEmergencyDuty, setIsEmergencyDuty] = useState(false);
   const [emergencyRadius, setEmergencyRadius] = useState(10);
   const [gpsStatusText, setGpsStatusText] = useState('Standby');
@@ -308,7 +308,7 @@ const [refunds, setRefunds] = useState<ApiRow[]>([]);
         });
         if (hasGenuineError) toast.error(`Failed to load ${failed.length} data source(s)`);
       }
-    } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
+    } catch (e: any) { console.error(e); toast.error('Failed to load dashboard data'); }
     if (mounted.current) setLoading(false);
   }, [user?.name, user?._id, user?.doctorProfileId]);
 
@@ -338,7 +338,7 @@ const [refunds, setRefunds] = useState<ApiRow[]>([]);
   const pendingRefunds = refunds.filter(r => r.status === 'pending' || r.status === 'Pending').length;
   const recentPayments = payments.slice(0, 3);
 
-  const statValues = {
+  const statValues: Unmodelled = {
     'Pending': pendingAppts.length,
     'Upcoming': upcomingAppts.length,
     "Today's Appts": todayAppts.length,

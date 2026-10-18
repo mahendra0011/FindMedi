@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const tokenApi = {
+const tokenApi: Unmodelled = {
   getAll: async (p: Unmodelled) => { return await api.getTokens(p); },
   generate: async (b: Unmodelled) => { return await api.generateToken(b); },
   call: async (id: Unmodelled) => { return await api.callToken(id); },
@@ -18,7 +18,7 @@ const tokenApi = {
   getStats: async () => { return await api.getTokenStats(); },
 };
 
-const triageColors = {
+const triageColors: Unmodelled = {
   Emergency: 'bg-destructive text-destructive-foreground',
   Urgent: 'bg-orange-500 text-white',
   Normal: 'bg-primary text-primary-foreground',
@@ -26,12 +26,12 @@ const triageColors = {
 };
 
 export default function OPDToken() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('All');
   const [showGenerate, setShowGenerate] = useState(false);
   const [newToken, setNewToken] = useState({ patientName: '', patientId: '', uhid: '', doctorName: '', department: 'General', type: 'OPD', priority: 'Normal' });
-  const [displayToken, setDisplayToken] = useState(null);
+  const [displayToken, setDisplayToken] = useState<Unmodelled>(null);
 
   const { data } = useQuery({ queryKey: ['tokens', search, deptFilter], queryFn: () => tokenApi.getAll({ search, department: deptFilter }) });
   const { data: stats } = useQuery({ queryKey: ['token-stats'], queryFn: tokenApi.getStats });

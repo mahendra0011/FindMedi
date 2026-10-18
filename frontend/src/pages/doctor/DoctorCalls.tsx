@@ -58,7 +58,7 @@ export default function DoctorCalls() {
   const [loadingContacts, setLoadingContacts] = useState(false);
 
   // Audio Recording Player State
-  const [playingRecordingId, setPlayingRecordingId] = useState(null);
+  const [playingRecordingId, setPlayingRecordingId] = useState<Unmodelled>(null);
 
   // Fetch Call Logs & Stats
   const loadData = useCallback(async (isRefresh = false) => {
@@ -77,7 +77,7 @@ export default function DoctorCalls() {
       if (statsRes?.success) {
         setStats(statsRes.stats || {});
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Failed to load call logs:', err);
       toast.error('Could not load call history');
     } finally {
@@ -99,7 +99,7 @@ export default function DoctorCalls() {
       if (res?.success) {
         setContacts(res.contacts || []);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Error fetching contacts:', e);
     } finally {
       setLoadingContacts(false);
@@ -138,7 +138,7 @@ export default function DoctorCalls() {
       await api.deleteCallLog(callId);
       setCalls((prev) => prev.filter((c) => c._id !== callId));
       toast.success('Call log deleted');
-    } catch (e) {
+    } catch (e: any) {
       toast.error('Failed to delete call log');
     }
   };
@@ -151,7 +151,7 @@ export default function DoctorCalls() {
       setCalls([]);
       setStats((s) => ({ ...s, totalCalls: 0, missedCalls: 0, incomingCalls: 0, outgoingCalls: 0, totalSeconds: 0 }));
       toast.success('Call history cleared');
-    } catch (e) {
+    } catch (e: any) {
       toast.error('Failed to clear call history');
     }
   };

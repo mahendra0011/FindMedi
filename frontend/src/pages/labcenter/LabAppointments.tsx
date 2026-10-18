@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = { Scheduled: 'bg-info/10 text-info', Completed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive' };
+const statusColors: Unmodelled = { Scheduled: 'bg-info/10 text-info', Completed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive' };
 const defaultAppts = [
   { _id: 'a1', patient: 'Ravi Kumar', modality: 'MRI Brain', date: getISTDateString(), time: '09:00 AM', status: 'Scheduled', notes: 'Contrast required' },
   { _id: 'a2', patient: 'Priya Sharma', modality: 'CT Abdomen', date: getISTDateString(), time: '11:00 AM', status: 'Completed', notes: '' },

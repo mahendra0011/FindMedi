@@ -13,13 +13,13 @@ export default function PharmacyInventory() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editItem, setEditItem] = useState(null);
+  const [editItem, setEditItem] = useState<Unmodelled>(null);
   const [form, setForm] = useState({ name:'', genericName:'', manufacturer:'', category:'', price:'', currentStock:'', reorderLevel:'', expiryDate:'' });
 
   const load = useCallback(async () => {
     setLoading(true);
     try { const res = await api.getPharmacyMedicines({ search }); setMedicines(res.medicines || []); }
-    catch (e) { toast.error(e.message); }
+    catch (e: any) { toast.error(e.message); }
     setLoading(false);
   }, [search]);
 
@@ -39,13 +39,13 @@ export default function PharmacyInventory() {
       }
       setShowModal(false);
       load();
-    } catch (e) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Delete this medicine?')) return;
     try { await api.deletePharmacyMedicine(id); toast.success('Deleted'); load(); }
-    catch (e) { toast.error(e.message); }
+    catch (e: any) { toast.error(e.message); }
   };
 
   const columns = [

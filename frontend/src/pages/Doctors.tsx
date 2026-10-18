@@ -14,7 +14,7 @@ const FALLBACK_SPECIALIZATIONS = ['Cardiology', 'Neurology', 'Orthopaedics', 'Pa
 const empty = { name:'', specialization:'Cardiology', experience:'', rating:4.5, phone:'', email:'', available:true, initials:'', department:'' };
 
 export default function Doctors() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [modal, setModal] = useState(false);

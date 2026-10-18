@@ -7,7 +7,7 @@ import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Pending: 'bg-warning/10 text-warning', Processing: 'bg-info/10 text-info',
   Completed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive',
 };
@@ -17,13 +17,13 @@ export default function PharmacyOrders() {
   const [status, setStatus] = useState('All');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState<Unmodelled>(null);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try { const res = await api.getPharmacyOrders({ status: status === 'All' ? '' : status, search }); setOrders(res.orders || []); }
-      catch (e) { console.error(e); }
+      catch (e: any) { console.error(e); }
       setLoading(false);
     };
     load();

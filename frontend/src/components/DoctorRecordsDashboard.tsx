@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api, downloadPrescriptionPdf, downloadInvoicePdf } from '@/lib/api';
 import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
-import type { Unmodelled } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 // ── Shared form templates ──
 const initialPrescription = {
@@ -33,7 +33,7 @@ const initialInvoice = {
   items: [{ name: '', price: '', quantity: 1 }],
 };
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Paid: 'bg-success/10 text-success',
   Pending: 'bg-warning/10 text-warning',
   Overdue: 'bg-destructive/10 text-destructive',
@@ -258,7 +258,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
   const [showBill, setShowBill] = useState(false);
   const [showInv, setShowInv] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({});
+  const [form, setForm] = useState<ApiRow>({});
 
   // FE-MISSING-02: Prescription auto-save draft mechanism
   useEffect(() => {
@@ -316,7 +316,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
     try {
       await downloadPrescriptionPdf(rec._id, `prescription-${rec.patient || 'download'}.pdf`);
       toast.success('Prescription PDF downloaded');
-    } catch (e) { showError(e); }
+    } catch (e: any) { showError(e); }
   };
 
   // Invoice PDF
@@ -324,7 +324,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
     try {
       await downloadInvoicePdf(bill._id, `invoice-${bill.invoiceId || 'download'}.pdf`);
       toast.success('Invoice PDF downloaded');
-    } catch (e) { showError(e); }
+    } catch (e: any) { showError(e); }
   };
 
   // Bill PDF via transaction if available
@@ -337,7 +337,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
         await downloadInvoicePdf(bill._id, `bill-${bill.invoiceId || bill.billId || 'download'}.pdf`);
       }
       toast.success('Bill PDF downloaded');
-    } catch (e) { showError(e); }
+    } catch (e: any) { showError(e); }
   };
 
   // Create prescription
@@ -381,7 +381,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
       setForm(initialPrescription);
       toast.success('Prescription created');
       onRefresh?.();
-    } catch (e) { showError(e); }
+    } catch (e: any) { showError(e); }
     setSaving(false);
   };
 
@@ -414,7 +414,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
       setForm({});
       toast.success(isInvoice ? 'Invoice created' : 'Bill created');
       onRefresh?.();
-    } catch (e) { showError(e); }
+    } catch (e: any) { showError(e); }
     setSaving(false);
   };
 
@@ -424,7 +424,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
       await api.updateBill(bill._id, { status: 'Paid', paid: bill.amount });
       toast.success('Marked as paid');
       onRefresh?.();
-    } catch (e) { showError(e); }
+    } catch (e: any) { showError(e); }
   };
 
   // Delete bill
@@ -434,7 +434,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
       await api.deleteBill(bill._id);
       toast.success('Deleted');
       onRefresh?.();
-    } catch (e) { showError(e); }
+    } catch (e: any) { showError(e); }
   };
 
   // Add line item

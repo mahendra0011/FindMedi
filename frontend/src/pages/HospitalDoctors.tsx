@@ -42,7 +42,7 @@ function getExpYears(exp: Unmodelled) {
 export default function HospitalDoctors() {
    const { hospitalId } = useParams();
    const navigate = useNavigate();
-   const [hospital, setHospital] = useState(null);
+   const [hospital, setHospital] = useState<Unmodelled>(null);
   const [doctors, setDoctors] = useState<ApiRow[]>([]);
   const [allDoctors, setAllDoctors] = useState<ApiRow[]>([]);
   const [search, setSearch] = useState('');
@@ -50,8 +50,8 @@ export default function HospitalDoctors() {
   const [loading, setLoading] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [loadError, setLoadError] = useState(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<Unmodelled>(null);
+  const [loadError, setLoadError] = useState<Unmodelled>(null);
 
   const { names: specialtyNames, categories: specialtyCategories } = useCategories('specialty', DEFAULT_SPECS.slice(1));
 
@@ -81,7 +81,7 @@ export default function HospitalDoctors() {
         setHospital(hosp);
         const docList = Array.isArray(docs) ? docs : (docs?.doctors || docs?.data || []);
         setAllDoctors(Array.isArray(docList) ? docList : []);
-      } catch (e) {
+      } catch (e: any) {
         console.error(e);
         setLoadError('Failed to load doctors. Please try again.');
       }

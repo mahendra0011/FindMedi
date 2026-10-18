@@ -37,7 +37,7 @@ export default function SecuritySection() {
   const [pinInput, setPinInput] = useState('');
   const [settingPin, setSettingPin] = useState(false);
   const [hasPasskey, setHasPasskey] = useState(false);
-  const idleTimer = useRef(null);
+  const idleTimer = useRef<Unmodelled>(null);
 
   // ── Idle detection ─────────────────────────────────────────────────────
   const poke = useCallback(() => {

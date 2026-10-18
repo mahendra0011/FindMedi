@@ -42,7 +42,7 @@ export default function GlobalCatalog() {
       setMedicines(medList);
       setCategories(catList);
 
-      const seen = {};
+      const seen: Unmodelled = {};
       const dups = [];
       (Array.isArray(testList) ? testList : []).forEach(t => {
         const key = t.name?.toLowerCase().trim();

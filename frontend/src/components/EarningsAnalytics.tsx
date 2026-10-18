@@ -20,14 +20,14 @@ import { Tooltip as RadixTooltip, TooltipContent, TooltipProvider, TooltipTrigge
 import type { Unmodelled } from '@/lib/apiTypes';
 
 /* ─── Constants ───────────────────────────────────── */
-const STATUS_META = {
+const STATUS_META: Unmodelled = {
   Paid:    { color: 'hsl(var(--success))',     dot: 'bg-success',     bg: 'bg-success/10',     text: 'text-success' },
   Pending: { color: 'hsl(var(--warning))',     dot: 'bg-warning',     bg: 'bg-warning/10',     text: 'text-warning' },
   Partial: { color: 'hsl(var(--info))',        dot: 'bg-info',        bg: 'bg-info/10',        text: 'text-info' },
   Overdue: { color: 'hsl(var(--destructive))', dot: 'bg-destructive', bg: 'bg-destructive/10', text: 'text-destructive' },
 };
 
-const METHOD_META = {
+const METHOD_META: Unmodelled = {
   card:       { label: 'Card',       icon: CreditCard, color: 'hsl(var(--primary))',     gradient: 'from-primary/20 to-primary/5' },
   upi:        { label: 'UPI',        icon: Smartphone, color: 'hsl(var(--success))',     gradient: 'from-success/20 to-success/5' },
   netbanking: { label: 'Netbanking', icon: Landmark,   color: 'hsl(var(--info))',        gradient: 'from-info/20 to-info/5' },
@@ -48,7 +48,7 @@ const GRADIENT_PRESETS = [
 /* ─── Animated Counter ────────────────────────────── */
 function AnimatedCounter({ value, prefix = '', suffix = '', duration = 1200 }: Unmodelled) {
   const [display, setDisplay] = useState(0);
-  const ref = useRef(null);
+  const ref = useRef<Unmodelled>(null);
 
   useEffect(() => {
     const startTime = Date.now();
@@ -173,7 +173,7 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
     
     // Categorize earnings (heuristic based on type/service string)
     const testEarned = bills.reduce((s, b) => {
-      const isTest = b.type === 'Test' || b.type === 'Lab' || b.type === 'investigation' || b.service?.toLowerCase().includes('test');
+      const isTest: Unmodelled = b.type === 'Test' || b.type === 'Lab' || b.type === 'investigation' || b.service?.toLowerCase().includes('test');
       return s + (isTest ? (Number(b.paid) || 0) : 0);
     }, 0);
     const appointmentEarned = Math.max(0, totalEarned - testEarned);
@@ -183,7 +183,7 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
 
     // Monthly trend (last 6 months)
     const now = new Date();
-    const monthlyMap = {};
+    const monthlyMap: Unmodelled = {};
     bills.forEach((b) => {
       if (!b.date) return;
       const key = String(b.date).slice(0, 7);
@@ -209,7 +209,7 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
     const growth = lastMonth > 0 ? Math.round(((thisMonth - lastMonth) / lastMonth) * 100) : (thisMonth > 0 ? 100 : 0);
 
     // Last 30 days daily
-    const dailyMap = {};
+    const dailyMap: Unmodelled = {};
     bills.forEach((b) => {
       if (!b.date) return;
       dailyMap[b.date] = (dailyMap[b.date] || 0) + (Number(b.paid) || 0);
@@ -248,7 +248,7 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
     const monthBilled = monthlyMap[monthKey]?.billed || 0;
 
     // Status breakdown
-    const statusCounts = {};
+    const statusCounts: Unmodelled = {};
     bills.forEach((b) => {
       const s = b.status || 'Pending';
       statusCounts[s] = (statusCounts[s] || 0) + (Number(b.amount) || 0);
@@ -258,7 +258,7 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
       .map(([name, value]) => ({ name, value, color: STATUS_META[name]?.color || 'hsl(var(--muted-foreground))' }));
 
     // Payment methods
-    const methodCounts = {};
+    const methodCounts: Unmodelled = {};
     payments.forEach((p) => {
       const m = (p.method || 'cash').toLowerCase();
       methodCounts[m] = (methodCounts[m] || 0) + (Number(p.amount) || 0);
@@ -269,7 +269,7 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
     })).sort((a, b) => b.amount - a.amount);
 
     // Top services
-    const serviceCounts = {};
+    const serviceCounts: Unmodelled = {};
     bills.forEach((b) => {
       const name = b.service || 'General';
       serviceCounts[name] = (serviceCounts[name] || 0) + (Number(b.paid) || 0);

@@ -8,12 +8,12 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { Unmodelled } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function AdminLabSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({});
+  const [form, setForm] = useState<ApiRow>({});
 
   useEffect(() => {
     const load = async () => {
@@ -53,7 +53,7 @@ export default function AdminLabSettings() {
             ...(f.details?.labOps || {}),
           },
         });
-      } catch (e) { console.error(e); toast.error('Failed to load lab data'); }
+      } catch (e: any) { console.error(e); toast.error('Failed to load lab data'); }
       setLoading(false);
     };
     load();
@@ -87,7 +87,7 @@ export default function AdminLabSettings() {
         } },
       });
       toast.success('Lab settings updated successfully');
-    } catch (e) { toast.error(e.message || 'Failed to update'); }
+    } catch (e: any) { toast.error(e.message || 'Failed to update'); }
     setSaving(false);
   };
 

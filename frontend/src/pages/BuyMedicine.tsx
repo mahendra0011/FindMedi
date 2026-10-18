@@ -56,7 +56,7 @@ export default function BuyMedicine() {
           }));
           setAllStores(mapped);
         }
-      } catch (e) { console.error(e); }
+      } catch (e: any) { console.error(e); }
     };
     load();
   }, []);
@@ -74,9 +74,9 @@ export default function BuyMedicine() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [storeType, setStoreType] = useState(() => new URLSearchParams(window.location.search).get('type') || '');
   const [locality, setLocality] = useState('');
-  const [deliveryTimeRange, setDeliveryTimeRange] = useState(null);
+  const [deliveryTimeRange, setDeliveryTimeRange] = useState<Unmodelled>(null);
   const [deliveryChargeFilter, setDeliveryChargeFilter] = useState('');
-  const [freeDeliveryAboveFilter, setFreeDeliveryAboveFilter] = useState(null);
+  const [freeDeliveryAboveFilter, setFreeDeliveryAboveFilter] = useState<Unmodelled>(null);
   const [minReviews, setMinReviews] = useState(0);
   const [ratingMin, setRatingMin] = useState(0);
   const [hasPhone, setHasPhone] = useState(false);

@@ -113,12 +113,12 @@ const MyWellness = () => {
   const activeTab = allowedTabs.includes(urlTab || "") ? urlTab! : "dashboard";
   const setActiveTab = (v: string) => setSearchParams({ tab: v });
   const [moodEntries, setMoodEntries] = useState<ApiRow[]>([]);
-  const [currentMood, setCurrentMood] = useState(null);
+  const [currentMood, setCurrentMood] = useState<Unmodelled>(null);
   const [moodNote, setMoodNote] = useState("");
-  const [assessment, setAssessment] = useState(null);
+  const [assessment, setAssessment] = useState<Unmodelled>(null);
   const [assessmentType, setAssessmentType] = useState("phq9");
   const [assessmentStep, setAssessmentStep] = useState(0);
-  const [responses, setResponses] = useState({});
+  const [responses, setResponses] = useState<ApiRow>({});
   const [selectedLanguage, setSelectedLanguage] = useState("en");
   const [notifications, setNotifications] = useState({
     dailyMoodReminder: true,
@@ -168,7 +168,7 @@ const MyWellness = () => {
       setAssessment(latestAssessment);
       if (goalsData && goalsData.length > 0) setGoals(goalsData);
       if (moods?.length) setCurrentMood(Number(moods[moods.length - 1].mood));
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Wellness data unavailable",
@@ -209,7 +209,7 @@ const MyWellness = () => {
       setMoodEntries((prev) => [...prev, entry]);
       setMoodNote("");
       toast({ title: "Mood saved", description: "Your private mood entry was added." });
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Mood save failed", description: error?.message || "" });
     }
   };
@@ -236,7 +236,7 @@ const MyWellness = () => {
       setAssessmentStep(0);
       toast({ title: "Assessment saved", description: "Your score and recommendations are ready." });
       setActiveTab("dashboard");
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Assessment failed", description: error?.message || "" });
     }
   };
@@ -253,7 +253,7 @@ const MyWellness = () => {
     try {
       await api.post("/api/wellness/emergency", { type: "sos", source: "wellness-emergency", message: "Wellness emergency SOS requested" });
       toast({ title: "Emergency support sent", description: "Booked counsellors and platform admin were notified. Use the helplines below if this is urgent." });
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Emergency request failed", description: error?.message || "" });
     }
   };

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = {
+const statusColors: Unmodelled = {
   'Pending Pickup': 'bg-warning/10 text-warning',
   'In Transit': 'bg-info/10 text-info',
   'Delivered': 'bg-success/10 text-success',
@@ -31,7 +31,7 @@ export default function PharmacyDelivery() {
       ]);
       setDeliveries(delRes.deliveries || []);
       setOrders(ordRes.orders || []);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
     setLoading(false);
   };
 
@@ -50,14 +50,14 @@ export default function PharmacyDelivery() {
       setShowCreate(false);
       setForm({ orderId: '', deliveryPerson: '', phone: '' });
       load();
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const handleStatusUpdate = async (id: Unmodelled, status: Unmodelled) => {
     try {
       await api.updatePharmacyDelivery(id, { status });
       load();
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const undelivered = orders.filter(o => o.status === 'Pending' || o.status === 'Shipped');

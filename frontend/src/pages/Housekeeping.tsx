@@ -4,9 +4,9 @@ import { Search, Plus, Clock, X, CheckCircle, AlertTriangle, User, Home, Sparkle
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
-import type { Unmodelled } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const hkApi = {
+const hkApi: Unmodelled = {
   getTasks: (p: Unmodelled) => api.getHousekeepingTasks(p),
   createTask: (b: Unmodelled) => api.createHousekeepingTask(b),
   completeTask: (id: Unmodelled, b: Unmodelled) => api.completeHousekeepingTask(id, b),
@@ -15,7 +15,7 @@ const hkApi = {
   getStats: async () => { try { return await api.getHousekeepingStats(); } catch { return { pending: 0, inProgress: 0, completed: 0, total: 0 }; } },
 };
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Pending: 'bg-warning/10 text-warning',
   'In Progress': 'bg-primary/10 text-primary',
   Completed: 'bg-success/10 text-success',
@@ -34,12 +34,12 @@ const cleaningChecklist = [
 ];
 
 export default function Housekeeping() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [expandedId, setExpandedId] = useState(null);
+  const [expandedId, setExpandedId] = useState<Unmodelled>(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [checklist, setChecklist] = useState({});
+  const [checklist, setChecklist] = useState<ApiRow>({});
   const [verifyData, setVerifyData] = useState({ rating: 'Good', comments: '', issuesFound: '' });
   const [newTask, setNewTask] = useState({ room: '', bedNumber: '', ward: '', type: 'Routine Cleaning', priority: 'Routine', assignedTo: '', notes: '', isInfectionCase: false });
 
@@ -49,8 +49,8 @@ export default function Housekeeping() {
 
   const createMut = useMutation({ mutationFn: hkApi.createTask, onSuccess: () => { qc.invalidateQueries(['hk']); setShowCreate(false); } });
   const completeMut = useMutation({ mutationFn: ({ id, ...b }) => hkApi.completeTask(id, b), onSuccess: () => qc.invalidateQueries(['hk']) });
-  const [_showVerify, setShowVerify] = useState(null);
-  const [_showChecklist, setShowChecklist] = useState(null);
+  const [_showVerify, setShowVerify] = useState<Unmodelled>(null);
+  const [_showChecklist, setShowChecklist] = useState<Unmodelled>(null);
   const verifyMut = useMutation({ mutationFn: ({ id, ...b }) => hkApi.verifyTask(id, b), onSuccess: () => { qc.invalidateQueries(['hk']); setShowVerify(null); } });
   const autoCreateMut = useMutation({ mutationFn: hkApi.autoCreateOnDischarge, onSuccess: () => qc.invalidateQueries(['hk']) });
 

@@ -56,18 +56,18 @@ export default function Pharmacy() {
   const [tab, setTab] = useState('overview');
   const [stats, setStats] = useState({ totalMedicines: 0, lowStock: 0, expiringSoon: 0, totalPrescriptions: 0, pendingDispense: 0, totalOrders: 0, revenue: 0, pendingReturns: 0 });
   const [search, setSearch] = useState('');
-  const [showModal, setShowModal] = useState(null);
-  const [expandedId, setExpandedId] = useState(null);
-  const [selectedRxId, setSelectedRxId] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [stockModal, setStockModal] = useState(null);
+  const [showModal, setShowModal] = useState<Unmodelled>(null);
+  const [expandedId, setExpandedId] = useState<Unmodelled>(null);
+  const [selectedRxId, setSelectedRxId] = useState<Unmodelled>(null);
+  const [toast, setToast] = useState<Unmodelled>(null);
+  const [stockModal, setStockModal] = useState<Unmodelled>(null);
   const [stockQty, setStockQty] = useState('');
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<Unmodelled>(null);
 
   // Inventory
   const [medicines, setMedicines] = useState<ApiRow[]>([]);
   const [newMed, setNewMed] = useState({ name: '', genericName: '', category: 'Antibiotic', form: 'Tablet', manufacturer: '', batchNumber: '', expiryDate: '', purchasePrice: '', sellingPrice: '', currentStock: '', reorderLevel: '10', rackLocation: '' });
-  const [editMed, setEditMed] = useState(null);
+  const [editMed, setEditMed] = useState<Unmodelled>(null);
   const [medFilter, setMedFilter] = useState({ category: '', lowStock: false, expiring: false });
 
   // Prescriptions
@@ -130,7 +130,7 @@ export default function Pharmacy() {
       showToast('Rider assigned successfully! Realtime alert sent.');
       setShowModal(null);
       loadDeliveries();
-    } catch (err) {
+    } catch (err: any) {
       showToast(`Assignment failed: ${err.message}`, 'error');
     }
   };
@@ -139,7 +139,7 @@ export default function Pharmacy() {
     try {
       const data = await api.get('/pharmacy/deliveries');
       setDeliveries(data.deliveries || data || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load pharmacy deliveries', err);
     }
   };
@@ -199,7 +199,7 @@ showToast('Failed to export billing', 'error');
   };
 
   const [pharmLoading, setPharmLoading] = useState(true);
-  const [pharmError, setPharmError] = useState(null);
+  const [pharmError, setPharmError] = useState<Unmodelled>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -225,7 +225,7 @@ showToast('Failed to export billing', 'error');
         setOffers(off.offers || off.data || []);
         const rev = await api.getReviews({ limit: 100 }).catch(() => ({ reviews: [] }));
         setReviews(rev.reviews || rev.data || []);
-      } catch (e) {
+      } catch (e: any) {
         setPharmError(e.message || 'Failed to load pharmacy data');
         showToast('Failed to load pharmacy data', 'error');
       } finally {

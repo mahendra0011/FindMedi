@@ -174,7 +174,7 @@ export default function PublicNavbar() {
       } else {
         socket.emit('rider_go_offline', { riderId: user?._id });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to toggle status:', err);
     } finally {
       setRiderStatusLoading(false);
@@ -193,7 +193,7 @@ export default function PublicNavbar() {
       }));
       const socket = getSocket();
       socket.emit(next ? 'assistant_go_available' : 'assistant_go_unavailable', { assistantId: user?._id });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to toggle assistant status:', err);
     } finally {
       setAssistantStatusLoading(false);
@@ -212,7 +212,7 @@ export default function PublicNavbar() {
       }));
       const socket = getSocket();
       socket.emit(next ? 'lawyer_go_available' : 'lawyer_go_unavailable', { lawyerId: user?._id });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to toggle lawyer status:', err);
     } finally {
       setLawyerStatusLoading(false);
@@ -245,7 +245,7 @@ export default function PublicNavbar() {
           detail: { type: 'ambulance', isOnline: false }
         }));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to toggle ambulance status:', err);
     } finally {
       setAmbulanceStatusLoading(false);

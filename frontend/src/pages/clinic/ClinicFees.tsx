@@ -12,7 +12,7 @@ import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function ClinicFees() {
   const { user } = useAuth();
-  const [doctor, setDoctor] = useState(null);
+  const [doctor, setDoctor] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -59,7 +59,7 @@ export default function ClinicFees() {
           setEmergencySupport(Boolean(myDoc.emergencySupport || myDoc.emergency_consultation));
           setRefundOnMissedOrCancelled(myDoc.refundOnMissedOrCancelled !== false);
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error(e);
       }
       setLoading(false);
@@ -117,7 +117,7 @@ export default function ClinicFees() {
       setSaved(true);
       toast.success('Fee & pricing settings updated successfully!');
       setTimeout(() => setSaved(false), 2500);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error(e.message || 'Failed to save fees');
     }

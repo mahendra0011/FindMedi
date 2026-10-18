@@ -5,8 +5,9 @@ import heroImage from "@/mind/assets/hero-mental-health.jpg";
 import { useNavigate } from "react-router-dom";
 import SplitText from "@/mind/components/reactbits/SplitText";
 import BlurText from "@/mind/components/reactbits/BlurText";
+import type { Unmodelled } from '@/lib/apiTypes';
 
-const fadeUp = {
+const fadeUp: Unmodelled = {
   hidden: { opacity: 0, y: 40 },
   visible: (i = 0) => ({
     opacity: 1,

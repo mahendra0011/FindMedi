@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Pending: 'bg-warning/10 text-warning border-warning/20',
   Approved: 'bg-success/10 text-success border-success/20',
   Rejected: 'bg-destructive/10 text-destructive border-destructive/20',
@@ -19,7 +19,7 @@ export default function AdminLeaveRequests() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
-  const [notes, setNotes] = useState({});
+  const [notes, setNotes] = useState<ApiRow>({});
 
   const loadLeaves = async () => {
     setLoading(true);

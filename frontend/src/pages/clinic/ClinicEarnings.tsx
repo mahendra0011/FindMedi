@@ -92,7 +92,7 @@ export default function ClinicEarnings() {
         .map(txToEarningsBill));
       setPayments(list.filter((t: Unmodelled) => t.status === 'completed'));
       if (isRefresh) toast.success('Earnings data refreshed');
-    } catch (e) {
+    } catch (e: any) {
       toast.error(e.message || 'Failed to load earnings');
     }
 

@@ -11,7 +11,7 @@ import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 // Statuses must match the LabBooking model enum — earlier this page used a
 // private vocabulary (Requested/Assigned/Collected/Received at Lab) that the
 // backend dropped, so every assignment silently no-opped.
-const statusColors = {
+const statusColors: Unmodelled = {
   Pending: 'bg-primary/10 text-primary',
   Confirmed: 'bg-warning/10 text-warning',
   'Sample Collected': 'bg-info/10 text-info',
@@ -19,7 +19,7 @@ const statusColors = {
   Completed: 'bg-success/10 text-success',
 };
 
-const nextStatus = { Pending: 'Confirmed', Confirmed: 'Sample Collected', 'Sample Collected': 'Processing' };
+const nextStatus: Unmodelled = { Pending: 'Confirmed', Confirmed: 'Sample Collected', 'Sample Collected': 'Processing' };
 
 const mapBooking = (b: Unmodelled, i: Unmodelled) => ({
   id: b._id || `col_${i}`,
@@ -37,7 +37,7 @@ export default function LabSampleCollection() {
   const [phlebotomists, setPhlebotomists] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [assigning, setAssigning] = useState(null);
+  const [assigning, setAssigning] = useState<Unmodelled>(null);
 
   useEffect(() => {
     Promise.all([
@@ -57,7 +57,7 @@ export default function LabSampleCollection() {
       await api.updateLabBooking(id, { phlebotomist: name, status: 'Confirmed' });
       setCollections(prev => prev.map(c => c.id === id ? { ...c, phlebotomist: name, status: 'Confirmed' } : c));
       toast.success(`Assigned to ${name}`);
-    } catch (e) { console.error(e); toast.error('Assignment failed'); }
+    } catch (e: any) { console.error(e); toast.error('Assignment failed'); }
     setAssigning(null);
   };
 
@@ -68,7 +68,7 @@ export default function LabSampleCollection() {
       await api.updateLabBooking(id, { status: next });
       setCollections(prev => prev.map(c => c.id === id ? { ...c, status: next } : c));
       toast.success(`Status updated to ${next}`);
-    } catch (e) { console.error(e); toast.error('Status update failed'); }
+    } catch (e: any) { console.error(e); toast.error('Status update failed'); }
   };
 
   const filtered = collections.filter(c =>

@@ -13,8 +13,8 @@ function SupportTicketsTab() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
-  const [stats, setStats] = useState(null);
-  const [selected, setSelected] = useState(null);
+  const [stats, setStats] = useState<Unmodelled>(null);
+  const [selected, setSelected] = useState<Unmodelled>(null);
   const [reply, setReply] = useState('');
 
   useEffect(() => {

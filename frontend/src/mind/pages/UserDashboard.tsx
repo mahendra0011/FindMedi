@@ -152,7 +152,7 @@ function formatRupees(value = 0) {
 }
 
 function modeLabel(mode: Unmodelled) {
-  const labels = { "online": "Online", "in-person": "In-Person", "voice-call": "Voice Call", "video": "Video", "google-meet": "Google Meet", "video-chat": "Video + Chat", "chat-only": "Chat Only" };
+  const labels: Unmodelled = { "online": "Online", "in-person": "In-Person", "voice-call": "Voice Call", "video": "Video", "google-meet": "Google Meet", "video-chat": "Video + Chat", "chat-only": "Chat Only" };
   return labels[mode] || mode;
 }
 
@@ -435,7 +435,7 @@ function ScheduleCard({ pkg, counsellor, toast, loadDashboard, navigate }: Unmod
                 setConcern("");
                 toast({ title: "Session booked", description: `Session scheduled with ${pkg.counsellorName}. ${pkg.sessionsRemaining - 1} session${pkg.sessionsRemaining - 1 !== 1 ? "s" : ""} remaining.` });
                 loadDashboard();
-              } catch (error) {
+              } catch (error: any) {
                 toast({ variant: "destructive", title: "Booking failed", description: error?.message || "" });
               } finally {
                 setSubmitting(false);
@@ -523,7 +523,7 @@ const UserDashboard = () => {
   });
   const [sessionFilter, setSessionFilter] = useState("all");
   const [historyFilter, setHistoryFilter] = useState("all");
-  const [selectedPkgId, setSelectedPkgId] = useState(null);
+  const [selectedPkgId, setSelectedPkgId] = useState<Unmodelled>(null);
   const [accountSaving, setAccountSaving] = useState(false);
   const [usernameDraft, setUsernameDraft] = useState("");
   const [phoneDraft, setPhoneDraft] = useState("");
@@ -536,9 +536,9 @@ const UserDashboard = () => {
   const [quickMoodNote, setQuickMoodNote] = useState("");
   const [currentAffirmationIdx, setCurrentAffirmationIdx] = useState(0);
   const [consentAccepted, setConsentAccepted] = useState(false);
-  const [consentRecord, setConsentRecord] = useState(null);
+  const [consentRecord, setConsentRecord] = useState<Unmodelled>(null);
   const [showConsent, setShowConsent] = useState(false);
-  const [intakeSubmitted, setIntakeSubmitted] = useState({});
+  const [intakeSubmitted, setIntakeSubmitted] = useState<ApiRow>({});
   const [assignments, setAssignments] = useState<ApiRow[]>([]);
   const [assignmentFilter, setAssignmentFilter] = useState("this-week");
 
@@ -688,7 +688,7 @@ const UserDashboard = () => {
     const cancelledCount = data.appointments.filter((a) => a.status === "cancelled" || a.status === "declined").length;
     return { total, upcoming: upcomingCount, completed: completedCount, cancelled: cancelledCount };
   }, [data.appointments]);
-  const filteredAppointments = useMemo(() => {
+  const filteredAppointments: Unmodelled = useMemo(() => {
     if (sessionFilter === "all") return data.appointments;
     if (sessionFilter === "upcoming") return data.appointments.filter((a) => !["cancelled", "completed", "declined"].includes(a.status));
     if (sessionFilter === "completed") return data.appointments.filter((a) => a.status === "completed");
@@ -698,11 +698,11 @@ const UserDashboard = () => {
   const latestMood = data.moodEntries?.[0]?.mood || data.stats.moodScore || null;
   const currentRisk = data.latestAssessment?.level || data.stats.latestRiskLevel || "not-started";
   const moodDistribution = useMemo(() => {
-    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    const labels = { 1: "Very Low", 2: "Low", 3: "Neutral", 4: "Good", 5: "Excellent" };
-    const colors = { 1: "#ef4444", 2: "#f97316", 3: "#a1a1aa", 4: "#22c55e", 5: "#8b5cf6" };
+    const counts: Unmodelled = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    const labels: Unmodelled = { 1: "Very Low", 2: "Low", 3: "Neutral", 4: "Good", 5: "Excellent" };
+    const colors: Unmodelled = { 1: "#ef4444", 2: "#f97316", 3: "#a1a1aa", 4: "#22c55e", 5: "#8b5cf6" };
     (data.moodEntries || []).forEach((entry) => {
-      const mood = entry.mood || 3;
+      const mood: Unmodelled = entry.mood || 3;
       counts[mood] = (counts[mood] || 0) + 1;
     });
     return Object.entries(counts)
@@ -745,7 +745,7 @@ const UserDashboard = () => {
       setJournalGratitude("");
       setJournalTrigger("");
       loadDashboard();
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Journal save failed", description: error?.message || "" });
     }
   };
@@ -761,7 +761,7 @@ const UserDashboard = () => {
           ? "Your booked counsellor and platform admin were notified. Call helplines if this is urgent."
           : "Recorded and sent to platform admin. No booked counsellor found — call helplines if this is urgent."),
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Emergency request failed", description: error?.message || "" });
     }
   };
@@ -803,7 +803,7 @@ const UserDashboard = () => {
       });
       toast({ title: "Security settings saved", description: "Username, privacy, and notifications are updated." });
       loadDashboard();
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Save failed", description: error?.message || "" });
     } finally {
       setAccountSaving(false);
@@ -830,7 +830,7 @@ const UserDashboard = () => {
       toast({ title: "Mood saved", description: "Your check-in helps track your wellness journey." });
       setQuickMoodNote("");
       loadDashboard();
-    } catch (error) {
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Mood save failed", description: error?.message || "" });
     }
   };
@@ -843,7 +843,7 @@ const UserDashboard = () => {
         toast({ title: "Refund processed", description: `₹${res.refundAmount} refunded for ${pkg.planName}` });
         loadDashboard();
       }
-    } catch (err) {
+    } catch (err: any) {
       toast({ variant: "destructive", title: "Refund failed", description: err.message });
     }
   };
@@ -1863,7 +1863,7 @@ const UserDashboard = () => {
                                     await api.put(`/api/appointments/${appointment.id}`, { status: "cancelled" });
                                     toast({ title: "Session cancelled" });
                                     loadDashboard();
-                                  } catch (e) {
+                                  } catch (e: any) {
                                     toast({ variant: "destructive", title: "Cancel failed", description: e?.response?.data?.error || e?.message || "" });
                                   }
                                 }}>
@@ -1888,7 +1888,7 @@ const UserDashboard = () => {
 
               <TabsContent value="schedule" className="dashboard-tab-motion space-y-6">
                 {(() => {
-                  const activePackages = (data.packages || []).filter(p => p.status === "active" && p.sessionsRemaining > 0);
+                  const activePackages: Unmodelled = (data.packages || []).filter(p => p.status === "active" && p.sessionsRemaining > 0);
                   if (activePackages.length === 0) {
                     return (
                       <div className="dashboard-motion text-center py-12">
@@ -1901,7 +1901,7 @@ const UserDashboard = () => {
                       </div>
                     );
                   }
-                  const selected = selectedPkgId ? activePackages.find(p => p.id === selectedPkgId) : activePackages[0];
+                  const selected: Unmodelled = selectedPkgId ? activePackages.find(p => p.id === selectedPkgId) : activePackages[0];
                   return (
                     <>
                       <div className="dashboard-motion">
@@ -1915,7 +1915,7 @@ const UserDashboard = () => {
                         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
                           {activePackages.map((pkg) => {
                             const isSelected = (selected?.id === pkg.id);
-                            const counsellor = (data.therapists || []).find(t => t.id === pkg.counsellorId);
+                            const counsellor: Unmodelled = (data.therapists || []).find(t => t.id === pkg.counsellorId);
                             return (
                               <button
                                 key={pkg.id}
@@ -1966,7 +1966,7 @@ const UserDashboard = () => {
 
               <TabsContent value="history" className="dashboard-tab-motion space-y-6">
                 {(() => {
-                  const historyStatuses = ["completed", "cancelled", "declined", "no-show"];
+                  const historyStatuses: Unmodelled = ["completed", "cancelled", "declined", "no-show"];
                   const allHistory = data.appointments.filter(a => historyStatuses.includes(a.status));
                   const completed = data.appointments.filter(a => a.status === "completed");
                   const cancelled = data.appointments.filter(a => a.status === "cancelled" || a.status === "declined");
@@ -2031,13 +2031,13 @@ const UserDashboard = () => {
                         filteredHistory.map((appointment) => {
                           const modeIcons: any = { "online": Video, "google-meet": Video, "video-chat": Video, "chat-only": MessageCircle, "voice-call": Phone, "in-person": MapPin };
                           const ModeIcon = modeIcons[appointment.mode] || Video;
-                          const statusConfig = {
+                          const statusConfig: Unmodelled = {
                             completed: { icon: CheckCircle2, color: "emerald", gradient: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/25", badge: "bg-emerald-500/15 text-emerald-600 border-emerald-500/20" },
                             cancelled: { icon: CalendarX, color: "rose", gradient: "from-rose-500/20 to-rose-500/5 border-rose-500/25", badge: "bg-rose-500/15 text-rose-600 border-rose-500/20" },
                             declined: { icon: CalendarX, color: "rose", gradient: "from-rose-500/20 to-rose-500/5 border-rose-500/25", badge: "bg-rose-500/15 text-rose-600 border-rose-500/20" },
                             "no-show": { icon: Clock, color: "amber", gradient: "from-amber-500/20 to-amber-500/5 border-amber-500/25", badge: "bg-amber-500/15 text-amber-600 border-amber-500/20" },
                           };
-                          const cfg = statusConfig[appointment.status] || statusConfig.completed;
+                          const cfg: Unmodelled = statusConfig[appointment.status] || statusConfig.completed;
                           const StatusIcon = cfg.icon;
                           const iconWrapClass = appointment.status === "completed" ? "bg-emerald-500/20" : appointment.status === "no-show" ? "bg-amber-500/20" : "bg-rose-500/20";
                           const iconColorClass = appointment.status === "completed" ? "text-emerald-500" : appointment.status === "no-show" ? "text-amber-500" : "text-rose-500";
@@ -2074,7 +2074,7 @@ const UserDashboard = () => {
                                           await api.post("/api/reviews", { appointmentId: appointment.id, professionalism: rating, helpfulness: rating, communication: rating });
                                           toast({ title: "Review submitted" });
                                           loadDashboard();
-                                        } catch (e) {
+                                        } catch (e: any) {
                                           toast({ variant: "destructive", title: "Review failed", description: e?.response?.data?.error || e?.message || "" });
                                         }
                                       }} className="text-[11px] px-2 py-1 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500/20">★ Review</button>
@@ -2235,8 +2235,8 @@ const UserDashboard = () => {
                       ) : (
                         <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1 chat-scrollbar">
                           {data.journal.map((entry, idx) => {
-                            const moodEmojis = { Calm: "😌", Hopeful: "🌟", Stressed: "😰", Low: "😔", Grateful: "🙏", Anxious: "😟" };
-                            const moodColors = { Calm: "bg-blue-500/20 text-blue-400", Hopeful: "bg-amber-500/20 text-amber-400", Stressed: "bg-red-500/20 text-red-400", Low: "bg-purple-500/20 text-purple-400", Grateful: "bg-emerald-500/20 text-emerald-400", Anxious: "bg-orange-500/20 text-orange-400" };
+                            const moodEmojis: Unmodelled = { Calm: "😌", Hopeful: "🌟", Stressed: "😰", Low: "😔", Grateful: "🙏", Anxious: "😟" };
+                            const moodColors: Unmodelled = { Calm: "bg-blue-500/20 text-blue-400", Hopeful: "bg-amber-500/20 text-amber-400", Stressed: "bg-red-500/20 text-red-400", Low: "bg-purple-500/20 text-purple-400", Grateful: "bg-emerald-500/20 text-emerald-400", Anxious: "bg-orange-500/20 text-orange-400" };
                             return (
                               <div 
                                 key={entry.id} 
@@ -2292,7 +2292,7 @@ const UserDashboard = () => {
                                       await api.patch(`/api/journals/${entry.id}`, { sharedWithCounsellor: !entry.shared });
                                       toast({ title: entry.shared ? "Made private" : "Shared with counsellor" });
                                       loadDashboard();
-                                    } catch (e) {
+                                    } catch (e: any) {
                                       toast({ variant: "destructive", title: "Update failed", description: e?.message || "" });
                                     }
                                   }} className="text-[11px] px-2 py-1 rounded-lg bg-foreground/5 text-foreground/60 hover:bg-foreground/10">
@@ -2708,7 +2708,7 @@ function ConsentDialog({ open, onOpenChange, onAccept }: Unmodelled) {
         onAccept();
         onOpenChange(false);
       }
-    } catch (e) {
+    } catch (e: any) {
       // U-11: 409 means another session already recorded consent — treat as success.
       if (e?.response?.status === 409) {
         toast({ title: "Consent already recorded", description: "Your acceptance is already on file." });

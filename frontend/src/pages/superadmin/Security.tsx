@@ -46,7 +46,7 @@ export default function Security() {
       await api.killAdminSession(id);
       toast.success('Session revoked');
       load();
-    } catch (err) { toast.error(serverMsg(err, 'Revoke failed')); }
+    } catch (err: any) { toast.error(serverMsg(err, 'Revoke failed')); }
   };
 
   const approve = async (id: Unmodelled) => {
@@ -54,7 +54,7 @@ export default function Security() {
       await api.approvePayout(id);
       toast.success('Approval recorded');
       load();
-    } catch (err) { toast.error(serverMsg(err, 'Approve failed')); }
+    } catch (err: any) { toast.error(serverMsg(err, 'Approve failed')); }
   };
 
   const pay = async (p: Unmodelled) => {
@@ -68,7 +68,7 @@ export default function Security() {
       await api.markPayoutPaid(p._id, { transactionRef: `TXN-${crypto.randomUUID()}` });
       toast.success('Payout marked as paid');
       load();
-    } catch (err) { toast.error(serverMsg(err, 'Pay failed')); load(); }
+    } catch (err: any) { toast.error(serverMsg(err, 'Pay failed')); load(); }
   };
 
   const reset2fa = async (u: Unmodelled) => {
@@ -77,7 +77,7 @@ export default function Security() {
       await api.reset2fa(u.id);
       toast.success('2FA reset — re-enrolment required');
       load();
-    } catch (err) { toast.error(serverMsg(err, 'Reset failed')); }
+    } catch (err: any) { toast.error(serverMsg(err, 'Reset failed')); }
   };
 
   if (loading) return <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;

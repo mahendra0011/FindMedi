@@ -8,7 +8,7 @@ import PatientBanner from '@/components/clinical/PatientBanner';
 import { toast } from 'sonner';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const labApi = {
+const labApi: Unmodelled = {
   getOrders: (p = {}) => api.dispatch(() => Promise.resolve({ orders: [] }), '/lab/orders?' + new URLSearchParams(p)),
   getTests: () => api.dispatch(() => Promise.resolve({ tests: [] }), '/lab/tests'),
   getStats: () => api.dispatch(() => Promise.resolve({ total: 0, pending: 0, processing: 0, completed: 0, critical: 0 }), '/lab/stats'),
@@ -20,7 +20,7 @@ const labApi = {
   deliverReport: (id: Unmodelled, body: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/lab/orders/${id}/deliver-report`, { method: 'PUT', body: JSON.stringify(body) }),
 };
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Ordered: 'bg-primary/10 text-primary border-primary/20',
   'Sample Pending': 'bg-warning/10 text-warning border-warning/20',
   Processing: 'bg-info/10 text-info border-info/20',
@@ -29,17 +29,17 @@ const statusColors = {
   Cancelled: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
-const PRIORITY_COLORS = {
+const PRIORITY_COLORS: Unmodelled = {
   Routine: 'bg-muted text-muted-foreground',
   Urgent: 'bg-warning/10 text-warning',
   STAT: 'bg-destructive/10 text-destructive',
 };
 
 export default function Lab() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [expandedOrder, setExpandedOrder] = useState(null);
+  const [expandedOrder, setExpandedOrder] = useState<Unmodelled>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [newOrder, setNewOrder] = useState({ patientName: '', patientId: '', tests: [{ testName: '', category: 'Blood' }], clinicalNotes: '', priority: 'Routine' });
 

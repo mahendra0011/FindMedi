@@ -10,15 +10,15 @@ import StatCard from '@/components/StatCard';
 import { userFacingError } from '@/lib/errorCopy';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = { completed: 'bg-success/10 text-success', pending: 'bg-warning/10 text-warning', failed: 'bg-destructive/10 text-destructive', refunded: 'bg-info/10 text-info' };
-const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
+const statusColors: Unmodelled = { completed: 'bg-success/10 text-success', pending: 'bg-warning/10 text-warning', failed: 'bg-destructive/10 text-destructive', refunded: 'bg-info/10 text-info' };
+const methodIcons: Unmodelled = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
 
 export default function PatientPayment() {
   const { user } = useAuth();
   const [payments, setPayments] = useState<ApiRow[]>([]);
   const [bills, setBills] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [payingBill, setPayingBill] = useState(null);
+  const [payingBill, setPayingBill] = useState<Unmodelled>(null);
   const [payMethod, setPayMethod] = useState('card');
   const [paySuccess, setPaySuccess] = useState(false);
 
@@ -41,7 +41,7 @@ export default function PatientPayment() {
         if (bill.status !== 'Paid' && uid && paidSignatures.has(`${uid}:${bill.amount}`)) return { ...bill, status: 'Paid' };
         return bill;
       }));
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error('Failed to load payment data');
     }
@@ -61,7 +61,7 @@ export default function PatientPayment() {
       });
       setPaySuccess(true);
       setTimeout(() => { setPaySuccess(false); setPayingBill(null); loadData(); }, 2000);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       toast.error(userFacingError(e, { fallback: 'Payment failed' }));
     }

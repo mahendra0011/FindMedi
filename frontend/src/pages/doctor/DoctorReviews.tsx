@@ -11,8 +11,8 @@ export default function DoctorReviews() {
   const { user } = useAuth();
   const [reviews, setReviews] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [replyingId, setReplyingId] = useState(null);
-  const [replyText, setReplyText] = useState({});
+  const [replyingId, setReplyingId] = useState<Unmodelled>(null);
+  const [replyText, setReplyText] = useState<ApiRow>({});
 
   useEffect(() => {
     const load = async () => {
@@ -20,7 +20,7 @@ export default function DoctorReviews() {
       try {
         const data = await api.getReviews();
         setReviews(data.filter((r: Unmodelled) => r.doctorName === user?.name));
-      } catch (e) { console.error(e); }
+      } catch (e: any) { console.error(e); }
       setLoading(false);
     };
     load();

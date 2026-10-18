@@ -65,7 +65,7 @@ function VelocityText({
     { clamp: false }
   );
 
-  const copyRef = useRef(null);
+  const copyRef = useRef<Unmodelled>(null);
   const copyWidth = useElementWidth(copyRef);
 
   const x = useTransform(baseX, (v) => {

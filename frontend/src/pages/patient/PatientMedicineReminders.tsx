@@ -89,7 +89,7 @@ export default function PatientMedicineReminders() {
       if (cpRes.status === 'fulfilled') {
         setCarePlans(cpRes.value.carePlans || []);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       toast.error('Failed to load medicine reminders');
     } finally {

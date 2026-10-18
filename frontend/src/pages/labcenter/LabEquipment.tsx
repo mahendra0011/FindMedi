@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Operational: 'bg-success/10 text-success',
   Maintenance: 'bg-warning/10 text-warning',
   Down: 'bg-destructive/10 text-destructive',
@@ -51,13 +51,13 @@ export default function LabEquipment() {
       setEquipment(prev => [eq, ...prev]);
       setNewEq({ name: '', type: 'MRI', purchaseDate: '' });
       setShowModal(false);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const updateStatus = async (id: Unmodelled, status: Unmodelled) => {
     const updates = { status, lastMaintenance: status === 'Maintenance' ? getISTDateString() : undefined };
     setEquipment(prev => prev.map(eq => eq.id === id ? { ...eq, ...updates } : eq));
-    try { await api.updateLabEquipment(id, updates); } catch (e) { console.error(e); }
+    try { await api.updateLabEquipment(id, updates); } catch (e: any) { console.error(e); }
   };
 
   if (loading) return (

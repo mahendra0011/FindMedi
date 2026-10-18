@@ -12,7 +12,7 @@ const STATUSES = ['All','Confirmed','Cancelled','Completed'];
 const FALLBACK_DEPARTMENTS = ['Cardiology','Neurology','Orthopaedics','Paediatrics','Dermatology','Oncology'];
 const empty = { patient:'', doctor:'', department:'Cardiology', date:'', time:'', status:'Confirmed', notes:'' };
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Confirmed: { bg: 'bg-success/10', text: 'text-success', dot: 'bg-success' },
   Cancelled: { bg: 'bg-destructive/10', text: 'text-destructive', dot: 'bg-destructive' },
   Completed: { bg: 'bg-info/10', text: 'text-info', dot: 'bg-info' },
@@ -28,7 +28,7 @@ function getInitials(name: Unmodelled) {
 }
 
 export default function Appointments() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('All');
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(empty);
@@ -47,7 +47,7 @@ export default function Appointments() {
   const set = (k: Unmodelled, v: Unmodelled) => setForm(f => ({ ...f, [k]: v }));
   const submit = (e: Unmodelled) => { e.preventDefault(); createMut.mutate(form); };
 
-  const statusCounts = STATUSES.slice(1).reduce((acc, s) => ({ ...acc, [s]: appointments.filter((a: Unmodelled)=>a.status===s).length }), {});
+  const statusCounts: Unmodelled = STATUSES.slice(1).reduce((acc, s) => ({ ...acc, [s]: appointments.filter((a: Unmodelled)=>a.status===s).length }), {});
 
   return (
     <div>

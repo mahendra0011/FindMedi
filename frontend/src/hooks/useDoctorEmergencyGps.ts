@@ -63,7 +63,7 @@ export function useDoctorEmergencyGps(isDutyActive: boolean, activeRequestId?: s
               speed: speed || 0,
             }).catch(() => {});
           }
-        } catch (err) {
+        } catch (err: any) {
           console.debug('Telemetry ping skipped:', err);
         }
       },

@@ -32,7 +32,7 @@ export default function DashboardQueuePage() {
       setQueue(res as QueueData);
       setError('');
       setUpdatedAt(new Date().toLocaleTimeString('en-IN'));
-    } catch (e) {
+    } catch (e: any) {
       setError(e instanceof Error ? e.message : 'Queue unavailable');
     } finally {
       setLoading(false);

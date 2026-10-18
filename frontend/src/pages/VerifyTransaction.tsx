@@ -13,19 +13,19 @@ import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { userFacingError } from '@/lib/errorCopy';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const methodIcons = {
+const methodIcons: Unmodelled = {
   card: CreditCard, upi: Smartphone, netbanking: Landmark,
   cash: Wallet, wallet: Smartphone, online: CreditCard
 };
 
-const statusConfig = {
+const statusConfig: Unmodelled = {
   completed: { label: 'Paid', color: 'bg-emerald-500/10 text-emerald-600', icon: CheckCircle },
   pending: { label: 'Pending', color: 'bg-amber-500/10 text-amber-600', icon: Clock },
   failed: { label: 'Failed', color: 'bg-red-500/10 text-red-600', icon: AlertCircle },
   refunded: { label: 'Refunded', color: 'bg-blue-500/10 text-blue-600', icon: RotateCcw },
 };
 
-const serviceTypeLabels = {
+const serviceTypeLabels: Unmodelled = {
   appointment: 'Appointment', test: 'Lab Test', medicine: 'Medicine',
   ipd: 'IPD', ot: 'Operation Theatre', radiology: 'Radiology',
   physio: 'Physiotherapy', diet: 'Diet', mentalhealth: 'Mental Health'
@@ -43,7 +43,7 @@ function copyToClipboard(text: Unmodelled) {
 
 export default function VerifyTransaction() {
   const [searchId, setSearchId] = useState('');
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -58,7 +58,7 @@ export default function VerifyTransaction() {
       const res = await api.verifyTransaction(searchId.trim());
       setResult(res);
       toast.success('Transaction verified successfully');
-    } catch (e) {
+    } catch (e: any) {
       const msg = userFacingError(e, { fallback: 'Transaction not found' });
       toast.error(msg);
     } finally {
@@ -70,7 +70,7 @@ export default function VerifyTransaction() {
     if (!result?.payment?.transaction_id) return;
     try {
       await downloadPaymentInvoice(result.payment.transaction_id, `${result.payment.transaction_id}.pdf`);
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.message || 'Unable to download invoice');
     }
   };
@@ -79,7 +79,7 @@ export default function VerifyTransaction() {
     if (!result?.payment?.transaction_id) return;
     try {
       await downloadBillPdf(result.payment.transaction_id, `${result.payment.transaction_id}-bill.pdf`);
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.message || 'Unable to download bill');
     }
   };

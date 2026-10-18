@@ -82,7 +82,7 @@ export default function AIChatAssistant() {
           videoRef.current.srcObject = stream;
         }
       }, 100);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error accessing camera:", err);
       // Fallback to native file input if camera fails/denied
       cameraInputRef.current?.click();

@@ -145,7 +145,7 @@ export default function PatientAppointments() {
       await api.updateAppointment(id, { status: 'Cancelled' });
       toast.success("Appointment cancelled successfully");
       fetchAppointments();
-    } catch (err) {
+    } catch (err: any) {
       toast.error("Failed to cancel appointment");
     }
   };

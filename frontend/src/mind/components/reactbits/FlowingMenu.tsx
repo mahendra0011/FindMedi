@@ -32,10 +32,10 @@ function FlowingMenu({
 }
 
 function MenuItem({ link, text, image, speed, textColor, marqueeBgColor, marqueeTextColor, borderColor }: Unmodelled) {
-  const itemRef = useRef(null);
-  const marqueeRef = useRef(null);
-  const marqueeInnerRef = useRef(null);
-  const animationRef = useRef(null);
+  const itemRef: Unmodelled = useRef<Unmodelled>(null);
+  const marqueeRef = useRef<Unmodelled>(null);
+  const marqueeInnerRef: Unmodelled = useRef<Unmodelled>(null);
+  const animationRef: Unmodelled = useRef<Unmodelled>(null);
   const [repetitions, setRepetitions] = useState(4);
 
   const animationDefaults = { duration: 0.6, ease: "expo" };

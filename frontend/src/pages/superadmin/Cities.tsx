@@ -37,7 +37,7 @@ export default function Cities() {
       setShowForm(false);
       setForm({ name: '', state: '', isOnboarding: false });
       load();
-    } catch (err) { toast.error(err?.message || 'Failed to create city'); }
+    } catch (err: any) { toast.error(err?.message || 'Failed to create city'); }
   };
 
   const handleToggle = async (city: Unmodelled) => {

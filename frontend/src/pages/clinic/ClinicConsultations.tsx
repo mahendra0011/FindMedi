@@ -9,7 +9,7 @@ import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const typeIcons = {
+const typeIcons: Unmodelled = {
   Prescription: { icon: Pill, color: 'text-success', bg: 'bg-success/10' },
   'Lab Report': { icon: FlaskConical, color: 'text-warning', bg: 'bg-warning/10' },
   Diagnosis: { icon: Activity, color: 'text-primary', bg: 'bg-primary/10' },
@@ -22,7 +22,7 @@ export default function ClinicConsultations() {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
-  const [expanded, setExpanded] = useState(null);
+  const [expanded, setExpanded] = useState<Unmodelled>(null);
 
   const [patientName, setPatientName] = useState('');
   const [diagnosis, setDiagnosis] = useState('');
@@ -39,7 +39,7 @@ export default function ClinicConsultations() {
       const data = await api.getRecords();
       const arr = data?.data || data?.records || data || [];
       setRecords(arr.filter((r: Unmodelled) => r.doctor?.toLowerCase().includes(user?.name?.toLowerCase())));
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
     setLoading(false);
   };
 
@@ -64,7 +64,7 @@ export default function ClinicConsultations() {
       setPatientName(''); setDiagnosis(''); setPrescription(''); setNotes('');
       setChiefComplaints(''); setAdvice(''); setFollowUp('');
       loadRecords();
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
   };
 
   const resetForm = () => {

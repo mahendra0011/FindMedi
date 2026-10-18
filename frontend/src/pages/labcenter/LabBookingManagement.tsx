@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = { Pending: 'bg-warning/10 text-warning', Confirmed: 'bg-success/10 text-success', Completed: 'bg-primary/10 text-primary', Cancelled: 'bg-destructive/10 text-destructive' };
+const statusColors: Unmodelled = { Pending: 'bg-warning/10 text-warning', Confirmed: 'bg-success/10 text-success', Completed: 'bg-primary/10 text-primary', Cancelled: 'bg-destructive/10 text-destructive' };
 const filters = ['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled'];
 
 const timeSlots = ['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM'];
@@ -17,7 +17,7 @@ export default function LabBookingManagement() {
   const [bookings, setBookings] = useState<ApiRow[]>([]);
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
-  const [expanded, setExpanded] = useState(null);
+  const [expanded, setExpanded] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

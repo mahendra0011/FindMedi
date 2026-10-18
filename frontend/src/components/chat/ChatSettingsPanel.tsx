@@ -233,7 +233,7 @@ function humanBytes(bytes = 0) {
 }
 
 export function StorageSettings({ storage, prefs, setPrefs, setPrivacyField, privacy, onClearCache }: Unmodelled) {
-  const localKeyMap = {
+  const localKeyMap: Unmodelled = {
     wifi: 'autoDownloadWifi',
     mobileData: 'autoDownloadMobile',
     roaming: 'autoDownloadRoaming',

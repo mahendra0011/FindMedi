@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const staffApi = {
+const staffApi: Unmodelled = {
   getAll: (p: Unmodelled) => api.dispatch(() => Promise.resolve({ staff: [] }), '/staff?' + new URLSearchParams(p)),
   create: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/staff', { method: 'POST', body: JSON.stringify(b) }),
   update: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/staff/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
@@ -19,7 +19,7 @@ const staffApi = {
   getStats: () => api.dispatch(() => Promise.resolve({ active: 0, onLeave: 0, onDuty: 0, total: 0 }), '/staff/stats'),
 };
 
-const roleColors = {
+const roleColors: Unmodelled = {
   Doctor: 'bg-info/10 text-info',
   Nurse: 'bg-success/10 text-success',
   Admin: 'bg-primary/10 text-primary',
@@ -33,15 +33,15 @@ const roleColors = {
 const shifts = ['Morning (6AM-2PM)', 'Evening (2PM-10PM)', 'Night (10PM-6AM)', 'General (9AM-5PM)'];
 
 export default function Staff() {
-  const qc = useQueryClient();
+  const qc: Unmodelled = useQueryClient();
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('All');
-  const [expandedId, setExpandedId] = useState(null);
+  const [expandedId, setExpandedId] = useState<Unmodelled>(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [showAttendance, setShowAttendance] = useState(null);
-  const [showLeave, setShowLeave] = useState(null);
-  const [showShift, setShowShift] = useState(null);
-  const [showTraining, setShowTraining] = useState(null);
+  const [showAttendance, setShowAttendance] = useState<Unmodelled>(null);
+  const [showLeave, setShowLeave] = useState<Unmodelled>(null);
+  const [showShift, setShowShift] = useState<Unmodelled>(null);
+  const [showTraining, setShowTraining] = useState<Unmodelled>(null);
   const [leaveData, setLeaveData] = useState({ type: 'Sick', startDate: '', endDate: '', reason: '' });
   const [shiftData, setShiftData] = useState({ shift: 'Morning (6AM-2PM)', department: '', startDate: '' });
   const [trainingData, setTrainingData] = useState({ course: '', date: '', expiryDate: '', provider: '' });

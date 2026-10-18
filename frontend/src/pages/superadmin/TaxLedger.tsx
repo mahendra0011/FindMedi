@@ -31,7 +31,7 @@ export default function TaxLedger() {
     return `${d.getFullYear() - (m <= 2 ? 1 : 0)}-Q4`;
   };
   const [quarter, setQuarter] = useState(fiscalQuarterOf());
-  const [taxSummary, setTaxSummary] = useState(null);
+  const [taxSummary, setTaxSummary] = useState<Unmodelled>(null);
   const [taxLoading, setTaxLoading] = useState(false);
   const loadQuarter = useCallback(async (q: Unmodelled) => {
     setTaxLoading(true);

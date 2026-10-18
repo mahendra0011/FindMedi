@@ -44,7 +44,7 @@ export default function EmergencyTab({ data, users }: Unmodelled) {
       ) : (
         <div className="space-y-3">
           {data.emergency.map((alert: Unmodelled) => {
-            const sourceConfig = {
+            const sourceConfig: Unmodelled = {
               wellness: { label: "Wellness SOS", color: "bg-blue-500/15 text-blue-600 border-blue-500/20" },
               "peer-support": { label: "Peer Support", color: "bg-violet-500/15 text-violet-600 border-violet-500/20" },
             };

@@ -18,7 +18,7 @@ import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 function DoctorAutoConfirmList() {
   const [doctors, setDoctors] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [savingId, setSavingId] = useState(null);
+  const [savingId, setSavingId] = useState<Unmodelled>(null);
 
   useEffect(() => {
     api.getDoctorAutoConfirmList()
@@ -162,7 +162,7 @@ export default function AdminHospitalSettings() {
           amenities: h.amenities || { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, inHousePharmacy: false, drinkingWater: false, wifi: false, homeVisit: false },
           socialLinks: h.socialLinks || { facebook: '', instagram: '', youtube: '' },
         });
-      } catch (e) {
+      } catch (e: any) {
         console.error(e);
         toast.error('Failed to load hospital data');
       }
@@ -173,7 +173,7 @@ export default function AdminHospitalSettings() {
 
   const update = (k: Unmodelled, v: Unmodelled) => { setIsDirty(true); setForm(p => ({ ...p, [k]: v })); };
 
-  const [uploadingField, setUploadingField] = useState(null);
+  const [uploadingField, setUploadingField] = useState<Unmodelled>(null);
   // §7: real file upload (Cloudinary) with progress — replaces raw-URL-only inputs.
   const handleLogoUpload = async (e: Unmodelled, field: Unmodelled) => {
     const file = e.target.files?.[0];
@@ -190,7 +190,7 @@ export default function AdminHospitalSettings() {
       if (!url) throw new Error('Upload returned no URL');
       update(field, url);
       toast.success('Image uploaded');
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.message || 'Image upload failed');
     } finally {
       setUploadingField(null);
@@ -237,7 +237,7 @@ export default function AdminHospitalSettings() {
         emergencySupport: form.emergency24x7,
       });
       toast.success('Hospital settings updated successfully');
-    } catch (e) {
+    } catch (e: any) {
       toast.error(e.message || 'Failed to update hospital');
     }
     setSaving(false);
@@ -557,7 +557,7 @@ export default function AdminHospitalSettings() {
             try {
               await api.updateFacilitySettings({ autoConfirmAppointment: autoConfirm });
               toast.success('Appointment settings updated');
-            } catch (e) { toast.error(e.message || 'Failed to update'); }
+            } catch (e: any) { toast.error(e.message || 'Failed to update'); }
             setSettingsSaving(false);
           }} disabled={settingsSaving}>
             {settingsSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}

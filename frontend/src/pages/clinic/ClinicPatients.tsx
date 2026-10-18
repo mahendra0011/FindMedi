@@ -24,7 +24,7 @@ export default function ClinicPatients() {
       const myAppts = appts?.filter((apt: Unmodelled) => apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())) || [];
       setAppointments(myAppts);
       setRecords(r?.data || r?.records || r || []);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
     setLoading(false);
   };
 

@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const statusColors = {
+const statusColors: Unmodelled = {
   Paid: 'bg-success/10 text-success',
   Pending: 'bg-warning/10 text-warning',
   Overdue: 'bg-destructive/10 text-destructive',
@@ -39,7 +39,7 @@ export default function ClinicBilling() {
       const data = await api.getBilling();
       const arr = data?.data || data?.bills || data || [];
       setBills(arr.filter((b: Unmodelled) => b.doctor?.toLowerCase().includes(user?.name?.toLowerCase())));
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); }
     setLoading(false);
   };
 
@@ -72,7 +72,7 @@ export default function ClinicBilling() {
       setForm(emptyForm);
       toast.success('Invoice created');
       loadBills();
-    } catch (e) { toast.error(e.message || 'Failed to create invoice'); }
+    } catch (e: any) { toast.error(e.message || 'Failed to create invoice'); }
     setSaving(false);
   };
 
@@ -81,7 +81,7 @@ export default function ClinicBilling() {
       await api.updateBill(bill._id, { status: 'Paid', paid: bill.amount });
       toast.success('Invoice marked as paid');
       loadBills();
-    } catch (e) { toast.error(e.message || 'Failed to update invoice'); }
+    } catch (e: any) { toast.error(e.message || 'Failed to update invoice'); }
   };
 
   const handleDelete = async (id: Unmodelled) => {
@@ -90,13 +90,13 @@ export default function ClinicBilling() {
       await api.deleteBill(id);
       toast.success('Invoice deleted');
       loadBills();
-    } catch (e) { toast.error(e.message || 'Failed to delete invoice'); }
+    } catch (e: any) { toast.error(e.message || 'Failed to delete invoice'); }
   };
 
   const handleDownload = async (bill: Unmodelled) => {
     try {
       await downloadInvoicePdf(bill._id, `invoice-${bill.invoiceId || 'download'}.pdf`);
-    } catch (e) { toast.error(e.message || 'Unable to download invoice'); }
+    } catch (e: any) { toast.error(e.message || 'Unable to download invoice'); }
   };
 
   const totalBilled = bills.reduce((s, b) => s + (b.amount || 0), 0);

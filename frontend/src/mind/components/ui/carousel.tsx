@@ -12,7 +12,7 @@ function useCarousel() {
     }
     return context;
 }
-const Carousel = React.forwardRef(({ orientation = "horizontal", opts, setApi, plugins, className, children, ...props }, ref) => {
+const Carousel = React.forwardRef<Unmodelled, Unmodelled>(({ orientation = "horizontal", opts, setApi, plugins, className, children, ...props }, ref) => {
     const [carouselRef, api] = useEmblaCarousel({
         ...opts,
         axis: orientation === "horizontal" ? "x" : "y",
@@ -75,19 +75,19 @@ const Carousel = React.forwardRef(({ orientation = "horizontal", opts, setApi, p
       </CarouselContext.Provider>);
 });
 Carousel.displayName = "Carousel";
-const CarouselContent = React.forwardRef(({ className, ...props }, ref) => {
+const CarouselContent = React.forwardRef<Unmodelled, Unmodelled>(({ className, ...props }, ref) => {
     const { carouselRef, orientation } = useCarousel();
     return (<div ref={carouselRef} className="overflow-hidden">
         <div ref={ref} className={cn("flex", orientation === "horizontal" ? "-ml-4" : "-mt-4 flex-col", className)} {...props}/>
       </div>);
 });
 CarouselContent.displayName = "CarouselContent";
-const CarouselItem = React.forwardRef(({ className, ...props }, ref) => {
+const CarouselItem = React.forwardRef<Unmodelled, Unmodelled>(({ className, ...props }, ref) => {
     const { orientation } = useCarousel();
     return (<div ref={ref} role="group" aria-roledescription="slide" className={cn("min-w-0 shrink-0 grow-0 basis-full", orientation === "horizontal" ? "pl-4" : "pt-4", className)} {...props}/>);
 });
 CarouselItem.displayName = "CarouselItem";
-const CarouselPrevious = React.forwardRef(({ className, variant = "outline", size = "icon", ...props }, ref) => {
+const CarouselPrevious = React.forwardRef<Unmodelled, Unmodelled>(({ className, variant = "outline", size = "icon", ...props }, ref) => {
     const { orientation, scrollPrev, canScrollPrev } = useCarousel();
     return (<Button ref={ref} variant={variant} size={size} className={cn("absolute h-8 w-8 rounded-full", orientation === "horizontal"
             ? "-left-12 top-1/2 -translate-y-1/2"
@@ -97,7 +97,7 @@ const CarouselPrevious = React.forwardRef(({ className, variant = "outline", siz
       </Button>);
 });
 CarouselPrevious.displayName = "CarouselPrevious";
-const CarouselNext = React.forwardRef(({ className, variant = "outline", size = "icon", ...props }, ref) => {
+const CarouselNext = React.forwardRef<Unmodelled, Unmodelled>(({ className, variant = "outline", size = "icon", ...props }, ref) => {
     const { orientation, scrollNext, canScrollNext } = useCarousel();
     return (<Button ref={ref} variant={variant} size={size} className={cn("absolute h-8 w-8 rounded-full", orientation === "horizontal"
             ? "-right-12 top-1/2 -translate-y-1/2"

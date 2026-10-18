@@ -18,7 +18,7 @@ const EXPORTS = [
 
 export default function DataExport() {
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
-  const [exporting, setExporting] = useState(null);
+  const [exporting, setExporting] = useState<Unmodelled>(null);
 
   const handleExport = async (type: Unmodelled) => {
     setExporting(type);

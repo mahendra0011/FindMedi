@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const CONTENT_KEYS = [
   { key: 'terms', label: 'Terms & Conditions', icon: FileText },
@@ -21,7 +22,7 @@ const CONTENT_KEYS = [
 
 export default function Legal() {
   const [activeKey, setActiveKey] = useState('terms');
-  const [content, setContent] = useState(null);
+  const [content, setContent] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editBody, setEditBody] = useState('');

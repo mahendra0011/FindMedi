@@ -79,9 +79,9 @@ export default function VideoCallOverlay() {
   const [selfSize, setSelfSize] = useState('normal');
 
   // Telemedicine Drawer State: null | 'notes' | 'chat' | 'vitals'
-  const [drawerTab, setDrawerTab] = useState(null);
+  const [drawerTab, setDrawerTab] = useState<Unmodelled>(null);
   const [chatInput, setChatInput] = useState('');
-  const chatBottomRef = useRef(null);
+  const chatBottomRef: Unmodelled = useRef<Unmodelled>(null);
 
   // Auto-scroll chat drawer
   useEffect(() => {
