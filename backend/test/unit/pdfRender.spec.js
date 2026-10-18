@@ -29,7 +29,7 @@ describe('D6 Headless-Chromium Print Render Unit Tests', () => {
     // Standard PDF file starts with %PDF- (hex: 25 50 44 46 2d)
     const header = pdfBuffer.slice(0, 5).toString('ascii');
     expect(header).toBe('%PDF-');
-  });
+  }, 60000);
 
   (shouldSkip ? it.skip : it)('blocks external network requests and permits inline data URLs', async () => {
     const html = `

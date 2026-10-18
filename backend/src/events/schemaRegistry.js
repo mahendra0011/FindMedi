@@ -177,6 +177,20 @@ const rawEntries = [
     eventType: 'ride.completed',
     schema: bookingPayload('ride.completed'),
   },
+  {
+    // EMERG-MISSING-01: emergencyDispatchService escalates stranded 108/112
+    // incidents to state CAD through the outbox (default destinationTopic =
+    // BOOKING_EVENTS). incidentId is the incident's identity every projection
+    // keys on; severity can arrive numeric (severityLevel) or as a string
+    // default, so it is scalar-typed; the rest of the body is additive extras.
+    topic: KAFKA_TOPICS.BOOKING_EVENTS,
+    eventType: 'emergency.cad_bridge.escalated',
+    schema: bookingPayload('emergency.cad_bridge.escalated', {
+      incidentId: str1(),
+      severity: scalar().optional(),
+      cadBridgeStatus: str1().optional(),
+    }),
+  },
 
   // ─── PROVIDER_PRESENCE — external producers, defensive consumer ────────────
   {

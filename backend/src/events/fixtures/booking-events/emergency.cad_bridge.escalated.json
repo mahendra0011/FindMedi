@@ -1,0 +1,24 @@
+{
+  "eventType": "emergency.cad_bridge.escalated",
+  "aggregateType": "emergency_cad_bridge",
+  "aggregateId": "652f00000000000000000009",
+  "outboxId": "652f000000000000000000aa",
+  "incidentId": "652f00000000000000000009",
+  "category": "cardiac",
+  "severity": "critical",
+  "location": {
+    "coordinates": [77.2066, 28.6139],
+    "address": "Connaught Place, New Delhi"
+  },
+  "caller": {
+    "userId": "652f000000000000000000fe",
+    "name": "Emergency Caller",
+    "phone": "+911234567890"
+  },
+  "nationalHelplines": [
+    { "service": "National Ambulance", "number": "108" },
+    { "service": "All-in-One Emergency Response", "number": "112" }
+  ],
+  "cadBridgeStatus": "queued",
+  "escalatedAt": "2026-10-18T09:00:00.000Z"
+}

@@ -57,6 +57,18 @@ jest.unstable_mockModule('../../src/config/kafka.js', () => ({
 jest.unstable_mockModule('../../src/config/redis.js', () => ({
   redisClient: consumerRedis,
   isRedisReady: () => false,
+  // revoke_sessions dynamically imports socketService, which statically imports
+  // every presence/adapter export below from THIS module — a partial mock is a
+  // missing-named-export SyntaxError that fails the whole step. Removal of
+  // presence + the socket broadcast are part of the session revocation.
+  removeUserPresence: jest.fn(async () => {}),
+  setUserPresence: jest.fn(async () => {}),
+  getOnlinePresence: jest.fn(async () => []),
+  getOnlineDoctorsList: jest.fn(async () => []),
+  updateDeliveryBoyLocation: jest.fn(async () => {}),
+  connectRedis: jest.fn(async () => {}),
+  redisPub: { publish: jest.fn(async () => {}) },
+  redisSub: { subscribe: jest.fn(async () => {}), on: jest.fn() },
 }));
 jest.unstable_mockModule('../../src/lib/h3Cache.js', () => ({
   upsertProviderLocationCache: jest.fn(),

@@ -14,7 +14,7 @@
 ## Summary
 
 - **346 models** across 338 files (0 skipped)
-- **7644 schema fields**, of which **803 classified as PII** in **244 collections**
+- **7651 schema fields**, of which **804 classified as PII** in **244 collections**
 - **8 collections** carry a TTL index
 - **127 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -286,7 +286,7 @@
 | `products` | Product | 30 | 0 | 6 | — | No PII fields detected |
 | `providerapplications` | ProviderApplication | 57 | 3 | 14 | — | Provider KYC documents |
 | `providerdocuments` | ProviderDocument | 29 | 1 | 7 | — | Provider KYC documents |
-| `providers` | Provider | 82 | 11 | 18 | — | Provider KYC documents |
+| `providers` | Provider | 89 | 12 | 18 | — | Provider KYC documents |
 | `providerstaffinvites` | ProviderStaffInvite | 14 | 3 | 4 | 0s | **UNMAPPED — see gaps** |
 | `providertypeconfigs` | ProviderTypeConfig | 45 | 0 | 6 | — | No PII fields detected |
 | `purchaseorders` | PurchaseOrder | 25 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
@@ -10160,6 +10160,13 @@ source `Provider.js` · timestamps: yes · virtuals: 0 · retention: Life of the
 | `stats.completionRate` | Number |  |  | 0 |  |  |  |
 | `parentProviderId` | ObjectId |  |  | null |  | Provider |  |
 | `branches` | Array<Mixed> |  |  |  |  |  |  |
+| `claimRequest.userId` | ObjectId |  |  | null |  | User | Identifier |
+| `claimRequest.note` | String |  |  | "" |  |  |  |
+| `claimRequest.status` | String |  |  | "none" | none, pending, approved, rejected |  |  |
+| `claimRequest.requestedAt` | Date |  |  | null |  |  |  |
+| `claimRequest.decidedAt` | Date |  |  | null |  |  |  |
+| `claimRequest.decidedBy` | ObjectId |  |  | null |  | User |  |
+| `claimRequest.reason` | String |  |  | "" |  |  |  |
 | `claimedBy` | ObjectId |  |  | null |  | User |  |
 | `importedFrom` | String |  |  | "" |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |

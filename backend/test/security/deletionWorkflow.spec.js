@@ -256,6 +256,16 @@ describe('DLM-06 executor', () => {
 
   const USER = '64b000000000000000000001';
 
+  // User.updateOne is called more than once per run: revoke_sessions bumps
+  // tokenVersion first (deletionService.js), then the erasure lands. The
+  // erasure is the call carrying the erasedAt timestamp it sets — asserting on
+  // calls[0] targets the wrong update now that revocation precedes anonymization.
+  const erasureUpdate = () => {
+    const call = updateOne.mock.calls.find(([, u]) => u?.$set && 'erasedAt' in u.$set);
+    expect(call).toBeDefined();
+    return call[1];
+  };
+
   it('reports every step and names any that failed', async () => {
     const { steps, failed } = await executeDeletion(USER);
     expect(steps.map((s) => s.name)).toEqual([
@@ -340,7 +350,7 @@ describe('DLM-06 executor', () => {
     // matching - granting the person we just erased full access back.
     await executeDeletion(USER);
 
-    const set = updateOne.mock.calls[0][1].$set;
+    const set = erasureUpdate().$set;
     expect(set.status).toBe('blocked');
     expect(['active', 'blocked']).toContain(set.status);
     // Erasure is distinguished by a timestamp, not by weakening the guard.
@@ -352,7 +362,7 @@ describe('DLM-06 executor', () => {
     // update is a silent no-op and the birth date survives erasure.
     await executeDeletion(USER);
 
-    const update = updateOne.mock.calls[0][1];
+    const update = erasureUpdate();
     expect(update.$unset).toHaveProperty('dateOfBirth');
     expect(update.$unset).toHaveProperty('uhid');
     expect(update.$unset).toHaveProperty('currentLocation');
@@ -364,12 +374,12 @@ describe('DLM-06 executor', () => {
     await executeDeletion(USER);
     // email is `unique`; a shared placeholder would collide and strand the
     // account holding its real PII.
-    expect(updateOne.mock.calls[0][1].$set.email).toBe(`erased+${USER}@invalid.local`);
+    expect(erasureUpdate().$set.email).toBe(`erased+${USER}@invalid.local`);
   });
 
   it('scrubs identity fields to constants rather than derived fingerprints', async () => {
     await executeDeletion(USER);
-    const set = updateOne.mock.calls[0][1].$set;
+    const set = erasureUpdate().$set;
 
     expect(set.name).toBe('Erased User');
     expect(set.phone).toBe('');
