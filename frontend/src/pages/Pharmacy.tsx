@@ -15,17 +15,17 @@ import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 import PatientBanner from '@/components/clinical/PatientBanner';
 import DdiCheckBanner from '@/components/clinical/DdiCheckBanner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const pharmApi = {
   getMedicines: (p = {}) => api.dispatch(() => Promise.resolve({ medicines: [] }), '/pharmacy/medicines?' + new URLSearchParams(p)),
-  createMedicine: (b) => api.dispatch(() => Promise.resolve({}), '/pharmacy/medicines', { method: 'POST', body: JSON.stringify(b) }),
-  updateMedicine: (id, b) => api.dispatch(() => Promise.resolve({}), `/pharmacy/medicines/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
-  deleteMedicine: (id) => api.dispatch(() => Promise.resolve({}), `/pharmacy/medicines/${id}`, { method: 'DELETE' }),
-  stockUpdate: (id, b) => api.dispatch(() => Promise.resolve({}), `/pharmacy/medicines/${id}/stock`, { method: 'PUT', body: JSON.stringify(b) }),
+  createMedicine: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/pharmacy/medicines', { method: 'POST', body: JSON.stringify(b) }),
+  updateMedicine: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/pharmacy/medicines/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+  deleteMedicine: (id: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/pharmacy/medicines/${id}`, { method: 'DELETE' }),
+  stockUpdate: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/pharmacy/medicines/${id}/stock`, { method: 'PUT', body: JSON.stringify(b) }),
   getPrescriptions: (p = {}) => api.dispatch(() => Promise.resolve({ prescriptions: [] }), '/pharmacy/prescriptions?' + new URLSearchParams(p)),
-  createPrescription: (b) => api.dispatch(() => Promise.resolve({}), '/pharmacy/prescriptions', { method: 'POST', body: JSON.stringify(b) }),
-  dispense: (id, b) => api.dispatch(() => Promise.resolve({}), `/pharmacy/prescriptions/${id}/dispense`, { method: 'PUT', body: JSON.stringify(b) }),
+  createPrescription: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/pharmacy/prescriptions', { method: 'POST', body: JSON.stringify(b) }),
+  dispense: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/pharmacy/prescriptions/${id}/dispense`, { method: 'PUT', body: JSON.stringify(b) }),
   getStats: () => api.dispatch(() => Promise.resolve({ totalMedicines: 0, lowStock: 0, expiringSoon: 0, totalPrescriptions: 0, pendingDispense: 0 }), '/pharmacy/stats'),
   getBillingExport: () => api.dispatch(() => Promise.resolve({ bills: [] }), '/pharmacy/billing/export'),
   getMedicineAlerts: () => api.dispatch(() => Promise.resolve({ medicines: [] }), '/pharmacy/medicines/export-alerts'),
@@ -151,8 +151,8 @@ export default function Pharmacy() {
 // Settings
   const [storeSettings, setStoreSettings] = useState({ name: 'FindMedi Pharmacy', address: 'MG Road, Indore, MP 452001', phone: '+91 98765 43210', email: 'pharmacy@findmedi.in', licenseNo: 'MP-PH-2024-001', timing: '8:00 AM - 11:00 PM', deliveryRadius: '8 km', minOrderAmt: '99', deliveryFee: '25', gst: '12', autoRetry: true });
 
-  const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
-  const updateOrderStatus = async (order, status) => {
+  const showToast = (msg: Unmodelled, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
+  const updateOrderStatus = async (order: Unmodelled, status: Unmodelled) => {
     try {
       const updated = await api.updatePharmacyOrderStatus(order._id, status);
       setOrders(current => current.map(row => row._id === order._id ? { ...row, ...updated } : row));
@@ -161,7 +161,7 @@ export default function Pharmacy() {
       showToast('Order status could not be updated. Refresh and try again.', 'error');
     }
   };
-  const collectCOD = async (order) => {
+  const collectCOD = async (order: Unmodelled) => {
     try {
       const updated = await api.collectPharmacyCOD(order._id);
       setOrders(current => current.map(row => row._id === order._id ? { ...row, ...updated } : row));
@@ -174,7 +174,7 @@ export default function Pharmacy() {
   const exportBillingCsv = async () => {
     try {
       const data = await pharmApi.getBillingExport();
-      const rows = ((data.bills && data.bills.length ? data.bills : filteredBills.length ? filteredBills : orders)).map(b => ({
+      const rows = ((data.bills && data.bills.length ? data.bills : filteredBills.length ? filteredBills : orders)).map((b: Unmodelled) => ({
         invoice: b.invoiceId || b.orderId || b._id,
         patient: b.patientName,
         amount: b.total || b.amount || 0,
@@ -182,7 +182,7 @@ export default function Pharmacy() {
         date: b.date || b.orderDate || b.createdAt,
       }));
       if (!rows.length) return showToast('No rows to export', 'error');
-      const csv = ['Invoice,Patient,Amount,Payment,Date', ...rows.map(r => [r.invoice, r.patient, r.amount, r.payment, r.date].map(v => `"${String(v).replaceAll('"', '""')}"`).join(','))].join('\n');
+      const csv = ['Invoice,Patient,Amount,Payment,Date', ...rows.map((r: Unmodelled) => [r.invoice, r.patient, r.amount, r.payment, r.date].map(v => `"${String(v).replaceAll('"', '""')}"`).join(','))].join('\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -286,17 +286,17 @@ showToast('Failed to export billing', 'error');
   }, [stats, medicines, orders, returns]);
 
   const addRxMed = () => setNewRx(r => ({ ...r, medicines: [...r.medicines, { medicineName: '', dosage: '', frequency: '1-0-1', duration: '7 days', quantity: 1 }] }));
-  const removeRxMed = (i) => setNewRx(r => ({ ...r, medicines: r.medicines.filter((_, idx) => idx !== i) }));
-  const updateRxMed = (i, f, v) => setNewRx(r => ({ ...r, medicines: r.medicines.map((m, idx) => idx === i ? { ...m, [f]: v } : m) }));
+  const removeRxMed = (i: Unmodelled) => setNewRx(r => ({ ...r, medicines: r.medicines.filter((_, idx) => idx !== i) }));
+  const updateRxMed = (i: Unmodelled, f: Unmodelled, v: Unmodelled) => setNewRx(r => ({ ...r, medicines: r.medicines.map((m, idx) => idx === i ? { ...m, [f]: v } : m) }));
 
   // Render helpers
-  const StatusBadge = ({ status, mapping = {} }) => {
+  const StatusBadge = ({ status, mapping = {} }: Unmodelled) => {
     const colors = mapping[status] || { Pending: 'bg-warning/10 text-warning', Shipped: 'bg-info/10 text-info', Delivered: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive', Active: 'bg-info/10 text-info', Dispensed: 'bg-success/10 text-success', Paid: 'bg-success/10 text-success', Unpaid: 'bg-warning/10 text-warning', Approved: 'bg-success/10 text-success', Rejected: 'bg-destructive/10 text-destructive', InTransit: 'bg-info/10 text-info', 'In Transit': 'bg-info/10 text-info', 'Pending Pickup': 'bg-warning/10 text-warning' };
     const c = colors[status] || 'bg-muted text-muted-foreground';
     return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c}`}>{status}</span>;
   };
 
-  const Modal = ({ title, children, onClose }) => (
+  const Modal = ({ title, children, onClose }: Unmodelled) => (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-card rounded-2xl border shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6"><h2 className="font-heading text-xl font-bold">{title}</h2><button onClick={onClose}><X className="w-5 h-5" /></button></div>
@@ -305,7 +305,7 @@ showToast('Failed to export billing', 'error');
     </div>
   );
 
-  const SectionHeader = ({ title, subtitle, action }) => (
+  const SectionHeader = ({ title, subtitle, action }: Unmodelled) => (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
       <div><h2 className="text-xl font-bold text-foreground">{title}</h2>{subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}</div>
       {action}
@@ -333,12 +333,12 @@ showToast('Failed to export billing', 'error');
     }));
 
   const billingColumns = [
-    { key: 'invoice', label: 'Invoice', render: (v) => <span className="font-medium">{v}</span> },
+    { key: 'invoice', label: 'Invoice', render: (v: Unmodelled) => <span className="font-medium">{v}</span> },
     { key: 'patient', label: 'Patient' },
     { key: 'items', label: 'Items' },
-    { key: 'amount', label: 'Amount', render: (v) => <span className="block text-right font-medium">₹{(v || 0).toLocaleString()}</span> },
-    { key: 'status', label: 'Status', render: (v) => <span className="block text-center"><StatusBadge status={v} /></span> },
-    { key: 'date', label: 'Date', render: (v) => <span className="block text-right text-muted-foreground">{v}</span> },
+    { key: 'amount', label: 'Amount', render: (v: Unmodelled) => <span className="block text-right font-medium">₹{(v || 0).toLocaleString()}</span> },
+    { key: 'status', label: 'Status', render: (v: Unmodelled) => <span className="block text-center"><StatusBadge status={v} /></span> },
+    { key: 'date', label: 'Date', render: (v: Unmodelled) => <span className="block text-right text-muted-foreground">{v}</span> },
   ];
 
   return (
@@ -513,7 +513,7 @@ showToast('Failed to export billing', 'error');
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {o.items.map((item, i) => (
+                      {o.items.map((item: Unmodelled, i: Unmodelled) => (
                         <span key={i} className="text-xs bg-muted px-2 py-1 rounded-lg">{item.medicineName} x{item.qty}</span>
                       ))}
                     </div>
@@ -565,7 +565,7 @@ showToast('Failed to export billing', 'error');
                       </div>
                     )}
                     <div className="space-y-2">
-                      {(rx.medicines || []).map((m, i) => (
+                      {(rx.medicines || []).map((m: Unmodelled, i: Unmodelled) => (
                         <div key={i} className="flex items-center justify-between bg-muted/30 rounded-lg p-2">
                           <div>
                             <p className="text-sm font-medium text-foreground">{m.medicineName} {m.dosage}</p>
@@ -610,7 +610,7 @@ showToast('Failed to export billing', 'error');
                       </div>
                     </div>
                     <div className="space-y-1">
-                      {(d.trackingHistory || d.tracking || []).map((t, i) => (
+                      {(d.trackingHistory || d.tracking || []).map((t: Unmodelled, i: Unmodelled) => (
                         <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
                           <div className="w-2 h-2 rounded-full bg-primary" /> {t.location} · {new Date(t.time).toLocaleTimeString()}
                         </div>
@@ -666,7 +666,7 @@ showToast('Failed to export billing', 'error');
                       <p className="font-bold">₹{r.total.toLocaleString()}</p>
                     </div>
                     <div className="space-y-1">
-                      {r.items.map((item, i) => (
+                      {r.items.map((item: Unmodelled, i: Unmodelled) => (
                         <div key={i} className="flex items-center justify-between text-sm bg-muted/30 rounded-lg p-2">
                           <span>{item.medicineName} x{item.qty}</span>
                           <span className="text-xs text-muted-foreground">{item.reason}</span>
@@ -837,9 +837,9 @@ showToast('Failed to export billing', 'error');
                 action={<Button size="sm" variant="outline" onClick={async () => {
                   try {
                     const data = await pharmApi.getMedicineAlerts();
-                    const rows = (data.medicines || medicines.filter(m => m.currentStock <= m.reorderLevel || new Date(m.expiryDate) < new Date(Date.now() + 90 * 86400000))).map(m => ({ name: m.name, genericName: m.genericName, currentStock: m.currentStock, reorderLevel: m.reorderLevel, expiryDate: m.expiryDate ? new Date(m.expiryDate).toLocaleDateString() : '' }));
+                    const rows = (data.medicines || medicines.filter(m => m.currentStock <= m.reorderLevel || new Date(m.expiryDate) < new Date(Date.now() + 90 * 86400000))).map((m: Unmodelled) => ({ name: m.name, genericName: m.genericName, currentStock: m.currentStock, reorderLevel: m.reorderLevel, expiryDate: m.expiryDate ? new Date(m.expiryDate).toLocaleDateString() : '' }));
                     if (!rows.length) return showToast('No rows to export', 'error');
-                    const csv = ['Name,Generic Name,Current Stock,Reorder Level,Expiry Date', ...rows.map(r => [r.name, r.genericName, r.currentStock, r.reorderLevel, r.expiryDate].map(v => `"${String(v).replaceAll('"', '""')}"`).join(','))].join('\n');
+                    const csv = ['Name,Generic Name,Current Stock,Reorder Level,Expiry Date', ...rows.map((r: Unmodelled) => [r.name, r.genericName, r.currentStock, r.reorderLevel, r.expiryDate].map(v => `"${String(v).replaceAll('"', '""')}"`).join(','))].join('\n');
                     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');

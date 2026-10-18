@@ -12,8 +12,8 @@ import { useToast } from "@/mind/components/ui/use-toast";
 import { api } from "@/mind/lib/api";
 import { BookOpen, Filter, Languages, Search, Video, FileText, Bookmark, Headphones, Play, Pause, Clock, ChevronDown, ChevronUp, Sparkles, Heart, ArrowRight, Volume2, File } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import type { ApiRow } from '@/lib/apiTypes';
-function buildQuery(params) {
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
+function buildQuery(params: Unmodelled) {
     const q = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => {
         if (v === undefined || v === null)
@@ -30,7 +30,7 @@ function buildQuery(params) {
     const s = q.toString();
     return s ? `?${s}` : "";
 }
-async function fetchResources(filters) {
+async function fetchResources(filters: Unmodelled) {
     const query = buildQuery({
         q: filters.q,
         type: filters.type && filters.type !== "all" ? filters.type : undefined,
@@ -43,7 +43,7 @@ async function fetchResources(filters) {
     const { data } = await api.get(`/api/resources${query}`);
     return data;
 }
-async function fetchYouTube(q, opts) {
+async function fetchYouTube(q: Unmodelled, opts: Unmodelled) {
     try {
         if (opts.type !== "video" && opts.type !== "all")
             return [];
@@ -57,7 +57,7 @@ async function fetchYouTube(q, opts) {
             maxResults: max,
         });
         const { data: items } = await api.get(`/api/resources/youtube${query}`);
-        return items.filter((i) => {
+        return items.filter((i: Unmodelled) => {
             if (opts.language && opts.language !== "all" && i.language) {
                 if (i.language.toLowerCase() !== String(opts.language).toLowerCase())
                     return false;
@@ -77,7 +77,7 @@ async function fetchYouTube(q, opts) {
         return [];
     }
 }
-function getYoutubeId(url) {
+function getYoutubeId(url: Unmodelled) {
     try {
         const u = new URL(url);
         if (u.hostname.includes("youtube.com")) {
@@ -93,7 +93,7 @@ function getYoutubeId(url) {
         return null;
     }
 }
-function getResourceThumbnail(resource) {
+function getResourceThumbnail(resource: Unmodelled) {
     return resource?.thumbnail || resource?.imageUrl || resource?.coverImage || resource?.cover || "";
 }
 function categoryGradient(category = "") {
@@ -206,13 +206,13 @@ const ResourceHub = () => {
             setLoading(false);
         }
     }
-    function toggleTag(t) {
+    function toggleTag(t: Unmodelled) {
         setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
     }
     const availableTags = useMemo(() => {
         const bag = new Set();
         for (const r of resources) {
-            (r.tags || []).forEach((t) => bag.add(t));
+            (r.tags || []).forEach((t: Unmodelled) => bag.add(t));
         }
         ["motivation", "self confidence", "exam stress", "mindfulness", "sleep hygiene", "breathing", "grounding", "study", "relationships", "burnout"].forEach((t) => bag.add(t));
         return Array.from(bag).sort();
@@ -227,7 +227,7 @@ const ResourceHub = () => {
     const audiobooks = useMemo(() => resources.filter((r) => r.type === "audiobook"), [resources]);
     const audio = useMemo(() => resources.filter((r) => r.type === "audio"), [resources]);
     const pdfs = useMemo(() => resources.filter((r) => r.type === "pdf"), [resources]);
-    function handlePlayAudio(resource) {
+    function handlePlayAudio(resource: Unmodelled) {
         if (playingAudio === resource.id) {
             setPlayingAudio(null);
         } else {
@@ -476,7 +476,7 @@ const ResourceHub = () => {
     </div>);
 };
 
-function ResourceGrid({ items, loading, typeLabel, playingAudio, onPlayAudio }) {
+function ResourceGrid({ items, loading, typeLabel, playingAudio, onPlayAudio }: Unmodelled) {
     if (loading) {
         return (<div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (<div key={i} className="rounded-2xl border border-glass-border/30 bg-background/60 overflow-hidden animate-pulse">
@@ -503,7 +503,7 @@ function ResourceGrid({ items, loading, typeLabel, playingAudio, onPlayAudio }) 
           </div>);
     }
     return (<div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((r) => {
+        {items.map((r: Unmodelled) => {
             if (r.type === "video") return <VideoCard key={r.id} resource={r} />;
             if (r.type === "audiobook") return <AudiobookCard key={r.id} resource={r} isPlaying={playingAudio === r.id} onPlay={() => onPlayAudio(r)} />;
             if (r.type === "audio") return <AudiobookCard key={r.id} resource={r} isPlaying={playingAudio === r.id} onPlay={() => onPlayAudio(r)} />;
@@ -513,7 +513,7 @@ function ResourceGrid({ items, loading, typeLabel, playingAudio, onPlayAudio }) 
       </div>);
 }
 
-function VideoCard({ resource: r }) {
+function VideoCard({ resource: r }: Unmodelled) {
     return (<Card className="group overflow-hidden glass-card border-glass-border/30 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
         <div className="aspect-video bg-black/5 relative overflow-hidden">
           <VideoEmbed url={r.url} thumbnail={getResourceThumbnail(r)} title={r.title} />
@@ -540,7 +540,7 @@ function VideoCard({ resource: r }) {
           </div>
           {r.description && <p className="text-xs text-foreground/65 line-clamp-2 leading-relaxed">{r.description}</p>}
           {r.tags && r.tags.length > 0 && (<div className="flex flex-wrap gap-1.5 pt-0.5">
-              {r.tags.slice(0, 4).map((t) => (<span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-foreground/8 text-foreground/60">
+              {r.tags.slice(0, 4).map((t: Unmodelled) => (<span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-foreground/8 text-foreground/60">
                   #{t}
                 </span>))}
             </div>)}
@@ -554,14 +554,14 @@ function VideoCard({ resource: r }) {
       </Card>);
 }
 
-function resourceTypeMeta(type) {
+function resourceTypeMeta(type: Unmodelled) {
   if (type === "pdf") return { icon: File, label: "PDF" };
   if (type === "blog") return { icon: FileText, label: "Blog" };
   if (type === "article") return { icon: FileText, label: "Article" };
   return { icon: FileText, label: type?.charAt(0).toUpperCase() + type?.slice(1) || "Resource" };
 }
 
-function ArticleCard({ resource: r }) {
+function ArticleCard({ resource: r }: Unmodelled) {
     const thumb = getResourceThumbnail(r);
     const [imageFailed, setImageFailed] = useState(false);
     const { icon: TypeIcon, label: typeLabel } = resourceTypeMeta(r.type);
@@ -608,7 +608,7 @@ function ArticleCard({ resource: r }) {
           </div>
           {r.description && <p className="text-xs text-foreground/65 line-clamp-2 leading-relaxed">{r.description}</p>}
           {r.tags && r.tags.length > 0 && (<div className="flex flex-wrap gap-1.5 pt-0.5">
-              {r.tags.slice(0, 4).map((t) => (<span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-foreground/8 text-foreground/60">
+              {r.tags.slice(0, 4).map((t: Unmodelled) => (<span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-foreground/8 text-foreground/60">
                   #{t}
                 </span>))}
             </div>)}
@@ -627,7 +627,7 @@ function ArticleCard({ resource: r }) {
       </Card>);
 }
 
-function AudiobookCard({ resource: r, isPlaying, onPlay }) {
+function AudiobookCard({ resource: r, isPlaying, onPlay }: Unmodelled) {
     const audioRef = useRef(null);
     const [progress, setProgress] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
@@ -657,7 +657,7 @@ function AudiobookCard({ resource: r, isPlaying, onPlay }) {
             audio.removeEventListener("ended", onEnded);
         };
     }, [isPlaying, onPlay]);
-    const formatTime = (s) => {
+    const formatTime = (s: Unmodelled) => {
         const m = Math.floor(s / 60);
         const sec = Math.floor(s % 60);
         return `${m}:${sec.toString().padStart(2, "0")}`;
@@ -748,7 +748,7 @@ function AudiobookCard({ resource: r, isPlaying, onPlay }) {
       </Card>);
 }
 
-function VideoEmbed({ url, thumbnail, title }) {
+function VideoEmbed({ url, thumbnail, title }: Unmodelled) {
     const id = getYoutubeId(url);
     if (!id) {
         return (<div className="w-full h-full flex items-center justify-center bg-foreground/5">

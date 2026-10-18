@@ -19,7 +19,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useVideoCall } from '@/context/VideoCallContext';
 import { formatDisplayDate } from '@/lib/dateUtils';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 function VirtualBackgroundToggle() {
   const [blur, setBlur] = useState(false);
@@ -30,7 +30,7 @@ function VirtualBackgroundToggle() {
   );
 }
 
-function formatDuration(secs) {
+function formatDuration(secs: Unmodelled) {
   if (!secs || secs <= 0) return '00:00';
   const m = Math.floor(secs / 60);
   const s = secs % 60;
@@ -38,8 +38,8 @@ function formatDuration(secs) {
   return `${m}m ${s.toString().padStart(2, '0')}s`;
 }
 
-function getInitials(name) {
-  return name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'PT';
+function getInitials(name: Unmodelled) {
+  return name?.split(' ').map((n: Unmodelled) => n[0]).join('').slice(0, 2).toUpperCase() || 'PT';
 }
 
 export default function DoctorVideoCalls() {
@@ -49,7 +49,7 @@ export default function DoctorVideoCalls() {
 
   const isPatient = user?.role === 'patient';
 
-  const handleOpenChat = (peerId) => {
+  const handleOpenChat = (peerId: Unmodelled) => {
     const isClinic = user?.role === 'clinic_doctor';
     const chatPath = isPatient ? '/patient/chat' : isClinic ? '/clinic/chat' : '/doctor/chat';
     navigate(chatPath, { state: { targetUserId: peerId } });
@@ -157,7 +157,7 @@ export default function DoctorVideoCalls() {
   };
 
   // Delete Call Log
-  const handleDeleteCall = async (callId) => {
+  const handleDeleteCall = async (callId: Unmodelled) => {
     try {
       const res = await api.deleteCallLog(callId);
       if (res?.success) {
@@ -205,7 +205,7 @@ export default function DoctorVideoCalls() {
     {
       key: 'peerName',
       label: 'Patient / Participant',
-      render: (_v, call) => (
+      render: (_v: Unmodelled, call: Unmodelled) => (
         <div className="flex items-center gap-3 text-xs">
           {call.peer?.avatar ? (
             <img
@@ -235,7 +235,7 @@ export default function DoctorVideoCalls() {
     {
       key: 'direction',
       label: 'Call Type',
-      render: (_v, call) => (
+      render: (_v: Unmodelled, call: Unmodelled) => (
         <div className="flex items-center gap-1.5 font-medium text-xs">
           {call.isMissed ? (
             <span className="text-rose-500 flex items-center gap-1">
@@ -256,12 +256,12 @@ export default function DoctorVideoCalls() {
     {
       key: 'duration',
       label: 'Duration',
-      render: (v) => <span className="text-xs font-mono font-medium text-foreground">{formatDuration(v)}</span>,
+      render: (v: Unmodelled) => <span className="text-xs font-mono font-medium text-foreground">{formatDuration(v)}</span>,
     },
     {
       key: 'createdAt',
       label: 'Date & Time',
-      render: (v) => (
+      render: (v: Unmodelled) => (
         <div className="text-xs text-muted-foreground">
           <div>{new Date(v).toLocaleDateString()}</div>
           <div className="text-[11px]">
@@ -273,7 +273,7 @@ export default function DoctorVideoCalls() {
     {
       key: 'status',
       label: 'Status',
-      render: (v) => (
+      render: (v: Unmodelled) => (
         <Badge
           variant="outline"
           className={`capitalize text-[11px] font-semibold px-2 py-0.5 ${
@@ -292,7 +292,7 @@ export default function DoctorVideoCalls() {
       key: '_actions',
       label: 'Actions',
       sortable: false,
-      render: (_v, call) => (
+      render: (_v: Unmodelled, call: Unmodelled) => (
         <div className="flex items-center justify-end gap-1.5 text-xs">
           <Button
             size="sm"

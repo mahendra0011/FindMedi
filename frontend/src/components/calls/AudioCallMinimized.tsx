@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
 import { PhoneOff, Mic, MicOff, Maximize2, User, Disc } from 'lucide-react';
 import { useAudioCall } from '@/context/AudioCallContext';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-function formatTimer(secs) {
+function formatTimer(secs: Unmodelled) {
   const m = Math.floor(secs / 60).toString().padStart(2, '0');
   const s = (secs % 60).toString().padStart(2, '0');
   return `${m}:${s}`;

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import BillCheckout from '@/components/BillCheckout';
 import { userFacingError } from '@/lib/errorCopy';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const UPI_APPS = ['Google Pay', 'PhonePe', 'Paytm', 'BHIM', 'CRED'];
 
@@ -50,10 +51,10 @@ export default function PaymentGateway() {
         const res = await api.getFacilities({ type: 'pharmacy' });
         const list = Array.isArray(res) ? res : (res?.facilities || res?.data || []);
         const map = {};
-        list.forEach(f => { map[f._id] = f.name; map[f.id] = f.name; });
+        list.forEach((f: Unmodelled) => { map[f._id] = f.name; map[f.id] = f.name; });
         storeIds.forEach(sid => {
           if (sid) {
-            const found = list.find(f => f._id === sid || f.id === sid);
+            const found = list.find((f: Unmodelled) => f._id === sid || f.id === sid);
             if (found) map[sid] = found.name;
           }
         });
@@ -77,7 +78,7 @@ export default function PaymentGateway() {
     load();
   }, [orderIds[0]]);
 
-  const getStoreName = (sid) => storeNames[sid] || sid;
+  const getStoreName = (sid: Unmodelled) => storeNames[sid] || sid;
 
   const methodInfo = PAYMENT_METHODS[method] || PAYMENT_METHODS.upi;
   const MethodIcon = methodInfo.icon;
@@ -101,7 +102,7 @@ export default function PaymentGateway() {
         method: method === 'wallet' ? 'card' : method,
         description: `Medicine Order - ${storeIds.map(sid => getStoreName(sid)).join(', ')}`,
         provider: storeNames[storeIds[0]] || storeIds[0],
-        lineItems: (order?.items || []).map(i => ({ name: i.medicineName, price: i.price, qty: i.qty })),
+        lineItems: (order?.items || []).map((i: Unmodelled) => ({ name: i.medicineName, price: i.price, qty: i.qty })),
       }, { headers: { 'Idempotency-Key': globalThis.crypto?.randomUUID?.() || `${orderIds[0]}-${Date.now()}` } });
       setPayResult(res);
       setStep('success');
@@ -126,7 +127,7 @@ export default function PaymentGateway() {
 
   const handleRetry = () => setStep('form');
 
-  const formatCardNumber = (v) => v.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim().slice(0, 19);
+  const formatCardNumber = (v: Unmodelled) => v.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim().slice(0, 19);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background dark:from-primary/10">
@@ -157,7 +158,7 @@ export default function PaymentGateway() {
               serviceType="medicine"
               provider={storeNames[storeIds[0]] || storeIds[0]}
               details={{ deliveryType: order.deliveryMode === 'delivery' ? 'Home Delivery' : 'Store Pickup' }}
-              lineItems={(order.items || []).map(i => ({
+              lineItems={(order.items || []).map((i: Unmodelled) => ({
                 name: i.medicineName,
                 price: i.price,
                 qty: i.qty,

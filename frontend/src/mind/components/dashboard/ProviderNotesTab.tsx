@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/min
 import { Badge } from "@/mind/components/ui/badge";
 import { Button } from "@/mind/components/ui/button";
 import { Textarea } from "@/mind/components/ui/textarea";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export function ProviderNotesTab({
   noteTemplates,
@@ -14,7 +15,7 @@ export function ProviderNotesTab({
   toast,
   statusTone,
   subtitle = "Tap a template to fill it into every active session below, then edit per session. Add diagnosis in the note for medical records.",
-}) {
+}: Unmodelled) {
   return (
     <Card className="glass-card">
       <CardHeader>
@@ -27,7 +28,7 @@ export function ProviderNotesTab({
       <CardContent className="space-y-4">
         <p className="text-xs text-foreground/50">{subtitle}</p>
         <div className="grid gap-2 md:grid-cols-4">
-          {noteTemplates.map((template) => (
+          {noteTemplates.map((template: Unmodelled) => (
             <button
               type="button"
               key={template}
@@ -35,9 +36,9 @@ export function ProviderNotesTab({
               onClick={() => {
                 const targets = activeSessions.length ? activeSessions : appointments.slice(0, 3);
                 if (!targets.length) return;
-                setNotes((current) => {
+                setNotes((current: Unmodelled) => {
                   const next = { ...current };
-                  targets.forEach((t) => { if (!next[t.id]) next[t.id] = template; });
+                  targets.forEach((t: Unmodelled) => { if (!next[t.id]) next[t.id] = template; });
                   return next;
                 });
                 toast({ title: `Template added to ${targets.length} session(s)` });
@@ -49,7 +50,7 @@ export function ProviderNotesTab({
           ))}
         </div>
         <div className="space-y-4">
-          {(activeSessions.length ? activeSessions : appointments).map((appointment) => (
+          {(activeSessions.length ? activeSessions : appointments).map((appointment: Unmodelled) => (
             <div key={appointment.id} className="rounded-xl border border-glass-border/40 bg-background/60 p-4">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -62,7 +63,7 @@ export function ProviderNotesTab({
                 rows={4}
                 className="mt-3"
                 value={notes[appointment.id] ?? appointment.notes ?? ""}
-                onChange={(event) => setNotes((current) => ({ ...current, [appointment.id]: event.target.value }))}
+                onChange={(event) => setNotes((current: Unmodelled) => ({ ...current, [appointment.id]: event.target.value }))}
                 placeholder="Write confidential notes, recommendations, and treatment plan..."
               />
               <div className="mt-3 flex flex-wrap gap-2">

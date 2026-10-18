@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const staffRoles = ['Receptionist', 'Nurse', 'Lab Technician', 'Pharmacist', 'Accountant', 'Helper'];
 
@@ -56,7 +56,7 @@ export default function ClinicStaff() {
     setSaving(false);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     try {
       await api.deleteClinicStaff(id);
       setStaff(staff.filter(s => s._id !== id));
@@ -64,7 +64,7 @@ export default function ClinicStaff() {
     } catch (e) { toast.error(e.message || 'Failed to delete'); }
   };
 
-  const openEdit = (member) => {
+  const openEdit = (member: Unmodelled) => {
     setEditing(member);
     setName(member.name);
     setEmail(member.email || '');

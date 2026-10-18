@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = { Scheduled: 'bg-info/10 text-info', Completed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive' };
 const defaultAppts = [
@@ -28,7 +29,7 @@ export default function LabAppointments() {
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  const handleStatus = (id, status) => {
+  const handleStatus = (id: Unmodelled, status: Unmodelled) => {
     setAppts(prev => prev.map(a => a._id === id ? { ...a, status } : a));
     api.updateLabBooking(id, { status }).catch(console.error);
   };

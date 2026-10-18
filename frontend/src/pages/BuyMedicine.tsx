@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const LOCALITIES = ['Vijay Nagar', 'Civil Lines', 'Napier Town', 'Marhatal', 'Gol Bazar', 'Sadar Cantt'];
 
@@ -17,9 +17,9 @@ const DELIVERY_TIME_RANGES = [
   { label: '30-45 min', min: 30, max: 45 },
 ];
 
-const parseMinutes = (str) => parseInt(str) || 0;
+const parseMinutes = (str: Unmodelled) => parseInt(str) || 0;
 
-function getLocality(address) {
+function getLocality(address: Unmodelled) {
   const match = LOCALITIES.find(l => address.toLowerCase().includes(l.toLowerCase()));
   return match || '';
 }
@@ -35,7 +35,7 @@ export default function BuyMedicine() {
         const res = await api.getPharmacies({ limit: 50 });
         const list = Array.isArray(res) ? res : res?.pharmacies || res?.data || [];
         if (list.length > 0) {
-          const mapped = list.map(p => ({
+          const mapped = list.map((p: Unmodelled) => ({
             id: p._id || p.id,
             _id: p._id,
             name: p.name,
@@ -130,7 +130,7 @@ export default function BuyMedicine() {
     return result;
   }, [allStores, selectedCity, search, openNow, filter24x7, homeDelivery, genericOnly, quickRating, sortBy, storeType, locality, deliveryTimeRange, deliveryChargeFilter, freeDeliveryAboveFilter, minReviews, ratingMin, hasPhone, hasEmail]);
 
-  const renderStars = (rating) => (
+  const renderStars = (rating: Unmodelled) => (
     <div className="flex items-center gap-0.5">
       {[1,2,3,4,5].map(s => (
         <Star key={s} className={cn('w-3.5 h-3.5', s <= Math.round(rating) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30')} />
@@ -138,7 +138,7 @@ export default function BuyMedicine() {
     </div>
   );
 
-  const FilterChip = ({ active, onClick, children }) => (
+  const FilterChip = ({ active, onClick, children }: Unmodelled) => (
     <button onClick={onClick}
       className={cn('px-3 py-1.5 rounded-xl text-[11px] font-medium whitespace-nowrap transition-all shrink-0 border', active ? 'bg-primary text-primary-foreground border-primary shadow-sm' : 'bg-card text-muted-foreground hover:text-foreground border-border/50')}>
       {children}

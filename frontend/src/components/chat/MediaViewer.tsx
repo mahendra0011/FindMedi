@@ -4,12 +4,13 @@ import {
   Send, Trash2, Forward, Star, Play, Maximize2,
 } from 'lucide-react';
 import { formatBytes } from '@/lib/chatPrefs';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /**
  * Fullscreen media viewer — image zoom/pan, video player, gallery navigation
  * (shared media me se seedha next/prev), download aur quick actions.
  */
-export default function MediaViewer({ items = [], index = 0, onClose, onForward, onDelete, onStar, onSendToChat }) {
+export default function MediaViewer({ items = [], index = 0, onClose, onForward, onDelete, onStar, onSendToChat }: Unmodelled) {
   const [current, setCurrent] = useState(index);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -21,7 +22,7 @@ export default function MediaViewer({ items = [], index = 0, onClose, onForward,
   useEffect(() => { setZoom(1); setOffset({ x: 0, y: 0 }); }, [current]);
 
   useEffect(() => {
-    const onKey = (e) => {
+    const onKey = (e: Unmodelled) => {
       if (e.key === 'Escape') onClose?.();
       if (e.key === 'ArrowRight') setCurrent((c) => (c + 1) % items.length);
       if (e.key === 'ArrowLeft') setCurrent((c) => (c - 1 + items.length) % items.length);
@@ -42,7 +43,7 @@ export default function MediaViewer({ items = [], index = 0, onClose, onForward,
   const isVideo = mime?.startsWith('video/');
 
   /** Wheel zoom (desktop) */
-  const onWheel = (e) => {
+  const onWheel = (e: Unmodelled) => {
     if (!isImage) return;
     e.preventDefault();
     setZoom((z) => Math.min(4, Math.max(1, z + (e.deltaY < 0 ? 0.15 : -0.15))));

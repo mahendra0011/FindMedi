@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 function SupportTicketsTab() {
   const [tickets, setTickets] = useState<ApiRow[]>([]);
@@ -23,8 +23,8 @@ function SupportTicketsTab() {
       try {
         const { getSocket } = await import('@/lib/socket');
         socket = getSocket();
-        const onNew = (t) => { setTickets((prev) => [t, ...prev]); toast.info(`New Support Ticket #${t.ticketNumber || String(t._id).slice(-6)} received`); };
-        const onMsg = (p) => {
+        const onNew = (t: Unmodelled) => { setTickets((prev) => [t, ...prev]); toast.info(`New Support Ticket #${t.ticketNumber || String(t._id).slice(-6)} received`); };
+        const onMsg = (p: Unmodelled) => {
           if (selected?._id === p.ticketId) {
             setSelected((prev) => ({ ...prev, messages: [...(prev.messages || []), p.message] }));
           }
@@ -131,7 +131,7 @@ function SupportTicketsTab() {
               <div className="mb-4">
                 <p className="text-xs text-muted-foreground mb-2">Conversation</p>
                 <div className="space-y-2">
-                  {selected.messages.map((msg, j) => (
+                  {selected.messages.map((msg: Unmodelled, j: Unmodelled) => (
                     <div key={j} className={`p-3 rounded-xl ${msg.senderName === 'Super Admin' ? 'bg-primary/10 ml-8' : 'bg-muted/20 mr-8'}`}>
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs font-medium text-foreground">{msg.senderName}</span>

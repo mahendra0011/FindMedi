@@ -16,7 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
 import TypewriterText from '@/components/TypewriterText';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function AIChatPage() {
   // State
@@ -72,7 +72,7 @@ export default function AIChatPage() {
   useEffect(() => {
     return () => {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current.getTracks().forEach((t: Unmodelled) => t.stop());
       }
     };
   }, []);
@@ -119,7 +119,7 @@ export default function AIChatPage() {
 
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current.getTracks().forEach((t: Unmodelled) => t.stop());
       streamRef.current = null;
     }
     setIsCameraOpen(false);
@@ -139,7 +139,7 @@ export default function AIChatPage() {
   };
 
   // File Handlers
-  const handleImageSelect = (e) => {
+  const handleImageSelect = (e: Unmodelled) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -148,7 +148,7 @@ export default function AIChatPage() {
     }
   };
 
-  const handleDocumentSelect = (e) => {
+  const handleDocumentSelect = (e: Unmodelled) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
@@ -156,7 +156,7 @@ export default function AIChatPage() {
   };
 
   // Drag and Drop
-  const handleDrag = (e) => {
+  const handleDrag = (e: Unmodelled) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
@@ -166,7 +166,7 @@ export default function AIChatPage() {
     }
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = (e: Unmodelled) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
@@ -183,7 +183,7 @@ export default function AIChatPage() {
   };
 
   // Paste handler
-  const handlePaste = (e) => {
+  const handlePaste = (e: Unmodelled) => {
     if (e.clipboardData.files.length > 0) {
       const file = e.clipboardData.files[0];
       if (file.type.startsWith('image/')) {
@@ -210,14 +210,14 @@ export default function AIChatPage() {
     setSettingsOpen(false);
   };
 
-  const togglePin = (e, id) => {
+  const togglePin = (e: Unmodelled, id: Unmodelled) => {
     e.stopPropagation();
     const updated = chatSessions.map(s => s.id === id ? { ...s, pinned: !s.pinned } : s);
     setChatSessions(updated);
     sessionStorage.setItem('findmedi_ai_history', JSON.stringify(updated));
   };
 
-  const toggleArchive = (e, id) => {
+  const toggleArchive = (e: Unmodelled, id: Unmodelled) => {
     e.stopPropagation();
     const updated = chatSessions.map(s => s.id === id ? { ...s, archived: !s.archived } : s);
     setChatSessions(updated);
@@ -225,7 +225,7 @@ export default function AIChatPage() {
     if (currentSessionId === id) startNewChat();
   };
 
-  const copyToClipboard = (text) => {
+  const copyToClipboard = (text: Unmodelled) => {
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard');
   };
@@ -743,7 +743,7 @@ export default function AIChatPage() {
   );
 
   // Helper Component for Sidebar Chat Item
-  function ChatItem({ session }) {
+  function ChatItem({ session }: Unmodelled) {
     const isSelected = currentSessionId === session.id;
     return (
       <div 

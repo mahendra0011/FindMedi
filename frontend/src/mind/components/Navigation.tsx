@@ -28,6 +28,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/mind/components/ui/dropdown-menu";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const Navigation = () => {
     const isOpen = useAppSelector(selectMobileMenuOpen);
@@ -86,7 +87,7 @@ const Navigation = () => {
                 <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wider text-foreground/60">Theme</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-                  {themes.map((t) => (
+                  {themes.map((t: Unmodelled) => (
                     <DropdownMenuRadioItem key={t.id} value={t.id} className="cursor-pointer">
                       <span className="mr-2">{t.icon}</span>
                       {t.label}
@@ -107,7 +108,7 @@ const Navigation = () => {
                 <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wider text-foreground/60">Language</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuRadioGroup value={language} onValueChange={setLanguage}>
-                  {languages.map((l) => (
+                  {languages.map((l: Unmodelled) => (
                     <DropdownMenuRadioItem key={l.code} value={l.code} className="cursor-pointer">
                       <span className="mr-2 text-sm">{l.nativeName}</span>
                       <span className="text-foreground/60 text-xs">({l.name})</span>
@@ -143,14 +144,14 @@ const Navigation = () => {
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="flex-1">
                       <Palette className="h-4 w-4 mr-2" />
-                      <span className="truncate">{themes.find((t) => t.id === theme)?.label || "Theme"}</span>
+                      <span className="truncate">{themes.find((t: Unmodelled) => t.id === theme)?.label || "Theme"}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-48">
                     <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wider text-foreground/60">Theme</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuRadioGroup value={theme} onValueChange={(val) => { setTheme(val); dispatch(setMobileMenuOpen(false)); }}>
-                      {themes.map((t) => (
+                      {themes.map((t: Unmodelled) => (
                         <DropdownMenuRadioItem key={t.id} value={t.id} className="cursor-pointer">
                           <span className="mr-2">{t.icon}</span>
                           {t.label}
@@ -163,14 +164,14 @@ const Navigation = () => {
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="flex-1">
                       <Globe className="h-4 w-4 mr-2" />
-                      <span className="truncate">{languages.find((l) => l.code === language)?.name || "Language"}</span>
+                      <span className="truncate">{languages.find((l: Unmodelled) => l.code === language)?.name || "Language"}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-48">
                     <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wider text-foreground/60">Language</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuRadioGroup value={language} onValueChange={(val) => { setLanguage(val); dispatch(setMobileMenuOpen(false)); }}>
-                      {languages.map((l) => (
+                      {languages.map((l: Unmodelled) => (
                         <DropdownMenuRadioItem key={l.code} value={l.code} className="cursor-pointer">
                           <span className="mr-2 text-sm">{l.nativeName}</span>
                           <span className="text-foreground/60 text-xs">({l.name})</span>

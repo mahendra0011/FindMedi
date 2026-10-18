@@ -14,12 +14,13 @@ import {
   RadialBarChart, RadialBar
 } from 'recharts';
 import { Tooltip as RadixTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /* ─── Animated Counter ─────────────────────────────── */
-function AnimatedCounter({ value, duration = 1200 }) {
+function AnimatedCounter({ value, duration = 1200 }: Unmodelled) {
   const [display, setDisplay] = useState(0);
   const ref = useRef(null);
   useEffect(() => {
@@ -38,12 +39,12 @@ function AnimatedCounter({ value, duration = 1200 }) {
 }
 
 /* ─── Glass Tooltip for Charts ─────────────────────── */
-const GlassTooltip = ({ active, payload, label }) => {
+const GlassTooltip = ({ active, payload, label }: Unmodelled) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-2xl border border-white/20 bg-card/90 backdrop-blur-xl px-4 py-3 shadow-2xl shadow-black/10">
       <p className="text-xs font-medium text-muted-foreground mb-1.5">{label}</p>
-      {payload.map((p, i) => (
+      {payload.map((p: Unmodelled, i: Unmodelled) => (
         <div key={i} className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color || p.fill || p.stroke }} />
           <span className="text-xs text-muted-foreground capitalize">{p.dataKey || p.name}</span>
@@ -55,7 +56,7 @@ const GlassTooltip = ({ active, payload, label }) => {
 };
 
 /* ─── Glass Section Card ──────────────────────────── */
-function GlassCard({ title, subtitle, children, className = '', action, icon: Icon, iconColor = 'text-primary' }) {
+function GlassCard({ title, subtitle, children, className = '', action, icon: Icon, iconColor = 'text-primary' }: Unmodelled) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -97,7 +98,7 @@ function GlassCard({ title, subtitle, children, className = '', action, icon: Ic
 }
 
 /* ─── Hero Stat Card (Premium) ────────────────────── */
-function HeroCard({ icon: Icon, label, value, color, gradient, shadow, delay = 0 }) {
+function HeroCard({ icon: Icon, label, value, color, gradient, shadow, delay = 0 }: Unmodelled) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -151,7 +152,7 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
     const completionRate = totalAppts > 0 ? Math.round((completedAppts / totalAppts) * 100) : 0;
 
     // ═══ TEST STATS ═══
-    const bd = (t) => { try { return t.bookingDate?.slice?.(0, 10) || new Date(t.bookingDate).toISOString().slice(0, 10); } catch { return ''; } };
+    const bd = (t: Unmodelled) => { try { return t.bookingDate?.slice?.(0, 10) || new Date(t.bookingDate).toISOString().slice(0, 10); } catch { return ''; } };
     const totalTests = labBookings.length;
     const todayTests = labBookings.filter(t => bd(t) === todayStr).length;
     const thisWeekTests = labBookings.filter(t => { const d = bd(t); return d >= weekStartStr && d <= todayStr; }).length;

@@ -1,12 +1,13 @@
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function TimelineView({ appointments, getActionButtons, onViewIntake }) {
+export default function TimelineView({ appointments, getActionButtons, onViewIntake }: Unmodelled) {
   if (!appointments?.length) return null;
 
   return (
     <div className="flex flex-col relative w-full pt-2">
-      {appointments.map((apt, index) => {
+      {appointments.map((apt: Unmodelled, index: Unmodelled) => {
         const isFirst = index === 0;
         const isLast = index === appointments.length - 1;
         
@@ -14,7 +15,7 @@ export default function TimelineView({ appointments, getActionButtons, onViewInt
         // The image has a green checkmark for the first item, probably meaning it's "Completed" or "Serving".
         const isCompleted = apt.status === 'Completed'; 
         
-        const initials = apt.patient?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'P';
+        const initials = apt.patient?.split(' ').map((n: Unmodelled) => n[0]).join('').substring(0, 2).toUpperCase() || 'P';
         
         return (
           <motion.div 

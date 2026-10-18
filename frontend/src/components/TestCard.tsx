@@ -7,8 +7,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-const renderStars = (rating) => (
+const renderStars = (rating: Unmodelled) => (
   <div className="flex items-center gap-0.5">
     {[1, 2, 3, 4, 5].map((s) => (
       <Star key={s} className={cn('w-3 h-3 transition-colors', s <= Math.round(rating) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20 fill-muted-foreground/10')} />
@@ -16,7 +17,7 @@ const renderStars = (rating) => (
   </div>
 );
 
-const ProviderIcon = ({ type }) => {
+const ProviderIcon = ({ type }: Unmodelled) => {
   const icons = {
     hospital: Building2,
     clinic: Stethoscope,
@@ -29,13 +30,13 @@ const ProviderIcon = ({ type }) => {
   return <Icon className="w-4 h-4" />;
 };
 
-const PrescriptionBadge = ({ required }) => (
+const PrescriptionBadge = ({ required }: Unmodelled) => (
   required
     ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-600 border border-red-500/20"><Lock className="w-3 h-3" />Rx Required</span>
     : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"><BadgeCheck className="w-3 h-3" />Direct</span>
 );
 
-const TagPill = ({ icon: Icon, children, variant = 'default' }) => {
+const TagPill = ({ icon: Icon, children, variant = 'default' }: Unmodelled) => {
   const variants = {
     default: 'bg-primary/10 text-primary border-primary/20',
     success: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
@@ -52,7 +53,7 @@ const TagPill = ({ icon: Icon, children, variant = 'default' }) => {
   );
 };
 
-const InfoRow = ({ icon: Icon, label, value, highlight }) => (
+const InfoRow = ({ icon: Icon, label, value, highlight }: Unmodelled) => (
   <div className="flex items-center gap-2 min-w-0">
     <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
       <Icon className="w-3.5 h-3.5 text-primary" />
@@ -64,7 +65,7 @@ const InfoRow = ({ icon: Icon, label, value, highlight }) => (
   </div>
 );
 
-export default function TestCard({ test, index = 0 }) {
+export default function TestCard({ test, index = 0 }: Unmodelled) {
   const {
     providerType = 'lab_technician',
     name,

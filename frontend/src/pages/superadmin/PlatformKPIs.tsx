@@ -27,8 +27,9 @@ import {
   calculateBreakEvenBookings,
   calculateLtvCacRatio,
 } from '@/lib/unitEconomics';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-const AnimatedCard = ({ children, delay = 0 }) => (
+const AnimatedCard = ({ children, delay = 0 }: Unmodelled) => (
   <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, duration: 0.35 }}>
     <Card className="hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">{children}</Card>
   </motion.div>
@@ -149,7 +150,7 @@ export default function PlatformKPIs() {
 
   const { stats, weeklyAppointments, commission, hospitalCount, userCount, facilityCount, pendingCount, openTickets, urgentTickets, openDisputes, criticalDisputes, activeEmergencies, todayRegistrations } = data;
 
-  const maxWeekly = Math.max(...weeklyAppointments.map(w => w.count), 1);
+  const maxWeekly = Math.max(...weeklyAppointments.map((w: Unmodelled) => w.count), 1);
 
   return (
     <div className="space-y-6">
@@ -312,7 +313,7 @@ export default function PlatformKPIs() {
             </CardHeader>
             <CardContent>
               <div className="flex items-end gap-2 h-40">
-                {weeklyAppointments.map((w, i) => (
+                {weeklyAppointments.map((w: Unmodelled, i: Unmodelled) => (
                   <motion.div key={i} className="flex-1 flex flex-col items-center gap-1.5"
                     initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ delay: 0.65 + i * 0.05, duration: 0.4 }}
                     style={{ transformOrigin: 'bottom' }}>
@@ -340,7 +341,7 @@ export default function PlatformKPIs() {
             <CardContent>
               {commission?.monthlyTrend && commission.monthlyTrend.length > 0 ? (
                 <div className="space-y-2">
-                  {commission.monthlyTrend.map((m, i) => (
+                  {commission.monthlyTrend.map((m: Unmodelled, i: Unmodelled) => (
                     <motion.div key={i} className="flex items-center gap-3"
                       initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 + i * 0.05 }}>
                       <span className="text-xs text-muted-foreground w-12">{m.month || m._id}</span>
@@ -348,7 +349,7 @@ export default function PlatformKPIs() {
                         <motion.div
                           className="h-full bg-primary rounded-full"
                           initial={{ width: 0 }}
-                          animate={{ width: `${(m.earnings || m.revenue || 0) / Math.max(...commission.monthlyTrend.map(x => x.earnings || x.revenue || 0), 1) * 100}%` }}
+                          animate={{ width: `${(m.earnings || m.revenue || 0) / Math.max(...commission.monthlyTrend.map((x: Unmodelled) => x.earnings || x.revenue || 0), 1) * 100}%` }}
                           transition={{ delay: 0.75 + i * 0.05, duration: 0.6 }}
                         />
                       </div>

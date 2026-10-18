@@ -23,9 +23,9 @@ import DoctorActiveEmergencyHUD from '@/components/emergency/DoctorActiveEmergen
 import { useDoctorEmergencyGps } from '@/hooks/useDoctorEmergencyGps';
 import { getSocket } from '@/lib/socket';
 import { userFacingError } from '@/lib/errorCopy';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-function getAppointmentModeMeta(appt) {
+function getAppointmentModeMeta(appt: Unmodelled) {
   if (!appt) return { key: 'clinic', label: 'In Clinic', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' };
   const mode = (appt.appointmentMode || appt.type || '').toLowerCase();
   const intakeMode = (appt.preConsultationDetails?.appointmentMode || appt.preConsultationDetails?.mode || '').toLowerCase();
@@ -45,7 +45,7 @@ function getAppointmentModeMeta(appt) {
   return { key: 'clinic', label: 'In Clinic', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' };
 }
 
-const StatusBadge = ({ status }) => {
+const StatusBadge = ({ status }: Unmodelled) => {
   const colors = {
     Confirmed: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Completed: 'bg-success/10 text-success',
     Cancelled: 'bg-destructive/10 text-destructive', Shipped: 'bg-info/10 text-info', Delivered: 'bg-success/10 text-success',
@@ -239,7 +239,7 @@ const [refunds, setRefunds] = useState<ApiRow[]>([]);
     api.get('/doctors/schedule').then((d) => { if (mounted.current) setScheduleData(d); }).catch(() => {});
   }, []);
 
-  const handleAcceptAppt = async (id) => {
+  const handleAcceptAppt = async (id: Unmodelled) => {
     const previousAppointments = [...appointments];
     setAppointments(prev => prev.map(a => a._id === id ? { ...a, status: 'Confirmed' } : a));
     try {
@@ -251,7 +251,7 @@ const [refunds, setRefunds] = useState<ApiRow[]>([]);
     }
   };
 
-  const handleRejectAppt = async (id) => {
+  const handleRejectAppt = async (id: Unmodelled) => {
     const previousAppointments = [...appointments];
     setAppointments(prev => prev.map(a => a._id === id ? { ...a, status: 'Cancelled' } : a));
     try {
@@ -292,9 +292,9 @@ const [refunds, setRefunds] = useState<ApiRow[]>([]);
       const myAppts = Array.isArray(appts) ? appts : [];
       setAppointments(myAppts);
       const txList = tx?.data || tx?.payments || tx || [];
-      setBills(txList.filter(t => t.status === 'completed' || t.status === 'pending').map(txToEarningsBill));
-      setPayments(txList.filter(t => t.status === 'completed'));
-      setRefunds(txList.filter(t => t.status === 'refunded'));
+      setBills(txList.filter((t: Unmodelled) => t.status === 'completed' || t.status === 'pending').map(txToEarningsBill));
+      setPayments(txList.filter((t: Unmodelled) => t.status === 'completed'));
+      setRefunds(txList.filter((t: Unmodelled) => t.status === 'refunded'));
       const reviewsList = r?.reviews || r?.data || r || [];
       setReviews(Array.isArray(reviewsList) ? reviewsList : []);
       setPatients(Array.from(new Set(myAppts.map(apt => apt.patient).filter(Boolean))));
@@ -1026,7 +1026,7 @@ const [refunds, setRefunds] = useState<ApiRow[]>([]);
           </div>
           <div className="space-y-3">
             {scheduleData?.shifts?.length > 0 ? (
-              scheduleData.shifts.map((s, idx) => (
+              scheduleData.shifts.map((s: Unmodelled, idx: Unmodelled) => (
                 <div key={idx} className="p-3.5 bg-muted/20 rounded-2xl border border-border/30">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-semibold text-foreground">{s.name || `Shift ${idx + 1}`}</span>

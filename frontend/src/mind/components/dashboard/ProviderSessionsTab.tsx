@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/min
 import { Input } from "@/mind/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/mind/components/ui/select";
 import { UpcomingAppointmentCard, EmptyState, RequestRow, SessionCard } from "@/mind/components/ProviderDashboardComponents";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export function ProviderSessionsTab({
   toolkitContent,
@@ -26,7 +27,7 @@ export function ProviderSessionsTab({
   setSessionFilter,
   filteredSessions,
   notes,
-}) {
+}: Unmodelled) {
   return (
     <div className="space-y-6">
       {toolkitContent}
@@ -41,16 +42,16 @@ export function ProviderSessionsTab({
         </CardHeader>
         <CardContent className="grid gap-3 xl:grid-cols-2">
           {upcomingAppointments.length ? (
-            upcomingAppointments.map((appointment) => (
+            upcomingAppointments.map((appointment: Unmodelled) => (
               <UpcomingAppointmentCard
                 key={appointment.id}
                 appointment={appointment}
                 packageBadge={getPackageBadgeLabel(appointment)}
                 draft={sessionDrafts[appointment.id] || {}}
-                onDraft={(key, value) => updateDraft(appointment.id, key, value)}
+                onDraft={(key: Unmodelled, value: Unmodelled) => updateDraft(appointment.id, key, value)}
                 onReschedule={() => rescheduleAppointment(appointment)}
                 onMeet={() => createMeet(appointment.id, sessionDrafts[appointment.id]?.meetingLink || "")}
-                onChat={(peerId, name) => {
+                onChat={(peerId: Unmodelled, name: Unmodelled) => {
                   setActiveChatPeer(String(peerId));
                   setActiveChatPeerName(name || appointment.studentName || "");
                   setSearchParams({ tab: "sessions" });
@@ -75,14 +76,14 @@ export function ProviderSessionsTab({
             </CardHeader>
             <CardContent className="space-y-3">
               {pending.length ? (
-                pending.map((appointment) => (
+                pending.map((appointment: Unmodelled) => (
                   <RequestRow
                     key={appointment.id}
                     appointment={appointment}
                     onConfirm={() => updateAppointment(appointment.id, { status: "confirmed" }, "Request accepted")}
                     onDecline={() => updateAppointment(appointment.id, { status: "declined" }, "Request declined")}
                     onMeet={() => createMeet(appointment.id)}
-                    onChat={(peerId, name) => {
+                    onChat={(peerId: Unmodelled, name: Unmodelled) => {
                       setActiveChatPeer(String(peerId));
                       setActiveChatPeerName(name || appointment.studentName || "");
                     }}
@@ -137,13 +138,13 @@ export function ProviderSessionsTab({
           </CardHeader>
           <CardContent className="space-y-3">
             {filteredSessions.length ? (
-              filteredSessions.map((appointment) => (
+              filteredSessions.map((appointment: Unmodelled) => (
                 <SessionCard
                   key={appointment.id}
                   appointment={appointment}
                   packageBadge={getPackageBadgeLabel(appointment)}
                   draft={sessionDrafts[appointment.id] || {}}
-                  onDraft={(key, value) => updateDraft(appointment.id, key, value)}
+                  onDraft={(key: Unmodelled, value: Unmodelled) => updateDraft(appointment.id, key, value)}
                   onReschedule={() => rescheduleAppointment(appointment)}
                   onComplete={() =>
                     updateAppointment(
@@ -154,7 +155,7 @@ export function ProviderSessionsTab({
                   }
                   onCancel={() => updateAppointment(appointment.id, { status: "cancelled" }, "Session cancelled")}
                   onMeet={() => createMeet(appointment.id, sessionDrafts[appointment.id]?.meetingLink || "")}
-                  onChat={(peerId, name) => {
+                  onChat={(peerId: Unmodelled, name: Unmodelled) => {
                     setActiveChatPeer(String(peerId));
                     setActiveChatPeerName(name || appointment.studentName || "");
                   }}

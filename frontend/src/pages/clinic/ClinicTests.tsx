@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const testCategories = ['Basic', 'Lab', 'Imaging', 'Cardiac', 'Other'];
 const DEPARTMENTS = ['Pathology', 'Radiology', 'Cardiology', 'Health Packages'];
@@ -47,7 +48,7 @@ export default function ClinicTests() {
       const myId = fac?._id || user?.hospitalId || user?.doctorProfileId;
       const res = await api.getTests(myId ? { hospitalId: myId } : {});
       const list = Array.isArray(res) ? res : res?.tests || [];
-      setTests(list.map(t => ({
+      setTests(list.map((t: Unmodelled) => ({
         _id: t._id,
         name: t.name,
         price: t.price,
@@ -128,7 +129,7 @@ export default function ClinicTests() {
     setSaving(false);
   };
 
-  const handleEdit = (test) => {
+  const handleEdit = (test: Unmodelled) => {
     setEditTest(test);
     setForm({
       name: test.name,
@@ -148,7 +149,7 @@ export default function ClinicTests() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Permanently delete this test?')) return;
     try {
       await api.deleteTest(id);
@@ -157,7 +158,7 @@ export default function ClinicTests() {
     } catch (e) { toast.error(e.message || 'Failed to delete'); }
   };
 
-  const calcDiscount = (mrp, price) => {
+  const calcDiscount = (mrp: Unmodelled, price: Unmodelled) => {
     if (!mrp || !price) return 0;
     return Math.round((1 - price / mrp) * 100);
   };

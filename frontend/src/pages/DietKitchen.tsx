@@ -5,16 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const dietApi = {
-  getOrders: (p) => api.getDietOrders(p),
-  createOrder: (b) => api.createDietOrder(b),
-  deliverMeal: (id, b) => api.deliverMeal(id, b),
-  confirmMeal: (id, b) => api.confirmMeal(id, b),
-  review: (id, b) => api.reviewDiet(id, b),
-  addFeedback: (id, b) => api.addDietFeedback(id, b),
-  notifyKitchen: (id) => api.notifyKitchen(id),
-  addToBilling: (id, b) => api.addDietToBilling(id, b),
+  getOrders: (p: Unmodelled) => api.getDietOrders(p),
+  createOrder: (b: Unmodelled) => api.createDietOrder(b),
+  deliverMeal: (id: Unmodelled, b: Unmodelled) => api.deliverMeal(id, b),
+  confirmMeal: (id: Unmodelled, b: Unmodelled) => api.confirmMeal(id, b),
+  review: (id: Unmodelled, b: Unmodelled) => api.reviewDiet(id, b),
+  addFeedback: (id: Unmodelled, b: Unmodelled) => api.addDietFeedback(id, b),
+  notifyKitchen: (id: Unmodelled) => api.notifyKitchen(id),
+  addToBilling: (id: Unmodelled, b: Unmodelled) => api.addDietToBilling(id, b),
   getStats: () => api.getDietStats(),
 };
 
@@ -92,7 +93,7 @@ export default function DietKitchen() {
   const notifyMut = useMutation({ mutationFn: dietApi.notifyKitchen, onSuccess: () => qc.invalidateQueries(['diet-orders']) });
   const billingMut = useMutation({ mutationFn: ({ id, ...b }) => dietApi.addToBilling(id, b), onSuccess: () => qc.invalidateQueries(['diet-orders']) });
 
-  const renderFeedbackForm = (order) => (
+  const renderFeedbackForm = (order: Unmodelled) => (
     <div className="bg-muted/30 rounded-xl p-4">
       <h4 className="text-sm font-semibold mb-3">Patient Meal Feedback</h4>
       <div className="space-y-3">
@@ -231,7 +232,7 @@ export default function DietKitchen() {
       </div>
 
       <div className="space-y-4">
-        {orders.map(order => {
+        {orders.map((order: Unmodelled) => {
           const isExpanded = expandedId === order._id;
           return (
             <div key={order._id} className={`bg-card rounded-xl border shadow-sm ${order.status === 'Pending Review' ? 'ring-1 ring-warning/30 border-warning/20' : ''}`}>
@@ -295,7 +296,7 @@ export default function DietKitchen() {
                   {order.meals?.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs font-semibold text-muted-foreground">Meal History</p>
-                      {order.meals.map((m, i) => (
+                      {order.meals.map((m: Unmodelled, i: Unmodelled) => (
                         <div key={i} className="bg-muted/30 rounded-lg p-2">
                           <div className="flex items-center justify-between">
                             <div>

@@ -4,6 +4,7 @@ import { Button } from '@/mind/components/ui/button';
 import { Alert, AlertDescription } from '@/mind/components/ui/alert';
 import { Phone, AlertTriangle, Heart, Shield, Clock, Users } from 'lucide-react';
 import { api } from '@/mind/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 const EMERGENCY_CONTACTS = [
     {
         name: "National Suicide Prevention Lifeline",
@@ -81,7 +82,7 @@ const SAFETY_PLAN_TEMPLATE = [
     "Mental health professionals I can contact",
     "How to make my environment safe"
 ];
-const EmergencySupport = ({ onCrisisDetected }) => {
+const EmergencySupport = ({ onCrisisDetected }: Unmodelled) => {
     const [activeTab, setActiveTab] = useState('contacts');
     const [crisisMode, setCrisisMode] = useState(false);
     const handleCrisisAlert = async () => {
@@ -97,7 +98,7 @@ const EmergencySupport = ({ onCrisisDetected }) => {
             // Guests still receive immediate crisis contacts on this screen.
         }
     };
-    const getContactIcon = (type) => {
+    const getContactIcon = (type: Unmodelled) => {
         switch (type) {
             case 'crisis': return <AlertTriangle className="h-5 w-5 text-emergency"/>;
             case 'support': return <Heart className="h-5 w-5 text-primary"/>;

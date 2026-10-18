@@ -3,6 +3,7 @@ import { X, CalendarDays, Clock, Hash, UserCheck, Activity, IndianRupee, Phone, 
 import { Button } from '@/components/ui/button';
 import { formatDisplayDate } from '@/lib/dateUtils';
 import { statusColors } from '@/components/AppointmentCard';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /**
  * Modal showing full details of a single appointment.
@@ -11,7 +12,7 @@ import { statusColors } from '@/components/AppointmentCard';
  * @param {object|null} apt - the appointment object, or null to close
  * @param {function} onClose - close handler
  */
-export default function AppointmentDetailsModal({ apt, onClose }) {
+export default function AppointmentDetailsModal({ apt, onClose }: Unmodelled) {
   if (!apt) return null;
 
   const patient = apt.patientId;

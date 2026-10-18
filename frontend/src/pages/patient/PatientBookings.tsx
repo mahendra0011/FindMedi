@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const BOOKING_STATUS = {
   Scheduled: { label: 'Scheduled', color: 'bg-blue-500/10 text-blue-600 border-blue-500/30', icon: Clock },
@@ -33,7 +33,7 @@ const BOOKING_STATUS = {
 
 const STATUS_FILTERS = ['All', 'Scheduled', 'Pending', 'Confirmed', 'Completed', 'Cancelled'];
 
-function normalizeBooking(item, type) {
+function normalizeBooking(item: Unmodelled, type: Unmodelled) {
   if (type === 'appointment') {
     return {
       id: item._id,
@@ -86,8 +86,8 @@ export default function PatientBookings() {
         api.getLabBookings({})
       ]);
       const normalized = [
-        ...((appts?.data || appts || [])).map(a => normalizeBooking(a, 'appointment')),
-        ...((labBks?.bookings || labBks?.data || [])).map(b => normalizeBooking(b, 'test')),
+        ...((appts?.data || appts || [])).map((a: Unmodelled) => normalizeBooking(a, 'appointment')),
+        ...((labBks?.bookings || labBks?.data || [])).map((b: Unmodelled) => normalizeBooking(b, 'test')),
       ];
       setBookings(normalized);
       setLoadError(null); // clear any previous error on success
@@ -117,7 +117,7 @@ export default function PatientBookings() {
     if (typeFilter !== 'All' && b.type !== typeFilter) return false;
     if (search) {
       const q = search.toLowerCase();
-      if (!b.source.toLowerCase().includes(q) && !b.tests.some(t => t.toLowerCase().includes(q))) return false;
+      if (!b.source.toLowerCase().includes(q) && !b.tests.some((t: Unmodelled) => t.toLowerCase().includes(q))) return false;
     }
     return true;
   });
@@ -125,7 +125,7 @@ export default function PatientBookings() {
   const activeBookings = filtered.filter(b => !['Completed', 'Cancelled'].includes(b.status));
   const pastBookings = filtered.filter(b => ['Completed', 'Cancelled'].includes(b.status));
 
-  const handleCancel = async (booking) => {
+  const handleCancel = async (booking: Unmodelled) => {
     try {
       if (booking.type === 'appointment') {
         await api.updateAppointment(booking.id, { status: 'Cancelled' });
@@ -139,7 +139,7 @@ export default function PatientBookings() {
     }
   };
 
-  const handleOpenIntake = (booking) => {
+  const handleOpenIntake = (booking: Unmodelled) => {
     setIntakeModal(booking);
     if (booking._raw?.preConsultationDetails) {
       setIntakeData({
@@ -154,7 +154,7 @@ export default function PatientBookings() {
     }
   };
 
-  const handleIntakeSubmit = async (e) => {
+  const handleIntakeSubmit = async (e: Unmodelled) => {
     e.preventDefault();
     if (!intakeModal) return;
     setSubmittingIntake(true);
@@ -296,11 +296,11 @@ export default function PatientBookings() {
 const TEST_STATUS_FLOW = ['Pending', 'Confirmed', 'Sample Collected', 'Report Ready', 'Completed'];
 const APPOINTMENT_STATUS_FLOW = ['Pending', 'Confirmed', 'In Queue', 'Serving', 'Completed'];
 
-function getStep(status, flow) {
+function getStep(status: Unmodelled, flow: Unmodelled) {
   return flow.indexOf(status);
 }
 
-function BookingCard({ booking, index, onCancel, onOpenIntake }) {
+function BookingCard({ booking, index, onCancel, onOpenIntake }: Unmodelled) {
   const navigate = useNavigate();
   const statusInfo = BOOKING_STATUS[booking.status] || BOOKING_STATUS.Pending;
   const StatusIcon = statusInfo.icon;

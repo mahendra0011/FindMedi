@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const typeFilters = ['All', 'appointment', 'test', 'medicine'];
 const statusFilters = ['All', 'completed', 'pending', 'failed', 'refunded'];
@@ -26,19 +26,19 @@ const statusConfig = {
 
 const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
 
-function formatDate(d) {
+function formatDate(d: Unmodelled) {
   if (!d) return '';
   const dt = new Date(d);
   return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-function formatShortDate(d) {
+function formatShortDate(d: Unmodelled) {
   if (!d) return '';
   const dt = new Date(d);
   return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function calcAge(dob) {
+function calcAge(dob: Unmodelled) {
   if (!dob) return '';
   const birth = new Date(dob);
   const now = new Date();
@@ -48,7 +48,7 @@ function calcAge(dob) {
   return age >= 0 ? `${age} yrs` : '';
 }
 
-function InfoRow({ icon: Icon, label, value, color = 'text-muted-foreground' }) {
+function InfoRow({ icon: Icon, label, value, color = 'text-muted-foreground' }: Unmodelled) {
   if (!value) return null;
   return (
     <div className="flex items-center gap-2 py-1">

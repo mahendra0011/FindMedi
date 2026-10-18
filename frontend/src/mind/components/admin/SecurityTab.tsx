@@ -3,8 +3,9 @@ import { Badge } from "@/mind/components/ui/badge";
 import { Button } from "@/mind/components/ui/button";
 import { Textarea } from "@/mind/components/ui/textarea";
 import { Activity, AlertTriangle, Bell, CheckCircle2, Megaphone, Shield, ShieldAlert, ShieldCheck, Star, UserCog } from "lucide-react";
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function SecurityTab({ data, users, moderateReview, announcement, setAnnouncement, sendAnnouncement }) {
+export default function SecurityTab({ data, users, moderateReview, announcement, setAnnouncement, sendAnnouncement }: Unmodelled) {
   return (
     <>
   <div className="grid lg:grid-cols-[1fr_0.9fr] gap-6">
@@ -38,7 +39,7 @@ export default function SecurityTab({ data, users, moderateReview, announcement,
               <p className="mt-1 text-sm text-foreground/50">No activity logs yet</p>
             </div>
           ) : (
-            data.activityLogs.map((log, i) => (
+            data.activityLogs.map((log: Unmodelled, i: Unmodelled) => (
               <div key={i} className="group flex items-start gap-3 rounded-xl border border-glass-border/30 bg-background/60 p-3 transition hover:border-indigo-500/30 hover:bg-indigo-500/5 hover:shadow-sm">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500/20 to-indigo-500/5">
                   <Activity className="h-4 w-4 text-indigo-400" />
@@ -94,7 +95,7 @@ export default function SecurityTab({ data, users, moderateReview, announcement,
             </div>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-              {data.notifications.slice(0, 8).map((notification) => (
+              {data.notifications.slice(0, 8).map((notification: Unmodelled) => (
                 <div key={notification.id} className="group rounded-xl border border-glass-border/30 bg-background/60 p-3 transition hover:border-amber-500/30 hover:bg-amber-500/5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -127,17 +128,17 @@ export default function SecurityTab({ data, users, moderateReview, announcement,
         </div>
         <div className="flex items-center gap-3">
           <div className="text-center">
-            <div className="text-lg font-bold text-emerald-500">{data.reviews.filter((r) => r.status === "approved").length}</div>
+            <div className="text-lg font-bold text-emerald-500">{data.reviews.filter((r: Unmodelled) => r.status === "approved").length}</div>
             <div className="text-xs text-foreground/55">Approved</div>
           </div>
           <div className="h-8 w-px bg-glass-border/40" />
           <div className="text-center">
-            <div className="text-lg font-bold text-amber-500">{data.reviews.filter((r) => r.status === "flagged").length}</div>
+            <div className="text-lg font-bold text-amber-500">{data.reviews.filter((r: Unmodelled) => r.status === "flagged").length}</div>
             <div className="text-xs text-foreground/55">Flagged</div>
           </div>
           <div className="h-8 w-px bg-glass-border/40" />
           <div className="text-center">
-            <div className="text-lg font-bold text-rose-500">{data.reviews.filter((r) => r.status === "removed").length}</div>
+            <div className="text-lg font-bold text-rose-500">{data.reviews.filter((r: Unmodelled) => r.status === "removed").length}</div>
             <div className="text-xs text-foreground/55">Removed</div>
           </div>
         </div>
@@ -152,7 +153,7 @@ export default function SecurityTab({ data, users, moderateReview, announcement,
         </div>
       ) : (
         <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-          {data.reviews.map((review) => {
+          {data.reviews.map((review: Unmodelled) => {
             const stars = Math.round(review.rating || 0);
             return (
               <div key={review.id} className="group rounded-xl border border-glass-border/30 bg-background/60 p-4 transition hover:border-amber-500/20 hover:shadow-sm">

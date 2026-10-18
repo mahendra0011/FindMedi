@@ -4,16 +4,17 @@ import { Search, Plus, Clock, X, Scissors, CheckCircle, AlertTriangle, Clipboard
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const otApi = {
-  getSurgeries: (p) => api.dispatch(() => Promise.resolve({ surgeries: [] }), '/ot/surgeries?' + new URLSearchParams(p)),
-  createSurgery: (b) => api.dispatch(() => Promise.resolve({}), '/ot/surgeries', { method: 'POST', body: JSON.stringify(b) }),
-  startPreOp: (id) => api.dispatch(() => Promise.resolve({}), `/ot/surgeries/${id}/pre-op`, { method: 'PUT' }),
-  startSurgery: (id) => api.dispatch(() => Promise.resolve({}), `/ot/surgeries/${id}/start`, { method: 'PUT' }),
-  completeSurgery: (id, b) => api.dispatch(() => Promise.resolve({}), `/ot/surgeries/${id}/complete`, { method: 'PUT', body: JSON.stringify(b) }),
-  recoveryUpdate: (id, b) => api.dispatch(() => Promise.resolve({}), `/ot/surgeries/${id}/recovery`, { method: 'PUT', body: JSON.stringify(b) }),
-  checklistUpdate: (id, b) => api.dispatch(() => Promise.resolve({}), `/ot/surgeries/${id}/checklist`, { method: 'PUT', body: JSON.stringify(b) }),
-  shiftToWard: (id) => api.dispatch(() => Promise.resolve({}), `/ot/surgeries/${id}/shift-ward`, { method: 'PUT' }),
+  getSurgeries: (p: Unmodelled) => api.dispatch(() => Promise.resolve({ surgeries: [] }), '/ot/surgeries?' + new URLSearchParams(p)),
+  createSurgery: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/ot/surgeries', { method: 'POST', body: JSON.stringify(b) }),
+  startPreOp: (id: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ot/surgeries/${id}/pre-op`, { method: 'PUT' }),
+  startSurgery: (id: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ot/surgeries/${id}/start`, { method: 'PUT' }),
+  completeSurgery: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ot/surgeries/${id}/complete`, { method: 'PUT', body: JSON.stringify(b) }),
+  recoveryUpdate: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ot/surgeries/${id}/recovery`, { method: 'PUT', body: JSON.stringify(b) }),
+  checklistUpdate: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ot/surgeries/${id}/checklist`, { method: 'PUT', body: JSON.stringify(b) }),
+  shiftToWard: (id: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ot/surgeries/${id}/shift-ward`, { method: 'PUT' }),
   getStats: () => api.dispatch(() => Promise.resolve({ total: 0, scheduled: 0, inProgress: 0, completed: 0, today: 0 }), '/ot/stats'),
 };
 
@@ -81,7 +82,7 @@ export default function OperationTheatre() {
   const checklistMut = useMutation({ mutationFn: ({ id, ...b }) => otApi.checklistUpdate(id, b), onSuccess: () => { qc.invalidateQueries(['ot']); setShowChecklist(false); } });
   const wardShiftMut = useMutation({ mutationFn: otApi.shiftToWard, onSuccess: () => qc.invalidateQueries(['ot']) });
 
-  const handleCompleteSurgery = (surgery) => {
+  const handleCompleteSurgery = (surgery: Unmodelled) => {
     const findings = prompt('Surgery Findings:');
     if (!findings) return;
     const procedure = prompt('Procedure Performed:');
@@ -140,7 +141,7 @@ export default function OperationTheatre() {
       <div className="bg-muted/20 rounded-xl border p-4 mb-6">
         <h3 className="font-heading text-sm font-semibold mb-3 flex items-center gap-2"><Monitor className="w-4 h-4 text-primary" /> OT Board - Today</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {surgeries.filter(s => !s.scheduledDate || new Date(s.scheduledDate).toDateString() === new Date().toDateString()).slice(0, 6).map(s => (
+          {surgeries.filter((s: Unmodelled) => !s.scheduledDate || new Date(s.scheduledDate).toDateString() === new Date().toDateString()).slice(0, 6).map((s: Unmodelled) => (
             <div key={s._id} className={`bg-card rounded-lg border p-3 text-sm ${s.status === 'In Progress' ? 'border-destructive/50 ring-1 ring-destructive/20' : ''}`}>
               <div className="flex items-center justify-between mb-1">
                 <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${statusColors[s.status] || ''}`}>{s.status}</span>
@@ -154,7 +155,7 @@ export default function OperationTheatre() {
       </div>
 
       <div className="space-y-4">
-        {surgeries.map(s => {
+        {surgeries.map((s: Unmodelled) => {
           const isExpanded = expandedId === s._id;
           const instrCount = s.instrumentsCount || {};
           const spongeCount = s.spongeCount || {};

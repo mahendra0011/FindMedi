@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 function DisputesTab() {
   const [disputes, setDisputes] = useState<ApiRow[]>([]);
@@ -33,7 +33,7 @@ function DisputesTab() {
 
   const filtered = filter === 'All' ? disputes : disputes.filter(d => d.status === filter);
 
-  const handleResolve = async (id) => {
+  const handleResolve = async (id: Unmodelled) => {
     if (!resolution) return;
     try {
       await api.updateDisputeStatus(id, { status: 'Resolved', resolution });

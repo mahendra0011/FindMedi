@@ -3,8 +3,9 @@ import { Badge } from "@/mind/components/ui/badge";
 import { Button } from "@/mind/components/ui/button";
 import { Activity, AlertTriangle, BarChart3, CalendarDays, CheckCircle2, CreditCard, Download, FileText, Lightbulb, Package, Shield, ShieldAlert, Star, TrendingUp, UserCog, Users } from "lucide-react";
 import GlowPanel from "@/mind/components/reactbits/GlowPanel";
+import type { Unmodelled } from '@/lib/apiTypes';
 
-function Metric({ title, value, icon: Icon }) {
+function Metric({ title, value, icon: Icon }: Unmodelled) {
   return (
     <Card className="glass-card">
       <CardHeader className="pb-2">
@@ -20,7 +21,7 @@ function Metric({ title, value, icon: Icon }) {
   );
 }
 
-export default function OverviewTab({ data, users, totals, loading, load, exportCSV }) {
+export default function OverviewTab({ data, users, totals, loading, load, exportCSV }: Unmodelled) {
   return (
     <>
   <GlowPanel className="dashboard-panel p-6">
@@ -249,7 +250,7 @@ export default function OverviewTab({ data, users, totals, loading, load, export
               </div>
             ) : (
               <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
-                {data.insights.map((insight, i) => {
+                {data.insights.map((insight: Unmodelled, i: Unmodelled) => {
                   const icons = [Lightbulb, TrendingUp, AlertTriangle, CheckCircle2, BarChart3];
                   const colors = [
                     "bg-amber-500/15 text-amber-600 border-amber-500/20",
@@ -296,7 +297,7 @@ export default function OverviewTab({ data, users, totals, loading, load, export
               <div className="text-xs text-foreground/50 italic py-6 text-center">No recent users</div>
             ) : (
               <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
-                {data.recentUsers.slice(0, 5).map((u, i) => (
+                {data.recentUsers.slice(0, 5).map((u: Unmodelled, i: Unmodelled) => (
                   <div key={i} className="flex items-center gap-3 rounded-lg border border-glass-border/30 bg-background/60 p-2.5">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 text-xs font-bold text-indigo-500">
                       {(u.name || u.email || "U").charAt(0).toUpperCase()}

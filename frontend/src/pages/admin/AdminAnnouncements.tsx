@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const priorityStyles = {
   urgent: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/10',
@@ -39,7 +39,7 @@ export default function AdminAnnouncements() {
 
   useEffect(() => { load(); }, []);
 
-  const toggleRole = (role) => {
+  const toggleRole = (role: Unmodelled) => {
     setTargetRoles(prev =>
       prev.includes(role) ? prev.filter(r => r !== role) : [...prev.filter(r => r !== 'all'), role]
     );

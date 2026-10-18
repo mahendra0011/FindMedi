@@ -80,7 +80,7 @@ import {
   Brain,
   X,
 } from "lucide-react";
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -113,10 +113,10 @@ const CONCERN_CARDS = [
 function formatRupees(value = 0) {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(value) || 0);
 }
-function plansFor(c) { return c?.supportPlans?.length ? c.supportPlans : fallbackPlans; }
-function planPrice(p) { return Number(p?.bookingPrice || p?.perSessionPrice || 0); }
-function lowestPrice(c) { return Math.min(...plansFor(c).map(p => planPrice(p) || 1499)); }
-function planFromList(c, id) { const p = plansFor(c); return p.find(pl => pl.id === id) || p[0]; }
+function plansFor(c: Unmodelled) { return c?.supportPlans?.length ? c.supportPlans : fallbackPlans; }
+function planPrice(p: Unmodelled) { return Number(p?.bookingPrice || p?.perSessionPrice || 0); }
+function lowestPrice(c: Unmodelled) { return Math.min(...plansFor(c).map((p: Unmodelled) => planPrice(p) || 1499)); }
+function planFromList(c: Unmodelled, id: Unmodelled) { const p = plansFor(c); return p.find((pl: Unmodelled) => pl.id === id) || p[0]; }
 function modeLabel(v = "") { return ({ "google-meet": "Google Meet", "in-person": "In person", "voice-call": "Voice call", online: "Online", "video-chat": "Video + Chat", "chat-only": "Chat Only" })[v] || v || "Google Meet"; }
 function compactModeLabel(v = "") { return ({ "google-meet": "Meet", "in-person": "In-person", "voice-call": "Voice", online: "Online", "video-chat": "Vid+Chat", "chat-only": "Chat" })[v] || v || "Meet"; }
 function initials(name = "") {
@@ -168,7 +168,7 @@ const Counselling = () => {
 
   // Counsellor ka Doctor doc nikalo (booking/slots/payment sab Doctor model se chalta hai).
   // Seed (seed-mind-providers.mjs) same email se Doctor doc banata hai.
-  const handleBookAppointment = async (counsellor) => {
+  const handleBookAppointment = async (counsellor: Unmodelled) => {
     if (!counsellor || resolvingDoctor) return;
     setResolvingDoctor(true);
     try {
@@ -243,7 +243,7 @@ const Counselling = () => {
 
   const categories = useMemo(() => {
     const s = new Set(["All"]);
-    counsellors.forEach(c => { (c.categories || []).forEach(i => s.add(i)); plansFor(c).forEach(p => (p.bestFor || []).forEach(i => s.add(i))); });
+    counsellors.forEach((c: Unmodelled) => { (c.categories || []).forEach((i: Unmodelled) => s.add(i)); plansFor(c).forEach((p: Unmodelled) => (p.bestFor || []).forEach((i: Unmodelled) => s.add(i))); });
     return [...s];
   }, [counsellors]);
 
@@ -260,13 +260,13 @@ const Counselling = () => {
 
   const filteredCounsellors = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const sorted = counsellors.filter(c => {
-      const t = [c.name, c.specialization, c.location, c.education, c.bio, c.badge, ...(c.categories || []), ...plansFor(c).flatMap(p => p.bestFor || [])].filter(Boolean).join(" ").toLowerCase();
+    const sorted = counsellors.filter((c: Unmodelled) => {
+      const t = [c.name, c.specialization, c.location, c.education, c.bio, c.badge, ...(c.categories || []), ...plansFor(c).flatMap((p: Unmodelled) => p.bestFor || [])].filter(Boolean).join(" ").toLowerCase();
       if (q && !t.includes(q)) return false;
       if (category !== "All" && !t.includes(category.toLowerCase())) return false;
       if (genderFilter && c.gender !== genderFilter) return false;
-      if (languageFilter && !(c.languages || []).some(l => l.toLowerCase().includes(languageFilter.toLowerCase()))) return false;
-      if (consultMode && !(c.consultationModes || []).some(m => m.includes(consultMode))) return false;
+      if (languageFilter && !(c.languages || []).some((l: Unmodelled) => l.toLowerCase().includes(languageFilter.toLowerCase()))) return false;
+      if (consultMode && !(c.consultationModes || []).some((m: Unmodelled) => m.includes(consultMode))) return false;
       if (experienceFilter) {
         const yrs = parseInt(c.experience) || 0;
         if (experienceFilter === "0-2" && (yrs < 0 || yrs > 2)) return false;
@@ -280,9 +280,9 @@ const Counselling = () => {
       }
       if (verifiedOnly && !c.verified) return false;
       if (qualificationFilter && !(c.education || "").toLowerCase().includes(qualificationFilter.toLowerCase())) return false;
-      if (ageGroupFilter && !(c.ageGroups || []).some(a => a.toLowerCase().includes(ageGroupFilter.toLowerCase()))) return false;
+      if (ageGroupFilter && !(c.ageGroups || []).some((a: Unmodelled) => a.toLowerCase().includes(ageGroupFilter.toLowerCase()))) return false;
       if (packageTypeFilter) {
-        const pTypes = plansFor(c).map(p => p.id);
+        const pTypes = plansFor(c).map((p: Unmodelled) => p.id);
         if (!pTypes.includes(packageTypeFilter)) return false;
       }
       if (firstSessionFree && !c.firstSessionFree) return false;
@@ -293,22 +293,22 @@ const Counselling = () => {
       }
       return true;
     });
-    if (sortBy === "rating") sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    else if (sortBy === "price-low") sorted.sort((a, b) => lowestPrice(a) - lowestPrice(b));
-    else if (sortBy === "price-high") sorted.sort((a, b) => lowestPrice(b) - lowestPrice(a));
-    else if (sortBy === "popular") sorted.sort((a, b) => (b.reviews || 0) - (a.reviews || 0));
+    if (sortBy === "rating") sorted.sort((a: Unmodelled, b: Unmodelled) => (b.rating || 0) - (a.rating || 0));
+    else if (sortBy === "price-low") sorted.sort((a: Unmodelled, b: Unmodelled) => lowestPrice(a) - lowestPrice(b));
+    else if (sortBy === "price-high") sorted.sort((a: Unmodelled, b: Unmodelled) => lowestPrice(b) - lowestPrice(a));
+    else if (sortBy === "popular") sorted.sort((a: Unmodelled, b: Unmodelled) => (b.reviews || 0) - (a.reviews || 0));
     return sorted;
   }, [category, counsellors, search, genderFilter, languageFilter, consultMode, experienceFilter, ratingFilter, verifiedOnly, qualificationFilter, ageGroupFilter, packageTypeFilter, firstSessionFree, locationSearch, feeRange, sortBy]);
 
-  const selectedCounsellor = counsellors.find(c => c.id === counsellorId);
-  useEffect(() => { if (!selectedCounsellor) return; setSelectedPlanId(c => plansFor(selectedCounsellor).some(p => p.id === c) ? c : plansFor(selectedCounsellor)[0]?.id); }, [selectedCounsellor]);
+  const selectedCounsellor = counsellors.find((c: Unmodelled) => c.id === counsellorId);
+  useEffect(() => { if (!selectedCounsellor) return; setSelectedPlanId(c => plansFor(selectedCounsellor).some((p: Unmodelled) => p.id === c) ? c : plansFor(selectedCounsellor)[0]?.id); }, [selectedCounsellor]);
 
   if (counsellorId) {
     return (
       <CounsellorProfile
         counsellor={selectedCounsellor} loading={loading} selectedPlanId={selectedPlanId} setSelectedPlanId={setSelectedPlanId} recommendedPlanId={recommendedPlanId} concernTags={concernTags} setConcernTags={setConcernTags}
         booking={activeBookings.get(counsellorId)} onBack={() => navigate("/mind/counselling")}
-        onSchedule={(planId) => navigate(`/mind/session-schedule?counsellorId=${counsellorId}&plan=${planId}`)}
+        onSchedule={(planId: Unmodelled) => navigate(`/mind/session-schedule?counsellorId=${counsellorId}&plan=${planId}`)}
       />
     );
   }
@@ -366,8 +366,8 @@ const Counselling = () => {
                   {CONCERN_CARDS.slice(0, showAllConcerns ? undefined : 7).map((concern) => {
                     const Icon = concern.icon;
                     const isActive = category === concern.name;
-                    const count = counsellors.filter(c => {
-                      const t = [c.name, c.specialization, c.location, c.education, c.bio, c.badge, ...(c.categories || []), ...plansFor(c).flatMap(p => p.bestFor || [])].filter(Boolean).join(" ").toLowerCase();
+                    const count = counsellors.filter((c: Unmodelled) => {
+                      const t = [c.name, c.specialization, c.location, c.education, c.bio, c.badge, ...(c.categories || []), ...plansFor(c).flatMap((p: Unmodelled) => p.bestFor || [])].filter(Boolean).join(" ").toLowerCase();
                       return t.includes(concern.name.toLowerCase());
                     }).length;
                     return (
@@ -395,7 +395,7 @@ const Counselling = () => {
                 {recommendedPlanId && category !== 'All' && (
                   <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
                     <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <span className="text-xs text-primary">Recommended plan: <span className="font-semibold">{planList.find(p => p.id === recommendedPlanId)?.name || recommendedPlanId}</span></span>
+                    <span className="text-xs text-primary">Recommended plan: <span className="font-semibold">{planList.find((p: Unmodelled) => p.id === recommendedPlanId)?.name || recommendedPlanId}</span></span>
                   </div>
                 )}
               </div>
@@ -712,7 +712,7 @@ const Counselling = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredCounsellors.map((c, i) => (
+                {filteredCounsellors.map((c: Unmodelled, i: Unmodelled) => (
                   <CounsellorCard key={c.id} counsellor={c} booking={activeBookings.get(c.id)} index={i} onView={() => navigate(`/mind/counselling/${c.id}`)} onBook={() => handleBookAppointment(c)} bookingBusy={resolvingDoctor} />
                 ))}
               </div>
@@ -726,11 +726,11 @@ const Counselling = () => {
   );
 };
 
-function CounsellorCard({ counsellor, booking, onView, onBook, bookingBusy, index = 0 }) {
+function CounsellorCard({ counsellor, booking, onView, onBook, bookingBusy, index = 0 }: Unmodelled) {
   const cleanName = (counsellor.name || "").replace(/^Dr\.?\s+/i, "");
   const accepting = counsellor.bookingEnabled !== false;
   const languages = counsellor.languages?.length ? counsellor.languages : ["English"];
-  const onlineModes = (counsellor.consultationModes?.length ? counsellor.consultationModes.filter(m => m !== "in-person") : []);
+  const onlineModes = (counsellor.consultationModes?.length ? counsellor.consultationModes.filter((m: Unmodelled) => m !== "in-person") : []);
   const modes = onlineModes.length ? onlineModes : ["google-meet", "voice-call"];
   const imgUrl = avatarUrl(cleanName, counsellor.profilePhotoUrl);
   const categories = (counsellor.categories || []).slice(0, 3);
@@ -803,7 +803,7 @@ function CounsellorCard({ counsellor, booking, onView, onBook, bookingBusy, inde
         {/* Tags */}
         {categories.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-3">
-            {categories.map(t => (
+            {categories.map((t: Unmodelled) => (
               <span key={t} className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium border border-primary/20">
                 {t}
               </span>
@@ -869,7 +869,7 @@ function CounsellorCard({ counsellor, booking, onView, onBook, bookingBusy, inde
   );
 }
 
-function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPlanId, recommendedPlanId, concernTags, setConcernTags, booking, onBack, onSchedule }) {
+function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPlanId, recommendedPlanId, concernTags, setConcernTags, booking, onBack, onSchedule }: Unmodelled) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const cleanName = (counsellor?.name || "").replace(/^Dr\.?\s+/i, "");
@@ -877,7 +877,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
   const planList = plansFor(counsellor);
   const languages = counsellor?.languages?.length ? counsellor.languages : ["English"];
   const categories = counsellor?.categories?.length ? counsellor.categories : selectedPlan?.bestFor || ["Stress", "Anxiety"];
-  const onlineModesDetail = (counsellor?.consultationModes?.length ? counsellor.consultationModes.filter(m => m !== "in-person") : []);
+  const onlineModesDetail = (counsellor?.consultationModes?.length ? counsellor.consultationModes.filter((m: Unmodelled) => m !== "in-person") : []);
   const consultationModes = onlineModesDetail.length ? onlineModesDetail : ["google-meet", "voice-call"];
   const imgUrl = avatarUrl(cleanName, counsellor?.profilePhotoUrl);
   const isMentor = counsellor?.counsellorType === "mentor";
@@ -898,7 +898,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
   const [saved, setSaved] = useState(false);
 
   // Mode ratios for counselling: Meet=1, Audio=0.8, Chat=0.6
-  const getAdjustedPlanPrice = (plan) => {
+  const getAdjustedPlanPrice = (plan: Unmodelled) => {
     const base = planPrice(plan);
     if (!base) return 0;
     const mult = selectedMode === "voice-call" || selectedMode === "audio" ? 0.8 : selectedMode === "chat-only" || selectedMode === "chat" ? 0.6 : 1;
@@ -925,7 +925,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
     ? Object.fromEntries(Object.entries(breakdown).map(([k, v]) => [k, Math.round((v / totalReviews) * 100)]))
     : { 5: 72, 4: 18, 3: 7, 2: 2, 1: 1 };
 
-  const renderStars = (rating, size = "w-3.5 h-3.5") => (
+  const renderStars = (rating: Unmodelled, size = "w-3.5 h-3.5") => (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map(s => (
         <Star key={s} className={`${size} ${s <= Math.round(rating || 0) ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30"}`} />
@@ -1035,7 +1035,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
     { key: "sunday", label: "Sunday" },
   ];
   const availabilityMap = {};
-  (counsellor.availability || []).forEach(entry => {
+  (counsellor.availability || []).forEach((entry: Unmodelled) => {
     const day = entry.split(":")[0]?.trim().toLowerCase();
     if (day) availabilityMap[day] = entry;
   });
@@ -1089,7 +1089,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
                       <Badge variant="secondary" className="text-xs bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400">
                         {isMentor ? "Online Support" : "Licensed Support"}
                       </Badge>
-                      {languages.map(lang => (
+                      {languages.map((lang: Unmodelled) => (
                         <Badge key={lang} variant="outline" className="text-xs bg-muted/50">
                           <Languages className="w-3 h-3 mr-1" />{lang}
                         </Badge>
@@ -1146,10 +1146,10 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
                       <div className="mt-5">
                         <p className="text-sm font-semibold text-foreground mb-3">Focus Areas</p>
                         <div className="flex flex-wrap gap-2">
-                          {categories.map(area => (
+                          {categories.map((area: Unmodelled) => (
                             <Badge key={area} variant="outline" className="text-xs bg-primary/5 border-primary/20 text-primary font-medium px-3 py-1">{area}</Badge>
                           ))}
-                          {(counsellor.categories || []).length > 3 && counsellor.categories.slice(3, 6).map(a => (
+                          {(counsellor.categories || []).length > 3 && counsellor.categories.slice(3, 6).map((a: Unmodelled) => (
                             <Badge key={a} variant="outline" className="text-xs bg-primary/5 border-primary/20 text-primary px-3 py-1">{a}</Badge>
                           ))}
                         </div>
@@ -1197,7 +1197,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
                         <div>
                           <p className="text-sm font-semibold text-foreground mb-2">Certificates</p>
                           <div className="flex flex-wrap gap-2">
-                            {counsellor.certificateLinks.map((link, i) => (
+                            {counsellor.certificateLinks.map((link: Unmodelled, i: Unmodelled) => (
                               <a key={i} href={link} target="_blank" rel="noreferrer" className="text-xs px-3 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors">Certificate {i + 1}</a>
                             ))}
                           </div>
@@ -1288,7 +1288,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
                     </div>
                     <p className="text-sm text-muted-foreground mb-5">Click a mode below to customize your session type and see mode-adjusted package rates.</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {consultationModes.map(mode => {
+                      {consultationModes.map((mode: Unmodelled) => {
                         const isModeActive = selectedMode === mode;
                         return (
                           <button
@@ -1335,7 +1335,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
                     </div>
                     <p className="text-sm text-muted-foreground mb-6">Choose one plan for your journey. Rates reflect your chosen mode.</p>
                     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {planList.map(plan => {
+                      {planList.map((plan: Unmodelled) => {
                         const originalPrice = planPrice(plan);
                         const adjustedPrice = getAdjustedPlanPrice(plan);
                         const isSelected = selectedPlan?.id === plan.id;
@@ -1366,7 +1366,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
                             </div>
                             <p className="text-xs text-muted-foreground">{plan.duration} • {plan.cadence}</p>
                             <div className="flex flex-wrap gap-1.5 mt-3">
-                              {(plan.bestFor || []).slice(0, 2).map(item => (
+                              {(plan.bestFor || []).slice(0, 2).map((item: Unmodelled) => (
                                 <span key={item} className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px]">{item}</span>
                               ))}
                             </div>
@@ -1568,7 +1568,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
                         <div className="px-4 py-3 rounded-xl bg-muted/30 border border-border/60">
                           <span className="text-sm text-muted-foreground block mb-2">Languages Spoken</span>
                           <div className="flex flex-wrap gap-1.5">
-                            {counsellor.languages.map(lang => (
+                            {counsellor.languages.map((lang: Unmodelled) => (
                               <Badge key={lang} variant="secondary" className="text-xs"><Languages className="w-3 h-3 mr-1" />{lang}</Badge>
                             ))}
                           </div>
@@ -1629,7 +1629,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
                   {["Stress", "Anxiety", "Depression", "Trauma", "Relationship", "Loneliness", "Student Pressure", "Career"].map((tag) => {
                     const active = concernTags.includes(tag);
                     return (
-                      <button key={tag} type="button" onClick={() => setConcernTags((prev) => active ? prev.filter((t) => t !== tag) : [...prev, tag])}
+                      <button key={tag} type="button" onClick={() => setConcernTags((prev: Unmodelled) => active ? prev.filter((t: Unmodelled) => t !== tag) : [...prev, tag])}
                         className={`px-2.5 py-1 rounded-full text-[10px] font-medium border transition-all ${active ? "bg-primary/15 text-primary border-primary/30" : "bg-card text-muted-foreground border-border/70 hover:border-primary/30"}`}>{tag}</button>
                     );
                   })}
@@ -1727,7 +1727,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
   );
 }
 
-function InfoTile({ icon: Icon, label, value, gradient = "from-muted/50 to-muted/30", iconColor = "text-muted-foreground" }) {
+function InfoTile({ icon: Icon, label, value, gradient = "from-muted/50 to-muted/30", iconColor = "text-muted-foreground" }: Unmodelled) {
   return (
     <div className="bg-card border border-border/70 rounded-xl p-4 hover:border-primary/30 transition-all duration-300">
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground mb-2">

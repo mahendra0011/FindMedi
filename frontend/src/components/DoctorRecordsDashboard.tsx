@@ -11,6 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api, downloadPrescriptionPdf, downloadInvoicePdf } from '@/lib/api';
 import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 // ── Shared form templates ──
 const initialPrescription = {
@@ -41,7 +42,7 @@ const statusColors = {
 const STATUSES = ['All', 'Paid', 'Pending', 'Overdue', 'Partial'];
 
 // ── Section column wrapper ──
-function SectionCard({ title, subtitle, icon: Icon, accent = 'text-primary', count, searchPlaceholder, search, onSearch, onNew, newLabel, children }) {
+function SectionCard({ title, subtitle, icon: Icon, accent = 'text-primary', count, searchPlaceholder, search, onSearch, onNew, newLabel, children }: Unmodelled) {
   return (
     <div className="bg-card rounded-2xl border border-border/60 shadow-sm overflow-hidden flex flex-col min-h-0">
       {/* Header */}
@@ -77,7 +78,7 @@ function SectionCard({ title, subtitle, icon: Icon, accent = 'text-primary', cou
 }
 
 // ── Empty state ──
-function EmptyState({ icon: Icon, title, hint }) {
+function EmptyState({ icon: Icon, title, hint }: Unmodelled) {
   return (
     <div className="text-center py-14 px-4">
       <Icon className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
@@ -88,7 +89,7 @@ function EmptyState({ icon: Icon, title, hint }) {
 }
 
 // ── Prescription card (patient personal details always visible) ──
-function PrescriptionCard({ rec, onDownload }) {
+function PrescriptionCard({ rec, onDownload }: Unmodelled) {
   const [expanded, setExpanded] = useState(false);
   const p = rec.data?.patient || {};
   const avatar = p.photo || p.avatar || '';
@@ -165,7 +166,7 @@ function PrescriptionCard({ rec, onDownload }) {
                 <div>
                   <p className="text-muted-foreground mb-1">Medications:</p>
                   <div className="space-y-1">
-                    {rec.data.medications.map((m, j) => (
+                    {rec.data.medications.map((m: Unmodelled, j: Unmodelled) => (
                       <div key={j} className="flex items-center gap-1.5">
                         <Pill className="w-3 h-3 text-success shrink-0" />
                         <span className="font-medium">{m.name}</span>
@@ -188,12 +189,12 @@ function PrescriptionCard({ rec, onDownload }) {
 }
 
 // ── Bill/Invoice card ──
-function BillInvoiceCard({ bill, variant, onDownload, onMarkPaid, onDelete }) {
+function BillInvoiceCard({ bill, variant, onDownload, onMarkPaid, onDelete }: Unmodelled) {
   const isInvoice = variant === 'invoice';
   const c = statusColors[bill.status] || 'bg-muted text-muted-foreground';
   const { data } = bill;
   const items = data?.items?.length ? data.items : (bill.services || []);
-  const totalItems = items.reduce((s, it) => s + (Number(it.quantity) || 1), 0);
+  const totalItems = items.reduce((s: Unmodelled, it: Unmodelled) => s + (Number(it.quantity) || 1), 0);
   const iconBg = isInvoice ? 'bg-primary/10 text-primary' : 'bg-info/10 text-info';
   const IconComp = isInvoice ? Receipt : CreditCard;
 
@@ -244,7 +245,7 @@ function BillInvoiceCard({ bill, variant, onDownload, onMarkPaid, onDelete }) {
 }
 
 // ── Doctor Records Dashboard (3 columns) ──
-export default function DoctorRecordsDashboard({ records, bills, invoices, onRefresh, loading }) {
+export default function DoctorRecordsDashboard({ records, bills, invoices, onRefresh, loading }: Unmodelled) {
   const { user } = useAuth();
 
   // Search states per section
@@ -288,30 +289,30 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
   const [invStatus, setInvStatus] = useState('All');
 
   // ── Filtered lists ──
-  const filteredRx = useMemo(() => (records || []).filter(r =>
+  const filteredRx = useMemo(() => (records || []).filter((r: Unmodelled) =>
     !rxSearch ||
     r.patient?.toLowerCase().includes(rxSearch.toLowerCase()) ||
     r.diagnosis?.toLowerCase().includes(rxSearch.toLowerCase()) ||
     r.data?.patient?.phone?.toLowerCase().includes(rxSearch.toLowerCase())
   ), [records, rxSearch]);
 
-  const filteredBills = useMemo(() => (bills || []).filter(b => {
+  const filteredBills = useMemo(() => (bills || []).filter((b: Unmodelled) => {
     const ms = !billSearch || b.patient?.toLowerCase().includes(billSearch.toLowerCase()) || b.invoiceId?.toLowerCase().includes(billSearch.toLowerCase());
     const st = billStatus === 'All' || b.status === billStatus;
     return ms && st;
   }), [bills, billSearch, billStatus]);
 
-  const filteredInvoices = useMemo(() => (invoices || []).filter(b => {
+  const filteredInvoices = useMemo(() => (invoices || []).filter((b: Unmodelled) => {
     const ms = !invSearch || b.patient?.toLowerCase().includes(invSearch.toLowerCase()) || b.invoiceId?.toLowerCase().includes(invSearch.toLowerCase());
     const st = invStatus === 'All' || b.status === invStatus;
     return ms && st;
   }), [invoices, invSearch, invStatus]);
 
   // ── Helpers ──
-  const showError = (e) => toast.error(e?.message || 'Something went wrong');
+  const showError = (e: Unmodelled) => toast.error(e?.message || 'Something went wrong');
 
   // Prescription PDF
-  const handleRxDownload = async (rec) => {
+  const handleRxDownload = async (rec: Unmodelled) => {
     try {
       await downloadPrescriptionPdf(rec._id, `prescription-${rec.patient || 'download'}.pdf`);
       toast.success('Prescription PDF downloaded');
@@ -319,7 +320,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
   };
 
   // Invoice PDF
-  const handleInvDownload = async (bill) => {
+  const handleInvDownload = async (bill: Unmodelled) => {
     try {
       await downloadInvoicePdf(bill._id, `invoice-${bill.invoiceId || 'download'}.pdf`);
       toast.success('Invoice PDF downloaded');
@@ -327,7 +328,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
   };
 
   // Bill PDF via transaction if available
-  const handleBillDownload = async (bill) => {
+  const handleBillDownload = async (bill: Unmodelled) => {
     try {
       if (bill.transactionId) {
         const { downloadBillPdf } = await import('@/lib/api');
@@ -347,12 +348,12 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
     }
     setSaving(true);
     try {
-      const meds = (form.medications || []).filter(m => m.name?.trim());
+      const meds = (form.medications || []).filter((m: Unmodelled) => m.name?.trim());
       await api.createRecord({
         patient: form.patientName,
         doctor: user?.name,
         diagnosis: form.diagnosis,
-        prescription: meds.map(m => `${m.name} - ${m.dosage} - ${m.frequency} ${m.instructions ? `(${m.instructions})` : ''}`).join('\n'),
+        prescription: meds.map((m: Unmodelled) => `${m.name} - ${m.dosage} - ${m.frequency} ${m.instructions ? `(${m.instructions})` : ''}`).join('\n'),
         type: 'Prescription',
         notes: `Chief Complaints: ${form.chiefComplaints || ''}\nAdvice: ${form.advice || ''}\nFollow-up: ${form.followUp || ''}`,
         data: {
@@ -385,7 +386,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
   };
 
   // Create bill/invoice
-  const handleCreateBiz = async (isInvoice) => {
+  const handleCreateBiz = async (isInvoice: Unmodelled) => {
     if (!form.patient || !form.amount) {
       toast.error('Patient and amount are required');
       return;
@@ -401,10 +402,10 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
         status: form.status,
         date: form.date || getISTDateString(),
         dueDate: form.dueDate,
-        items: (form.items || []).filter(it => it.name?.trim()),
+        items: (form.items || []).filter((it: Unmodelled) => it.name?.trim()),
         billType: isInvoice ? 'Invoice' : 'Bill',
         data: {
-          items: (form.items || []).filter(it => it.name?.trim()).map(it => ({ ...it, price: Number(it.price) || 0, quantity: Number(it.quantity) || 1 })),
+          items: (form.items || []).filter((it: Unmodelled) => it.name?.trim()).map((it: Unmodelled) => ({ ...it, price: Number(it.price) || 0, quantity: Number(it.quantity) || 1 })),
           type: isInvoice ? 'invoice' : 'bill',
         },
       });
@@ -418,7 +419,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
   };
 
   // Mark paid
-  const handleMarkPaid = async (bill) => {
+  const handleMarkPaid = async (bill: Unmodelled) => {
     try {
       await api.updateBill(bill._id, { status: 'Paid', paid: bill.amount });
       toast.success('Marked as paid');
@@ -427,7 +428,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
   };
 
   // Delete bill
-  const handleDeleteBiz = async (bill) => {
+  const handleDeleteBiz = async (bill: Unmodelled) => {
     if (!confirm('Delete this record?')) return;
     try {
       await api.deleteBill(bill._id);
@@ -437,21 +438,21 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
   };
 
   // Add line item
-  const addBillItem = (isInvoice) => {
+  const addBillItem = (isInvoice: Unmodelled) => {
     const current = structuredClone(form);
     const items = current.items || [{ name: '', price: '', quantity: 1 }];
     items.push({ name: '', price: '', quantity: 1 });
     setForm({ ...current, items });
   };
 
-  const updateBillItem = (idx, field, value) => {
+  const updateBillItem = (idx: Unmodelled, field: Unmodelled, value: Unmodelled) => {
     const items = [...(form.items || [])];
     items[idx][field] = value;
     setForm({ ...form, items });
   };
 
-  const removeBillItem = (idx) => {
-    const items = (form.items || []).filter((_, i) => i !== idx);
+  const removeBillItem = (idx: Unmodelled) => {
+    const items = (form.items || []).filter((_: Unmodelled, i: Unmodelled) => i !== idx);
     setForm({ ...form, items });
   };
 
@@ -493,7 +494,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
             <Calendar className="w-5 h-5 text-success" />
           </div>
           <div className="min-w-0">
-            <p className="text-lg font-bold text-foreground leading-none">{records?.filter(r => r.date === getISTDateString()).length || 0}</p>
+            <p className="text-lg font-bold text-foreground leading-none">{records?.filter((r: Unmodelled) => r.date === getISTDateString()).length || 0}</p>
             <p className="text-[10px] text-muted-foreground mt-0.5">Today's Rx</p>
           </div>
         </div>
@@ -513,7 +514,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
             <CheckCircle className="w-5 h-5 text-info" />
           </div>
           <div className="min-w-0">
-            <p className="text-lg font-bold text-foreground leading-none">₹{(bills || []).reduce((s, b) => s + (Number(b.paid) || 0), 0).toLocaleString()}</p>
+            <p className="text-lg font-bold text-foreground leading-none">₹{(bills || []).reduce((s: Unmodelled, b: Unmodelled) => s + (Number(b.paid) || 0), 0).toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground mt-0.5">Bills Collected</p>
           </div>
         </div>
@@ -533,7 +534,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
             <FileText className="w-5 h-5 text-warning" />
           </div>
           <div className="min-w-0">
-            <p className="text-lg font-bold text-foreground leading-none">₹{((bills || []).reduce((s, b) => s + (Number(b.amount) || 0), 0) + (invoices || []).reduce((s, b) => s + (Number(b.amount) || 0), 0)).toLocaleString()}</p>
+            <p className="text-lg font-bold text-foreground leading-none">₹{((bills || []).reduce((s: Unmodelled, b: Unmodelled) => s + (Number(b.amount) || 0), 0) + (invoices || []).reduce((s: Unmodelled, b: Unmodelled) => s + (Number(b.amount) || 0), 0)).toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground mt-0.5">Total Billed</p>
           </div>
         </div>
@@ -558,7 +559,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
             {filteredRx.length === 0 ? (
               <EmptyState icon={Pill} title="No prescriptions found" hint="Create your first prescription" />
             ) : (
-              filteredRx.map(rec => (
+              filteredRx.map((rec: Unmodelled) => (
                 <PrescriptionCard key={rec._id} rec={rec} onDownload={handleRxDownload} />
               ))
             )}
@@ -590,7 +591,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
             {filteredBills.length === 0 ? (
               <EmptyState icon={CreditCard} title="No bills found" hint="Create your first bill" />
             ) : (
-              filteredBills.map(bill => (
+              filteredBills.map((bill: Unmodelled) => (
                 <BillInvoiceCard key={bill._id} bill={bill} variant="bill"
                   onDownload={handleBillDownload} onMarkPaid={handleMarkPaid} onDelete={handleDeleteBiz} />
               ))
@@ -623,7 +624,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
             {filteredInvoices.length === 0 ? (
               <EmptyState icon={Receipt} title="No invoices found" hint="Create your first invoice" />
             ) : (
-              filteredInvoices.map(bill => (
+              filteredInvoices.map((bill: Unmodelled) => (
                 <BillInvoiceCard key={bill._id} bill={bill} variant="invoice"
                   onDownload={handleInvDownload} onMarkPaid={handleMarkPaid} onDelete={handleDeleteBiz} />
               ))
@@ -692,13 +693,13 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
                     <Plus className="w-3 h-3" /> Add Medication
                   </Button>
                 </div>
-                {(form.medications || []).map((med, idx) => (
+                {(form.medications || []).map((med: Unmodelled, idx: Unmodelled) => (
                   <div key={idx} className="flex gap-2 mb-2 items-start">
                     <Input value={med.name} onChange={e => { const meds = [...(form.medications || [])]; meds[idx] = { ...meds[idx], name: e.target.value }; setForm({ ...form, medications: meds }); }} placeholder="Medicine name" className="flex-[2]" />
                     <Input value={med.dosage} onChange={e => { const meds = [...(form.medications || [])]; meds[idx] = { ...meds[idx], dosage: e.target.value }; setForm({ ...form, medications: meds }); }} placeholder="Dosage" className="w-20" />
                     <Input value={med.frequency} onChange={e => { const meds = [...(form.medications || [])]; meds[idx] = { ...meds[idx], frequency: e.target.value }; setForm({ ...form, medications: meds }); }} placeholder="Frequency" className="w-24" />
                     <Input value={med.instructions} onChange={e => { const meds = [...(form.medications || [])]; meds[idx] = { ...meds[idx], instructions: e.target.value }; setForm({ ...form, medications: meds }); }} placeholder="Instructions" className="flex-1" />
-                    <Button variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => setForm({ ...form, medications: (form.medications || []).filter((_, i) => i !== idx) })}>
+                    <Button variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => setForm({ ...form, medications: (form.medications || []).filter((_: Unmodelled, i: Unmodelled) => i !== idx) })}>
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
@@ -782,7 +783,7 @@ export default function DoctorRecordsDashboard({ records, bills, invoices, onRef
                     <Plus className="w-3 h-3" /> Add Item
                   </Button>
                 </div>
-                {(form.items || []).map((it, idx) => (
+                {(form.items || []).map((it: Unmodelled, idx: Unmodelled) => (
                   <div key={idx} className="flex gap-2 mb-2 items-start">
                     <Input value={it.name} onChange={e => updateBillItem(idx, 'name', e.target.value)} placeholder="Item name" className="flex-[2]" />
                     <Input type="number" value={it.price} onChange={e => updateBillItem(idx, 'price', e.target.value)} placeholder="Price" className="w-24" />

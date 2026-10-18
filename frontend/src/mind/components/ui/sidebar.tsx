@@ -10,6 +10,7 @@ import { Separator } from "@/mind/components/ui/separator";
 import { Sheet, SheetContent } from "@/mind/components/ui/sheet";
 import { Skeleton } from "@/mind/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/mind/components/ui/tooltip";
+import type { Unmodelled } from '@/lib/apiTypes';
 const SIDEBAR_COOKIE_NAME = "sidebar:state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = "16rem";
@@ -31,7 +32,7 @@ const SidebarProvider = React.forwardRef(({ defaultOpen = true, open: openProp, 
     // We use openProp and setOpenProp for control from outside the component.
     const [_open, _setOpen] = React.useState(defaultOpen);
     const open = openProp ?? _open;
-    const setOpen = React.useCallback((value) => {
+    const setOpen = React.useCallback((value: Unmodelled) => {
         const openState = typeof value === "function" ? value(open) : value;
         if (setOpenProp) {
             setOpenProp(openState);
@@ -44,11 +45,11 @@ const SidebarProvider = React.forwardRef(({ defaultOpen = true, open: openProp, 
     }, [setOpenProp, open]);
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
-        return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
+        return isMobile ? setOpenMobile((open) => !open) : setOpen((open: Unmodelled) => !open);
     }, [isMobile, setOpen, setOpenMobile]);
     // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
-        const handleKeyDown = (event) => {
+        const handleKeyDown = (event: Unmodelled) => {
             if (event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
                 event.preventDefault();
                 toggleSidebar();

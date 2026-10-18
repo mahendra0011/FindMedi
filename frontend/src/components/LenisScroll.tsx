@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 import Lenis from 'lenis';
 import { useLocation } from 'react-router-dom';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export function LenisScroll({ children }) {
+export function LenisScroll({ children }: Unmodelled) {
   const lenisRef = useRef(null);
   const frameRef = useRef(0);
   const location = useLocation();
@@ -35,13 +36,13 @@ export function LenisScroll({ children }) {
 
     lenisRef.current = lenis;
 
-    function raf(time) {
+    function raf(time: Unmodelled) {
       lenis.raf(time);
       frameRef.current = requestAnimationFrame(raf);
     }
     frameRef.current = requestAnimationFrame(raf);
 
-    const handleAnchorClick = (e) => {
+    const handleAnchorClick = (e: Unmodelled) => {
       const anchor = e.target.closest?.('a[href^="#"]');
       const href = anchor?.getAttribute('href');
       if (href && href.length > 1) {

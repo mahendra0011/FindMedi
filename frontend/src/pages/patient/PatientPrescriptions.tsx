@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusConfig = {
   Active: { label: 'Active', icon: Clock, color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
@@ -138,7 +138,7 @@ export default function PatientPrescriptions() {
           {filtered.map((rx, i) => {
             const statusInfo = statusConfig[rx.status] || statusConfig.Active;
             const StatusIcon = statusInfo.icon;
-            const dispensed = rx.medicines?.filter(m => m.isDispensed).length || 0;
+            const dispensed = rx.medicines?.filter((m: Unmodelled) => m.isDispensed).length || 0;
             const total = rx.medicines?.length || 0;
 
             return (
@@ -202,7 +202,7 @@ export default function PatientPrescriptions() {
                           style={{ width: `${total > 0 ? (dispensed / total) * 100 : 0}%` }} />
                       </div>
                       <div className="mt-2 space-y-1">
-                        {rx.medicines?.slice(0, 3).map((med, idx) => (
+                        {rx.medicines?.slice(0, 3).map((med: Unmodelled, idx: Unmodelled) => (
                           <div key={idx} className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <Pill className={`w-3 h-3 shrink-0 ${med.isDispensed ? 'text-emerald-500' : 'text-muted-foreground'}`} />
@@ -296,7 +296,7 @@ export default function PatientPrescriptions() {
               <div className="mb-5">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Medicines ({selectedRx.medicines?.length || 0})</p>
                 <div className="space-y-2.5">
-                  {selectedRx.medicines?.map((med, idx) => (
+                  {selectedRx.medicines?.map((med: Unmodelled, idx: Unmodelled) => (
                     <div key={idx} className={`p-4 rounded-2xl border transition-all ${
                       med.isDispensed
                         ? 'bg-emerald-500/5 border-emerald-500/20'

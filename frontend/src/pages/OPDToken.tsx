@@ -5,15 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const tokenApi = {
-  getAll: async (p) => { return await api.getTokens(p); },
-  generate: async (b) => { return await api.generateToken(b); },
-  call: async (id) => { return await api.callToken(id); },
-  startConsultation: async (id) => { return await api.startTokenConsultation(id); },
-  complete: async (id) => { return await api.completeToken(id); },
-  skip: async (id, b) => { return await api.skipToken(id, b); },
-  recall: async (id) => { return await api.recallToken(id); },
+  getAll: async (p: Unmodelled) => { return await api.getTokens(p); },
+  generate: async (b: Unmodelled) => { return await api.generateToken(b); },
+  call: async (id: Unmodelled) => { return await api.callToken(id); },
+  startConsultation: async (id: Unmodelled) => { return await api.startTokenConsultation(id); },
+  complete: async (id: Unmodelled) => { return await api.completeToken(id); },
+  skip: async (id: Unmodelled, b: Unmodelled) => { return await api.skipToken(id, b); },
+  recall: async (id: Unmodelled) => { return await api.recallToken(id); },
   getStats: async () => { return await api.getTokenStats(); },
 };
 
@@ -81,7 +82,7 @@ export default function OPDToken() {
       </div>
 
       <div className="space-y-3">
-        {tokens.map(token => (
+        {tokens.map((token: Unmodelled) => (
           <div key={token._id} className={`bg-card rounded-xl border p-4 ${token.status === 'Called' ? 'border-warning/50 bg-warning/5' : token.status === 'In Consultation' ? 'border-primary/50 bg-primary/5' : ''}`}>
             <div className="flex items-center gap-4">
               <div className="text-center min-w-[60px]">

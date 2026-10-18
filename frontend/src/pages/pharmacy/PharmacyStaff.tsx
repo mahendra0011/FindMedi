@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function PharmacyStaff() {
   const [staff, setStaff] = useState<ApiRow[]>([]);
@@ -24,7 +24,7 @@ export default function PharmacyStaff() {
   useEffect(() => { load(); }, []);
 
   const openAdd = () => { setEditItem(null); setForm({ name:'', email:'', phone:'', role:'pharmacist', joinedAt:'' }); setShowModal(true); };
-  const openEdit = (s) => { setEditItem(s); setForm({ name:s.name, email:s.email||'', phone:s.phone||'', role:s.role, joinedAt:s.joinedAt?.split('T')[0]||'' }); setShowModal(true); };
+  const openEdit = (s: Unmodelled) => { setEditItem(s); setForm({ name:s.name, email:s.email||'', phone:s.phone||'', role:s.role, joinedAt:s.joinedAt?.split('T')[0]||'' }); setShowModal(true); };
 
   const handleSave = async () => {
     try {
@@ -34,7 +34,7 @@ export default function PharmacyStaff() {
     } catch (e) { toast.error(e.message); }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Remove this staff member?')) return;
     try { await api.deletePharmacyStaff(id); toast.success('Removed'); load(); }
     catch (e) { toast.error(e.message); }

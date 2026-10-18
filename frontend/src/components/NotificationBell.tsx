@@ -2,15 +2,16 @@ import { Link } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useNotificationCount } from '@/context/NotificationContext';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function NotificationBell({ className = '', onClick }: any = {}) {
   const { count, refreshCount } = useNotificationCount();
   
-  const handleClick = async (e) => {
+  const handleClick = async (e: Unmodelled) => {
     if (onClick) onClick(e);
     try {
       const list = (await api.getNotifications({}))?.data || [];
-      const unread = list.filter(n => !n.read).length;
+      const unread = list.filter((n: Unmodelled) => !n.read).length;
       if (unread !== count) refreshCount();
     } catch (e) { console.error(e); }
   };

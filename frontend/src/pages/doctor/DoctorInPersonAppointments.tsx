@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
 import { useAuth } from '@/context/AuthContext';
 
-function useDoctorGpsSync(enabled) {
+function useDoctorGpsSync(enabled: Unmodelled) {
   useEffect(() => {
     if (!enabled || !navigator.geolocation) return;
     const watchId = navigator.geolocation.watchPosition(
@@ -38,10 +38,10 @@ import { isHomeVisitAppointment } from '@/lib/appointmentModes';
 import {
   Map, MapMarker, MarkerContent, MapRoute, MapControls
 } from '@/components/ui/map';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 // Calculate straight-line approximate distance in km (Haversine formula)
-function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+function getDistanceFromLatLonInKm(lat1: Unmodelled, lon1: Unmodelled, lat2: Unmodelled, lon2: Unmodelled) {
   const R = 6371; // Radius of the earth in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -54,7 +54,7 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
 }
 
 // Estimate driving travel time in minutes based on distance in city traffic
-function estimateEtaMinutes(distKm) {
+function estimateEtaMinutes(distKm: Unmodelled) {
   if (!distKm || distKm <= 0) return 0;
   // Avg urban speed ~25 km/h
   const minutes = Math.round((distKm / 25) * 60) + 4;
@@ -62,7 +62,7 @@ function estimateEtaMinutes(distKm) {
 }
 
 // Generate realistic intermediate route coordinates between two points
-function generateRouteLine(startCoords, endCoords) {
+function generateRouteLine(startCoords: Unmodelled, endCoords: Unmodelled) {
   if (!startCoords || !endCoords) return [];
   const [lng1, lat1] = startCoords;
   const [lng2, lat2] = endCoords;
@@ -118,7 +118,7 @@ export default function DoctorInPersonAppointments() {
 
       // Auto-select first active appointment if none selected
       if (homeVisits.length > 0 && !selectedApptId) {
-        const firstActive = homeVisits.find(a => (a.status || '').toLowerCase() !== 'completed') || homeVisits[0];
+        const firstActive = homeVisits.find((a: Unmodelled) => (a.status || '').toLowerCase() !== 'completed') || homeVisits[0];
         setSelectedApptId(firstActive._id);
       }
     } catch (err) {
@@ -139,7 +139,7 @@ export default function DoctorInPersonAppointments() {
 
   const today = getISTDateString();
 
-  const handleStatus = async (id, status, extra = {}) => {
+  const handleStatus = async (id: Unmodelled, status: Unmodelled, extra = {}) => {
     try {
       await api.updateAppointment(id, { status, ...extra });
       toast.success(`Home visit request ${status === 'Confirmed' ? 'accepted' : 'updated'}`);
@@ -198,7 +198,7 @@ export default function DoctorInPersonAppointments() {
 
     // If deterministic variation based on appointment ID
     if (!hasDbLocation && selectedAppt._id) {
-      const hash = selectedAppt._id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const hash = selectedAppt._id.split('').reduce((acc: Unmodelled, char: Unmodelled) => acc + char.charCodeAt(0), 0);
       lat = 28.6280 + ((hash % 40) - 20) * 0.0025;
       lng = 77.2180 + (((hash * 7) % 40) - 20) * 0.0025;
     }
@@ -259,7 +259,7 @@ export default function DoctorInPersonAppointments() {
   }, [appointments, today]);
 
   // Action: Update Patient Transit Status
-  const handleUpdateTransit = async (apptId, newStatus) => {
+  const handleUpdateTransit = async (apptId: Unmodelled, newStatus: Unmodelled) => {
     setUpdatingTransit(true);
     try {
       await api.updateAppointmentTransit(apptId, { transitStatus: newStatus });
@@ -273,7 +273,7 @@ export default function DoctorInPersonAppointments() {
   };
 
   // Action: Check-in / Call into Queue
-  const handleCheckIn = async (apptId) => {
+  const handleCheckIn = async (apptId: Unmodelled) => {
     try {
       await api.updateAppointment(apptId, { status: 'In Queue', checkedInAt: new Date() });
       toast.success('Patient checked in and added to queue');
@@ -284,7 +284,7 @@ export default function DoctorInPersonAppointments() {
   };
 
   // Action: Open 1-to-1 Audio Call with Patient
-  const handleCallPatient = (appt) => {
+  const handleCallPatient = (appt: Unmodelled) => {
     if (!appt) return;
     const peer = appt.patientId || {
       _id: appt.patientId?._id || appt.patientId,
@@ -296,7 +296,7 @@ export default function DoctorInPersonAppointments() {
   };
 
   // Action: Open Chat with Patient
-  const handleOpenChat = (appt) => {
+  const handleOpenChat = (appt: Unmodelled) => {
     const peerId = appt.patientId?._id || appt.patientId;
     const isClinic = user?.role === 'clinic_doctor';
     navigate(isClinic ? '/clinic/chat' : '/doctor/chat', { state: { targetUserId: peerId } });

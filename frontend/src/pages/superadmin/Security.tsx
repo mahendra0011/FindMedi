@@ -7,14 +7,14 @@ import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { userFacingError } from '@/lib/errorCopy';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 // FE-B-05: the superadmin console is the one place where a raw server string is
 // most tempting to keep — an operator debugging needs detail. But this page
 // renders into toasts that are also screenshot into tickets, and the console is
 // reachable by support staff on a shared screen. `userFacingError` still lets a
 // 4xx show the server's (human-written) message while never echoing a 5xx.
-const serverMsg = (err, fallback) => userFacingError(err, { fallback });
+const serverMsg = (err: Unmodelled, fallback: Unmodelled) => userFacingError(err, { fallback });
 
 // SA-M5: active sessions (kill switch) + payout four-eyes queue + 2FA enrolment readout.
 export default function Security() {
@@ -33,14 +33,14 @@ export default function Security() {
       ]);
       setSessions(s.sessions || []);
       setAdmins(a.admins || []);
-      setPayouts((p.payouts || []).filter((x) => x.status === 'pending'));
+      setPayouts((p.payouts || []).filter((x: Unmodelled) => x.status === 'pending'));
     } catch { toast.error('Failed to load security console'); }
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const kill = async (id, email) => {
+  const kill = async (id: Unmodelled, email: Unmodelled) => {
     if (!confirm(`Revoke this session (${email || 'unknown'})? The admin will be signed out on that device.`)) return;
     try {
       await api.killAdminSession(id);
@@ -49,7 +49,7 @@ export default function Security() {
     } catch (err) { toast.error(serverMsg(err, 'Revoke failed')); }
   };
 
-  const approve = async (id) => {
+  const approve = async (id: Unmodelled) => {
     try {
       await api.approvePayout(id);
       toast.success('Approval recorded');
@@ -57,8 +57,8 @@ export default function Security() {
     } catch (err) { toast.error(serverMsg(err, 'Approve failed')); }
   };
 
-  const pay = async (p) => {
-    const distinct = new Set((p.approvals || []).map((a) => String(a.adminId))).size;
+  const pay = async (p: Unmodelled) => {
+    const distinct = new Set((p.approvals || []).map((a: Unmodelled) => String(a.adminId))).size;
     if ((p.netPayout || 0) >= 100000 && distinct < 2) {
       toast.error(`Four-eyes rule: ${distinct}/2 distinct approvals required before paying ₹${Number(p.netPayout).toLocaleString('en-IN')}`);
       return;
@@ -71,7 +71,7 @@ export default function Security() {
     } catch (err) { toast.error(serverMsg(err, 'Pay failed')); load(); }
   };
 
-  const reset2fa = async (u) => {
+  const reset2fa = async (u: Unmodelled) => {
     if (!confirm(`Reset 2FA for ${u.name || u.email}? They must re-enrol on next login.`)) return;
     try {
       await api.reset2fa(u.id);
@@ -105,7 +105,7 @@ export default function Security() {
           ) : (
             <div className="space-y-3">
               {payouts.map((p) => {
-                const distinct = new Set((p.approvals || []).map((a) => String(a.adminId))).size;
+                const distinct = new Set((p.approvals || []).map((a: Unmodelled) => String(a.adminId))).size;
                 const needsFourEyes = (p.netPayout || 0) >= 100000;
                 return (
                   <div key={p._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border p-3">
@@ -113,7 +113,7 @@ export default function Security() {
                       <p className="font-semibold text-sm">{p.facilityName} · <span className="tabular-nums">₹{Number(p.netPayout || 0).toLocaleString('en-IN')}</span></p>
                       <p className="text-xs text-muted-foreground">
                         {needsFourEyes ? `${distinct}/2 approvals` : 'Single approval suffices (< ₹1L)'}
-                        {(p.approvals || []).length > 0 && ` · by ${(p.approvals || []).map((a) => a.adminName || 'admin').join(', ')}`}
+                        {(p.approvals || []).length > 0 && ` · by ${(p.approvals || []).map((a: Unmodelled) => a.adminName || 'admin').join(', ')}`}
                       </p>
                     </div>
                     <div className="flex gap-2 shrink-0">
@@ -142,14 +142,14 @@ export default function Security() {
               columns={[
                 {
                   key: 'name', label: 'Admin',
-                  render: (v, s) => <span className="font-medium">{v || '—'}<span className="block text-xs text-muted-foreground">{s.email}</span></span>,
+                  render: (v: Unmodelled, s: Unmodelled) => <span className="font-medium">{v || '—'}<span className="block text-xs text-muted-foreground">{s.email}</span></span>,
                 },
-                { key: 'role', label: 'Role', render: (v) => <span className="text-xs">{v}</span> },
-                { key: 'createdAt', label: 'Created', render: (v) => <span className="text-xs text-muted-foreground">{v ? new Date(v).toLocaleString('en-IN') : '—'}</span> },
-                { key: 'expiresAt', label: 'Expires', render: (v) => <span className="text-xs text-muted-foreground">{v ? new Date(v).toLocaleString('en-IN') : '—'}</span> },
+                { key: 'role', label: 'Role', render: (v: Unmodelled) => <span className="text-xs">{v}</span> },
+                { key: 'createdAt', label: 'Created', render: (v: Unmodelled) => <span className="text-xs text-muted-foreground">{v ? new Date(v).toLocaleString('en-IN') : '—'}</span> },
+                { key: 'expiresAt', label: 'Expires', render: (v: Unmodelled) => <span className="text-xs text-muted-foreground">{v ? new Date(v).toLocaleString('en-IN') : '—'}</span> },
                 {
                   key: '_actions', label: 'Action', sortable: false,
-                  render: (_v, s) => <Button size="sm" variant="destructive" onClick={() => kill(s.id, s.email)}>Kill session</Button>,
+                  render: (_v: Unmodelled, s: Unmodelled) => <Button size="sm" variant="destructive" onClick={() => kill(s.id, s.email)}>Kill session</Button>,
                 },
               ]}
               rows={sessions}

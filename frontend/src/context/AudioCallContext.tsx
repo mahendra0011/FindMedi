@@ -11,7 +11,7 @@ import {
   triggerVibration,
   stopVibration,
 } from '@/lib/audioCallSounds';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const AudioCallContext = createContext(null);
 
@@ -26,7 +26,7 @@ const ICE_SERVERS = {
 
 const CALL_TIMEOUT_SECONDS = 30;
 
-export function AudioCallProvider({ children }) {
+export function AudioCallProvider({ children }: Unmodelled) {
   const { user } = useAuth();
 
   // Call States: 'idle' | 'calling' | 'ringing' | 'connecting' | 'connected' | 'ended' | 'busy' | 'timeout'
@@ -138,7 +138,7 @@ export function AudioCallProvider({ children }) {
 
     // Stop local audio tracks
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop());
+      localStreamRef.current.getTracks().forEach((track: Unmodelled) => track.stop());
       localStreamRef.current = null;
     }
 
@@ -156,7 +156,7 @@ export function AudioCallProvider({ children }) {
   }, []);
 
   // Set selected audio output (Earpiece / Speaker / Headset)
-  const setAudioOutput = useCallback(async (deviceId) => {
+  const setAudioOutput = useCallback(async (deviceId: Unmodelled) => {
     setSelectedOutputId(deviceId);
     if (remoteAudioElemRef.current && typeof remoteAudioElemRef.current.setSinkId === 'function') {
       try {
@@ -192,7 +192,7 @@ export function AudioCallProvider({ children }) {
   }, []);
 
   // ── Call Log Backend Helpers ──
-  const logInitiate = async (receiverId, appointmentId) => {
+  const logInitiate = async (receiverId: Unmodelled, appointmentId: Unmodelled) => {
     try {
       const res = await fetch('/api/calls/initiate', {
         method: 'POST',
@@ -211,7 +211,7 @@ export function AudioCallProvider({ children }) {
     return null;
   };
 
-  const updateCallStatus = async (callId, status, duration = 0, notes = '') => {
+  const updateCallStatus = async (callId: Unmodelled, status: Unmodelled, duration = 0, notes = '') => {
     if (!callId) return;
     try {
       await fetch(`/api/calls/${callId}/status`, {
@@ -225,7 +225,7 @@ export function AudioCallProvider({ children }) {
     }
   };
 
-  const saveClinicalNotes = useCallback(async (notesText) => {
+  const saveClinicalNotes = useCallback(async (notesText: Unmodelled) => {
     const textToSave = notesText != null ? notesText : clinicalNotes;
     if (!currentCallLogId) {
       toast.error('No active call record found');
@@ -239,7 +239,7 @@ export function AudioCallProvider({ children }) {
     }
   }, [currentCallLogId, clinicalNotes, callDuration]);
 
-  const uploadRecordingBlob = async (callId, blob, duration) => {
+  const uploadRecordingBlob = async (callId: Unmodelled, blob: Unmodelled, duration: Unmodelled) => {
     if (!callId || !blob) return;
     try {
       const formData = new FormData();
@@ -364,7 +364,7 @@ export function AudioCallProvider({ children }) {
   }, [isRecording, startRecording, stopRecording]);
 
   // Create WebRTC Peer Connection with event listeners
-  const createPeerConnection = useCallback((peerUserId, isOriginator) => {
+  const createPeerConnection = useCallback((peerUserId: Unmodelled, isOriginator: Unmodelled) => {
     const pc = new RTCPeerConnection(ICE_SERVERS);
     peerConnectionRef.current = pc;
 
@@ -430,7 +430,7 @@ export function AudioCallProvider({ children }) {
   }, []);
 
   // ── INITIATE OUTGOING AUDIO CALL ──
-  const initiateCall = useCallback(async (recipient, appointmentId = null) => {
+  const initiateCall = useCallback(async (recipient: Unmodelled, appointmentId = null) => {
     if (!recipient || !recipient.id && !recipient._id) {
       toast.error('Recipient information is missing');
       return;
@@ -609,7 +609,7 @@ export function AudioCallProvider({ children }) {
     if (!s) return;
 
     // Incoming Call Invite
-    const handleCallInvite = (data) => {
+    const handleCallInvite = (data: Unmodelled) => {
       const callerId = String(data.caller?.id || data.from);
 
       // If user is already in another call, reply busy immediately
@@ -659,7 +659,7 @@ export function AudioCallProvider({ children }) {
     };
 
     // Recipient accepted call -> Caller creates Offer SDP and starts audio exchange
-    const handleCallAccept = async (data) => {
+    const handleCallAccept = async (data: Unmodelled) => {
       if (timeoutTimerRef.current) clearTimeout(timeoutTimerRef.current);
       if (stopToneRef.current) {
         stopToneRef.current();
@@ -672,7 +672,7 @@ export function AudioCallProvider({ children }) {
         const pc = createPeerConnection(activePeer?.id, true);
 
         if (localStreamRef.current) {
-          localStreamRef.current.getTracks().forEach((track) => pc.addTrack(track, localStreamRef.current));
+          localStreamRef.current.getTracks().forEach((track: Unmodelled) => pc.addTrack(track, localStreamRef.current));
         }
 
         const offer = await pc.createOffer({
@@ -691,13 +691,13 @@ export function AudioCallProvider({ children }) {
     };
 
     // Recipient receives Offer SDP -> sets remote description & responds with Answer SDP
-    const handleCallOffer = async (data) => {
+    const handleCallOffer = async (data: Unmodelled) => {
       try {
         let pc = peerConnectionRef.current;
         if (!pc) {
           pc = createPeerConnection(activePeer?.id, false);
           if (localStreamRef.current) {
-            localStreamRef.current.getTracks().forEach((track) => pc.addTrack(track, localStreamRef.current));
+            localStreamRef.current.getTracks().forEach((track: Unmodelled) => pc.addTrack(track, localStreamRef.current));
           }
         }
 
@@ -725,7 +725,7 @@ export function AudioCallProvider({ children }) {
     };
 
     // Caller receives Answer SDP -> sets remote description & audio is officially flowing
-    const handleCallAnswer = async (data) => {
+    const handleCallAnswer = async (data: Unmodelled) => {
       try {
         const pc = peerConnectionRef.current;
         if (pc) {
@@ -745,7 +745,7 @@ export function AudioCallProvider({ children }) {
     };
 
     // Candidate exchange (ICE)
-    const handleCallIce = async (data) => {
+    const handleCallIce = async (data: Unmodelled) => {
       try {
         const pc = peerConnectionRef.current;
         if (pc && data.candidate) {

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const REVEAL_SELECTOR = [
   '.page-header',
@@ -16,7 +17,7 @@ const REVEAL_SELECTOR = [
   'section',
 ].join(',');
 
-const isVisibleCandidate = (element) => {
+const isVisibleCandidate = (element: Unmodelled) => {
   if (!(element instanceof HTMLElement)) return false;
   if (element.dataset.motionReady === 'true') return false;
   if (element.closest('[data-motion-ignore]')) return false;
@@ -26,7 +27,7 @@ const isVisibleCandidate = (element) => {
   return rect.width > 0 && rect.height > 0;
 };
 
-export default function AppMotion({ children }) {
+export default function AppMotion({ children }: Unmodelled) {
   const location = useLocation();
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export default function AppMotion({ children }) {
     let frameId = 0;
     const revealTimers = new Set();
 
-    const reveal = (element) => {
+    const reveal = (element: Unmodelled) => {
       element.classList.add('is-visible');
       revealObserver.unobserve(element);
     };
@@ -60,7 +61,7 @@ export default function AppMotion({ children }) {
       }
     );
 
-    const isInViewport = (element) => {
+    const isInViewport = (element: Unmodelled) => {
       const rect = element.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return false;
       const vh = window.innerHeight || document.documentElement.clientHeight;
@@ -69,7 +70,7 @@ export default function AppMotion({ children }) {
       return rect.top < visibleBottom && rect.bottom > visibleTop;
     };
 
-    const forceReveal = (element) => {
+    const forceReveal = (element: Unmodelled) => {
       if (revealTimers.has(element)) return;
       revealTimers.add(element);
       const timer = window.setTimeout(() => {

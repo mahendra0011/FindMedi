@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { AlertTriangle, Clock } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function LicenseExpiryReminder() {
   const { user } = useAuth();
@@ -19,7 +19,7 @@ export default function LicenseExpiryReminder() {
           const thirtyDaysFromNow = new Date();
           thirtyDaysFromNow.setDate(now.getDate() + 30);
           
-          const expiring = licenses.filter(lic => {
+          const expiring = licenses.filter((lic: Unmodelled) => {
             const expDate = new Date(lic.expiryDate);
             return lic.status === 'Active' && expDate <= thirtyDaysFromNow;
           });

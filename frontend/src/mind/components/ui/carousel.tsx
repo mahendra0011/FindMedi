@@ -3,6 +3,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/mind/lib/utils";
 import { Button } from "@/mind/components/ui/button";
+import type { Unmodelled } from '@/lib/apiTypes';
 const CarouselContext = React.createContext(null);
 function useCarousel() {
     const context = React.useContext(CarouselContext);
@@ -18,7 +19,7 @@ const Carousel = React.forwardRef(({ orientation = "horizontal", opts, setApi, p
     }, plugins);
     const [canScrollPrev, setCanScrollPrev] = React.useState(false);
     const [canScrollNext, setCanScrollNext] = React.useState(false);
-    const onSelect = React.useCallback((api) => {
+    const onSelect = React.useCallback((api: Unmodelled) => {
         if (!api) {
             return;
         }
@@ -31,7 +32,7 @@ const Carousel = React.forwardRef(({ orientation = "horizontal", opts, setApi, p
     const scrollNext = React.useCallback(() => {
         api?.scrollNext();
     }, [api]);
-    const handleKeyDown = React.useCallback((event) => {
+    const handleKeyDown = React.useCallback((event: Unmodelled) => {
         if (event.key === "ArrowLeft") {
             event.preventDefault();
             scrollPrev();

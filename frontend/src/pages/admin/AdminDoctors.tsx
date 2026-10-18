@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { useCategories } from '@/hooks/useCategories';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const FALLBACK_SPECIALIZATIONS = ['Cardiology', 'Neurology', 'Orthopaedics', 'Paediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT'];
 
@@ -44,21 +44,21 @@ export default function AdminDoctors() {
     } catch { toast.error(editId ? 'Failed to update doctor' : 'Failed to create doctor'); }
   };
 
-  const handleEdit = (doc) => {
+  const handleEdit = (doc: Unmodelled) => {
     setForm({ name: doc.name, specialization: doc.specialization, experience: doc.experience, phone: doc.phone, email: doc.email, qualifications: doc.qualifications, available: doc.available });
     setEditId(doc._id); setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Permanently delete this doctor?')) return;
     try { await api.deleteDoctor(id); loadDoctors(); } catch { toast.error('Failed to delete doctor'); }
   };
 
-  const handleToggleAvailability = async (doc) => {
+  const handleToggleAvailability = async (doc: Unmodelled) => {
     try { await api.updateDoctor(doc._id, { available: !doc.available }); loadDoctors(); } catch { toast.error('Failed to update availability'); }
   };
 
-  const handleApprove = async (id) => {
+  const handleApprove = async (id: Unmodelled) => {
     try { await api.approveDoctor(id); loadDoctors(); } catch { toast.error('Failed to approve doctor'); }
   };
 
@@ -103,7 +103,7 @@ export default function AdminDoctors() {
                 <div className="w-12 h-12 rounded-xl bg-info/10 flex items-center justify-center text-info font-bold text-lg flex-shrink-0 overflow-hidden">
                   {doc.profile_photo
                     ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
-                    : doc.initials || doc.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    : doc.initials || doc.name.split(' ').map((n: Unmodelled) => n[0]).join('').slice(0, 2)}
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-heading font-semibold text-foreground truncate">{doc.name}</h3>

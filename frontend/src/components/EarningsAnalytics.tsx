@@ -17,6 +17,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from 'recharts';
 import { Tooltip as RadixTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /* ─── Constants ───────────────────────────────────── */
 const STATUS_META = {
@@ -45,7 +46,7 @@ const GRADIENT_PRESETS = [
 ];
 
 /* ─── Animated Counter ────────────────────────────── */
-function AnimatedCounter({ value, prefix = '', suffix = '', duration = 1200 }) {
+function AnimatedCounter({ value, prefix = '', suffix = '', duration = 1200 }: Unmodelled) {
   const [display, setDisplay] = useState(0);
   const ref = useRef(null);
 
@@ -70,12 +71,12 @@ function AnimatedCounter({ value, prefix = '', suffix = '', duration = 1200 }) {
 }
 
 /* ─── Glassmorphic Tooltip ────────────────────────── */
-function GlassTooltip({ active, payload, label, prefix = '₹' }) {
+function GlassTooltip({ active, payload, label, prefix = '₹' }: Unmodelled) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-2xl border border-white/20 bg-card/90 backdrop-blur-xl px-4 py-3 shadow-2xl shadow-black/10">
       <p className="text-xs font-medium text-muted-foreground mb-1.5">{label}</p>
-      {payload.map((p, i) => (
+      {payload.map((p: Unmodelled, i: Unmodelled) => (
         <div key={i} className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color || p.stroke }} />
           <span className="text-xs text-muted-foreground capitalize">{p.dataKey}</span>
@@ -89,7 +90,7 @@ function GlassTooltip({ active, payload, label, prefix = '₹' }) {
 }
 
 /* ─── Glassmorphic Section Card ───────────────────── */
-function GlassCard({ title, subtitle, children, className = '', action, icon: Icon, iconColor = 'text-primary', noPadding = false }) {
+function GlassCard({ title, subtitle, children, className = '', action, icon: Icon, iconColor = 'text-primary', noPadding = false }: Unmodelled) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -124,7 +125,7 @@ function GlassCard({ title, subtitle, children, className = '', action, icon: Ic
 }
 
 /* ─── Sparkline Mini Chart ────────────────────────── */
-function Sparkline({ data, color = 'hsl(var(--primary))', height = 40 }) {
+function Sparkline({ data, color = 'hsl(var(--primary))', height = 40 }: Unmodelled) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
@@ -141,7 +142,7 @@ function Sparkline({ data, color = 'hsl(var(--primary))', height = 40 }) {
 }
 
 /* ─── Heatmap Day Cell ────────────────────────────── */
-function HeatmapCell({ intensity, day, amount }) {
+function HeatmapCell({ intensity, day, amount }: Unmodelled) {
   const opacityClass = intensity === 0 ? 'bg-muted/30' : intensity <= 0.25 ? 'bg-success/20' : intensity <= 0.5 ? 'bg-success/40' : intensity <= 0.75 ? 'bg-success/60' : 'bg-success/90';
   return (
     <RadixTooltip delayDuration={0}>
@@ -339,7 +340,7 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
   }, [bills, payments]);
 
   const chartData = range === '6m' ? stats.monthlyTrend : stats.weekly;
-  const fmt = (v) => showAmounts ? `₹${v.toLocaleString('en-IN')}` : '₹••••••';
+  const fmt = (v: Unmodelled) => showAmounts ? `₹${v.toLocaleString('en-IN')}` : '₹••••••';
 
   /* ─── Render ────────────────────────────────────── */
   return (

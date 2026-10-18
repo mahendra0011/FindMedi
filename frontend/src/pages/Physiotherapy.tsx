@@ -4,16 +4,17 @@ import { Search, Plus, Clock, X, Activity, CheckCircle, AlertTriangle, User, Fil
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const physioApi = {
-  getReferrals: (p) => api.dispatch(() => Promise.resolve({ referrals: [] }), '/physio/referrals?' + new URLSearchParams(p)),
-  createReferral: (b) => api.dispatch(() => Promise.resolve({}), '/physio/referrals', { method: 'POST', body: JSON.stringify(b) }),
-  startAssessment: (id, b) => api.dispatch(() => Promise.resolve({}), `/physio/referrals/${id}/assess`, { method: 'PUT', body: JSON.stringify(b) }),
-  createPlan: (id, b) => api.dispatch(() => Promise.resolve({}), `/physio/referrals/${id}/plan`, { method: 'PUT', body: JSON.stringify(b) }),
-  addSession: (id, b) => api.dispatch(() => Promise.resolve({}), `/physio/referrals/${id}/session`, { method: 'PUT', body: JSON.stringify(b) }),
-  midReview: (id, b) => api.dispatch(() => Promise.resolve({}), `/physio/referrals/${id}/mid-review`, { method: 'PUT', body: JSON.stringify(b) }),
-  discharge: (id, b) => api.dispatch(() => Promise.resolve({}), `/physio/referrals/${id}/discharge`, { method: 'PUT', body: JSON.stringify(b) }),
-  addToBilling: (id, b) => api.dispatch(() => Promise.resolve({}), `/physio/referrals/${id}/billing`, { method: 'POST', body: JSON.stringify(b) }),
+  getReferrals: (p: Unmodelled) => api.dispatch(() => Promise.resolve({ referrals: [] }), '/physio/referrals?' + new URLSearchParams(p)),
+  createReferral: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/physio/referrals', { method: 'POST', body: JSON.stringify(b) }),
+  startAssessment: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/physio/referrals/${id}/assess`, { method: 'PUT', body: JSON.stringify(b) }),
+  createPlan: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/physio/referrals/${id}/plan`, { method: 'PUT', body: JSON.stringify(b) }),
+  addSession: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/physio/referrals/${id}/session`, { method: 'PUT', body: JSON.stringify(b) }),
+  midReview: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/physio/referrals/${id}/mid-review`, { method: 'PUT', body: JSON.stringify(b) }),
+  discharge: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/physio/referrals/${id}/discharge`, { method: 'PUT', body: JSON.stringify(b) }),
+  addToBilling: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/physio/referrals/${id}/billing`, { method: 'POST', body: JSON.stringify(b) }),
   getStats: () => api.dispatch(() => Promise.resolve({ active: 0, inProgress: 0, completed: 0, total: 0 }), '/physio/stats'),
 };
 
@@ -91,7 +92,7 @@ export default function Physiotherapy() {
       </div>
 
       <div className="space-y-4">
-        {referrals.map(r => {
+        {referrals.map((r: Unmodelled) => {
           const isExpanded = expandedId === r._id;
           const sessions = r.sessions || [];
           const plan = r.treatmentPlan || {};
@@ -161,7 +162,7 @@ export default function Physiotherapy() {
                   {sessions.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs font-semibold text-muted-foreground">Session History ({sessions.length})</p>
-                      {sessions.slice(-3).map((s, i) => (
+                      {sessions.slice(-3).map((s: Unmodelled, i: Unmodelled) => (
                         <div key={i} className="bg-muted/30 rounded-lg p-2 text-xs">
                           <div className="flex justify-between">
                             <span className="font-medium">Session {sessions.length - i}</span>

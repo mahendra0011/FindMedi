@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { userFacingError } from '@/lib/errorCopy';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const methodIcons = {
   card: CreditCard, upi: Smartphone, netbanking: Landmark,
@@ -30,13 +31,13 @@ const serviceTypeLabels = {
   physio: 'Physiotherapy', diet: 'Diet', mentalhealth: 'Mental Health'
 };
 
-function formatDate(d) {
+function formatDate(d: Unmodelled) {
   if (!d) return '-';
   const dt = new Date(d);
   return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-function copyToClipboard(text) {
+function copyToClipboard(text: Unmodelled) {
   navigator.clipboard.writeText(text);
 }
 
@@ -83,7 +84,7 @@ export default function VerifyTransaction() {
     }
   };
 
-  const handleCopy = (text) => {
+  const handleCopy = (text: Unmodelled) => {
     copyToClipboard(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -252,7 +253,7 @@ export default function VerifyTransaction() {
                   <div>
                     <label className="text-xs text-muted-foreground uppercase tracking-wider">Line Items</label>
                     <div className="mt-2 space-y-1">
-                      {payment.lineItems.map((item, i) => (
+                      {payment.lineItems.map((item: Unmodelled, i: Unmodelled) => (
                         <div key={i} className="flex justify-between text-sm">
                           <span>{item.name} x {item.qty}</span>
                           <span>₹{item.price}</span>
@@ -358,7 +359,7 @@ export default function VerifyTransaction() {
                       <div>
                         <label className="text-xs text-muted-foreground uppercase tracking-wider">Tests</label>
                         <div className="mt-2 space-y-1">
-                          {reference.testIds.map(test => (
+                          {reference.testIds.map((test: Unmodelled) => (
                             <div key={test._id || test} className="flex items-center gap-2">
                               <TestTube className="w-4 h-4 text-primary" />
                               <span className="text-sm">{test.name || test}</span>
@@ -407,7 +408,7 @@ export default function VerifyTransaction() {
                       <div>
                         <label className="text-xs text-muted-foreground uppercase tracking-wider">Medicines</label>
                         <div className="mt-2 space-y-1">
-                          {reference.items.map((item, i) => (
+                          {reference.items.map((item: Unmodelled, i: Unmodelled) => (
                             <div key={i} className="flex items-center gap-2">
                               <Pill className="w-4 h-4 text-primary" />
                               <span className="text-sm">{item.medicineId?.name || item.name} x {item.qty}</span>

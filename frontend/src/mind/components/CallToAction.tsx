@@ -4,12 +4,13 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, HeartHandshake, CheckCircle2, Shield, Zap, Lock } from "lucide-react";
 import { Button } from "@/mind/components/ui/button";
 import ElectricBorder from "@/mind/components/reactbits/ElectricBorder";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const CallToAction = () => {
   const navigate = useNavigate();
   const [pointer, setPointer] = useState({ x: 50, y: 50 });
 
-  const handlePointerMove = (event) => {
+  const handlePointerMove = (event: Unmodelled) => {
     const rect = event.currentTarget.getBoundingClientRect();
     setPointer({
       x: ((event.clientX - rect.left) / rect.width) * 100,

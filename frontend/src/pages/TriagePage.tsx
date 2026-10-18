@@ -4,14 +4,15 @@ import { Search, AlertTriangle, Plus, Clock, ChevronDown, ChevronUp, Heart, X, S
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const triageApi = {
   getAll: (p = {}) => api.dispatch(() => Promise.resolve({ entries: [] }), '/triage?' + new URLSearchParams(p)),
-  create: (b) => api.dispatch(() => Promise.resolve({}), '/triage', { method: 'POST', body: JSON.stringify(b) }),
-  update: (id, b) => api.dispatch(() => Promise.resolve({}), `/triage/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
-  assign: (id, b) => api.dispatch(() => Promise.resolve({}), `/triage/${id}/assign`, { method: 'PUT', body: JSON.stringify(b) }),
-  addMlc: (id, b) => api.dispatch(() => Promise.resolve({}), `/triage/${id}/mlc`, { method: 'PUT', body: JSON.stringify(b) }),
-  addNote: (id, b) => api.dispatch(() => Promise.resolve({}), `/triage/${id}/notes`, { method: 'POST', body: JSON.stringify(b) }),
+  create: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/triage', { method: 'POST', body: JSON.stringify(b) }),
+  update: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/triage/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+  assign: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/triage/${id}/assign`, { method: 'PUT', body: JSON.stringify(b) }),
+  addMlc: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/triage/${id}/mlc`, { method: 'PUT', body: JSON.stringify(b) }),
+  addNote: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/triage/${id}/notes`, { method: 'POST', body: JSON.stringify(b) }),
   getStats: () => api.dispatch(() => Promise.resolve({ total: 0, immediate: 0, urgent: 0, lessUrgent: 0, active: 0, today: 0, mlc: 0 }), '/triage/stats/main'),
 };
 
@@ -76,7 +77,7 @@ export default function TriagePage() {
       </div>
 
       <div className="space-y-4">
-        {entries.map(entry => {
+        {entries.map((entry: Unmodelled) => {
           const isExpanded = expandedId === entry._id;
           return (
             <div key={entry._id} className="bg-card rounded-xl border shadow-sm">

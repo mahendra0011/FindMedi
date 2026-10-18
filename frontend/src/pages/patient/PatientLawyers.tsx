@@ -26,6 +26,7 @@ import { DataGrid } from '../../components/ui/System';
 import { InstantSearchingScreen, InstantNoRespondersScreen, InstantAssignedScreen } from '../../components/instant';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function PatientLawyers() {
   const navigate = useNavigate();
@@ -514,7 +515,7 @@ export default function PatientLawyers() {
                   {
                     key: 'bookingNumber',
                     label: 'Booking ID / Date',
-                    render: (v, b) => (
+                    render: (v: Unmodelled, b: Unmodelled) => (
                       <>
                         <div className="font-bold text-slate-900 dark:text-slate-100 font-mono">
                           {v || b._id.slice(-6)}
@@ -529,7 +530,7 @@ export default function PatientLawyers() {
                     key: 'lawyerId',
                     label: 'Advocate',
                     sortable: false,
-                    render: (v) => (
+                    render: (v: Unmodelled) => (
                       <span className="font-bold text-slate-900 dark:text-slate-100">
                         Adv. {v?.userId?.name || 'Advocate'}
                       </span>
@@ -538,7 +539,7 @@ export default function PatientLawyers() {
                   {
                     key: 'category',
                     label: 'Category',
-                    render: (v) => (
+                    render: (v: Unmodelled) => (
                       <span className="capitalize text-slate-600 dark:text-slate-400">
                         {v?.replace(/_/g, ' ')}
                       </span>
@@ -547,7 +548,7 @@ export default function PatientLawyers() {
                   {
                     key: 'consultationMode',
                     label: 'Mode',
-                    render: (v) => (
+                    render: (v: Unmodelled) => (
                       <span className="capitalize text-slate-600 dark:text-slate-400">
                         {v?.replace('_', ' ')}
                       </span>
@@ -556,14 +557,14 @@ export default function PatientLawyers() {
                   {
                     key: 'fee',
                     label: 'Fee',
-                    render: (v) => (
+                    render: (v: Unmodelled) => (
                       <span className="font-bold text-slate-900 dark:text-slate-100">₹{v}</span>
                     ),
                   },
                   {
                     key: 'status',
                     label: 'Status',
-                    render: (v) => (
+                    render: (v: Unmodelled) => (
                       <Badge
                         className={
                           v === 'completed'
@@ -583,7 +584,7 @@ export default function PatientLawyers() {
                     key: '_actions',
                     label: 'Actions',
                     sortable: false,
-                    render: (_v, b) => (
+                    render: (_v: Unmodelled, b: Unmodelled) => (
                       <div className="text-right space-x-2">
                         <Button
                           type="button"

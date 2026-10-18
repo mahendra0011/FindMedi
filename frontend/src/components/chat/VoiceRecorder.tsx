@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Mic, Trash2, Send, Lock, LockOpen, Pause, Play, Square } from 'lucide-react';
 import { formatDuration } from '@/lib/chatPrefs';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 /**
  * WhatsApp-style voice recorder.
@@ -12,7 +12,7 @@ import type { ApiRow } from '@/lib/apiTypes';
  *
  * onSend({ blob, dataUrl, duration, waveform })
  */
-export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }) {
+export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: Unmodelled) {
   const [recording, setRecording] = useState(false);
   const [paused, setPaused] = useState(false);
   const [locked, setLocked] = useState(false);
@@ -29,7 +29,7 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }) {
   const secondsRef = useRef(0);
 
   const stopStream = () => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current?.getTracks().forEach((t: Unmodelled) => t.stop());
     streamRef.current = null;
     if (audioCtxRef.current) {
       try { audioCtxRef.current.close(); } catch { /* ignore */ }
@@ -103,7 +103,7 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }) {
     }
   };
 
-  const finish = (send) => {
+  const finish = (send: Unmodelled) => {
     if (!mediaRef.current) return;
     if (!send) {
       // Cancel: chunks khaali → duration 0 → send skip

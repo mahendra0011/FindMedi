@@ -16,7 +16,7 @@ import {
 } from '@/lib/timeSlots';
 import { CompletedCard } from '@/components/TodayAppointmentsSection';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 /**
  * Appointment History Section — shows completed appointments for any selected date.
@@ -28,22 +28,22 @@ import type { ApiRow } from '@/lib/apiTypes';
  */
 
 // Count appointments across time ranges (used for the Status Overview panel)
-const countStats = (list, today) => {
+const countStats = (list: Unmodelled, today: Unmodelled) => {
   const [y, m, d] = today.split('-').map(Number);
   const ago7 = new Date(y, m - 1, d - 6);
   const ago7Str = `${ago7.getFullYear()}-${String(ago7.getMonth() + 1).padStart(2, '0')}-${String(ago7.getDate()).padStart(2, '0')}`;
   const ago6m = new Date(y, m - 6, 1);
   const ago6mStr = `${ago6m.getFullYear()}-${String(ago6m.getMonth() + 1).padStart(2, '0')}`;
   return {
-    today: list.filter(a => a.date === today).length,
-    last7: list.filter(a => (a.date || '') >= ago7Str).length,
-    month: list.filter(a => (a.date || '').startsWith(today.slice(0, 7))).length,
-    last6m: list.filter(a => (a.date || '') >= ago6mStr).length,
-    year: list.filter(a => (a.date || '').startsWith(today.slice(0, 4))).length,
+    today: list.filter((a: Unmodelled) => a.date === today).length,
+    last7: list.filter((a: Unmodelled) => (a.date || '') >= ago7Str).length,
+    month: list.filter((a: Unmodelled) => (a.date || '').startsWith(today.slice(0, 7))).length,
+    last6m: list.filter((a: Unmodelled) => (a.date || '') >= ago6mStr).length,
+    year: list.filter((a: Unmodelled) => (a.date || '').startsWith(today.slice(0, 4))).length,
     all: list.length,
   };
 };
-export default function AppointmentHistorySection({ appointments }) {
+export default function AppointmentHistorySection({ appointments }: Unmodelled) {
   const [calDate, setCalDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
   const [viewMode, setViewMode] = useState('complete'); // 'complete' | 'absent' | 'payments'
@@ -92,12 +92,12 @@ export default function AppointmentHistorySection({ appointments }) {
 
   const today = getISTDateString();
 
-  const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  const getFirstDay = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  const getDaysInMonth = (date: Unmodelled) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  const getFirstDay = (date: Unmodelled) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
   // All completed (or absent) appointments for the selected date — switch ke hisaab se
   const modeForDate = useMemo(
-    () => appointments.filter(a => {
+    () => appointments.filter((a: Unmodelled) => {
       if (a.date !== selectedDate) return false;
       const s = (a.status || '').toLowerCase();
       if (viewMode === 'complete') return s === 'completed';
@@ -118,11 +118,11 @@ export default function AppointmentHistorySection({ appointments }) {
     [filtered]
   );
 
-  const completionTimeLabel = (a) => {
+  const completionTimeLabel = (a: Unmodelled) => {
     const t = a.consultationEndTime || a.updatedAt || a.createdAt;
     return t ? new Date(t).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
   };
-  const completionLabel = (a) => completionTimeLabel(a) || 'Completed';
+  const completionLabel = (a: Unmodelled) => completionTimeLabel(a) || 'Completed';
 
   const hourSlots = useMemo(() => getHourSlots(), []);
   const [selectedHour, setSelectedHour] = useState(null);
@@ -153,11 +153,11 @@ export default function AppointmentHistorySection({ appointments }) {
 
   // ── Status overview (BOTH completed and absent counts, independent of switch) ──
   const completedAll = useMemo(
-    () => appointments.filter(a => (a.status || '').toLowerCase() === 'completed'),
+    () => appointments.filter((a: Unmodelled) => (a.status || '').toLowerCase() === 'completed'),
     [appointments]
   );
   const absentAll = useMemo(
-    () => appointments.filter(a => {
+    () => appointments.filter((a: Unmodelled) => {
       const s = (a.status || '').toLowerCase();
       return s === 'missed' || s === 'absent' || s === 'cancelled' || s === 'no-show';
     }),
@@ -170,7 +170,7 @@ export default function AppointmentHistorySection({ appointments }) {
   // Average completed per active day since the first completed appointment
   const avgPerDay = useMemo(() => {
     if (!completedAll.length) return 0;
-    const dates = completedAll.map(a => a.date || '').filter(Boolean).sort();
+    const dates = completedAll.map((a: Unmodelled) => a.date || '').filter(Boolean).sort();
     const first = dates[0];
     const days = Math.max(1, Math.floor((new Date(today).getTime() - new Date(first).getTime()) / 86400000) + 1);
     return (completedAll.length / days).toFixed(1);
@@ -179,7 +179,7 @@ export default function AppointmentHistorySection({ appointments }) {
   // Date with the most completed appointments
   const busiestDay = useMemo(() => {
     const map = {};
-    completedAll.forEach(a => {
+    completedAll.forEach((a: Unmodelled) => {
       const d = a.date || '';
       map[d] = (map[d] || 0) + 1;
     });
@@ -195,12 +195,12 @@ export default function AppointmentHistorySection({ appointments }) {
       .filter(a => (a.status || '').toLowerCase() === (viewMode === 'complete' ? 'completed' : 'missed') && a.date !== selectedDate)
       .sort((a, b) => (b.date || '').localeCompare(a.date || '') || ((parseTime(b.time)?.hour ?? 0) - (parseTime(a.time)?.hour ?? 0)));
   }, [appointments, selectedDate, viewMode]);
-  const handleHourClick = (h) => {
+  const handleHourClick = (h: Unmodelled) => {
     setSelectedHour(selectedHour === h ? null : h); // toggle
     setSelectedSubSlot(null);
   };
 
-  const handleSubSlotClick = (s) => {
+  const handleSubSlotClick = (s: Unmodelled) => {
     setSelectedSubSlot(s === selectedSubSlot ? null : s);
   };
 
@@ -261,7 +261,7 @@ export default function AppointmentHistorySection({ appointments }) {
               const dateStr = `${calDate.getFullYear()}-${String(calDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const isSelected = dateStr === selectedDate;
               const isToday = dateStr === today;
-              const hasCompleted = appointments.some(a => a.date === dateStr && (a.status || '').toLowerCase() === (viewMode === 'complete' ? 'completed' : 'missed'));
+              const hasCompleted = appointments.some((a: Unmodelled) => a.date === dateStr && (a.status || '').toLowerCase() === (viewMode === 'complete' ? 'completed' : 'missed'));
               return (
                 <button
                   key={day}
@@ -436,7 +436,7 @@ export default function AppointmentHistorySection({ appointments }) {
                 <div key={apt._id || i} id={`history-card-${apt._id}`} className="scroll-mt-4">
                   <CompletedCard 
                     apt={apt} 
-                    onViewFile={(url) => {
+                    onViewFile={(url: Unmodelled) => {
                       if (!isValidFileUrl(url)) { toast.error('File unavailable — upload was not completed. Ask the patient to re-upload it.'); return; }
                       window.open(resolveFileUrl(url), '_blank');
                     }}
@@ -646,7 +646,7 @@ export default function AppointmentHistorySection({ appointments }) {
 }
 
 /* ── Status tile for the Status Overview panel ── */
-function StatusTile({ icon: Icon, label, value, tone = 'primary' }) {
+function StatusTile({ icon: Icon, label, value, tone = 'primary' }: Unmodelled) {
   const toneMap = {
     primary: 'text-primary',
     success: 'text-success',
@@ -672,19 +672,19 @@ const paymentStatusConfig = {
 };
 const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
 
-function formatDateTime(d) {
+function formatDateTime(d: Unmodelled) {
   if (!d) return '';
   return new Date(d).toLocaleString('en-IN', {
     day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 }
 
-function formatShortDate(d) {
+function formatShortDate(d: Unmodelled) {
   if (!d) return '';
   return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function calcAge(dob) {
+function calcAge(dob: Unmodelled) {
   if (!dob) return '';
   const birth = new Date(dob);
   const now = new Date();
@@ -694,7 +694,7 @@ function calcAge(dob) {
   return age >= 0 ? `${age} yrs` : '';
 }
 
-function PayInfoRow({ icon: Icon, label, value, color = 'text-muted-foreground' }) {
+function PayInfoRow({ icon: Icon, label, value, color = 'text-muted-foreground' }: Unmodelled) {
   if (!value) return null;
   return (
     <div className="flex items-center gap-2 py-0.5">
@@ -706,7 +706,7 @@ function PayInfoRow({ icon: Icon, label, value, color = 'text-muted-foreground' 
 }
 
 /* ── Payment card — patient ne doctor ko kiya payment, full details ke saath ── */
-function PaymentCard({ txn }) {
+function PaymentCard({ txn }: Unmodelled) {
   const isAppt = txn.serviceType === 'appointment';
   const isTest = txn.serviceType === 'test';
   const isMed = txn.serviceType === 'medicine';

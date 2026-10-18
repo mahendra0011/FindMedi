@@ -24,7 +24,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 import { isOfflineAppointment } from '@/lib/appointmentModes';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
 
@@ -65,8 +65,8 @@ export default function ClinicAppointments() {
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [prescriptionData, setPrescriptionData] = useState(prescriptionInitialState);
 
-  const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  const getFirstDay = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  const getDaysInMonth = (date: Unmodelled) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  const getFirstDay = (date: Unmodelled) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
   const loadAppointments = useCallback(async (searchParams = {}) => {
     setLoading(true);
@@ -136,7 +136,7 @@ export default function ClinicAppointments() {
            t.includes('voice') || t.includes('audio') || t.includes('video') || t.includes('chat') || t.includes('online');
   }).length;
 
-  const handleStatus = async (id, status, extra = {}) => {
+  const handleStatus = async (id: Unmodelled, status: Unmodelled, extra = {}) => {
     try { await api.updateAppointment(id, { status, ...extra }); loadAppointments(); } catch (e) { console.error(e); toast.error('Failed to update appointment'); }
   };
 
@@ -150,7 +150,7 @@ export default function ClinicAppointments() {
     } catch (e) { console.error(e); toast.error('Failed to reschedule appointment'); }
   };
 
-  const openPrescriptionModal = useCallback((apt) => {
+  const openPrescriptionModal = useCallback((apt: Unmodelled) => {
     setCompleteId(apt._id);
     setPrescriptionData({
       ...prescriptionInitialState,
@@ -162,7 +162,7 @@ export default function ClinicAppointments() {
 
   // Listen for "Write Prescription" from TodayAppointmentsSection
   useEffect(() => {
-    const handler = (e) => openPrescriptionModal(e.detail);
+    const handler = (e: Unmodelled) => openPrescriptionModal(e.detail);
     window.addEventListener('open-prescription', handler);
     return () => window.removeEventListener('open-prescription', handler);
   }, [openPrescriptionModal]);
@@ -170,10 +170,10 @@ export default function ClinicAppointments() {
   const addMedication = () => {
     setPrescriptionData({ ...prescriptionData, medications: [...prescriptionData.medications, { name: '', dosage: '', frequency: '', instructions: '' }] });
   };
-  const removeMedication = (index) => {
+  const removeMedication = (index: Unmodelled) => {
     setPrescriptionData({ ...prescriptionData, medications: prescriptionData.medications.filter((_, i) => i !== index) });
   };
-  const updateMedication = (index, field, value) => {
+  const updateMedication = (index: Unmodelled, field: Unmodelled, value: Unmodelled) => {
     const meds = [...prescriptionData.medications]; meds[index][field] = value;
     setPrescriptionData({ ...prescriptionData, medications: meds });
   };
@@ -237,12 +237,12 @@ export default function ClinicAppointments() {
     } catch (e) { console.error(e); }
   };
 
-  const handleDownloadPrescription = async (apt) => {
+  const handleDownloadPrescription = async (apt: Unmodelled) => {
     try {
       const pid = apt.patientId?._id || apt.patientId;
       const res = await api.getPatientRecords(pid);
       const recs = res?.records || res?.data || res || [];
-      const rx = recs.find(r => r.type === 'prescription');
+      const rx = recs.find((r: Unmodelled) => r.type === 'prescription');
       if (!rx) { toast.info('No prescription record found'); return; }
       toast.success('Opening prescription…');
       const att = rx.attachments?.[0];
@@ -476,8 +476,8 @@ export default function ClinicAppointments() {
         <ApproveAppointmentSection
           appointments={offlineAppointments}
           allAppointments={appointments}
-          onConfirm={(a) => handleStatus(a._id, 'Confirmed')}
-          onReject={(a, reason) => handleStatus(a._id, 'Cancelled', { notes: reason })}
+          onConfirm={(a: Unmodelled) => handleStatus(a._id, 'Confirmed')}
+          onReject={(a: Unmodelled, reason: Unmodelled) => handleStatus(a._id, 'Cancelled', { notes: reason })}
         />
       ) : (
         <TodayAppointmentsSection
@@ -486,7 +486,7 @@ export default function ClinicAppointments() {
           calendar={CalendarWidget}
           onRefresh={loadAppointments}
           user={user}
-          onViewDetails={(a) => setDetailsApt(a)}
+          onViewDetails={(a: Unmodelled) => setDetailsApt(a)}
         />
       )}
 

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const statusConfig = {
   Active: { label: 'Active', icon: CheckCircle, color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
@@ -46,13 +47,13 @@ export default function Patients() {
   const createMut = useMutation({ mutationFn: api.createPatient, onSuccess: () => { qc.invalidateQueries(['patients']); setModal(false); setForm(empty); } });
   const deleteMut = useMutation({ mutationFn: api.deletePatient, onSuccess: () => qc.invalidateQueries(['patients']) });
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const submit = (e) => { e.preventDefault(); createMut.mutate({ ...form, age: Number(form.age) }); };
+  const set = (k: Unmodelled, v: Unmodelled) => setForm(f => ({ ...f, [k]: v }));
+  const submit = (e: Unmodelled) => { e.preventDefault(); createMut.mutate({ ...form, age: Number(form.age) }); };
 
   const filters = ['', 'Active', 'Discharged', 'Critical'];
-  const activeCount = patients.filter(p => p.status === 'Active').length;
-  const criticalCount = patients.filter(p => p.status === 'Critical').length;
-  const dischargedCount = patients.filter(p => p.status === 'Discharged').length;
+  const activeCount = patients.filter((p: Unmodelled) => p.status === 'Active').length;
+  const criticalCount = patients.filter((p: Unmodelled) => p.status === 'Critical').length;
+  const dischargedCount = patients.filter((p: Unmodelled) => p.status === 'Discharged').length;
   const statValues = [patients.length, activeCount, dischargedCount, criticalCount];
 
   return (
@@ -147,7 +148,7 @@ export default function Patients() {
               {
                 key: 'name',
                 label: 'Patient',
-                render: (v, p) => (
+                render: (v: Unmodelled, p: Unmodelled) => (
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold shrink-0 shadow-sm ${
                       p.status === 'Critical'
@@ -168,13 +169,13 @@ export default function Patients() {
                   </div>
                 ),
               },
-              { key: 'age', label: 'Age / Gender', render: (v, p) => <span className="text-sm text-muted-foreground">{v} / {p.gender}</span> },
-              { key: 'disease', label: 'Diagnosis', render: (v) => <span className="text-sm text-foreground">{v || '—'}</span> },
-              { key: 'doctor', label: 'Doctor', render: (v) => <span className="text-sm text-muted-foreground">{v || '—'}</span> },
+              { key: 'age', label: 'Age / Gender', render: (v: Unmodelled, p: Unmodelled) => <span className="text-sm text-muted-foreground">{v} / {p.gender}</span> },
+              { key: 'disease', label: 'Diagnosis', render: (v: Unmodelled) => <span className="text-sm text-foreground">{v || '—'}</span> },
+              { key: 'doctor', label: 'Doctor', render: (v: Unmodelled) => <span className="text-sm text-muted-foreground">{v || '—'}</span> },
               {
                 key: 'admitted',
                 label: 'Admitted',
-                render: (v) => (
+                render: (v: Unmodelled) => (
                   <span className="text-xs text-muted-foreground">
                     {v ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted/50 text-[10px]">
@@ -188,7 +189,7 @@ export default function Patients() {
               {
                 key: 'status',
                 label: 'Status',
-                render: (v) => (
+                render: (v: Unmodelled) => (
                   <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold border ${
                     statusConfig[v]?.color || 'bg-muted text-muted-foreground border-border/40'
                   }`}>
@@ -200,7 +201,7 @@ export default function Patients() {
                 key: '_actions',
                 label: '',
                 sortable: false,
-                render: (_v, p) => (
+                render: (_v: Unmodelled, p: Unmodelled) => (
                   <button onClick={() => { if (confirm('Remove patient?')) deleteMut.mutate(p._id); }}
                     className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors">
                     <Trash2 className="w-4 h-4" />

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function LabPackages() {
   const [packages, setPackages] = useState<ApiRow[]>([]);
@@ -59,13 +59,13 @@ export default function LabPackages() {
     setSaving(false);
   };
 
-  const openEdit = (pkg) => {
+  const openEdit = (pkg: Unmodelled) => {
     setEditing(pkg);
     setName(pkg.name); setDescription(pkg.description || ''); setSelectedTests(pkg.tests); setDiscount(pkg.discount); setPrice(String(pkg.price));
     setShowForm(true);
   };
 
-  const toggleTest = (tid) => {
+  const toggleTest = (tid: Unmodelled) => {
     setSelectedTests(prev => prev.includes(tid) ? prev.filter(t => t !== tid) : [...prev, tid]);
   };
 
@@ -85,7 +85,7 @@ export default function LabPackages() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {packages.map((pkg, i) => {
-          const orig = pkg.tests.reduce((s, tid) => { const t = tests.find(tt => tt._id === tid); return s + (t?.price || 0); }, 0);
+          const orig = pkg.tests.reduce((s: Unmodelled, tid: Unmodelled) => { const t = tests.find(tt => tt._id === tid); return s + (t?.price || 0); }, 0);
           return (
             <motion.div key={pkg._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               className="bg-card rounded-2xl border border-border/60 p-6 hover:shadow-lg transition-all group relative overflow-hidden">
@@ -106,7 +106,7 @@ export default function LabPackages() {
                 <span className="text-xl font-bold text-foreground">₹{pkg.price.toLocaleString()}</span>
               </div>
               <div className="flex gap-1 mt-4 flex-wrap">
-                {pkg.tests.map(tid => {
+                {pkg.tests.map((tid: Unmodelled) => {
                   const t = tests.find(tt => tt._id === tid);
                   return t ? <Badge key={tid} variant="outline" className="text-xs">{t.name}</Badge> : null;
                 })}

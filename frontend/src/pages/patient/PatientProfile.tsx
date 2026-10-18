@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-const formatDate = (d) => {
+const formatDate = (d: Unmodelled) => {
   if (!d) return '';
   try { return d.includes('T') ? d.split('T')[0] : String(d).slice(0, 10); } catch { return ''; }
 };
@@ -20,7 +21,7 @@ export default function PatientProfile() {
     name: user?.name || '', email: user?.email || '', phone: user?.phone || '',
     address: user?.address || '', gender: user?.gender || '',
     dateOfBirth: formatDate(user?.dateOfBirth), bloodGroup: user?.bloodGroup || '',
-    allergies: user?.allergies?.map(a => a.allergen).join(', ') || '',
+    allergies: user?.allergies?.map((a: Unmodelled) => a.allergen).join(', ') || '',
   });
   const [saving, setSaving] = useState(false);
 

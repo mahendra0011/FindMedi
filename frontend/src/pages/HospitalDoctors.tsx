@@ -15,11 +15,11 @@ import BookingModal from '@/components/BookingModal';
 
 import { CANONICAL_SPECIALTIES } from '@/data/specialties';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const DEFAULT_SPECS = ['All', ...CANONICAL_SPECIALTIES.map(s => s.name)];
 
-function getSpecCard(spec) {
+function getSpecCard(spec: Unmodelled) {
   const v = getSpecialtyVisual(spec);
   return { icon: v.icon, color: v.color, textColor: v.textColor };
 }
@@ -33,7 +33,7 @@ const EXPERIENCE_RANGES = [
   { label: '10+ years', min: 10, max: 999 },
 ];
 
-function getExpYears(exp) {
+function getExpYears(exp: Unmodelled) {
   if (!exp) return 0;
   const m = exp.match(/(\d+)/);
   return m ? parseInt(m[1]) : 0;
@@ -147,7 +147,7 @@ export default function HospitalDoctors() {
     feeRange[0] > 0 || feeRange[1] < 2000, ratingFilter > 0,
   ].filter(Boolean).length;
 
-  const renderStars = (rating) => (
+  const renderStars = (rating: Unmodelled) => (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map(s => (
         <Star key={s} className={cn('w-3.5 h-3.5', s <= Math.round(rating) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30')} />
@@ -444,7 +444,7 @@ export default function HospitalDoctors() {
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/20 shadow-md shadow-primary/20 group-hover:scale-105 group-hover:shadow-xl group-hover:shadow-primary/30 transition-all duration-300">
                       {doc.profile_photo
                         ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
-                        : <span className="text-primary-foreground font-heading font-bold text-lg">{doc.initials || doc.name?.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</span>
+                        : <span className="text-primary-foreground font-heading font-bold text-lg">{doc.initials || doc.name?.split(' ').map((n: Unmodelled)=>n[0]).join('').slice(0,2).toUpperCase()}</span>
                       }
                     </div>
                     <div className="min-w-0 flex-1">
@@ -457,7 +457,7 @@ export default function HospitalDoctors() {
                       <p className="text-sm font-medium text-primary">{doc.specialization}</p>
                       {doc.qualifications && (
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {doc.qualifications.split(',').map(q => q.trim()).filter(Boolean).map(q => (
+                          {doc.qualifications.split(',').map((q: Unmodelled) => q.trim()).filter(Boolean).map((q: Unmodelled) => (
                             <Badge key={q} variant="secondary" className="text-[9px] h-4 px-1.5 bg-muted/50">{q}</Badge>
                           ))}
                         </div>
@@ -483,7 +483,7 @@ export default function HospitalDoctors() {
                   {doc.languages && (
                     <div className="flex items-center gap-1.5 mb-3 text-xs text-muted-foreground">
                       <span className="font-medium">Speaks:</span>
-                      {(Array.isArray(doc.languages) ? doc.languages : doc.languages.split(',')).map(l => l.trim()).filter(Boolean).map(l => (
+                      {(Array.isArray(doc.languages) ? doc.languages : doc.languages.split(',')).map((l: Unmodelled) => l.trim()).filter(Boolean).map((l: Unmodelled) => (
                         <Badge key={l} variant="secondary" className="text-[9px] h-4 px-1.5 bg-muted/50">{l}</Badge>
                       ))}
                     </div>

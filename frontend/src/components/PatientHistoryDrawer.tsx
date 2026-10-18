@@ -5,7 +5,7 @@ import {
 import { X, CalendarDays, Stethoscope, Pill, User, AlertCircle, FileText } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateUtils';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 /**
  * Bottom-sliding popup showing a returning patient's past visit history.
@@ -20,7 +20,7 @@ import type { ApiRow } from '@/lib/apiTypes';
  *  - patientName: string       (fallback name)
  *  - onOpenChange: fn(open)    (closes the drawer)
  */
-export default function PatientHistoryDrawer({ open, patient, patientName, onOpenChange }) {
+export default function PatientHistoryDrawer({ open, patient, patientName, onOpenChange }: Unmodelled) {
   const [records, setRecords] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -105,7 +105,7 @@ export default function PatientHistoryDrawer({ open, patient, patientName, onOpe
 /**
  * One past visit: date, type, doctor, diagnosis, notes, prescription.
  */
-function PastVisitCard({ record }) {
+function PastVisitCard({ record }: Unmodelled) {
   const date = record.date || (record.createdAt ? formatDisplayDate(record.createdAt.slice(0, 10)) : '—');
   const diagnosis = record.diagnosis || record.data?.diagnosis || '—';
   const notes = record.notes || record.data?.advice || '';
@@ -174,7 +174,7 @@ function PastVisitCard({ record }) {
             <Pill className="w-3 h-3" /> Prescription
           </span>
           <ul className="text-sm text-muted-foreground mt-1 space-y-0.5">
-            {medList.slice(0, 5).map((m, i) => (
+            {medList.slice(0, 5).map((m: Unmodelled, i: Unmodelled) => (
               <li key={i} className="flex items-start gap-1.5">
                 <span className="text-primary/50 mt-1">•</span>
                 <span>{m}</span>

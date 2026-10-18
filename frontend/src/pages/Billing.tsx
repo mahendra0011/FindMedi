@@ -7,6 +7,7 @@ import { DataGrid } from '@/components/ui/System';
 import { api, downloadInvoicePdf } from '@/lib/api';
 import { toast } from 'sonner';
 import PatientBanner from '@/components/clinical/PatientBanner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const statusCls = {
   Paid:    'bg-success/10 text-success',
@@ -53,15 +54,15 @@ export default function Billing() {
   const deleteMut = useMutation({ mutationFn: api.deleteBill, onSuccess: () => qc.invalidateQueries(['billing']) });
   const markPaidMut = useMutation({ mutationFn: ({ id, amount }) => api.updateBill(id, { status:'Paid', paid: amount }), onSuccess: () => qc.invalidateQueries(['billing']) });
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const submit = (e) => {
+  const set = (k: Unmodelled, v: Unmodelled) => setForm(f => ({ ...f, [k]: v }));
+  const submit = (e: Unmodelled) => {
     e.preventDefault();
     createMut.mutate({
       ...form, amount: Number(form.amount), discount: Number(form.discount) || 0, paid: Number(form.paid),
       ...(approval ? { approvalId: approval.id } : {}),
     });
   };
-  const downloadInvoice = async (bill) => {
+  const downloadInvoice = async (bill: Unmodelled) => {
     try {
       await downloadInvoicePdf(bill._id, `${bill.invoiceId || 'invoice'}.pdf`);
     } catch (error) {
@@ -193,17 +194,17 @@ export default function Billing() {
           /* Page owns search + status chips, so showSearch off; no server paging. */
           <DataGrid
             columns={[
-              { key: 'invoiceId', label: 'Invoice', sortable: false, render: (v) => <span className="text-xs font-mono text-muted-foreground">{v}</span> },
-              { key: 'patient', label: 'Patient', sortable: false, render: (v) => <span className="text-sm font-medium text-card-foreground">{v}</span> },
-              { key: 'doctor', label: 'Doctor', sortable: false, render: (v) => <span className="text-sm text-muted-foreground">{v}</span> },
-              { key: 'service', label: 'Service', sortable: false, render: (v) => <span className="text-sm text-muted-foreground max-w-[180px] truncate block">{v}</span> },
-              { key: 'amount', label: 'Amount', sortable: false, render: (v) => <span className="text-sm font-semibold text-card-foreground">₹{v?.toLocaleString()}</span> },
-              { key: 'paid', label: 'Paid', sortable: false, render: (v) => <span className="text-sm text-success font-medium">₹{v?.toLocaleString()}</span> },
-              { key: 'status', label: 'Status', sortable: false, render: (v) => <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusCls[v] ?? 'bg-muted text-muted-foreground'}`}>{v}</span> },
-              { key: 'dueDate', label: 'Due Date', sortable: false, render: (v) => <span className="text-xs text-muted-foreground">{v}</span> },
+              { key: 'invoiceId', label: 'Invoice', sortable: false, render: (v: Unmodelled) => <span className="text-xs font-mono text-muted-foreground">{v}</span> },
+              { key: 'patient', label: 'Patient', sortable: false, render: (v: Unmodelled) => <span className="text-sm font-medium text-card-foreground">{v}</span> },
+              { key: 'doctor', label: 'Doctor', sortable: false, render: (v: Unmodelled) => <span className="text-sm text-muted-foreground">{v}</span> },
+              { key: 'service', label: 'Service', sortable: false, render: (v: Unmodelled) => <span className="text-sm text-muted-foreground max-w-[180px] truncate block">{v}</span> },
+              { key: 'amount', label: 'Amount', sortable: false, render: (v: Unmodelled) => <span className="text-sm font-semibold text-card-foreground">₹{v?.toLocaleString()}</span> },
+              { key: 'paid', label: 'Paid', sortable: false, render: (v: Unmodelled) => <span className="text-sm text-success font-medium">₹{v?.toLocaleString()}</span> },
+              { key: 'status', label: 'Status', sortable: false, render: (v: Unmodelled) => <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusCls[v] ?? 'bg-muted text-muted-foreground'}`}>{v}</span> },
+              { key: 'dueDate', label: 'Due Date', sortable: false, render: (v: Unmodelled) => <span className="text-xs text-muted-foreground">{v}</span> },
               {
                 key: '_actions', label: '', sortable: false,
-                render: (_v, b) => (
+                render: (_v: Unmodelled, b: Unmodelled) => (
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                     <button onClick={() => downloadInvoice(b)}
                       className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Download Invoice">
@@ -228,8 +229,8 @@ export default function Billing() {
             empty="No invoices found"
             showSearch={false}
             manualPagination
-            onRowClick={(b) => setSelectedBill(selectedBill?._id === b._id ? null : b)}
-            rowClassName={(b) => (selectedBill?._id === b._id ? 'bg-muted/40' : '')}
+            onRowClick={(b: Unmodelled) => setSelectedBill(selectedBill?._id === b._id ? null : b)}
+            rowClassName={(b: Unmodelled) => (selectedBill?._id === b._id ? 'bg-muted/40' : '')}
           />
         )}
       </div>

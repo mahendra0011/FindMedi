@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import BookingModal from './BookingModal';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function ClinicCard({ clinic }) {
+export default function ClinicCard({ clinic }: Unmodelled) {
   const [showBooking, setShowBooking] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const fallbackDist = '0.8';
@@ -77,7 +78,7 @@ export default function ClinicCard({ clinic }) {
 
         {clinic.specialties?.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {clinic.specialties.slice(0, 3).map((spec) => (
+            {clinic.specialties.slice(0, 3).map((spec: Unmodelled) => (
               <Badge key={spec} variant="secondary" className="text-[10px] px-2 py-0.5 rounded-lg">
                 {spec.length > 12 ? spec.slice(0, 12) + '…' : spec}
               </Badge>
@@ -134,7 +135,7 @@ export default function ClinicCard({ clinic }) {
 
       <BookingModal
         open={showBooking}
-        onOpenChange={(open) => {
+        onOpenChange={(open: Unmodelled) => {
           setShowBooking(open);
           if (!open) setSelectedDoctor(null);
         }}

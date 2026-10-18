@@ -1,3 +1,4 @@
+import type { Unmodelled } from '@/lib/apiTypes';
 // PS-5: shared provider-dashboard helpers (was copy-pasted in Counsellor + Psychiatrist dashboards).
 
 const noteTemplates = [
@@ -77,7 +78,7 @@ function parseAvailabilityRows(items = []) {
     const text = String(item || "");
     const match = text.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*:?\s*(\d{1,2}:?\d{0,2})\s*(?:-|–|to)\s*(\d{1,2}:?\d{0,2})/i);
     const dayMap = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
-    const normalizeTime = (value, fallback) => {
+    const normalizeTime = (value: Unmodelled, fallback: Unmodelled) => {
       const raw = String(value || "").replace(/[^0-9:]/g, "");
       if (!raw) return fallback;
       if (raw.includes(":")) return raw.length === 4 ? `0${raw}` : raw;
@@ -104,7 +105,7 @@ function todayYMD() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function formatMoney(value) {
+function formatMoney(value: Unmodelled) {
   return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
 }
 
@@ -124,7 +125,7 @@ function fallbackBaseSessionPrice(profile: any = {}) {
   return Number(profile.sessionPricing) || (profile.counsellorType === "mentor" ? 299 : 599);
 }
 
-function counsellorPayout(value, commissionRate = 2) {
+function counsellorPayout(value: Unmodelled, commissionRate = 2) {
   return Math.max(0, Math.round(Number(value || 0) * ((100 - Number(commissionRate || 2)) / 100)));
 }
 
@@ -145,7 +146,7 @@ function counsellingModeLabel(mode = "") {
   return labels[mode] || mode || "Google Meet";
 }
 
-const modeLabel = (v) => ({ "video-chat": "Video+Chat", "chat-only": "Chat Only", "google-meet": "Video", "in-person": "Visit+Video", "voice-call": "Voice" })[v] || v || "Meet";
+const modeLabel = (v: Unmodelled) => ({ "video-chat": "Video+Chat", "chat-only": "Chat Only", "google-meet": "Video", "in-person": "Visit+Video", "voice-call": "Voice" })[v] || v || "Meet";
 
 function initials(name = "MS") {
   return name
@@ -158,7 +159,7 @@ function initials(name = "MS") {
 
 
 
-function normalizeNotification(item) {
+function normalizeNotification(item: Unmodelled) {
   if (typeof item === "string") return { title: item.split(":")[0] || "Notice", message: item.split(":").slice(1).join(":").trim() || item };
   return item || { title: "Notice", message: "" };
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import "./ElectricBorder.css";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const ElectricBorder = ({
   children,
@@ -10,17 +11,17 @@ const ElectricBorder = ({
   className,
   style,
   ...props
-}) => {
+}: Unmodelled) => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const animationRef = useRef(null);
   const timeRef = useRef(0);
   const lastFrameTimeRef = useRef(0);
 
-  const random = useCallback((x) => (Math.sin(x * 12.9898) * 43758.5453) % 1, []);
+  const random = useCallback((x: Unmodelled) => (Math.sin(x * 12.9898) * 43758.5453) % 1, []);
 
   const noise2D = useCallback(
-    (x, y) => {
+    (x: Unmodelled, y: Unmodelled) => {
       const i = Math.floor(x);
       const j = Math.floor(y);
       const fx = x - i;
@@ -40,7 +41,7 @@ const ElectricBorder = ({
   );
 
   const octavedNoise = useCallback(
-    (x, octaves, lacunarity, gain, baseAmplitude, baseFrequency, time, seed, baseFlatness) => {
+    (x: Unmodelled, octaves: Unmodelled, lacunarity: Unmodelled, gain: Unmodelled, baseAmplitude: Unmodelled, baseFrequency: Unmodelled, time: Unmodelled, seed: Unmodelled, baseFlatness: Unmodelled) => {
       let y = 0;
       let amplitude = baseAmplitude;
       let frequency = baseFrequency;
@@ -58,7 +59,7 @@ const ElectricBorder = ({
     [noise2D]
   );
 
-  const getCornerPoint = useCallback((centerX, centerY, radius, startAngle, arcLength, progress) => {
+  const getCornerPoint = useCallback((centerX: Unmodelled, centerY: Unmodelled, radius: Unmodelled, startAngle: Unmodelled, arcLength: Unmodelled, progress: Unmodelled) => {
     const angle = startAngle + progress * arcLength;
     return {
       x: centerX + radius * Math.cos(angle),
@@ -67,7 +68,7 @@ const ElectricBorder = ({
   }, []);
 
   const getRoundedRectPoint = useCallback(
-    (t, left, top, width, height, radius) => {
+    (t: Unmodelled, left: Unmodelled, top: Unmodelled, width: Unmodelled, height: Unmodelled, radius: Unmodelled) => {
       const straightWidth = width - 2 * radius;
       const straightHeight = height - 2 * radius;
       const cornerArc = (Math.PI * radius) / 2;
@@ -158,7 +159,7 @@ const ElectricBorder = ({
 
     let { width, height } = updateSize();
 
-    const drawElectricBorder = (currentTime) => {
+    const drawElectricBorder = (currentTime: Unmodelled) => {
       const deltaTime = (currentTime - lastFrameTimeRef.current) / 1000;
       timeRef.current += deltaTime * speed;
       lastFrameTimeRef.current = currentTime;

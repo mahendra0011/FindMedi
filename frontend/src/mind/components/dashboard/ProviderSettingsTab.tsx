@@ -34,6 +34,7 @@ import {
   counsellorPayout,
   initials,
 } from "@/mind/lib/providerDashboardShared";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export function ProviderSettingsTab({
   theme,
@@ -66,7 +67,7 @@ export function ProviderSettingsTab({
   notificationSettings,
   setNotificationSettings,
   mode,
-}) {
+}: Unmodelled) {
   return (
     <div className="space-y-6">
       {/* Theme Selection + Quick Profile */}
@@ -128,7 +129,7 @@ export function ProviderSettingsTab({
             <div className="grid gap-2">
               <ProfileLine label="Status" value={data.profile?.verificationBadge || "Verified Professional"} />
               <ProfileLine label="Type" value={data.profile?.counsellorType || "professional"} />
-              <ProfileLine label="Packages" value={`${customPackages.filter((p) => p.name).length || packagePricePlans.length} active + One-Time`} />
+              <ProfileLine label="Packages" value={`${customPackages.filter((p: Unmodelled) => p.name).length || packagePricePlans.length} active + One-Time`} />
               <ProfileLine label="Meet" value={data.stats?.googleMeetReady ? "Ready" : "Link needed"} />
               <ProfileLine label="Rating" value={`${data.stats?.rating || 4.8}/5`} />
             </div>
@@ -168,7 +169,7 @@ export function ProviderSettingsTab({
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {customPackages.map((pkg, idx) => (
+              {customPackages.map((pkg: Unmodelled, idx: Unmodelled) => (
                 <div key={pkg.id} className="group relative rounded-2xl border border-glass-border/40 bg-background/65 p-4 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
                   <div className="absolute -right-2 -top-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
@@ -289,7 +290,7 @@ export function ProviderSettingsTab({
             </div>
           )}
 
-          <Button onClick={saveCustomPackages} className="w-full gap-2" disabled={!customPackages.some((p) => p.name.trim())}>
+          <Button onClick={saveCustomPackages} className="w-full gap-2" disabled={!customPackages.some((p: Unmodelled) => p.name.trim())}>
             <Package className="h-4 w-4" />
             Save All Packages
           </Button>
@@ -310,18 +311,18 @@ export function ProviderSettingsTab({
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="text-sm font-medium">Specialization</label>
-                <Input className="mt-1.5" value={profileDraft.specialization} onChange={(event) => setProfileDraft((current) => ({ ...current, specialization: event.target.value }))} placeholder="Relationship Therapist" />
+                <Input className="mt-1.5" value={profileDraft.specialization} onChange={(event) => setProfileDraft((current: Unmodelled) => ({ ...current, specialization: event.target.value }))} placeholder="Relationship Therapist" />
               </div>
               <div>
                 <label className="text-sm font-medium">Location</label>
-                <Input className="mt-1.5" value={profileDraft.location} onChange={(event) => setProfileDraft((current) => ({ ...current, location: event.target.value }))} placeholder="Mumbai, IN" />
+                <Input className="mt-1.5" value={profileDraft.location} onChange={(event) => setProfileDraft((current: Unmodelled) => ({ ...current, location: event.target.value }))} placeholder="Mumbai, IN" />
               </div>
               <div>
                 <label className="text-sm font-medium">Clinic / Practice Name</label>
                 <Input
                   className="mt-1.5"
                   value={profileDraft.clinicName || ""}
-                  onChange={(event) => setProfileDraft((current) => ({ ...current, clinicName: event.target.value }))}
+                  onChange={(event) => setProfileDraft((current: Unmodelled) => ({ ...current, clinicName: event.target.value }))}
                   placeholder="e.g. MindCare Clinic, Delhi"
                 />
                 <p className="text-xs text-slate-400 mt-1">This will appear on your profile and package bookings</p>
@@ -331,7 +332,7 @@ export function ProviderSettingsTab({
                 <Input
                   className="mt-1.5"
                   value={profileDraft.clinicAddress || ""}
-                  onChange={(event) => setProfileDraft((current) => ({ ...current, clinicAddress: event.target.value }))}
+                  onChange={(event) => setProfileDraft((current: Unmodelled) => ({ ...current, clinicAddress: event.target.value }))}
                   placeholder="e.g. 123, Park Street, Colaba"
                 />
               </div>
@@ -340,17 +341,17 @@ export function ProviderSettingsTab({
                 <Input
                   className="mt-1.5"
                   value={profileDraft.city || ""}
-                  onChange={(event) => setProfileDraft((current) => ({ ...current, city: event.target.value }))}
+                  onChange={(event) => setProfileDraft((current: Unmodelled) => ({ ...current, city: event.target.value }))}
                   placeholder="e.g. Mumbai, Delhi, Bangalore"
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">Education</label>
-                <Input className="mt-1.5" value={profileDraft.education} onChange={(event) => setProfileDraft((current) => ({ ...current, education: event.target.value }))} placeholder="MA Clinical Psychology" />
+                <Input className="mt-1.5" value={profileDraft.education} onChange={(event) => setProfileDraft((current: Unmodelled) => ({ ...current, education: event.target.value }))} placeholder="MA Clinical Psychology" />
               </div>
               <div>
                 <label className="text-sm font-medium">Response time</label>
-                <Input className="mt-1.5" value={profileDraft.responseTime} onChange={(event) => setProfileDraft((current) => ({ ...current, responseTime: event.target.value }))} placeholder="Within 24 hours" />
+                <Input className="mt-1.5" value={profileDraft.responseTime} onChange={(event) => setProfileDraft((current: Unmodelled) => ({ ...current, responseTime: event.target.value }))} placeholder="Within 24 hours" />
               </div>
             </div>
 
@@ -382,7 +383,7 @@ export function ProviderSettingsTab({
 
             <div>
               <label className="text-sm font-medium">About / bio</label>
-              <Textarea className="mt-1.5 min-h-24" value={profileDraft.bio} onChange={(event) => setProfileDraft((current) => ({ ...current, bio: event.target.value }))} placeholder="Describe your care style, approach, and the users you support." />
+              <Textarea className="mt-1.5 min-h-24" value={profileDraft.bio} onChange={(event) => setProfileDraft((current: Unmodelled) => ({ ...current, bio: event.target.value }))} placeholder="Describe your care style, approach, and the users you support." />
             </div>
 
             <div className="flex items-center gap-4">
@@ -421,18 +422,18 @@ export function ProviderSettingsTab({
               bookingEnabled={bookingEnabled}
               setBookingEnabled={setBookingEnabled}
               rows={availabilityRows}
-              onRowChange={(id, key, value) => setAvailabilityRows((current) => current.map((row) => (row.id === id ? { ...row, [key]: value } : row)))}
-              onAddRow={() => setAvailabilityRows((current) => [...current, newAvailabilityRow(dayOptions[current.length % dayOptions.length], "10:00", "16:00")])}
-              onRemoveRow={(id) => setAvailabilityRows((current) => (current.length > 1 ? current.filter((row) => row.id !== id) : current))}
+              onRowChange={(id: Unmodelled, key: Unmodelled, value: Unmodelled) => setAvailabilityRows((current: Unmodelled) => current.map((row: Unmodelled) => (row.id === id ? { ...row, [key]: value } : row)))}
+              onAddRow={() => setAvailabilityRows((current: Unmodelled) => [...current, newAvailabilityRow(dayOptions[current.length % dayOptions.length], "10:00", "16:00")])}
+              onRemoveRow={(id: Unmodelled) => setAvailabilityRows((current: Unmodelled) => (current.length > 1 ? current.filter((row: Unmodelled) => row.id !== id) : current))}
               unavailableDates={unavailableDates}
               unavailableDateDraft={unavailableDateDraft}
               setUnavailableDateDraft={setUnavailableDateDraft}
               onAddUnavailableDate={() => {
                 if (!unavailableDateDraft || unavailableDates.includes(unavailableDateDraft)) return;
-                setUnavailableDates((current) => [...current, unavailableDateDraft].sort());
+                setUnavailableDates((current: Unmodelled) => [...current, unavailableDateDraft].sort());
                 setUnavailableDateDraft("");
               }}
-              onRemoveUnavailableDate={(date) => setUnavailableDates((current) => current.filter((item) => item !== date))}
+              onRemoveUnavailableDate={(date: Unmodelled) => setUnavailableDates((current: Unmodelled) => current.filter((item: Unmodelled) => item !== date))}
               onSave={saveProfileTools}
             />
 
@@ -456,20 +457,20 @@ export function ProviderSettingsTab({
           <CardContent className="space-y-3 pt-5">
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-wide text-foreground/45 font-medium">Privacy</p>
-              <SettingToggle title="Show online status" text="Active indicator in secure chat." checked={privacySettings.showOnlineStatus} onToggle={() => setPrivacySettings((current) => ({ ...current, showOnlineStatus: !current.showOnlineStatus }))} />
-              <SettingToggle title="Allow patient messages" text="Let approved patients send follow-ups." checked={privacySettings.allowMessages} onToggle={() => setPrivacySettings((current) => ({ ...current, allowMessages: !current.allowMessages }))} />
-              <SettingToggle title="Share progress insights" text="Use patient progress in care planning cards." checked={privacySettings.shareProgressWithCounsellor} onToggle={() => setPrivacySettings((current) => ({ ...current, shareProgressWithCounsellor: !current.shareProgressWithCounsellor }))} />
+              <SettingToggle title="Show online status" text="Active indicator in secure chat." checked={privacySettings.showOnlineStatus} onToggle={() => setPrivacySettings((current: Unmodelled) => ({ ...current, showOnlineStatus: !current.showOnlineStatus }))} />
+              <SettingToggle title="Allow patient messages" text="Let approved patients send follow-ups." checked={privacySettings.allowMessages} onToggle={() => setPrivacySettings((current: Unmodelled) => ({ ...current, allowMessages: !current.allowMessages }))} />
+              <SettingToggle title="Share progress insights" text="Use patient progress in care planning cards." checked={privacySettings.shareProgressWithCounsellor} onToggle={() => setPrivacySettings((current: Unmodelled) => ({ ...current, shareProgressWithCounsellor: !current.shareProgressWithCounsellor }))} />
               <div>
                 <label className="text-sm font-medium">Anonymous alias</label>
-                <Input className="mt-1.5" value={privacySettings.anonymousDisplayName || ""} onChange={(event) => setPrivacySettings((current) => ({ ...current, anonymousDisplayName: event.target.value }))} placeholder={`MindSupport ${mode === "counsellor" ? "Counsellor" : "Psychiatrist"}`} />
+                <Input className="mt-1.5" value={privacySettings.anonymousDisplayName || ""} onChange={(event) => setPrivacySettings((current: Unmodelled) => ({ ...current, anonymousDisplayName: event.target.value }))} placeholder={`MindSupport ${mode === "counsellor" ? "Counsellor" : "Psychiatrist"}`} />
               </div>
             </div>
             <div className="pt-2 space-y-2">
               <p className="text-xs uppercase tracking-wide text-foreground/45 font-medium">Notifications</p>
-              <SettingToggle icon={CalendarCheck} title="Session reminders" text="Bookings, reschedules, cancellations." checked={notificationSettings.session} onToggle={() => setNotificationSettings((current) => ({ ...current, session: !current.session }))} />
-              <SettingToggle icon={MessageCircle} title="Chat messages" text="New patient messages and replies." checked={notificationSettings.messages} onToggle={() => setNotificationSettings((current) => ({ ...current, messages: !current.messages }))} />
-              <SettingToggle icon={CreditCard} title="Payment updates" text="Payout and platform fee notices." checked={notificationSettings.payments} onToggle={() => setNotificationSettings((current) => ({ ...current, payments: !current.payments }))} />
-              <SettingToggle icon={AlertTriangle} title="Emergency alerts" text="SOS and safety escalation notices." checked={notificationSettings.emergency} onToggle={() => setNotificationSettings((current) => ({ ...current, emergency: !current.emergency }))} />
+              <SettingToggle icon={CalendarCheck} title="Session reminders" text="Bookings, reschedules, cancellations." checked={notificationSettings.session} onToggle={() => setNotificationSettings((current: Unmodelled) => ({ ...current, session: !current.session }))} />
+              <SettingToggle icon={MessageCircle} title="Chat messages" text="New patient messages and replies." checked={notificationSettings.messages} onToggle={() => setNotificationSettings((current: Unmodelled) => ({ ...current, messages: !current.messages }))} />
+              <SettingToggle icon={CreditCard} title="Payment updates" text="Payout and platform fee notices." checked={notificationSettings.payments} onToggle={() => setNotificationSettings((current: Unmodelled) => ({ ...current, payments: !current.payments }))} />
+              <SettingToggle icon={AlertTriangle} title="Emergency alerts" text="SOS and safety escalation notices." checked={notificationSettings.emergency} onToggle={() => setNotificationSettings((current: Unmodelled) => ({ ...current, emergency: !current.emergency }))} />
             </div>
           </CardContent>
         </Card>

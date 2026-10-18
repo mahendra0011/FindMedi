@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const severityColors = {
   Critical: { bg: 'bg-red-500/10', text: 'text-red-600', border: 'border-red-500', icon: '🚨' },
@@ -61,7 +62,7 @@ const [assignModal, setAssignModal] = useState<any>(null);
     setLoading(false);
   };
 
-  const handleAssignDoctor = async (caseId, doctorId, doctorName) => {
+  const handleAssignDoctor = async (caseId: Unmodelled, doctorId: Unmodelled, doctorName: Unmodelled) => {
     try {
       await api.assignEmergencyDoctor(caseId, doctorId, doctorName);
       loadData();

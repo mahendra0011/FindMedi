@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { formatDisplayDate, getISTDateString } from '@/lib/dateUtils';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function DoctorCallRoom() {
   const { appointmentId } = useParams();
@@ -46,7 +47,7 @@ export default function DoctorCallRoom() {
         // Note: Replace with specific getAppointment if available in API
         const data = await api.getAppointments({ status: 'All', limit: 200 });
         const all = data?.appointments || data?.data || data || [];
-        const apt = all.find(a => a._id === appointmentId);
+        const apt = all.find((a: Unmodelled) => a._id === appointmentId);
         
         if (!apt) {
           toast.error('Appointment not found');
@@ -81,7 +82,7 @@ export default function DoctorCallRoom() {
     return () => clearInterval(timer);
   }, []);
 
-  const formatTime = (secs) => {
+  const formatTime = (secs: Unmodelled) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
     const s = (secs % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
@@ -138,13 +139,13 @@ export default function DoctorCallRoom() {
     }
   };
 
-  const updateMedication = (index, field, value) => {
+  const updateMedication = (index: Unmodelled, field: Unmodelled, value: Unmodelled) => {
     const meds = [...medications];
     meds[index][field] = value;
     setMedications(meds);
   };
 
-  const removeMedication = (index) => {
+  const removeMedication = (index: Unmodelled) => {
     setMedications(medications.filter((_, i) => i !== index));
   };
 

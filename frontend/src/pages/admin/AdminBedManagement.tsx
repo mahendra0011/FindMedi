@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const WARDS = ['General', 'Semi-Private', 'Private', 'ICU', 'NICU', 'PICU', 'Emergency'];
 const BED_TYPES = ['General', 'Semi-Private', 'Private', 'ICU', 'NICU', 'PICU'];
@@ -58,7 +59,7 @@ export default function AdminBedManagement() {
     } catch { toast.error(editId ? 'Failed to update bed' : 'Failed to create bed'); }
   };
 
-  const handleEdit = (bed) => {
+  const handleEdit = (bed: Unmodelled) => {
     setForm({
       bedNumber: bed.bedNumber,
       ward: bed.ward,
@@ -71,7 +72,7 @@ export default function AdminBedManagement() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Permanently delete this bed?')) return;
     try { await api.deleteBed(id); loadBeds(); } catch { toast.error('Failed to delete bed'); }
   };
@@ -122,10 +123,10 @@ export default function AdminBedManagement() {
             }, {})
           ).map(([floor, list]) => (
             <div key={floor} className="rounded-2xl border border-border/60 p-4">
-              <p className="text-sm font-bold mb-3">Floor: {floor} <span className="text-muted-foreground font-normal">({list.length} beds · {list.filter(b => b.status === 'Available').length} free)</span></p>
+              <p className="text-sm font-bold mb-3">Floor: {floor} <span className="text-muted-foreground font-normal">({list.length} beds · {list.filter((b: Unmodelled) => b.status === 'Available').length} free)</span></p>
               <div className="space-y-3">
                 {Object.entries(
-                  list.reduce((acc, b) => {
+                  list.reduce((acc: Unmodelled, b: Unmodelled) => {
                     (acc[b.ward || 'General'] = acc[b.ward || 'General'] || []).push(b);
                     return acc;
                   }, {})
@@ -133,7 +134,7 @@ export default function AdminBedManagement() {
                   <div key={ward}>
                     <p className="text-xs font-semibold text-muted-foreground mb-1.5">{ward}</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {beds.map((b) => (
+                      {beds.map((b: Unmodelled) => (
                         <span key={b._id} title={`${b.bedNumber} — ${b.status}`}
                           className={`w-9 h-9 rounded-lg flex items-center justify-center text-[10px] font-bold border ${b.status === 'Available' ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' : b.status === 'Occupied' ? 'bg-red-500/15 text-red-700 border-red-500/30' : 'bg-amber-500/15 text-amber-700 border-amber-500/30'}`}>
                           {String(b.bedNumber).slice(-3)}

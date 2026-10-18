@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = {
   approved: 'bg-success/10 text-success',
@@ -50,9 +50,9 @@ export default function PlatformStats() {
 
   const maxStat = Math.max(stats.approved, stats.pending, stats.rejected, stats.suspended, 1);
   const weeklyData = trendData?.weeklyAppointments || [];
-  const maxWeekly = Math.max(...weeklyData.map(w => w.count), 1);
+  const maxWeekly = Math.max(...weeklyData.map((w: Unmodelled) => w.count), 1);
   const revenueTrend = trendData?.revenueData || commissionStats?.monthlyTrend || [];
-  const maxRevenue = Math.max(...revenueTrend.map(r => r.revenue || r.earnings || 0), 1);
+  const maxRevenue = Math.max(...revenueTrend.map((r: Unmodelled) => r.revenue || r.earnings || 0), 1);
 
   const growthRate = weeklyData.length >= 2
     ? ((weeklyData[weeklyData.length - 1].count - weeklyData[0].count) / Math.max(weeklyData[0].count, 1) * 100).toFixed(1)
@@ -111,7 +111,7 @@ export default function PlatformStats() {
               <div className="py-10 text-center text-muted-foreground text-sm">No appointment data yet</div>
             ) : (
               <div className="flex items-end gap-2 h-48">
-                {weeklyData.map((w, i) => (
+                {weeklyData.map((w: Unmodelled, i: Unmodelled) => (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
                     <span className="text-[10px] font-medium text-foreground">{w.count}</span>
                     <div
@@ -138,7 +138,7 @@ export default function PlatformStats() {
               <div className="py-10 text-center text-muted-foreground text-sm">No revenue data yet</div>
             ) : (
               <div className="space-y-2">
-                {revenueTrend.map((m, i) => {
+                {revenueTrend.map((m: Unmodelled, i: Unmodelled) => {
                   const val = m.revenue || m.earnings || 0;
                   return (
                     <div key={i}>
@@ -214,7 +214,7 @@ export default function PlatformStats() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {commissionStats.sourceBreakdown.map((s, i) => (
+              {commissionStats.sourceBreakdown.map((s: Unmodelled, i: Unmodelled) => (
                 <div key={i} className="p-4 rounded-xl bg-muted/50">
                   <p className="text-lg font-bold text-foreground">₹{(s.earnings || s.amount || 0).toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground mt-1 capitalize">{s._id || s.source || 'Unknown'}</p>

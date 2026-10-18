@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { userFacingError } from '@/lib/errorCopy';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function AmbulanceSetup() {
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ export default function AmbulanceSetup() {
     setStep('setup');
   }, [code]);
 
-  const handleSetup = async (e) => {
+  const handleSetup = async (e: Unmodelled) => {
     e.preventDefault();
     setError('');
     if (password.length < 12) {

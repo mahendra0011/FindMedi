@@ -21,7 +21,7 @@ import { api, resolveFileUrl } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const CATEGORIES = ['All', 'MRI', 'CT Scan', 'X-Ray', 'Ultrasound', 'Mammography'];
 
@@ -48,7 +48,7 @@ const PACKAGES = [
 
 const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 }, transition: { type: 'spring', stiffness: 200, damping: 22 } };
 
-const SectionTitle = ({ icon: Icon, label }) => (
+const SectionTitle = ({ icon: Icon, label }: Unmodelled) => (
   <h2 className="font-heading text-lg font-bold text-foreground mb-5 flex items-center gap-2">
     <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
       <Icon className="w-3.5 h-3.5 text-primary" />
@@ -57,7 +57,7 @@ const SectionTitle = ({ icon: Icon, label }) => (
   </h2>
 );
 
-const SectionCard = ({ icon: Icon, title, children }) => (
+const SectionCard = ({ icon: Icon, title, children }: Unmodelled) => (
   <div className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm">
     <div className="px-5 py-4 border-b border-border/30 bg-gradient-to-r from-blue-500/[0.04] to-transparent">
       <h3 className="font-heading font-bold text-foreground flex items-center gap-2.5 text-base">
@@ -71,7 +71,7 @@ const SectionCard = ({ icon: Icon, title, children }) => (
   </div>
 );
 
-const SidebarCard = ({ icon: Icon, title, children }) => (
+const SidebarCard = ({ icon: Icon, title, children }: Unmodelled) => (
   <div className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm">
     <div className="px-5 py-4 border-b border-border/30">
       <h3 className="font-heading font-bold text-foreground flex items-center gap-2 text-sm">
@@ -85,9 +85,9 @@ const SidebarCard = ({ icon: Icon, title, children }) => (
   </div>
 );
 
-function deriveCategory(f) {
-  const s = (f?.specialties || []).map(x => x.toLowerCase());
-  const hasImaging = s.some(x => x.includes('imaging') || x.includes('radiology') || x.includes('mri') || x.includes('ct') || x.includes('ultrasound'));
+function deriveCategory(f: Unmodelled) {
+  const s = (f?.specialties || []).map((x: Unmodelled) => x.toLowerCase());
+  const hasImaging = s.some((x: Unmodelled) => x.includes('imaging') || x.includes('radiology') || x.includes('mri') || x.includes('ct') || x.includes('ultrasound'));
   return hasImaging ? 'Imaging Center' : 'Diagnostic Center';
 }
 
@@ -156,7 +156,7 @@ export default function ImagingCenterDetail() {
           }).catch(() => []),
           api.getReviews({ hospitalId: clinicId }).catch(() => []),
         ]);
-        const tests = (Array.isArray(testsRes) ? testsRes : testsRes?.tests || ALL_TESTS).map(t => {
+        const tests = (Array.isArray(testsRes) ? testsRes : testsRes?.tests || ALL_TESTS).map((t: Unmodelled) => {
           const mrp = t.mrp || t.price || 2000;
           const price = t.price || t.sellingPrice || mrp / 2;
           return ({
@@ -184,13 +184,13 @@ export default function ImagingCenterDetail() {
 
   const clinicTests = allTests;
   const clinicPackages = packages;
-  const clinicEntries = entries.filter(e => e.item.clinicId === clinic?._id);
-  const clinicCartCount = clinicEntries.reduce((s, e) => s + e.qty, 0);
-  const clinicCartTotal = clinicEntries.reduce((s, e) => s + e.item.price * e.qty, 0);
+  const clinicEntries = entries.filter((e: Unmodelled) => e.item.clinicId === clinic?._id);
+  const clinicCartCount = clinicEntries.reduce((s: Unmodelled, e: Unmodelled) => s + e.qty, 0);
+  const clinicCartTotal = clinicEntries.reduce((s: Unmodelled, e: Unmodelled) => s + e.item.price * e.qty, 0);
 
   const displayReviews = reviewsData.length > 0 ? reviewsData : [];
 
-  const renderStars = (r, size = 'w-3.5 h-3.5') => (
+  const renderStars = (r: Unmodelled, size = 'w-3.5 h-3.5') => (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map(s => (
         <Star key={s} className={cn(size, s <= Math.round(r) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />
@@ -198,14 +198,14 @@ export default function ImagingCenterDetail() {
     </div>
   );
 
-  const handleCopyCode = (code) => {
+  const handleCopyCode = (code: Unmodelled) => {
     navigator.clipboard?.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const renderTestCard = (test) => {
-    const entry = clinicEntries.find(e => e.item.id === test.id);
+  const renderTestCard = (test: Unmodelled) => {
+    const entry = clinicEntries.find((e: Unmodelled) => e.item.id === test.id);
     return (
       <div key={test.id} className="bg-background rounded-xl border border-border/50 p-4 hover:shadow-lg hover:border-blue-500/20 transition-all">
         <div className="flex items-start gap-3">
@@ -345,7 +345,7 @@ export default function ImagingCenterDetail() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              {clinic.tags.map(t => (
+              {clinic.tags.map((t: Unmodelled) => (
                 <Badge key={t} className="text-[11px] px-3 py-1 bg-muted/50 border-border/40 hover:bg-muted/80 transition-colors">
                   {t.includes('MRI') && <Radio className="w-3 h-3 mr-1 text-blue-500" />}
                   {t.includes('CT') && <Scan className="w-3 h-3 mr-1 text-indigo-500" />}
@@ -467,7 +467,7 @@ export default function ImagingCenterDetail() {
                         <div className="min-w-0 flex-1">
                           <h4 className="font-heading font-bold text-foreground text-sm">{pkg.name}</h4>
                           <div className="flex flex-wrap gap-1.5 mt-2">
-                            {pkg.includes.map((inc, j) => (
+                            {pkg.includes.map((inc: Unmodelled, j: Unmodelled) => (
                               <span key={j} className="text-[10px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md border border-border/30">
                                 {inc}
                               </span>
@@ -597,7 +597,7 @@ export default function ImagingCenterDetail() {
             {clinic.offers.length > 0 && (
               <SectionCard icon={Tag} title={`Offers & Deals (${clinic.offers.length})`}>
                 <div className="space-y-3">
-                  {clinic.offers.map((offer, i) => (
+                  {clinic.offers.map((offer: Unmodelled, i: Unmodelled) => (
                     <motion.div key={i} {...fadeUp(i)}
                       className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-blue-500/5 via-blue-500/[0.02] to-transparent border border-blue-500/10 hover:border-blue-500/20 hover:shadow-sm transition-all">
                       <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex items-center justify-center shrink-0 shadow-sm">

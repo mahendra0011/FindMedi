@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const CATEGORY_ICONS = {
   payment: CreditCard, sms: MessageSquare, email: Mail, storage: HardDrive,
@@ -43,14 +43,14 @@ export default function Integrations() {
 
   useEffect(() => { load(); }, []);
 
-  const loadWebhooks = async (provider) => {
+  const loadWebhooks = async (provider: Unmodelled) => {
     try {
       const res = await api.getWebhooks(provider);
       setWebhooks(res.webhooks || []);
     } catch { setWebhooks([]); }
   };
 
-  const handleToggle = async (integration) => {
+  const handleToggle = async (integration: Unmodelled) => {
     try {
       await api.updateIntegration(integration.provider, { isEnabled: !integration.isEnabled });
       toast.success(`${integration.label} ${integration.isEnabled ? 'disabled' : 'enabled'}`);
@@ -58,14 +58,14 @@ export default function Integrations() {
     } catch { toast.error('Failed to update'); }
   };
 
-  const handleSaveConfig = async (integration) => {
+  const handleSaveConfig = async (integration: Unmodelled) => {
     try {
       await api.updateIntegration(integration.provider, { config: integration.config });
       toast.success(`${integration.label} config saved`);
     } catch { toast.error('Failed to save'); }
   };
 
-  const handleTest = async (provider) => {
+  const handleTest = async (provider: Unmodelled) => {
     try {
       const res = await api.testIntegration(provider);
       toast.success(`Test ${res.status}`);
@@ -73,7 +73,7 @@ export default function Integrations() {
     } catch { toast.error('Test failed'); }
   };
 
-  const handleAddWebhook = async (provider) => {
+  const handleAddWebhook = async (provider: Unmodelled) => {
     if (!whForm.name || !whForm.url) return toast.error('Name and URL required');
     try {
       await api.createWebhook(provider, { ...whForm, events: whForm.events.split(',').map(e => e.trim()).filter(Boolean) });
@@ -84,7 +84,7 @@ export default function Integrations() {
     } catch { toast.error('Failed to add webhook'); }
   };
 
-  const handleDeleteWebhook = async (provider, webhookId) => {
+  const handleDeleteWebhook = async (provider: Unmodelled, webhookId: Unmodelled) => {
     if (!confirm('Delete this webhook?')) return;
     try { await api.deleteWebhook(provider, webhookId); loadWebhooks(provider); } catch { toast.error('Failed to delete'); }
   };
@@ -116,7 +116,7 @@ export default function Integrations() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {items.map(integration => (
+                {items.map((integration: Unmodelled) => (
                   <div key={integration._id} className="rounded-xl border p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">

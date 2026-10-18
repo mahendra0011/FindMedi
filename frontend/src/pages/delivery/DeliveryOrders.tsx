@@ -12,11 +12,12 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { getSocket, joinRoom } from '@/lib/socket';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const LAB_TYPES = ['lab_report', 'lab_sample'];
-const isLabTask = (d) => LAB_TYPES.includes(d?.serviceType);
-const taskFee = (d) => d?.deliveryFee ?? d?.orderRef?.deliveryFee ?? 0;
-const taskContact = (d) => d?.patientPhone || d?.orderRef?.phone || '';
+const isLabTask = (d: Unmodelled) => LAB_TYPES.includes(d?.serviceType);
+const taskFee = (d: Unmodelled) => d?.deliveryFee ?? d?.orderRef?.deliveryFee ?? 0;
+const taskContact = (d: Unmodelled) => d?.patientPhone || d?.orderRef?.phone || '';
 
 export default function DeliveryOrders() {
   const { user } = useAuth();

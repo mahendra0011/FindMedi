@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const reportsApi = {
-  getReport: (type, params) => api.dispatch(() => Promise.resolve({ data: [], summary: {} }), `/reports/${type}?` + new URLSearchParams(params)),
-  exportPDF: (type, params) => api.dispatch(() => Promise.resolve({ url: '#' }), `/reports/${type}/pdf`, { method: 'POST', body: JSON.stringify(params) }),
+  getReport: (type: Unmodelled, params: Unmodelled) => api.dispatch(() => Promise.resolve({ data: [], summary: {} }), `/reports/${type}?` + new URLSearchParams(params)),
+  exportPDF: (type: Unmodelled, params: Unmodelled) => api.dispatch(() => Promise.resolve({ url: '#' }), `/reports/${type}/pdf`, { method: 'POST', body: JSON.stringify(params) }),
 };
 
 const reportCategories = {
@@ -41,7 +42,7 @@ export default function Reports() {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const fetchReport = async (type) => {
+  const fetchReport = async (type: Unmodelled) => {
     setLoading(true);
     setSelectedReport(type);
     try {
@@ -83,7 +84,7 @@ export default function Reports() {
           <h3 className="font-heading text-sm font-semibold text-muted-foreground capitalize mb-3">
             {reportType} Reports
           </h3>
-          {reportCategories[reportType]?.map(r => (
+          {reportCategories[reportType]?.map((r: Unmodelled) => (
             <button key={r.key} onClick={() => fetchReport(r.key)}
               className={`w-full text-left p-4 rounded-xl border transition-all ${selectedReport === r.key ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border hover:border-primary/50 hover:bg-muted/30'}`}>
               <div className="flex items-start gap-3">
@@ -106,7 +107,7 @@ export default function Reports() {
               <div className="p-4 border-b flex items-center justify-between">
                 <div>
                   <h3 className="font-heading font-semibold text-foreground">
-                    {reportCategories[reportType]?.find(r => r.key === selectedReport)?.label || 'Report'}
+                    {reportCategories[reportType]?.find((r: Unmodelled) => r.key === selectedReport)?.label || 'Report'}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
                     {dateRange.from && dateRange.to ? `${dateRange.from} to ${dateRange.to}` : 'All time'}
@@ -171,9 +172,9 @@ export default function Reports() {
                         key,
                         label: key.replace(/_/g, ' '),
                         sortable: false,
-                        render: (v) => <span className="text-xs text-foreground">{v || '-'}</span>,
+                        render: (v: Unmodelled) => <span className="text-xs text-foreground">{v || '-'}</span>,
                       }))}
-                      rows={reportData.data.map((row, i) => ({ ...row, __id: `report-${i}` }))}
+                      rows={reportData.data.map((row: Unmodelled, i: Unmodelled) => ({ ...row, __id: `report-${i}` }))}
                       rowKey="__id"
                       empty="No data available"
                       showSearch={false}

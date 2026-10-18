@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = {
   Operational: 'bg-success/10 text-success',
@@ -54,7 +54,7 @@ export default function LabEquipment() {
     } catch (e) { console.error(e); }
   };
 
-  const updateStatus = async (id, status) => {
+  const updateStatus = async (id: Unmodelled, status: Unmodelled) => {
     const updates = { status, lastMaintenance: status === 'Maintenance' ? getISTDateString() : undefined };
     setEquipment(prev => prev.map(eq => eq.id === id ? { ...eq, ...updates } : eq));
     try { await api.updateLabEquipment(id, updates); } catch (e) { console.error(e); }

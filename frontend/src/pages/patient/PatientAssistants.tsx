@@ -20,6 +20,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { DataGrid } from '../../components/ui/System';
 import { api } from '../../lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function PatientAssistants() {
   const navigate = useNavigate();
@@ -223,7 +224,7 @@ export default function PatientAssistants() {
                 {
                   key: 'bookingNumber',
                   label: 'Booking #',
-                  render: (v, b) => (
+                  render: (v: Unmodelled, b: Unmodelled) => (
                     <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
                       #{v || String(b._id).slice(-6).toUpperCase()}
                     </span>
@@ -232,7 +233,7 @@ export default function PatientAssistants() {
                 {
                   key: 'scheduledDate',
                   label: 'Date & Time',
-                  render: (v, b) => (
+                  render: (v: Unmodelled, b: Unmodelled) => (
                     <>
                       <div>{new Date(v || b.createdAt).toLocaleDateString()}</div>
                       <div className="text-[10px] text-slate-400">{b.startTime || '10:00 AM'}</div>
@@ -243,7 +244,7 @@ export default function PatientAssistants() {
                   key: 'assistantId',
                   label: 'Assistant',
                   sortable: false,
-                  render: (v, b) => (
+                  render: (v: Unmodelled, b: Unmodelled) => (
                     <span className="font-medium text-slate-900 dark:text-slate-100">
                       {v?.name || (b.isUrgent ? 'Urgent Broadcast' : 'Pending')}
                     </span>
@@ -252,13 +253,13 @@ export default function PatientAssistants() {
                 {
                   key: 'hospital',
                   label: 'Hospital',
-                  render: (v) => <span className="font-medium">{v}</span>,
+                  render: (v: Unmodelled) => <span className="font-medium">{v}</span>,
                 },
                 {
                   key: 'serviceCategories',
                   label: 'Services',
                   sortable: false,
-                  render: (v) => (
+                  render: (v: Unmodelled) => (
                     <div className="flex flex-wrap gap-1 max-w-xs">
                       {(v || []).slice(0, 2).map((c: string) => (
                         <Badge key={c} variant="secondary" className="text-[9px] px-1 py-0">
@@ -272,14 +273,14 @@ export default function PatientAssistants() {
                   key: 'cost',
                   label: 'Cost',
                   sortable: false,
-                  render: (v) => (
+                  render: (v: Unmodelled) => (
                     <span className="font-bold text-teal-700 dark:text-teal-400">₹{v?.total || 0}</span>
                   ),
                 },
                 {
                   key: 'status',
                   label: 'Status',
-                  render: (v) => (
+                  render: (v: Unmodelled) => (
                     <Badge
                       className={`text-[10px] ${
                         v === 'completed'
@@ -297,7 +298,7 @@ export default function PatientAssistants() {
                   key: '_actions',
                   label: 'Action',
                   sortable: false,
-                  render: (_v, b) => (
+                  render: (_v: Unmodelled, b: Unmodelled) => (
                     <div className="text-right">
                       <Button
                         type="button"

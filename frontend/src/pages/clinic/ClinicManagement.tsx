@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function ClinicManagement() {
   const { user } = useAuth();
@@ -62,7 +63,7 @@ export default function ClinicManagement() {
     }
   };
 
-  const openEdit = (clinic) => {
+  const openEdit = (clinic: Unmodelled) => {
     setEditing(clinic);
     setForm({ ...clinic });
     setShowForm(true);
@@ -138,7 +139,7 @@ export default function ClinicManagement() {
                 {clinic.description && <p className="text-sm text-muted-foreground">{clinic.description}</p>}
                 {clinic.facilities?.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
-                    {clinic.facilities.map((f, j) => (
+                    {clinic.facilities.map((f: Unmodelled, j: Unmodelled) => (
                       <span key={j} className="px-2 py-0.5 rounded-md text-xs bg-muted text-muted-foreground">{f}</span>
                     ))}
                   </div>
@@ -200,11 +201,11 @@ export default function ClinicManagement() {
                 </div>
                 {form.facilities?.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
-                    {form.facilities.map((f, idx) => (
+                    {form.facilities.map((f: Unmodelled, idx: Unmodelled) => (
                       <span key={idx} className="flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-muted">
                         {f}
                         <button onClick={() => {
-                          setForm({ ...form, facilities: form.facilities.filter((_, i) => i !== idx) });
+                          setForm({ ...form, facilities: form.facilities.filter((_: Unmodelled, i: Unmodelled) => i !== idx) });
                         }} className="text-destructive"><X className="w-3 h-3" /></button>
                       </span>
                     ))}

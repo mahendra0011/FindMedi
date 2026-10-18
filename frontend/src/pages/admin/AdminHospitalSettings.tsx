@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 function DoctorAutoConfirmList() {
   const [doctors, setDoctors] = useState<ApiRow[]>([]);
@@ -27,7 +27,7 @@ function DoctorAutoConfirmList() {
       .finally(() => setLoading(false));
   }, []);
 
-  const toggleConfirm = async (doc) => {
+  const toggleConfirm = async (doc: Unmodelled) => {
     const next = doc.autoConfirmAppointment === false ? true : false;
     setSavingId(doc._id);
     setDoctors(prev => prev.map(d => d._id === doc._id ? { ...d, autoConfirmAppointment: next } : d));
@@ -36,7 +36,7 @@ function DoctorAutoConfirmList() {
     setSavingId(null);
   };
 
-  const updateSlotCapacity = async (doc, n) => {
+  const updateSlotCapacity = async (doc: Unmodelled, n: Unmodelled) => {
     setDoctors(prev => prev.map(d => d._id === doc._id ? { ...d, maxBookingsPerSlot: n } : d));
     try { await api.updateDoctorSlotCapacity(doc._id, n); }
     catch { toast.error('Failed to update slot capacity for ' + doc.name); }
@@ -123,7 +123,7 @@ export default function AdminHospitalSettings() {
   const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
-    const onBeforeUnload = (e) => { if (isDirty) { e.preventDefault(); e.returnValue = ''; } };
+    const onBeforeUnload = (e: Unmodelled) => { if (isDirty) { e.preventDefault(); e.returnValue = ''; } };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [isDirty]);
@@ -171,11 +171,11 @@ export default function AdminHospitalSettings() {
     load();
   }, []);
 
-  const update = (k, v) => { setIsDirty(true); setForm(p => ({ ...p, [k]: v })); };
+  const update = (k: Unmodelled, v: Unmodelled) => { setIsDirty(true); setForm(p => ({ ...p, [k]: v })); };
 
   const [uploadingField, setUploadingField] = useState(null);
   // §7: real file upload (Cloudinary) with progress — replaces raw-URL-only inputs.
-  const handleLogoUpload = async (e, field) => {
+  const handleLogoUpload = async (e: Unmodelled, field: Unmodelled) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
@@ -198,7 +198,7 @@ export default function AdminHospitalSettings() {
     }
   };
 
-  const toggleMode = (mode) => {
+  const toggleMode = (mode: Unmodelled) => {
     const current = form.appointmentModes || [];
     if (current.includes(mode)) {
       if (current.length === 1) {

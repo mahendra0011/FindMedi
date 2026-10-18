@@ -3,6 +3,7 @@ import { cva } from "class-variance-authority";
 import { X } from "lucide-react";
 import * as React from "react";
 import { cn } from "@/mind/lib/utils";
+import type { Unmodelled } from '@/lib/apiTypes';
 const Sheet = SheetPrimitive.Root;
 const SheetTrigger = SheetPrimitive.Trigger;
 const SheetClose = SheetPrimitive.Close;
@@ -33,9 +34,9 @@ const SheetContent = React.forwardRef(({ side = "right", className, children, ..
       </SheetPrimitive.Content>
     </SheetPortal>));
 SheetContent.displayName = SheetPrimitive.Content.displayName;
-const SheetHeader = ({ className, ...props }) => (<div className={cn("flex flex-col space-y-2 text-center sm:text-left", className)} {...props}/>);
+const SheetHeader = ({ className, ...props }: Unmodelled) => (<div className={cn("flex flex-col space-y-2 text-center sm:text-left", className)} {...props}/>);
 SheetHeader.displayName = "SheetHeader";
-const SheetFooter = ({ className, ...props }) => (<div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)} {...props}/>);
+const SheetFooter = ({ className, ...props }: Unmodelled) => (<div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)} {...props}/>);
 SheetFooter.displayName = "SheetFooter";
 const SheetTitle = React.forwardRef(({ className, ...props }, ref) => (<SheetPrimitive.Title ref={ref} className={cn("text-lg font-semibold text-foreground", className)} {...props}/>));
 SheetTitle.displayName = SheetPrimitive.Title.displayName;

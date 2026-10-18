@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const motionSelector = [
   "main > section",
@@ -10,7 +11,7 @@ const motionSelector = [
   "footer",
 ].join(",");
 
-function MotionProvider({ children }) {
+function MotionProvider({ children }: Unmodelled) {
   const location = useLocation();
 
   useEffect(() => {

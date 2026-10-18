@@ -8,8 +8,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-const renderStars = (rating) => (
+const renderStars = (rating: Unmodelled) => (
   <div className="flex items-center gap-0.5">
     {[1, 2, 3, 4, 5].map((s) => (
       <Star
@@ -25,7 +26,7 @@ const renderStars = (rating) => (
   </div>
 );
 
-const TagBadge = ({ icon: Icon, children, variant = 'primary' }) => {
+const TagBadge = ({ icon: Icon, children, variant = 'primary' }: Unmodelled) => {
   const variants = {
     primary: 'bg-primary/10 text-primary border-primary/20',
     success: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
@@ -52,7 +53,7 @@ const coverGradients = [
 ];
 const avatarGradients = ['from-primary/30', 'from-blue-500/30', 'from-purple-500/30', 'from-emerald-500/30'];
 
-export default function DiagnosticCenterCard({ clinic, index = 0 }) {
+export default function DiagnosticCenterCard({ clinic, index = 0 }: Unmodelled) {
   const navigate = useNavigate();
   const {
     _id, name, logo, type = 'Diagnostic Center', rating = 4.5, reviewsCount = 200,
@@ -63,7 +64,7 @@ export default function DiagnosticCenterCard({ clinic, index = 0 }) {
     startingPrice = 150, workingHours = '8:00 AM - 8:00 PM',
   } = clinic || {};
 
-  const labInitials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
+  const labInitials = name.split(' ').map((n: Unmodelled) => n[0]).join('').slice(0, 2);
 
   return (
     <motion.div
@@ -220,7 +221,7 @@ export default function DiagnosticCenterCard({ clinic, index = 0 }) {
   );
 }
 
-function InfoRow({ icon: Icon, label, value, highlight }) {
+function InfoRow({ icon: Icon, label, value, highlight }: Unmodelled) {
   return (
     <div className="flex items-center gap-2 min-w-0">
       <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">

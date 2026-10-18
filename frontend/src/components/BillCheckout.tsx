@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { IndianRupee, CreditCard, Smartphone, Landmark, Wallet, CheckCircle, Stethoscope, Beaker, Pill } from 'lucide-react';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function BillCheckout({
   amount,
@@ -17,7 +18,7 @@ export default function BillCheckout({
   const TypeIcon = serviceType === 'appointment' ? Stethoscope : serviceType === 'test' ? Beaker : Pill;
   const serviceLabel = { appointment: 'Appointment', test: 'Lab Test', medicine: 'Medicine Order' };
 
-  const itemTotal = lineItems.reduce((s, it) => s + (it.price || 0) * (it.qty || 1), 0);
+  const itemTotal = lineItems.reduce((s: Unmodelled, it: Unmodelled) => s + (it.price || 0) * (it.qty || 1), 0);
   const calcHomeFee = serviceType === 'test' ? (homeCollectionFee ?? 0) : 0;
   const calcDelivery = serviceType === 'medicine' ? (deliveryCharges ?? 0) : 0;
   const calcPlatform = serviceType === 'appointment' ? (platformFee ?? 0) : 0;
@@ -72,7 +73,7 @@ export default function BillCheckout({
 
         {/* Line items */}
         <div className="space-y-1.5">
-          {lineItems.map((item, i) => (
+          {lineItems.map((item: Unmodelled, i: Unmodelled) => (
             <div key={i} className="flex justify-between items-center text-xs">
               <span className="text-foreground font-semibold truncate mr-2">
                 {item.name}

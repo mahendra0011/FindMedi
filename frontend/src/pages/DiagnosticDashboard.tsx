@@ -17,29 +17,30 @@ import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 
 const labApi = {
-  getOrders: (p) => api.getLabOrders(p),
+  getOrders: (p: Unmodelled) => api.getLabOrders(p),
   getStats: () => api.getLabStats(),
-  getTests: (p) => api.getTests(p),
-  getBookings: (p) => api.getLabBookings(p),
-  createBooking: (b) => api.createLabBooking(b),
-  updateBooking: (id, b) => api.updateLabBooking(id, b),
-  getEquipment: (p) => api.getLabEquipment(p),
-  createEquipment: (b) => api.createLabEquipment(b),
-  updateEquipment: (id, b) => api.updateLabEquipment(id, b),
-  deleteEquipment: (id) => api.deleteLabEquipment(id),
-  getPackages: (p) => api.getLabPackages(p),
-  createPackage: (b) => api.createLabPackage(b),
-  updatePackage: (id, b) => api.updateLabPackage(id, b),
-  deletePackage: (id) => api.deleteLabPackage(id),
-  createOrder: (b) => api.createLabOrder(b),
-  registerSample: (id, b) => api.registerSample(id, b),
-  collectSample: (id, b) => api.collectSample(id, b),
-  enterResult: (id, b) => api.enterResult(id, b),
-  verify: (id, b) => api.verifyLabResult(id, b),
-  deliverReport: (id, b) => api.deliverLabReport(id, b),
+  getTests: (p: Unmodelled) => api.getTests(p),
+  getBookings: (p: Unmodelled) => api.getLabBookings(p),
+  createBooking: (b: Unmodelled) => api.createLabBooking(b),
+  updateBooking: (id: Unmodelled, b: Unmodelled) => api.updateLabBooking(id, b),
+  getEquipment: (p: Unmodelled) => api.getLabEquipment(p),
+  createEquipment: (b: Unmodelled) => api.createLabEquipment(b),
+  updateEquipment: (id: Unmodelled, b: Unmodelled) => api.updateLabEquipment(id, b),
+  deleteEquipment: (id: Unmodelled) => api.deleteLabEquipment(id),
+  getPackages: (p: Unmodelled) => api.getLabPackages(p),
+  createPackage: (b: Unmodelled) => api.createLabPackage(b),
+  updatePackage: (id: Unmodelled, b: Unmodelled) => api.updateLabPackage(id, b),
+  deletePackage: (id: Unmodelled) => api.deleteLabPackage(id),
+  createOrder: (b: Unmodelled) => api.createLabOrder(b),
+  registerSample: (id: Unmodelled, b: Unmodelled) => api.registerSample(id, b),
+  collectSample: (id: Unmodelled, b: Unmodelled) => api.collectSample(id, b),
+  enterResult: (id: Unmodelled, b: Unmodelled) => api.enterResult(id, b),
+  verify: (id: Unmodelled, b: Unmodelled) => api.verifyLabResult(id, b),
+  deliverReport: (id: Unmodelled, b: Unmodelled) => api.deliverLabReport(id, b),
 };
 
 import { TABS, CATEGORIES, DEPARTMENTS, REPORT_TIMES, StatusBadge, SectionHeader } from '@/components/diagnostic/DiagnosticShared';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function DiagnosticDashboard() {
   const qc = useQueryClient();
@@ -80,9 +81,9 @@ export default function DiagnosticDashboard() {
   // Settings
   const [centerSettings, setCenterSettings] = useState({ name: 'FindMedi Diagnostic Center', type: 'Pathology Lab', address: '123 Healthcare Ave, New York', phone: '+1 234-567-8900', email: 'lab@findmedi.com', licenseNo: 'LAB-LIC-001', nablCertified: true, nablCertNo: 'NABL-MC-2024-001', aerbCertified: false, timings: '7:00 AM - 9:00 PM', homeCollectionAvailable: true, emergencySupport: false, acceptRefunds: true, reportDeliveryModes: ['Email', 'SMS', 'Portal', 'Courier'] });
 
-  const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
+  const showToast = (msg: Unmodelled, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
   const exportBillingCsv = () => {
-    const rows = (filteredBills.length ? filteredBills : bookings).map(b => ({
+    const rows = (filteredBills.length ? filteredBills : bookings).map((b: Unmodelled) => ({
       invoice: b.invoiceId || b.bookingId || b._id,
       patient: b.patientName || '',
       tests: (b.tests || []).length,
@@ -91,7 +92,7 @@ export default function DiagnosticDashboard() {
       date: b.date || b.bookingDate || '',
     }));
     if (!rows.length) return showToast('No billing rows to export', 'error');
-    const csv = ['Invoice,Patient,Tests,Amount,Payment,Date', ...rows.map(r => [r.invoice, r.patient, r.tests, r.amount, r.payment, r.date].map(v => `"${String(v).replaceAll('"', '""')}"`).join(','))].join('\n');
+    const csv = ['Invoice,Patient,Tests,Amount,Payment,Date', ...rows.map((r: Unmodelled) => [r.invoice, r.patient, r.tests, r.amount, r.payment, r.date].map(v => `"${String(v).replaceAll('"', '""')}"`).join(','))].join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;
@@ -126,7 +127,7 @@ export default function DiagnosticDashboard() {
   const reviews = reviewsData?.reviews || reviewsData?.data || reviewsData || [];
   const refunds = refundsData?.payments || refundsData?.data || refundsData || [];
   const rxQueue = [...orders, ...bookings].filter((o) => o.prescriptionRequired || o.prescriptionId || o.prescriptionUrl || o.rxUrl || o.hasPrescription);
-  const bills = bookings.filter((b) => b.totalAmount || b.amount || b.invoiceId);
+  const bills = bookings.filter((b: Unmodelled) => b.totalAmount || b.amount || b.invoiceId);
 
   // Mutations
   const updateBookingMut = useMutation({
@@ -178,26 +179,26 @@ export default function DiagnosticDashboard() {
 
   const filteredBookings = useMemo(() => {
     let list = bookings;
-    if (search) { const q = search.toLowerCase(); list = list.filter(b => b.patientName?.toLowerCase().includes(q) || b.bookingId?.toLowerCase().includes(q)); }
-    if (bookingFilter !== 'All') list = list.filter(b => b.status === bookingFilter);
+    if (search) { const q = search.toLowerCase(); list = list.filter((b: Unmodelled) => b.patientName?.toLowerCase().includes(q) || b.bookingId?.toLowerCase().includes(q)); }
+    if (bookingFilter !== 'All') list = list.filter((b: Unmodelled) => b.status === bookingFilter);
     return list;
   }, [bookings, search, bookingFilter]);
 
   const filteredBills = useMemo(() => {
     if (billFilter === 'All') return bills;
-    return bills.filter(b => b.status === billFilter);
+    return bills.filter((b: Unmodelled) => b.status === billFilter);
   }, [bills, billFilter]);
 
   const derivedStats = useMemo(() => {
     const todayStr = getISTDateString();
-    const todayBookingCount = bookings.filter(b => b.bookingDate?.startsWith(todayStr)).length;
+    const todayBookingCount = bookings.filter((b: Unmodelled) => b.bookingDate?.startsWith(todayStr)).length;
     const pendingRx = rxQueue.filter(r => r.status === 'Pending').length;
-    const revenue = bookings.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + (b.totalAmount || 0), 0);
-    const lowStock = equipment.filter(e => e.status === 'Under Maintenance' || e.status === 'Out of Service').length;
+    const revenue = bookings.filter((b: Unmodelled) => b.paymentStatus === 'Paid').reduce((s: Unmodelled, b: Unmodelled) => s + (b.totalAmount || 0), 0);
+    const lowStock = equipment.filter((e: Unmodelled) => e.status === 'Under Maintenance' || e.status === 'Out of Service').length;
     return { ...stats, todayBookings: todayBookingCount, totalBookings: bookings.length, revenue, pendingRx, lowStock };
   }, [stats, bookings, rxQueue, equipment]);
 
-  const Modal = ({ title, children, onClose }) => (
+  const Modal = ({ title, children, onClose }: Unmodelled) => (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-card rounded-2xl border shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6"><h2 className="font-heading text-xl font-bold">{title}</h2><button onClick={onClose}><X className="w-5 h-5" /></button></div>
@@ -207,7 +208,7 @@ export default function DiagnosticDashboard() {
   );
 
   const billingGridRows = filteredBills.length === 0
-    ? bookings.map((b, i) => ({
+    ? bookings.map((b: Unmodelled, i: Unmodelled) => ({
       _id: b._id || b.id || `row-${i}`,
       invoice: b.bookingId,
       patient: b.patientName,
@@ -216,7 +217,7 @@ export default function DiagnosticDashboard() {
       status: b.paymentStatus,
       date: b.bookingDate?.split('T')[0],
     }))
-    : bills.map((b, i) => ({
+    : bills.map((b: Unmodelled, i: Unmodelled) => ({
       _id: b._id || b.id || `row-${i}`,
       invoice: b.invoiceId || b._id,
       patient: b.patientName,
@@ -227,12 +228,12 @@ export default function DiagnosticDashboard() {
     }));
 
   const billingColumns = [
-    { key: 'invoice', label: 'Invoice', render: (v) => <span className="font-medium">{v}</span> },
+    { key: 'invoice', label: 'Invoice', render: (v: Unmodelled) => <span className="font-medium">{v}</span> },
     { key: 'patient', label: 'Patient' },
     { key: 'tests', label: 'Tests' },
-    { key: 'amount', label: 'Amount', render: (v) => <span className="block text-right font-medium">₹{(v || 0).toLocaleString()}</span> },
-    { key: 'status', label: 'Payment', render: (v) => <span className="block text-center"><StatusBadge status={v} /></span> },
-    { key: 'date', label: 'Date', render: (v) => <span className="block text-right text-muted-foreground">{v}</span> },
+    { key: 'amount', label: 'Amount', render: (v: Unmodelled) => <span className="block text-right font-medium">₹{(v || 0).toLocaleString()}</span> },
+    { key: 'status', label: 'Payment', render: (v: Unmodelled) => <span className="block text-center"><StatusBadge status={v} /></span> },
+    { key: 'date', label: 'Date', render: (v: Unmodelled) => <span className="block text-right text-muted-foreground">{v}</span> },
   ];
 
 
@@ -305,26 +306,26 @@ export default function DiagnosticDashboard() {
                 <div className="bg-card rounded-xl border p-5">
                   <h3 className="font-semibold mb-4 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-info" /> Today's Bookings</h3>
                   <div className="space-y-3">
-                    {bookings.filter(b => b.bookingDate?.startsWith(getISTDateString())).slice(0, 5).map(b => (
+                    {bookings.filter((b: Unmodelled) => b.bookingDate?.startsWith(getISTDateString())).slice(0, 5).map((b: Unmodelled) => (
                       <div key={b._id} className="flex items-center justify-between text-sm">
                         <div><span className="font-medium">{b.patientName}</span><p className="text-xs text-muted-foreground">{b.timeSlot} · {b.tests?.join(', ')}</p></div>
                         <StatusBadge status={b.status} />
                       </div>
                     ))}
-                    {bookings.filter(b => b.bookingDate?.startsWith(getISTDateString())).length === 0 && <p className="text-sm text-muted-foreground">No bookings today</p>}
+                    {bookings.filter((b: Unmodelled) => b.bookingDate?.startsWith(getISTDateString())).length === 0 && <p className="text-sm text-muted-foreground">No bookings today</p>}
                   </div>
                 </div>
 
                 <div className="bg-card rounded-xl border p-5">
                   <h3 className="font-semibold mb-4 flex items-center gap-2"><Microscope className="w-4 h-4 text-warning" /> Equipment Status</h3>
                   <div className="space-y-3">
-                    {equipment.filter(e => e.status !== 'Operational').map(e => (
+                    {equipment.filter((e: Unmodelled) => e.status !== 'Operational').map((e: Unmodelled) => (
                       <div key={e._id} className="flex items-center justify-between text-sm">
                         <span className="font-medium">{e.name}</span>
                         <StatusBadge status={e.status} />
                       </div>
                     ))}
-                    {equipment.filter(e => e.status !== 'Operational').length === 0 && <p className="text-sm text-muted-foreground">All equipment operational</p>}
+                    {equipment.filter((e: Unmodelled) => e.status !== 'Operational').length === 0 && <p className="text-sm text-muted-foreground">All equipment operational</p>}
                   </div>
                 </div>
               </div>
@@ -353,7 +354,7 @@ export default function DiagnosticDashboard() {
                 <div className="relative flex-1 min-w-[200px]"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Search tests..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} /></div>
               </div>
               <div className="space-y-3">
-                {tests.filter(t => !search || t.name?.toLowerCase().includes(search.toLowerCase())).map(test => (
+                {tests.filter((t: Unmodelled) => !search || t.name?.toLowerCase().includes(search.toLowerCase())).map((test: Unmodelled) => (
                   <div key={test._id} className="bg-card rounded-xl border p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
@@ -395,7 +396,7 @@ export default function DiagnosticDashboard() {
                 <Button size="sm" onClick={() => setShowModal('add-booking')}><Plus className="w-4 h-4 mr-1" /> New Booking</Button>
               </div>
               <div className="space-y-3">
-                {filteredBookings.map(b => (
+                {filteredBookings.map((b: Unmodelled) => (
                   <div key={b._id} className="bg-card rounded-xl border p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -409,7 +410,7 @@ export default function DiagnosticDashboard() {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 mb-2">
-                      {(b.tests || []).map((t, i) => <span key={i} className="text-xs bg-muted px-2 py-1 rounded-lg">{t}</span>)}
+                      {(b.tests || []).map((t: Unmodelled, i: Unmodelled) => <span key={i} className="text-xs bg-muted px-2 py-1 rounded-lg">{t}</span>)}
                     </div>
                     {b.homeCollectionAddress && <p className="text-xs text-muted-foreground"><MapPin className="w-3 h-3 inline mr-1" />{b.homeCollectionAddress}</p>}
                     <div className="flex gap-2 mt-3 pt-3 border-t">
@@ -435,7 +436,7 @@ export default function DiagnosticDashboard() {
               <SectionHeader title="Prescription Verification Queue" subtitle="Verify uploaded prescriptions and approve/reject test requests"
                 action={<Button size="sm" variant="outline" onClick={() => window.location.hash = '#/lab/prescriptions'}><Send className="w-4 h-4 mr-1" /> Trigger Fallback</Button>} />
               <div className="space-y-3">
-                {orders.filter(o => o.status === 'Processing' || o.status === 'Under Verification').map(rx => (
+                {orders.filter((o: Unmodelled) => o.status === 'Processing' || o.status === 'Under Verification').map((rx: Unmodelled) => (
                   <div key={rx._id} className="bg-card rounded-xl border p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div>
@@ -444,7 +445,7 @@ export default function DiagnosticDashboard() {
                           <StatusBadge status={rx.status} mapping={{ Pending: 'bg-warning/10 text-warning', Processing: 'bg-info/10 text-info', Verified: 'bg-success/10 text-success', 'Under Verification': 'bg-warning/10 text-warning', Rejected: 'bg-destructive/10 text-destructive' }} />
                         </div>
                         <p className="text-sm font-medium">{rx.patientName}</p>
-                        <p className="text-xs text-muted-foreground">{(rx.tests || []).map(t => t.testName || t).join(', ')}</p>
+                        <p className="text-xs text-muted-foreground">{(rx.tests || []).map((t: Unmodelled) => t.testName || t).join(', ')}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -455,7 +456,7 @@ export default function DiagnosticDashboard() {
                     </div>
                   </div>
                 ))}
-                {orders.filter(o => o.status === 'Processing' || o.status === 'Under Verification').length === 0 && <div className="text-center py-20"><ClipboardList className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No prescriptions waiting for verification</p></div>}
+                {orders.filter((o: Unmodelled) => o.status === 'Processing' || o.status === 'Under Verification').length === 0 && <div className="text-center py-20"><ClipboardList className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No prescriptions waiting for verification</p></div>}
               </div>
             </>
           )}
@@ -463,31 +464,31 @@ export default function DiagnosticDashboard() {
           {/* ═══════════════════ SAMPLE COLLECTION ═══════════════════ */}
           {tab === 'samples' && (
             <>
-              <SectionHeader title="Sample Collection Management" subtitle={`${bookings.filter(b => b.visitType === 'Home Collection' && b.status !== 'Completed').length} pending home collections`}
+              <SectionHeader title="Sample Collection Management" subtitle={`${bookings.filter((b: Unmodelled) => b.visitType === 'Home Collection' && b.status !== 'Completed').length} pending home collections`}
                 action={<Button size="sm" onClick={() => setShowModal('assign-phlebotomist')}><Plus className="w-4 h-4 mr-1" /> Assign Phlebotomist</Button>} />
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="bg-card rounded-xl border p-5">
                   <h3 className="font-semibold mb-4 flex items-center gap-2"><Home className="w-4 h-4 text-primary" /> Home Collection Requests</h3>
                   <div className="space-y-3">
-                    {bookings.filter(b => b.visitType === 'Home Collection' && b.status !== 'Completed').map(b => (
+                    {bookings.filter((b: Unmodelled) => b.visitType === 'Home Collection' && b.status !== 'Completed').map((b: Unmodelled) => (
                       <div key={b._id} className="flex items-start justify-between p-3 bg-muted/30 rounded-lg">
                         <div><p className="text-sm font-medium">{b.patientName}</p><p className="text-xs text-muted-foreground"><MapPin className="w-3 h-3 inline mr-1" />{b.homeCollectionAddress || 'Address pending'}</p><p className="text-xs text-muted-foreground"><Phone className="w-3 h-3 inline mr-1" />{b.patientPhone}</p></div>
                         <StatusBadge status={b.status} />
                       </div>
                     ))}
-                    {bookings.filter(b => b.visitType === 'Home Collection' && b.status !== 'Completed').length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No pending home collections</p>}
+                    {bookings.filter((b: Unmodelled) => b.visitType === 'Home Collection' && b.status !== 'Completed').length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No pending home collections</p>}
                   </div>
                 </div>
                 <div className="bg-card rounded-xl border p-5">
                   <h3 className="font-semibold mb-4 flex items-center gap-2"><Syringe className="w-4 h-4 text-info" /> Available Phlebotomists</h3>
                   <div className="space-y-3">
-                    {staffList.filter(s => s.role === 'Phlebotomist' && s.isActive).map(s => (
+                    {staffList.filter((s: Unmodelled) => s.role === 'Phlebotomist' && s.isActive).map((s: Unmodelled) => (
                       <div key={s._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                         <div><p className="text-sm font-medium">{s.name}</p><p className="text-xs text-muted-foreground"><Phone className="w-3 h-3 inline mr-1" />{s.phone}</p></div>
                         <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full">Available</span>
                       </div>
                     ))}
-                    {staffList.filter(s => s.role === 'Phlebotomist' && s.isActive).length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No phlebotomists available</p>}
+                    {staffList.filter((s: Unmodelled) => s.role === 'Phlebotomist' && s.isActive).length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No phlebotomists available</p>}
                   </div>
                 </div>
               </div>
@@ -500,7 +501,7 @@ export default function DiagnosticDashboard() {
               <SectionHeader title="Appointment / Visit Management" subtitle="Schedule and manage imaging scan slots"
                 action={<Button size="sm" onClick={() => setShowModal('add-appointment')}><Plus className="w-4 h-4 mr-1" /> New Appointment</Button>} />
               <div className="space-y-3">
-                {bookings.filter(b => b.status !== 'Cancelled').sort((a, b) => new Date(b.bookingDate) - new Date(a.bookingDate)).map(b => (
+                {bookings.filter((b: Unmodelled) => b.status !== 'Cancelled').sort((a: Unmodelled, b: Unmodelled) => new Date(b.bookingDate) - new Date(a.bookingDate)).map((b: Unmodelled) => (
                   <div key={b._id} className="bg-card rounded-xl border p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
@@ -513,7 +514,7 @@ export default function DiagnosticDashboard() {
                       <StatusBadge status={b.status} />
                     </div>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {(b.tests || []).map((t, i) => <span key={i} className="text-xs bg-muted px-2 py-1 rounded-lg">{t}</span>)}
+                      {(b.tests || []).map((t: Unmodelled, i: Unmodelled) => <span key={i} className="text-xs bg-muted px-2 py-1 rounded-lg">{t}</span>)}
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
                       <Button size="sm" variant="outline" onClick={() => window.location.hash = '#/lab/bookings'}><Calendar className="w-3 h-3 mr-1" /> Reschedule</Button>
@@ -531,13 +532,13 @@ export default function DiagnosticDashboard() {
               <SectionHeader title="Report Upload & Management" subtitle="Upload test reports and notify patients"
                 action={<Button size="sm" onClick={() => setShowModal('upload-report')}><Upload className="w-4 h-4 mr-1" /> Upload Report</Button>} />
               <div className="space-y-3">
-                {orders.filter(o => o.status === 'Processing' || o.status === 'Under Verification' || o.status === 'Completed').slice(0, 10).map(o => (
+                {orders.filter((o: Unmodelled) => o.status === 'Processing' || o.status === 'Under Verification' || o.status === 'Completed').slice(0, 10).map((o: Unmodelled) => (
                   <div key={o._id} className="bg-card rounded-xl border p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <div className="flex items-center gap-2 mb-1"><span className="font-semibold">{o.orderId}</span><StatusBadge status={o.status} /></div>
                         <p className="text-sm font-medium">{o.patientName}</p>
-                        <p className="text-xs text-muted-foreground">Dr. {o.doctorName} · {(o.tests || []).map(t => t.testName).join(', ')}</p>
+                        <p className="text-xs text-muted-foreground">Dr. {o.doctorName} · {(o.tests || []).map((t: Unmodelled) => t.testName).join(', ')}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -557,10 +558,10 @@ export default function DiagnosticDashboard() {
           {/* ═══════════════════ EQUIPMENT ═══════════════════ */}
           {tab === 'equipment' && (
             <>
-              <SectionHeader title="Equipment Management" subtitle={`${equipment.filter(e => e.status === 'Operational').length} operational · ${equipment.filter(e => e.status !== 'Operational').length} requires attention`}
+              <SectionHeader title="Equipment Management" subtitle={`${equipment.filter((e: Unmodelled) => e.status === 'Operational').length} operational · ${equipment.filter((e: Unmodelled) => e.status !== 'Operational').length} requires attention`}
                 action={<Button size="sm" onClick={() => { setEditEquipId(null); setEquipForm({ name: '', type: 'MRI', model: '', serialNumber: '', manufacturer: '', installationDate: '', nextMaintenanceDate: '', status: 'Operational', location: '', notes: '' }); setShowModal('add-equipment'); }}><Plus className="w-4 h-4 mr-1" /> Add Equipment</Button>} />
               <div className="grid md:grid-cols-2 gap-4">
-                {equipment.map(e => (
+                {equipment.map((e: Unmodelled) => (
                   <div key={e._id} className={`bg-card rounded-xl border p-4 ${e.status !== 'Operational' ? 'border-warning/30' : ''}`}>
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
@@ -587,10 +588,10 @@ export default function DiagnosticDashboard() {
           {/* ═══════════════════ STAFF ═══════════════════ */}
           {tab === 'staff' && (
             <>
-              <SectionHeader title="Lab Staff Management" subtitle={`${staffList.filter(s => s.isActive).length} active staff members`}
+              <SectionHeader title="Lab Staff Management" subtitle={`${staffList.filter((s: Unmodelled) => s.isActive).length} active staff members`}
                 action={<Button size="sm" onClick={() => { setNewStaff({ name: '', role: 'Lab Technician', email: '', phone: '', licenseNumber: '', experience: '' }); setShowModal('add-staff'); }}><Plus className="w-4 h-4 mr-1" /> Add Staff</Button>} />
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {staffList.map(s => (
+                {staffList.map((s: Unmodelled) => (
                   <div key={s._id} className="bg-card rounded-xl border p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
@@ -617,10 +618,10 @@ export default function DiagnosticDashboard() {
           {/* ═══════════════════ PACKAGES ═══════════════════ */}
           {tab === 'packages' && (
             <>
-              <SectionHeader title="Health Package Management" subtitle={`${packages.filter(p => p.isActive).length} active packages`}
+              <SectionHeader title="Health Package Management" subtitle={`${packages.filter((p: Unmodelled) => p.isActive).length} active packages`}
                 action={<Button size="sm" onClick={() => { setEditPkgId(null); setPkgForm({ name: '', category: 'Basic', description: '', testNames: '', originalPrice: '', packagePrice: '', popular: false, homeCollectionAvailable: false, reportTime: '24-48 hrs' }); setShowModal('add-package'); }}><Plus className="w-4 h-4 mr-1" /> New Package</Button>} />
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {packages.filter(p => p.isActive).map(pkg => (
+                {packages.filter((p: Unmodelled) => p.isActive).map((pkg: Unmodelled) => (
                   <div key={pkg._id} className="bg-card rounded-xl border p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
@@ -636,7 +637,7 @@ export default function DiagnosticDashboard() {
                         <span className="text-xs text-success font-medium">{Math.round((1 - pkg.packagePrice / pkg.originalPrice) * 100)}% off</span>
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {(pkg.testNames || []).map((tn, i) => <span key={i} className="text-xs bg-muted px-1.5 py-0.5 rounded">{tn}</span>)}
+                        {(pkg.testNames || []).map((tn: Unmodelled, i: Unmodelled) => <span key={i} className="text-xs bg-muted px-1.5 py-0.5 rounded">{tn}</span>)}
                       </div>
                       <p className="text-xs text-muted-foreground">Report: {pkg.reportTime} {pkg.homeCollectionAvailable && '· Home Collection'}</p>
                     </div>
@@ -645,7 +646,7 @@ export default function DiagnosticDashboard() {
                     </div>
                   </div>
                 ))}
-                {packages.filter(p => p.isActive).length === 0 && <div className="col-span-full text-center py-20"><Gift className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No active packages</p></div>}
+                {packages.filter((p: Unmodelled) => p.isActive).length === 0 && <div className="col-span-full text-center py-20"><Gift className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No active packages</p></div>}
               </div>
             </>
           )}
@@ -675,23 +676,23 @@ export default function DiagnosticDashboard() {
           {/* ═══════════════════ REFUNDS ═══════════════════ */}
           {tab === 'refunds' && (
             <>
-              <SectionHeader title="Refund Management" subtitle={`${refunds.length} refund records · ₹${refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0).toLocaleString()} total refunded`} />
+              <SectionHeader title="Refund Management" subtitle={`${refunds.length} refund records · ₹${refunds.reduce((s: Unmodelled, r: Unmodelled) => s + (r.refund_amount || r.amount || 0), 0).toLocaleString()} total refunded`} />
               <div className="grid md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-destructive/5 rounded-xl border border-destructive/20 p-4">
-                  <p className="text-2xl font-bold text-destructive">₹{refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0).toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-destructive">₹{refunds.reduce((s: Unmodelled, r: Unmodelled) => s + (r.refund_amount || r.amount || 0), 0).toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">Total Refunded</p>
                 </div>
                 <div className="bg-warning/5 rounded-xl border border-warning/20 p-4">
-                  <p className="text-2xl font-bold text-warning">{refunds.filter(r => r.status === 'Pending' || r.status === 'pending').length}</p>
+                  <p className="text-2xl font-bold text-warning">{refunds.filter((r: Unmodelled) => r.status === 'Pending' || r.status === 'pending').length}</p>
                   <p className="text-xs text-muted-foreground">Pending Requests</p>
                 </div>
                 <div className="bg-info/5 rounded-xl border border-info/20 p-4">
-                  <p className="text-2xl font-bold text-info">{refunds.filter(r => r.status === 'Refunded' || r.status === 'refunded').length}</p>
+                  <p className="text-2xl font-bold text-info">{refunds.filter((r: Unmodelled) => r.status === 'Refunded' || r.status === 'refunded').length}</p>
                   <p className="text-xs text-muted-foreground">Processed</p>
                 </div>
               </div>
               <div className="space-y-3">
-                {refunds.map(r => (
+                {refunds.map((r: Unmodelled) => (
                   <div key={r._id} className="bg-card rounded-xl border p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -717,9 +718,9 @@ export default function DiagnosticDashboard() {
           {/* ═══════════════════ REVIEWS ═══════════════════ */}
           {tab === 'reviews' && (
             <>
-              <SectionHeader title="Patient Reviews" subtitle={`${reviews.length} reviews · ${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length || 0).toFixed(1)} avg rating`} />
+              <SectionHeader title="Patient Reviews" subtitle={`${reviews.length} reviews · ${(reviews.reduce((s: Unmodelled, r: Unmodelled) => s + r.rating, 0) / reviews.length || 0).toFixed(1)} avg rating`} />
               <div className="space-y-3">
-                {reviews.map(r => (
+                {reviews.map((r: Unmodelled) => (
                   <div key={r._id} className="bg-card rounded-xl border p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-3">
@@ -747,11 +748,11 @@ export default function DiagnosticDashboard() {
                   <div className="space-y-4">
                     {[
                       { label: 'Total Bookings', value: bookings.length, change: orders.length > 0 ? '+15%' : '0%' },
-                      { label: 'Tests Conducted', value: orders.reduce((s, o) => s + (o.tests?.length || 0), 0), change: '+12%' },
+                      { label: 'Tests Conducted', value: orders.reduce((s: Unmodelled, o: Unmodelled) => s + (o.tests?.length || 0), 0), change: '+12%' },
                       { label: 'Avg Turnaround', value: orders.length > 0 ? '6.2 hrs' : 'N/A', change: '-8%' },
-                      { label: 'Revenue (Period)', value: `₹${bookings.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + (b.totalAmount || 0), 0).toLocaleString()}`, change: '+22%' },
+                      { label: 'Revenue (Period)', value: `₹${bookings.filter((b: Unmodelled) => b.paymentStatus === 'Paid').reduce((s: Unmodelled, b: Unmodelled) => s + (b.totalAmount || 0), 0).toLocaleString()}`, change: '+22%' },
                       { label: 'Critical Results', value: stats?.critical ?? 0, change: '0%' },
-                      { label: 'Patient Satisfaction', value: reviews.length > 0 ? `${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)}/5` : 'N/A', change: '+0.3' },
+                      { label: 'Patient Satisfaction', value: reviews.length > 0 ? `${(reviews.reduce((s: Unmodelled, r: Unmodelled) => s + r.rating, 0) / reviews.length).toFixed(1)}/5` : 'N/A', change: '+0.3' },
                     ].map(d => (
                       <div key={d.label} className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">{d.label}</span>
@@ -764,8 +765,8 @@ export default function DiagnosticDashboard() {
                   <h3 className="font-semibold mb-4">Test Category Distribution</h3>
                   <div className="space-y-3">
                     {CATEGORIES.slice(0, 7).map(cat => {
-                      const count = orders.reduce((s, o) => s + (o.tests?.filter(t => t.category === cat)?.length || 0), 0);
-                      const total = orders.reduce((s, o) => s + (o.tests?.length || 0), 0) || 1;
+                      const count = orders.reduce((s: Unmodelled, o: Unmodelled) => s + (o.tests?.filter((t: Unmodelled) => t.category === cat)?.length || 0), 0);
+                      const total = orders.reduce((s: Unmodelled, o: Unmodelled) => s + (o.tests?.length || 0), 0) || 1;
                       return count > 0 && (
                         <div key={cat} className="flex items-center gap-3">
                           <span className="text-sm w-28 truncate">{cat}</span>
@@ -783,8 +784,8 @@ export default function DiagnosticDashboard() {
                 <h3 className="font-semibold mb-4">Recent Activity</h3>
                 <div className="space-y-3">
                   {[
-                    ...bookings.slice(0, 4).map(b => ({ text: `Booking ${b.bookingId} ${b.status.toLowerCase()} for ${b.patientName}`, time: b.bookingDate })),
-                    ...orders.slice(0, 3).map(o => ({ text: `Lab order ${o.orderId} ${o.status.toLowerCase()} - ${o.patientName}`, time: o.createdAt })),
+                    ...bookings.slice(0, 4).map((b: Unmodelled) => ({ text: `Booking ${b.bookingId} ${b.status.toLowerCase()} for ${b.patientName}`, time: b.bookingDate })),
+                    ...orders.slice(0, 3).map((o: Unmodelled) => ({ text: `Lab order ${o.orderId} ${o.status.toLowerCase()} - ${o.patientName}`, time: o.createdAt })),
                   ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 8).map((act, i) => (
                     <div key={i} className="flex items-center gap-3 text-sm">
                       <div className="w-2 h-2 rounded-full bg-primary" />
@@ -928,8 +929,8 @@ export default function DiagnosticDashboard() {
       {showModal === 'assign-phlebotomist' && (
         <Modal title="Assign Phlebotomist" onClose={() => setShowModal(null)}>
           <div className="space-y-4">
-            <div><label className="text-sm font-medium mb-1 block">Select Booking</label><select value={assignmentForm.bookingId} onChange={e => setAssignmentForm({ ...assignmentForm, bookingId: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="">Select booking</option>{bookings.filter(b => b.visitType === 'Home Collection' && b.status !== 'Completed').map(b => <option key={b._id} value={b._id}>{b.bookingId} - {b.patientName}</option>)}</select></div>
-            <div><label className="text-sm font-medium mb-1 block">Select Phlebotomist</label><select value={assignmentForm.phlebotomistId} onChange={e => setAssignmentForm({ ...assignmentForm, phlebotomistId: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="">Select staff</option>{staffList.filter(s => s.role === 'Phlebotomist' && s.isActive).map(s => <option key={s._id} value={s._id}>{s.name}</option>)}</select></div>
+            <div><label className="text-sm font-medium mb-1 block">Select Booking</label><select value={assignmentForm.bookingId} onChange={e => setAssignmentForm({ ...assignmentForm, bookingId: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="">Select booking</option>{bookings.filter((b: Unmodelled) => b.visitType === 'Home Collection' && b.status !== 'Completed').map((b: Unmodelled) => <option key={b._id} value={b._id}>{b.bookingId} - {b.patientName}</option>)}</select></div>
+            <div><label className="text-sm font-medium mb-1 block">Select Phlebotomist</label><select value={assignmentForm.phlebotomistId} onChange={e => setAssignmentForm({ ...assignmentForm, phlebotomistId: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="">Select staff</option>{staffList.filter((s: Unmodelled) => s.role === 'Phlebotomist' && s.isActive).map((s: Unmodelled) => <option key={s._id} value={s._id}>{s.name}</option>)}</select></div>
             <Button className="w-full" onClick={() => updateBookingMut.mutate({ id: assignmentForm.bookingId, phlebotomistId: assignmentForm.phlebotomistId, status: 'Assigned' })} disabled={!assignmentForm.bookingId || !assignmentForm.phlebotomistId || updateBookingMut.isPending}>Assign</Button>
           </div>
         </Modal>
@@ -939,7 +940,7 @@ export default function DiagnosticDashboard() {
       {showModal === 'upload-report' && (
         <Modal title="Upload Report" onClose={() => setShowModal(null)}>
           <div className="space-y-4">
-            <div><label className="text-sm font-medium mb-1 block">Select Order</label><select value={reportForm.orderId} onChange={e => setReportForm({ orderId: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="">Select order</option>{orders.filter(o => o.status === 'Processing' || o.status === 'Under Verification').map(o => <option key={o._id} value={o._id}>{o.orderId} - {o.patientName}</option>)}</select></div>
+            <div><label className="text-sm font-medium mb-1 block">Select Order</label><select value={reportForm.orderId} onChange={e => setReportForm({ orderId: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="">Select order</option>{orders.filter((o: Unmodelled) => o.status === 'Processing' || o.status === 'Under Verification').map((o: Unmodelled) => <option key={o._id} value={o._id}>{o.orderId} - {o.patientName}</option>)}</select></div>
             <div><label className="text-sm font-medium mb-1 block">Upload PDF Report</label><div className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:bg-muted/30"><Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" /><p className="text-sm text-muted-foreground">Click to upload or drag and drop</p></div></div>
             <Button className="w-full" onClick={() => deliverReportMut.mutate({ id: reportForm.orderId, status: 'Delivered', notified: true })} disabled={!reportForm.orderId || deliverReportMut.isPending}>Upload & Notify</Button>
           </div>

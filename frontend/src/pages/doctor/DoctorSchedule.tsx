@@ -3,6 +3,7 @@ import { Clock, Calendar, Settings, Info } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const allTimeSlots = [
   '08:00 AM', '08:30 AM', '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
@@ -22,7 +23,7 @@ export default function DoctorSchedule() {
       setLoading(true);
       try {
         const doctors = (await api.getDoctors())?.data || [];
-        const myDoc = doctors.find(d => d.email === user?.email) || doctors.find(d => d.name?.includes(user?.name)) || null;
+        const myDoc = doctors.find((d: Unmodelled) => d.email === user?.email) || doctors.find((d: Unmodelled) => d.name?.includes(user?.name)) || null;
         if (myDoc) {
           setDoctor(myDoc);
         }
@@ -106,7 +107,7 @@ export default function DoctorSchedule() {
           <p className="text-sm text-muted-foreground">No leaves marked</p>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {leaves.map(leave => (
+            {leaves.map((leave: Unmodelled) => (
               <span key={leave} className="px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-sm font-medium">
                 {leave}
               </span>

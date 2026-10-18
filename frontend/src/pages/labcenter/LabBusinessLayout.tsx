@@ -9,6 +9,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Overview',        path: '/lab-business/dashboard'     },
@@ -28,7 +29,7 @@ const navItems = [
   { icon: Settings,        label: 'Settings',        path: '/lab-business/settings'       },
 ];
 
-function SidebarContent({ collapsed, onToggleCollapse, onNavClick }) {
+function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: Unmodelled) {
   const location = useLocation();
   const { user, logout } = useAuth();
 

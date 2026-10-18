@@ -1,4 +1,5 @@
 import { BarChart3, FlaskConical, CalendarDays, ClipboardList, Syringe, Calendar, FileText, Microscope, Users, Gift, CreditCard, RotateCcw, Star, TrendingUp, Settings } from 'lucide-react';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -22,7 +23,7 @@ export const CATEGORIES = ['Blood Test', 'Urine/Stool', 'Hormone', 'Vitamin', 'C
 export const DEPARTMENTS = ['Pathology', 'Radiology', 'Cardiology', 'Health Packages'];
 export const REPORT_TIMES = ['30 mins', '1 hr', '2 hrs', '6 hrs', '12 hrs', '24 hrs', '48 hrs', '72 hrs'];
 
-export function StatusBadge({ status, mapping = {} }) {
+export function StatusBadge({ status, mapping = {} }: Unmodelled) {
   const colors = mapping[status] || {
     Confirmed: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Completed: 'bg-success/10 text-success',
     Cancelled: 'bg-destructive/10 text-destructive', Processing: 'bg-info/10 text-info', 'Sample Collected': 'bg-info/10 text-info',
@@ -33,7 +34,7 @@ export function StatusBadge({ status, mapping = {} }) {
   return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c}`}>{status}</span>;
 }
 
-export function SectionHeader({ title, subtitle, action }) {
+export function SectionHeader({ title, subtitle, action }: Unmodelled) {
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
       <div><h2 className="text-xl font-bold text-foreground">{title}</h2>{subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}</div>

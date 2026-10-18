@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const TABS = [
   { id: 'tests', label: 'Tests', icon: FlaskConical },
@@ -132,12 +132,12 @@ export default function GlobalCatalog() {
             <CardContent>
               <DataGrid
                 columns={[
-                  { key: 'name', label: 'Name', render: (v) => <span className="font-medium text-foreground">{v}</span> },
-                  { key: 'category', label: 'Category', render: (v) => <Badge variant="outline" className="text-xs">{v || 'N/A'}</Badge> },
-                  { key: 'price', label: 'Price', render: (v) => <>₹{v?.toLocaleString() || '—'}</> },
-                  { key: 'mrp', label: 'MRP', render: (v) => <>₹{v?.toLocaleString() || '—'}</> },
-                  { key: 'popular', label: 'Popular', render: (v) => (v ? <CheckCircle className="w-4 h-4 text-success" /> : '—') },
-                  { key: 'homeCollection', label: 'Home Collection', render: (v) => (v ? <CheckCircle className="w-4 h-4 text-success" /> : '—') },
+                  { key: 'name', label: 'Name', render: (v: Unmodelled) => <span className="font-medium text-foreground">{v}</span> },
+                  { key: 'category', label: 'Category', render: (v: Unmodelled) => <Badge variant="outline" className="text-xs">{v || 'N/A'}</Badge> },
+                  { key: 'price', label: 'Price', render: (v: Unmodelled) => <>₹{v?.toLocaleString() || '—'}</> },
+                  { key: 'mrp', label: 'MRP', render: (v: Unmodelled) => <>₹{v?.toLocaleString() || '—'}</> },
+                  { key: 'popular', label: 'Popular', render: (v: Unmodelled) => (v ? <CheckCircle className="w-4 h-4 text-success" /> : '—') },
+                  { key: 'homeCollection', label: 'Home Collection', render: (v: Unmodelled) => (v ? <CheckCircle className="w-4 h-4 text-success" /> : '—') },
                 ]}
                 rows={filteredTests.map((t, i) => ({ ...t, _id: t._id || `test-${i}` }))}
                 rowKey="_id"
@@ -158,18 +158,18 @@ export default function GlobalCatalog() {
           <CardContent>
             <DataGrid
               columns={[
-                { key: 'name', label: 'Name', render: (v) => <span className="font-medium text-foreground">{v}</span> },
-                { key: 'category', label: 'Category', render: (v) => <Badge variant="outline" className="text-xs">{v || 'N/A'}</Badge> },
-                { key: 'price', label: 'Price', render: (v, m) => <>₹{(v || m.sellingPrice || 0).toLocaleString()}</> },
+                { key: 'name', label: 'Name', render: (v: Unmodelled) => <span className="font-medium text-foreground">{v}</span> },
+                { key: 'category', label: 'Category', render: (v: Unmodelled) => <Badge variant="outline" className="text-xs">{v || 'N/A'}</Badge> },
+                { key: 'price', label: 'Price', render: (v: Unmodelled, m: Unmodelled) => <>₹{(v || m.sellingPrice || 0).toLocaleString()}</> },
                 {
                   key: 'stock', label: 'Stock',
-                  render: (v) => (
+                  render: (v: Unmodelled) => (
                     <Badge className={`text-xs ${(v || 0) > 10 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
                       {v || 0} units
                     </Badge>
                   ),
                 },
-                { key: 'prescriptionRequired', label: 'Prescription Required', render: (v) => (v ? <CheckCircle className="w-4 h-4 text-success" /> : '—') },
+                { key: 'prescriptionRequired', label: 'Prescription Required', render: (v: Unmodelled) => (v ? <CheckCircle className="w-4 h-4 text-success" /> : '—') },
               ]}
               rows={filteredMeds.map((m, i) => ({ ...m, _id: m._id || `med-${i}` }))}
               rowKey="_id"

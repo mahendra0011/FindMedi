@@ -9,12 +9,12 @@ import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import ClinicalLockingAlert from '@/components/emergency/ClinicalLockingAlert';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const ACTIVE = ['Pending', 'Assigned', 'Under Treatment'];
 const SLA_TARGET_MIN = 60;
 
-function ageMin(createdAt) {
+function ageMin(createdAt: Unmodelled) {
   const ms = Date.now() - new Date(createdAt).getTime();
   return Math.max(0, Math.floor(ms / 60000));
 }
@@ -58,7 +58,7 @@ export default function EmergencyWarRoom() {
         socket = getSocket();
         if (!socket) return;
         const bump = () => load(true);
-        const clinical = (kind) => (payload) => {
+        const clinical = (kind: Unmodelled) => (payload: Unmodelled) => {
           const tone = payload?.toneType === 'lab_panic' ? 'lab_panic' : payload?.toneType === 'code_blue' ? 'code_blue' : 'siren';
           const titles = {
             code_blue: payload?.patientName ? `Cardiac arrest — ${payload.patientName}` : 'Cardiac arrest',
@@ -89,7 +89,7 @@ export default function EmergencyWarRoom() {
           });
           load(true);
         };
-        const onAck = (ack) => {
+        const onAck = (ack: Unmodelled) => {
           if (!ack?.alertId) return;
           setLockingAlert((cur) => (cur && cur.alertId === ack.alertId ? null : cur));
           load(true);
@@ -157,7 +157,7 @@ export default function EmergencyWarRoom() {
         <ClinicalLockingAlert
           alert={lockingAlert}
           onAcked={() => { setLockingAlert(null); load(true); }}
-          onAction={(a) => { toast.success(`Action logged: ${a.actionLabel}`); }}
+          onAction={(a: Unmodelled) => { toast.success(`Action logged: ${a.actionLabel}`); }}
         />
       ) : null}
       <div className="flex items-center justify-between">
@@ -201,13 +201,13 @@ export default function EmergencyWarRoom() {
         <div className="overflow-x-auto rounded-xl border" key={now}>
           <DataGrid
             columns={[
-              { key: 'patientName', label: 'Patient', render: (v, e) => <span className="font-medium">{v || 'Unknown'}{e.phone ? <span className="block text-xs text-muted-foreground">{e.phone}</span> : null}</span> },
-              { key: 'condition', label: 'Condition', render: (v) => <span className="text-xs text-muted-foreground max-w-xs truncate block">{v}</span> },
-              { key: 'severity', label: 'Severity', render: (v) => <Badge variant={v === 'Critical' ? 'destructive' : 'outline'}>{v}</Badge> },
-              { key: 'status', label: 'Status', render: (v, e) => <span className="text-xs">{v}{e.assignedDoctorName ? ` · ${e.assignedDoctorName}` : ''}</span> },
+              { key: 'patientName', label: 'Patient', render: (v: Unmodelled, e: Unmodelled) => <span className="font-medium">{v || 'Unknown'}{e.phone ? <span className="block text-xs text-muted-foreground">{e.phone}</span> : null}</span> },
+              { key: 'condition', label: 'Condition', render: (v: Unmodelled) => <span className="text-xs text-muted-foreground max-w-xs truncate block">{v}</span> },
+              { key: 'severity', label: 'Severity', render: (v: Unmodelled) => <Badge variant={v === 'Critical' ? 'destructive' : 'outline'}>{v}</Badge> },
+              { key: 'status', label: 'Status', render: (v: Unmodelled, e: Unmodelled) => <span className="text-xs">{v}{e.assignedDoctorName ? ` · ${e.assignedDoctorName}` : ''}</span> },
               {
                 key: '_sla', label: 'SLA clock', sortable: false,
-                render: (_v, e) => {
+                render: (_v: Unmodelled, e: Unmodelled) => {
                   const mins = ageMin(e.createdAt);
                   const bad = e.status === 'Pending' && mins >= SLA_TARGET_MIN;
                   return (
@@ -223,7 +223,7 @@ export default function EmergencyWarRoom() {
             empty="Board is clear."
             showSearch={false}
             manualPagination
-            rowClassName={(e) => (e.status === 'Pending' && ageMin(e.createdAt) >= SLA_TARGET_MIN ? 'bg-destructive/5' : '')}
+            rowClassName={(e: Unmodelled) => (e.status === 'Pending' && ageMin(e.createdAt) >= SLA_TARGET_MIN ? 'bg-destructive/5' : '')}
           />
         </div>
       )}

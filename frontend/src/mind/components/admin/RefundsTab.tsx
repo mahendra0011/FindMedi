@@ -2,8 +2,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/min
 import { Button } from "@/mind/components/ui/button";
 import { AlertTriangle, CheckCircle2, CreditCard, Download, FileText, RotateCcw, ShieldAlert, X } from "lucide-react";
 import { api } from "@/mind/lib/api";
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function RefundsTab({ data, users, packages }) {
+export default function RefundsTab({ data, users, packages }: Unmodelled) {
   return (
     <>
   <div className="grid md:grid-cols-4 gap-4">

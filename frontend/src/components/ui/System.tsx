@@ -12,10 +12,10 @@ import {
 } from '@tanstack/react-table';
 import { observeElementRect, useVirtualizer } from '@tanstack/react-virtual';
 import { X, ChevronLeft, ChevronRight, Search, AlertTriangle, Camera, Loader2 } from 'lucide-react';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 /* ─── AlertBanner ────────────────────────────────────────────────────────── */
-export function AlertBanner({ alerts = [], onAck, onSnooze }) {
+export function AlertBanner({ alerts = [], onAck, onSnooze }: Unmodelled) {
   if (!alerts.length) return null;
   return (
     <div className="space-y-1.5" role="alert">
@@ -61,7 +61,7 @@ const SCROLLER_HEIGHT = 480;
  * `sortUndefined` cannot help either — it only tests `=== undefined`, and
  * Mongo/API rows carry `null`. So the comparator closes over the direction.
  */
-const nullsLastComparator = (desc) => (rowA, rowB, columnId) => {
+const nullsLastComparator = (desc: Unmodelled) => (rowA: Unmodelled, rowB: Unmodelled, columnId: Unmodelled) => {
   const a = rowA.getValue(columnId);
   const b = rowB.getValue(columnId);
   if (a == null && b == null) return 0;
@@ -77,7 +77,7 @@ const nullsLastComparator = (desc) => (rowA, rowB, columnId) => {
  * browsers take the ResizeObserver/rect value; the estimate is the fallback
  * only when measurement genuinely returned nothing.
  */
-const measureElementOrDefault = (element, entry) => {
+const measureElementOrDefault = (element: Unmodelled, entry: Unmodelled) => {
   const fromEntry = entry?.borderBoxSize?.[0]?.blockSize;
   const fromRect = element?.getBoundingClientRect?.().height;
   return Math.round(fromEntry || fromRect) || ROW_HEIGHT;
@@ -90,7 +90,7 @@ const measureElementOrDefault = (element, entry) => {
  * in a browser. Flooring the measurement at the declared height keeps the
  * virtualiser honest in both environments.
  */
-const observeElementRectWithFloor = (instance, cb) => {
+const observeElementRectWithFloor = (instance: Unmodelled, cb: Unmodelled) => {
   observeElementRect(instance, (rect) => {
     cb({ width: rect.width || 800, height: rect.height || SCROLLER_HEIGHT });
   });
@@ -129,7 +129,7 @@ export function DataGrid({
    */
   expandedRowKey,
   renderDetail,
-}) {
+}: Unmodelled) {
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState<ApiRow[]>([]);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize });
@@ -142,15 +142,15 @@ export function DataGrid({
 
   const tanstackColumns = useMemo(() => columns.map(c => ({
     id: c.key,
-    accessorFn: (row) => row[c.key],
+    accessorFn: (row: Unmodelled) => row[c.key],
     header: c.label,
     enableSorting: c.sortable !== false,
     sortingFn: nullsLastComparator(sorting.some(s => s.id === c.key && s.desc)),
-    cell: (info) => (c.render ? c.render(info.getValue(), info.row.original) : String(info.getValue() ?? '')),
+    cell: (info: Unmodelled) => (c.render ? c.render(info.getValue(), info.row.original) : String(info.getValue() ?? '')),
   })), [columns, sorting]);
 
   // Search spans every declared column, exactly like the hand-rolled filter did.
-  const globalFilterFn = useCallback((row, _columnId, filterValue) => {
+  const globalFilterFn = useCallback((row: Unmodelled, _columnId: Unmodelled, filterValue: Unmodelled) => {
     const needle = String(filterValue ?? '').trim().toLowerCase();
     if (!needle) return true;
     return columns.some(c => String(row.getValue(c.key) ?? '').toLowerCase().includes(needle));
@@ -209,14 +209,14 @@ export function DataGrid({
   const pages = Math.max(1, table.getPageCount());
   const pageIndex = table.getState().pagination.pageIndex;
 
-  const sortLabel = (header) => {
+  const sortLabel = (header: Unmodelled) => {
     const sorted = header.column.getIsSorted();
     if (sorted === 'asc') return 'ascending';
     if (sorted === 'desc') return 'descending';
     return header.column.getCanSort() ? 'none' : undefined;
   };
 
-  const renderRow = (row, virtualIndex) => {
+  const renderRow = (row: Unmodelled, virtualIndex: Unmodelled) => {
     const r = row.original;
     const isExpanded = !virtualize && renderDetail && expandedRowKey != null
       && rowKey != null && r?.[rowKey] === expandedRowKey;
@@ -356,8 +356,8 @@ export function DataGrid({
 }
 
 /* ─── FilterBar ──────────────────────────────────────────────────────────── */
-export function FilterBar({ filters = [], value = {}, onChange }) {
-  const set = (key, val) => onChange({ ...value, [key]: val });
+export function FilterBar({ filters = [], value = {}, onChange }: Unmodelled) {
+  const set = (key: Unmodelled, val: Unmodelled) => onChange({ ...value, [key]: val });
   return (
     <div className="flex flex-wrap gap-2">
       {filters.map(f => {
@@ -371,7 +371,7 @@ export function FilterBar({ filters = [], value = {}, onChange }) {
               aria-label={f.label}
             >
               <option value="">{f.label}: all</option>
-              {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+              {f.options.map((o: Unmodelled) => <option key={o} value={o}>{o}</option>)}
             </select>
           );
         }
@@ -402,7 +402,7 @@ export function FilterBar({ filters = [], value = {}, onChange }) {
 }
 
 /* ─── EntityPicker ───────────────────────────────────────────────────────── */
-export function EntityPicker({ label, search, onSelect, renderOption, placeholder = 'Type to search…', debounceMs = 250 }) {
+export function EntityPicker({ label, search, onSelect, renderOption, placeholder = 'Type to search…', debounceMs = 250 }: Unmodelled) {
   const [q, setQ] = useState('');
   const [options, setOptions] = useState<ApiRow[]>([]);
   const [open, setOpen] = useState(false);
@@ -418,7 +418,7 @@ export function EntityPicker({ label, search, onSelect, renderOption, placeholde
   }, [q]);
 
   useEffect(() => {
-    const onDoc = e => { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false); };
+    const onDoc = (e: Unmodelled) => { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false); };
     document.addEventListener('click', onDoc);
     return () => document.removeEventListener('click', onDoc);
   }, []);
@@ -452,7 +452,7 @@ export function EntityPicker({ label, search, onSelect, renderOption, placeholde
 }
 
 /* ─── BarcodeScanner ─────────────────────────────────────────────────────── */
-export function BarcodeScanner({ onScan, label = 'Scan code' }) {
+export function BarcodeScanner({ onScan, label = 'Scan code' }: Unmodelled) {
   const [manual, setManual] = useState('');
   const inputId = useId();
   return (
@@ -476,7 +476,7 @@ export function BarcodeScanner({ onScan, label = 'Scan code' }) {
 }
 
 /* ─── PdfViewer (embed) ──────────────────────────────────────────────────── */
-export function PdfViewer({ src, height = 520 }) {
+export function PdfViewer({ src, height = 520 }: Unmodelled) {
   if (!src) return <p className="py-8 text-center text-sm text-muted-foreground">No document selected.</p>;
   return (
     <iframe

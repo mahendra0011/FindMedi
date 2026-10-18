@@ -28,10 +28,10 @@ import {
 import { useAudioCall } from '@/context/AudioCallContext';
 import { useVideoCall } from '@/context/VideoCallContext';
 import { userFacingError } from '@/lib/errorCopy';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const mediaUrl = (u) => (String(u || '').startsWith('http') ? u : `${getServerOrigin()}${u}`);
-const uid = (v) => (v == null ? '' : (typeof v === 'object' ? String(v._id || v.userId || '') : String(v)));
+const mediaUrl = (u: Unmodelled) => (String(u || '').startsWith('http') ? u : `${getServerOrigin()}${u}`);
+const uid = (v: Unmodelled) => (v == null ? '' : (typeof v === 'object' ? String(v._id || v.userId || '') : String(v)));
 
 export default function ChatDashboard() {
   const { user } = useAuth();
@@ -101,7 +101,7 @@ export default function ChatDashboard() {
   const [backupRunning, setBackupRunning] = useState(false);
   const [pinSet, setPinSet] = useState(false);
 
-  const setPrefs = useCallback((patch) => {
+  const setPrefs = useCallback((patch: Unmodelled) => {
     setPrefsState((p) => {
       const next = typeof patch === 'function' ? patch(p) : { ...p, ...patch };
       writeChatPrefs(next);
@@ -109,7 +109,7 @@ export default function ChatDashboard() {
     });
   }, []);
 
-  const setPrivacyField = useCallback(async (key, value) => {
+  const setPrivacyField = useCallback(async (key: Unmodelled, value: Unmodelled) => {
     const prev = privacy;
     setPrivacy((p) => ({ ...p, [key]: value }));
     try {
@@ -171,7 +171,7 @@ export default function ChatDashboard() {
   );
   const peer = useMemo(() => {
     const list = activeConv?.participants || [];
-    const other = list.find((p) => uid(p._id || p) !== meId) || null;
+    const other = list.find((p: Unmodelled) => uid(p._id || p) !== meId) || null;
     return other ? {
       ...other,
       _id: uid(other._id || other),
@@ -256,7 +256,7 @@ export default function ChatDashboard() {
   }, [meId]);
 
   /** Draft update + typing indicator emit (2.5s debounce stop) */
-  const updateDraft = useCallback((convId, text) => {
+  const updateDraft = useCallback((convId: Unmodelled, text: Unmodelled) => {
     setDraftText(text);
     saveDraft(convId, text);
     setDrafts(readDrafts());
@@ -373,7 +373,7 @@ export default function ChatDashboard() {
   }, [meId, flushQueue, refreshConversations, refreshSideData]);
 
   /* ── Conversation open ── */
-  const openConversation = useCallback(async (id) => {
+  const openConversation = useCallback(async (id: Unmodelled) => {
     setSelectedId(id);
     setSelectionMode(false); setSelectedMessages([]);
     setReplyTo(null); setEditMessage(null); setShowInfo(false);
@@ -500,12 +500,12 @@ export default function ChatDashboard() {
   }, [meId, user, connected, scrollToBottom, refreshConversations]);
 
   /* ── Attachments (image/video/doc) + voice ── */
-  const uploadDataUrl = useCallback(async (dataUrl, name) => {
+  const uploadDataUrl = useCallback(async (dataUrl: Unmodelled, name: Unmodelled) => {
     const { data } = await api.post('/chat/upload', { dataUrl, name });
     return data; // { url, name, size, mimeType } (CHAT-M-02: camelCase from the server)
   }, []);
 
-  const handleFilesPicked = useCallback(async (fileList) => {
+  const handleFilesPicked = useCallback(async (fileList: Unmodelled) => {
     const files = Array.from(fileList || []);
     if (!files.length) return;
     setUploading(0.15);
@@ -540,7 +540,7 @@ export default function ChatDashboard() {
     }
   }, [uploadDataUrl, sendMessage, draftText]);
 
-  const handleVoiceSend = useCallback(async ({ dataUrl, duration }) => {
+  const handleVoiceSend = useCallback(async ({ dataUrl, duration }: Unmodelled) => {
     setUploading(0.4);
     try {
       const meta = await uploadDataUrl(dataUrl, `voice-${Date.now()}.webm`);
@@ -553,14 +553,14 @@ export default function ChatDashboard() {
   }, [uploadDataUrl, sendMessage]);
 
   /* ── Message actions ── */
-  const handleReact = useCallback(async (messageId, emoji) => {
+  const handleReact = useCallback(async (messageId: Unmodelled, emoji: Unmodelled) => {
     setMessages((prev) => prev.map((m) => (m._id === messageId
       ? { ...m, myReaction: m.myReaction === emoji ? null : emoji } : m)));
     try { await api.post(`/chat/messages/${messageId}/reactions`, { emoji }); }
     catch { toast.error('Reaction save nahi hua'); }
   }, []);
 
-  const handleEditSubmit = useCallback(async (messageId, content) => {
+  const handleEditSubmit = useCallback(async (messageId: Unmodelled, content: Unmodelled) => {
     try {
       const { data } = await api.put(`/chat/messages/${messageId}`, { content });
       setMessages((prev) => prev.map((m) => (m._id === messageId ? { ...m, ...data, edited: true } : m)));
@@ -568,7 +568,7 @@ export default function ChatDashboard() {
     } catch (err) { toast.error(userFacingError(err, { fallback: 'Edit fail' })); }
   }, []);
 
-  const handleDelete = useCallback(async (messageId, scope) => {
+  const handleDelete = useCallback(async (messageId: Unmodelled, scope: Unmodelled) => {
     try {
       await api.delete(`/chat/messages/${messageId}`, { params: { scope } });
       setMessages((prev) => (scope === 'everyone'
@@ -577,13 +577,13 @@ export default function ChatDashboard() {
     } catch (err) { toast.error(userFacingError(err, { fallback: 'Delete fail' })); }
   }, []);
 
-  const handleStar = useCallback(async (messageId, current) => {
+  const handleStar = useCallback(async (messageId: Unmodelled, current: Unmodelled) => {
     setMessages((prev) => prev.map((m) => (m._id === messageId ? { ...m, starred: !current } : m)));
     try { await api.put(`/chat/messages/${messageId}/star`, { starred: !current }); refreshSideData(); }
     catch { toast.error('Star update fail'); }
   }, [refreshSideData]);
 
-  const handlePin = useCallback(async (messageId) => {
+  const handlePin = useCallback(async (messageId: Unmodelled) => {
     const convId = selectedIdRef.current;
     if (!convId) return;
     try {
@@ -593,12 +593,12 @@ export default function ChatDashboard() {
     } catch (err) { toast.error(userFacingError(err, { fallback: 'Pin fail' })); }
   }, []);
 
-  const handleCopy = useCallback((message) => {
-    const text = message.content || (message.attachments || []).map((a) => a.url).join('\n');
+  const handleCopy = useCallback((message: Unmodelled) => {
+    const text = message.content || (message.attachments || []).map((a: Unmodelled) => a.url).join('\n');
     navigator.clipboard?.writeText(text).then(() => toast.success('Copied')).catch(() => {});
   }, []);
 
-  const handleForward = useCallback(async (targetConvId) => {
+  const handleForward = useCallback(async (targetConvId: Unmodelled) => {
     if (!forwardMessageIds?.length) return;
     try {
       await api.post('/chat/messages/forward', { messageIds: forwardMessageIds, conversationId: targetConvId });
@@ -608,26 +608,26 @@ export default function ChatDashboard() {
     } catch (err) { toast.error(userFacingError(err, { fallback: 'Forward fail' })); }
   }, [forwardMessageIds, refreshConversations]);
 
-  const handleRetry = useCallback((message) => {
+  const handleRetry = useCallback((message: Unmodelled) => {
     sendMessage({ text: message.content, type: message.type, attachments: message.attachments });
     setMessages((prev) => prev.filter((m) => m._id !== message._id));
   }, [sendMessage]);
 
-  const openMessageInfo = useCallback(async (message) => {
+  const openMessageInfo = useCallback(async (message: Unmodelled) => {
     try {
       const { data } = await api.get(`/chat/messages/${message._id}/info`);
       setMessageInfo({ message, info: data });
     } catch { setMessageInfo({ message, info: null }); }
   }, []);
 
-  const openReactionDetails = useCallback(async (message) => {
+  const openReactionDetails = useCallback(async (message: Unmodelled) => {
     try {
       const { data } = await api.get(`/chat/messages/${message._id}/reactions`);
       setReactionDetails({ message, reactions: data });
     } catch { /* ignore */ }
   }, []);
 
-  const reportMessage = useCallback(async (message) => {
+  const reportMessage = useCallback(async (message: Unmodelled) => {
     try {
       await api.post('/chat/report', {
         reportedUserId: uid(peer?.id || peer?._id), messageId: message._id,
@@ -639,7 +639,7 @@ export default function ChatDashboard() {
   }, [peer, refreshSideData]);
 
   /* ── Conversation actions ── */
-  const convAction = useCallback(async (action, value) => {
+  const convAction = useCallback(async (action: Unmodelled, value: Unmodelled) => {
     const convId = selectedIdRef.current;
     if (!convId) return;
     try {
@@ -648,7 +648,7 @@ export default function ChatDashboard() {
     } catch (err) { toast.error(userFacingError(err, { fallback: 'Action fail' })); }
   }, [refreshConversations]);
 
-  const markUnread = useCallback(async (convId) => {
+  const markUnread = useCallback(async (convId: Unmodelled) => {
     try {
       await api.put(`/chat/messages/mark-unread/${convId}`);
       setConversations((prev) => prev.map((c) => (uid(c._id) === uid(convId) ? { ...c, unread: Math.max(1, c.unread || 0) } : c)));
@@ -681,7 +681,7 @@ export default function ChatDashboard() {
     const lines = messages.map((m) => {
       const who = m.mine ? (user?.name || 'Me') : (peer?.name || 'Contact');
       const when = new Date(m.createdAt).toLocaleString();
-      const body = m.deletedForEveryone ? '[deleted]' : (m.content || (m.attachments || []).map((a) => a.url).join(' '));
+      const body = m.deletedForEveryone ? '[deleted]' : (m.content || (m.attachments || []).map((a: Unmodelled) => a.url).join(' '));
       return `[${when}] ${who}: ${body}`;
     });
     const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
@@ -692,7 +692,7 @@ export default function ChatDashboard() {
     URL.revokeObjectURL(a.href);
   }, [messages, user, peer]);
 
-  const respondRequest = useCallback(async (conv, action) => {
+  const respondRequest = useCallback(async (conv: Unmodelled, action: Unmodelled) => {
     try {
       await api.put(`/chat/conversations/${conv._id}/request`, { action });
       refreshSideData(); refreshConversations();
@@ -700,7 +700,7 @@ export default function ChatDashboard() {
     } catch (err) { toast.error(userFacingError(err, { fallback: 'Action fail' })); }
   }, [refreshSideData, refreshConversations]);
 
-  const startChat = useCallback(async (contact) => {
+  const startChat = useCallback(async (contact: Unmodelled) => {
     try {
       const targetId = uid(contact.user?._id || contact.user?.id || contact._id);
       const { data } = await api.post('/chat/conversations', { targetUserId: targetId });
@@ -709,7 +709,7 @@ export default function ChatDashboard() {
     } catch (err) { toast.error(userFacingError(err, { fallback: 'Chat start nahi hui' })); }
   }, [refreshConversations, openConversation]);
 
-  const searchInChat = useCallback(async (q) => {
+  const searchInChat = useCallback(async (q: Unmodelled) => {
     const convId = selectedIdRef.current;
     if (!convId || !q) return [];
     try {
@@ -718,7 +718,7 @@ export default function ChatDashboard() {
     } catch { return []; }
   }, []);
 
-  const jumpToMessage = useCallback((messageId) => {
+  const jumpToMessage = useCallback((messageId: Unmodelled) => {
     setHighlightId(messageId);
     const el = document.getElementById(`msg-${messageId}`);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -735,7 +735,7 @@ export default function ChatDashboard() {
     finally { setBackupRunning(false); }
   }, []);
 
-  const setAppPin = useCallback(async (pin, currentPin) => {
+  const setAppPin = useCallback(async (pin: Unmodelled, currentPin: Unmodelled) => {
     try {
       await api.post('/chat/privacy/app-lock/pin', { pin, currentPin });
       setPinSet(true);
@@ -744,7 +744,7 @@ export default function ChatDashboard() {
     } catch (err) { toast.error(userFacingError(err, { fallback: 'PIN set fail' })); return false; }
   }, []);
 
-  const onThemeChange = useCallback((next) => {
+  const onThemeChange = useCallback((next: Unmodelled) => {
     setTheme(next);
     try {
       const stored = JSON.parse((localStorage.getItem('findmedi_settings') || localStorage.getItem('medicore_settings')) || '{}');
@@ -760,8 +760,8 @@ export default function ChatDashboard() {
     try { Notification?.requestPermission?.(); } catch { /* ignore */ }
   }, []);
 
-  const unblockUser = useCallback(async (userId) => {
-    const conv = conversations.find((c) => uid((c.participants || []).find((p) => uid(p._id || p) !== meId)?._id) === uid(userId));
+  const unblockUser = useCallback(async (userId: Unmodelled) => {
+    const conv = conversations.find((c) => uid((c.participants || []).find((p: Unmodelled) => uid(p._id || p) !== meId)?._id) === uid(userId));
     if (!conv) { toast.error('Conversation nahi mili'); return; }
     try {
       await api.put(`/chat/settings/${conv._id}`, { action: 'block', value: false });
@@ -791,7 +791,7 @@ export default function ChatDashboard() {
 
   /* ── Keyboard shortcuts ── */
   useEffect(() => {
-    const onKey = (e) => {
+    const onKey = (e: Unmodelled) => {
       if (e.key === 'Escape') {
         setShowEmoji(false); setViewer(null); setMessageInfo(null); setReactionDetails(null); setForwardMessageIds(null);
       }
@@ -812,7 +812,7 @@ export default function ChatDashboard() {
     sendMessage({ text: draftText.trim() });
   }, [editMessage, draftText, handleEditSubmit, sendMessage]);
 
-  const onComposerKeyDown = (e) => {
+  const onComposerKeyDown = (e: Unmodelled) => {
     const enterSends = prefs.sendWithEnter !== false;
     if (e.key === 'Enter' && !e.shiftKey && enterSends) { e.preventDefault(); sendCurrent(); }
   };
@@ -832,19 +832,19 @@ export default function ChatDashboard() {
           recordingUsers={recordingUsers}
           drafts={drafts}
           selectedId={selectedId}
-          onOpen={(c) => openConversation(c._id)}
-          onTogglePin={(c) => api.put(`/chat/settings/${c._id}`, { action: 'pin', value: !c.pinned }).then(refreshConversations)}
-          onToggleMute={(c) => api.put(`/chat/settings/${c._id}`, { action: 'mute', value: !c.muted }).then(refreshConversations)}
-          onToggleArchive={(c) => api.put(`/chat/settings/${c._id}`, { action: 'archive', value: !c.archived }).then(refreshConversations)}
-          onDeleteChat={(c) => api.delete(`/chat/${c._id}`).then(() => {
+          onOpen={(c: Unmodelled) => openConversation(c._id)}
+          onTogglePin={(c: Unmodelled) => api.put(`/chat/settings/${c._id}`, { action: 'pin', value: !c.pinned }).then(refreshConversations)}
+          onToggleMute={(c: Unmodelled) => api.put(`/chat/settings/${c._id}`, { action: 'mute', value: !c.muted }).then(refreshConversations)}
+          onToggleArchive={(c: Unmodelled) => api.put(`/chat/settings/${c._id}`, { action: 'archive', value: !c.archived }).then(refreshConversations)}
+          onDeleteChat={(c: Unmodelled) => api.delete(`/chat/${c._id}`).then(() => {
             setConversations((p) => p.filter((x) => uid(x._id) !== uid(c._id)));
             if (uid(selectedId) === uid(c._id)) setSelectedId(null);
             toast.success('Chat delete ho gayi');
           })}
-          onMarkUnread={(c) => markUnread(c._id)}
+          onMarkUnread={(c: Unmodelled) => markUnread(c._id)}
           onNewChat={startChat}
-          onAcceptRequest={(r) => respondRequest(r, 'accept')}
-          onDeclineRequest={(r, action) => respondRequest(r, action)}
+          onAcceptRequest={(r: Unmodelled) => respondRequest(r, 'accept')}
+          onDeclineRequest={(r: Unmodelled, action: Unmodelled) => respondRequest(r, action)}
           onOpenSettings={() => setShowSettings(true)}
           onTogglePush={enablePush}
           pushState={pushState}
@@ -992,26 +992,26 @@ export default function ChatDashboard() {
                         isMine={item.message.mine || uid(item.message.sender) === meId}
                         prefs={prefs}
                         peerName={peer?.name || 'Contact'}
-                        onReply={(m) => { setReplyTo(m); setEditMessage(null); }}
-                        onReact={(m, emoji) => handleReact(m._id, emoji)}
-                        onEdit={(m) => { setEditMessage({ _id: m._id, content: m.content }); setDraftText(m.content); }}
-                        onDelete={(m, scope) => handleDelete(m._id, scope)}
-                        onStar={(m) => handleStar(m._id, m.starred)}
-                        onPin={(m) => handlePin(uid(m._id) === uid(pinnedMsg?._id) ? null : m._id)}
-                        onForward={(m) => setForwardMessageIds([m._id])}
+                        onReply={(m: Unmodelled) => { setReplyTo(m); setEditMessage(null); }}
+                        onReact={(m: Unmodelled, emoji: Unmodelled) => handleReact(m._id, emoji)}
+                        onEdit={(m: Unmodelled) => { setEditMessage({ _id: m._id, content: m.content }); setDraftText(m.content); }}
+                        onDelete={(m: Unmodelled, scope: Unmodelled) => handleDelete(m._id, scope)}
+                        onStar={(m: Unmodelled) => handleStar(m._id, m.starred)}
+                        onPin={(m: Unmodelled) => handlePin(uid(m._id) === uid(pinnedMsg?._id) ? null : m._id)}
+                        onForward={(m: Unmodelled) => setForwardMessageIds([m._id])}
                         onCopy={handleCopy}
                         onInfo={openMessageInfo}
                         onReport={reportMessage}
                         onRetry={handleRetry}
-                        onOpenMedia={(att, all) => {
+                        onOpenMedia={(att: Unmodelled, all: Unmodelled) => {
                           const list = all || [att];
-                          setViewer({ items: list.map((a) => ({ ...a, url: mediaUrl(a.url) })), index: Math.max(0, list.findIndex((a) => a.url === att.url)) });
+                          setViewer({ items: list.map((a: Unmodelled) => ({ ...a, url: mediaUrl(a.url) })), index: Math.max(0, list.findIndex((a: Unmodelled) => a.url === att.url)) });
                         }}
-                        onJumpToReply={(id) => id && jumpToMessage(id)}
+                        onJumpToReply={(id: Unmodelled) => id && jumpToMessage(id)}
                         onShowReactions={openReactionDetails}
                         selectionMode={selectionMode}
                         selected={selectedMessages.includes(item.message._id)}
-                        onToggleSelect={(m) => {
+                        onToggleSelect={(m: Unmodelled) => {
                           setSelectionMode(true);
                           setSelectedMessages((p) => (p.includes(m._id) ? p.filter((x) => x !== m._id) : [...p, m._id]));
                         }}
@@ -1081,7 +1081,7 @@ export default function ChatDashboard() {
                       setRecordingVoice(false);
                       getSocket().emit('chat:recording', { conversationId: selectedId, isRecording: false });
                     }}
-                    onRecordingChange={(on) => getSocket().emit('chat:recording', { conversationId: selectedId, isRecording: on })}
+                    onRecordingChange={(on: Unmodelled) => getSocket().emit('chat:recording', { conversationId: selectedId, isRecording: on })}
                   />
                 ) : (
                   <>
@@ -1108,9 +1108,9 @@ export default function ChatDashboard() {
                 {showEmoji && (
                   <div className="absolute bottom-[64px] left-2 z-40">
                     <EmojiPicker
-                      onPickEmoji={(emoji) => updateDraft(selectedId, `${draftText}${emoji}`)}
-                      onPickSticker={(s) => { sendMessage({ text: s }); setShowEmoji(false); }}
-                      onPickGif={(url) => { sendMessage({ text: url }); setShowEmoji(false); }}
+                      onPickEmoji={(emoji: Unmodelled) => updateDraft(selectedId, `${draftText}${emoji}`)}
+                      onPickSticker={(s: Unmodelled) => { sendMessage({ text: s }); setShowEmoji(false); }}
+                      onPickGif={(url: Unmodelled) => { sendMessage({ text: url }); setShowEmoji(false); }}
                       onClose={() => setShowEmoji(false)}
                     />
                   </div>
@@ -1132,20 +1132,20 @@ export default function ChatDashboard() {
         files={gallery.files || []}
         starred={starred}
         onToggle={convAction}
-        onOpenMedia={(items, index) => setViewer({ items: (items || []).map((a) => ({ ...a, url: mediaUrl(a.url) })), index: index || 0 })}
+        onOpenMedia={(items: Unmodelled, index: Unmodelled) => setViewer({ items: (items || []).map((a: Unmodelled) => ({ ...a, url: mediaUrl(a.url) })), index: index || 0 })}
         onJump={jumpToMessage}
         onClearChat={clearChat}
         onDeleteChat={deleteChat}
         onBlock={() => convAction('block', !(activeConv?.blocked))}
         onReport={() => reportMessage(messages[messages.length - 1] || {})}
         onExport={exportChat}
-        onWallpaper={(value) => {
+        onWallpaper={(value: Unmodelled) => {
           setConversationWallpaper(uid(selectedId), value);
           setPrefs({ wallpaper: value });
           convAction('wallpaper', value);
         }}
         onSearch={searchInChat}
-        onUnstar={(m) => handleStar(m._id, true)}
+        onUnstar={(m: Unmodelled) => handleStar(m._id, true)}
       />
 
       {/* ── Settings panel ── */}
@@ -1164,15 +1164,15 @@ export default function ChatDashboard() {
         reports={reports}
         storage={storage}
         backup={backup}
-        setBackup={(patch) => setBackup((b) => ({ ...b, ...patch }))}
+        setBackup={(patch: Unmodelled) => setBackup((b) => ({ ...b, ...patch }))}
         onRunBackup={runBackup}
         backupRunning={backupRunning}
         pinSet={pinSet}
         onSetPin={setAppPin}
         onLogoutAll={() => toast.info('Account settings se logout-all karein')}
         onRequestDesktopPermission={requestDesktopPermission}
-        locks={conversations.filter((c) => c.locked).map((c) => ({ ...c, other: (c.participants || []).find((p) => uid(p._id || p) !== meId) }))}
-        onOpenLocked={(c) => { setShowSettings(false); openConversation(c._id); }}
+        locks={conversations.filter((c) => c.locked).map((c) => ({ ...c, other: (c.participants || []).find((p: Unmodelled) => uid(p._id || p) !== meId) }))}
+        onOpenLocked={(c: Unmodelled) => { setShowSettings(false); openConversation(c._id); }}
         onClearAllDrafts={() => {
           Object.keys(readDrafts()).forEach((k) => saveDraft(k, ''));
           setDrafts({}); setDraftText('');
@@ -1202,7 +1202,7 @@ export default function ChatDashboard() {
               </button>
             </div>
             <div className="p-3 max-h-72 overflow-y-auto scrollbar-thin">
-              {reactionDetails.reactions?.length ? reactionDetails.reactions.map((r, i) => (
+              {reactionDetails.reactions?.length ? reactionDetails.reactions.map((r: Unmodelled, i: Unmodelled) => (
                 <div key={`${r.user?._id || i}-${i}`} className="flex items-center gap-3 py-2">
                   <span className="text-lg">{r.emoji}</span>
                   <span className="text-[13px] flex-1 truncate">{r.user?.name || 'User'}{r.mine ? ' (you)' : ''}</span>
@@ -1272,7 +1272,7 @@ export default function ChatDashboard() {
                 </p>
               )}
               {conversations.filter((c) => uid(c._id) !== uid(selectedId)).map((c) => {
-                const other = (c.participants || []).find((p) => uid(p._id || p) !== meId) || {};
+                const other = (c.participants || []).find((p: Unmodelled) => uid(p._id || p) !== meId) || {};
                 return (
                   <button
                     key={c._id}

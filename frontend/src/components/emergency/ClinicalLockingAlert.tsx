@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Siren, FlaskConical, Droplets, CheckCheck, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { startEmergencyRing, stopEmergencyRing } from '@/utils/emergencyRing';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 // Tech 09: fullscreen hardware-locking clinical modal. Reuses the dispatch
 // alert pattern (ProviderIncomingCall): z-[99999] viewport lock + Web Audio
@@ -38,7 +39,7 @@ const KIND_STYLE = {
   },
 };
 
-export default function ClinicalLockingAlert({ alert, onAcked, onAction }) {
+export default function ClinicalLockingAlert({ alert, onAcked, onAction }: Unmodelled) {
   const [secs, setSecs] = useState(0);
   const [acking, setAcking] = useState(false);
   const style = KIND_STYLE[alert?.kind] || KIND_STYLE.code_blue;

@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /**
  * Parses time like "09:15 AM" into a numerical value for sorting.
  */
-function parseTime(timeStr) {
+function parseTime(timeStr: Unmodelled) {
   if (!timeStr) return 0;
   const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
   if (!match) return 0;
@@ -18,7 +19,7 @@ function parseTime(timeStr) {
 /**
  * Formats a time value like { hour: 9, minute: 0 } to "09:00 AM"
  */
-function formatTimeLabel(hour, minute) {
+function formatTimeLabel(hour: Unmodelled, minute: Unmodelled) {
   const period = hour >= 12 ? 'PM' : 'AM';
   const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
   return `${String(h12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}`;
@@ -43,7 +44,7 @@ function generateWorkingHours(startHour = 9, endHour = 17) {
  * Generate 15-min sub-slots for a given hour.
  * e.g. hour=9 → ["09:00 AM", "09:15 AM", "09:30 AM", "09:45 AM"]
  */
-function generateSubSlots(hour) {
+function generateSubSlots(hour: Unmodelled) {
   const slots = [];
   for (let m = 0; m < 60; m += 15) {
     slots.push(formatTimeLabel(hour, m));
@@ -71,7 +72,7 @@ export default function TimeSlotScroller({
   onSelectHour: externalOnSelectHour,
   selectedSubSlot: externalSelectedSubSlot,
   onSelectSubSlot: externalOnSelectSubSlot,
-}) {
+}: Unmodelled) {
   const [internalSelectedHour, setInternalSelectedHour] = useState(null);
   const [internalSelectedSubSlot, setInternalSelectedSubSlot] = useState(null);
 
@@ -133,7 +134,7 @@ export default function TimeSlotScroller({
     }
   }, [selectedHour, subSlots, appointmentMap]);
 
-  const handleHourClick = (hourLabel) => {
+  const handleHourClick = (hourLabel: Unmodelled) => {
     if (selectedHour === hourLabel) {
       setSelectedHour(null);
       setSelectedSubSlot(null);
@@ -143,7 +144,7 @@ export default function TimeSlotScroller({
     }
   };
 
-  const handleSubSlotClick = (time) => {
+  const handleSubSlotClick = (time: Unmodelled) => {
     const apt = appointmentMap[time];
     if (apt) {
       if (onSelectApt) onSelectApt(apt);
@@ -151,7 +152,7 @@ export default function TimeSlotScroller({
     }
   };
 
-  const getPatientsForSubSlot = (time) => {
+  const getPatientsForSubSlot = (time: Unmodelled) => {
     const apt = appointmentMap[time];
     return apt ? [apt] : [];
   };

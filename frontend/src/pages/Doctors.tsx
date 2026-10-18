@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { useCategories } from '@/hooks/useCategories';
 
 import { SPECIALTY_NAMES } from '@/data/specialties';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const FALLBACK_SPECIALIZATIONS = ['Cardiology', 'Neurology', 'Orthopaedics', 'Paediatrics', 'Dermatology', 'Oncology', 'General Surgery', 'Psychiatry'];
 
@@ -34,8 +35,8 @@ export default function Doctors() {
   const deleteMut = useMutation({ mutationFn: api.deleteDoctor, onSuccess: () => qc.invalidateQueries(['doctors']) });
   const toggleMut = useMutation({ mutationFn: ({ id, available }) => api.updateDoctor(id, { available }), onSuccess: () => qc.invalidateQueries(['doctors']) });
 
-  const submit = (e) => { e.preventDefault(); createMut.mutate({ ...form, initials: form.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(), department: form.specialization }); };
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const submit = (e: Unmodelled) => { e.preventDefault(); createMut.mutate({ ...form, initials: form.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(), department: form.specialization }); };
+  const set = (k: Unmodelled, v: Unmodelled) => setForm(f => ({ ...f, [k]: v }));
 
   return (
     <div>
@@ -68,7 +69,7 @@ export default function Doctors() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {doctors.map(doctor => (
+          {doctors.map((doctor: Unmodelled) => (
             <div key={doctor._id} className="bg-card rounded-xl border shadow-sm hover:shadow-lg hover:border-primary/20 transition-all duration-300 p-6 group">
               <div className="flex items-start gap-4 mb-4">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground font-heading font-bold text-lg flex-shrink-0 shadow-lg shadow-primary/20 overflow-hidden">

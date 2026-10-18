@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import DiagnosticCenterCard from '@/components/DiagnosticCenterCard';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const CATEGORIES = [
   { key: 'All', label: 'All', icon: null, filterCat: null },
@@ -18,12 +18,12 @@ const CATEGORIES = [
   { key: 'Imaging Center', label: 'Imaging Center', icon: Zap, filterCat: 'Imaging Center' },
 ];
 
-const parseKm = (d) => {
+const parseKm = (d: Unmodelled) => {
   const m = (d || '').match(/[\d.]+/);
   return m ? parseFloat(m[0]) : 999;
 };
 
-const parseHrs = (t) => {
+const parseHrs = (t: Unmodelled) => {
   const m = (t || '').match(/(\d+)/);
   return m ? parseInt(m[1]) : 999;
 };
@@ -32,17 +32,17 @@ export default function DiagnosticCenters() {
   const [clinics, setClinics] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const deriveCategory = (f) => {
-    const s = (f.specialties || []).map(x => x.toLowerCase());
-    const hasPathology = s.some(x => x.includes('pathology') || x.includes('biochem') || x.includes('hematology') || x.includes('immunology') || x.includes('molecular') || x.includes('microbiology'));
-    const hasImaging = s.some(x => x.includes('imaging') || x.includes('radiology') || x.includes('mri') || x.includes('cardiology') || x.includes('neurology'));
+  const deriveCategory = (f: Unmodelled) => {
+    const s = (f.specialties || []).map((x: Unmodelled) => x.toLowerCase());
+    const hasPathology = s.some((x: Unmodelled) => x.includes('pathology') || x.includes('biochem') || x.includes('hematology') || x.includes('immunology') || x.includes('molecular') || x.includes('microbiology'));
+    const hasImaging = s.some((x: Unmodelled) => x.includes('imaging') || x.includes('radiology') || x.includes('mri') || x.includes('cardiology') || x.includes('neurology'));
     if (hasImaging && !hasPathology) return 'Imaging Center';
     if (hasPathology && !hasImaging) return 'Pathology Lab';
     if (s.includes('imaging')) return 'Imaging Center';
     return 'Diagnostic Center';
   };
 
-  const enrichFacility = (f) => {
+  const enrichFacility = (f: Unmodelled) => {
     const cat = f.providerCategory || deriveCategory(f);
     return {
       _id: f._id,
@@ -152,7 +152,7 @@ export default function DiagnosticCenters() {
     setDiscountOnly(false);
   };
 
-  const ToggleChip = ({ label, icon: Icon, active, onClick }) => (
+  const ToggleChip = ({ label, icon: Icon, active, onClick }: Unmodelled) => (
     <button onClick={onClick}
       className={cn(
         'flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium border transition-all',
@@ -163,7 +163,7 @@ export default function DiagnosticCenters() {
     </button>
   );
 
-  const PillBtn = ({ label, active, onClick }) => (
+  const PillBtn = ({ label, active, onClick }: Unmodelled) => (
     <button onClick={onClick}
       className={cn(
         'px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all',

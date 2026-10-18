@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function Promotions() {
   const [tab, setTab] = useState('coupons');
@@ -39,7 +39,7 @@ export default function Promotions() {
 
   useEffect(() => { load(); }, [search]);
 
-  const handleCreateCoupon = async (e) => {
+  const handleCreateCoupon = async (e: Unmodelled) => {
     e.preventDefault();
     try {
       await api.createPlatformCoupon(form);
@@ -50,7 +50,7 @@ export default function Promotions() {
     } catch (err) { toast.error(err?.message || 'Failed to create coupon'); }
   };
 
-  const handleCreateListing = async (e) => {
+  const handleCreateListing = async (e: Unmodelled) => {
     e.preventDefault();
     try {
       await api.createFeaturedListing(listForm);
@@ -61,7 +61,7 @@ export default function Promotions() {
     } catch (err) { toast.error(err?.message || 'Failed to create listing'); }
   };
 
-  const handleToggleCoupon = async (c) => {
+  const handleToggleCoupon = async (c: Unmodelled) => {
     try {
       await api.updatePlatformCoupon(c._id, { isActive: !c.isActive });
       toast.success(c.isActive ? 'Coupon deactivated' : 'Coupon activated');
@@ -69,7 +69,7 @@ export default function Promotions() {
     } catch { toast.error('Failed to update'); }
   };
 
-  const handleDeleteListing = async (id) => {
+  const handleDeleteListing = async (id: Unmodelled) => {
     if (!confirm('Remove this featured listing?')) return;
     try { await api.deleteFeaturedListing(id); load(); } catch { toast.error('Failed to delete'); }
   };
@@ -138,14 +138,14 @@ export default function Promotions() {
               rows handed in are the result set — no second filter, no pager. */}
           <DataGrid
             columns={[
-              { key: 'code', label: 'Code', render: (v) => <span className="font-mono font-bold text-foreground">{v}</span> },
-              { key: 'discountType', label: 'Discount', render: (v, c) => (v === 'percentage' ? `${c.discountValue}%` : `₹${c.discountValue}`) },
-              { key: 'usedCount', label: 'Used', render: (v, c) => <span className="text-muted-foreground">{v}{c.usageLimit > 0 ? `/${c.usageLimit}` : ''}</span> },
-              { key: 'validFrom', label: 'Valid', render: (v, c) => <span className="text-xs text-muted-foreground">{new Date(v).toLocaleDateString()} - {new Date(c.validUntil).toLocaleDateString()}</span> },
-              { key: 'isActive', label: 'Status', render: (v) => <Badge className={v ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}>{v ? 'Active' : 'Inactive'}</Badge> },
+              { key: 'code', label: 'Code', render: (v: Unmodelled) => <span className="font-mono font-bold text-foreground">{v}</span> },
+              { key: 'discountType', label: 'Discount', render: (v: Unmodelled, c: Unmodelled) => (v === 'percentage' ? `${c.discountValue}%` : `₹${c.discountValue}`) },
+              { key: 'usedCount', label: 'Used', render: (v: Unmodelled, c: Unmodelled) => <span className="text-muted-foreground">{v}{c.usageLimit > 0 ? `/${c.usageLimit}` : ''}</span> },
+              { key: 'validFrom', label: 'Valid', render: (v: Unmodelled, c: Unmodelled) => <span className="text-xs text-muted-foreground">{new Date(v).toLocaleDateString()} - {new Date(c.validUntil).toLocaleDateString()}</span> },
+              { key: 'isActive', label: 'Status', render: (v: Unmodelled) => <Badge className={v ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}>{v ? 'Active' : 'Inactive'}</Badge> },
               {
                 key: '_actions', label: 'Actions', sortable: false,
-                render: (_v, c) => <Button variant="outline" size="sm" onClick={() => handleToggleCoupon(c)}>{c.isActive ? 'Deactivate' : 'Activate'}</Button>,
+                render: (_v: Unmodelled, c: Unmodelled) => <Button variant="outline" size="sm" onClick={() => handleToggleCoupon(c)}>{c.isActive ? 'Deactivate' : 'Activate'}</Button>,
               },
             ]}
             rows={coupons}

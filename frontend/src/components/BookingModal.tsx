@@ -14,7 +14,7 @@ import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import IntakeFormStep from './IntakeFormStep';
 import { userFacingError } from '@/lib/errorCopy';
 import { isSensitiveCategory, neutralText, SLOT_HOLD_SECONDS, formatHoldCountdown } from '@/lib/discreet';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function BookingModal({
   open,
@@ -173,7 +173,7 @@ export default function BookingModal({
     : (currentDoc?.autoConfirmAppointment ?? facility?.settings?.autoConfirmAppointment ?? true);
 
   // Compute fee based on selected appointment mode
-  const getModeBasedFee = (mode, doc) => {
+  const getModeBasedFee = (mode: Unmodelled, doc: Unmodelled) => {
     if (!doc) return 0;
     const fees = doc.appointmentFees || {};
     if (mode === 'chat') return Number(fees.chat || doc.chat_fee || doc.consultation_fees || doc.fees || 0);
@@ -185,7 +185,7 @@ export default function BookingModal({
   // Fallback multipliers for counsellor/psychiatrist jab appointmentFees set nahi hai
   const MODE_FALLBACK_MULT = { video: 1, audio: 0.8, call: 0.8, voice: 0.8, chat: 0.6, offline: 1, home_visit: 1.2, home: 1.2 };
   const hasExplicitModeFees = !!(currentDoc?.appointmentFees?.video || currentDoc?.appointmentFees?.chat || currentDoc?.appointmentFees?.audio || currentDoc?.video_fee || currentDoc?.chat_fee || currentDoc?.audio_fee);
-  const getResolvedModeFee = (mode, doc) => {
+  const getResolvedModeFee = (mode: Unmodelled, doc: Unmodelled) => {
     if (!doc) return 0;
     if (hasExplicitModeFees) return getModeBasedFee(mode, doc);
     const base = Number(doc?.consultation_fees || doc?.fees || doc?.sessionPricing || 800) || 800;
@@ -207,7 +207,7 @@ export default function BookingModal({
     const spp = doc.supportPlanPrices || {};
     const plans = [];
     // Custom packages (counsellor ke apne) sabse pehle
-    const customs = Array.isArray(doc.customPackages) ? doc.customPackages.filter(c => c && c.isActive !== false) : [];
+    const customs = Array.isArray(doc.customPackages) ? doc.customPackages.filter((c: Unmodelled) => c && c.isActive !== false) : [];
     for (const c of customs) {
       const price = Number(c.price ?? c.bookingPrice ?? c.perSessionPrice ?? 0);
       if (!price || price <= 0) continue;
@@ -259,7 +259,7 @@ export default function BookingModal({
     }
     return MODE_FALLBACK_MULT[appointmentMode] ?? 1;
   }, [appointmentMode, currentDoc, basePackageFee, hasExplicitModeFees]);
-  const getAdjustedPrice = (basePrice) => Math.max(0, Math.round(Number(basePrice || 0) * modeFeeRatio));
+  const getAdjustedPrice = (basePrice: Unmodelled) => Math.max(0, Math.round(Number(basePrice || 0) * modeFeeRatio));
   const adjustedProviderPlans = useMemo(() => providerPlans.map(p => {
     const adj = getAdjustedPrice(p.price);
     return { ...p, displayPrice: adj, perSessionDisplay: p.sessions > 0 ? Math.round(adj / p.sessions) : adj, originalPrice: p.price };
@@ -320,16 +320,16 @@ export default function BookingModal({
       .catch(() => { setBookedSlots([]); setLockedSlots([]); setSlotCounts({}); setDateDisabledSlots([]); setPendingDisabledSlots([]); setBookingWindow(null); });
   }, [currentDoc?._id, bookingDate, currentDoc?.maxBookingsPerSlot]);
 
-  const isSlotFull = (time) => {
+  const isSlotFull = (time: Unmodelled) => {
     const bookedCount = slotCounts[time] || 0;
     return bookedCount >= 1;
   };
 
-  const isSlotLocked = (time) => {
+  const isSlotLocked = (time: Unmodelled) => {
     return lockedSlots.includes(time) && bookingTime !== time;
   };
 
-  const handleSelectSlot = async (t) => {
+  const handleSelectSlot = async (t: Unmodelled) => {
     if (t === bookingTime) return;
     if (isSlotLocked(t)) {
       toast.error(`Slot ${t} is currently being booked by another patient. Please select another.`);
@@ -654,7 +654,7 @@ export default function BookingModal({
   }, [bookingWindow]);
 
   // "09:15 AM" -> minutes since midnight (e.g. 555)
-  const slotToMinutes = (t) => {
+  const slotToMinutes = (t: Unmodelled) => {
     const m = t?.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
     if (!m) return null;
     let h = parseInt(m[1], 10) % 12;
@@ -663,7 +663,7 @@ export default function BookingModal({
   };
 
   // minutes since midnight -> "9:15 AM"
-  const minutesToSlot = (mins) => {
+  const minutesToSlot = (mins: Unmodelled) => {
     const h = Math.floor(mins / 60) % 24;
     const mm = mins % 60;
     const ampm = h >= 12 ? 'PM' : 'AM';
@@ -672,7 +672,7 @@ export default function BookingModal({
   };
 
   // minutes -> short "9:00" for range display
-  const minutesToShort = (mins) => {
+  const minutesToShort = (mins: Unmodelled) => {
     const h = Math.floor(mins / 60) % 24;
     const mm = mins % 60;
     let h12 = h % 12; if (h12 === 0) h12 = 12;
@@ -680,10 +680,10 @@ export default function BookingModal({
   };
 
   // Is a slot disabled for this specific date by the doctor in My Schedule?
-  const isSlotDisabled = (slotStr) => dateDisabledSlots.includes(slotStr);
+  const isSlotDisabled = (slotStr: Unmodelled) => dateDisabledSlots.includes(slotStr);
 
   // Is a slot pending removal (doctor requested to disable it, awaiting admin approval)?
-  const isSlotPendingUpdate = (slotStr) => pendingDisabledSlots.includes(slotStr);
+  const isSlotPendingUpdate = (slotStr: Unmodelled) => pendingDisabledSlots.includes(slotStr);
 
   // Group all time_slots (enabled + date-disabled + pending-disabled) into hours.
   const hourGroups = useMemo(() => {
@@ -707,14 +707,14 @@ export default function BookingModal({
   }, [currentDoc?.time_slots, dateDisabledSlots]);
 
   // Range string for a slot: "9:00–9:15"
-  const rangeFor = (slotStr) => {
+  const rangeFor = (slotStr: Unmodelled) => {
     const start = slotToMinutes(slotStr);
     if (start == null) return slotStr;
     const end = start + slotDuration;
     return `${minutesToShort(start)}–${minutesToShort(end)}`;
   };
 
-  const fullRangeFor = (slotStr) => {
+  const fullRangeFor = (slotStr: Unmodelled) => {
     const start = slotToMinutes(slotStr);
     if (start == null) return slotStr;
     const end = start + slotDuration;
@@ -746,7 +746,7 @@ export default function BookingModal({
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
-                      <span className="text-primary-foreground font-bold text-xs">{doc.name?.split(' ').map(n=>n[0]).join('').slice(0,2) || 'DR'}</span>
+                      <span className="text-primary-foreground font-bold text-xs">{doc.name?.split(' ').map((n: Unmodelled)=>n[0]).join('').slice(0,2) || 'DR'}</span>
                     </div>
                     <div className="min-w-0 flex-1">
                       <h3 className="font-heading font-semibold text-sm text-foreground truncate">{doc.name}</h3>
@@ -795,7 +795,7 @@ export default function BookingModal({
             <div className="flex flex-col gap-3 py-2">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
-                  <span className="text-primary-foreground font-bold text-xs">{currentDoc?.name?.split(' ')?.map(n=>n?.[0])?.join('')?.slice(0,2) || 'DR'}</span>
+                  <span className="text-primary-foreground font-bold text-xs">{currentDoc?.name?.split(' ')?.map((n: Unmodelled)=>n?.[0])?.join('')?.slice(0,2) || 'DR'}</span>
                 </div>
                 <div className="min-w-0">
                   <h3 className="font-heading font-semibold text-foreground text-sm truncate">{currentDoc?.name}</h3>

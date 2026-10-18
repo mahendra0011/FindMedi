@@ -29,7 +29,7 @@ import PersonaStep from './PersonaStep';
 import { SupportTicketForm } from '@/components/patient/SupportTicketForm';
 import EmergencyDoctorModal from '@/components/emergency/EmergencyDoctorModal';
 
-function getAppointmentModeMeta(appt) {
+function getAppointmentModeMeta(appt: Unmodelled) {
   if (!appt) return { key: 'hospital', label: 'In Clinic / Hospital', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' };
   const mode = (appt.appointmentMode || appt.type || '').toLowerCase();
   const intakeMode = (appt.preConsultationDetails?.appointmentMode || appt.preConsultationDetails?.mode || '').toLowerCase();
@@ -49,7 +49,7 @@ function getAppointmentModeMeta(appt) {
   return { key: 'hospital', label: 'In Clinic / Hospital', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' };
 }
 
-const StatusBadge = ({ status, mapping }) => {
+const StatusBadge = ({ status, mapping }: Unmodelled) => {
   const colors = {
     Confirmed: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Completed: 'bg-success/10 text-success',
     Cancelled: 'bg-destructive/10 text-destructive', Shipped: 'bg-info/10 text-info', Delivered: 'bg-success/10 text-success',
@@ -62,7 +62,7 @@ const StatusBadge = ({ status, mapping }) => {
 
 const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
 
-const Modal = ({ title, children, onClose }) => (
+const Modal = ({ title, children, onClose }: Unmodelled) => (
   <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
     <div className="bg-card rounded-2xl border shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between mb-6"><h2 className="font-heading text-xl font-bold">{title}</h2><button onClick={onClose}><X className="w-5 h-5" /></button></div>
@@ -111,7 +111,7 @@ const quickActions = [
  * AFTER prioritised ones. Permissions never change here.
  */
 import { orderTiles } from './personaTiles';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const healthTips = [
   'Stay hydrated — drink at least 8 glasses of water daily.',
@@ -196,11 +196,11 @@ export default function PatientDashboard() {
       try {
         const { getSocket } = await import('@/lib/socket');
         socket = getSocket();
-        const onStatusChange = (data) => {
+        const onStatusChange = (data: Unmodelled) => {
           toast.info(`Appointment status updated to: ${data?.status || 'updated'}`);
           api.getAppointments().then((res) => setAppointments(res?.data || res?.appointments || res || [])).catch(() => {});
         };
-        const onReportReady = (data) => {
+        const onReportReady = (data: Unmodelled) => {
           toast.success(`Your lab report for ${data?.testName || 'test'} is now ready!`);
           api.getRecords().then((res) => setReports(res?.data || res?.records || res || [])).catch(() => {});
         };
@@ -225,7 +225,7 @@ export default function PatientDashboard() {
     } catch { toast.error('Failed to cancel'); }
   };
 
-  const showToast = (msg, type = 'success') => {
+  const showToast = (msg: Unmodelled, type = 'success') => {
     if (type === 'error') toast.error(msg);
     else toast.success(msg);
   };
@@ -251,9 +251,9 @@ export default function PatientDashboard() {
         setRefunds(rawRefunds);
         // Cross-reference: mark bills as Paid if matching payment exists
         const uid = String(user?.id || '');
-        const paidRefs = new Set(rawPayments.map(pay => pay.invoice_id || pay.invoiceId || pay.referenceId));
-        const paidSignatures = new Set(rawPayments.map(pay => `${String(pay.patient_id || pay.patientId || '')}:${pay.amount}`));
-        setBills(rawBills.map(bill => {
+        const paidRefs = new Set(rawPayments.map((pay: Unmodelled) => pay.invoice_id || pay.invoiceId || pay.referenceId));
+        const paidSignatures = new Set(rawPayments.map((pay: Unmodelled) => `${String(pay.patient_id || pay.patientId || '')}:${pay.amount}`));
+        setBills(rawBills.map((bill: Unmodelled) => {
           if (paidRefs.has(bill.invoiceId || bill._id)) return { ...bill, status: 'Paid' };
           if (bill.status !== 'Paid' && uid && paidSignatures.has(`${uid}:${bill.amount}`)) return { ...bill, status: 'Paid' };
           return bill;
@@ -273,7 +273,7 @@ export default function PatientDashboard() {
         else if (Array.isArray(revData) && revData.length) setReviews(revData);
 
         if (lb?.bookings?.length) {
-          setTestBookings(lb.bookings.map(b => ({
+          setTestBookings(lb.bookings.map((b: Unmodelled) => ({
             _id: b._id,
             bookingId: b.bookingId || `LB-${String(b._id).slice(-6)}`,
             tests: b.tests || [],
@@ -287,9 +287,9 @@ export default function PatientDashboard() {
           })));
         }
         const allRecs = r?.data || r?.records || r || [];
-        const reportRecs = allRecs.filter(rec => ['Lab Report', 'Imaging', 'lab_report', 'Cardiac'].includes(rec.type));
+        const reportRecs = allRecs.filter((rec: Unmodelled) => ['Lab Report', 'Imaging', 'lab_report', 'Cardiac'].includes(rec.type));
         if (reportRecs.length) {
-          setReports(reportRecs.map(rec => ({
+          setReports(reportRecs.map((rec: Unmodelled) => ({
             _id: rec._id,
             name: rec.diagnosis || rec.data?.testName || rec.type,
             type: rec.type,
@@ -310,7 +310,7 @@ export default function PatientDashboard() {
   const todayAppts = appointments.filter(a => a.date === today && a.status !== 'Cancelled');
   const completedAppts = appointments.filter(a => a.status === 'Completed' || a.status === 'completed');
   const unreadNotifs = notifs.filter(n => !n.read).length;
-  const isBillPaid = (bill) => {
+  const isBillPaid = (bill: Unmodelled) => {
     if (bill.status === 'Paid') return true;
     const uid = String(user?.id || '');
     return payments.some(p =>

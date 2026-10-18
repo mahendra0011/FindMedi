@@ -10,11 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import { parseTime, subSlotFor } from '@/lib/timeSlots';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /**
  * Calculates human-readable relative days from today (IST YYYY-MM-DD)
  */
-function getRelativeDays(targetDate, todayStr) {
+function getRelativeDays(targetDate: Unmodelled, todayStr: Unmodelled) {
   if (!targetDate) return '';
   if (targetDate === todayStr) return 'Today';
 
@@ -30,7 +31,7 @@ function getRelativeDays(targetDate, todayStr) {
   return `${Math.abs(diffDays)} days ago`;
 }
 
-function getModeDetails(appt) {
+function getModeDetails(appt: Unmodelled) {
   const mode = (appt.appointmentMode || '').toLowerCase();
   const type = (appt.type || '').toLowerCase();
   const intakeMode = (appt.preConsultationDetails?.appointmentMode || appt.preConsultationDetails?.mode || '').toLowerCase();
@@ -72,7 +73,7 @@ export default function UpcomingAppointmentsSection({
   appointments = [],
   onViewDetails,
   user,
-}) {
+}: Unmodelled) {
   const today = getISTDateString();
   const [search, setSearch] = useState('');
   const [selectedMode, setSelectedMode] = useState('all'); // 'all' | 'video' | 'audio' | 'chat'
@@ -357,7 +358,7 @@ export default function UpcomingAppointmentsSection({
 
                 {/* Cards for this date */}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {list.map(apt => {
+                  {list.map((apt: Unmodelled) => {
                     const modeDetails = getModeDetails(apt);
                     const ModeIcon = modeDetails.icon;
                     const patient = apt.patientId;

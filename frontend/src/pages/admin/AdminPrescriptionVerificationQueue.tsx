@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const verificationStatusColors = {
   pending: 'bg-warning/10 text-warning',
@@ -25,7 +25,7 @@ const statusColors = {
   Cancelled: 'bg-destructive/10 text-destructive',
 };
 
-function minutesSince(iso) {
+function minutesSince(iso: Unmodelled) {
   if (!iso) return null;
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (diff < 1) return 'Just now';
@@ -33,7 +33,7 @@ function minutesSince(iso) {
   return `${Math.floor(diff / 60)}h ${diff % 60}m ago`;
 }
 
-function urgencyLevel(iso) {
+function urgencyLevel(iso: Unmodelled) {
   if (!iso) return null;
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (mins > 20) return 'critical';
@@ -168,7 +168,7 @@ export default function AdminPrescriptionVerificationQueue() {
       ) : (
         <div className="space-y-4">
           {filtered.map((rx, i) => {
-            const dispensed = rx.medicines?.filter(m => m.isDispensed).length || 0;
+            const dispensed = rx.medicines?.filter((m: Unmodelled) => m.isDispensed).length || 0;
             const total = rx.medicines?.length || 0;
             const vStatus = rx.verificationStatus || 'pending';
             const vColors = verificationStatusColors[vStatus] || verificationStatusColors.pending;
@@ -257,7 +257,7 @@ export default function AdminPrescriptionVerificationQueue() {
                     <p className="text-xs text-muted-foreground">Patient</p>
                     {selectedRx.patientId?.allergies?.length > 0 && (
                       <div className="mt-1">
-                        {selectedRx.patientId.allergies.map((a, idx) => (
+                        {selectedRx.patientId.allergies.map((a: Unmodelled, idx: Unmodelled) => (
                           <span key={idx} className="text-xs bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full mr-1">
                             {a.allergen}
                           </span>
@@ -311,8 +311,8 @@ export default function AdminPrescriptionVerificationQueue() {
               <div className="mb-6">
                 <p className="text-xs text-muted-foreground mb-3">Medicines ({selectedRx.medicines?.length || 0})</p>
                 <div className="space-y-2">
-                  {selectedRx.medicines?.map((med, idx) => {
-                    const isAllergic = selectedRx.patientId?.allergies?.some(a =>
+                  {selectedRx.medicines?.map((med: Unmodelled, idx: Unmodelled) => {
+                    const isAllergic = selectedRx.patientId?.allergies?.some((a: Unmodelled) =>
                       a.allergen?.toLowerCase()?.includes(med.medicineName?.toLowerCase()) ||
                       med.medicineName?.toLowerCase()?.includes(a.allergen?.toLowerCase())
                     );

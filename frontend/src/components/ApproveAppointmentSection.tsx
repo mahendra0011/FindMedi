@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /**
  * Approve Appointments Section — same-to-same layout & UI as Appointment History:
@@ -22,7 +23,7 @@ import { toast } from 'sonner';
  * status overview + recent (right). Cards use the SAME CompletedCard design with
  * only Confirm/Reject actions; rejected appointments show the rejection reason.
  */
-export default function ApproveAppointmentSection({ appointments, allAppointments = [], onConfirm, onReject }) {
+export default function ApproveAppointmentSection({ appointments, allAppointments = [], onConfirm, onReject }: Unmodelled) {
   const location = useLocation();
   const isClinic = location.pathname.startsWith('/clinic');
   const [calDate, setCalDate] = useState(new Date());
@@ -31,12 +32,12 @@ export default function ApproveAppointmentSection({ appointments, allAppointment
   const today = getISTDateString();
 
   const offlinePendingCount = useMemo(() => {
-    return appointments.filter(a => (a.status || '').toLowerCase() === 'pending').length;
+    return appointments.filter((a: Unmodelled) => (a.status || '').toLowerCase() === 'pending').length;
   }, [appointments]);
 
   const onlinePendingCount = useMemo(() => {
     const list = allAppointments.length > 0 ? allAppointments : appointments;
-    return list.filter(a => {
+    return list.filter((a: Unmodelled) => {
       const s = (a.status || '').toLowerCase();
       if (s !== 'pending') return false;
       const m = (a.appointmentMode || '').toLowerCase();
@@ -47,11 +48,11 @@ export default function ApproveAppointmentSection({ appointments, allAppointment
   }, [allAppointments, appointments]);
 
   const clinicPendingCount = useMemo(() => {
-    return appointments.filter(a => (a.status || '').toLowerCase() === 'pending' && isOfflineClinicAppointment(a)).length;
+    return appointments.filter((a: Unmodelled) => (a.status || '').toLowerCase() === 'pending' && isOfflineClinicAppointment(a)).length;
   }, [appointments]);
 
   const homePendingCount = useMemo(() => {
-    return appointments.filter(a => (a.status || '').toLowerCase() === 'pending' && isHomeVisitAppointment(a)).length;
+    return appointments.filter((a: Unmodelled) => (a.status || '').toLowerCase() === 'pending' && isHomeVisitAppointment(a)).length;
   }, [appointments]);
 
   const [modeFilter, setModeFilter] = useState('all'); // 'all' | 'clinic' | 'home'
@@ -62,12 +63,12 @@ export default function ApproveAppointmentSection({ appointments, allAppointment
   // Expanded inline form (recent requests panel)
   const [expandedId, setExpandedId] = useState(null);
 
-  const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  const getFirstDay = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  const getDaysInMonth = (date: Unmodelled) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  const getFirstDay = (date: Unmodelled) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
   // Pending + rejected (with reason) appointments for the selected date
   const approveForDate = useMemo(
-    () => appointments.filter(a => {
+    () => appointments.filter((a: Unmodelled) => {
       if (a.date !== selectedDate) return false;
       const s = (a.status || '').toLowerCase();
       if (s !== 'pending' && s !== 'cancelled') return false;
@@ -110,11 +111,11 @@ export default function ApproveAppointmentSection({ appointments, allAppointment
     return hourAppointments.filter(a => subSlotFor(a.time) === selectedSubSlot);
   }, [hourAppointments, selectedSubSlot]);
 
-  const handleHourClick = (h) => {
+  const handleHourClick = (h: Unmodelled) => {
     setSelectedHour(selectedHour === h ? null : h);
     setSelectedSubSlot(null);
   };
-  const handleSubSlotClick = (s) => {
+  const handleSubSlotClick = (s: Unmodelled) => {
     setSelectedSubSlot(s === selectedSubSlot ? null : s);
   };
 
@@ -123,8 +124,8 @@ export default function ApproveAppointmentSection({ appointments, allAppointment
   const dayName = selDateObj.toLocaleDateString('en-US', { weekday: 'long' });
   const dateLabel = selDateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
-  const pendingCount = (a) => (a || []).filter(x => (x.status || '').toLowerCase() === 'pending').length;
-  const rejectedCount = (a) => (a || []).filter(x => (x.status || '').toLowerCase() === 'cancelled').length;
+  const pendingCount = (a: Unmodelled) => (a || []).filter((x: Unmodelled) => (x.status || '').toLowerCase() === 'pending').length;
+  const rejectedCount = (a: Unmodelled) => (a || []).filter((x: Unmodelled) => (x.status || '').toLowerCase() === 'cancelled').length;
 
   const recent = useMemo(() => {
     return [...appointments]
@@ -199,8 +200,8 @@ export default function ApproveAppointmentSection({ appointments, allAppointment
               const dateStr = `${calDate.getFullYear()}-${String(calDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const isSelected = dateStr === selectedDate;
               const isToday = dateStr === today;
-              const hasPending = appointments.some(a => a.date === dateStr && (a.status || '').toLowerCase() === 'pending');
-              const hasRejected = appointments.some(a => a.date === dateStr && (a.status || '').toLowerCase() === 'cancelled');
+              const hasPending = appointments.some((a: Unmodelled) => a.date === dateStr && (a.status || '').toLowerCase() === 'pending');
+              const hasRejected = appointments.some((a: Unmodelled) => a.date === dateStr && (a.status || '').toLowerCase() === 'cancelled');
               return (
                 <button
                   key={day}
@@ -223,7 +224,7 @@ export default function ApproveAppointmentSection({ appointments, allAppointment
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Select Time</p>
           <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
             {hourSlots.map(h => {
-              const count = approveForDate.filter(a => hourBoxFor(a.time) === h).length;
+              const count = approveForDate.filter((a: Unmodelled) => hourBoxFor(a.time) === h).length;
               return (
                 <button
                   key={h}
@@ -348,12 +349,12 @@ export default function ApproveAppointmentSection({ appointments, allAppointment
                   <ApproveCard
                     apt={apt}
                     subSlotFor={subSlotFor}
-                    onViewFile={(url) => {
+                    onViewFile={(url: Unmodelled) => {
                       if (!isValidFileUrl(url)) { toast.error('File unavailable — upload was not completed. Ask the patient to re-upload it.'); return; }
                       window.open(resolveFileUrl(url), '_blank');
                     }}
                     onConfirm={onConfirm}
-                    onRejectClick={(a) => setRejectTarget(a)}
+                    onRejectClick={(a: Unmodelled) => setRejectTarget(a)}
                   />
                 </div>
               ))}
@@ -444,12 +445,12 @@ export default function ApproveAppointmentSection({ appointments, allAppointment
                           <ApproveCard
                             apt={apt}
                             subSlotFor={subSlotFor}
-                            onViewFile={(url) => {
+                            onViewFile={(url: Unmodelled) => {
                               if (!isValidFileUrl(url)) { toast.error('File unavailable — upload was not completed. Ask the patient to re-upload it.'); return; }
                               window.open(resolveFileUrl(url), '_blank');
                             }}
                             onConfirm={onConfirm}
-                            onRejectClick={(a) => setRejectTarget(a)}
+                            onRejectClick={(a: Unmodelled) => setRejectTarget(a)}
                           />
                         </div>
                       )}
@@ -512,7 +513,7 @@ export default function ApproveAppointmentSection({ appointments, allAppointment
  * TodayAppointmentsSection, but with ONLY Confirm/Reject actions.
  * Rejected appointments show the rejection reason (apt.notes).
  * ════════════════════════════════════════════════════════════ */
-function isInPersonAppointment(appt) {
+function isInPersonAppointment(appt: Unmodelled) {
   if (!appt) return false;
   const mode = (appt.appointmentMode || '').toLowerCase();
   const type = (appt.type || '').toLowerCase();
@@ -525,7 +526,7 @@ function isInPersonAppointment(appt) {
   return !isOnline;
 }
 
-function getConsultationModeBadge(appt) {
+function getConsultationModeBadge(appt: Unmodelled) {
   if (!appt) return null;
   const mode = (appt.appointmentMode || '').toLowerCase();
   const type = (appt.type || '').toLowerCase();
@@ -566,7 +567,7 @@ function getConsultationModeBadge(appt) {
   );
 }
 
-function ApproveCard({ apt, subSlotFor, onViewFile, onConfirm, onRejectClick }) {
+function ApproveCard({ apt, subSlotFor, onViewFile, onConfirm, onRejectClick }: Unmodelled) {
   const patient = apt.patientId;
   const intake = apt.preConsultationDetails;
   const isRejected = (apt.status || '').toLowerCase() === 'cancelled';
@@ -794,7 +795,7 @@ function ApproveCard({ apt, subSlotFor, onViewFile, onConfirm, onRejectClick }) 
 }
 
 /* ── Small helpers ── */
-function Detail({ icon: Icon, label, value }) {
+function Detail({ icon: Icon, label, value }: Unmodelled) {
   return (
     <div className="flex items-center gap-2 text-muted-foreground">
       <Icon className="w-4 h-4 text-primary shrink-0" />
@@ -806,7 +807,7 @@ function Detail({ icon: Icon, label, value }) {
   );
 }
 
-function IntakeRow({ label, value, danger = false }) {
+function IntakeRow({ label, value, danger = false }: Unmodelled) {
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-xs text-muted-foreground shrink-0">{label}</span>

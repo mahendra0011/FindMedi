@@ -15,8 +15,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-function formatTimer(secs) {
+function formatTimer(secs: Unmodelled) {
   const m = Math.floor(secs / 60).toString().padStart(2, '0');
   const s = (secs % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
@@ -257,7 +258,7 @@ export default function AudioCallOverlay() {
                     >
                       <Headphones className="w-4 h-4 text-primary" />
                       <span className="max-w-[100px] truncate">
-                        {audioDevices.find((d) => d.deviceId === selectedOutputId)?.label || 'Output'}
+                        {audioDevices.find((d: Unmodelled) => d.deviceId === selectedOutputId)?.label || 'Output'}
                       </span>
                       <ChevronDown className="w-3 h-3 text-muted-foreground" />
                     </button>
@@ -266,7 +267,7 @@ export default function AudioCallOverlay() {
                     <DropdownMenuItem onClick={() => setAudioOutput('default')}>
                       System Default
                     </DropdownMenuItem>
-                    {audioDevices.map((dev) => (
+                    {audioDevices.map((dev: Unmodelled) => (
                       <DropdownMenuItem
                         key={dev.deviceId}
                         onClick={() => setAudioOutput(dev.deviceId)}

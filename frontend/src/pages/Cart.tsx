@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -29,33 +29,33 @@ export default function Cart() {
     }).catch(() => {});
   }, []);
 
-  const getStore = (storeId) => {
+  const getStore = (storeId: Unmodelled) => {
     const found = fetchedStores.find(s => s._id === storeId || s.id === storeId);
     if (found) return { id: found._id || found.id, name: found.name || found.clinic_name || 'Store', photo: found.photo || '', verified: found.verified || false, deliveryCharges: found.deliveryCharges || 20, freeDeliveryAbove: found.freeDeliveryAbove || 200 };
     return { name: 'Store', deliveryCharges: 20, freeDeliveryAbove: 200 };
   };
-  const isRxItem = (item) => item.rx === true;
+  const isRxItem = (item: Unmodelled) => item.rx === true;
 
-  const grandTotal = stores.reduce((s, st) => {
+  const grandTotal = stores.reduce((s: Unmodelled, st: Unmodelled) => {
     const store = getStore(st.storeId);
     const delivery = store ? (st.subtotal >= (store.freeDeliveryAbove || Infinity) ? 0 : (store.deliveryCharges || 0)) : 0;
     return s + st.subtotal + delivery;
   }, 0);
 
-  const handleSaveForLater = (key) => {
-    const entry = entries.find(e => e.key === key);
+  const handleSaveForLater = (key: Unmodelled) => {
+    const entry = entries.find((e: Unmodelled) => e.key === key);
     if (entry) {
-      setSavedForLater(p => ({ ...p, [key]: entry }));
+      setSavedForLater((p: Unmodelled) => ({ ...p, [key]: entry }));
       removeItem(key);
     }
   };
 
-  const handleRestore = (key) => {
+  const handleRestore = (key: Unmodelled) => {
     const saved = savedForLater[key];
     if (saved) {
       addItem(saved.item, saved.storeId);
       updateQty(key, saved.qty);
-      setSavedForLater(p => { const n = { ...p }; delete n[key]; return n; });
+      setSavedForLater((p: Unmodelled) => { const n = { ...p }; delete n[key]; return n; });
       toast.info(`${saved.item.name} moved to cart`);
     }
   };
@@ -128,9 +128,9 @@ export default function Cart() {
         </div>
 
         <div className="space-y-6">
-          {stores.map((st) => {
+          {stores.map((st: Unmodelled) => {
             const store = getStore(st.storeId);
-            const hasRx = st.items.some(e => isRxItem(e.item));
+            const hasRx = st.items.some((e: Unmodelled) => isRxItem(e.item));
             const delivery = store ? (st.subtotal >= (store.freeDeliveryAbove || Infinity) ? 0 : (store.deliveryCharges || 0)) : 0;
 
             return (
@@ -156,7 +156,7 @@ export default function Cart() {
                 </div>
 
                 <div className="divide-y divide-border/30">
-                  {st.items.map((entry) => (
+                  {st.items.map((entry: Unmodelled) => (
                     <div key={entry.key} className="p-4 sm:p-5 flex gap-4">
                       <div className="w-16 h-16 rounded-xl bg-muted/50 overflow-hidden shrink-0 border border-border/40">
                         <img src={entry.item.image} alt="" className="w-full h-full object-cover" />

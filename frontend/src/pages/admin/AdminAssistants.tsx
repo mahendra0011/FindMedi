@@ -20,6 +20,7 @@ import { Input } from '../../components/ui/input';
 import { DataGrid } from '../../components/ui/System';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function AdminAssistants() {
   const [activeTab, setActiveTab] = useState<'approvals' | 'all' | 'bookings' | 'analytics'>('approvals');
@@ -226,20 +227,20 @@ export default function AdminAssistants() {
               columns={[
                 {
                   key: 'name', label: 'Name & Contact', sortable: false,
-                  render: (_v, a) => (
+                  render: (_v: Unmodelled, a: Unmodelled) => (
                     <>
                       <div className="font-bold text-slate-900 dark:text-slate-100">{a.userId?.name}</div>
                       <div className="text-[10px] text-slate-400">{a.userId?.email}</div>
                     </>
                   ),
                 },
-                { key: 'hospitalsCovered', label: 'Hospitals', sortable: false, render: (v) => (v || []).slice(0, 2).join(', ') },
-                { key: 'experienceYears', label: 'Experience', sortable: false, render: (v) => `${v || 1} yrs` },
-                { key: 'pricePerHour', label: 'Rate', sortable: false, render: (v) => <span className="font-bold text-teal-600">₹{v}/hr</span> },
-                { key: 'assistantStatus', label: 'Status', sortable: false, render: (v) => <Badge variant={v === 'active' ? 'default' : 'secondary'} className="text-[10px]">{v}</Badge> },
+                { key: 'hospitalsCovered', label: 'Hospitals', sortable: false, render: (v: Unmodelled) => (v || []).slice(0, 2).join(', ') },
+                { key: 'experienceYears', label: 'Experience', sortable: false, render: (v: Unmodelled) => `${v || 1} yrs` },
+                { key: 'pricePerHour', label: 'Rate', sortable: false, render: (v: Unmodelled) => <span className="font-bold text-teal-600">₹{v}/hr</span> },
+                { key: 'assistantStatus', label: 'Status', sortable: false, render: (v: Unmodelled) => <Badge variant={v === 'active' ? 'default' : 'secondary'} className="text-[10px]">{v}</Badge> },
                 {
                   key: '_actions', label: 'Action', sortable: false,
-                  render: (_v, a) => (
+                  render: (_v: Unmodelled, a: Unmodelled) => (
                     a.assistantStatus === 'active' ? (
                       <Button type="button" variant="ghost" size="sm" onClick={() => handleSuspend(a._id, true)} className="text-xs text-rose-600 hover:text-rose-700 h-7">Suspend</Button>
                     ) : a.assistantStatus === 'suspended' ? (
@@ -266,12 +267,12 @@ export default function AdminAssistants() {
 
             <DataGrid
               columns={[
-                { key: 'bookingNumber', label: 'Shift #', sortable: false, render: (v, b) => <span className="font-mono font-bold">#{v || String(b._id).slice(-6).toUpperCase()}</span> },
-                { key: 'patientId', label: 'Patient', sortable: false, render: (v) => v?.name || 'Patient' },
-                { key: 'assistantId', label: 'Assistant', sortable: false, render: (v) => v?.name || 'Unassigned' },
+                { key: 'bookingNumber', label: 'Shift #', sortable: false, render: (v: Unmodelled, b: Unmodelled) => <span className="font-mono font-bold">#{v || String(b._id).slice(-6).toUpperCase()}</span> },
+                { key: 'patientId', label: 'Patient', sortable: false, render: (v: Unmodelled) => v?.name || 'Patient' },
+                { key: 'assistantId', label: 'Assistant', sortable: false, render: (v: Unmodelled) => v?.name || 'Unassigned' },
                 { key: 'hospital', label: 'Hospital', sortable: false },
-                { key: 'cost', label: 'Fee', sortable: false, render: (v) => <span className="font-bold text-teal-600">₹{v?.total || 0}</span> },
-                { key: 'status', label: 'Status', sortable: false, render: (v) => <Badge className="text-[10px]">{v?.replace('_', ' ').toUpperCase()}</Badge> },
+                { key: 'cost', label: 'Fee', sortable: false, render: (v: Unmodelled) => <span className="font-bold text-teal-600">₹{v?.total || 0}</span> },
+                { key: 'status', label: 'Status', sortable: false, render: (v: Unmodelled) => <Badge className="text-[10px]">{v?.replace('_', ' ').toUpperCase()}</Badge> },
               ]}
               rows={bookings}
               rowKey="_id"

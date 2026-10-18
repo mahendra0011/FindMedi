@@ -4,7 +4,7 @@ import { X, CalendarDays, Stethoscope, FileText, Pill, Clock, User, AlertCircle,
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateUtils';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 /**
  * Modal showing a returning patient's past visit history.
@@ -17,7 +17,7 @@ import type { ApiRow } from '@/lib/apiTypes';
  * @param {string} patientName - fallback name when patient object is missing
  * @param {function} onClose - close handler
  */
-export default function PatientHistoryModal({ patient, patientName, onClose }) {
+export default function PatientHistoryModal({ patient, patientName, onClose }: Unmodelled) {
   const [records, setRecords] = useState<ApiRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -106,7 +106,7 @@ export default function PatientHistoryModal({ patient, patientName, onClose }) {
  * Individual past-visit record card within the history modal.
  * Shows: date, type badge, diagnosis, notes/advice, prescription.
  */
-function HistoryRecordCard({ record }) {
+function HistoryRecordCard({ record }: Unmodelled) {
   const date = record.date || formatDisplayDate(record.createdAt?.slice(0, 10));
   const diagnosis = record.diagnosis || record.data?.diagnosis || '—';
   const notes = record.notes || record.data?.advice || '';
@@ -230,7 +230,7 @@ function HistoryRecordCard({ record }) {
             <Pill className="w-3 h-3" /> Prescription
           </span>
           <ul className="text-sm text-muted-foreground mt-1 space-y-0.5">
-            {medList.slice(0, 5).map((m, i) => (
+            {medList.slice(0, 5).map((m: Unmodelled, i: Unmodelled) => (
               <li key={i} className="flex items-start gap-1.5">
                 <span className="text-primary/50 mt-1">•</span>
                 <span>{m}</span>

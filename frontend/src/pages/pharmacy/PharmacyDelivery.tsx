@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = {
   'Pending Pickup': 'bg-warning/10 text-warning',
@@ -53,7 +53,7 @@ export default function PharmacyDelivery() {
     } catch (e) { console.error(e); }
   };
 
-  const handleStatusUpdate = async (id, status) => {
+  const handleStatusUpdate = async (id: Unmodelled, status: Unmodelled) => {
     try {
       await api.updatePharmacyDelivery(id, { status });
       load();
@@ -177,7 +177,7 @@ export default function PharmacyDelivery() {
                 <div className="mt-4 pt-3 border-t border-border/40">
                   <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1"><Navigation className="w-3 h-3" /> Tracking</p>
                   <div className="space-y-1">
-                    {del.tracking.map((t, j) => (
+                    {del.tracking.map((t: Unmodelled, j: Unmodelled) => (
                       <div key={j} className="flex items-center gap-2 text-xs text-muted-foreground">
                         <MapPin className="w-3 h-3 shrink-0" />
                         <span>{t.location}</span>

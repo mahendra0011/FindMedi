@@ -5,16 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const staffApi = {
-  getAll: (p) => api.dispatch(() => Promise.resolve({ staff: [] }), '/staff?' + new URLSearchParams(p)),
-  create: (b) => api.dispatch(() => Promise.resolve({}), '/staff', { method: 'POST', body: JSON.stringify(b) }),
-  update: (id, b) => api.dispatch(() => Promise.resolve({}), `/staff/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
-  markAttendance: (id, b) => api.dispatch(() => Promise.resolve({}), `/staff/${id}/attendance`, { method: 'PUT', body: JSON.stringify(b) }),
-  applyLeave: (id, b) => api.dispatch(() => Promise.resolve({}), `/staff/${id}/leave`, { method: 'PUT', body: JSON.stringify(b) }),
-  approveLeave: (id, b) => api.dispatch(() => Promise.resolve({}), `/staff/${id}/leave-approve`, { method: 'PUT', body: JSON.stringify(b) }),
-  assignShift: (id, b) => api.dispatch(() => Promise.resolve({}), `/staff/${id}/shift`, { method: 'PUT', body: JSON.stringify(b) }),
-  addTraining: (id, b) => api.dispatch(() => Promise.resolve({}), `/staff/${id}/training`, { method: 'PUT', body: JSON.stringify(b) }),
+  getAll: (p: Unmodelled) => api.dispatch(() => Promise.resolve({ staff: [] }), '/staff?' + new URLSearchParams(p)),
+  create: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/staff', { method: 'POST', body: JSON.stringify(b) }),
+  update: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/staff/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+  markAttendance: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/staff/${id}/attendance`, { method: 'PUT', body: JSON.stringify(b) }),
+  applyLeave: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/staff/${id}/leave`, { method: 'PUT', body: JSON.stringify(b) }),
+  approveLeave: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/staff/${id}/leave-approve`, { method: 'PUT', body: JSON.stringify(b) }),
+  assignShift: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/staff/${id}/shift`, { method: 'PUT', body: JSON.stringify(b) }),
+  addTraining: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/staff/${id}/training`, { method: 'PUT', body: JSON.stringify(b) }),
   getStats: () => api.dispatch(() => Promise.resolve({ active: 0, onLeave: 0, onDuty: 0, total: 0 }), '/staff/stats'),
 };
 
@@ -91,7 +92,7 @@ export default function Staff() {
       </div>
 
       <div className="space-y-4">
-        {staff.map(s => {
+        {staff.map((s: Unmodelled) => {
           const isExpanded = expandedId === s._id;
           return (
             <div key={s._id} className="bg-card rounded-xl border shadow-sm">
@@ -122,7 +123,7 @@ export default function Staff() {
                     <div className="bg-muted/20 rounded-lg p-3">
                       <p className="text-xs font-semibold mb-2">Recent Attendance</p>
                       <div className="flex gap-2 flex-wrap">
-                        {s.attendance.slice(-7).map((a, i) => (
+                        {s.attendance.slice(-7).map((a: Unmodelled, i: Unmodelled) => (
                           <div key={i} className={`text-[10px] px-2 py-1 rounded ${a.status === 'Present' ? 'bg-success/10 text-success' : a.status === 'Late' ? 'bg-warning/10 text-warning' : 'bg-destructive/10 text-destructive'}`}>
                             {a.date ? new Date(a.date).toLocaleDateString('en-IN', { weekday: 'short' }) : ''}: {a.status}
                           </div>
@@ -135,7 +136,7 @@ export default function Staff() {
                   {s.leaves?.length > 0 && (
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">Leave History</p>
-                      {s.leaves.slice(-2).map((l, i) => (
+                      {s.leaves.slice(-2).map((l: Unmodelled, i: Unmodelled) => (
                         <div key={i} className="text-xs bg-muted/30 rounded p-2">
                           {l.type} · {l.startDate ? new Date(l.startDate).toLocaleDateString() : ''} - {l.endDate ? new Date(l.endDate).toLocaleDateString() : ''}
                           {l.approved ? ' ✅' : ' ⏳'}
@@ -148,7 +149,7 @@ export default function Staff() {
                   {s.trainings?.length > 0 && (
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">Training/Certifications</p>
-                      {s.trainings.map((t, i) => (
+                      {s.trainings.map((t: Unmodelled, i: Unmodelled) => (
                         <div key={i} className="text-xs bg-muted/30 rounded p-2 flex items-center gap-2">
                           <Award className="w-3 h-3 text-primary" />
                           {t.course} · {t.date ? new Date(t.date).toLocaleDateString() : ''}

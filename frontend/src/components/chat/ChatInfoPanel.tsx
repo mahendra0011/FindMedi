@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { WALLPAPERS, formatBytes, formatDuration } from '@/lib/chatPrefs';
 import { Row, SectionCard, Segmented } from './ChatSettingsPanel';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const TABS = [
   { key: 'info', label: 'Info', icon: UserIcon },
@@ -49,7 +49,7 @@ export default function ChatInfoPanel({
   onWallpaper,
   onSearch,
   onUnstar,
-}) {
+}: Unmodelled) {
   const [tab, setTab] = useState('info');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ApiRow[]>([]);
@@ -228,7 +228,7 @@ export default function ChatInfoPanel({
                   <Segmented
                     value={disappeared}
                     options={DISAPPEAR_OPTIONS}
-                    onChange={(v) => {
+                    onChange={(v: Unmodelled) => {
                       const hours = v === 'off' ? 0 : Number(v);
                       onToggle?.('disappearing', { enabled: hours > 0, durationHours: hours || 24 });
                     }}

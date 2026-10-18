@@ -6,7 +6,7 @@ import { Label } from '@/mind/components/ui/label';
 import { Progress } from '@/mind/components/ui/progress';
 import { AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/mind/components/ui/alert';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 const PHQ9_QUESTIONS = [
     "Little interest or pleasure in doing things",
     "Feeling down, depressed, or hopeless",
@@ -27,14 +27,14 @@ const GAD7_QUESTIONS = [
     "Becoming easily annoyed or irritable",
     "Feeling afraid as if something awful might happen"
 ];
-const ScreeningForm = ({ type, onComplete }) => {
+const ScreeningForm = ({ type, onComplete }: Unmodelled) => {
     const [currentQuestion, setCurrentQuestion] = useState(0);
     const [answers, setAnswers] = useState<ApiRow[]>([]);
     const [showResults, setShowResults] = useState(false);
     const questions = type === 'PHQ9' ? PHQ9_QUESTIONS : GAD7_QUESTIONS;
     const totalQuestions = questions.length;
     const progress = ((currentQuestion + 1) / totalQuestions) * 100;
-    const handleAnswer = (value) => {
+    const handleAnswer = (value: Unmodelled) => {
         const newAnswers = [...answers];
         newAnswers[currentQuestion] = parseInt(value);
         setAnswers(newAnswers);
@@ -49,7 +49,7 @@ const ScreeningForm = ({ type, onComplete }) => {
             onComplete(totalScore, riskLevel);
         }
     };
-    const calculateRiskLevel = (score, screeningType) => {
+    const calculateRiskLevel = (score: Unmodelled, screeningType: Unmodelled) => {
         if (screeningType === 'PHQ9') {
             if (score <= 4)
                 return 'minimal';
@@ -71,7 +71,7 @@ const ScreeningForm = ({ type, onComplete }) => {
             return 'severe';
         }
     };
-    const getRiskColor = (level) => {
+    const getRiskColor = (level: Unmodelled) => {
         switch (level) {
             case 'minimal': return 'text-success';
             case 'mild': return 'text-warning';
@@ -81,7 +81,7 @@ const ScreeningForm = ({ type, onComplete }) => {
             default: return 'text-foreground';
         }
     };
-    const getRiskIcon = (level) => {
+    const getRiskIcon = (level: Unmodelled) => {
         switch (level) {
             case 'minimal': return <CheckCircle className="h-5 w-5 text-success"/>;
             case 'mild':

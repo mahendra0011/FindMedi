@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import DoctorRecordsDashboard from '@/components/DoctorRecordsDashboard';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function ClinicPrescriptions() {
   const { user } = useAuth();
@@ -21,7 +21,7 @@ export default function ClinicPrescriptions() {
       // 1. Prescriptions (records)
       const recData = await api.getRecords();
       const recArr = recData?.data || recData?.records || recData || [];
-      const prescriptions = recArr.filter(r => {
+      const prescriptions = recArr.filter((r: Unmodelled) => {
         const matchesId = docId && (r.doctorId === docId || r.doctor_id === docId || r.createdBy === docId);
         const matchesName = docName && (r.doctor?.toLowerCase().includes(docName) || r.doctorName?.toLowerCase().includes(docName));
         const isPrescription = r.type?.toLowerCase() === 'prescription';
@@ -32,7 +32,7 @@ export default function ClinicPrescriptions() {
       // 2. Bills & Invoices (billing)
       const billData = await api.getBilling();
       const billArr = billData?.data || billData?.bills || billData || [];
-      const myBills = billArr.filter(b => {
+      const myBills = billArr.filter((b: Unmodelled) => {
         const matchesId = docId && (b.doctorId === docId || b.doctor_id === docId || b.createdBy === docId);
         const matchesName = docName && (b.doctor?.toLowerCase().includes(docName) || b.doctorName?.toLowerCase().includes(docName));
         return matchesId || matchesName;
@@ -41,7 +41,7 @@ export default function ClinicPrescriptions() {
       const billList = [];
       const invoiceList = [];
 
-      myBills.forEach(b => {
+      myBills.forEach((b: Unmodelled) => {
         const bt = (b.billType || b.data?.type || '').toLowerCase();
         if (bt === 'invoice' || b.data?.isInvoice) {
           invoiceList.push(b);

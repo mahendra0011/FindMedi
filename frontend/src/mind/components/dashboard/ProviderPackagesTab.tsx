@@ -18,6 +18,7 @@ import {
   statusTone,
   counsellingModeLabel,
 } from "@/mind/lib/providerDashboardShared";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export function ProviderPackagesTab({
   packageSummary,
@@ -33,7 +34,7 @@ export function ProviderPackagesTab({
   patients,
   setSelectedPatientId,
   data,
-}) {
+}: Unmodelled) {
   return (
     <div className="space-y-6">
       {/* 1. Summary Strip */}
@@ -180,7 +181,7 @@ export function ProviderPackagesTab({
         <CardContent className="space-y-4">
           {filteredPackages.length ? (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {filteredPackages.map((pkg) => {
+              {filteredPackages.map((pkg: Unmodelled) => {
                 const nowTime = Date.now();
                 const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
                 const isExpiringSoon =
@@ -398,7 +399,7 @@ export function ProviderPackagesTab({
                 </h4>
                 {(() => {
                   const linkedSessions = appointments.filter(
-                    (a) =>
+                    (a: Unmodelled) =>
                       a.packageId === selectedPackageForDetail.id ||
                       (a.studentEmail === selectedPackageForDetail.userEmail && a.supportPlanName === selectedPackageForDetail.planName)
                   );
@@ -411,7 +412,7 @@ export function ProviderPackagesTab({
                   }
                   return (
                     <div className="space-y-2 max-h-48 overflow-y-auto chat-scrollbar pr-1">
-                      {linkedSessions.map((session, sIdx) => (
+                      {linkedSessions.map((session: Unmodelled, sIdx: Unmodelled) => (
                         <div
                           key={session.id || sIdx}
                           className="flex items-center justify-between rounded-xl border border-glass-border/20 bg-background/60 p-2.5 text-xs"
@@ -446,7 +447,7 @@ export function ProviderPackagesTab({
                 size="sm"
                 onClick={() => {
                   setSelectedPackageForDetail(null);
-                  const pt = patients.find(p => p.email === selectedPackageForDetail.userEmail || p.id === selectedPackageForDetail.userId);
+                  const pt = patients.find((p: Unmodelled) => p.email === selectedPackageForDetail.userEmail || p.id === selectedPackageForDetail.userId);
                   if (pt) setSelectedPatientId(pt.id);
                   setSearchParams({ tab: "patients" });
                 }}
@@ -461,7 +462,7 @@ export function ProviderPackagesTab({
       {/* 4. Package Notifications — grouped by package lifecycle */}
       {(() => {
         const packageNotifs = (data.notifications || []).filter(
-          (n) =>
+          (n: Unmodelled) =>
             n.metadata?.packageId ||
             /package/i.test(n.title || "") ||
             /package/i.test(n.message || "")
@@ -478,7 +479,7 @@ export function ProviderPackagesTab({
               <CardDescription>Purchase, session booked, refund & expiry alerts — package-specific</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {packageNotifs.slice(0, 6).map((n, idx) => (
+              {packageNotifs.slice(0, 6).map((n: Unmodelled, idx: Unmodelled) => (
                 <div key={n._id || idx} className="flex items-start gap-3 rounded-xl border border-glass-border/30 bg-background/60 p-3">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/15 text-violet-400">
                     <Package className="h-4 w-4" />

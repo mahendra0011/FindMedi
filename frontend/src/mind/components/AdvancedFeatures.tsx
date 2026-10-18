@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/mind/components/ui/alert";
 import { Button } from "@/mind/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/mind/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/mind/components/ui/tabs";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const LANGUAGES = [
   { code: "en", name: "English", flag: "IN" },
@@ -32,13 +33,13 @@ const AdvancedFeatures = () => {
   const [notifications, setNotifications] = useState(NOTIFICATION_TYPES);
   const [accessibilityMode, setAccessibilityMode] = useState(false);
 
-  const handleScreeningComplete = (score, riskLevel) => {
+  const handleScreeningComplete = (score: Unmodelled, riskLevel: Unmodelled) => {
     // Clinical scores stay out of the console; persistence happens via props.
     void score;
     void riskLevel;
   };
 
-  const toggleNotification = (id) => {
+  const toggleNotification = (id: Unmodelled) => {
     setNotifications((prev) =>
       prev.map((notification) =>
         notification.id === id ? { ...notification, enabled: !notification.enabled } : notification

@@ -5,8 +5,9 @@ import { Input } from "@/mind/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/mind/components/ui/select";
 import { CheckCircle2, Mail, Plus, ShieldAlert, ShieldCheck, UserCog, Users, X } from "lucide-react";
 import { Label } from "@/mind/components/ui/label";
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function UsersTab({ users, newUser, setNewUser, createUser, updateUserStatus, updateUserDetails, deleteUser }) {
+export default function UsersTab({ users, newUser, setNewUser, createUser, updateUserStatus, updateUserDetails, deleteUser }: Unmodelled) {
   return (
     <>
   {/* User Stats */}
@@ -37,7 +38,7 @@ export default function UsersTab({ users, newUser, setNewUser, createUser, updat
           </div>
           <span className="text-[10px] uppercase tracking-widest text-emerald-400/60 font-medium">Active</span>
         </div>
-        <div className="text-2xl font-bold text-emerald-400">{users.filter(u => u.status === "active" || !u.status).length}</div>
+        <div className="text-2xl font-bold text-emerald-400">{users.filter((u: Unmodelled) => u.status === "active" || !u.status).length}</div>
         <div className="flex items-center gap-1.5 mt-1.5">
           <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-xs text-emerald-400/60">Active accounts</span>
@@ -54,7 +55,7 @@ export default function UsersTab({ users, newUser, setNewUser, createUser, updat
           </div>
           <span className="text-[10px] uppercase tracking-widest text-amber-400/60 font-medium">Suspended</span>
         </div>
-        <div className="text-2xl font-bold text-amber-400">{users.filter(u => u.status === "suspended").length}</div>
+        <div className="text-2xl font-bold text-amber-400">{users.filter((u: Unmodelled) => u.status === "suspended").length}</div>
         <div className="flex items-center gap-1.5 mt-1.5">
           <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
           <span className="text-xs text-amber-400/60">Suspended accounts</span>
@@ -71,7 +72,7 @@ export default function UsersTab({ users, newUser, setNewUser, createUser, updat
           </div>
           <span className="text-[10px] uppercase tracking-widest text-violet-400/60 font-medium">Verified</span>
         </div>
-        <div className="text-2xl font-bold text-violet-400">{users.filter(u => u.otpVerified).length}</div>
+        <div className="text-2xl font-bold text-violet-400">{users.filter((u: Unmodelled) => u.otpVerified).length}</div>
         <div className="flex items-center gap-1.5 mt-1.5">
           <div className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-pulse" />
           <span className="text-xs text-violet-400/60">OTP verified</span>
@@ -98,19 +99,19 @@ export default function UsersTab({ users, newUser, setNewUser, createUser, updat
           <Label className="text-xs font-medium text-foreground/70">Full Name</Label>
           <div className="relative">
             <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
-            <Input value={newUser.name} onChange={(event) => setNewUser((prev) => ({ ...prev, name: event.target.value }))} className="pl-9" placeholder="John Doe" />
+            <Input value={newUser.name} onChange={(event) => setNewUser((prev: Unmodelled) => ({ ...prev, name: event.target.value }))} className="pl-9" placeholder="John Doe" />
           </div>
         </div>
         <div className="space-y-2">
           <Label className="text-xs font-medium text-foreground/70">Email Address</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
-            <Input type="email" value={newUser.email} onChange={(event) => setNewUser((prev) => ({ ...prev, email: event.target.value }))} className="pl-9" placeholder="john@example.com" />
+            <Input type="email" value={newUser.email} onChange={(event) => setNewUser((prev: Unmodelled) => ({ ...prev, email: event.target.value }))} className="pl-9" placeholder="john@example.com" />
           </div>
         </div>
         <div className="space-y-2">
           <Label className="text-xs font-medium text-foreground/70">Account Role</Label>
-          <Select value={newUser.role} onValueChange={(value) => setNewUser((prev) => ({ ...prev, role: value }))}>
+          <Select value={newUser.role} onValueChange={(value) => setNewUser((prev: Unmodelled) => ({ ...prev, role: value }))}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -122,7 +123,7 @@ export default function UsersTab({ users, newUser, setNewUser, createUser, updat
         </div>
         <div className="space-y-2">
           <Label className="text-xs font-medium text-foreground/70">Specialization</Label>
-          <Input value={newUser.specialization} onChange={(event) => setNewUser((prev) => ({ ...prev, specialization: event.target.value }))} placeholder="e.g., Anxiety, Stress" />
+          <Input value={newUser.specialization} onChange={(event) => setNewUser((prev: Unmodelled) => ({ ...prev, specialization: event.target.value }))} placeholder="e.g., Anxiety, Stress" />
         </div>
         <Button type="submit" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25">
           <Plus className="h-4 w-4 mr-2" />
@@ -147,7 +148,7 @@ export default function UsersTab({ users, newUser, setNewUser, createUser, updat
           <CardDescription>{users.length} total users on the platform</CardDescription>
         </div>
         <Badge className="bg-blue-500/15 text-blue-500 border-blue-500/20 text-[10px]">
-          {users.filter(u => u.role === "user").length} Users · {users.filter(u => u.role === "counsellor").length} Counsellors
+          {users.filter((u: Unmodelled) => u.role === "user").length} Users · {users.filter((u: Unmodelled) => u.role === "counsellor").length} Counsellors
         </Badge>
       </div>
     </CardHeader>
@@ -162,7 +163,7 @@ export default function UsersTab({ users, newUser, setNewUser, createUser, updat
         </div>
       ) : (
         <div className="space-y-3">
-          {users.map((user) => {
+          {users.map((user: Unmodelled) => {
             const isActive = user.status === "active" || !user.status;
             const isSuspended = user.status === "suspended";
             const isCounsellor = user.role === "counsellor";

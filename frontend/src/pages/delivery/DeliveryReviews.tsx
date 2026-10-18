@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const sampleReviews = [
   {
@@ -52,7 +53,7 @@ export default function DeliveryReviews() {
         api.get('/delivery-partners/my-deliveries').catch(() => ({ history: [] })),
       ]);
       const fromProfile = prof?.reviews && Array.isArray(prof.reviews) ? prof.reviews : [];
-      const fromHistory = (dels?.history || []).filter((d) => d.ratingByUser?.stars).map((d) => ({
+      const fromHistory = (dels?.history || []).filter((d: Unmodelled) => d.ratingByUser?.stars).map((d: Unmodelled) => ({
         id: d._id,
         patientName: d.patientName || 'Customer',
         rating: d.ratingByUser.stars,

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = {
   pending: 'bg-warning/10 text-warning',
@@ -88,7 +88,7 @@ export default function DoctorTestResults() {
                       <Clock className="w-3 h-3 ml-1" /> {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                     <div className="flex flex-wrap gap-1.5 mt-2">
-                      {order.tests?.map((t, j) => (
+                      {order.tests?.map((t: Unmodelled, j: Unmodelled) => (
                         <Badge key={j} variant="secondary" className="text-[10px]">
                           {t.testName || t.name || t}
                           {t.resultValue && `: ${t.resultValue}`}
@@ -143,7 +143,7 @@ export default function DoctorTestResults() {
               </div>
               <div className="space-y-3">
                 <p className="text-xs text-muted-foreground mb-1">Tests & Results</p>
-                {selectedOrder.tests?.map((t, idx) => (
+                {selectedOrder.tests?.map((t: Unmodelled, idx: Unmodelled) => (
                   <div key={idx} className="p-4 rounded-xl border border-border/40 bg-muted/10">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium text-foreground text-sm">{t.testName || t.name || `Test #${idx + 1}`}</h4>

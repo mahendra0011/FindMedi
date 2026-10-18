@@ -15,7 +15,7 @@ import { api } from "@/mind/lib/api";
 import { fetchCounsellors, selectCounsellors, selectCounsellorsStatus } from "@/mind/store/counsellorsSlice";
 import { useAppDispatch, useAppSelector } from "@/mind/store/hooks";
 import { ArrowLeft, ArrowRight, CalendarCheck, Check, CheckCircle2, ClipboardList, Clock3, CreditCard, Info, Landmark, Mail, MessageCircle, Phone, ShieldCheck, Smartphone, Star, Video, Wallet } from "lucide-react";
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const fallbackPlans = [
   {
@@ -62,7 +62,7 @@ const fallbackPlans = [
 
 const activeStatuses = ["pending", "confirmed"];
 const emergencyKeywords = ["suicide", "self-harm", "panic attack", "abuse", "trauma", "kill myself", "want to die"];
-const hasEmergencyLanguage = (text) => emergencyKeywords.some((keyword) => String(text || "").toLowerCase().includes(keyword));
+const hasEmergencyLanguage = (text: Unmodelled) => emergencyKeywords.some((keyword) => String(text || "").toLowerCase().includes(keyword));
 const modeOptions = [
   { id: "video-chat", label: "Video Call + Chat", icon: Video, desc: "Video sessions + chat support between sessions" },
   { id: "chat-only", label: "Chat Only", icon: MessageCircle, desc: "Text-based counselling only" },
@@ -102,24 +102,24 @@ function initials(name = "") {
   );
 }
 
-function plansFor(counsellor) {
+function plansFor(counsellor: Unmodelled) {
   return counsellor?.supportPlans?.length ? counsellor.supportPlans : fallbackPlans;
 }
 
-function planPrice(plan) {
+function planPrice(plan: Unmodelled) {
   return Number(plan?.bookingPrice || plan?.perSessionPrice || 0);
 }
 
-function planFromList(counsellor, planId) {
+function planFromList(counsellor: Unmodelled, planId: Unmodelled) {
   const plans = plansFor(counsellor);
-  return plans.find((plan) => plan.id === planId) || plans[0];
+  return plans.find((plan: Unmodelled) => plan.id === planId) || plans[0];
 }
 
 function modeLabel(value = "") {
   return modeOptions.find((mode) => mode.id === value)?.label || value || "Google Meet";
 }
 
-function formatScheduleDate(value) {
+function formatScheduleDate(value: Unmodelled) {
   if (!value) return "Choose date";
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime())
@@ -187,7 +187,7 @@ const SessionSchedule = () => {
   }, [packageId]);
 
   const selectedCounsellor = useMemo(
-    () => counsellors.find((counsellor) => counsellor.id === selectedId) || counsellors[0] || null,
+    () => counsellors.find((counsellor: Unmodelled) => counsellor.id === selectedId) || counsellors[0] || null,
     [counsellors, selectedId]
   );
   const selectedPlan = planFromList(selectedCounsellor, selectedPlanId);
@@ -212,7 +212,7 @@ const SessionSchedule = () => {
   useEffect(() => {
     if (!selectedCounsellor) return;
     const plans = plansFor(selectedCounsellor);
-    setSelectedPlanId((current) => (plans.some((plan) => plan.id === current) ? current : plans[0]?.id || "short-term"));
+    setSelectedPlanId((current) => (plans.some((plan: Unmodelled) => plan.id === current) ? current : plans[0]?.id || "short-term"));
     setBooking((current) => (supportedModes.includes(current.mode) ? current : { ...current, mode: supportedModes[0] || "google-meet" }));
   }, [selectedCounsellor, supportedModes]);
 
@@ -684,7 +684,7 @@ const SessionSchedule = () => {
   );
 };
 
-function SchedulePanel({ title, children }) {
+function SchedulePanel({ title, children }: Unmodelled) {
   return (
     <Card className="rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.04] to-white/[0.01] shadow-xl shadow-black/20">
       <CardContent className="p-6">
@@ -698,7 +698,7 @@ function SchedulePanel({ title, children }) {
   );
 }
 
-function StatusPanel({ tone, title, children }) {
+function StatusPanel({ tone, title, children }: Unmodelled) {
   const styles =
     tone === "danger"
       ? "border-rose-400/20 bg-rose-400/10 text-rose-100"
@@ -711,7 +711,7 @@ function StatusPanel({ tone, title, children }) {
   );
 }
 
-function SummaryLine({ label, value }) {
+function SummaryLine({ label, value }: Unmodelled) {
   return (
     <div className="flex items-center justify-between gap-4 py-1.5 border-b border-white/[0.04] last:border-0">
       <span className="text-slate-500">{label}</span>
@@ -720,7 +720,7 @@ function SummaryLine({ label, value }) {
   );
 }
 
-function PanelText({ children }) {
+function PanelText({ children }: Unmodelled) {
   return <div className="rounded-2xl border border-white/10 bg-[#070b15] p-4 text-sm text-slate-300/75">{children}</div>;
 }
 

@@ -1,5 +1,6 @@
 import { Brain, Mail, Phone, MapPin, Globe, AtSign, Camera, Briefcase } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const Footer = () => {
   const navigate = useNavigate();
@@ -32,14 +33,14 @@ const Footer = () => {
     { icon: Briefcase, href: "https://www.linkedin.com", label: "LinkedIn" },
   ];
 
-  const scrollToSection = (href) => {
+  const scrollToSection = (href: Unmodelled) => {
     const target = document.querySelector(href);
     if (target) {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
-  const handleFooterLink = (event, href) => {
+  const handleFooterLink = (event: Unmodelled, href: Unmodelled) => {
     if (href.startsWith("/")) {
       event.preventDefault();
       navigate(href);

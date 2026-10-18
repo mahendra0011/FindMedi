@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { bookTestLab } from '@/lib/testBooking';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const serviceIcons = {
   bp_check: Thermometer,
@@ -38,7 +38,7 @@ const splitServiceNames = (service = '') => service
   .map(item => item.trim())
   .filter(Boolean);
 
-const isPatientBill = (bill, user) => {
+const isPatientBill = (bill: Unmodelled, user: Unmodelled) => {
   const userId = String(user?.id || user?._id || '');
   const patientId = bill?.patientId?._id || bill?.patientId;
   if (userId && patientId && String(patientId) === userId) return true;
@@ -46,23 +46,23 @@ const isPatientBill = (bill, user) => {
   return false;
 };
 
-const isLabBill = (bill, catalog) => {
+const isLabBill = (bill: Unmodelled, catalog: Unmodelled) => {
   if (bill?.source === 'lab') return true;
   if (Array.isArray(bill?.services) && bill.services.length > 0) return true;
   if (String(bill?.doctor || '').toLowerCase() === 'lab services') return true;
   const serviceText = String(bill?.service || '').toLowerCase();
-  return catalog.some(service => serviceText.includes(String(service.name || '').toLowerCase()));
+  return catalog.some((service: Unmodelled) => serviceText.includes(String(service.name || '').toLowerCase()));
 };
 
-const buildLabBookings = (bills, catalog, user) => (bills || [])
-  .filter(bill => isPatientBill(bill, user))
-  .filter(bill => isLabBill(bill, catalog))
-  .map((bill) => {
+const buildLabBookings = (bills: Unmodelled, catalog: Unmodelled, user: Unmodelled) => (bills || [])
+  .filter((bill: Unmodelled) => isPatientBill(bill, user))
+  .filter((bill: Unmodelled) => isLabBill(bill, catalog))
+  .map((bill: Unmodelled) => {
     const serviceNames = splitServiceNames(bill.service);
     const services = Array.isArray(bill.services) && bill.services.length > 0
       ? bill.services
       : serviceNames.map((name) => {
-        const match = catalog.find(service => service.name === name);
+        const match = catalog.find((service: Unmodelled) => service.name === name);
         return match || { name, price: 0, category: 'Lab' };
       });
 
@@ -71,7 +71,7 @@ const buildLabBookings = (bills, catalog, user) => (bills || [])
       invoiceId: bill.invoiceId,
       date: bill.date,
       status: bill.status || 'Pending',
-      amount: Number(bill.amount) || services.reduce((sum, service) => sum + (Number(service.price) || 0), 0),
+      amount: Number(bill.amount) || services.reduce((sum: Unmodelled, service: Unmodelled) => sum + (Number(service.price) || 0), 0),
       paid: Number(bill.paid) || 0,
       services,
     };
@@ -106,7 +106,7 @@ export default function PatientServices() {
     if (user) loadServices();
   }, [user, loadServices]);
 
-  const toggleService = (service) => {
+  const toggleService = (service: Unmodelled) => {
     setSelectedServices(prev => {
       const exists = prev.find(s => s.id === service.id);
       if (exists) {
@@ -173,7 +173,7 @@ export default function PatientServices() {
             <div className="min-w-0">
               <h2 className="font-heading font-semibold text-foreground">Lab services booked</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                {lastBooking.services.map(service => service.name).join(', ')}
+                {lastBooking.services.map((service: Unmodelled) => service.name).join(', ')}
               </p>
               <p className="text-xs text-muted-foreground mt-1">Invoice {lastBooking.invoiceId || 'created'} is available in billing.</p>
               {lastBooking.transactionId && (
@@ -238,7 +238,7 @@ export default function PatientServices() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-xs font-mono text-muted-foreground">{booking.invoiceId || 'Lab booking'}</p>
-                    <p className="font-medium text-foreground">{booking.services.map(service => service.name).join(', ')}</p>
+                    <p className="font-medium text-foreground">{booking.services.map((service: Unmodelled) => service.name).join(', ')}</p>
                     <p className="text-xs text-muted-foreground">Booked on {booking.date || 'Today'}</p>
                   </div>
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusColors[booking.status] || 'bg-muted text-muted-foreground'}`}>
@@ -246,7 +246,7 @@ export default function PatientServices() {
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-3">
-                  {booking.services.map((service, index) => (
+                  {booking.services.map((service: Unmodelled, index: Unmodelled) => (
                     <span key={`${booking.id}-${service.id || service.name || index}`} className="px-2.5 py-1 rounded-full bg-background text-xs text-foreground border border-border/60">
                       {service.name}{service.price ? ` - ₹${service.price}` : ''}
                     </span>

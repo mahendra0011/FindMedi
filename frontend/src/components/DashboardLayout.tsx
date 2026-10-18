@@ -2,8 +2,9 @@ import { useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AppSidebar from './AppSidebar';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout({ children }: Unmodelled) {
   const mainRef = useRef(null);
   const location = useLocation();
   const isMobile = useIsMobile();

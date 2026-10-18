@@ -12,8 +12,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function AnalyticsTab({ data, users, totals }) {
+export default function AnalyticsTab({ data, users, totals }: Unmodelled) {
   return (
     <>
   {/* Analytics Hero Stats */}

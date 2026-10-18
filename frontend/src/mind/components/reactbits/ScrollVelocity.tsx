@@ -10,8 +10,9 @@ import {
 } from "framer-motion";
 
 import "./ScrollVelocity.css";
+import type { Unmodelled } from '@/lib/apiTypes';
 
-function useElementWidth(ref) {
+function useElementWidth(ref: Unmodelled) {
   const [width, setWidth] = useState(0);
 
   useLayoutEffect(() => {
@@ -29,7 +30,7 @@ function useElementWidth(ref) {
   return width;
 }
 
-function wrap(min, max, v) {
+function wrap(min: Unmodelled, max: Unmodelled, v: Unmodelled) {
   const range = max - min;
   const mod = (((v - min) % range) + range) % range;
   return mod + min;
@@ -48,7 +49,7 @@ function VelocityText({
   scrollerClassName,
   parallaxStyle,
   scrollerStyle
-}) {
+}: Unmodelled) {
   const baseX = useMotionValue(0);
   const scrollOptions = scrollContainerRef ? { container: scrollContainerRef } : {};
   const { scrollY } = useScroll(scrollOptions);
@@ -118,7 +119,7 @@ export const ScrollVelocity = ({
   scrollerClassName = "scroller",
   parallaxStyle,
   scrollerStyle
-}) => (
+}: Unmodelled) => (
   <section>
     {texts.map((text, index) => (
       <VelocityText

@@ -18,9 +18,9 @@ import { api, resolveFileUrl } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useAudioCall } from '@/context/AudioCallContext';
 import { formatDisplayDate } from '@/lib/dateUtils';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-function formatDuration(secs) {
+function formatDuration(secs: Unmodelled) {
   if (!secs || secs <= 0) return '00:00';
   const m = Math.floor(secs / 60);
   const s = secs % 60;
@@ -28,8 +28,8 @@ function formatDuration(secs) {
   return `${m}m ${s.toString().padStart(2, '0')}s`;
 }
 
-function getInitials(name) {
-  return name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'PT';
+function getInitials(name: Unmodelled) {
+  return name?.split(' ').map((n: Unmodelled) => n[0]).join('').slice(0, 2).toUpperCase() || 'PT';
 }
 
 export default function DoctorCalls() {
@@ -133,7 +133,7 @@ export default function DoctorCalls() {
   }, [contacts, contactSearch]);
 
   // Delete single call
-  const handleDeleteCall = async (callId) => {
+  const handleDeleteCall = async (callId: Unmodelled) => {
     try {
       await api.deleteCallLog(callId);
       setCalls((prev) => prev.filter((c) => c._id !== callId));
@@ -157,7 +157,7 @@ export default function DoctorCalls() {
   };
 
   // Initiate call to contact
-  const handleStartCall = (peer) => {
+  const handleStartCall = (peer: Unmodelled) => {
     if (!peer) return;
     setShowDialModal(false);
     initiateCall(peer);
@@ -166,7 +166,7 @@ export default function DoctorCalls() {
   const isPatient = user?.role === 'patient';
 
   // Navigate to chat
-  const handleOpenChat = (peerId) => {
+  const handleOpenChat = (peerId: Unmodelled) => {
     const isClinic = user?.role === 'clinic_doctor';
     const chatPath = isPatient ? '/patient/chat' : isClinic ? '/clinic/chat' : '/doctor/chat';
     navigate(chatPath, { state: { targetUserId: peerId } });

@@ -19,6 +19,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import BillCheckout from '@/components/BillCheckout';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 
 const ACCREDITATION_COLORS = {
@@ -32,7 +33,7 @@ const HOSPITAL_TYPE_STYLES = {
   'Private': 'bg-sky-500/15 text-sky-600 border-sky-500/30',
 };
 
-export default function HospitalCard({ hospital, index = 0, distance }) {
+export default function HospitalCard({ hospital, index = 0, distance }: Unmodelled) {
    const navigate = useNavigate();
    const { user } = useAuth();
    const [showDoctors, setShowDoctors] = useState(false);
@@ -43,7 +44,7 @@ export default function HospitalCard({ hospital, index = 0, distance }) {
     : null;
   const fallbackDist = distance || hospital.distance || '0.8';
 
-  const renderStars = (rating) => (
+  const renderStars = (rating: Unmodelled) => (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((s) => (
         <Star
@@ -173,7 +174,7 @@ export default function HospitalCard({ hospital, index = 0, distance }) {
         {/* Specialties / Departments as chips */}
         {hospital.specialties?.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {hospital.specialties.slice(0, 4).map((spec) => {
+            {hospital.specialties.slice(0, 4).map((spec: Unmodelled) => {
               const Icon = getSpecialtyIcon(spec);
               return (
                 <span
@@ -199,7 +200,7 @@ export default function HospitalCard({ hospital, index = 0, distance }) {
         {/* Accreditation Badges */}
         {hospital.accreditations?.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {hospital.accreditations.map((acc) => (
+            {hospital.accreditations.map((acc: Unmodelled) => (
               <span
                 key={acc}
                 className={cn(
@@ -257,7 +258,7 @@ export default function HospitalCard({ hospital, index = 0, distance }) {
         {/* Insurance Accepted */}
         {hospital.insuranceAccepted?.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {hospital.insuranceAccepted.slice(0, 3).map((ins, i) => (
+            {hospital.insuranceAccepted.slice(0, 3).map((ins: Unmodelled, i: Unmodelled) => (
               <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-600 border border-blue-500/20">
                 {typeof ins === 'string' ? ins : ins.provider || ins}
               </span>
@@ -331,7 +332,7 @@ export default function HospitalCard({ hospital, index = 0, distance }) {
       {/* Booking Modal */}
       <BookingModal 
         open={showBooking} 
-        onOpenChange={(open) => {
+        onOpenChange={(open: Unmodelled) => {
           setShowBooking(open);
           if (!open) setSelectedDoctor(null);
         }}

@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
 import ReviewDialog from '@/components/ReviewDialog';
 import PharmacyCard from '@/components/PharmacyCard';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 
 
@@ -30,7 +30,7 @@ const CATEGORIES = ['All', 'Prescription', 'OTC', 'Generic', 'Baby Care', 'Ayurv
 const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
 const fadeUp = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } } };
 
-const SectionTitle = ({ icon:Icon, label }) => (
+const SectionTitle = ({ icon:Icon, label }: Unmodelled) => (
   <h2 className="font-heading text-lg font-bold text-foreground mb-5 flex items-center gap-2">
     <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
       <Icon className="w-3.5 h-3.5 text-primary" />
@@ -39,7 +39,7 @@ const SectionTitle = ({ icon:Icon, label }) => (
   </h2>
 );
 
-function mapFacilityToStore(f) {
+function mapFacilityToStore(f: Unmodelled) {
   return {
     id: f._id, name: f.name, photo: f.logo || '', cover: f.image || '',
     verified: f.status === 'approved', open: true, timing: f.workingHours || '8 AM - 10 PM',
@@ -62,7 +62,7 @@ function mapFacilityToStore(f) {
 }
 
 // Adapter: mapFacilityToStore shape → PharmacyCard props shape
-function storeToPharmacyCard(s) {
+function storeToPharmacyCard(s: Unmodelled) {
   return {
     _id: s.id,
     name: s.name,
@@ -153,13 +153,13 @@ export default function MedicineStoreDetail() {
     };
     load();
   }, [storeId]);
-  const storeEntries = entries.filter(e => e.storeId === storeId);
+  const storeEntries = entries.filter((e: Unmodelled) => e.storeId === storeId);
 
-  const storeCartCount = storeEntries.reduce((s, e) => s + e.qty, 0);
-  const storeCartTotal = storeEntries.reduce((s, e) => s + e.item.price * e.qty, 0);
+  const storeCartCount = storeEntries.reduce((s: Unmodelled, e: Unmodelled) => s + e.qty, 0);
+  const storeCartTotal = storeEntries.reduce((s: Unmodelled, e: Unmodelled) => s + e.item.price * e.qty, 0);
 
-  const renderMedCard = (med) => {
-    const entry = storeEntries.find(e => e.item.id === med.id);
+  const renderMedCard = (med: Unmodelled) => {
+    const entry = storeEntries.find((e: Unmodelled) => e.item.id === med.id);
     return (
       <div key={med.id} className="bg-background rounded-xl border border-border/50 overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all group/card flex flex-col">
         <div className="relative h-28 sm:h-32 bg-gradient-to-br from-muted/50 to-muted/10 overflow-hidden">
@@ -217,7 +217,7 @@ export default function MedicineStoreDetail() {
     }
   }, [storeId, searchParams]);
 
-  const renderStars = (r, size = 'w-3.5 h-3.5') => (
+  const renderStars = (r: Unmodelled, size = 'w-3.5 h-3.5') => (
     <div className="flex items-center gap-0.5">
       {[1,2,3,4,5].map(s => (
         <Star key={s} className={cn(size, s <= Math.round(r) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />
@@ -225,7 +225,7 @@ export default function MedicineStoreDetail() {
     </div>
   );
 
-  const handleCopyCode = (code) => {
+  const handleCopyCode = (code: Unmodelled) => {
     navigator.clipboard?.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
@@ -669,7 +669,7 @@ export default function MedicineStoreDetail() {
                   <CardContent className="p-6">
                     <SectionTitle icon={Tag} label={`Offers & Deals (${store.offers.length})`} />
                     <div className="space-y-3">
-                      {store.offers.map((offer, i) => (
+                      {store.offers.map((offer: Unmodelled, i: Unmodelled) => (
                         <div key={i} className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-primary/5 via-primary/[0.02] to-transparent border border-primary/10 hover:border-primary/20 hover:shadow-sm transition-all">
                           <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 shadow-sm">
                             <Percent className="w-5 h-5 text-primary" />
@@ -1025,7 +1025,7 @@ export default function MedicineStoreDetail() {
         entityType="pharmacy"
         entityId={storeId}
         entityName={store?.name}
-        onReviewSubmitted={(review) => {
+        onReviewSubmitted={(review: Unmodelled) => {
           setReviewsData(prev => [review, ...(Array.isArray(prev) ? prev : [])]);
         }}
       />

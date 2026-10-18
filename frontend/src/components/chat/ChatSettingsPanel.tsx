@@ -9,10 +9,11 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import { WALLPAPERS, wallpaperCss } from '@/lib/chatPrefs';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /* ───────────────────────────── generic rows ───────────────────────────── */
 
-export function SectionCard({ title, description, children }) {
+export function SectionCard({ title, description, children }: Unmodelled) {
   return (
     <div className="bg-card border border-border rounded-xl p-4 mb-4">
       {title && (
@@ -26,7 +27,7 @@ export function SectionCard({ title, description, children }) {
   );
 }
 
-export function Row({ icon: Icon, title, description, children, danger }) {
+export function Row({ icon: Icon, title, description, children, danger }: Unmodelled) {
   return (
     <div className={`flex items-center gap-3 py-2.5 ${danger ? 'text-red-600 dark:text-red-400' : ''}`}>
       {Icon && <Icon className="w-4 h-4 flex-shrink-0 text-muted-foreground" />}
@@ -40,10 +41,10 @@ export function Row({ icon: Icon, title, description, children, danger }) {
 }
 
 /** iOS-style segmented control (enum settings ke liye) */
-export function Segmented({ value, options, onChange, className = '' }) {
+export function Segmented({ value, options, onChange, className = '' }: Unmodelled) {
   return (
     <div className={`flex bg-muted rounded-full p-0.5 ${className}`}>
-      {options.map((o) => (
+      {options.map((o: Unmodelled) => (
         <button
           key={o.value}
           onClick={() => onChange(o.value)}
@@ -59,7 +60,7 @@ export function Segmented({ value, options, onChange, className = '' }) {
   );
 }
 
-export function ToggleRow({ icon, title, description, checked, onChange, disabled }) {
+export function ToggleRow({ icon, title, description, checked, onChange, disabled }: Unmodelled) {
   return (
     <Row icon={icon} title={title} description={description}>
       <Switch checked={Boolean(checked)} onCheckedChange={onChange} disabled={disabled} />
@@ -67,7 +68,7 @@ export function ToggleRow({ icon, title, description, checked, onChange, disable
   );
 }
 
-export function SelectRow({ icon, title, description, value, options, onChange }) {
+export function SelectRow({ icon, title, description, value, options, onChange }: Unmodelled) {
   return (
     <Row icon={icon} title={title} description={description}>
       <select
@@ -75,7 +76,7 @@ export function SelectRow({ icon, title, description, value, options, onChange }
         onChange={(e) => onChange(e.target.value)}
         className="bg-muted border border-border rounded-lg px-2 py-1.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-primary/40"
       >
-        {options.map((o) => (
+        {options.map((o: Unmodelled) => (
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
@@ -93,10 +94,10 @@ const ACCENT_OPTIONS = [
   { value: 'amber', color: '#d97706' },
 ];
 
-export function AppearanceSettings({ prefs, setPrefs, theme, onThemeChange, privacy, setPrivacyField }) {
+export function AppearanceSettings({ prefs, setPrefs, theme, onThemeChange, privacy, setPrivacyField }: Unmodelled) {
   const appearance = privacy.appearance || {};
 
-  const update = (patch) => {
+  const update = (patch: Unmodelled) => {
     setPrefs(patch);
     const serverPatch = {};
     if (patch.wallpaper !== undefined) serverPatch.wallpaper = patch.wallpaper;
@@ -108,7 +109,7 @@ export function AppearanceSettings({ prefs, setPrefs, theme, onThemeChange, priv
     if (Object.keys(serverPatch).length) setPrivacyField('appearance', { ...appearance, ...serverPatch });
   };
 
-  const onCustomWallpaper = (file) => {
+  const onCustomWallpaper = (file: Unmodelled) => {
     if (!file) return;
     const fr = new FileReader();
     fr.onload = () => update({ customWallpaper: fr.result, wallpaper: 'custom' });
@@ -121,7 +122,7 @@ export function AppearanceSettings({ prefs, setPrefs, theme, onThemeChange, priv
         <SegmentedRow
           title="Theme"
           value={theme || 'system'}
-          onChange={(v) => { onThemeChange(v); setPrivacyField('appearance', { ...appearance, theme: v }); }}
+          onChange={(v: Unmodelled) => { onThemeChange(v); setPrivacyField('appearance', { ...appearance, theme: v }); }}
           options={[
             { value: 'light', label: 'Light' },
             { value: 'dark', label: 'Dark' },
@@ -168,7 +169,7 @@ export function AppearanceSettings({ prefs, setPrefs, theme, onThemeChange, priv
         <SegmentedRow
           title="Bubble style"
           value={prefs.bubbleStyle}
-          onChange={(v) => update({ bubbleStyle: v })}
+          onChange={(v: Unmodelled) => update({ bubbleStyle: v })}
           options={[
             { value: 'rounded', label: 'Rounded' },
             { value: 'classic', label: 'Classic' },
@@ -178,7 +179,7 @@ export function AppearanceSettings({ prefs, setPrefs, theme, onThemeChange, priv
         <SegmentedRow
           title="Density"
           value={prefs.density}
-          onChange={(v) => update({ density: v })}
+          onChange={(v: Unmodelled) => update({ density: v })}
           options={[
             { value: 'comfortable', label: 'Comfortable' },
             { value: 'compact', label: 'Compact' },
@@ -200,9 +201,9 @@ export function AppearanceSettings({ prefs, setPrefs, theme, onThemeChange, priv
             <span className="text-[15px] font-semibold text-muted-foreground">A</span>
           </div>
         </Row>
-        <ToggleRow title="Animations" description="Message animations, bubble pop aur transitions." checked={prefs.animations} onChange={(v) => update({ animations: v })} />
-        <ToggleRow title="Reduce motion" description="Accessibility — motion sensitivity ke liye." checked={prefs.reduceMotion} onChange={(v) => update({ reduceMotion: v })} />
-        <ToggleRow title="High contrast" description="Borders aur text contrast badhata hai." checked={prefs.highContrast} onChange={(v) => setPrefs({ highContrast: v })} />
+        <ToggleRow title="Animations" description="Message animations, bubble pop aur transitions." checked={prefs.animations} onChange={(v: Unmodelled) => update({ animations: v })} />
+        <ToggleRow title="Reduce motion" description="Accessibility — motion sensitivity ke liye." checked={prefs.reduceMotion} onChange={(v: Unmodelled) => update({ reduceMotion: v })} />
+        <ToggleRow title="High contrast" description="Borders aur text contrast badhata hai." checked={prefs.highContrast} onChange={(v: Unmodelled) => setPrefs({ highContrast: v })} />
       </SectionCard>
     </>
   );
@@ -231,14 +232,14 @@ function humanBytes(bytes = 0) {
   return `${v >= 10 || i === 0 ? Math.round(v) : v.toFixed(1)} ${units[i]}`;
 }
 
-export function StorageSettings({ storage, prefs, setPrefs, setPrivacyField, privacy, onClearCache }) {
+export function StorageSettings({ storage, prefs, setPrefs, setPrivacyField, privacy, onClearCache }: Unmodelled) {
   const localKeyMap = {
     wifi: 'autoDownloadWifi',
     mobileData: 'autoDownloadMobile',
     roaming: 'autoDownloadRoaming',
   };
 
-  const setAuto = (group, kind, value) => {
+  const setAuto = (group: Unmodelled, kind: Unmodelled, value: Unmodelled) => {
     const localKey = localKeyMap[group];
     const next = { ...(prefs[localKey] || {}), [kind]: value };
     setPrefs({ [localKey]: next });
@@ -304,7 +305,7 @@ export function StorageSettings({ storage, prefs, setPrefs, setPrivacyField, pri
         <SegmentedRow
           title="Upload quality"
           value={prefs.mediaQuality || 'standard'}
-          onChange={(v) => { setPrefs({ mediaQuality: v }); setPrivacyField('mediaQuality', v); }}
+          onChange={(v: Unmodelled) => { setPrefs({ mediaQuality: v }); setPrivacyField('mediaQuality', v); }}
           options={[
             { value: 'standard', label: 'Standard' },
             { value: 'hd', label: 'HD' },
@@ -315,7 +316,7 @@ export function StorageSettings({ storage, prefs, setPrefs, setPrivacyField, pri
           title="Auto-delete downloaded media"
           description="Storage bachane ke liye purani downloaded files hata deta hai."
           checked={Boolean(privacy.autoDeleteDownloaded)}
-          onChange={(v) => setPrivacyField('autoDeleteDownloaded', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('autoDeleteDownloaded', v)}
         />
       </SectionCard>
     </>
@@ -323,7 +324,7 @@ export function StorageSettings({ storage, prefs, setPrefs, setPrivacyField, pri
 }
 
 /** Segmented control wali row (enum settings ke liye) */
-export function SegmentedRow({ icon, title, description, value, options, onChange }) {
+export function SegmentedRow({ icon, title, description, value, options, onChange }: Unmodelled) {
   return (
     <Row icon={icon} title={title} description={description}>
       <Segmented value={value} options={options} onChange={onChange} />
@@ -333,19 +334,19 @@ export function SegmentedRow({ icon, title, description, value, options, onChang
 
 /* ───────────────────────────── backup ───────────────────────────── */
 
-export function BackupSettings({ backup = {}, setBackup, onRunBackup, running }) {
+export function BackupSettings({ backup = {}, setBackup, onRunBackup, running }: Unmodelled) {
   return (
     <SectionCard title="Chat backup" description="Messages ka server-side backup — restore se chat history wapas milti hai.">
       <ToggleRow
         title="Backup enabled"
         description={backup.lastBackupAt ? `Last backup: ${new Date(backup.lastBackupAt).toLocaleString()}` : 'Abhi tak koi backup nahi'}
         checked={Boolean(backup.enabled)}
-        onChange={(v) => setBackup({ enabled: v })}
+        onChange={(v: Unmodelled) => setBackup({ enabled: v })}
       />
       <SelectRow
         title="Backup frequency"
         value={backup.frequency || 'off'}
-        onChange={(v) => setBackup({ frequency: v, enabled: v !== 'off' })}
+        onChange={(v: Unmodelled) => setBackup({ frequency: v, enabled: v !== 'off' })}
         options={[
           { value: 'off', label: 'Off' },
           { value: 'daily', label: 'Daily' },
@@ -357,13 +358,13 @@ export function BackupSettings({ backup = {}, setBackup, onRunBackup, running })
         title="Include videos"
         description="Video files bhi backup me shaamil karein (bada size)."
         checked={Boolean(backup.includeVideos)}
-        onChange={(v) => setBackup({ includeVideos: v })}
+        onChange={(v: Unmodelled) => setBackup({ includeVideos: v })}
       />
       <ToggleRow
         title="Encrypted backup"
         description="Backup ko encryption ke saath store karein."
         checked={backup.encrypted !== false}
-        onChange={(v) => setBackup({ encrypted: v })}
+        onChange={(v: Unmodelled) => setBackup({ encrypted: v })}
       />
       <Row title="Backup now" description="Turant manual backup trigger karein.">
         <button
@@ -387,7 +388,7 @@ const AUDIENCE_OPTIONS = [
   { value: 'nobody', label: 'Nobody' },
 ];
 
-export function PrivacySettings({ privacy, setPrivacyField, blocked = [], onUnblock, reports = [] }) {
+export function PrivacySettings({ privacy, setPrivacyField, blocked = [], onUnblock, reports = [] }: Unmodelled) {
   return (
     <>
       <SectionCard title="Last seen & online" description="Kaun aapka last seen aur online status dekh sakta hai.">
@@ -396,27 +397,27 @@ export function PrivacySettings({ privacy, setPrivacyField, blocked = [], onUnbl
           title="Last seen"
           description={privacy.lastSeen === 'nobody' ? 'Koi bhi nahi dekh sakta' : undefined}
           value={privacy.lastSeen}
-          onChange={(v) => setPrivacyField('lastSeen', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('lastSeen', v)}
           options={AUDIENCE_OPTIONS}
         />
         <SegmentedRow
           title="Online status"
           description={privacy.lastSeen === 'nobody' ? 'Last seen Nobody hai — online bhi wahi follow karta hai' : undefined}
           value={privacy.online}
-          onChange={(v) => setPrivacyField('online', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('online', v)}
           options={AUDIENCE_OPTIONS}
         />
         <SegmentedRow
           icon={UserIcon}
           title="Profile photo"
           value={privacy.profilePhoto}
-          onChange={(v) => setPrivacyField('profilePhoto', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('profilePhoto', v)}
           options={AUDIENCE_OPTIONS}
         />
         <SegmentedRow
           title="About"
           value={privacy.about}
-          onChange={(v) => setPrivacyField('about', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('about', v)}
           options={AUDIENCE_OPTIONS}
         />
       </SectionCard>
@@ -427,28 +428,28 @@ export function PrivacySettings({ privacy, setPrivacyField, blocked = [], onUnbl
           title="Read receipts"
           description="Off karne par aapko bhi doosron ke blue ticks nahi dikhenge."
           checked={privacy.readReceipts}
-          onChange={(v) => setPrivacyField('readReceipts', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('readReceipts', v)}
         />
         <ToggleRow
           icon={MessageSquare}
           title="Typing indicator"
           description="Type karte waqt doosre ko 'typing…' dikhega."
           checked={privacy.typingIndicator}
-          onChange={(v) => setPrivacyField('typingIndicator', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('typingIndicator', v)}
         />
         <ToggleRow
           icon={Mic}
           title="Recording indicator"
           description="Voice record karte waqt indicator dikhana."
           checked={privacy.recordingIndicator}
-          onChange={(v) => setPrivacyField('recordingIndicator', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('recordingIndicator', v)}
         />
         <ToggleRow
           icon={Shield}
           title="Screenshot protection"
           description="Sensitive media par screenshot / screen-record protection (jahan platform support kare)."
           checked={privacy.screenshotProtection}
-          onChange={(v) => setPrivacyField('screenshotProtection', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('screenshotProtection', v)}
         />
       </SectionCard>
 
@@ -457,14 +458,14 @@ export function PrivacySettings({ privacy, setPrivacyField, blocked = [], onUnbl
           icon={PhoneIcon}
           title="Who can call me"
           value={privacy.callsPrivacy}
-          onChange={(v) => setPrivacyField('callsPrivacy', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('callsPrivacy', v)}
           options={AUDIENCE_OPTIONS}
         />
         <ToggleRow
           title="Silence unknown callers"
           description="Jinhe contacts me nahi rakha, unki calls silent ring karengi."
           checked={privacy.silenceUnknownCallers}
-          onChange={(v) => setPrivacyField('silenceUnknownCallers', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('silenceUnknownCallers', v)}
         />
       </SectionCard>
 
@@ -474,12 +475,12 @@ export function PrivacySettings({ privacy, setPrivacyField, blocked = [], onUnbl
           title="Message requests"
           description="Unknown senders ki requests alag section me dikhengi."
           checked={privacy.messageRequestsEnabled}
-          onChange={(v) => setPrivacyField('messageRequestsEnabled', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('messageRequestsEnabled', v)}
         />
         <SelectRow
           title="Unknown senders policy"
           value={privacy.requestPolicy}
-          onChange={(v) => setPrivacyField('requestPolicy', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('requestPolicy', v)}
           options={[
             { value: 'ask', label: 'Ask me (request)' },
             { value: 'accept', label: 'Allow directly' },
@@ -519,7 +520,7 @@ export function PrivacySettings({ privacy, setPrivacyField, blocked = [], onUnbl
 
 /* ──────────────────────── chats behaviour ──────────────────────── */
 
-export function ChatsSettings({ privacy, setPrivacyField, prefs, setPrefs, locks = [], onOpenLocked, onClearAllDrafts }) {
+export function ChatsSettings({ privacy, setPrivacyField, prefs, setPrefs, locks = [], onOpenLocked, onClearAllDrafts }: Unmodelled) {
   return (
     <>
       <SectionCard title="Chat behaviour">
@@ -528,7 +529,7 @@ export function ChatsSettings({ privacy, setPrivacyField, prefs, setPrefs, locks
           title="Enter key"
           description="Enter dabane par message send ho ya new line."
           value={privacy.enterKeyBehaviour}
-          onChange={(v) => { setPrivacyField('enterKeyBehaviour', v); setPrefs({ sendWithEnter: v === 'send' }); }}
+          onChange={(v: Unmodelled) => { setPrivacyField('enterKeyBehaviour', v); setPrefs({ sendWithEnter: v === 'send' }); }}
           options={[
             { value: 'send', label: 'Send message' },
             { value: 'newline', label: 'New line' },
@@ -538,19 +539,19 @@ export function ChatsSettings({ privacy, setPrivacyField, prefs, setPrefs, locks
           title="Media visibility in gallery"
           description="Chat media phone gallery me dikhe."
           checked={privacy.mediaVisibilityInGallery}
-          onChange={(v) => setPrivacyField('mediaVisibilityInGallery', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('mediaVisibilityInGallery', v)}
         />
         <ToggleRow
           title="Keep archived chats unmuted"
           description="Archive karne par bhi notifications aate rahein."
           checked={privacy.keepArchivedUnmuted}
-          onChange={(v) => setPrivacyField('keepArchivedUnmuted', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('keepArchivedUnmuted', v)}
         />
         <ToggleRow
           title="Auto-archive inactive chats"
           description="30 din se inactive chats khud archive ho jaayen."
           checked={privacy.autoArchiveInactive}
-          onChange={(v) => setPrivacyField('autoArchiveInactive', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('autoArchiveInactive', v)}
         />
         <Row title="Saved messages" description="Star kiye hue messages ek jagah.">
           <span className="text-[12px] font-medium">{prefs.savedMessages?.length || 0}</span>
@@ -578,33 +579,33 @@ export function ChatsSettings({ privacy, setPrivacyField, prefs, setPrefs, locks
 
 /* ─────────────────────── notifications ─────────────────────── */
 
-export function NotificationsSettings({ privacy, setPrivacyField, prefs, setPrefs, onRequestDesktopPermission }) {
+export function NotificationsSettings({ privacy, setPrivacyField, prefs, setPrefs, onRequestDesktopPermission }: Unmodelled) {
   const desktopPermission = typeof Notification !== 'undefined' ? Notification.permission : 'unsupported';
 
   return (
     <>
       <SectionCard title="Message notifications">
-        <ToggleRow icon={Bell} title="Notifications" description="Chat ke saare notifications ka master switch." checked={privacy.notificationsEnabled} onChange={(v) => setPrivacyField('notificationsEnabled', v)} />
-        <ToggleRow title="Message notifications" description="Naye message par notify karein." checked={privacy.messageNotifications} onChange={(v) => setPrivacyField('messageNotifications', v)} disabled={!privacy.notificationsEnabled} />
-        <ToggleRow title="Call notifications" description="Voice/video call par notify karein." checked={privacy.callNotifications} onChange={(v) => setPrivacyField('callNotifications', v)} disabled={!privacy.notificationsEnabled} />
-        <ToggleRow title="Reaction notifications" description="Message par reaction aane par notify karein." checked={privacy.reactionNotifications} onChange={(v) => setPrivacyField('reactionNotifications', v)} disabled={!privacy.notificationsEnabled} />
+        <ToggleRow icon={Bell} title="Notifications" description="Chat ke saare notifications ka master switch." checked={privacy.notificationsEnabled} onChange={(v: Unmodelled) => setPrivacyField('notificationsEnabled', v)} />
+        <ToggleRow title="Message notifications" description="Naye message par notify karein." checked={privacy.messageNotifications} onChange={(v: Unmodelled) => setPrivacyField('messageNotifications', v)} disabled={!privacy.notificationsEnabled} />
+        <ToggleRow title="Call notifications" description="Voice/video call par notify karein." checked={privacy.callNotifications} onChange={(v: Unmodelled) => setPrivacyField('callNotifications', v)} disabled={!privacy.notificationsEnabled} />
+        <ToggleRow title="Reaction notifications" description="Message par reaction aane par notify karein." checked={privacy.reactionNotifications} onChange={(v: Unmodelled) => setPrivacyField('reactionNotifications', v)} disabled={!privacy.notificationsEnabled} />
       </SectionCard>
 
       <SectionCard title="Alerts & preview">
-        <ToggleRow title="Show preview" description="Notification me message text dikhayein." checked={privacy.notificationPreview} onChange={(v) => setPrivacyField('notificationPreview', v)} />
-        <ToggleRow title="Sound" description="Notification par sound bajayein." checked={privacy.notificationSound} onChange={(v) => setPrivacyField('notificationSound', v)} />
-        <ToggleRow title="Vibration" description="Mobile par vibrate karein." checked={privacy.notificationVibration} onChange={(v) => setPrivacyField('notificationVibration', v)} />
-        <ToggleRow title="Badge count" description="App icon par unread count dikhayein." checked={privacy.notificationBadge} onChange={(v) => setPrivacyField('notificationBadge', v)} />
+        <ToggleRow title="Show preview" description="Notification me message text dikhayein." checked={privacy.notificationPreview} onChange={(v: Unmodelled) => setPrivacyField('notificationPreview', v)} />
+        <ToggleRow title="Sound" description="Notification par sound bajayein." checked={privacy.notificationSound} onChange={(v: Unmodelled) => setPrivacyField('notificationSound', v)} />
+        <ToggleRow title="Vibration" description="Mobile par vibrate karein." checked={privacy.notificationVibration} onChange={(v: Unmodelled) => setPrivacyField('notificationVibration', v)} />
+        <ToggleRow title="Badge count" description="App icon par unread count dikhayein." checked={privacy.notificationBadge} onChange={(v: Unmodelled) => setPrivacyField('notificationBadge', v)} />
         <ToggleRow
           title="Desktop notifications"
           description={desktopPermission === 'granted' ? 'Browser notifications enabled' : 'Browser permission chahiye'}
           checked={privacy.desktopNotifications}
-          onChange={(v) => { setPrivacyField('desktopNotifications', v); setPrefs({ desktopNotifications: v }); if (v) onRequestDesktopPermission?.(); }}
+          onChange={(v: Unmodelled) => { setPrivacyField('desktopNotifications', v); setPrefs({ desktopNotifications: v }); if (v) onRequestDesktopPermission?.(); }}
         />
         <SelectRow
           title="Notification tone"
           value={prefs.notificationSoundName}
-          onChange={(v) => setPrefs({ notificationSoundName: v })}
+          onChange={(v: Unmodelled) => setPrefs({ notificationSoundName: v })}
           options={[
             { value: 'default', label: 'Default' },
             { value: 'chime', label: 'Chime' },
@@ -619,7 +620,7 @@ export function NotificationsSettings({ privacy, setPrivacyField, prefs, setPref
 
 /* ───────────────────── account & security ──────────────────── */
 
-export function AccountSecuritySettings({ privacy, setPrivacyField, pinSet, onSetPin, onLogoutAll, user }) {
+export function AccountSecuritySettings({ privacy, setPrivacyField, pinSet, onSetPin, onLogoutAll, user }: Unmodelled) {
   const [pin, setPinValue] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [currentPin, setCurrentPin] = useState('');
@@ -649,14 +650,14 @@ export function AccountSecuritySettings({ privacy, setPrivacyField, pinSet, onSe
           title="App lock"
           description={pinSet ? 'PIN set hai' : 'Pehle PIN set karein'}
           checked={privacy.appLockEnabled}
-          onChange={(v) => setPrivacyField('appLockEnabled', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('appLockEnabled', v)}
           disabled={!pinSet}
         />
         <SelectRow
           icon={KeyRound}
           title="Auto-lock after"
           value={privacy.appLockScope}
-          onChange={(v) => setPrivacyField('appLockScope', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('appLockScope', v)}
           options={[
             { value: 'always', label: 'Immediately' },
             { value: '1min', label: 'After 1 minute' },
@@ -664,8 +665,8 @@ export function AccountSecuritySettings({ privacy, setPrivacyField, pinSet, onSe
             { value: 'never', label: 'Never (manual only)' },
           ]}
         />
-        <ToggleRow title="Biometric unlock" description="Jahan supported ho, fingerprint / Face unlock use karein." checked={privacy.appLockBiometric} onChange={(v) => setPrivacyField('appLockBiometric', v)} />
-        <ToggleRow title="Hide locked chat notifications" description="Locked chats ke notification content chhupayein." checked={privacy.hideLockedNotifications} onChange={(v) => setPrivacyField('hideLockedNotifications', v)} />
+        <ToggleRow title="Biometric unlock" description="Jahan supported ho, fingerprint / Face unlock use karein." checked={privacy.appLockBiometric} onChange={(v: Unmodelled) => setPrivacyField('appLockBiometric', v)} />
+        <ToggleRow title="Hide locked chat notifications" description="Locked chats ke notification content chhupayein." checked={privacy.hideLockedNotifications} onChange={(v: Unmodelled) => setPrivacyField('hideLockedNotifications', v)} />
 
         <div className="mt-3 pt-3 border-t border-border space-y-2">
           {pinSet && (
@@ -719,8 +720,8 @@ export function AccountSecuritySettings({ privacy, setPrivacyField, pinSet, onSe
 
 /* ─────────────────────── accessibility ─────────────────────── */
 
-export function AccessibilitySettings({ prefs, setPrefs, privacy, setPrivacyField }) {
-  const set = (patch) => {
+export function AccessibilitySettings({ prefs, setPrefs, privacy, setPrivacyField }: Unmodelled) {
+  const set = (patch: Unmodelled) => {
     setPrefs(patch);
     const serverPatch = {};
     if (patch.fontScale !== undefined) serverPatch.fontScale = patch.fontScale;
@@ -742,7 +743,7 @@ export function AccessibilitySettings({ prefs, setPrefs, privacy, setPrivacyFiel
         <SegmentedRow
           title="Density"
           value={prefs.density}
-          onChange={(v) => set({ density: v })}
+          onChange={(v: Unmodelled) => set({ density: v })}
           options={[
             { value: 'comfortable', label: 'Comfortable' },
             { value: 'compact', label: 'Compact' },
@@ -751,9 +752,9 @@ export function AccessibilitySettings({ prefs, setPrefs, privacy, setPrivacyFiel
       </SectionCard>
 
       <SectionCard title="Motion & contrast">
-        <ToggleRow title="Reduce motion" description="Animations kam karein — motion sensitivity ke liye." checked={prefs.reduceMotion} onChange={(v) => set({ reduceMotion: v })} />
-        <ToggleRow title="Animations" description="Chat transitions aur bubble animations." checked={prefs.animations} onChange={(v) => set({ animations: v })} disabled={prefs.reduceMotion} />
-        <ToggleRow title="High contrast" description="Borders aur text contrast badhayein." checked={prefs.highContrast} onChange={(v) => setPrefs({ highContrast: v })} />
+        <ToggleRow title="Reduce motion" description="Animations kam karein — motion sensitivity ke liye." checked={prefs.reduceMotion} onChange={(v: Unmodelled) => set({ reduceMotion: v })} />
+        <ToggleRow title="Animations" description="Chat transitions aur bubble animations." checked={prefs.animations} onChange={(v: Unmodelled) => set({ animations: v })} disabled={prefs.reduceMotion} />
+        <ToggleRow title="High contrast" description="Borders aur text contrast badhayein." checked={prefs.highContrast} onChange={(v: Unmodelled) => setPrefs({ highContrast: v })} />
       </SectionCard>
 
       <SectionCard title="Keyboard shortcuts" description="Desktop par ye shortcuts kaam karte hain.">
@@ -797,7 +798,7 @@ export function AboutSection() {
 
 /* ────────────────────────── safety ──────────────────────── */
 
-export function SafetySettings({ blocked = [], onUnblock, reports = [], privacy, setPrivacyField }) {
+export function SafetySettings({ blocked = [], onUnblock, reports = [], privacy, setPrivacyField }: Unmodelled) {
   return (
     <>
       <SectionCard title="Blocking" description="Blocked user na message bhej sakta, na call kar sakta.">
@@ -815,7 +816,7 @@ export function SafetySettings({ blocked = [], onUnblock, reports = [], privacy,
         <SelectRow
           title="New sender policy"
           value={privacy.requestPolicy}
-          onChange={(v) => setPrivacyField('requestPolicy', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('requestPolicy', v)}
           options={[
             { value: 'ask', label: 'Ask me (request)' },
             { value: 'accept', label: 'Allow directly' },
@@ -826,7 +827,7 @@ export function SafetySettings({ blocked = [], onUnblock, reports = [], privacy,
           title="Restrict unknown senders"
           description="Unke messages requests section me jaayenge."
           checked={privacy.messageRequestsEnabled}
-          onChange={(v) => setPrivacyField('messageRequestsEnabled', v)}
+          onChange={(v: Unmodelled) => setPrivacyField('messageRequestsEnabled', v)}
         />
       </SectionCard>
 
@@ -872,7 +873,7 @@ export default function ChatSettingsPanel({
   backup = {}, setBackup, onRunBackup, backupRunning, pinSet, onSetPin,
   onLogoutAll, onRequestDesktopPermission, locks = [], onOpenLocked,
   onClearAllDrafts, onClearCache, initialSection = 'privacy',
-}) {
+}: Unmodelled) {
   const [section, setSection] = useState(initialSection);
 
   useEffect(() => { setSection(initialSection); }, [initialSection]);

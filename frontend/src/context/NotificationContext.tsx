@@ -4,10 +4,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '@/context/AuthContext';
 import { fetchNotifications, selectNotificationCount, addNotification } from '@/store/slices/notificationsSlice';
 import { getSocket, joinRoom, disconnectSocket } from '@/lib/socket';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const NotificationContext = createContext(null);
 
-export function NotificationProvider({ children }) {
+export function NotificationProvider({ children }: Unmodelled) {
   const dispatch = useDispatch();
   const count = useSelector(selectNotificationCount);
   const { user } = useAuth();
@@ -34,7 +35,7 @@ export function NotificationProvider({ children }) {
     // Shared socket — room join har (re)connect par dobara hota hai
     const cleanupJoin = joinRoom('join', user.id);
 
-    const onNotification = (notification) => {
+    const onNotification = (notification: Unmodelled) => {
       if (emergencyOverlayActive?.current) return;
       dispatch(addNotification(notification));
     };

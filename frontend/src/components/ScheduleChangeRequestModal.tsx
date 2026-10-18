@@ -6,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { userFacingError } from '@/lib/errorCopy';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 // Deep equality check for objects/arrays (handles dateDisabledSlots nested structure)
-function deepEqual(a, b) {
+function deepEqual(a: Unmodelled, b: Unmodelled) {
   if (a === b) return true;
   if (a == null && b == null) return true;
   if (a == null || b == null) return false;
@@ -29,7 +30,7 @@ function deepEqual(a, b) {
 }
 
 // Format a dateDisabledSlots object for display: { "2026-07-28": ["09:00 AM", ...] }
-function formatDateDisabled(obj) {
+function formatDateDisabled(obj: Unmodelled) {
   if (!obj || typeof obj !== 'object') return 'None';
   const entries = Object.entries(obj).filter(([, slots]) => Array.isArray(slots) && slots.length > 0);
   if (entries.length === 0) return 'None';
@@ -37,14 +38,14 @@ function formatDateDisabled(obj) {
 }
 
 // Format weekly schedule object for display
-function formatWeeklySchedule(obj) {
+function formatWeeklySchedule(obj: Unmodelled) {
   if (!obj || typeof obj !== 'object') return 'None set';
   const on = days.filter(d => obj[d]);
   return on.length > 0 ? on.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ') : 'None set';
 }
 
 // Format leaves array for display
-function formatLeaves(arr) {
+function formatLeaves(arr: Unmodelled) {
   if (!Array.isArray(arr) || arr.length === 0) return 'None';
   return arr.join(', ');
 }
@@ -54,7 +55,7 @@ function formatLeaves(arr) {
  * Shows ALL requested fields with current vs requested comparison + per-field checkboxes.
  * Admin ticks checkboxes for fields they agree with, then clicks "Confirm".
  */
-export default function ScheduleChangeRequestModal({ request, doctor, onClose, onDecision }) {
+export default function ScheduleChangeRequestModal({ request, doctor, onClose, onDecision }: Unmodelled) {
   const [checkedFields, setCheckedFields] = useState({});
   const [decision, setDecision] = useState(null); // 'approve' | 'reject'
   const [adminNote, setAdminNote] = useState('');
@@ -108,7 +109,7 @@ export default function ScheduleChangeRequestModal({ request, doctor, onClose, o
     // Break Time
     if (rc.breakTime) {
       const changed = (rc.breakTime.start || '') !== (current.breakTime?.start || '') || (rc.breakTime.end || '') !== (current.breakTime?.end || '');
-      const fmt = (bt) => (bt?.start && bt?.end) ? `${bt.start} – ${bt.end}` : 'None';
+      const fmt = (bt: Unmodelled) => (bt?.start && bt?.end) ? `${bt.start} – ${bt.end}` : 'None';
       list.push({
         key: 'breakTime',
         label: 'Break Time',
@@ -189,7 +190,7 @@ export default function ScheduleChangeRequestModal({ request, doctor, onClose, o
 
   if (!request || !doctor) return null;
 
-  const toggleField = (key) => {
+  const toggleField = (key: Unmodelled) => {
     setCheckedFields(prev => ({ ...prev, [key]: !prev[key] }));
   };
 

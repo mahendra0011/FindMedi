@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function Cities() {
   const [cities, setCities] = useState<ApiRow[]>([]);
@@ -28,7 +28,7 @@ export default function Cities() {
 
   useEffect(() => { load(); }, [search]);
 
-  const handleCreate = async (e) => {
+  const handleCreate = async (e: Unmodelled) => {
     e.preventDefault();
     if (!form.name.trim()) return toast.error('City name required');
     try {
@@ -40,7 +40,7 @@ export default function Cities() {
     } catch (err) { toast.error(err?.message || 'Failed to create city'); }
   };
 
-  const handleToggle = async (city) => {
+  const handleToggle = async (city: Unmodelled) => {
     try {
       await api.updateCity(city._id, { isActive: !city.isActive });
       toast.success(city.isActive ? 'City deactivated' : 'City activated');
@@ -48,7 +48,7 @@ export default function Cities() {
     } catch { toast.error('Failed to update'); }
   };
 
-  const handleToggleOnboarding = async (city) => {
+  const handleToggleOnboarding = async (city: Unmodelled) => {
     try {
       await api.updateCity(city._id, { isOnboarding: !city.isOnboarding, onboardingDate: !city.isOnboarding ? new Date() : null });
       toast.success(city.isOnboarding ? 'Onboarding closed' : 'Onboarding opened');
@@ -56,7 +56,7 @@ export default function Cities() {
     } catch { toast.error('Failed to update'); }
   };
 
-  const handleDelete = async (id, name) => {
+  const handleDelete = async (id: Unmodelled, name: Unmodelled) => {
     if (!confirm(`Delete ${name}?`)) return;
     try { await api.deleteCity(id); toast.success('City deleted'); load(); } catch { toast.error('Failed to delete'); }
   };
@@ -96,13 +96,13 @@ export default function Cities() {
 
       <DataGrid
         columns={[
-          { key: 'name', label: 'City', render: (v) => <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /><span className="font-medium text-foreground">{v}</span></div> },
-          { key: 'state', label: 'State', render: (v) => v || '—' },
-          { key: 'isActive', label: 'Status', render: (v) => <Badge className={v ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}>{v ? 'Live' : 'Inactive'}</Badge> },
-          { key: 'isOnboarding', label: 'Onboarding', render: (v, c) => v ? <Badge className="bg-info/10 text-info text-xs">Open {c.onboardingDate ? `(${new Date(c.onboardingDate).toLocaleDateString()})` : ''}</Badge> : <span className="text-muted-foreground/50 text-xs">Closed</span> },
+          { key: 'name', label: 'City', render: (v: Unmodelled) => <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /><span className="font-medium text-foreground">{v}</span></div> },
+          { key: 'state', label: 'State', render: (v: Unmodelled) => v || '—' },
+          { key: 'isActive', label: 'Status', render: (v: Unmodelled) => <Badge className={v ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}>{v ? 'Live' : 'Inactive'}</Badge> },
+          { key: 'isOnboarding', label: 'Onboarding', render: (v: Unmodelled, c: Unmodelled) => v ? <Badge className="bg-info/10 text-info text-xs">Open {c.onboardingDate ? `(${new Date(c.onboardingDate).toLocaleDateString()})` : ''}</Badge> : <span className="text-muted-foreground/50 text-xs">Closed</span> },
           {
             key: '_actions', label: 'Actions', sortable: false,
-            render: (_v, c) => (
+            render: (_v: Unmodelled, c: Unmodelled) => (
               <div className="flex items-center gap-1.5 justify-end">
                 <Button variant="outline" size="sm" className="text-xs h-7 gap-1" aria-label={c.isActive ? `Deactivate ${c.name}` : `Activate ${c.name}`} onClick={() => handleToggle(c)}>
                   {c.isActive ? <XCircle className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}

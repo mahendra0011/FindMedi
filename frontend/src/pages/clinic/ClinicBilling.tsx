@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api, downloadInvoicePdf } from '@/lib/api';
 import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = {
   Paid: 'bg-success/10 text-success',
@@ -38,7 +38,7 @@ export default function ClinicBilling() {
     try {
       const data = await api.getBilling();
       const arr = data?.data || data?.bills || data || [];
-      setBills(arr.filter(b => b.doctor?.toLowerCase().includes(user?.name?.toLowerCase())));
+      setBills(arr.filter((b: Unmodelled) => b.doctor?.toLowerCase().includes(user?.name?.toLowerCase())));
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -52,7 +52,7 @@ export default function ClinicBilling() {
     return ms && ms2;
   });
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k: Unmodelled, v: Unmodelled) => setForm(f => ({ ...f, [k]: v }));
 
   const handleCreate = async () => {
     if (!form.patient || !form.amount) return;
@@ -76,7 +76,7 @@ export default function ClinicBilling() {
     setSaving(false);
   };
 
-  const handleMarkPaid = async (bill) => {
+  const handleMarkPaid = async (bill: Unmodelled) => {
     try {
       await api.updateBill(bill._id, { status: 'Paid', paid: bill.amount });
       toast.success('Invoice marked as paid');
@@ -84,7 +84,7 @@ export default function ClinicBilling() {
     } catch (e) { toast.error(e.message || 'Failed to update invoice'); }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Delete this invoice?')) return;
     try {
       await api.deleteBill(id);
@@ -93,7 +93,7 @@ export default function ClinicBilling() {
     } catch (e) { toast.error(e.message || 'Failed to delete invoice'); }
   };
 
-  const handleDownload = async (bill) => {
+  const handleDownload = async (bill: Unmodelled) => {
     try {
       await downloadInvoicePdf(bill._id, `invoice-${bill.invoiceId || 'download'}.pdf`);
     } catch (e) { toast.error(e.message || 'Unable to download invoice'); }
@@ -193,17 +193,17 @@ export default function ClinicBilling() {
               row class keeps the action icons hover-revealed as before. */}
           <DataGrid
             columns={[
-              { key: 'invoiceId', label: 'Invoice', render: (v) => <span className="text-sm font-mono text-primary">{v || 'N/A'}</span> },
-              { key: 'patient', label: 'Patient', render: (v) => <span className="text-sm font-medium">{v}</span> },
-              { key: 'service', label: 'Service', render: (v) => <span className="text-sm text-muted-foreground max-w-[180px] truncate block">{v}</span> },
-              { key: 'date', label: 'Date', render: (v) => <span className="text-sm text-muted-foreground">{v}</span> },
-              { key: 'dueDate', label: 'Due Date', render: (v) => <span className="text-sm text-muted-foreground">{v || '—'}</span> },
-              { key: 'amount', label: 'Amount', render: (v) => <span className="text-sm font-semibold">₹{v?.toLocaleString()}</span> },
-              { key: 'paid', label: 'Paid', render: (v) => <span className="text-sm font-semibold text-success">₹{v?.toLocaleString() || 0}</span> },
-              { key: 'status', label: 'Status', render: (v) => <Badge className={statusColors[v] || 'bg-muted'}>{v}</Badge> },
+              { key: 'invoiceId', label: 'Invoice', render: (v: Unmodelled) => <span className="text-sm font-mono text-primary">{v || 'N/A'}</span> },
+              { key: 'patient', label: 'Patient', render: (v: Unmodelled) => <span className="text-sm font-medium">{v}</span> },
+              { key: 'service', label: 'Service', render: (v: Unmodelled) => <span className="text-sm text-muted-foreground max-w-[180px] truncate block">{v}</span> },
+              { key: 'date', label: 'Date', render: (v: Unmodelled) => <span className="text-sm text-muted-foreground">{v}</span> },
+              { key: 'dueDate', label: 'Due Date', render: (v: Unmodelled) => <span className="text-sm text-muted-foreground">{v || '—'}</span> },
+              { key: 'amount', label: 'Amount', render: (v: Unmodelled) => <span className="text-sm font-semibold">₹{v?.toLocaleString()}</span> },
+              { key: 'paid', label: 'Paid', render: (v: Unmodelled) => <span className="text-sm font-semibold text-success">₹{v?.toLocaleString() || 0}</span> },
+              { key: 'status', label: 'Status', render: (v: Unmodelled) => <Badge className={statusColors[v] || 'bg-muted'}>{v}</Badge> },
               {
                 key: '_actions', label: 'Action', sortable: false,
-                render: (_v, bill) => (
+                render: (_v: Unmodelled, bill: Unmodelled) => (
                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
                     <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Download PDF" aria-label={`Download invoice ${bill.invoiceId || ''}`} onClick={() => handleDownload(bill)}>
                       <Download className="w-3.5 h-3.5" />

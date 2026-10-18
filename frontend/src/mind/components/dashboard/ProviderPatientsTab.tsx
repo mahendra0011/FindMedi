@@ -32,6 +32,7 @@ import {
   counsellingModeLabel,
   modeLabel,
 } from "@/mind/lib/providerDashboardShared";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export function ProviderPatientsTab({
   patients,
@@ -45,7 +46,7 @@ export function ProviderPatientsTab({
   setSearchParams,
   selectedPatientSessions,
   averageAttendance,
-}) {
+}: Unmodelled) {
   return (
     <div className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
       {/* Patient List - Modern Cards */}
@@ -70,7 +71,7 @@ export function ProviderPatientsTab({
                     setPatientRiskFilter(filter);
                     if (filter === "all") setSelectedPatientId(patients[0]?.id || "");
                     else {
-                      const found = patients.filter((p) => (p.risk || "low") === filter);
+                      const found = patients.filter((p: Unmodelled) => (p.risk || "low") === filter);
                       if (found.length) setSelectedPatientId(found[0].id);
                     }
                   }}
@@ -85,7 +86,7 @@ export function ProviderPatientsTab({
           </div>
         </CardHeader>
         <CardContent className="p-3 space-y-2 max-h-[600px] overflow-y-auto chat-scrollbar">
-          {(patientRiskFilter === "all" ? patients : patients.filter((p) => (p.risk || "low") === patientRiskFilter)).map((patient, idx) => {
+          {(patientRiskFilter === "all" ? patients : patients.filter((p: Unmodelled) => (p.risk || "low") === patientRiskFilter)).map((patient: Unmodelled, idx: Unmodelled) => {
             const progressColors = [
               "from-emerald-500 to-green-400",
               "from-blue-500 to-cyan-400",
@@ -127,7 +128,7 @@ export function ProviderPatientsTab({
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[11px] text-foreground/50 truncate">{patient.activePlanName || "Counselling sessions"}</span>
                       {(() => {
-                        const activeCount = patient.packages?.filter((p) => p.status === "active").length || 0;
+                        const activeCount = patient.packages?.filter((p: Unmodelled) => p.status === "active").length || 0;
                         if (!activeCount) return null;
                         return (
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-emerald-500/15 text-emerald-400 border-emerald-500/40 shrink-0 font-medium">
@@ -222,7 +223,7 @@ export function ProviderPatientsTab({
                   </div>
                   {selectedPatient.activePlanBestFor?.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
-                      {selectedPatient.activePlanBestFor.map((item) => (
+                      {selectedPatient.activePlanBestFor.map((item: Unmodelled) => (
                         <Badge key={item} variant="secondary" className="text-[10px]">{item}</Badge>
                       ))}
                     </div>
@@ -268,7 +269,7 @@ export function ProviderPatientsTab({
                     Packages ({selectedPatient.packages.length})
                   </h3>
                   <div className="grid gap-3 md:grid-cols-2">
-                    {selectedPatient.packages.map((pkg) => (
+                    {selectedPatient.packages.map((pkg: Unmodelled) => (
                       <div key={pkg.id} className="rounded-xl border border-glass-border/30 bg-background/60 p-3">
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div className="flex items-center gap-1.5 flex-wrap">
@@ -347,8 +348,8 @@ export function ProviderPatientsTab({
                   <Badge variant="outline" className="h-8 px-3 grid place-items-center text-[11px] border-foreground/20 text-foreground/50">No phone on file</Badge>
                 )}
                 {(() => {
-                  const nextVideo = (selectedPatient.sessions || []).filter((s) => ["pending", "confirmed"].includes(s.status) && s.meetingLink).sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))[0]
-                    || (selectedPatientSessions || []).filter((s) => ["pending", "confirmed"].includes(s.status) && s.meetingLink)[0];
+                  const nextVideo = (selectedPatient.sessions || []).filter((s: Unmodelled) => ["pending", "confirmed"].includes(s.status) && s.meetingLink).sort((a: Unmodelled, b: Unmodelled) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))[0]
+                    || (selectedPatientSessions || []).filter((s: Unmodelled) => ["pending", "confirmed"].includes(s.status) && s.meetingLink)[0];
                   return nextVideo?.meetingLink ? (
                     <Button size="sm" variant="outline" className="gap-1.5" asChild>
                       <a href={nextVideo.meetingLink} target="_blank" rel="noreferrer">
@@ -378,7 +379,7 @@ export function ProviderPatientsTab({
                   </h3>
                   <div className="space-y-2 max-h-44 overflow-y-auto chat-scrollbar pr-1">
                     {(selectedPatient.sessions?.length ? selectedPatient.sessions : selectedPatientSessions).length > 0 ? (
-                      (selectedPatient.sessions?.length ? selectedPatient.sessions : selectedPatientSessions).slice(0, 6).map((appointment, i) => (
+                      (selectedPatient.sessions?.length ? selectedPatient.sessions : selectedPatientSessions).slice(0, 6).map((appointment: Unmodelled, i: Unmodelled) => (
                         <div key={appointment.id} className="flex gap-3 items-start">
                           <div className="flex flex-col items-center">
                             <div className={`h-2.5 w-2.5 rounded-full mt-1.5 ${appointment.status === "completed" ? "bg-emerald-500" : appointment.status === "cancelled" || appointment.status === "declined" ? "bg-rose-400" : "bg-primary"}`} />
@@ -473,7 +474,7 @@ export function ProviderPatientsTab({
                     Session Modes
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {selectedPatient.modeBreakdown.map((item) => (
+                    {selectedPatient.modeBreakdown.map((item: Unmodelled) => (
                       <div key={item.mode} className="flex items-center gap-2 rounded-xl border border-glass-border/30 bg-background/60 px-3 py-2">
                         <span className="text-xs capitalize text-foreground/70">{String(item.mode || "").replace("-", " ")}</span>
                         <span className="text-sm font-bold text-primary">{item.count}</span>

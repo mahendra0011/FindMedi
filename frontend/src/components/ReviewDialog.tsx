@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { userFacingError } from '@/lib/errorCopy';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /**
  * Reusable Review Submission Dialog.
@@ -18,7 +19,7 @@ import { userFacingError } from '@/lib/errorCopy';
  * - entityName: string (name shown in dialog)
  * - onReviewSubmitted: (review) => void (callback after successful submission)
  */
-export default function ReviewDialog({ open, onOpenChange, entityType, entityId, entityName, onReviewSubmitted }) {
+export default function ReviewDialog({ open, onOpenChange, entityType, entityId, entityName, onReviewSubmitted }: Unmodelled) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -63,7 +64,7 @@ export default function ReviewDialog({ open, onOpenChange, entityType, entityId,
     }
   };
 
-  const handleClose = (isOpen) => {
+  const handleClose = (isOpen: Unmodelled) => {
     if (!isOpen) resetForm();
     onOpenChange(isOpen);
   };

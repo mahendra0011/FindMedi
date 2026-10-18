@@ -8,13 +8,13 @@ import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 import { toast } from 'sonner';
 import { userFacingError } from '@/lib/errorCopy';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
-function generateTimeSlots(startTime, endTime, slotDuration, breakTime = {}) {
+function generateTimeSlots(startTime: Unmodelled, endTime: Unmodelled, slotDuration: Unmodelled, breakTime = {}) {
   const slots = [];
-  const toMins = (t) => {
+  const toMins = (t: Unmodelled) => {
     if (!t) return null;
     const [h, m] = t.split(':').map(Number);
     if (isNaN(h) || isNaN(m)) return null;
@@ -88,7 +88,7 @@ export default function ClinicSchedule() {
       setLoading(true);
       try {
         const doctors = (await api.getDoctors())?.data || [];
-        const myDoc = doctors.find(d => d.email === user?.email) || doctors.find(d => d.name?.includes(user?.name)) || null;
+        const myDoc = doctors.find((d: Unmodelled) => d.email === user?.email) || doctors.find((d: Unmodelled) => d.name?.includes(user?.name)) || null;
         if (myDoc) {
           setDoctor(myDoc);
           setSelectedSlots(myDoc.time_slots || []);
@@ -129,7 +129,7 @@ export default function ClinicSchedule() {
       .catch(() => setBookedSlots([]));
   }, [doctor?._id, selectedDate]);
 
-  const toggleDay = (day) => {
+  const toggleDay = (day: Unmodelled) => {
     setSchedule(prev => ({ ...prev, [day]: !prev[day] }));
   };
 
@@ -140,17 +140,17 @@ export default function ClinicSchedule() {
     }
   };
 
-  const removeLeave = (date) => {
+  const removeLeave = (date: Unmodelled) => {
     setLeaves(prev => prev.filter(l => l !== date));
   };
 
   // Toggle a slot as disabled for the currently-selected date
-  const toggleDateSlot = (slot) => {
+  const toggleDateSlot = (slot: Unmodelled) => {
     if (!selectedDate) { toast.error('Please pick a date first'); return; }
     setDateDisabledSlots(prev => {
       const current = prev[selectedDate] || [];
       const next = current.includes(slot)
-        ? current.filter(s => s !== slot)
+        ? current.filter((s: Unmodelled) => s !== slot)
         : [...current, slot];
       return { ...prev, [selectedDate]: next };
     });
@@ -193,7 +193,7 @@ export default function ClinicSchedule() {
   // Slots disabled for the selected date
   const selectedDateDisabled = selectedDate ? (dateDisabledSlots[selectedDate] || []) : [];
 
-  const rangeFor = (slot) => {
+  const rangeFor = (slot: Unmodelled) => {
     const m = slot?.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
     if (!m) return slot;
     let h = parseInt(m[1], 10) % 12; if (/PM/i.test(m[3])) h += 12;

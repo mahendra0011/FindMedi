@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api, resolveFileUrl } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const categoryConfig = {
   prescription:     { icon: Pill,         color: 'text-success',     bg: 'bg-success/10',     label: 'Prescriptions' },
@@ -50,20 +50,20 @@ export default function PatientRecords() {
     a.date?.includes(search)
   );
 
-  const getPatientRecords = (date) => records.filter(r => r.date === date);
+  const getPatientRecords = (date: Unmodelled) => records.filter(r => r.date === date);
   
-  const getCategoryCounts = (recs) => {
+  const getCategoryCounts = (recs: Unmodelled) => {
     const counts = {};
     Object.keys(categoryConfig).forEach(key => counts[key] = 0);
-    recs.forEach(r => {
+    recs.forEach((r: Unmodelled) => {
       const type = (r.type || '').toLowerCase().replace(/\s+/g, '_');
       if (counts[type] !== undefined) counts[type]++;
     });
     return counts;
   };
 
-  const calcAge = (dob) => { if (!dob) return '--'; const a = Math.floor((new Date() - new Date(dob)) / 31557600000); return a >= 0 ? a : '--'; };
-  const allergiesList = user?.allergies?.map(a => a.allergen || a).filter(Boolean).join(', ') || 'None';
+  const calcAge = (dob: Unmodelled) => { if (!dob) return '--'; const a = Math.floor((new Date() - new Date(dob)) / 31557600000); return a >= 0 ? a : '--'; };
+  const allergiesList = user?.allergies?.map((a: Unmodelled) => a.allergen || a).filter(Boolean).join(', ') || 'None';
 
   if (loading) return (
     <div className="flex justify-center py-20">
@@ -310,7 +310,7 @@ export default function PatientRecords() {
                 <div>
                   <p className="text-sm font-medium text-foreground mb-1">Medications:</p>
                   <div className="space-y-1">
-                    {viewRecord.data.medications.map((m, i) => (
+                    {viewRecord.data.medications.map((m: Unmodelled, i: Unmodelled) => (
                       <p key={i} className="text-sm bg-muted/30 rounded-lg p-2">{m.name} - {m.dosage} - {m.frequency}{m.instructions ? ` (${m.instructions})` : ''}</p>
                     ))}
                   </div>
@@ -320,7 +320,7 @@ export default function PatientRecords() {
                 <div>
                   <p className="text-sm font-medium text-foreground mb-1">Test Results:</p>
                   <div className="space-y-1">
-                    {viewRecord.data.tests.map((t, i) => (
+                    {viewRecord.data.tests.map((t: Unmodelled, i: Unmodelled) => (
                       <p key={i} className="text-sm bg-muted/30 rounded-lg p-2">{t.name}: {t.result} {t.unit} (Ref: {t.referenceRange})</p>
                     ))}
                   </div>

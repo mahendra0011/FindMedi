@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function ClinicFees() {
   const { user } = useAuth();
@@ -36,7 +37,7 @@ export default function ClinicFees() {
       setLoading(true);
       try {
         const doctors = (await api.getDoctors())?.data || [];
-        const myDoc = doctors.find(d => d.email === user?.email) || doctors.find(d => d.name?.includes(user?.name)) || null;
+        const myDoc = doctors.find((d: Unmodelled) => d.email === user?.email) || doctors.find((d: Unmodelled) => d.name?.includes(user?.name)) || null;
         if (myDoc) {
           setDoctor(myDoc);
           
@@ -66,7 +67,7 @@ export default function ClinicFees() {
     load();
   }, [user?.email, user?.name]);
 
-  const toggleMode = (mode) => {
+  const toggleMode = (mode: Unmodelled) => {
     setAppointmentModes(prev => {
       if (prev.includes(mode)) {
         if (prev.length === 1) {
@@ -483,7 +484,7 @@ export default function ClinicFees() {
   );
 }
 
-function FeeField({ label, icon: Icon, color = 'text-muted-foreground', value, onChange, placeholder, disabled = false }) {
+function FeeField({ label, icon: Icon, color = 'text-muted-foreground', value, onChange, placeholder, disabled = false }: Unmodelled) {
   return (
     <div className={disabled ? 'opacity-50 pointer-events-none' : ''}>
       <label className="text-xs font-semibold text-foreground mb-1.5 block flex items-center gap-1.5">

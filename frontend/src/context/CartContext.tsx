@@ -10,19 +10,20 @@ import {
   selectCartTotalItems,
   selectCartStores,
 } from '@/store/slices/cartSlice';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const CartContext = createContext();
 
-export function CartProvider({ children }) {
+export function CartProvider({ children }: Unmodelled) {
   const dispatch = useDispatch();
   const cart = useSelector(selectCart);
   const entries = useSelector(selectCartEntries);
   const totalItems = useSelector(selectCartTotalItems);
   const stores = useSelector(selectCartStores);
 
-  const addItem = (item, storeId) => dispatch(addItemAction({ item, storeId }));
-  const updateQty = (key, qty) => dispatch(updateQtyAction({ key, qty }));
-  const removeItem = (key) => dispatch(removeItemAction(key));
+  const addItem = (item: Unmodelled, storeId: Unmodelled) => dispatch(addItemAction({ item, storeId }));
+  const updateQty = (key: Unmodelled, qty: Unmodelled) => dispatch(updateQtyAction({ key, qty }));
+  const removeItem = (key: Unmodelled) => dispatch(removeItemAction(key));
   const clearCart = () => dispatch(clearCartAction());
 
   return (

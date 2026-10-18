@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 
 
@@ -47,7 +47,7 @@ export default function StoreMedicines() {
         if (facilitiesRes.status === 'fulfilled') {
           const list = Array.isArray(facilitiesRes.value) ? facilitiesRes.value : facilitiesRes.value?.facilities || [];
           if (storeId) {
-            const found = list.find(f => f._id === storeId || f.id === storeId);
+            const found = list.find((f: Unmodelled) => f._id === storeId || f.id === storeId);
             if (found) {
               setStore({
                 id: found._id || found.id,
@@ -62,7 +62,7 @@ export default function StoreMedicines() {
         if (medicinesRes.status === 'fulfilled') {
           const list = Array.isArray(medicinesRes.value) ? medicinesRes.value : medicinesRes.value?.medicines || [];
           if (list.length > 0) {
-            const mapped = list.map(m => ({
+            const mapped = list.map((m: Unmodelled) => ({
               id: m._id || m.id,
               _id: m._id,
               name: m.name,
@@ -94,7 +94,7 @@ export default function StoreMedicines() {
   const [sortBy, setSortBy] = useState('popularity');
   const [showFilters, setShowFilters] = useState(false);
 
-  const storeEntries = entries.filter(e => e.storeId === storeId);
+  const storeEntries = entries.filter((e: Unmodelled) => e.storeId === storeId);
 
   const brands = [...new Set(allMeds.map(m => m.brand))].sort();
 
@@ -132,9 +132,9 @@ export default function StoreMedicines() {
   };
 
   const sections = [
-    { key: 'general', label: 'General Medicines', filter: (m) => !m.rx && (m.category === 'OTC' || m.category === 'Generic' || m.category === 'Ayurvedic') },
-    { key: 'prescription', label: 'Prescription Required', filter: (m) => m.rx },
-    { key: 'items', label: 'General Items', filter: (m) => !m.rx && (m.category === 'Devices' || m.category === 'Baby Care' || m.category === 'Vitamins') },
+    { key: 'general', label: 'General Medicines', filter: (m: Unmodelled) => !m.rx && (m.category === 'OTC' || m.category === 'Generic' || m.category === 'Ayurvedic') },
+    { key: 'prescription', label: 'Prescription Required', filter: (m: Unmodelled) => m.rx },
+    { key: 'items', label: 'General Items', filter: (m: Unmodelled) => !m.rx && (m.category === 'Devices' || m.category === 'Baby Care' || m.category === 'Vitamins') },
   ];
 
   if (!store) {
@@ -336,7 +336,7 @@ export default function StoreMedicines() {
                   <h3 className="font-heading font-bold text-base text-foreground mb-3">{section.label} ({items.length})</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                     {items.map(med => {
-                      const entry = storeEntries.find(e => e.item.id === med.id);
+                      const entry = storeEntries.find((e: Unmodelled) => e.item.id === med.id);
                       return (
                         <div key={med.id} className="bg-card rounded-xl border border-border/50 overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all group/card flex flex-col">
                           <div className="relative h-28 sm:h-32 bg-gradient-to-br from-muted/50 to-muted/10 overflow-hidden">

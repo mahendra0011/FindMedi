@@ -3,12 +3,13 @@ import { api } from '@/lib/api';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import StatCard from '@/components/StatCard';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function AdminAnalytics() {
   const { data: stats, isLoading: statsLoading } = useApiQuery(['hospital_admin', 'stats'], () => api.dashboardStats());
-  const { data: users = [], isLoading: usersLoading } = useApiQuery(['hospital_admin', 'users'], () => api.getUsers(), { select: (res) => res?.data || res || [] });
+  const { data: users = [], isLoading: usersLoading } = useApiQuery(['hospital_admin', 'users'], () => api.getUsers(), { select: (res: Unmodelled) => res?.data || res || [] });
 
   if (statsLoading || usersLoading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
@@ -21,8 +22,8 @@ export default function AdminAnalytics() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Patients" value={users.filter(u => u.role === 'patient').length} icon={Users} change="Registered patients" />
-        <StatCard title="Total Doctors" value={users.filter(u => u.role === 'doctor').length} icon={Stethoscope} change="Onboard doctors" />
+        <StatCard title="Total Patients" value={users.filter((u: Unmodelled) => u.role === 'patient').length} icon={Users} change="Registered patients" />
+        <StatCard title="Total Doctors" value={users.filter((u: Unmodelled) => u.role === 'doctor').length} icon={Stethoscope} change="Onboard doctors" />
         <StatCard title="Appointments" value={stats?.stats?.todayAppointments || 0} icon={CalendarDays} change="Today" />
         <StatCard title="Revenue" value={`₹${(stats?.stats?.revenue || 0).toLocaleString()}`} icon={IndianRupee} change="Month to date" />
       </div>
@@ -63,7 +64,7 @@ export default function AdminAnalytics() {
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie data={stats?.departmentData || []} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                {(stats?.departmentData || []).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                {(stats?.departmentData || []).map((_: Unmodelled, i: Unmodelled) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Tooltip />
               <Legend />
@@ -77,13 +78,13 @@ export default function AdminAnalytics() {
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie data={[
-                { name: 'Patients', value: users.filter(u => u.role === 'patient').length },
-                { name: 'Doctors', value: users.filter(u => u.role === 'doctor').length },
-                { name: 'Clinic Doctors', value: users.filter(u => u.role === 'clinic_doctor').length },
-                { name: 'Admins', value: users.filter(u => u.role === 'hospital_admin').length },
-                { name: 'Super Admins', value: users.filter(u => u.role === 'superadmin').length },
-                { name: 'Lab Owners', value: users.filter(u => u.role === 'lab_owner').length },
-                { name: 'Pharmacy Owners', value: users.filter(u => u.role === 'pharmacy_owner').length },
+                { name: 'Patients', value: users.filter((u: Unmodelled) => u.role === 'patient').length },
+                { name: 'Doctors', value: users.filter((u: Unmodelled) => u.role === 'doctor').length },
+                { name: 'Clinic Doctors', value: users.filter((u: Unmodelled) => u.role === 'clinic_doctor').length },
+                { name: 'Admins', value: users.filter((u: Unmodelled) => u.role === 'hospital_admin').length },
+                { name: 'Super Admins', value: users.filter((u: Unmodelled) => u.role === 'superadmin').length },
+                { name: 'Lab Owners', value: users.filter((u: Unmodelled) => u.role === 'lab_owner').length },
+                { name: 'Pharmacy Owners', value: users.filter((u: Unmodelled) => u.role === 'pharmacy_owner').length },
               ]} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
                 <Cell fill="#10b981" />
                 <Cell fill="#3b82f6" />

@@ -16,6 +16,7 @@ import { useAutoRetry, AUTO_RETRY_STATUS } from '@/hooks/useAutoRetry';
 import { usePreferredPharmacies } from '@/context/PreferredPharmacyContext';
 import { toast } from 'sonner';
 import { userFacingError } from '@/lib/errorCopy';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const CROSS_STORE_MEDS = [
 ];
@@ -97,7 +98,7 @@ export default function Checkout() {
         const res = await api.getFacilities({ type: 'pharmacy' });
         const list = Array.isArray(res) ? res : (res?.facilities || res?.data || []);
         const map = {};
-        list.forEach(f => {
+        list.forEach((f: Unmodelled) => {
           const id = f._id || f.id;
           map[id] = { id, name: f.name || f.storeName, deliveryCharges: f.deliveryCharges || 20, freeDeliveryAbove: f.freeDeliveryAbove || 200 };
         });
@@ -107,17 +108,17 @@ export default function Checkout() {
     load();
   }, []);
 
-  const getStore = (storeId) => storeMap[storeId];
-  const hasRxItems = entries.some(e => e.item.rx);
-  const findAlternatives = (entry, allMeds) => allMeds.filter(m => m.name === entry.item.name && m.storeId !== entry.storeId && m.inStock);
+  const getStore = (storeId: Unmodelled) => storeMap[storeId];
+  const hasRxItems = entries.some((e: Unmodelled) => e.item.rx);
+  const findAlternatives = (entry: Unmodelled, allMeds: Unmodelled) => allMeds.filter((m: Unmodelled) => m.name === entry.item.name && m.storeId !== entry.storeId && m.inStock);
 
   const subtotalByStore = {};
-  entries.forEach(e => {
+  entries.forEach((e: Unmodelled) => {
     if (!subtotalByStore[e.storeId]) subtotalByStore[e.storeId] = 0;
     subtotalByStore[e.storeId] += e.item.price * e.qty;
   });
 
-  const itemTotal = entries.reduce((s, e) => s + e.item.price * e.qty, 0);
+  const itemTotal = entries.reduce((s: Unmodelled, e: Unmodelled) => s + e.item.price * e.qty, 0);
   const deliveryTotal = Object.entries(subtotalByStore).reduce((s, [sid, sub]) => {
     const store = getStore(sid);
     const charge = store ? (sub >= (store.freeDeliveryAbove || Infinity) ? 0 : (store.deliveryCharges || 0)) : 0;
@@ -192,21 +193,21 @@ export default function Checkout() {
       }
     }
 
-    const outOfStock = entries.filter(e => !e.item.inStock);
-    const oosWithAlts = outOfStock.filter(e => findAlternatives(e, CROSS_STORE_MEDS).length > 0);
+    const outOfStock = entries.filter((e: Unmodelled) => !e.item.inStock);
+    const oosWithAlts = outOfStock.filter((e: Unmodelled) => findAlternatives(e, CROSS_STORE_MEDS).length > 0);
     if (oosWithAlts.length > 0) {
       setOosFallback(oosWithAlts);
       return;
     }
-    const noAltOos = outOfStock.filter(e => findAlternatives(e, CROSS_STORE_MEDS).length === 0);
+    const noAltOos = outOfStock.filter((e: Unmodelled) => findAlternatives(e, CROSS_STORE_MEDS).length === 0);
     if (noAltOos.length > 0) {
       setConfirmDialog({
         title: 'Items Out of Stock',
-        message: `Some items are out of stock:\n${noAltOos.map(e => `- ${e.item.name}`).join('\n')}\n\nThese will be removed. Continue with remaining items?`,
+        message: `Some items are out of stock:\n${noAltOos.map((e: Unmodelled) => `- ${e.item.name}`).join('\n')}\n\nThese will be removed. Continue with remaining items?`,
         onConfirm: async () => {
           setConfirmDialog(null);
-          const remaining = entries.filter(e => !noAltOos.some(oos => oos.key === e.key));
-          noAltOos.forEach(e => removeItem(e.key));
+          const remaining = entries.filter((e: Unmodelled) => !noAltOos.some((oos: Unmodelled) => oos.key === e.key));
+          noAltOos.forEach((e: Unmodelled) => removeItem(e.key));
           if (remaining.length === 0) return;
           try {
             const orderPayload = {
@@ -215,7 +216,7 @@ export default function Checkout() {
               email: user.email,
               phone: user.phone || '',
               address: selectedAddress?.address || '',
-              items: remaining.map(e => ({
+              items: remaining.map((e: Unmodelled) => ({
                 medicineId: e.item._id || e.item.id,
                 medicineName: e.item.name,
                 quantity: e.qty,
@@ -223,18 +224,18 @@ export default function Checkout() {
                 storeId: e.storeId,
                 rx: e.item.rx || false,
               })),
-              total: remaining.reduce((s, e) => s + e.item.price * e.qty, 0),
+              total: remaining.reduce((s: Unmodelled, e: Unmodelled) => s + e.item.price * e.qty, 0),
               deliveryMode,
               deliverySlot,
               paymentMethod: payOnDelivery ? 'cod' : paymentMethod,
               status: payOnDelivery ? 'Confirmed' : 'Pending',
             };
             const res = await api.createPharmacyOrder(orderPayload);
-            const orderIds = Array.isArray(res?.orders) ? res.orders.map(o => o._id) : [res?.order?._id || res?._id];
+            const orderIds = Array.isArray(res?.orders) ? res.orders.map((o: Unmodelled) => o._id) : [res?.order?._id || res?._id];
             const serverTotal = Number(res?.authoritativeTotal ?? res?.total);
             if (!Number.isFinite(serverTotal) || serverTotal <= 0 || !orderIds[0]) throw new Error('The pharmacy did not return a valid checkout total. Please retry.');
             const orderIdStr = orderIds.join(',');
-            const params = new URLSearchParams({ stores: stores.map(s => s.storeId).join(','), orderIds: orderIdStr, rx: hasRxItems ? 'true' : 'false' });
+            const params = new URLSearchParams({ stores: stores.map((s: Unmodelled) => s.storeId).join(','), orderIds: orderIdStr, rx: hasRxItems ? 'true' : 'false' });
             clearCart();
             if (payOnDelivery) {
               navigate(`/order-confirmation?${params}`);
@@ -259,7 +260,7 @@ export default function Checkout() {
         email: user.email,
         phone: user.phone || '',
         address: selectedAddress?.address || '',
-        items: entries.map(e => ({
+        items: entries.map((e: Unmodelled) => ({
           medicineId: e.item._id || e.item.id,
           medicineName: e.item.name,
           quantity: e.qty,
@@ -274,20 +275,20 @@ export default function Checkout() {
         status: payOnDelivery ? 'Confirmed' : 'Pending',
       };
       const res = await api.createPharmacyOrder(orderPayload);
-      const orderIds = Array.isArray(res?.orders) ? res.orders.map(o => o._id) : [res?.order?._id || res?._id];
+      const orderIds = Array.isArray(res?.orders) ? res.orders.map((o: Unmodelled) => o._id) : [res?.order?._id || res?._id];
       const serverTotal = Number(res?.authoritativeTotal ?? res?.total);
       if (!Number.isFinite(serverTotal) || serverTotal <= 0 || !orderIds[0]) throw new Error('The pharmacy did not return a valid checkout total. Please retry.');
       const orderIdStr = orderIds.join(',');
-      const params = new URLSearchParams({ stores: stores.map(s => s.storeId).join(','), orderIds: orderIdStr, rx: hasRxItems ? 'true' : 'false' });
+      const params = new URLSearchParams({ stores: stores.map((s: Unmodelled) => s.storeId).join(','), orderIds: orderIdStr, rx: hasRxItems ? 'true' : 'false' });
 
-      const rejectedEntries = entries.filter(e => rxStatus[e.key] === 'rejected');
+      const rejectedEntries = entries.filter((e: Unmodelled) => rxStatus[e.key] === 'rejected');
       if (rejectedEntries.length > 0) {
-        const refundAmount = rejectedEntries.reduce((s, e) => s + e.item.price * e.qty, 0);
-        const refundItems = rejectedEntries.map(e => `${e.item.name} x${e.qty}`);
+        const refundAmount = rejectedEntries.reduce((s: Unmodelled, e: Unmodelled) => s + e.item.price * e.qty, 0);
+        const refundItems = rejectedEntries.map((e: Unmodelled) => `${e.item.name} x${e.qty}`);
         params.set('refunded', 'true');
         params.set('refundAmount', refundAmount.toString());
         params.set('refundItems', refundItems.join(','));
-        rejectedEntries.forEach(e => removeItem(e.key));
+        rejectedEntries.forEach((e: Unmodelled) => removeItem(e.key));
       }
 
       clearCart();
@@ -454,7 +455,7 @@ export default function Checkout() {
 
             {/* Rx items list */}
             <div className="space-y-2">
-              {entries.filter(e => e.item.rx).map(entry => (
+              {entries.filter((e: Unmodelled) => e.item.rx).map((entry: Unmodelled) => (
                 <div key={entry.key} className="flex items-center justify-between p-3 rounded-xl border border-border/60">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-muted/50 overflow-hidden border border-border/40">
@@ -555,7 +556,7 @@ export default function Checkout() {
                 </div>
               </div>
             )}
-            {hasRxItems && entries.some(e => !e.item.rx) && (
+            {hasRxItems && entries.some((e: Unmodelled) => !e.item.rx) && (
               <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-5">
                 <div className="flex items-start gap-3">
                   <Package className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
@@ -635,7 +636,7 @@ export default function Checkout() {
                 <Shield className="w-4 h-4 text-primary" /> Order Summary
               </h3>
               <div className="space-y-3 text-sm">
-                {stores.map(st => {
+                {stores.map((st: Unmodelled) => {
                   const store = getStore(st.storeId);
                   const storeDelivery = store ? (st.subtotal >= (store.freeDeliveryAbove || Infinity) ? 0 : (store.deliveryCharges || 0)) : 0;
                   return (
@@ -647,7 +648,7 @@ export default function Checkout() {
                         </div>
                         <Badge className="text-[10px] bg-primary/10 text-primary">Order #{stores.indexOf(st) + 1}</Badge>
                       </div>
-                      {st.items.map(e => (
+                      {st.items.map((e: Unmodelled) => (
                         <div key={e.key} className="flex justify-between py-1 text-sm">
                           <span className="text-muted-foreground truncate mr-4">{e.item.name} x{e.qty}</span>
                           <span className="font-medium text-foreground shrink-0">₹{e.item.price * e.qty}</span>
@@ -772,9 +773,9 @@ export default function Checkout() {
             </div>
             <p className="text-sm text-muted-foreground mb-4">Some items are out of stock in your selected store. Available at other stores:</p>
             <div className="space-y-3 mb-4">
-              {oosFallback.map(entry => {
+              {oosFallback.map((entry: Unmodelled) => {
                 const alts = findAlternatives(entry, CROSS_STORE_MEDS);
-                return alts.map(alt => {
+                return alts.map((alt: Unmodelled) => {
                   const altStore = getStore(alt.storeId);
                   const diff = alt.price - entry.item.price;
                   return (
@@ -806,7 +807,7 @@ export default function Checkout() {
             </div>
             <div className="flex gap-2">
               <Button className="flex-1 rounded-xl" onClick={() => {
-                oosFallback.forEach(entry => {
+                oosFallback.forEach((entry: Unmodelled) => {
                   const alts = findAlternatives(entry, CROSS_STORE_MEDS);
                   if (alts.length > 0) {
                     const bestAlt = alts[0];
@@ -821,17 +822,17 @@ export default function Checkout() {
               </Button>
               <Button variant="outline" className="rounded-xl" onClick={() => {
                 setOosFallback(null);
-                const remainingOos = entries.filter(e => !e.item.inStock && findAlternatives(e, CROSS_STORE_MEDS).length === 0);
+                const remainingOos = entries.filter((e: Unmodelled) => !e.item.inStock && findAlternatives(e, CROSS_STORE_MEDS).length === 0);
                 if (remainingOos.length > 0) {
-                  const msg = `These items are out of stock with no alternatives:\n${remainingOos.map(e => `- ${e.item.name}`).join('\n')}\n\nThey will be removed. Continue?`;
+                  const msg = `These items are out of stock with no alternatives:\n${remainingOos.map((e: Unmodelled) => `- ${e.item.name}`).join('\n')}\n\nThey will be removed. Continue?`;
                   setConfirmDialog({
                     title: 'Remove Out of Stock Items',
                     message: msg,
                     onConfirm: () => {
                       setConfirmDialog(null);
-                      const orderIds = stores.map((st, i) => `ORD${crypto.randomUUID()}-${i + 1}`);
-                      const params = new URLSearchParams({ stores: stores.map(s => s.storeId).join(','), orderIds: orderIds.join(','), rx: hasRxItems ? 'true' : 'false' });
-                      remainingOos.forEach(e => removeItem(e.key));
+                      const orderIds = stores.map((st: Unmodelled, i: Unmodelled) => `ORD${crypto.randomUUID()}-${i + 1}`);
+                      const params = new URLSearchParams({ stores: stores.map((s: Unmodelled) => s.storeId).join(','), orderIds: orderIds.join(','), rx: hasRxItems ? 'true' : 'false' });
+                      remainingOos.forEach((e: Unmodelled) => removeItem(e.key));
                       if (payOnDelivery) { navigate(`/order-confirmation?${params}`); }
                       else { params.set('total', grandTotal.toString()); params.set('method', paymentMethod); navigate(`/payment-gateway?${params}`); }
                     },
@@ -894,7 +895,7 @@ export default function Checkout() {
               <div className="mb-4">
                 <p className="text-xs text-muted-foreground font-medium mb-2 flex items-center gap-1"><FileText className="w-3 h-3" /> Saved Prescriptions</p>
                 <div className="space-y-1.5">
-                  {savedPrescriptions.slice(-3).reverse().map((rx, i) => (
+                  {savedPrescriptions.slice(-3).reverse().map((rx: Unmodelled, i: Unmodelled) => (
                     <button key={i} onClick={() => {
                       setUploadedFiles(p => ({ ...p, all: rx.name, allUrl: rx.url || '' }));
                       toast.info(`Selected: ${rx.name}`);
@@ -918,7 +919,7 @@ export default function Checkout() {
             <div className="flex gap-2">
 <Button className="flex-1 rounded-xl" onClick={async () => {
                  if (!uploadedFiles.all) { toast.error('Please select a prescription file first'); return; }
-                 const rxEntries = entries.filter(e => e.item.rx);
+                 const rxEntries = entries.filter((e: Unmodelled) => e.item.rx);
 
                  // Save prescription to history
                  const saved = [...savedPrescriptions, { name: uploadedFiles.all, date: new Date().toISOString(), url: uploadedFiles.allUrl || '' }];
@@ -927,7 +928,7 @@ export default function Checkout() {
 
                  // Mark all Rx entries as pending
                  const updated = {};
-                 rxEntries.forEach(e => { updated[e.key] = 'pending'; });
+                 rxEntries.forEach((e: Unmodelled) => { updated[e.key] = 'pending'; });
                  setRxStatus(updated);
                  setRxRejection({});
                  setUploadedFiles({});
@@ -939,7 +940,7 @@ export default function Checkout() {
                    const res = await api.dispatch(null, '/pharmacy/orders/verify-prescriptions', {
                      method: 'POST',
                      body: JSON.stringify({
-                        entries: rxEntries.map(e => ({ medicineId: e.item._id || e.item.id, medicineName: e.item.name, quantity: e.qty || 1 })),
+                        entries: rxEntries.map((e: Unmodelled) => ({ medicineId: e.item._id || e.item.id, medicineName: e.item.name, quantity: e.qty || 1 })),
                         facilityId: rxEntries[0]?.storeId,
                         file: uploadedFiles.allUrl || uploadedFiles.all,
                       })
@@ -948,7 +949,7 @@ export default function Checkout() {
                    if (res?.verified) {
                      setRxStatus(prev => {
                        const verified = { ...prev };
-                       rxEntries.forEach(e => { verified[e.key] = 'verified'; });
+                       rxEntries.forEach((e: Unmodelled) => { verified[e.key] = 'verified'; });
                        return verified;
                      });
                      toast.success('✅ Prescription verified by pharmacist!');
@@ -956,12 +957,12 @@ export default function Checkout() {
                       const reason = res?.reason || REJECTION_REASONS[Math.floor(Math.random() * REJECTION_REASONS.length)];
                       setRxStatus(prev => {
                         const rejected = { ...prev };
-                        rxEntries.forEach(e => { rejected[e.key] = 'rejected'; });
+                        rxEntries.forEach((e: Unmodelled) => { rejected[e.key] = 'rejected'; });
                         return rejected;
                       });
                       setRxRejection(prev => {
                         const r = { ...prev };
-                        rxEntries.forEach(e => { r[e.key] = reason; });
+                        rxEntries.forEach((e: Unmodelled) => { r[e.key] = reason; });
                         return r;
                       });
                       toast.error(`❌ Prescription rejected: ${reason}`);
@@ -976,7 +977,7 @@ export default function Checkout() {
                      if (Math.random() < 0.4) {
                        setRxStatus(prev => {
                          const verified = { ...prev };
-                         rxEntries.forEach(e => { verified[e.key] = 'verified'; });
+                         rxEntries.forEach((e: Unmodelled) => { verified[e.key] = 'verified'; });
                          return verified;
                        });
                        toast.success('✅ Prescription verified by pharmacist!');
@@ -984,12 +985,12 @@ export default function Checkout() {
                        const reason = REJECTION_REASONS[Math.floor(Math.random() * REJECTION_REASONS.length)].label;
                        setRxStatus(prev => {
                          const rejected = { ...prev };
-                         rxEntries.forEach(e => { rejected[e.key] = 'rejected'; });
+                         rxEntries.forEach((e: Unmodelled) => { rejected[e.key] = 'rejected'; });
                          return rejected;
                        });
                        setRxRejection(prev => {
                          const r = { ...prev };
-                         rxEntries.forEach(e => { r[e.key] = reason; });
+                         rxEntries.forEach((e: Unmodelled) => { r[e.key] = reason; });
                          return r;
                        });
                        toast.error(`❌ Prescription rejected: ${reason}`);

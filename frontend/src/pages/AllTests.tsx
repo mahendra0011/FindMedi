@@ -23,7 +23,7 @@ import {
   FALLBACK_CATEGORY_TESTS,
   getTestCategoryVisual,
 } from '@/data/testCategoriesFallback';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 
 const INITIAL_VISIBLE = 11;
@@ -103,9 +103,9 @@ export default function AllTests() {
     return 0;
   });
 
-  const bookingEntries = entries.filter(e => e.storeId === STORE_ID);
-  const bookingTotal = bookingEntries.reduce((s, e) => s + (e.item.price || 0) * e.qty, 0);
-  const bookingCount = bookingEntries.reduce((s, e) => s + e.qty, 0);
+  const bookingEntries = entries.filter((e: Unmodelled) => e.storeId === STORE_ID);
+  const bookingTotal = bookingEntries.reduce((s: Unmodelled, e: Unmodelled) => s + (e.item.price || 0) * e.qty, 0);
+  const bookingCount = bookingEntries.reduce((s: Unmodelled, e: Unmodelled) => s + e.qty, 0);
 
   const testsWithHandlers = sortedTests.map((test) => ({
     ...test,
@@ -135,7 +135,7 @@ export default function AllTests() {
 
   const activeFilterCount = [providerFilter !== 'all', rxFilter !== 'all', homeCollectionOnly, distanceFilter !== 'any', ratingFilter > 0].filter(Boolean).length;
 
-  const ProviderChip = ({ value, icon: Icon, label }) => (
+  const ProviderChip = ({ value, icon: Icon, label }: Unmodelled) => (
     <button onClick={() => setProviderFilter(value)}
       className={cn(
         'flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold border transition-all shrink-0',
@@ -404,7 +404,7 @@ export default function AllTests() {
             </div>
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-9"
-                onClick={() => { bookingEntries.forEach(e => updateQty(e.key, 0)); }}>
+                onClick={() => { bookingEntries.forEach((e: Unmodelled) => updateQty(e.key, 0)); }}>
                 Clear
               </Button>
               <Button size="sm" className="gap-2 rounded-xl h-10 px-6 text-sm font-bold shadow-lg shadow-primary/30"

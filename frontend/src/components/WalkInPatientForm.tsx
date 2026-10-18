@@ -10,7 +10,7 @@ import { getISTDateString } from '@/lib/dateUtils';
 import { getSubSlotsForHour, parseTime } from '@/lib/timeSlots';
 import IntakeFormStep from './IntakeFormStep';
 import { userFacingError } from '@/lib/errorCopy';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const genders = ['Male', 'Female', 'Other'];
@@ -39,7 +39,7 @@ const initialIntakeForm = {
  *  - timeSlots:        string[] — fallback slots (real source: doctor schedule)
  *  - onPatientCreated: fn() — called after a successful booking
  */
-export default function WalkInPatientForm({ timeSlots, onPatientCreated }) {
+export default function WalkInPatientForm({ timeSlots, onPatientCreated }: Unmodelled) {
   const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [date, setDate] = useState(getISTDateString());
@@ -54,7 +54,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }) {
   const [intakeForm, setIntakeForm] = useState(initialIntakeForm);
   const [creating, setCreating] = useState(false);
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k: Unmodelled, v: Unmodelled) => setForm(f => ({ ...f, [k]: v }));
 
   const doctorId = user?.doctorProfileId || null;
 
@@ -94,7 +94,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }) {
   }, [doctorId, date]);
 
   // ─── Slot helpers (same as BookingModal) ───
-  const slotToMinutes = (t) => {
+  const slotToMinutes = (t: Unmodelled) => {
     const m = t?.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
     if (!m) return null;
     let h = parseInt(m[1], 10) % 12;
@@ -102,7 +102,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }) {
     return h * 60 + parseInt(m[2], 10);
   };
 
-  const minutesToSlot = (mins) => {
+  const minutesToSlot = (mins: Unmodelled) => {
     const h = Math.floor(mins / 60) % 24;
     const mm = mins % 60;
     const ampm = h >= 12 ? 'PM' : 'AM';
@@ -110,22 +110,22 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }) {
     return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`;
   };
 
-  const minutesToShort = (mins) => {
+  const minutesToShort = (mins: Unmodelled) => {
     const h = Math.floor(mins / 60) % 24;
     const mm = mins % 60;
     let h12 = h % 12; if (h12 === 0) h12 = 12;
     return `${h12}:${String(mm).padStart(2, '0')}`;
   };
 
-  const isSlotDisabled = (slotStr) => dateDisabledSlots.includes(slotStr);
-  const isSlotPendingUpdate = (slotStr) => pendingDisabledSlots.includes(slotStr);
-  const isSlotFull = (time) => (slotCounts[time] || 0) >= 1;
+  const isSlotDisabled = (slotStr: Unmodelled) => dateDisabledSlots.includes(slotStr);
+  const isSlotPendingUpdate = (slotStr: Unmodelled) => pendingDisabledSlots.includes(slotStr);
+  const isSlotFull = (time: Unmodelled) => (slotCounts[time] || 0) >= 1;
 
   // Real-time hours: doctor schedule (time_slots) se, fallback = prop
   const hourGroups = useMemo(() => {
     const source = (doctorProfile?.time_slots?.length ? doctorProfile.time_slots : timeSlots) || [];
     const enabledHours = new Set();
-    source.forEach(t => {
+    source.forEach((t: Unmodelled) => {
       const { hour } = parseTime(t);
       if (hour != null) enabledHours.add(hour);
     });
@@ -143,13 +143,13 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }) {
     return Object.entries(groups);
   }, [doctorProfile?.time_slots, timeSlots]);
 
-  const rangeFor = (slotStr) => {
+  const rangeFor = (slotStr: Unmodelled) => {
     const start = slotToMinutes(slotStr);
     if (start == null) return slotStr;
     return `${minutesToShort(start)}–${minutesToShort(start + slotDuration)}`;
   };
 
-  const fullRangeFor = (slotStr) => {
+  const fullRangeFor = (slotStr: Unmodelled) => {
     const start = slotToMinutes(slotStr);
     if (start == null) return slotStr;
     return `${minutesToSlot(start)} – ${minutesToSlot(start + slotDuration)}`;
@@ -270,7 +270,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }) {
               <select value={selectedHour || ''} onChange={e => { setSelectedHour(e.target.value); setBookingTime(''); }} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
                 <option value="">Choose hour</option>
                 {hourGroups.map(([hourLabel, hourSlots]) => {
-                  const allUnavailable = hourSlots.every(s => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s));
+                  const allUnavailable = hourSlots.every((s: Unmodelled) => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s));
                   return (
                     <option key={hourLabel} value={hourLabel} disabled={allUnavailable}>
                       {hourLabel}{allUnavailable ? ' (Full)' : ''}
@@ -285,12 +285,12 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }) {
                   <p className="text-[11px] text-muted-foreground">
                     {(() => {
                       const hs = hourGroups.find(([h]) => h === selectedHour)?.[1] || [];
-                      const unavailableCount = hs.filter(s => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s)).length;
+                      const unavailableCount = hs.filter((s: Unmodelled) => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s)).length;
                       return `${hs.length - unavailableCount} of ${hs.length} slots available in ${selectedHour}`;
                     })()}
                   </p>
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                    {(hourGroups.find(([h]) => h === selectedHour)?.[1] || []).map(t => {
+                    {(hourGroups.find(([h]) => h === selectedHour)?.[1] || []).map((t: Unmodelled) => {
                       const disabled = isSlotDisabled(t);
                       const pendingUpdate = isSlotPendingUpdate(t);
                       const full = isSlotFull(t);

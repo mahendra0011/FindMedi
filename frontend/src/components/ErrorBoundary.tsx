@@ -1,17 +1,18 @@
 import { Component } from 'react';
 import { Button } from '@/components/ui/button';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default class ErrorBoundary extends Component {
-  constructor(props) {
+  constructor(props: Unmodelled) {
     super(props);
     this.state = { hasError: false, error: null, showDetails: false };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Unmodelled) {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Unmodelled, errorInfo: Unmodelled) {
     console.error('ErrorBoundary caught:', error, errorInfo);
     // If it's a Vite chunk loading error after HMR/rebuild, auto-reload once
     if (error?.message && /Failed to fetch dynamically imported module/i.test(error.message)) {

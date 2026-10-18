@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 // SA-M3: statutory reconciliation computed from the REAL transaction ledger.
 // - Section 194-O TDS: 1% of gross provider payouts.
@@ -33,7 +33,7 @@ export default function TaxLedger() {
   const [quarter, setQuarter] = useState(fiscalQuarterOf());
   const [taxSummary, setTaxSummary] = useState(null);
   const [taxLoading, setTaxLoading] = useState(false);
-  const loadQuarter = useCallback(async (q) => {
+  const loadQuarter = useCallback(async (q: Unmodelled) => {
     setTaxLoading(true);
     try {
       const data = await api.getTaxSummary(q);
@@ -92,7 +92,7 @@ export default function TaxLedger() {
 
   if (loading) return <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
-  const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+  const inr = (n: Unmodelled) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
   return (
     <div className="space-y-5">
@@ -124,14 +124,14 @@ export default function TaxLedger() {
 
       <DataGrid
         columns={[
-          { key: 'createdAt', label: 'Date', sortable: false, render: (v) => <span className="text-xs text-muted-foreground whitespace-nowrap">{v ? new Date(v).toLocaleDateString('en-IN') : '—'}</span> },
-          { key: 'facilityName', label: 'Facility', sortable: false, render: (v) => <span className="font-medium max-w-[180px] truncate block">{v || '—'}</span> },
-          { key: 'source', label: 'Source', sortable: false, render: (v) => <span className="text-xs capitalize">{v || '—'}</span> },
-          { key: 'amount', label: 'Gross', sortable: false, render: (v) => <span className="tabular-nums">{inr(v)}</span> },
-          { key: 'commissionAmount', label: 'Fee', sortable: false, render: (v) => <span className="tabular-nums">{inr(v)}</span> },
-          { key: '_tds', label: 'TDS 1%', sortable: false, render: (_v, t) => <span className="tabular-nums">{inr(Math.round((Number(t.amount) || 0) * TDS_RATE))}</span> },
-          { key: '_gst', label: 'GST 18%', sortable: false, render: (_v, t) => <span className="tabular-nums">{inr(Math.round((Number(t.commissionAmount) || 0) * GST_ON_FEE_RATE))}</span> },
-          { key: 'status', label: 'Status', sortable: false, render: (v) => <Badge variant="outline" className="text-[11px]">{v}</Badge> },
+          { key: 'createdAt', label: 'Date', sortable: false, render: (v: Unmodelled) => <span className="text-xs text-muted-foreground whitespace-nowrap">{v ? new Date(v).toLocaleDateString('en-IN') : '—'}</span> },
+          { key: 'facilityName', label: 'Facility', sortable: false, render: (v: Unmodelled) => <span className="font-medium max-w-[180px] truncate block">{v || '—'}</span> },
+          { key: 'source', label: 'Source', sortable: false, render: (v: Unmodelled) => <span className="text-xs capitalize">{v || '—'}</span> },
+          { key: 'amount', label: 'Gross', sortable: false, render: (v: Unmodelled) => <span className="tabular-nums">{inr(v)}</span> },
+          { key: 'commissionAmount', label: 'Fee', sortable: false, render: (v: Unmodelled) => <span className="tabular-nums">{inr(v)}</span> },
+          { key: '_tds', label: 'TDS 1%', sortable: false, render: (_v: Unmodelled, t: Unmodelled) => <span className="tabular-nums">{inr(Math.round((Number(t.amount) || 0) * TDS_RATE))}</span> },
+          { key: '_gst', label: 'GST 18%', sortable: false, render: (_v: Unmodelled, t: Unmodelled) => <span className="tabular-nums">{inr(Math.round((Number(t.commissionAmount) || 0) * GST_ON_FEE_RATE))}</span> },
+          { key: 'status', label: 'Status', sortable: false, render: (v: Unmodelled) => <Badge variant="outline" className="text-[11px]">{v}</Badge> },
         ]}
         rows={rows.map((t, i) => ({ ...t, _id: t._id || `tx-${i}` }))}
         rowKey="_id"
@@ -198,12 +198,12 @@ export default function TaxLedger() {
               ) : (
                 <DataGrid
                   columns={[
-                    { key: 'facilityName', label: 'Deductee (facility)', sortable: false, render: (v, f) => <span className="font-medium max-w-[220px] truncate block">{v || String(f.facilityId)}</span> },
-                    { key: 'gross', label: 'Gross', sortable: false, render: (v) => <span className="text-right tabular-nums block">{inr(v)}</span> },
-                    { key: 'tds', label: 'TDS 1%', sortable: false, render: (v) => <span className="text-right tabular-nums font-semibold block">{inr(v)}</span> },
-                    { key: 'transactions', label: 'Txns', sortable: false, render: (v) => <span className="text-right tabular-nums block">{v}</span> },
+                    { key: 'facilityName', label: 'Deductee (facility)', sortable: false, render: (v: Unmodelled, f: Unmodelled) => <span className="font-medium max-w-[220px] truncate block">{v || String(f.facilityId)}</span> },
+                    { key: 'gross', label: 'Gross', sortable: false, render: (v: Unmodelled) => <span className="text-right tabular-nums block">{inr(v)}</span> },
+                    { key: 'tds', label: 'TDS 1%', sortable: false, render: (v: Unmodelled) => <span className="text-right tabular-nums font-semibold block">{inr(v)}</span> },
+                    { key: 'transactions', label: 'Txns', sortable: false, render: (v: Unmodelled) => <span className="text-right tabular-nums block">{v}</span> },
                   ]}
-                  rows={(taxSummary.facilities || []).map((f, i) => ({ ...f, _id: f.facilityId || `fac-${i}` }))}
+                  rows={(taxSummary.facilities || []).map((f: Unmodelled, i: Unmodelled) => ({ ...f, _id: f.facilityId || `fac-${i}` }))}
                   rowKey="_id"
                   empty="No payouts in this quarter yet."
                   showSearch={false}

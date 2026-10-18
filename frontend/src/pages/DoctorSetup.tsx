@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function DoctorSetup() {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ export default function DoctorSetup() {
     }
   }, [token]);
 
-  const handleSetup = async (e) => {
+  const handleSetup = async (e: Unmodelled) => {
     e.preventDefault();
     setError('');
 
@@ -70,7 +71,7 @@ export default function DoctorSetup() {
     }
   };
 
-  const handleVerifyOTP = async (e) => {
+  const handleVerifyOTP = async (e: Unmodelled) => {
     e.preventDefault();
     setError('');
     setLoading(true);

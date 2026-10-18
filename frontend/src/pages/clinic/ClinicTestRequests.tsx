@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const STATUS_CONFIG = {
   Pending: { color: 'bg-amber-500/10 text-amber-600 border-amber-200', icon: Clock, label: 'Pending' },
@@ -80,7 +80,7 @@ export default function ClinicTestRequests() {
     revenue: bookings.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + (b.discountedAmount || b.totalAmount || 0), 0),
   };
 
-  const handleUpdateStatus = async (id, newStatus) => {
+  const handleUpdateStatus = async (id: Unmodelled, newStatus: Unmodelled) => {
     setUpdating(id);
     try {
       await api.updateLabBooking(id, { status: newStatus });
@@ -92,7 +92,7 @@ export default function ClinicTestRequests() {
     setUpdating(null);
   };
 
-  const handleUpdatePayment = async (id, newPayment) => {
+  const handleUpdatePayment = async (id: Unmodelled, newPayment: Unmodelled) => {
     setUpdating(id);
     try {
       await api.updateLabBooking(id, { paymentStatus: newPayment });
@@ -286,7 +286,7 @@ export default function ClinicTestRequests() {
                 <div className="p-3 bg-muted/10 rounded-xl border border-border/20 mb-4">
                   <p className="text-[10px] text-muted-foreground mb-1.5 flex items-center gap-1"><FlaskConical className="w-3 h-3" /> Tests Booked</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {booking.tests?.map((test, i) => (
+                    {booking.tests?.map((test: Unmodelled, i: Unmodelled) => (
                       <span key={i} className="text-xs font-medium text-foreground bg-card px-2.5 py-1 rounded-lg border border-border/40">
                         {test}
                       </span>

@@ -1,5 +1,6 @@
 import { UnleashClient } from '@unleash/proxy-client-react';
 import posthog from 'posthog-js';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 let unleash: UnleashClient | null = null;
 let posthogInitialized = false;
@@ -20,7 +21,7 @@ export function initFeatureFlags(): UnleashClient | null {
     disableMetrics: true,
   });
 
-  unleash.on('error', (err) => console.error('Unleash error:', err));
+  unleash.on('error', (err: Unmodelled) => console.error('Unleash error:', err));
   unleash.start().catch(() => {
     // Fail-soft: flags stay off, app keeps working.
   });

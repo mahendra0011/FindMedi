@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import BookingModal from '@/components/BookingModal';
 import NavigationBar from '@/mind/components/Navigation';
 import Footer from '@/mind/components/Footer';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const MODE_META = [
   { id: 'video', label: 'Video Consultation', icon: Video },
@@ -46,43 +46,43 @@ function getInitials(name = "") {
   return name.split(" ").filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase()).join("") || "P";
 }
 
-function getClinicName(doc) {
+function getClinicName(doc: Unmodelled) {
   if (!doc) return '';
   return doc.clinicProfile?.clinic_name || doc.facilityId?.name || doc.location?.split(',')?.[0] || 'Clinic';
 }
 
-function getClinicAddress(doc) {
+function getClinicAddress(doc: Unmodelled) {
   return doc.clinicProfile?.clinic_address || doc.facilityId?.address || doc.location || doc.address || doc.city || '';
 }
 
-function getFacilityId(doc) {
+function getFacilityId(doc: Unmodelled) {
   return doc?.facilityId?._id || doc?.facilityId || null;
 }
 
-function getClinicPath(doc) {
+function getClinicPath(doc: Unmodelled) {
   return `/clinic/${getFacilityId(doc) || doc?._id}`;
 }
 
-function getFaqQuestion(faq) {
+function getFaqQuestion(faq: Unmodelled) {
   if (!faq) return '';
   if (typeof faq === 'string') return faq;
   return faq.question || faq.q || '';
 }
 
-function getFaqAnswer(faq) {
+function getFaqAnswer(faq: Unmodelled) {
   if (!faq) return '';
   if (typeof faq === 'string') return '';
   return faq.answer || faq.a || '';
 }
 
-function modeFee(doc, modeId) {
+function modeFee(doc: Unmodelled, modeId: Unmodelled) {
   if (!doc) return 0;
   const fees = doc.appointmentFees || {};
   if (fees[modeId] !== undefined && fees[modeId] !== null) return fees[modeId];
   return doc.consultation_fees || doc.fees || 0;
 }
 
-function doctor_is_saved(id) {
+function doctor_is_saved(id: Unmodelled) {
   try {
     const savedIds = JSON.parse(localStorage.getItem('fav_doctor_ids') || '[]');
     return savedIds.includes(id);
@@ -121,7 +121,7 @@ export default function PsychiatristDetail() {
     home_visit: 1.2,
   };
 
-  const getAdjustedPlanPrice = (plan) => {
+  const getAdjustedPlanPrice = (plan: Unmodelled) => {
     if (!doctor) return 0;
     const basePrice = Number(doctor.supportPlanPrices?.[plan.priceKey] || 0);
     if (!basePrice) return 0;
@@ -214,7 +214,7 @@ export default function PsychiatristDetail() {
     }
   };
 
-  const renderStars = (rating, size = 'w-3.5 h-3.5') => (
+  const renderStars = (rating: Unmodelled, size = 'w-3.5 h-3.5') => (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map(s => (
         <Star key={s} className={`${size} ${s <= Math.round(rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30'}`} />
@@ -355,7 +355,7 @@ export default function PsychiatristDetail() {
 
                     {/* Badges */}
                     <div className="flex flex-wrap items-center gap-2 mb-2.5">
-                      {doctor.languages?.map(lang => (
+                      {doctor.languages?.map((lang: Unmodelled) => (
                         <Badge key={lang} variant="outline" className="text-xs bg-muted/50">
                           <Languages className="w-3 h-3 mr-1" />{lang}
                         </Badge>
@@ -443,7 +443,7 @@ export default function PsychiatristDetail() {
                       <div className="mb-5">
                         <p className="text-sm font-semibold text-foreground mb-3">Areas of Expertise</p>
                         <div className="flex flex-wrap gap-2">
-                          {doctor.areas_of_expertise.map(area => (
+                          {doctor.areas_of_expertise.map((area: Unmodelled) => (
                             <Badge key={area} variant="outline" className="text-xs bg-primary/5 border-primary/20 text-primary font-medium px-3 py-1">
                               {area}
                             </Badge>
@@ -457,7 +457,7 @@ export default function PsychiatristDetail() {
                       <div>
                         <p className="text-sm font-semibold text-foreground mb-3">Services Offered</p>
                         <div className="flex flex-wrap gap-2">
-                          {doctor.services_offered.map(service => (
+                          {doctor.services_offered.map((service: Unmodelled) => (
                             <Badge key={service} variant="secondary" className="text-xs px-3 py-1">
                               <Plus className="w-3 h-3 mr-1" />{service}
                             </Badge>
@@ -489,7 +489,7 @@ export default function PsychiatristDetail() {
                         </p>
                         {doctor.education?.length > 0 ? (
                           <div className="space-y-4">
-                            {doctor.education.map((edu, i) => (
+                            {doctor.education.map((edu: Unmodelled, i: Unmodelled) => (
                               <div key={i} className="relative pl-6 border-l-2 border-primary/20">
                                 <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
                                   <div className="w-1.5 h-1.5 rounded-full bg-primary" />
@@ -513,7 +513,7 @@ export default function PsychiatristDetail() {
                         </p>
                         {doctor.work_experience?.length > 0 ? (
                           <div className="space-y-4">
-                            {doctor.work_experience.map((exp, i) => (
+                            {doctor.work_experience.map((exp: Unmodelled, i: Unmodelled) => (
                               <div key={i} className="relative pl-6 border-l-2 border-muted-foreground/20">
                                 <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-muted border-2 border-muted-foreground/40 flex items-center justify-center">
                                   <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60" />
@@ -550,7 +550,7 @@ export default function PsychiatristDetail() {
                         <div>
                           <p className="text-sm font-semibold text-foreground mb-3">Memberships</p>
                           <div className="flex flex-wrap gap-2">
-                            {doctor.memberships.map(m => (
+                            {doctor.memberships.map((m: Unmodelled) => (
                               <Badge key={m} variant="outline" className="text-xs bg-muted/50 px-3 py-1">
                                 {m}
                               </Badge>
@@ -568,7 +568,7 @@ export default function PsychiatristDetail() {
                           Awards & Achievements
                         </p>
                         <div className="space-y-2">
-                          {doctor.awards.map((award, i) => (
+                          {doctor.awards.map((award: Unmodelled, i: Unmodelled) => (
                             <div key={i} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-50/50 dark:bg-amber-500/5 border border-amber-200/50 dark:border-amber-800/50">
                               <Trophy className="w-4 h-4 text-amber-500 shrink-0" />
                               <span className="text-sm text-foreground font-medium">{award}</span>
@@ -790,7 +790,7 @@ export default function PsychiatristDetail() {
                           Clinic Gallery
                         </p>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          {doctor.clinicProfile.clinic_photos.map((photo, i) => (
+                          {doctor.clinicProfile.clinic_photos.map((photo: Unmodelled, i: Unmodelled) => (
                             <div key={i} className="aspect-[3/2] rounded-xl overflow-hidden border border-border/40 bg-muted">
                               <img src={photo} alt={`Clinic photo ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                             </div>
@@ -839,7 +839,7 @@ export default function PsychiatristDetail() {
                       <div className="mb-6">
                         <p className="text-sm font-semibold text-foreground mb-3">Facilities</p>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {doctor.clinicProfile.clinic_facilities.map((fac, i) => (
+                          {doctor.clinicProfile.clinic_facilities.map((fac: Unmodelled, i: Unmodelled) => (
                             <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-border/60 text-sm text-muted-foreground">
                               {fac.toLowerCase().includes('parking') && <Car className="w-3.5 h-3.5 text-primary shrink-0" />}
                               {fac.toLowerCase().includes('wheelchair') && <Accessibility className="w-3.5 h-3.5 text-primary shrink-0" />}
@@ -860,7 +860,7 @@ export default function PsychiatristDetail() {
                           Insurance / Cashless Accepted
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {doctor.clinicProfile.clinic_insurance.map(ins => (
+                          {doctor.clinicProfile.clinic_insurance.map((ins: Unmodelled) => (
                             <Badge key={ins} variant="outline" className="text-xs bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-800 px-3 py-1">
                               <CheckCircle className="w-3 h-3 mr-1" />{ins}
                             </Badge>
@@ -1079,7 +1079,7 @@ export default function PsychiatristDetail() {
                         <div className="px-4 py-3 rounded-xl bg-muted/30 border border-border/60">
                           <span className="text-sm text-muted-foreground block mb-2">Payment Modes Accepted</span>
                           <div className="flex flex-wrap gap-1.5">
-                            {doctor.payment_modes.map(mode => (
+                            {doctor.payment_modes.map((mode: Unmodelled) => (
                               <Badge key={mode} variant="secondary" className="text-xs">{mode}</Badge>
                             ))}
                           </div>
@@ -1095,7 +1095,7 @@ export default function PsychiatristDetail() {
                           Frequently Asked Questions
                         </p>
                         <div className="space-y-2">
-                          {(doctor.clinicProfile?.clinic_faqs || []).map((faq, i) => (
+                          {(doctor.clinicProfile?.clinic_faqs || []).map((faq: Unmodelled, i: Unmodelled) => (
                             <div key={i} className="rounded-xl border border-border/60 overflow-hidden">
                               <button
                                 onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
@@ -1342,7 +1342,7 @@ export default function PsychiatristDetail() {
   );
 }
 
-function RelatedDoctorCard({ doc, onOpen }) {
+function RelatedDoctorCard({ doc, onOpen }: Unmodelled) {
   return (
     <div onClick={onOpen}
       className="group bg-card rounded-2xl border border-border/60 p-4 cursor-pointer hover:border-primary/30 hover:shadow-lg transition-all">

@@ -150,7 +150,7 @@ import {
   initials,
   normalizeNotification,
 } from "@/mind/lib/providerDashboardShared";
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 const CounsellorDashboard = () => {
   const { toast } = useToast();
   const dispatch = useAppDispatch();
@@ -325,7 +325,7 @@ const load = useCallback(async () => {
   }, [data.packageSummary]);
 
   // Helper: get display label for package session badge e.g. "📦 Package Session 3/8"
-  const getPackageBadgeLabel = useCallback((appointment) => {
+  const getPackageBadgeLabel = useCallback((appointment: Unmodelled) => {
     if (!appointment?.packageId) return null;
     const pkg = allPackages.find((p) => String(p.id) === String(appointment.packageId));
     if (!pkg) return "📦 Package Session";
@@ -389,7 +389,7 @@ const load = useCallback(async () => {
   const averageAttendance = appointments.length ? Math.round((completedSessions.length / appointments.length) * 100) : 0;
   const reviewScore = Number(data.stats.rating || 0).toFixed(1);
 
-  const updateAppointment = async (appointmentId, payload, successTitle = "Session updated") => {
+  const updateAppointment = async (appointmentId: Unmodelled, payload: Unmodelled, successTitle = "Session updated") => {
     try {
       await api.put(`/api/appointments/${appointmentId}`, payload);
       toast({ title: successTitle });
@@ -399,7 +399,7 @@ const load = useCallback(async () => {
     }
   };
 
-  const createMeet = async (appointmentId, sharedLink = "") => {
+  const createMeet = async (appointmentId: Unmodelled, sharedLink = "") => {
     try {
       await api.post("/api/meet/create", { appointmentId, meetingLink: sharedLink });
       toast({ title: "Shared Google Meet ready", description: "User Join and counsellor Open Meet now use the same room." });
@@ -409,7 +409,7 @@ const load = useCallback(async () => {
     }
   };
 
-  const uploadProfilePhoto = async (file) => {
+  const uploadProfilePhoto = async (file: Unmodelled) => {
     if (!file) return;
     if (!file.type?.startsWith("image/")) {
       toast({ variant: "destructive", title: "Invalid file", description: "Please select an image file." });
@@ -476,7 +476,7 @@ const load = useCallback(async () => {
 
 
 
-  const updateDraft = (appointmentId, key, value) => {
+  const updateDraft = (appointmentId: Unmodelled, key: Unmodelled, value: Unmodelled) => {
     setSessionDrafts((current) => ({
       ...current,
       [appointmentId]: {
@@ -487,7 +487,7 @@ const load = useCallback(async () => {
   };
 
 
-  const updateAvailabilityRow = (id, key, value) => {
+  const updateAvailabilityRow = (id: Unmodelled, key: Unmodelled, value: Unmodelled) => {
     setAvailabilityRows((current) => current.map((row) => (row.id === id ? { ...row, [key]: value } : row)));
   };
 
@@ -495,7 +495,7 @@ const load = useCallback(async () => {
     setAvailabilityRows((current) => [...current, newAvailabilityRow(dayOptions[current.length % dayOptions.length], "10:00", "16:00")]);
   };
 
-  const removeAvailabilityRow = (id) => {
+  const removeAvailabilityRow = (id: Unmodelled) => {
     setAvailabilityRows((current) => (current.length > 1 ? current.filter((row) => row.id !== id) : current));
   };
 
@@ -505,7 +505,7 @@ const load = useCallback(async () => {
     setUnavailableDateDraft("");
   };
 
-  const removeUnavailableDate = (date) => {
+  const removeUnavailableDate = (date: Unmodelled) => {
     setUnavailableDates((current) => current.filter((item) => item !== date));
   };
 
@@ -527,11 +527,11 @@ const load = useCallback(async () => {
     ]);
   };
 
-  const updateCustomPackage = (id, key, value) => {
+  const updateCustomPackage = (id: Unmodelled, key: Unmodelled, value: Unmodelled) => {
     setCustomPackages((current) => current.map((pkg) => (pkg.id === id ? { ...pkg, [key]: value } : pkg)));
   };
 
-  const deleteCustomPackage = (id) => {
+  const deleteCustomPackage = (id: Unmodelled) => {
     setCustomPackages((current) => current.filter((pkg) => pkg.id !== id));
   };
 
@@ -551,7 +551,7 @@ const load = useCallback(async () => {
     }
   };
 
-  const rescheduleAppointment = async (appointment) => {
+  const rescheduleAppointment = async (appointment: Unmodelled) => {
     const draft = sessionDrafts[appointment.id] || {};
     if (!draft.date && !draft.time) {
       toast({ variant: "destructive", title: "Choose a new date or time" });
@@ -778,7 +778,7 @@ const load = useCallback(async () => {
   );
 };
 
-function Metric({ title, value, icon: Icon, tone = "text-primary" }) {
+function Metric({ title, value, icon: Icon, tone = "text-primary" }: Unmodelled) {
   return (
     <Card className="glass-card dashboard-card-motion">
       <CardHeader className="pb-2">
@@ -794,7 +794,7 @@ function Metric({ title, value, icon: Icon, tone = "text-primary" }) {
   );
 }
 
-function QuickStat({ label, value }) {
+function QuickStat({ label, value }: Unmodelled) {
   return (
     <div className="rounded-xl bg-foreground/5 px-3 py-2">
       <div className="text-lg font-bold">{value}</div>
@@ -803,7 +803,7 @@ function QuickStat({ label, value }) {
   );
 }
 
-function StatusTile({ label, value, icon: Icon }) {
+function StatusTile({ label, value, icon: Icon }: Unmodelled) {
   return (
     <div className="rounded-xl border border-glass-border/40 bg-background/60 p-3">
       <Icon className="h-4 w-4 text-primary" />
@@ -813,11 +813,11 @@ function StatusTile({ label, value, icon: Icon }) {
   );
 }
 
-function PanelText({ children }) {
+function PanelText({ children }: Unmodelled) {
   return <div className="rounded-xl border border-glass-border/40 bg-background/60 p-3 text-sm text-foreground/75">{children}</div>;
 }
 
-function EmptyState({ icon: Icon, title, text }) {
+function EmptyState({ icon: Icon, title, text }: Unmodelled) {
   return (
     <div className="rounded-2xl border border-dashed border-glass-border/60 bg-background/45 p-6 text-center">
       <Icon className="mx-auto h-8 w-8 text-primary" />
@@ -827,7 +827,7 @@ function EmptyState({ icon: Icon, title, text }) {
   );
 }
 
-function RequestRow({ appointment, onConfirm, onDecline, onMeet, onChat }) {
+function RequestRow({ appointment, onConfirm, onDecline, onMeet, onChat }: Unmodelled) {
   const isVoice = appointment.mode === "voice-call";
   const isChat = appointment.mode === "chat-only" || appointment.mode === "video-chat";
   const isInPerson = appointment.mode === "in-person";
@@ -866,7 +866,7 @@ function RequestRow({ appointment, onConfirm, onDecline, onMeet, onChat }) {
   );
 }
 
-function UpcomingAppointmentCard({ appointment, packageBadge, draft, onDraft, onReschedule, onMeet, onChat }) {
+function UpcomingAppointmentCard({ appointment, packageBadge, draft, onDraft, onReschedule, onMeet, onChat }: Unmodelled) {
   const displayStatus = sessionStatusLabel(appointment.status);
   const mode = String(appointment.mode || "google-meet");
   return (

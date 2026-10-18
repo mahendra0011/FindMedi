@@ -13,7 +13,7 @@ import StatCard from '@/components/StatCard';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
 import { Switch } from '@/components/ui/switch';
 import { DataGrid } from '@/components/ui/System';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = {
   Completed: 'bg-success/10 text-success',
@@ -106,12 +106,12 @@ export default function PharmacyBusinessDashboard() {
     {
       key: 'orderId',
       label: 'Order',
-      render: (v) => <span className="font-medium text-card-foreground">{v}</span>,
+      render: (v: Unmodelled) => <span className="font-medium text-card-foreground">{v}</span>,
     },
     {
       key: 'customer',
       label: 'Customer',
-      render: (v, order) => (
+      render: (v: Unmodelled, order: Unmodelled) => (
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center text-xs font-bold text-accent-foreground">
             {(order.patientName || '?').charAt(0)}
@@ -123,14 +123,14 @@ export default function PharmacyBusinessDashboard() {
     {
       key: 'total',
       label: 'Total',
-      render: (v) => (
+      render: (v: Unmodelled) => (
         <div className="text-right font-medium text-card-foreground">₹{(v || 0).toLocaleString()}</div>
       ),
     },
     {
       key: 'status',
       label: 'Status',
-      render: (v) => (
+      render: (v: Unmodelled) => (
         <div className="text-right">
           <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[v] || 'bg-muted text-muted-foreground'}`}>
             {v || 'Pending'}

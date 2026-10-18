@@ -4,16 +4,17 @@ import { Search, User, Plus, X, Phone, Calendar, MapPin, Droplets } from 'lucide
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const regApi = {
-  search: async (q) => {
+  search: async (q: Unmodelled) => {
     try {
       return await api.getPatients({ search: q });
     } catch {
       return { patients: [] };
     }
   },
-  register: async (b) => {
+  register: async (b: Unmodelled) => {
     return await api.createPatient(b);
   },
   getStats: async () => {
@@ -69,7 +70,7 @@ export default function PatientRegistration() {
       </div>
 
       <div className="space-y-3">
-        {searchResults.map(p => (
+        {searchResults.map((p: Unmodelled) => (
           <div key={p._id} className="bg-card rounded-xl border p-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center"><User className="w-6 h-6 text-primary" /></div>

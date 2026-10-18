@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { api, getApiBaseUrl } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const API_URL = getApiBaseUrl();
 
@@ -55,7 +55,7 @@ const UPLOAD_TYPES = [
   },
 ];
 
-function isAuthError(status, message) {
+function isAuthError(status: Unmodelled, message: Unmodelled) {
   return (
     status === 401 ||
     (message && /token|unauthoriz|not authorized|expired/i.test(String(message)))
@@ -131,8 +131,8 @@ export default function FileUpload() {
       const data = await api.getRecords();
       const recordsList = data.records || data.data || (Array.isArray(data) ? data : []);
       const filesWithUploads = recordsList
-        .filter((r) => r.data?.uploadedFile)
-        .map((r) => ({
+        .filter((r: Unmodelled) => r.data?.uploadedFile)
+        .map((r: Unmodelled) => ({
           ...r,
           fileType: r.type,
           uploadedAt: r.createdAt || r.data?.date,
@@ -186,7 +186,7 @@ export default function FileUpload() {
     return 'image/jpeg,image/png,image/webp';
   };
 
-  const uploadSelectedFile = async (file) => {
+  const uploadSelectedFile = async (file: Unmodelled) => {
     if (!file) return;
 
     if (!driveStatus.connected) {
@@ -237,48 +237,48 @@ export default function FileUpload() {
     setLoading(false);
   };
 
-  const handleFileInputChange = (e) => {
+  const handleFileInputChange = (e: Unmodelled) => {
     const f = e.target.files?.[0];
     if (f) uploadSelectedFile(f);
   };
 
-  const handleDrag = (e) => {
+  const handleDrag = (e: Unmodelled) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
-  const handleDragIn = (e) => {
+  const handleDragIn = (e: Unmodelled) => {
     handleDrag(e);
     if (e.dataTransfer.types?.includes('Files')) setIsDragging(true);
   };
 
-  const handleDragOut = (e) => {
+  const handleDragOut = (e: Unmodelled) => {
     handleDrag(e);
     setIsDragging(false);
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = (e: Unmodelled) => {
     handleDrag(e);
     setIsDragging(false);
     const f = e.dataTransfer.files?.[0];
     if (f) uploadSelectedFile(f);
   };
 
-  const getFileIcon = (fileType) => {
+  const getFileIcon = (fileType: Unmodelled) => {
     if (fileType === 'lab_report') return <Image className="w-5 h-5 text-sky-500" />;
     if (fileType === 'discharge_summary') return <FileText className="w-5 h-5 text-emerald-500" />;
     if (fileType === 'prescription') return <FileText className="w-5 h-5 text-amber-500" />;
     return <FileText className="w-5 h-5 text-muted-foreground" />;
   };
 
-  const formatFileSize = (bytes) => {
+  const formatFileSize = (bytes: Unmodelled) => {
     if (!bytes) return '—';
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: Unmodelled) => {
     try {
       return formatDistanceToNow(new Date(dateString), { addSuffix: true });
     } catch {
@@ -286,7 +286,7 @@ export default function FileUpload() {
     }
   };
 
-  const getFileUrl = (file) => {
+  const getFileUrl = (file: Unmodelled) => {
     return (
       file.data?.uploadedFile?.url ||
       `${API_URL.replace('/api', '')}${file.data?.uploadedFile?.filepath}`

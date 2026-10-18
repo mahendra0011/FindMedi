@@ -42,13 +42,14 @@ import { api } from '@/lib/api';
 import { getSocket, joinRoom } from '@/lib/socket';
 import { Link, useNavigate } from 'react-router-dom';
 import ProviderIncomingCall from '@/components/emergency/ProviderIncomingCall';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const LAB_TYPES = ['lab_report', 'lab_sample'];
-const isLabTask = (d) => LAB_TYPES.includes(d?.serviceType);
-const taskFee = (d) => d?.deliveryFee || d?.orderRef?.deliveryFee || 50;
-const taskTitle = (d) => (isLabTask(d) ? 'Lab Report' : 'Medicine');
-const taskContact = (d) => d?.patientPhone || d?.orderRef?.phone || '';
-const taskBadges = (d) => (isLabTask(d) ? ['Lab Report', 'Diagnostic Parcel'] : ['Express Delivery', 'Prescription Parcel']);
+const isLabTask = (d: Unmodelled) => LAB_TYPES.includes(d?.serviceType);
+const taskFee = (d: Unmodelled) => d?.deliveryFee || d?.orderRef?.deliveryFee || 50;
+const taskTitle = (d: Unmodelled) => (isLabTask(d) ? 'Lab Report' : 'Medicine');
+const taskContact = (d: Unmodelled) => d?.patientPhone || d?.orderRef?.phone || '';
+const taskBadges = (d: Unmodelled) => (isLabTask(d) ? ['Lab Report', 'Diagnostic Parcel'] : ['Express Delivery', 'Prescription Parcel']);
 
 export default function DeliveryDashboard() {
   const navigate = useNavigate();

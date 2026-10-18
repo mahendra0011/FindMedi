@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import StatCard from '@/components/StatCard';
 import { userFacingError } from '@/lib/errorCopy';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = { completed: 'bg-success/10 text-success', pending: 'bg-warning/10 text-warning', failed: 'bg-destructive/10 text-destructive', refunded: 'bg-info/10 text-info' };
 const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
@@ -33,10 +33,10 @@ export default function PatientPayment() {
       const rawBills = b?.bills || b?.data || b || [];
       // Cross-reference: mark bills as Paid if matching payment exists
       const uid = String(user?.id || '');
-      const paidRefs = new Set(rawPayments.map(pay => pay.invoice_id || pay.invoiceId || pay.referenceId));
-      const paidSignatures = new Set(rawPayments.map(pay => `${String(pay.patient_id || pay.patientId || '')}:${pay.amount}`));
+      const paidRefs = new Set(rawPayments.map((pay: Unmodelled) => pay.invoice_id || pay.invoiceId || pay.referenceId));
+      const paidSignatures = new Set(rawPayments.map((pay: Unmodelled) => `${String(pay.patient_id || pay.patientId || '')}:${pay.amount}`));
       setPayments(rawPayments);
-      setBills(rawBills.map(bill => {
+      setBills(rawBills.map((bill: Unmodelled) => {
         if (paidRefs.has(bill.invoiceId || bill._id)) return { ...bill, status: 'Paid' };
         if (bill.status !== 'Paid' && uid && paidSignatures.has(`${uid}:${bill.amount}`)) return { ...bill, status: 'Paid' };
         return bill;
@@ -53,7 +53,7 @@ export default function PatientPayment() {
   const totalPaid = payments.filter(p => p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0);
   const pendingAmount = bills.filter(b => b.status !== 'Paid').reduce((s, b) => s + ((b.amount || 0) - (b.paid || 0)), 0);
 
-  const handlePay = async (bill) => {
+  const handlePay = async (bill: Unmodelled) => {
     try {
       await api.payBill(bill._id, {
         amount: (bill.amount || 0) - (bill.paid || 0),
@@ -131,11 +131,11 @@ export default function PatientPayment() {
           <div className="bg-card rounded-2xl border border-border/60 overflow-hidden">
             <DataGrid
               columns={[
-                { key: 'transaction_id', label: 'Transaction', render: (v, pay) => <span className="text-sm font-mono">{v || pay.transactionId || pay._id?.slice(-8)}</span> },
-                { key: 'invoice_id', label: 'Invoice', render: (v, pay) => <span className="flex items-center gap-1 text-sm"><FileText className="w-3.5 h-3.5 text-muted-foreground" />{v || pay.invoiceId || '-'}</span> },
-                { key: 'amount', label: 'Amount', render: (v) => <span className="text-sm font-semibold">₹{(v || 0).toLocaleString()}</span> },
-                { key: 'method', label: 'Method', render: (v) => { const PayIcon = methodIcons[v] || CreditCard; return <span className="flex items-center gap-1 text-sm"><PayIcon className="w-3.5 h-3.5" /> {v}</span>; } },
-                { key: 'status', label: 'Status', render: (v) => <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[v] || 'bg-muted text-muted-foreground'}`}>{v}</span> },
+                { key: 'transaction_id', label: 'Transaction', render: (v: Unmodelled, pay: Unmodelled) => <span className="text-sm font-mono">{v || pay.transactionId || pay._id?.slice(-8)}</span> },
+                { key: 'invoice_id', label: 'Invoice', render: (v: Unmodelled, pay: Unmodelled) => <span className="flex items-center gap-1 text-sm"><FileText className="w-3.5 h-3.5 text-muted-foreground" />{v || pay.invoiceId || '-'}</span> },
+                { key: 'amount', label: 'Amount', render: (v: Unmodelled) => <span className="text-sm font-semibold">₹{(v || 0).toLocaleString()}</span> },
+                { key: 'method', label: 'Method', render: (v: Unmodelled) => { const PayIcon = methodIcons[v] || CreditCard; return <span className="flex items-center gap-1 text-sm"><PayIcon className="w-3.5 h-3.5" /> {v}</span>; } },
+                { key: 'status', label: 'Status', render: (v: Unmodelled) => <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[v] || 'bg-muted text-muted-foreground'}`}>{v}</span> },
               ]}
               rows={payments}
               rowKey="_id"

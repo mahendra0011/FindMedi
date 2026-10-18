@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import ClinicSchedule from '@/pages/clinic/ClinicSchedule';
 import ScheduleChangeRequestModal from '@/components/ScheduleChangeRequestModal';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function AdminScheduleManage() {
   const [doctors, setDoctors] = useState<ApiRow[]>([]);
@@ -45,7 +45,7 @@ export default function AdminScheduleManage() {
         const res = await api.getPendingScheduleChangeRequests();
         const requests = res?.requests || res || [];
         const map = {};
-        requests.forEach(r => {
+        requests.forEach((r: Unmodelled) => {
           // Use the populated doctorId._id or the stored doctorId — normalize to string
           const docId = r.doctorId?._id || r.doctorId;
           if (docId) map[String(docId)] = r;
@@ -70,7 +70,7 @@ export default function AdminScheduleManage() {
     ? doctors
     : doctors.filter(d => d.specialization === specialization);
 
-  const handleCardClick = (doc) => {
+  const handleCardClick = (doc: Unmodelled) => {
     // If there's a pending request for this doctor, open the modal instead
     const pending = pendingRequests[String(doc._id)];
     if (pending) {
@@ -83,7 +83,7 @@ export default function AdminScheduleManage() {
     }
   };
 
-  const handleDecision = (requestId, decision) => {
+  const handleDecision = (requestId: Unmodelled, decision: Unmodelled) => {
     // Remove from pending map
     setPendingRequests(prev => {
       const next = { ...prev };
@@ -141,7 +141,7 @@ export default function AdminScheduleManage() {
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-bold text-lg flex-shrink-0 overflow-hidden">
                     {doc.profile_photo
                       ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
-                      : doc.initials || doc.name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      : doc.initials || doc.name?.split(' ').map((n: Unmodelled) => n[0]).join('').slice(0, 2)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="font-heading font-semibold text-foreground truncate">{doc.name}</h3>

@@ -1,6 +1,7 @@
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
 import { cn } from "@/mind/lib/utils";
+import type { Unmodelled } from '@/lib/apiTypes';
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" };
 const ChartContext = React.createContext(null);
@@ -30,7 +31,7 @@ const cssColor = (v: unknown): string => {
     const s = String(v ?? "");
     return /^[\w#(),.%\s/-]+$/.test(s) ? s : "transparent";
 };
-const ChartStyle = ({ id, config }) => {
+const ChartStyle = ({ id, config }: Unmodelled) => {
     const colorConfig = Object.entries(config).filter(([_, config]) => config.theme || config.color);
     if (!colorConfig.length) {
         return null;
@@ -79,7 +80,7 @@ const ChartTooltipContent = React.forwardRef(({ active, payload, className, indi
     return (<div ref={ref} className={cn("grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl", className)}>
         {!nestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
-          {payload.map((item, index) => {
+          {payload.map((item: Unmodelled, index: Unmodelled) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`;
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
             const indicatorColor = color || item.payload.fill || item.color;
@@ -117,7 +118,7 @@ const ChartLegendContent = React.forwardRef(({ className, hideIcon = false, payl
         return null;
     }
     return (<div ref={ref} className={cn("flex items-center justify-center gap-4", verticalAlign === "top" ? "pb-3" : "pt-3", className)}>
-      {payload.map((item) => {
+      {payload.map((item: Unmodelled) => {
             const key = `${nameKey || item.dataKey || "value"}`;
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
             return (<div key={item.value} className={cn("flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground")}>
@@ -131,7 +132,7 @@ const ChartLegendContent = React.forwardRef(({ className, hideIcon = false, payl
 });
 ChartLegendContent.displayName = "ChartLegend";
 // Helper to extract item config from a payload.
-function getPayloadConfigFromPayload(config, payload, key) {
+function getPayloadConfigFromPayload(config: Unmodelled, payload: Unmodelled, key: Unmodelled) {
     if (typeof payload !== "object" || payload === null) {
         return undefined;
     }

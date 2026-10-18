@@ -4,20 +4,21 @@ import { Search, Plus, Clock, X, Droplets, CheckCircle, AlertTriangle, Heart, Ac
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const bbApi = {
-  getUnits: (p) => api.getBloodUnits(p),
-  addUnit: (b) => api.addBloodUnit(b),
-  getRequests: (p) => api.getBloodRequests(p),
-  createRequest: (b) => api.createBloodRequest(b),
-  crossMatch: (id, b) => api.crossMatchBlood(id, b),
-  issueUnits: (id, b) => api.issueBloodUnits(id, b),
-  startTransfusion: (id, b) => api.startTransfusion(id, b),
-  completeTransfusion: (id, b) => api.completeTransfusion(id, b),
-  reportReaction: (id, b) => api.reportReaction(id, b),
+  getUnits: (p: Unmodelled) => api.getBloodUnits(p),
+  addUnit: (b: Unmodelled) => api.addBloodUnit(b),
+  getRequests: (p: Unmodelled) => api.getBloodRequests(p),
+  createRequest: (b: Unmodelled) => api.createBloodRequest(b),
+  crossMatch: (id: Unmodelled, b: Unmodelled) => api.crossMatchBlood(id, b),
+  issueUnits: (id: Unmodelled, b: Unmodelled) => api.issueBloodUnits(id, b),
+  startTransfusion: (id: Unmodelled, b: Unmodelled) => api.startTransfusion(id, b),
+  completeTransfusion: (id: Unmodelled, b: Unmodelled) => api.completeTransfusion(id, b),
+  reportReaction: (id: Unmodelled, b: Unmodelled) => api.reportReaction(id, b),
   getStats: () => api.getBloodBankStats(),
   getScreenings: () => api.donorScreenings({}),
-  createScreening: (b) => api.createDonorScreening(b),
+  createScreening: (b: Unmodelled) => api.createDonorScreening(b),
 };
 
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -66,9 +67,9 @@ export default function BloodBank() {
   const reactionMut = useMutation({ mutationFn: ({ id, ...b }) => bbApi.reportReaction(id, b), onSuccess: () => { qc.invalidateQueries(['blood-requests']); setShowReaction(null); } });
   const screenMut = useMutation({ mutationFn: bbApi.createScreening, onSuccess: (r: any) => { qc.invalidateQueries(['donor-screenings']); setScreen({ donorName: '', phone: '', bloodGroup: 'O+', age: '', weightKg: '', hb: '', lastDonationAt: '' }); } });
 
-  const getCompatibleUnits = (bloodGroup) => {
+  const getCompatibleUnits = (bloodGroup: Unmodelled) => {
     const compatible = compatibleDonors[bloodGroup] || [];
-    return units.filter(u => compatible.includes(u.bloodGroup) && u.status === 'Available');
+    return units.filter((u: Unmodelled) => compatible.includes(u.bloodGroup) && u.status === 'Available');
   };
 
   return (
@@ -111,7 +112,7 @@ export default function BloodBank() {
             <Button onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" /> Add Unit</Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {units.map(u => (
+            {units.map((u: Unmodelled) => (
               <div key={u._id} className={`bg-card rounded-xl border p-4 ${u.status === 'Available' ? 'border-success/30' : u.status === 'Expired' ? 'border-destructive/30' : 'border-warning/30'}`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2"><Droplets className="w-4 h-4 text-destructive" /><span className="font-heading font-bold text-lg text-foreground">{u.bloodGroup}</span></div>
@@ -138,7 +139,7 @@ export default function BloodBank() {
           <div className="flex gap-3 mb-6">
             <Button onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" /> New Request</Button>
           </div>
-          {requests.map(r => (
+          {requests.map((r: Unmodelled) => (
             <div key={r._id} className={`bg-card rounded-xl border p-4 ${r.status === 'Reaction' ? 'border-destructive/50 bg-destructive/5' : r.status === 'Transfusing' ? 'border-primary/50 bg-primary/5' : ''}`}>
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -289,7 +290,7 @@ export default function BloodBank() {
                 <div className="text-sm text-success mb-2">{getCompatibleUnits(crossMatchData.patientGroup).length} units available</div>
                 <select value={crossMatchData.donorUnitId} onChange={e => setCrossMatchData(d => ({ ...d, donorUnitId: e.target.value }))} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">
                   <option value="">Select donor unit...</option>
-                  {getCompatibleUnits(crossMatchData.patientGroup).map(u => (
+                  {getCompatibleUnits(crossMatchData.patientGroup).map((u: Unmodelled) => (
                     <option key={u._id} value={u._id}>{u.bloodGroup} - {u.unitId} (Exp: {u.expiryDate ? new Date(u.expiryDate).toLocaleDateString() : 'N/A'})</option>
                   ))}
                 </select>

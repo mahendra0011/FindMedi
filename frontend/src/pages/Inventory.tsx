@@ -4,15 +4,16 @@ import { Search, Plus, Clock, X, Package, CheckCircle, AlertTriangle, Truck, Fil
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const invApi = {
-  getItems: (p) => api.getInventoryItems(p),
-  createItem: (b) => api.createInventoryItem(b),
-  addStock: (id, b) => api.addInventoryStock(id, b),
-  issueItem: (id, b) => api.issueInventoryItem(id, b),
-  createPR: (b) => api.createInventoryPR(b),
-  createPO: (b) => api.createInventoryPO(b),
-  receiveGRN: (id, b) => api.receiveInventoryGRN(id, b),
+  getItems: (p: Unmodelled) => api.getInventoryItems(p),
+  createItem: (b: Unmodelled) => api.createInventoryItem(b),
+  addStock: (id: Unmodelled, b: Unmodelled) => api.addInventoryStock(id, b),
+  issueItem: (id: Unmodelled, b: Unmodelled) => api.issueInventoryItem(id, b),
+  createPR: (b: Unmodelled) => api.createInventoryPR(b),
+  createPO: (b: Unmodelled) => api.createInventoryPO(b),
+  receiveGRN: (id: Unmodelled, b: Unmodelled) => api.receiveInventoryGRN(id, b),
   getStats: async () => { try { return await api.getInventoryStats(); } catch { return { total: 0, lowStock: 0, expiring: 0, deadStock: 0 }; } },
 };
 
@@ -40,9 +41,9 @@ export default function Inventory() {
   const poMut = useMutation({ mutationFn: invApi.createPO, onSuccess: () => { qc.invalidateQueries(['inventory']); setShowPO(false); } });
   useMutation({ mutationFn: ({ id, ...b }) => invApi.receiveGRN(id, b), onSuccess: () => { qc.invalidateQueries(['inventory']); } });
 
-  const isLowStock = (item) => item.currentStock <= item.minStockLevel;
-  const isExpiring = (item) => item.expiryDate && new Date(item.expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  const isDeadStock = (item) => item.lastIssued && new Date(item.lastIssued) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+  const isLowStock = (item: Unmodelled) => item.currentStock <= item.minStockLevel;
+  const isExpiring = (item: Unmodelled) => item.expiryDate && new Date(item.expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const isDeadStock = (item: Unmodelled) => item.lastIssued && new Date(item.lastIssued) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
 
   return (
     <div>
@@ -86,7 +87,7 @@ export default function Inventory() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map(item => (
+            {items.map((item: Unmodelled) => (
               <div key={item._id} className={`bg-card rounded-xl border p-4 ${isLowStock(item) ? 'border-warning/50 ring-1 ring-warning/20' : isExpiring(item) ? 'border-destructive/30' : ''}`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">

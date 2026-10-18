@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function AdminReviews() {
   const [reviews, setReviews] = useState<ApiRow[]>([]);
@@ -24,7 +24,7 @@ export default function AdminReviews() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadReviews(); }, []);
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Delete this review permanently?')) return;
     try { await api.deleteReview(id); loadReviews(); } catch { toast.error('Failed to delete review'); }
   };

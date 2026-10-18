@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function PharmacyInventory() {
   const [medicines, setMedicines] = useState<ApiRow[]>([]);
@@ -26,7 +26,7 @@ export default function PharmacyInventory() {
   useEffect(() => { load(); }, [load]);
 
   const openAdd = () => { setEditItem(null); setForm({ name:'', genericName:'', manufacturer:'', category:'', price:'', currentStock:'', reorderLevel:'', expiryDate:'' }); setShowModal(true); };
-  const openEdit = (m) => { setEditItem(m); setForm({ name:m.name, genericName:m.genericName||'', manufacturer:m.manufacturer||'', category:m.category||'', price:m.price||'', currentStock:m.currentStock||'', reorderLevel:m.reorderLevel||'', expiryDate:m.expiryDate?.split('T')[0]||'' }); setShowModal(true); };
+  const openEdit = (m: Unmodelled) => { setEditItem(m); setForm({ name:m.name, genericName:m.genericName||'', manufacturer:m.manufacturer||'', category:m.category||'', price:m.price||'', currentStock:m.currentStock||'', reorderLevel:m.reorderLevel||'', expiryDate:m.expiryDate?.split('T')[0]||'' }); setShowModal(true); };
 
   const handleSave = async () => {
     try {
@@ -42,7 +42,7 @@ export default function PharmacyInventory() {
     } catch (e) { toast.error(e.message); }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Delete this medicine?')) return;
     try { await api.deletePharmacyMedicine(id); toast.success('Deleted'); load(); }
     catch (e) { toast.error(e.message); }
@@ -51,7 +51,7 @@ export default function PharmacyInventory() {
   const columns = [
     {
       key: 'name', label: 'Name',
-      render: (v, m) => (
+      render: (v: Unmodelled, m: Unmodelled) => (
         <div className="flex items-center gap-2">
           <Pill className="w-4 h-4 text-primary shrink-0" />
           <span className="font-medium text-foreground">{v}</span>
@@ -60,12 +60,12 @@ export default function PharmacyInventory() {
         </div>
       ),
     },
-    { key: 'genericName', label: 'Generic', render: (v) => v || '—' },
-    { key: 'manufacturer', label: 'Manufacturer', render: (v) => v || '—' },
-    { key: 'price', label: 'Price', render: (v) => <span className="font-medium text-foreground">₹{v || 0}</span> },
+    { key: 'genericName', label: 'Generic', render: (v: Unmodelled) => v || '—' },
+    { key: 'manufacturer', label: 'Manufacturer', render: (v: Unmodelled) => v || '—' },
+    { key: 'price', label: 'Price', render: (v: Unmodelled) => <span className="font-medium text-foreground">₹{v || 0}</span> },
     {
       key: 'currentStock', label: 'Stock',
-      render: (v, m) => (
+      render: (v: Unmodelled, m: Unmodelled) => (
         <>
           <span className={v <= (m.reorderLevel ?? 0) ? 'text-destructive font-semibold' : 'text-foreground'}>{v ?? 0}</span>
           <span className="text-xs text-muted-foreground ml-1">/ {m.reorderLevel ?? 0}</span>
@@ -74,7 +74,7 @@ export default function PharmacyInventory() {
     },
     {
       key: '_actions', label: 'Actions', sortable: false,
-      render: (_v, m) => (
+      render: (_v: Unmodelled, m: Unmodelled) => (
         <div className="flex items-center justify-end gap-1">
           <Button variant="ghost" size="icon" className="w-8 h-8" aria-label={`Edit ${m.name}`} onClick={() => openEdit(m)}><Edit2 className="w-4 h-4" /></Button>
           <Button variant="ghost" size="icon" className="w-8 h-8 text-destructive" aria-label={`Delete ${m.name}`} onClick={() => handleDelete(m._id)}><Trash2 className="w-4 h-4" /></Button>

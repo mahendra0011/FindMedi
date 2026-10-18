@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 // SA-M2: standardized rejection reasons dispatched to applicant SMS/email by the backend.
 const REJECT_TEMPLATES = [
@@ -21,34 +21,34 @@ const REJECT_TEMPLATES = [
 const QUEUES = [
   { key: 'hospitals', label: 'Hospitals', deepLink: '/superadmin/pending',
     fetch: () => api.getPendingHospitals().then((d) => d?.hospitals || d?.data || d || []),
-    approve: (id) => api.approveHospital(id),
-    reject: (id, reason) => api.rejectHospital(id, { reason }) },
+    approve: (id: Unmodelled) => api.approveHospital(id),
+    reject: (id: Unmodelled, reason: Unmodelled) => api.rejectHospital(id, { reason }) },
   { key: 'facilities', label: 'Clinics / Labs / Pharmacies', deepLink: '/superadmin/facilities',
     fetch: () => api.getPendingFacilities().then((d) => d?.facilities || d?.data || []),
-    approve: (id) => api.approveFacility(id),
+    approve: (id: Unmodelled) => api.approveFacility(id),
     reject: null },
   { key: 'delivery', label: 'Delivery Partners', deepLink: '/superadmin/delivery-partners',
     fetch: () => api.getPendingDeliveryBoys().then((d) => d?.partners || d?.data || d || []),
-    approve: (id) => api.approveDeliveryBoy(id, { action: 'approve' }),
-    reject: (id, reason) => api.approveDeliveryBoy(id, { action: 'reject', reason }) },
+    approve: (id: Unmodelled) => api.approveDeliveryBoy(id, { action: 'approve' }),
+    reject: (id: Unmodelled, reason: Unmodelled) => api.approveDeliveryBoy(id, { action: 'reject', reason }) },
   { key: 'riders', label: 'Riders', deepLink: '/admin/vehicle-rides',
     fetch: () => api.getPendingRiders().then((d) => d?.riders || []),
-    approve: (id) => api.approveRider(id),
-    reject: (id, reason) => api.rejectRider(id, reason) },
+    approve: (id: Unmodelled) => api.approveRider(id),
+    reject: (id: Unmodelled, reason: Unmodelled) => api.rejectRider(id, reason) },
   { key: 'assistants', label: 'Assistants', deepLink: '/admin/assistants',
     fetch: () => api.getPendingAssistants().then((d) => d?.assistants || []),
-    approve: (id) => api.approveAssistant(id),
-    reject: (id, reason) => api.rejectAssistant(id, reason) },
+    approve: (id: Unmodelled) => api.approveAssistant(id),
+    reject: (id: Unmodelled, reason: Unmodelled) => api.rejectAssistant(id, reason) },
   { key: 'lawyers', label: 'Lawyers', deepLink: '/admin/lawyers',
     fetch: () => api.getAdminPendingLawyers().then((d) => d?.lawyers || []),
-    approve: (id) => api.approveAdminLawyer(id),
-    reject: (id, reason) => api.rejectAdminLawyer(id, reason) },
+    approve: (id: Unmodelled) => api.approveAdminLawyer(id),
+    reject: (id: Unmodelled, reason: Unmodelled) => api.rejectAdminLawyer(id, reason) },
 ];
 
-function itemName(item) {
+function itemName(item: Unmodelled) {
   return item.name || item.hospitalName || item.facilityName || item.userId?.name || item.user?.name || item.email || 'Application';
 }
-function itemSub(item) {
+function itemSub(item: Unmodelled) {
   return item.email || item.phone || item.city || item.userId?.email || item.user?.email || '';
 }
 
@@ -61,7 +61,7 @@ export default function KycCommand() {
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  const loadQueue = useCallback(async (key, silent = false) => {
+  const loadQueue = useCallback(async (key: Unmodelled, silent = false) => {
     if (!silent) setLoading(true);
     try {
       const q = QUEUES.find((x) => x.key === key);
@@ -86,7 +86,7 @@ export default function KycCommand() {
 
   const queue = QUEUES.find((q) => q.key === active);
 
-  const approve = async (id) => {
+  const approve = async (id: Unmodelled) => {
     setActingId(id);
     try {
       await queue.approve(id);
@@ -97,7 +97,7 @@ export default function KycCommand() {
     finally { setActingId(null); }
   };
 
-  const reject = async (id) => {
+  const reject = async (id: Unmodelled) => {
     if (!rejectReason.trim()) { toast.error('Pick a rejection template or type a reason'); return; }
     if (!queue.reject) { toast.error('Reject is not supported for this queue yet'); return; }
     setActingId(id);

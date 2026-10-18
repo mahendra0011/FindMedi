@@ -5,9 +5,10 @@ import { ArrowRight, RefreshCw, CheckCircle, AlertCircle, ArrowLeft, ShieldCheck
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const OTP_LENGTH = 6;
-const sanitizeOtp = (value) => value.replace(/\D/g, '').slice(0, OTP_LENGTH);
+const sanitizeOtp = (value: Unmodelled) => value.replace(/\D/g, '').slice(0, OTP_LENGTH);
 
 export default function OTPVerification() {
   const navigate = useNavigate();
@@ -44,12 +45,12 @@ export default function OTPVerification() {
     return <Navigate to="/login" replace />;
   }
 
-  const handleOtpChange = (value) => {
+  const handleOtpChange = (value: Unmodelled) => {
     setOtp(sanitizeOtp(value));
     if (error) setError('');
   };
 
-  const handlePaste = (e) => {
+  const handlePaste = (e: Unmodelled) => {
     e.preventDefault();
     const pastedData = sanitizeOtp(e.clipboardData.getData('text'));
     if (!pastedData) return;
@@ -58,7 +59,7 @@ export default function OTPVerification() {
     if (error) setError('');
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: Unmodelled) => {
     e.preventDefault();
     if (otp.length !== OTP_LENGTH) {
       setError('Please enter the complete 6-digit OTP');

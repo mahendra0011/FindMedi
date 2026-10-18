@@ -109,6 +109,7 @@ import {
   GTM_THREE_PHASE_ROADMAP,
   calculateCityMarketPotential,
 } from '@/lib/pitchDeck';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 interface Decision { decision: string; why?: string; at?: string; by?: string }
 interface Project {
@@ -2216,7 +2217,7 @@ export default function ProjectsRoadmap() {
                       </div>
                       <span className="text-xs font-bold text-foreground block">{plan.phase}</span>
                       <ul className="text-[11px] text-muted-foreground space-y-1.5 pt-1">
-                        {plan.milestones.map((m, midx) => (
+                        {plan.milestones.map((m: Unmodelled, midx: Unmodelled) => (
                           <li key={midx} className="flex items-start gap-1.5">
                             <span className="text-teal-600 font-bold">•</span>
                             <span>{m}</span>

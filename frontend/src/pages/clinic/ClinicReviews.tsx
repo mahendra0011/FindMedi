@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Star, Calendar, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function ClinicReviews() {
   const { user } = useAuth();
@@ -15,7 +15,7 @@ export default function ClinicReviews() {
       setLoading(true);
       try {
         const data = await api.getReviews();
-        setReviews(data.filter(r => r.doctorName === user?.name));
+        setReviews(data.filter((r: Unmodelled) => r.doctorName === user?.name));
       } catch (e) { console.error(e); }
       setLoading(false);
     };

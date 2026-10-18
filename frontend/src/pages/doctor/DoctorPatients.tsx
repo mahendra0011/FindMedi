@@ -7,7 +7,7 @@ import { api, resolveFileUrl, isValidFileUrl } from '@/lib/api';
 import { subSlotFor } from '@/lib/timeSlots';
 import { CompletedCard } from '@/components/TodayAppointmentsSection';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function DoctorPatients() {
   const { user } = useAuth();
@@ -25,7 +25,7 @@ export default function DoctorPatients() {
       ]);
 
       const appts = a?.data || a || [];
-      const myAppointments = appts?.filter(apt =>
+      const myAppointments = appts?.filter((apt: Unmodelled) =>
         apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase()) ||
         apt.doctorId?.name?.toLowerCase().includes(user?.name?.toLowerCase())
       ) || [];
@@ -46,9 +46,9 @@ export default function DoctorPatients() {
     !search || p.patient?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const getPatientAppointments = (patientName) => appointments.filter(a => a.patient === patientName);
-  const getVisitCount = (patientName) => getPatientAppointments(patientName).length;
-  const getPatientRecordCount = (patientName) => records.filter(r => r.patient === patientName).length;
+  const getPatientAppointments = (patientName: Unmodelled) => appointments.filter(a => a.patient === patientName);
+  const getVisitCount = (patientName: Unmodelled) => getPatientAppointments(patientName).length;
+  const getPatientRecordCount = (patientName: Unmodelled) => records.filter(r => r.patient === patientName).length;
 
   if (loading) return (
     <div className="flex justify-center py-20">
@@ -104,7 +104,7 @@ export default function DoctorPatients() {
                 <CompletedCard
                   apt={latestAppt || apt}
                   subSlotFor={subSlotFor}
-                  onViewFile={(url) => {
+                  onViewFile={(url: Unmodelled) => {
                     if (!isValidFileUrl(url)) { toast.error('File unavailable — upload was not completed. Ask the patient to re-upload it.'); return; }
                     window.open(resolveFileUrl(url), '_blank');
                   }}

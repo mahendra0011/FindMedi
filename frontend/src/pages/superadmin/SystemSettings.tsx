@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import TenantQuotas from './TenantQuotas';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 function SystemSettingsTab() {
   const [settings, setSettings] = useState(null);
@@ -26,7 +27,7 @@ function SystemSettingsTab() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchSettings(); }, []);
 
-  const handleSave = async (key) => {
+  const handleSave = async (key: Unmodelled) => {
     try {
       const setting = settings[key];
       if (!setting) { toast.error('Setting not found'); return; }

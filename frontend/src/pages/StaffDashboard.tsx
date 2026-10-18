@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
-const countOf = (res, keys = []) => {
+const inr = (n: Unmodelled) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+const countOf = (res: Unmodelled, keys = []) => {
   if (!res) return 0;
   if (Array.isArray(res)) return res.length;
   for (const k of keys) {
@@ -173,7 +174,7 @@ export default function StaffDashboard() {
     let active = true;
     (async () => {
       const out = {};
-      await Promise.all(conf.calls.map(async (c) => {
+      await Promise.all(conf.calls.map(async (c: Unmodelled) => {
         try {
           const res = await c.run();
           out[c.key] = res;
@@ -188,14 +189,14 @@ export default function StaffDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role]);
 
-  const valueFor = (key, res) => {
+  const valueFor = (key: Unmodelled, res: Unmodelled) => {
     if (!res) return '—';
     if (key === 'beds' && (res.available ?? res.total)) {
       return `${res.available ?? 0}/${res.total ?? 0} free`;
     }
     if (key === 'billing' && Array.isArray(res.bills || res.data)) {
       const rows = res.bills || res.data;
-      const sum = rows.reduce((s, b) => s + (Number(b.amount) || 0), 0);
+      const sum = rows.reduce((s: Unmodelled, b: Unmodelled) => s + (Number(b.amount) || 0), 0);
       return inr(sum);
     }
     return countOf(res, ['orders', 'bookings', 'appointments', 'data', 'items', 'rows']);
@@ -212,7 +213,7 @@ export default function StaffDashboard() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {conf.calls.map((c) => (
+            {conf.calls.map((c: Unmodelled) => (
               <Link key={c.key} to={c.link} className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
                 <p className="text-2xl font-bold text-foreground">{valueFor(c.key, stats[c.key])}</p>
                 <p className="text-xs text-muted-foreground mt-1">{c.label} →</p>

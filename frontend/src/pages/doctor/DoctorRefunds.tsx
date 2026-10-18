@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function DoctorRefunds() {
   const [refunds, setRefunds] = useState<ApiRow[]>([]);
@@ -30,7 +30,7 @@ export default function DoctorRefunds() {
 
   useEffect(() => { load(); }, []);
 
-  const handleAction = async (id, action) => {
+  const handleAction = async (id: Unmodelled, action: Unmodelled) => {
     try {
       // Assuming a generic update endpoint or we simulate it if backend lacks it
       await api.put(`/payments/refund/${id}/status`, { status: action });

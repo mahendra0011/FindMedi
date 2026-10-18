@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 // Statuses must match the LabBooking model enum — earlier this page used a
 // private vocabulary (Requested/Assigned/Collected/Received at Lab) that the
@@ -21,7 +21,7 @@ const statusColors = {
 
 const nextStatus = { Pending: 'Confirmed', Confirmed: 'Sample Collected', 'Sample Collected': 'Processing' };
 
-const mapBooking = (b, i) => ({
+const mapBooking = (b: Unmodelled, i: Unmodelled) => ({
   id: b._id || `col_${i}`,
   patient: b.patientName || b.patient || 'Unknown',
   address: b.homeCollectionAddress || b.address || '',
@@ -46,13 +46,13 @@ export default function LabSampleCollection() {
     ])
       .then(([res, staff]) => {
         setCollections((res.bookings || []).map(mapBooking));
-        setPhlebotomists((staff.phlebotomists || []).map(p => p.name).filter(Boolean));
+        setPhlebotomists((staff.phlebotomists || []).map((p: Unmodelled) => p.name).filter(Boolean));
       })
       .catch((e) => { console.error(e); toast.error('Failed to load collections'); })
       .finally(() => setLoading(false));
   }, []);
 
-  const assignPhlebotomist = async (id, name) => {
+  const assignPhlebotomist = async (id: Unmodelled, name: Unmodelled) => {
     try {
       await api.updateLabBooking(id, { phlebotomist: name, status: 'Confirmed' });
       setCollections(prev => prev.map(c => c.id === id ? { ...c, phlebotomist: name, status: 'Confirmed' } : c));
@@ -61,7 +61,7 @@ export default function LabSampleCollection() {
     setAssigning(null);
   };
 
-  const advanceStatus = async (id) => {
+  const advanceStatus = async (id: Unmodelled) => {
     try {
       const c = collections.find(c => c.id === id);
       const next = nextStatus[c?.status] || c?.status;
@@ -74,7 +74,7 @@ export default function LabSampleCollection() {
   const filtered = collections.filter(c =>
     c.patient.toLowerCase().includes(search.toLowerCase()) ||
     c.address.toLowerCase().includes(search.toLowerCase()) ||
-    c.tests.some(t => t.toLowerCase().includes(search.toLowerCase()))
+    c.tests.some((t: Unmodelled) => t.toLowerCase().includes(search.toLowerCase()))
   );
 
   if (loading) {
@@ -148,7 +148,7 @@ export default function LabSampleCollection() {
                 <Badge className={`${statusColors[c.status]} border-0`}>{c.status}</Badge>
               </div>
               <div className="flex flex-wrap gap-1.5 mb-3">
-                {c.tests.map(t => (
+                {c.tests.map((t: Unmodelled) => (
                   <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{t}</span>
                 ))}
               </div>

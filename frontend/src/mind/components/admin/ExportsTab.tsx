@@ -1,8 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/mind/components/ui/card";
 import { Button } from "@/mind/components/ui/button";
 import { BarChart3, CalendarDays, CreditCard, Download, FileText, UserCog, Users } from "lucide-react";
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function ExportsTab({ data, users, totals, exportCSV }) {
+export default function ExportsTab({ data, users, totals, exportCSV }: Unmodelled) {
   return (
     <>
   <div className="grid lg:grid-cols-2 gap-6">

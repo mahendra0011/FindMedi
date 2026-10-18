@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const ROLE_OPTIONS = [
   { value: 'all', label: 'All Users', icon: Users },
@@ -47,7 +47,7 @@ export default function Broadcast() {
 
   useEffect(() => { load(); }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: Unmodelled) => {
     e.preventDefault();
     if (!title.trim() || !message.trim()) return toast.error('Title and message are required');
     setSending(true);
@@ -65,7 +65,7 @@ export default function Broadcast() {
     setSending(false);
   };
 
-  const toggleRole = (role) => {
+  const toggleRole = (role: Unmodelled) => {
     if (role === 'all') { setSelectedRoles(['all']); return; }
     const next = selectedRoles.filter(r => r !== 'all');
     if (next.includes(role)) {

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Upload, Download, FileSpreadsheet, Users, Stethoscope, CreditCard, CalendarDays, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { apiClient, getApiBaseUrl, api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const API_URL = getApiBaseUrl();
 
@@ -13,7 +14,7 @@ export default function ImportExport() {
   const [loading, setLoading] = useState(false);
   const [importResults, setImportResults] = useState({});
 
-  const handleExport = async (type, format = 'excel') => {
+  const handleExport = async (type: Unmodelled, format = 'excel') => {
     setLoading(true);
     try {
       const res = await apiClient.get(`/reports/export/${type}?format=${format}`, {
@@ -35,7 +36,7 @@ export default function ImportExport() {
     setLoading(false);
   };
 
-  const handleImport = async (type, file) => {
+  const handleImport = async (type: Unmodelled, file: Unmodelled) => {
     if (!file) return;
     
     setLoading(true);
@@ -60,7 +61,7 @@ export default function ImportExport() {
     setLoading(false);
   };
 
-  const ImportCard = ({ type, title, description, icon: Icon }) => {
+  const ImportCard = ({ type, title, description, icon: Icon }: Unmodelled) => {
     const importResult = importResults[type];
 
     return (
@@ -114,7 +115,7 @@ export default function ImportExport() {
     );
   };
 
-  const ExportCard = ({ type, title, description, icon: Icon }) => (
+  const ExportCard = ({ type, title, description, icon: Icon }: Unmodelled) => (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Icon className="w-5 h-5" /> Export {title}</CardTitle>

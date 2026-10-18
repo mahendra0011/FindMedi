@@ -6,17 +6,18 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import PatientBanner from '@/components/clinical/PatientBanner';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const labApi = {
   getOrders: (p = {}) => api.dispatch(() => Promise.resolve({ orders: [] }), '/lab/orders?' + new URLSearchParams(p)),
   getTests: () => api.dispatch(() => Promise.resolve({ tests: [] }), '/lab/tests'),
   getStats: () => api.dispatch(() => Promise.resolve({ total: 0, pending: 0, processing: 0, completed: 0, critical: 0 }), '/lab/stats'),
-  createOrder: (body) => api.dispatch(() => Promise.resolve({}), '/lab/orders', { method: 'POST', body: JSON.stringify(body) }),
-  registerSample: (id, body) => api.dispatch(() => Promise.resolve({}), `/lab/orders/${id}/register-sample`, { method: 'PUT', body: JSON.stringify(body) }),
-  collectSample: (id, body) => api.dispatch(() => Promise.resolve({}), `/lab/orders/${id}/collect-sample`, { method: 'PUT', body: JSON.stringify(body) }),
-  enterResult: (id, body) => api.dispatch(() => Promise.resolve({}), `/lab/orders/${id}/enter-result`, { method: 'PUT', body: JSON.stringify(body) }),
-  verify: (id, body) => api.dispatch(() => Promise.resolve({}), `/lab/orders/${id}/verify`, { method: 'PUT', body: JSON.stringify(body) }),
-  deliverReport: (id, body) => api.dispatch(() => Promise.resolve({}), `/lab/orders/${id}/deliver-report`, { method: 'PUT', body: JSON.stringify(body) }),
+  createOrder: (body: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/lab/orders', { method: 'POST', body: JSON.stringify(body) }),
+  registerSample: (id: Unmodelled, body: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/lab/orders/${id}/register-sample`, { method: 'PUT', body: JSON.stringify(body) }),
+  collectSample: (id: Unmodelled, body: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/lab/orders/${id}/collect-sample`, { method: 'PUT', body: JSON.stringify(body) }),
+  enterResult: (id: Unmodelled, body: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/lab/orders/${id}/enter-result`, { method: 'PUT', body: JSON.stringify(body) }),
+  verify: (id: Unmodelled, body: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/lab/orders/${id}/verify`, { method: 'PUT', body: JSON.stringify(body) }),
+  deliverReport: (id: Unmodelled, body: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/lab/orders/${id}/deliver-report`, { method: 'PUT', body: JSON.stringify(body) }),
 };
 
 const statusColors = {
@@ -56,8 +57,8 @@ export default function Lab() {
   const verifyMut = useMutation({ mutationFn: ({ id, ...body }) => labApi.verify(id, body), onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders'] }) });
 
   const addTest = () => setNewOrder(o => ({ ...o, tests: [...o.tests, { testName: '', category: 'Blood' }] }));
-  const removeTest = (i) => setNewOrder(o => ({ ...o, tests: o.tests.filter((_, idx) => idx !== i) }));
-  const updateTest = (i, field, value) => setNewOrder(o => ({ ...o, tests: o.tests.map((t, idx) => idx === i ? { ...t, [field]: value } : t) }));
+  const removeTest = (i: Unmodelled) => setNewOrder(o => ({ ...o, tests: o.tests.filter((_, idx) => idx !== i) }));
+  const updateTest = (i: Unmodelled, field: Unmodelled, value: Unmodelled) => setNewOrder(o => ({ ...o, tests: o.tests.map((t, idx) => idx === i ? { ...t, [field]: value } : t) }));
 
   return (
     <div>
@@ -124,9 +125,9 @@ export default function Lab() {
 
       {/* Orders List */}
       <div className="space-y-4">
-        {orders.map(order => {
+        {orders.map((order: Unmodelled) => {
           const isExpanded = expandedOrder === order._id;
-          const activeTests = order.tests?.filter(t => t.status !== 'Cancelled') || [];
+          const activeTests = order.tests?.filter((t: Unmodelled) => t.status !== 'Cancelled') || [];
           return (
             <div key={order._id} className="bg-card rounded-xl border shadow-sm">
               <div className="p-5 cursor-pointer" onClick={() => setExpandedOrder(isExpanded ? null : order._id)}>
@@ -150,7 +151,7 @@ export default function Lab() {
                 <div className="px-5 pb-5 border-t border-border pt-4">
                   <div className="space-y-3">
                     <PatientBanner patientId={order.patientId || ''} />
-                    {order.tests?.map((test, i) => (
+                    {order.tests?.map((test: Unmodelled, i: Unmodelled) => (
                       <div key={i} className="bg-muted/30 rounded-lg p-3 border border-border/50">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -234,7 +235,7 @@ export default function Lab() {
                     <select value={test.testName} onChange={e => updateTest(i, 'testName', e.target.value)}
                       className="flex-1 h-10 px-3 rounded-lg border border-input bg-background text-sm">
                       <option value="">Select test...</option>
-                      {labTests.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
+                      {labTests.map((t: Unmodelled) => <option key={t.name} value={t.name}>{t.name}</option>)}
                     </select>
                     <select value={test.category} onChange={e => updateTest(i, 'category', e.target.value)}
                       className="w-28 h-10 px-3 rounded-lg border border-input bg-background text-sm">

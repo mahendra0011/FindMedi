@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { api, getApiBaseUrl } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = {
   'Pending Upload': 'bg-warning/10 text-warning',
@@ -240,21 +240,21 @@ export default function LabReports() {
     }
   };
 
-  const handleUpload = async (id) => {
+  const handleUpload = async (id: Unmodelled) => {
     try {
       await api.updateLabBooking(id, { reportStatus: 'Uploaded', notes: 'Report uploaded', notified: false });
       setReports(prev => prev.map(r => r._id === id ? { ...r, reportStatus: 'Uploaded', notes: 'Report uploaded', notified: false } : r));
     } catch (e) { console.error(e); }
   };
 
-  const handleDownload = async (id) => {
+  const handleDownload = async (id: Unmodelled) => {
     try {
       await api.updateLabBooking(id, { notified: true });
       window.open(getApiBaseUrl() + '/lab/bookings/' + id + '/report', '_blank');
     } catch (e) { console.error(e); }
   };
 
-  const handleNotify = async (id) => {
+  const handleNotify = async (id: Unmodelled) => {
     try {
       await api.updateLabBooking(id, { reportStatus: 'Delivered', notified: true });
       setReports(prev => prev.map(r => r._id === id ? { ...r, reportStatus: 'Delivered', notified: true } : r));
@@ -262,14 +262,14 @@ export default function LabReports() {
     } catch (e) { console.error(e); }
   };
 
-  const dispatch = async (id) => {
+  const dispatch = async (id: Unmodelled) => {
     const fee = prompt('Delivery fee for this report (₹)', '40');
     const res = await api.dispatchLabReport(id, { deliveryFee: Number(fee) || 0 }).catch(() => null);
     if (!res?.task) return;
     setReports(prev => prev.map(r => r._id === id ? { ...r, reportStatus: 'Uploaded', reportDeliveryMode: 'Courier', reportDeliveryTaskId: res.task._id, courierStatus: res.task.status } : r));
   };
 
-  const courierChip = (r) => {
+  const courierChip = (r: Unmodelled) => {
     const s = r.courierStatus || (r.reportDeliveryTaskId ? 'Assigned' : null);
     if (!s) return null;
     return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600">{s}</span>;
@@ -335,7 +335,7 @@ export default function LabReports() {
                   <div>
                     <h3 className="font-heading font-semibold text-foreground">{r.patient}</h3>
                     <div className="flex flex-wrap gap-1.5 mt-1">
-                      {r.tests?.map((t, j) => <Badge key={j} variant="secondary" className="text-[10px]">{t}</Badge>)}
+                      {r.tests?.map((t: Unmodelled, j: Unmodelled) => <Badge key={j} variant="secondary" className="text-[10px]">{t}</Badge>)}
                     </div>
                     <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                       <Calendar className="w-3 h-3" /> {r.date}

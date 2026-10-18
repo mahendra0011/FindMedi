@@ -2,6 +2,7 @@ import * as React from "react";
 import * as ContextMenuPrimitive from "@radix-ui/react-context-menu";
 import { Check, ChevronRight, Circle } from "lucide-react";
 import { cn } from "@/mind/lib/utils";
+import type { Unmodelled } from '@/lib/apiTypes';
 const ContextMenu = ContextMenuPrimitive.Root;
 const ContextMenuTrigger = ContextMenuPrimitive.Trigger;
 const ContextMenuGroup = ContextMenuPrimitive.Group;
@@ -43,7 +44,7 @@ const ContextMenuLabel = React.forwardRef(({ className, inset, ...props }, ref) 
 ContextMenuLabel.displayName = ContextMenuPrimitive.Label.displayName;
 const ContextMenuSeparator = React.forwardRef(({ className, ...props }, ref) => (<ContextMenuPrimitive.Separator ref={ref} className={cn("-mx-1 my-1 h-px bg-border", className)} {...props}/>));
 ContextMenuSeparator.displayName = ContextMenuPrimitive.Separator.displayName;
-const ContextMenuShortcut = ({ className, ...props }) => {
+const ContextMenuShortcut = ({ className, ...props }: Unmodelled) => {
     return <span className={cn("ml-auto text-xs tracking-widest text-muted-foreground", className)} {...props}/>;
 };
 ContextMenuShortcut.displayName = "ContextMenuShortcut";

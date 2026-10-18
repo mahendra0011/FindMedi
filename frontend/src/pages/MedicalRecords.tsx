@@ -4,6 +4,7 @@ import { Search, FileText, Pill, FlaskConical, ScanLine, Receipt, Wallet, Eye, X
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const categoryConfig = {
   prescription:     { icon: Pill,         color: 'text-success',     bg: 'bg-success/10',     label: 'Prescriptions' },
@@ -35,7 +36,7 @@ export default function MedicalRecords() {
   const records = Array.isArray(data) ? data : (data?.records || data?.data || []);
 
   // Group records by doctor
-  const doctorGroups = records.reduce((acc, rec) => {
+  const doctorGroups = records.reduce((acc: Unmodelled, rec: Unmodelled) => {
     const doctorName = rec.doctor || 'Unknown';
     if (!acc[doctorName]) {
       acc[doctorName] = {
@@ -50,7 +51,7 @@ export default function MedicalRecords() {
 
   const doctorList = Object.values(doctorGroups);
 
-  const getCategoryCounts = (recs) => {
+  const getCategoryCounts = (recs: Unmodelled) => {
     const counts = {};
     Object.keys(categoryConfig).forEach(key => counts[key] = 0);
     (Array.isArray(recs) ? recs : []).forEach(r => {
@@ -107,7 +108,7 @@ export default function MedicalRecords() {
               <div key={group.doctor} className="bg-card rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 p-5">
                 <div className="flex items-start gap-3 mb-4">
                   <div className="w-12 h-12 rounded-xl bg-info/10 flex items-center justify-center text-info font-bold text-lg">
-                    {group.doctor.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    {group.doctor.split(' ').map((n: Unmodelled) => n[0]).join('').slice(0, 2)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-heading font-semibold text-foreground truncate">{group.doctor}</h3>
@@ -139,7 +140,7 @@ export default function MedicalRecords() {
                 {/* Expanded records */}
                 {isExpanded && (
                   <div className="mt-4 pt-4 border-t border-border space-y-2 max-h-64 overflow-y-auto">
-                    {group.records.map(rec => {
+                    {group.records.map((rec: Unmodelled) => {
                       const typeKey = (rec.type || '').toLowerCase().replace(/\s+/g, '_');
                       const cfg = categoryConfig[typeKey] || { icon: FileText, color: 'text-muted-foreground', bg: 'bg-muted/50' };
                       const Icon = cfg.icon;

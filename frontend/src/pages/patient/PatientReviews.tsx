@@ -5,7 +5,7 @@ import { Star, Trash2, Calendar, Search, Stethoscope, Filter, X } from 'lucide-r
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const ratingLevels = [
   { label: 'All', value: 0 },
@@ -16,9 +16,9 @@ const ratingLevels = [
   { label: '★☆☆☆☆', value: 1 },
 ];
 
-function getInitials(name) {
+function getInitials(name: Unmodelled) {
   if (!name) return '?';
-  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  return name.split(' ').map((w: Unmodelled) => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
 const avatarColors = [
@@ -26,14 +26,14 @@ const avatarColors = [
   'bg-rose-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-teal-500',
 ];
 
-function getAvatarColor(name) {
+function getAvatarColor(name: Unmodelled) {
   if (!name) return avatarColors[0];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return avatarColors[Math.abs(hash) % avatarColors.length];
 }
 
-function formatDate(dateStr) {
+function formatDate(dateStr: Unmodelled) {
   if (!dateStr) return '';
   try {
     return new Date(dateStr).toLocaleDateString('en-IN', {
@@ -63,7 +63,7 @@ export default function PatientReviews() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadData(); }, [user?.name]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     try { await api.deleteReview(id); loadData(); toast.success('Review deleted'); } catch { toast.error('Failed to delete'); }
   };
 

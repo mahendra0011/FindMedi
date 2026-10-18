@@ -16,8 +16,9 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { useVideoCall } from '@/context/VideoCallContext';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-function formatDuration(secs) {
+function formatDuration(secs: Unmodelled) {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
@@ -103,7 +104,7 @@ export default function VideoCallOverlay() {
   }, [remoteStream, remoteVideoElemRef]);
 
   // Drag handlers for moveable self-preview
-  const handleMouseDown = (e) => {
+  const handleMouseDown = (e: Unmodelled) => {
     setIsDragging(true);
     dragStartRef.current = {
       mouseX: e.clientX,
@@ -114,7 +115,7 @@ export default function VideoCallOverlay() {
   };
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: Unmodelled) => {
       if (!isDragging) return;
       const dx = dragStartRef.current.mouseX - e.clientX;
       const dy = dragStartRef.current.mouseY - e.clientY;
@@ -138,7 +139,7 @@ export default function VideoCallOverlay() {
     };
   }, [isDragging]);
 
-  const handleTouchStart = (e) => {
+  const handleTouchStart = (e: Unmodelled) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
       dragStartRef.current = {
@@ -150,7 +151,7 @@ export default function VideoCallOverlay() {
     }
   };
 
-  const handleTouchMove = (e) => {
+  const handleTouchMove = (e: Unmodelled) => {
     if (!isDragging || e.touches.length !== 1) return;
     const dx = dragStartRef.current.mouseX - e.touches[0].clientX;
     const dy = dragStartRef.current.mouseY - e.touches[0].clientY;
@@ -164,7 +165,7 @@ export default function VideoCallOverlay() {
     setIsDragging(false);
   };
 
-  const handleSendChat = (e) => {
+  const handleSendChat = (e: Unmodelled) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
     sendInCallMessage(chatInput);

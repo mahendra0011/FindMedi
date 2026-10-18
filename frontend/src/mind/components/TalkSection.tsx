@@ -1,5 +1,6 @@
 import { Video, Phone, MapPin, CheckCircle, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/mind/components/ui/button";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const talkOptions = [
   {
@@ -50,7 +51,7 @@ const iconMap = {
 };
 
 const TalkSection = () => {
-  const handleSelect = (mode) => {
+  const handleSelect = (mode: Unmodelled) => {
     window.location.href = `/mind/counselling?mode=${mode}`;
   };
 

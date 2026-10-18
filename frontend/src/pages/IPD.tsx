@@ -5,20 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import PatientBanner from '@/components/clinical/PatientBanner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const ipdApi = {
   getBeds: (p = {}) => api.dispatch(() => Promise.resolve({ beds: [] }), '/ipd/beds?' + new URLSearchParams(p)),
-  createBed: (b) => api.dispatch(() => Promise.resolve({}), '/ipd/beds', { method: 'POST', body: JSON.stringify(b) }),
-  updateBed: (id, b) => api.dispatch(() => Promise.resolve({}), `/ipd/beds/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+  createBed: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/ipd/beds', { method: 'POST', body: JSON.stringify(b) }),
+  updateBed: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ipd/beds/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
   getAdmissions: (p = {}) => api.dispatch(() => Promise.resolve({ admissions: [] }), '/ipd/admissions?' + new URLSearchParams(p)),
-  createAdmission: (b) => api.dispatch(() => Promise.resolve({}), '/ipd/admissions', { method: 'POST', body: JSON.stringify(b) }),
-  discharge: (id, b) => api.dispatch(() => Promise.resolve({}), `/ipd/admissions/${id}/discharge`, { method: 'PUT', body: JSON.stringify(b) }),
-  addVitals: (id, b) => api.dispatch(() => Promise.resolve({}), `/ipd/admissions/${id}/vitals`, { method: 'POST', body: JSON.stringify(b) }),
-  addMar: (id, b) => api.dispatch(() => Promise.resolve({}), `/ipd/admissions/${id}/mar`, { method: 'POST', body: JSON.stringify(b) }),
-  addIO: (id, b) => api.dispatch(() => Promise.resolve({}), `/ipd/admissions/${id}/io`, { method: 'POST', body: JSON.stringify(b) }),
-  addNursingNote: (id, b) => api.dispatch(() => Promise.resolve({}), `/ipd/admissions/${id}/nursing-notes`, { method: 'POST', body: JSON.stringify(b) }),
-  addDoctorNote: (id, b) => api.dispatch(() => Promise.resolve({}), `/ipd/admissions/${id}/doctor-notes`, { method: 'POST', body: JSON.stringify(b) }),
-  addWoundCare: (id, b) => api.dispatch(() => Promise.resolve({}), `/ipd/admissions/${id}/wound-care`, { method: 'POST', body: JSON.stringify(b) }),
+  createAdmission: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/ipd/admissions', { method: 'POST', body: JSON.stringify(b) }),
+  discharge: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ipd/admissions/${id}/discharge`, { method: 'PUT', body: JSON.stringify(b) }),
+  addVitals: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ipd/admissions/${id}/vitals`, { method: 'POST', body: JSON.stringify(b) }),
+  addMar: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ipd/admissions/${id}/mar`, { method: 'POST', body: JSON.stringify(b) }),
+  addIO: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ipd/admissions/${id}/io`, { method: 'POST', body: JSON.stringify(b) }),
+  addNursingNote: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ipd/admissions/${id}/nursing-notes`, { method: 'POST', body: JSON.stringify(b) }),
+  addDoctorNote: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ipd/admissions/${id}/doctor-notes`, { method: 'POST', body: JSON.stringify(b) }),
+  addWoundCare: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/ipd/admissions/${id}/wound-care`, { method: 'POST', body: JSON.stringify(b) }),
   getStats: () => api.dispatch(() => Promise.resolve({ totalBeds: 0, available: 0, occupied: 0, cleaning: 0, maintenance: 0, totalAdmissions: 0, activePatients: 0 }), '/ipd/stats'),
 };
 
@@ -73,7 +74,7 @@ export default function IPD() {
   const doctorNoteMut = useMutation({ mutationFn: ({ id, ...b }) => ipdApi.addDoctorNote(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
   
 
-  const renderAdmissionDetails = (adm) => {
+  const renderAdmissionDetails = (adm: Unmodelled) => {
     if (!adm) return null;
     return (
       <div className="px-4 pb-4 border-t pt-3 space-y-4">
@@ -215,7 +216,7 @@ export default function IPD() {
             <Button onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" /> Add Bed</Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {beds.map(bed => (
+            {beds.map((bed: Unmodelled) => (
               <div key={bed._id} className={`bg-card rounded-xl border p-4 ${bed.status === 'Occupied' ? 'border-destructive/30' : bed.status === 'Available' ? 'border-success/30' : 'border-warning/30'}`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2"><Bed className="w-4 h-4 text-foreground" /><span className="font-heading font-semibold text-foreground">{bed.bedNumber}</span></div>
@@ -240,7 +241,7 @@ export default function IPD() {
             <Button onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" /> New Admission</Button>
           </div>
           <div className="space-y-4">
-            {admissions.map(adm => (
+            {admissions.map((adm: Unmodelled) => (
               <div key={adm._id} className="bg-card rounded-xl border p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -296,7 +297,7 @@ export default function IPD() {
               <div><label className="text-sm font-medium mb-1 block">Patient Name</label><Input value={newAdmission.patientName} onChange={e => setNewAdmission({ ...newAdmission, patientName: e.target.value })} /></div>
               <div><label className="text-sm font-medium mb-1 block">Source</label><select value={newAdmission.source} onChange={e => setNewAdmission({ ...newAdmission, source: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['OPD', 'Emergency', 'Direct', 'Referral'].map(s => <option key={s} value={s}>{s}</option>)}</select></div>
               <div><label className="text-sm font-medium mb-1 block">Primary Diagnosis</label><Input value={newAdmission.primaryDiagnosis} onChange={e => setNewAdmission({ ...newAdmission, primaryDiagnosis: e.target.value })} /></div>
-              <div><label className="text-sm font-medium mb-1 block">Bed (optional)</label><select value={newAdmission.bedId} onChange={e => setNewAdmission({ ...newAdmission, bedId: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="">Select bed...</option>{beds.filter(b => b.status === 'Available').map(b => <option key={b._id} value={b._id}>{b.bedNumber} - {b.ward} (₹{b.dailyRate})</option>)}</select></div>
+              <div><label className="text-sm font-medium mb-1 block">Bed (optional)</label><select value={newAdmission.bedId} onChange={e => setNewAdmission({ ...newAdmission, bedId: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="">Select bed...</option>{beds.filter((b: Unmodelled) => b.status === 'Available').map((b: Unmodelled) => <option key={b._id} value={b._id}>{b.bedNumber} - {b.ward} (₹{b.dailyRate})</option>)}</select></div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="text-sm font-medium mb-1 block">Attendant Name</label><Input value={newAdmission.attendantName} onChange={e => setNewAdmission({ ...newAdmission, attendantName: e.target.value })} /></div>
                 <div><label className="text-sm font-medium mb-1 block">Attendant Phone</label><Input value={newAdmission.attendantPhone} onChange={e => setNewAdmission({ ...newAdmission, attendantPhone: e.target.value })} /></div>

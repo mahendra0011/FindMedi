@@ -2,6 +2,7 @@ import * as React from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronRight, Circle } from "lucide-react";
 import { cn } from "@/mind/lib/utils";
+import type { Unmodelled } from '@/lib/apiTypes';
 const DropdownMenu = DropdownMenuPrimitive.Root;
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 const DropdownMenuGroup = DropdownMenuPrimitive.Group;
@@ -43,7 +44,7 @@ const DropdownMenuLabel = React.forwardRef(({ className, inset, ...props }, ref)
 DropdownMenuLabel.displayName = DropdownMenuPrimitive.Label.displayName;
 const DropdownMenuSeparator = React.forwardRef(({ className, ...props }, ref) => (<DropdownMenuPrimitive.Separator ref={ref} className={cn("-mx-1 my-1 h-px bg-muted", className)} {...props}/>));
 DropdownMenuSeparator.displayName = DropdownMenuPrimitive.Separator.displayName;
-const DropdownMenuShortcut = ({ className, ...props }) => {
+const DropdownMenuShortcut = ({ className, ...props }: Unmodelled) => {
     return <span className={cn("ml-auto text-xs tracking-widest opacity-60", className)} {...props}/>;
 };
 DropdownMenuShortcut.displayName = "DropdownMenuShortcut";

@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 
 // subcatogary.md Part C §4 — Canonical test categories
 import { FALLBACK_TEST_CATEGORIES } from '@/data/testCategoriesFallback';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const DEPARTMENTS = ['Pathology', 'Radiology', 'Cardiology', 'Health Packages'];
 const REPORT_TIMES = ['30 mins', '1 hr', '2 hrs', '6 hrs', '12 hrs', '24 hrs', '48 hrs', '72 hrs'];
@@ -89,7 +89,7 @@ export default function AdminTestCatalog() {
     } catch { toast.error(editId ? 'Failed to update test' : 'Failed to create test'); }
   };
 
-  const handleEdit = (test) => {
+  const handleEdit = (test: Unmodelled) => {
     setForm({
       name: test.name, category: test.category, department: test.department || 'Pathology',
       price: test.price?.toString() || '', mrp: test.mrp?.toString() || '',
@@ -105,12 +105,12 @@ export default function AdminTestCatalog() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Permanently delete this test?')) return;
     try { await api.deleteTest(id); loadTests(); } catch { toast.error('Failed to delete test'); }
   };
 
-  const calcDiscount = (mrp, price) => {
+  const calcDiscount = (mrp: Unmodelled, price: Unmodelled) => {
     if (!mrp || !price) return 0;
     return Math.round((1 - price / mrp) * 100);
   };

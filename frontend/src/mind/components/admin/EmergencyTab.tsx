@@ -1,17 +1,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/mind/components/ui/card";
 import { Badge } from "@/mind/components/ui/badge";
 import { AlertTriangle, CheckCircle2, Activity, MessageCircle, Phone, ShieldAlert, ShieldCheck } from "lucide-react";
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function EmergencyTab({ data, users }) {
+export default function EmergencyTab({ data, users }: Unmodelled) {
   return (
     <>
   <div className="grid md:grid-cols-5 gap-4">
     {[
       { label: "Total Alerts", value: data.emergency.length, color: "text-rose-500", icon: ShieldAlert },
-      { label: "Open", value: data.emergency.filter(a => a.status === "open").length, color: "text-amber-500", icon: AlertTriangle },
-      { label: "Reviewed", value: data.emergency.filter(a => a.status === "reviewed").length, color: "text-emerald-500", icon: CheckCircle2 },
-      { label: "Peer Support", value: data.emergency.filter(a => a.source === "peer-support").length, color: "text-violet-500", icon: MessageCircle },
-      { label: "Wellness SOS", value: data.emergency.filter(a => a.source === "wellness").length, color: "text-blue-500", icon: Activity },
+      { label: "Open", value: data.emergency.filter((a: Unmodelled) => a.status === "open").length, color: "text-amber-500", icon: AlertTriangle },
+      { label: "Reviewed", value: data.emergency.filter((a: Unmodelled) => a.status === "reviewed").length, color: "text-emerald-500", icon: CheckCircle2 },
+      { label: "Peer Support", value: data.emergency.filter((a: Unmodelled) => a.source === "peer-support").length, color: "text-violet-500", icon: MessageCircle },
+      { label: "Wellness SOS", value: data.emergency.filter((a: Unmodelled) => a.source === "wellness").length, color: "text-blue-500", icon: Activity },
     ].map((s) => (
       <div key={s.label} className="rounded-xl border border-glass-border/30 bg-gradient-to-br from-background/80 to-background/60 p-4 flex items-center justify-between">
         <div>
@@ -42,7 +43,7 @@ export default function EmergencyTab({ data, users }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {data.emergency.map((alert) => {
+          {data.emergency.map((alert: Unmodelled) => {
             const sourceConfig = {
               wellness: { label: "Wellness SOS", color: "bg-blue-500/15 text-blue-600 border-blue-500/20" },
               "peer-support": { label: "Peer Support", color: "bg-violet-500/15 text-violet-600 border-violet-500/20" },

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 
 import "./FlowingMenu.css";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 function FlowingMenu({
   items = [],
@@ -31,7 +32,7 @@ function FlowingMenu({
   );
 }
 
-function MenuItem({ link, text, image, speed, textColor, marqueeBgColor, marqueeTextColor, borderColor }) {
+function MenuItem({ link, text, image, speed, textColor, marqueeBgColor, marqueeTextColor, borderColor }: Unmodelled) {
   const itemRef = useRef(null);
   const marqueeRef = useRef(null);
   const marqueeInnerRef = useRef(null);
@@ -40,13 +41,13 @@ function MenuItem({ link, text, image, speed, textColor, marqueeBgColor, marquee
 
   const animationDefaults = { duration: 0.6, ease: "expo" };
 
-  const distMetric = (x, y, x2, y2) => {
+  const distMetric = (x: Unmodelled, y: Unmodelled, x2: Unmodelled, y2: Unmodelled) => {
     const xDiff = x - x2;
     const yDiff = y - y2;
     return xDiff * xDiff + yDiff * yDiff;
   };
 
-  const findClosestEdge = (mouseX, mouseY, width, height) => {
+  const findClosestEdge = (mouseX: Unmodelled, mouseY: Unmodelled, width: Unmodelled, height: Unmodelled) => {
     const topEdgeDist = distMetric(mouseX, mouseY, width / 2, 0);
     const bottomEdgeDist = distMetric(mouseX, mouseY, width / 2, height);
     return topEdgeDist < bottomEdgeDist ? "top" : "bottom";
@@ -101,7 +102,7 @@ function MenuItem({ link, text, image, speed, textColor, marqueeBgColor, marquee
     };
   }, [text, image, repetitions, speed]);
 
-  const handleMouseEnter = (ev) => {
+  const handleMouseEnter = (ev: Unmodelled) => {
     if (!itemRef.current || !marqueeRef.current || !marqueeInnerRef.current) return;
     const rect = itemRef.current.getBoundingClientRect();
     const x = ev.clientX - rect.left;
@@ -115,7 +116,7 @@ function MenuItem({ link, text, image, speed, textColor, marqueeBgColor, marquee
       .to([marqueeRef.current, marqueeInnerRef.current], { y: "0%" }, 0);
   };
 
-  const handleMouseLeave = (ev) => {
+  const handleMouseLeave = (ev: Unmodelled) => {
     if (!itemRef.current || !marqueeRef.current || !marqueeInnerRef.current) return;
     const rect = itemRef.current.getBoundingClientRect();
     const x = ev.clientX - rect.left;
@@ -128,7 +129,7 @@ function MenuItem({ link, text, image, speed, textColor, marqueeBgColor, marquee
       .to(marqueeInnerRef.current, { y: edge === "top" ? "101%" : "-101%" }, 0);
   };
 
-  const handleClick = (ev) => {
+  const handleClick = (ev: Unmodelled) => {
     if (!link?.startsWith("#")) return;
     const target = document.getElementById(link.slice(1));
     if (!target) return;

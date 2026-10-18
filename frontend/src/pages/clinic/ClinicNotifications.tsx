@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const typeIcons = {
   booking: CalendarDays,
@@ -60,7 +60,7 @@ export default function ClinicNotifications() {
     return n.type === filter.toLowerCase();
   });
 
-  const markRead = async (id) => {
+  const markRead = async (id: Unmodelled) => {
     try {
       await api.markNotificationRead(id);
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
@@ -90,7 +90,7 @@ export default function ClinicNotifications() {
     } catch (e) { console.error(e); }
   };
 
-  const toggleSelect = (id) => {
+  const toggleSelect = (id: Unmodelled) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);

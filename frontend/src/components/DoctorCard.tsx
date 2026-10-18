@@ -8,8 +8,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import BookingModal from './BookingModal';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-const renderStars = (rating) => (
+const renderStars = (rating: Unmodelled) => (
   <div className="flex items-center gap-0.5">
     {[1, 2, 3, 4, 5].map((s) => (
       <Star
@@ -25,7 +26,7 @@ const renderStars = (rating) => (
   </div>
 );
 
-export default function DoctorCard({ doctor, index = 0 }) {
+export default function DoctorCard({ doctor, index = 0 }: Unmodelled) {
   const navigate = useNavigate();
   const [showBooking, setShowBooking] = useState(false);
 
@@ -40,7 +41,7 @@ export default function DoctorCard({ doctor, index = 0 }) {
   } = doctor;
 
   const initials = (name || '')
-    .split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+    .split(' ').map((n: Unmodelled) => n[0]).join('').slice(0, 2).toUpperCase();
 
   // Hospital vs clinic doctor detail route
   const profilePath = doctor_type === 'clinic'
@@ -139,7 +140,7 @@ export default function DoctorCard({ doctor, index = 0 }) {
         {/* Areas of expertise */}
         {areas_of_expertise?.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {areas_of_expertise.slice(0, 4).map((exp, i) => (
+            {areas_of_expertise.slice(0, 4).map((exp: Unmodelled, i: Unmodelled) => (
               <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium bg-primary/5 text-primary border border-primary/10">
                 {exp}
               </span>

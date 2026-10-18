@@ -1,8 +1,9 @@
 import { Badge } from "@/mind/components/ui/badge";
 import { Button } from "@/mind/components/ui/button";
 import { AlertTriangle, CalendarDays, CheckCircle2, ShieldAlert, ShieldCheck, UserCog, Users, Video } from "lucide-react";
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function CounsellorsTab({ data, users, updateUserStatus, updateUserDetails }) {
+export default function CounsellorsTab({ data, users, updateUserStatus, updateUserDetails }: Unmodelled) {
   return (
     <>
   {/* Counsellor Stats */}
@@ -33,7 +34,7 @@ export default function CounsellorsTab({ data, users, updateUserStatus, updateUs
           </div>
           <span className="text-[10px] uppercase tracking-widest text-emerald-400/60 font-medium">Approved</span>
         </div>
-        <div className="text-2xl font-bold text-emerald-400">{data.counsellors.filter(c => c.status === "approved" || c.status === "active").length}</div>
+        <div className="text-2xl font-bold text-emerald-400">{data.counsellors.filter((c: Unmodelled) => c.status === "approved" || c.status === "active").length}</div>
         <div className="flex items-center gap-1.5 mt-1.5">
           <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-xs text-emerald-400/60">Verified counsellors</span>
@@ -50,7 +51,7 @@ export default function CounsellorsTab({ data, users, updateUserStatus, updateUs
           </div>
           <span className="text-[10px] uppercase tracking-widest text-amber-400/60 font-medium">Pending</span>
         </div>
-        <div className="text-2xl font-bold text-amber-400">{data.counsellors.filter(c => c.status === "pending" || !c.status).length}</div>
+        <div className="text-2xl font-bold text-amber-400">{data.counsellors.filter((c: Unmodelled) => c.status === "pending" || !c.status).length}</div>
         <div className="flex items-center gap-1.5 mt-1.5">
           <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
           <span className="text-xs text-amber-400/60">Awaiting approval</span>
@@ -67,7 +68,7 @@ export default function CounsellorsTab({ data, users, updateUserStatus, updateUs
           </div>
           <span className="text-[10px] uppercase tracking-widest text-rose-400/60 font-medium">Suspended</span>
         </div>
-        <div className="text-2xl font-bold text-rose-400">{data.counsellors.filter(c => c.status === "suspended").length}</div>
+        <div className="text-2xl font-bold text-rose-400">{data.counsellors.filter((c: Unmodelled) => c.status === "suspended").length}</div>
         <div className="flex items-center gap-1.5 mt-1.5">
           <div className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
           <span className="text-xs text-rose-400/60">Suspended accounts</span>
@@ -87,7 +88,7 @@ export default function CounsellorsTab({ data, users, updateUserStatus, updateUs
         <p className="text-sm text-foreground/50 mt-1">Counsellors will appear here once they register and submit applications.</p>
       </div>
     ) : (
-      data.counsellors.map((counsellor) => {
+      data.counsellors.map((counsellor: Unmodelled) => {
         const rating = counsellor.rating || 0;
         const isApproved = counsellor.status === "approved" || counsellor.status === "active";
         const isSuspended = counsellor.status === "suspended";
@@ -167,7 +168,7 @@ export default function CounsellorsTab({ data, users, updateUserStatus, updateUs
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {(counsellor.availability || []).length > 0 ? (
-                    counsellor.availability.map((slot, i) => (
+                    counsellor.availability.map((slot: Unmodelled, i: Unmodelled) => (
                       <span key={i} className="text-[10px] bg-foreground/10 px-2 py-0.5 rounded-md text-foreground/70">{slot}</span>
                     ))
                   ) : (

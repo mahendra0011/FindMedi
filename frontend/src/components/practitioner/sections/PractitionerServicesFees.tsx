@@ -2,6 +2,7 @@ import React from 'react';
 import { Video, Building2, Phone, MessageSquare, Home, Sparkles, Check, Clock, Calendar, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PractitionerDTO } from './PractitionerHeader';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 interface PractitionerServicesFeesProps {
   practitioner: PractitionerDTO;
@@ -66,7 +67,7 @@ export default function PractitionerServicesFees({
     : defaultModes;
 
   // Add home visit if supported
-  if (practitioner.homeVisitSupported && !modes.some((m) => m.mode === 'home_visit')) {
+  if (practitioner.homeVisitSupported && !modes.some((m: Unmodelled) => m.mode === 'home_visit')) {
     modes.push({
       mode: 'home_visit',
       name: 'Doctor Home Visit',
@@ -121,7 +122,7 @@ export default function PractitionerServicesFees({
 
       {/* Modes Grid */}
       <div className="grid sm:grid-cols-2 gap-4">
-        {modes.map((item, idx) => (
+        {modes.map((item: Unmodelled, idx: Unmodelled) => (
           <div
             key={idx}
             className={`relative rounded-2xl border p-5 transition-all flex flex-col justify-between ${

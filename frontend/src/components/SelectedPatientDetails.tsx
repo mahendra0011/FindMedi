@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDisplayDate } from '@/lib/dateUtils';
 import { ordinal, statusColors } from '@/components/AppointmentCard';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function SelectedPatientDetails({ 
   appointments,
@@ -15,7 +16,7 @@ export default function SelectedPatientDetails({
   onViewHistory, 
   onWritePrescription,
   onComplete,
-}) {
+}: Unmodelled) {
   const [showCompleteFlow, setShowCompleteFlow] = useState(false);
   const [quickNotes, setQuickNotes] = useState('');
   const [showDetails, setShowDetails] = useState(false);
@@ -41,7 +42,7 @@ export default function SelectedPatientDetails({
   const isReturning = pastVisitCount > 0;
   const badgeText = isReturning ? `${ordinal(visitNumber)} Visit` : '1st Visit';
   const badgeColor = isReturning ? 'bg-purple-500/10 text-purple-600 border border-purple-200' : 'bg-emerald-500/10 text-emerald-600 border border-emerald-200';
-  const initials = (apt.patient || 'Unknown').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  const initials = (apt.patient || 'Unknown').split(' ').map((n: Unmodelled) => n[0]).join('').substring(0, 2).toUpperCase();
 
   const handleConfirmComplete = () => {
     onComplete(apt, quickNotes);

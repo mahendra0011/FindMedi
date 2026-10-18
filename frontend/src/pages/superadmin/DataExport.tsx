@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api, apiClient } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const EXPORTS = [
   { id: 'users', label: 'Users Export', icon: Users, desc: 'All platform users with role, status, contact info', endpoint: 'users' },
@@ -19,7 +20,7 @@ export default function DataExport() {
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
   const [exporting, setExporting] = useState(null);
 
-  const handleExport = async (type) => {
+  const handleExport = async (type: Unmodelled) => {
     setExporting(type);
     try {
       const params = new URLSearchParams({ format: 'csv', ...dateRange });

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /** File 17 §17.1: report studio — catalogue, whitelisted runs, views, schedules. */
 export default function ReportStudioPage() {
@@ -114,7 +115,7 @@ export default function ReportStudioPage() {
                   key: c,
                   label: c,
                   sortable: false,
-                  render: (v) => <span className="block max-w-48 truncate">{String(v ?? '')}</span>,
+                  render: (v: Unmodelled) => <span className="block max-w-48 truncate">{String(v ?? '')}</span>,
                 }))}
                 rows={(out.rows || []).slice(0, 200).map((r: any, i: number) => ({ ...r, __id: `r-${i}` }))}
                 rowKey="__id"

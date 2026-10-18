@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Download, Loader2, Send } from 'lucide-react';
 import { apiClient, getApiBaseUrl, api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const API_URL = getApiBaseUrl();
 
@@ -125,7 +126,7 @@ export default function PDFReports() {
     });
   };
 
-  const buildReportPayload = (type) => {
+  const buildReportPayload = (type: Unmodelled) => {
     if (type === 'prescription') {
       return {
         patient: {
@@ -203,7 +204,7 @@ export default function PDFReports() {
     };
   };
 
-  const generatePDF = async (type) => {
+  const generatePDF = async (type: Unmodelled) => {
     setLoading(true);
     setStatusMessage('');
     setErrorMessage('');
@@ -231,7 +232,7 @@ export default function PDFReports() {
     setLoading(false);
   };
 
-  const sendViaEmail = async (type) => {
+  const sendViaEmail = async (type: Unmodelled) => {
     setLoading(true);
     setStatusMessage('');
     setErrorMessage('');

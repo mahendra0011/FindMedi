@@ -7,7 +7,7 @@ import { api, resolveFileUrl, isValidFileUrl } from '@/lib/api';
 import { subSlotFor } from '@/lib/timeSlots';
 import { CompletedCard } from '@/components/TodayAppointmentsSection';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function ClinicPatients() {
   const { user } = useAuth();
@@ -21,7 +21,7 @@ export default function ClinicPatients() {
     try {
       const [a, r] = await Promise.all([api.getAppointments(), api.getRecords()]);
       const appts = a?.data || a || [];
-      const myAppts = appts?.filter(apt => apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())) || [];
+      const myAppts = appts?.filter((apt: Unmodelled) => apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())) || [];
       setAppointments(myAppts);
       setRecords(r?.data || r?.records || r || []);
     } catch (e) { console.error(e); }
@@ -36,9 +36,9 @@ export default function ClinicPatients() {
 
   const filteredPatients = uniquePatients.filter(p => !search || p.patient?.toLowerCase().includes(search.toLowerCase()));
 
-  const getPatientAppointments = (name) => appointments.filter(a => a.patient === name);
-  const getVisitCount = (name) => getPatientAppointments(name).length;
-  const getRecordCount = (name) => records.filter(r => r.patient === name).length;
+  const getPatientAppointments = (name: Unmodelled) => appointments.filter(a => a.patient === name);
+  const getVisitCount = (name: Unmodelled) => getPatientAppointments(name).length;
+  const getRecordCount = (name: Unmodelled) => records.filter(r => r.patient === name).length;
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
@@ -106,7 +106,7 @@ export default function ClinicPatients() {
                 <CompletedCard
                   apt={latestAppt || apt}
                   subSlotFor={subSlotFor}
-                  onViewFile={(url) => {
+                  onViewFile={(url: Unmodelled) => {
                     if (!isValidFileUrl(url)) { toast.error('File unavailable — upload was not completed. Ask the patient to re-upload it.'); return; }
                     window.open(resolveFileUrl(url), '_blank');
                   }}

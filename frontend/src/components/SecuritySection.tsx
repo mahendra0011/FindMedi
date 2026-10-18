@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 /**
  * File 22 P2-31: idle-PIN lock + WebAuthn passkey management.
@@ -22,12 +22,12 @@ function genChallenge(bytes = 32) {
   return buf;
 }
 
-function b64url(buf) {
+function b64url(buf: Unmodelled) {
   return btoa(String.fromCharCode(...new Uint8Array(buf)))
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function fromB64url(s) {
+function fromB64url(s: Unmodelled) {
   const b = atob(s.replace(/-/g, '+').replace(/_/g, '/'));
   return Uint8Array.from(b, (c) => c.charCodeAt(0));
 }
@@ -85,7 +85,7 @@ export default function SecuritySection() {
       opts.user.id = b64url(fromB64url(opts.user.id));
       opts.challenge = fromB64url(opts.challenge);
       if (opts.excludeCredentials) {
-        opts.excludeCredentials = opts.excludeCredentials.map((c) => ({ ...c, id: fromB64url(c.id) }));
+        opts.excludeCredentials = opts.excludeCredentials.map((c: Unmodelled) => ({ ...c, id: fromB64url(c.id) }));
       }
       const att = await WebAuthnClient.startRegistration({ optionsJSON: opts });
       const verResp = await fetch('/api/webauthn/register/verify', {
@@ -198,13 +198,13 @@ function IPAllowlistEditor() {
     void ipCall('put', { allowedIps: [...ips, v] });
   };
 
-  const remove = (ip) => {
+  const remove = (ip: Unmodelled) => {
     const next = ips.filter((x) => x !== ip);
     setIps(next);
     void ipCall('put', { allowedIps: next });
   };
 
-  const ipCall = async (method, body) => {
+  const ipCall = async (method: Unmodelled, body: Unmodelled) => {
     try {
       const r = await fetch('/api/auth/allowed-ips', {
         method,

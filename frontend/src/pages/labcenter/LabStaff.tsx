@@ -14,7 +14,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 
 export default function LabStaff() {
@@ -43,7 +43,7 @@ export default function LabStaff() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: Unmodelled) => {
     e.preventDefault();
     if (!form.name || !form.role) { toast.error('Name and Role are required'); return; }
     
@@ -64,13 +64,13 @@ export default function LabStaff() {
     }
   };
 
-  const handleEdit = (staff) => { 
+  const handleEdit = (staff: Unmodelled) => { 
     setForm(staff); 
     setEditId(staff._id || staff.id); 
     setShowForm(true); 
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     try {
       await api.deleteStaff(id);
       toast.success('Staff removed');
@@ -128,7 +128,7 @@ export default function LabStaff() {
           <motion.div key={staff._id || staff.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-2xl border border-border/50 overflow-hidden hover:shadow-lg transition-all">
             <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-5 flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
-                <span className="text-primary-foreground font-bold text-lg">{staff.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</span>
+                <span className="text-primary-foreground font-bold text-lg">{staff.name.split(' ').map((n: Unmodelled)=>n[0]).join('').slice(0,2)}</span>
               </div>
               <div className="min-w-0">
                 <p className="font-semibold text-foreground truncate">{staff.name}</p>

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = {
   Pending: 'bg-warning/10 text-warning', Processing: 'bg-info/10 text-info',
@@ -30,11 +30,11 @@ export default function PharmacyOrders() {
   }, [status, search]);
 
   const columns = [
-    { key: 'orderId', label: 'Order ID', render: (v, r) => <span className="font-medium text-foreground">{v || r._id?.slice(-6)}</span> },
-    { key: 'customer', label: 'Customer', render: (v, r) => <span className="text-muted-foreground">{r.patientName || v || '—'}</span> },
-    { key: 'items', label: 'Items', render: (v) => <span className="text-muted-foreground">{v ?? '—'}</span> },
-    { key: 'total', label: 'Total', render: (v) => <span className="font-medium text-foreground">₹{(v || 0).toLocaleString()}</span> },
-    { key: 'status', label: 'Status', render: (v) => <Badge className={statusColors[v]}>{v}</Badge> },
+    { key: 'orderId', label: 'Order ID', render: (v: Unmodelled, r: Unmodelled) => <span className="font-medium text-foreground">{v || r._id?.slice(-6)}</span> },
+    { key: 'customer', label: 'Customer', render: (v: Unmodelled, r: Unmodelled) => <span className="text-muted-foreground">{r.patientName || v || '—'}</span> },
+    { key: 'items', label: 'Items', render: (v: Unmodelled) => <span className="text-muted-foreground">{v ?? '—'}</span> },
+    { key: 'total', label: 'Total', render: (v: Unmodelled) => <span className="font-medium text-foreground">₹{(v || 0).toLocaleString()}</span> },
+    { key: 'status', label: 'Status', render: (v: Unmodelled) => <Badge className={statusColors[v]}>{v}</Badge> },
   ];
 
   // The API already applies the status + search filters, so the rows handed in

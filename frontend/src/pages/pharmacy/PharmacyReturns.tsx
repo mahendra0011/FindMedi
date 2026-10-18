@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = {
   Pending: 'bg-warning/10 text-warning', Approved: 'bg-success/10 text-success',
@@ -27,21 +27,21 @@ export default function PharmacyReturns() {
 
   useEffect(() => { load(); }, [load]);
 
-  const updateStatus = async (id, status) => {
+  const updateStatus = async (id: Unmodelled, status: Unmodelled) => {
     try { await api.updatePharmacyReturn(id, { status }); toast.success(`Return ${status}`); load(); }
     catch (e) { toast.error(e.message); }
   };
 
   const columns = [
-    { key: 'returnId', label: 'Return ID', render: (v, r) => <span className="font-medium text-foreground">{v || r._id?.slice(-6)}</span> },
-    { key: 'medicine', label: 'Medicine', render: (v) => <span className="text-muted-foreground">{v || '—'}</span> },
-    { key: 'quantity', label: 'Qty', render: (v) => <span className="text-muted-foreground">{v || 0}</span> },
-    { key: 'status', label: 'Status', render: (v) => <Badge className={statusColors[v]}>{v}</Badge> },
+    { key: 'returnId', label: 'Return ID', render: (v: Unmodelled, r: Unmodelled) => <span className="font-medium text-foreground">{v || r._id?.slice(-6)}</span> },
+    { key: 'medicine', label: 'Medicine', render: (v: Unmodelled) => <span className="text-muted-foreground">{v || '—'}</span> },
+    { key: 'quantity', label: 'Qty', render: (v: Unmodelled) => <span className="text-muted-foreground">{v || 0}</span> },
+    { key: 'status', label: 'Status', render: (v: Unmodelled) => <Badge className={statusColors[v]}>{v}</Badge> },
     {
       key: '_actions',
       label: 'Actions',
       sortable: false,
-      render: (_v, r) => (
+      render: (_v: Unmodelled, r: Unmodelled) => (
         <div className="flex items-center justify-end gap-1">
           {r.status === 'Pending' && (
             <>

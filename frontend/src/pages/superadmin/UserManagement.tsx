@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function UserManagementTab() {
   const navigate = useNavigate();
@@ -30,23 +30,23 @@ export default function UserManagementTab() {
 
   useEffect(() => { loadUsers(); }, [search, roleFilter, showFlagged]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Permanently delete this user?')) return;
     try { await api.deleteUser(id); loadUsers(); } catch { toast.error('Failed to delete user'); }
   };
 
-  const handleBlock = async (id) => {
+  const handleBlock = async (id: Unmodelled) => {
     if (!confirm('Toggle block status for this user?')) return;
     try { await api.blockUser(id); loadUsers(); } catch { toast.error('Failed to update user status'); }
   };
 
-  const handleFlag = async (id, name) => {
+  const handleFlag = async (id: Unmodelled, name: Unmodelled) => {
     const reason = prompt(`Flag ${name} as suspicious? Enter reason:`);
     if (!reason) return;
     try { await api.flagUser(id, { reason }); toast.success('User flagged'); loadUsers(); } catch { toast.error('Failed to flag user'); }
   };
 
-  const handleUnflag = async (id) => {
+  const handleUnflag = async (id: Unmodelled) => {
     try { await api.unflagUser(id); toast.success('User unflagged'); loadUsers(); } catch { toast.error('Failed to unflag user'); }
   };
 
@@ -64,7 +64,7 @@ export default function UserManagementTab() {
   const columns = [
     {
       key: 'name', label: 'User',
-      render: (v) => (
+      render: (v: Unmodelled) => (
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
             {v?.charAt(0).toUpperCase()}
@@ -73,10 +73,10 @@ export default function UserManagementTab() {
         </div>
       ),
     },
-    { key: 'email', label: 'Email', render: (v) => <span className="text-muted-foreground">{v}</span> },
+    { key: 'email', label: 'Email', render: (v: Unmodelled) => <span className="text-muted-foreground">{v}</span> },
     {
       key: 'role', label: 'Role',
-      render: (v) => {
+      render: (v: Unmodelled) => {
         const RoleIcon = roleIcons[v] || UserRound;
         return (
           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize flex items-center gap-1 w-fit ${roleColors[v] || 'bg-muted text-muted-foreground'}`}>
@@ -87,7 +87,7 @@ export default function UserManagementTab() {
     },
     {
       key: 'status', label: 'Status',
-      render: (v) => (
+      render: (v: Unmodelled) => (
         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${v === 'blocked' ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>
           {v || 'active'}
         </span>
@@ -95,7 +95,7 @@ export default function UserManagementTab() {
     },
     {
       key: 'flagged', label: 'Flag',
-      render: (v, u) => (
+      render: (v: Unmodelled, u: Unmodelled) => (
         v ? (
           <div className="flex items-center gap-1.5">
             <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs gap-1">
@@ -110,7 +110,7 @@ export default function UserManagementTab() {
     },
     {
       key: '_actions', label: 'Actions', sortable: false,
-      render: (_v, u) => (
+      render: (_v: Unmodelled, u: Unmodelled) => (
         <div className="flex items-center gap-1.5 justify-end">
           {u.flagged ? (
             <Button variant="outline" size="sm" className="gap-1 text-xs h-8" onClick={() => handleUnflag(u.id || u._id)}>
@@ -199,7 +199,7 @@ export default function UserManagementTab() {
             empty="No users found"
             showSearch={false}
             manualPagination
-            rowClassName={(u) => (u.flagged ? 'bg-amber-50/50 dark:bg-amber-950/10' : '')}
+            rowClassName={(u: Unmodelled) => (u.flagged ? 'bg-amber-50/50 dark:bg-amber-950/10' : '')}
           />
         </div>
       )}

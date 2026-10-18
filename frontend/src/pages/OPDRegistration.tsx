@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const empty = { name: '', age: '', gender: 'Male', phone: '', address: '', bloodGroup: '', uhid: '' };
 const tokenApi = {
-  getAll: async (p) => { try { return await api.getTokens(p); } catch { return { tokens: [] }; } },
-  generate: async (b) => { return await api.generateToken(b); },
+  getAll: async (p: Unmodelled) => { try { return await api.getTokens(p); } catch { return { tokens: [] }; } },
+  generate: async (b: Unmodelled) => { return await api.generateToken(b); },
 };
 
 export default function OPDRegistration() {
@@ -42,7 +43,7 @@ export default function OPDRegistration() {
     onError: (e) => toast.error(e.message),
   });
 
-  const printCard = (_patient) => {
+  const printCard = (_patient: Unmodelled) => {
     setPrintPatient(_patient);
     setTimeout(() => { window.print(); setPrintPatient(null); }, 100);
   };
@@ -69,7 +70,7 @@ export default function OPDRegistration() {
         <div>
           <h2 className="font-heading text-lg font-semibold mb-4">Existing Patients</h2>
           <div className="space-y-3 max-h-[400px] overflow-y-auto">
-            {patients.map(p => (
+            {patients.map((p: Unmodelled) => (
               <div key={p._id} className="bg-card rounded-xl border p-4 flex items-center justify-between">
                 <div>
                   <p className="font-medium text-foreground">{p.name}</p>
@@ -88,7 +89,7 @@ export default function OPDRegistration() {
         <div>
           <h2 className="font-heading text-lg font-semibold mb-4">Today's Token Queue</h2>
           <div className="space-y-3 max-h-[400px] overflow-y-auto">
-            {tokens.map(t => (
+            {tokens.map((t: Unmodelled) => (
               <div key={t._id} className="bg-card rounded-xl border p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-heading font-bold text-primary text-lg">{t.tokenNumber}</span>

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const THEMES = [
   { id: "default", label: "Default Dark", icon: "🌙", colors: "bg-blue-900/20" },
@@ -12,12 +13,12 @@ const STORAGE_KEY = "mindsupport_theme";
 
 const ThemeContext = createContext(null);
 
-export function ThemeProvider({ children }) {
+export function ThemeProvider({ children }: Unmodelled) {
   const [theme, setThemeState] = useState(() => {
     return localStorage.getItem(STORAGE_KEY) || "default";
   });
 
-  const setTheme = useCallback((newTheme) => {
+  const setTheme = useCallback((newTheme: Unmodelled) => {
     setThemeState(newTheme);
     localStorage.setItem(STORAGE_KEY, newTheme);
     document.documentElement.dataset.theme = newTheme === "default" ? "" : newTheme;

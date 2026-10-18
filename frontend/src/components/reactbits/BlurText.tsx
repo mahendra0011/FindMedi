@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { Unmodelled } from '@/lib/apiTypes';
 
-const buildKeyframes = (from, steps) => {
-  const keys = new Set([...Object.keys(from), ...steps.flatMap((s) => Object.keys(s))]);
+const buildKeyframes = (from: Unmodelled, steps: Unmodelled) => {
+  const keys = new Set([...Object.keys(from), ...steps.flatMap((s: Unmodelled) => Object.keys(s))]);
   const keyframes = {};
 
   keys.forEach((k) => {
-    keyframes[k] = [from[k], ...steps.map((s) => s[k])];
+    keyframes[k] = [from[k], ...steps.map((s: Unmodelled) => s[k])];
   });
 
   return keyframes;
@@ -22,10 +23,10 @@ const BlurText = ({
   rootMargin = "0px",
   animationFrom,
   animationTo,
-  easing = (t) => t,
+  easing = (t: Unmodelled) => t,
   onAnimationComplete,
   stepDuration = 0.35
-}) => {
+}: Unmodelled) => {
   const elements = animateBy === "words" ? text.split(" ") : text.split("");
   const [inView, setInView] = useState(false);
   const ref = useRef(null);

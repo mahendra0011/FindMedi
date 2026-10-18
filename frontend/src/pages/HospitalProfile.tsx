@@ -53,7 +53,7 @@ const EXPERIENCE_RANGES = [
 
 // ─── Specialty Theme Colors ────────────────────────────────────────────────
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 function getSpecTheme(spec: string) {
   const v = getSpecialtyVisual(spec);
@@ -115,7 +115,7 @@ export default function HospitalProfile() {
   const carouselRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  const scrollCarousel = (dir) => {
+  const scrollCarousel = (dir: Unmodelled) => {
     const el = carouselRef.current;
     if (!el) return;
     const amount = el.clientWidth * 0.85;
@@ -150,20 +150,20 @@ export default function HospitalProfile() {
         const rawHosp = await api.getHospitals({});
         const allHospitals = Array.isArray(rawHosp) ? rawHosp : (rawHosp?.data || rawHosp?.hospitals || []);
         const currentCity = hosp.city?.toLowerCase();
-        const currentSpecs = new Set((hosp.specialties || []).map(s => s.toLowerCase()));
+        const currentSpecs = new Set((hosp.specialties || []).map((s: Unmodelled) => s.toLowerCase()));
         const scored = allHospitals
-          .filter(h => h._id !== hosp._id)
-          .map(h => {
+          .filter((h: Unmodelled) => h._id !== hosp._id)
+          .map((h: Unmodelled) => {
             let score = 0;
             if (h.city?.toLowerCase() === currentCity) score += 2;
-            const commonSpecs = (h.specialties || []).filter(s => currentSpecs.has(s.toLowerCase()));
+            const commonSpecs = (h.specialties || []).filter((s: Unmodelled) => currentSpecs.has(s.toLowerCase()));
             score += commonSpecs.length;
             if (h.rating > hosp.rating) score += 1;
             return { h, score };
           })
-          .sort((a, b) => b.score - a.score)
+          .sort((a: Unmodelled, b: Unmodelled) => b.score - a.score)
           .slice(0, 10)
-          .map(item => item.h);
+          .map((item: Unmodelled) => item.h);
         setSuggestedHospitals(scored);
       } catch { /* Could not load suggested hospitals */ }
       // Fetch hospital's test catalog
@@ -271,8 +271,8 @@ export default function HospitalProfile() {
   const [testSelectedDate, setTestSelectedDate] = useState('');
   const [testSelectedSlot, setTestSelectedSlot] = useState('');
   const [testPaymentMethod, setTestPaymentMethod] = useState('upi');
-  const addTestToCart = (testId) => setTestCart(p => ({ ...p, [testId]: (p[testId] || 0) + 1 }));
-  const removeTestFromCart = (testId) => setTestCart(p => {
+  const addTestToCart = (testId: Unmodelled) => setTestCart(p => ({ ...p, [testId]: (p[testId] || 0) + 1 }));
+  const removeTestFromCart = (testId: Unmodelled) => setTestCart(p => {
     const next = { ...p };
     if (next[testId] <= 1) delete next[testId];
     else next[testId]--;
@@ -308,7 +308,7 @@ export default function HospitalProfile() {
   const cartCount = cartItems.reduce((s, t) => s + t.qty, 0);
 
   const filteredDepartments = useDepartments.filter(dept => testDeptFilter === 'All' || dept.id === testDeptFilter).map(dept => {
-    const filtered = dept.tests.filter(t => {
+    const filtered = dept.tests.filter((t: Unmodelled) => {
       if (testSearch && !t.name.toLowerCase().includes(testSearch.toLowerCase())) return false;
       if (testRxFilter === 'rx' && !t.rx) return false;
       if (testRxFilter === 'direct' && t.rx) return false;
@@ -593,7 +593,7 @@ export default function HospitalProfile() {
                   className={cn('px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all', docSpecFilter === 'All' ? 'border-primary bg-primary/5 text-primary' : 'border-border/60 bg-card text-muted-foreground hover:text-foreground')}>
                   All ({doctors.length})
                 </button>
-                {(hospital?.specialties || []).map(s => {
+                {(hospital?.specialties || []).map((s: Unmodelled) => {
                   const count = doctors.filter(d => d.specialization === s).length;
                   return (
                     <button key={s} onClick={() => setDocSpecFilter(s)}
@@ -682,7 +682,7 @@ export default function HospitalProfile() {
                         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/20 shadow-md shadow-primary/20">
                           {doc.profile_photo
                             ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
-                            : <span className="text-primary-foreground font-heading font-bold text-lg">{doc.initials || doc.name?.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</span>
+                            : <span className="text-primary-foreground font-heading font-bold text-lg">{doc.initials || doc.name?.split(' ').map((n: Unmodelled)=>n[0]).join('').slice(0,2).toUpperCase()}</span>
                           }
                         </div>
                         <div className="min-w-0 flex-1">
@@ -695,7 +695,7 @@ export default function HospitalProfile() {
                           <p className="text-sm font-medium text-primary">{doc.specialization}</p>
                           {doc.qualifications && (
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {doc.qualifications.split(',').map(q => q.trim()).filter(Boolean).map(q => (
+                              {doc.qualifications.split(',').map((q: Unmodelled) => q.trim()).filter(Boolean).map((q: Unmodelled) => (
                                 <Badge key={q} variant="secondary" className="text-[9px] h-4 px-1.5 bg-muted/50">{q}</Badge>
                               ))}
                             </div>
@@ -721,7 +721,7 @@ export default function HospitalProfile() {
                       {doc.languages && (
                         <div className="flex items-center gap-1.5 mb-3 text-xs text-muted-foreground">
                           <span className="font-medium">Speaks:</span>
-                          {(Array.isArray(doc.languages) ? doc.languages : doc.languages.split(',')).map(l => l.trim()).filter(Boolean).map(l => (
+                          {(Array.isArray(doc.languages) ? doc.languages : doc.languages.split(',')).map((l: Unmodelled) => l.trim()).filter(Boolean).map((l: Unmodelled) => (
                             <Badge key={l} variant="secondary" className="text-[9px] h-4 px-1.5 bg-muted/50">{l}</Badge>
                           ))}
                         </div>
@@ -933,7 +933,7 @@ export default function HospitalProfile() {
                 Specialties & Departments
               </h2>
               <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
-                {hospital.specialties.map(spec => {
+                {hospital.specialties.map((spec: Unmodelled) => {
                   const theme = getSpecTheme(spec);
                   const Icon = theme.icon;
                   return (
@@ -1140,7 +1140,7 @@ export default function HospitalProfile() {
                 { q: 'What documents do I need to carry?', a: 'Please carry a valid government ID (Aadhaar, PAN, or Driver\'s License), your previous medical records if any, and the prescription/referral note from your doctor.' },
                 { q: 'Is home sample collection available?', a: 'Yes, we offer home sample collection for pathology tests. You can book this service when selecting your tests. Additional charges may apply based on your location.' },
                 { q: 'What are the visiting hours?', a: `Our visiting hours are ${hospital?.workingHours?.weekdays || '9:00 AM - 6:00 PM'} on weekdays and ${hospital?.workingHours?.saturday || '9:00 AM - 2:00 PM'} on Saturdays. Emergency services are available ${hospital?.emergency24x7 ? '24/7' : 'during regular hours'}.` },
-                { q: 'Do you accept insurance?', a: hospital?.insuranceAccepted?.length > 0 ? `Yes, we accept insurance from the following providers: ${hospital.insuranceAccepted.map(i => i.provider || i).join(', ')}. Please check with our billing desk for claim assistance.` : 'Please contact our billing desk for information about insurance acceptance.' },
+                { q: 'Do you accept insurance?', a: hospital?.insuranceAccepted?.length > 0 ? `Yes, we accept insurance from the following providers: ${hospital.insuranceAccepted.map((i: Unmodelled) => i.provider || i).join(', ')}. Please check with our billing desk for claim assistance.` : 'Please contact our billing desk for information about insurance acceptance.' },
                 { q: 'Can I get a second opinion?', a: 'Yes, we encourage second opinions. You can book a consultation with a different specialist within the same department or across specialties.' },
               ].map((faq, i) => (
                 <AccordionItem key={i} value={`faq-${i}`} className="bg-card rounded-xl border border-border/40 overflow-hidden border-b-0 data-[state=open]:shadow-sm transition-shadow">
@@ -1201,7 +1201,7 @@ export default function HospitalProfile() {
                             <span className="font-heading font-semibold text-sm text-foreground">{dept.name}</span>
                             <span className="text-xs text-muted-foreground ml-2">({dept.tests.length} tests)</span>
                             {testSearch && (
-                              <span className="text-xs text-primary ml-2">{dept.tests.filter(t => t.name.toLowerCase().includes(testSearch.toLowerCase())).length} matching</span>
+                              <span className="text-xs text-primary ml-2">{dept.tests.filter((t: Unmodelled) => t.name.toLowerCase().includes(testSearch.toLowerCase())).length} matching</span>
                             )}
                             {dept.doctor && (
                               <p className="text-[11px] text-muted-foreground mt-0.5">Head: {dept.doctor}</p>
@@ -1211,7 +1211,7 @@ export default function HospitalProfile() {
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="px-5 pb-5 space-y-3">
-                          {dept.tests.map(test => (
+                          {dept.tests.map((test: Unmodelled) => (
                             <div key={test.id} className="bg-background rounded-xl border border-border/50 p-4 hover:shadow-md hover:border-primary/20 transition-all">
                               {test.package ? (
                                 <div className="flex items-start gap-3">
@@ -1224,7 +1224,7 @@ export default function HospitalProfile() {
                                       {test.popular && <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">Best Value</span>}
                                     </div>
                                     <div className="flex flex-wrap gap-1.5 mb-2">
-                                      {test.includes?.map((inc, i) => (
+                                      {test.includes?.map((inc: Unmodelled, i: Unmodelled) => (
                                         <span key={i} className="text-[10px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md border border-border/30">{inc}</span>
                                       ))}
                                     </div>
@@ -1348,7 +1348,7 @@ export default function HospitalProfile() {
                     <div>
                       <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider font-semibold">Accreditations</p>
                       <div className="flex flex-wrap gap-2">
-                        {hospital.accreditations.map(acc => (
+                        {hospital.accreditations.map((acc: Unmodelled) => (
                           <Badge key={acc} variant="outline" className={cn('text-xs font-semibold px-3 py-1 gap-1.5', acc === 'NABH' && 'border-emerald-400 text-emerald-700 bg-emerald-50 dark:bg-emerald-500/10', acc === 'NABL' && 'border-blue-400 text-blue-700 bg-blue-50 dark:bg-blue-500/10', acc === 'ISO' && 'border-amber-400 text-amber-700 bg-amber-50 dark:bg-amber-500/10')}>
                             <CheckCircle2 className="w-3 h-3" /> {acc}
                           </Badge>
@@ -1382,7 +1382,7 @@ export default function HospitalProfile() {
                     <div className="pt-3 border-t border-border/40">
                       <p className="text-xs text-muted-foreground mb-2 font-semibold">Insurance Accepted</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {hospital.insuranceAccepted.map((ins, i) => (
+                        {hospital.insuranceAccepted.map((ins: Unmodelled, i: Unmodelled) => (
                           <Badge key={i} variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10">
                             <Shield className="w-2.5 h-2.5 mr-1" /> {ins.provider || ins}
                           </Badge>
@@ -1823,7 +1823,7 @@ export default function HospitalProfile() {
         entityType="hospital"
         entityId={id}
         entityName={hospital?.name}
-        onReviewSubmitted={(review) => {
+        onReviewSubmitted={(review: Unmodelled) => {
           setReviews(prev => [review, ...(Array.isArray(prev) ? prev : [])]);
         }}
       />

@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 // File 23 §2/§8: scoped admin-team view — every platform role, not just god-mode.
 const ADMIN_ROLES = [
@@ -48,7 +48,7 @@ export default function SuperAdminTeam() {
 
   useEffect(() => { load(); }, []);
 
-  const handleToggleBlock = async (id, name) => {
+  const handleToggleBlock = async (id: Unmodelled, name: Unmodelled) => {
     try {
       await api.blockUser(id);
       toast.success(`User ${name} status toggled`);
@@ -56,7 +56,7 @@ export default function SuperAdminTeam() {
     } catch { toast.error('Failed to update user'); }
   };
 
-  const handleDelete = async (id, name) => {
+  const handleDelete = async (id: Unmodelled, name: Unmodelled) => {
     if (!window.confirm(`Are you sure you want to permanently delete ${name}?`)) return;
     try {
       await api.deleteUser(id);

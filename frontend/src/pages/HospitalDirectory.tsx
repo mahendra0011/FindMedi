@@ -11,7 +11,7 @@ import HospitalCard from '@/components/HospitalCard';
 
 import { CANONICAL_SPECIALTIES } from '@/data/specialties';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 // subcatogary.md Part B — Canonical specialties list derived from taxonomy (Psychology removed)
 const ALL_SPECIALTIES = CANONICAL_SPECIALTIES.map((spec) => {
@@ -95,14 +95,14 @@ export default function HospitalDirectory() {
     setSpecFilter(specialty);
   }, [searchParams]);
 
-  const getType = (h) => {
+  const getType = (h: Unmodelled) => {
     const t = h.hospitalType || h.type || '';
     if (t.toLowerCase().includes('government')) return 'Government';
     if (t.toLowerCase().includes('private')) return 'Private';
     return t;
   };
 
-  const getCategory = (h) => {
+  const getCategory = (h: Unmodelled) => {
     const t = h.hospitalType || h.type || '';
     if (t.toLowerCase().includes('multi')) return 'Multi-Specialty';
     if (t.toLowerCase().includes('single')) return 'Single-Specialty';
@@ -130,7 +130,7 @@ export default function HospitalDirectory() {
   const insuranceProviders = useMemo(() => {
     const providers = new Set();
     const list = Array.isArray(allHospitals) ? allHospitals : (allHospitals?.data || allHospitals?.hospitals || []);
-    list.forEach(h => (h?.insuranceAccepted || []).forEach(i => providers.add(i?.provider || i)));
+    list.forEach((h: Unmodelled) => (h?.insuranceAccepted || []).forEach((i: Unmodelled) => providers.add(i?.provider || i)));
     return [...providers].sort();
   }, [allHospitals]);
 
@@ -176,7 +176,7 @@ export default function HospitalDirectory() {
 
     // Accreditation
     if (filterAccreditation.length > 0) {
-      filtered = filtered.filter(h => h.accreditations?.some(a => filterAccreditation.includes(a)));
+      filtered = filtered.filter(h => h.accreditations?.some((a: Unmodelled) => filterAccreditation.includes(a)));
     }
 
     // Bed Size (uses bedAvailability / available beds as proxy for total beds)
@@ -217,7 +217,7 @@ export default function HospitalDirectory() {
 
     // Insurance Provider
     if (filterInsuranceProvider) {
-      filtered = filtered.filter(h => h.insuranceAccepted?.some(i => (i.provider || i).toLowerCase().includes(filterInsuranceProvider.toLowerCase())));
+      filtered = filtered.filter(h => h.insuranceAccepted?.some((i: Unmodelled) => (i.provider || i).toLowerCase().includes(filterInsuranceProvider.toLowerCase())));
     }
 
     // Sort
@@ -238,7 +238,7 @@ export default function HospitalDirectory() {
     }
   }, [specFilter]);
 
-  const handleDepartmentClick = (dept) => {
+  const handleDepartmentClick = (dept: Unmodelled) => {
     if (selectedDept === dept) {
       setSelectedDept('');
       setSpecFilter('');

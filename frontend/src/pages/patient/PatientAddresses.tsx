@@ -6,16 +6,16 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-function patientRequest(path, opts = {}) {
+function patientRequest(path: Unmodelled, opts = {}) {
   return api.dispatch(null, path, opts);
 }
 const patientApi = {
   getAddresses:  ()        => patientRequest('/patient/addresses'),
-  createAddress: (b)       => patientRequest('/patient/addresses', { method:'POST', body: JSON.stringify(b) }),
-  updateAddress: (id,b)    => patientRequest(`/patient/addresses/${id}`, { method:'PUT', body: JSON.stringify(b) }),
-  deleteAddress: (id)      => patientRequest(`/patient/addresses/${id}`, { method:'DELETE' }),
+  createAddress: (b: Unmodelled)       => patientRequest('/patient/addresses', { method:'POST', body: JSON.stringify(b) }),
+  updateAddress: (id: Unmodelled,b: Unmodelled)    => patientRequest(`/patient/addresses/${id}`, { method:'PUT', body: JSON.stringify(b) }),
+  deleteAddress: (id: Unmodelled)      => patientRequest(`/patient/addresses/${id}`, { method:'DELETE' }),
 };
 
 export default function PatientAddresses() {
@@ -43,7 +43,7 @@ export default function PatientAddresses() {
     setShowModal(true);
   };
 
-  const openEdit = (a) => {
+  const openEdit = (a: Unmodelled) => {
     setEditId(a._id);
     setForm({ label: a.label, address: a.address, city: a.city, state: a.state, pincode: a.pincode, phone: a.phone, isDefault: a.isDefault });
     setShowModal(true);
@@ -65,7 +65,7 @@ export default function PatientAddresses() {
     } catch { toast.error('Failed to save address'); }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     try {
       await patientApi.deleteAddress(id);
       setAddresses(ads => ads.filter(a => a._id !== id));

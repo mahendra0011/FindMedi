@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = {
   approved: 'bg-success/10 text-success',
@@ -28,19 +28,19 @@ const QUEUE_TABS = [
 
 // SA-3: per-queue approve/reject wiring for the unified KYC queue.
 const QUEUE_ACTIONS = {
-  hospitals: { approve: (id) => api.approveHospital(id), reject: (id, reason) => api.rejectHospital(id, { reason }) },
-  facilities: { approve: (id) => api.approveFacility(id), reject: null },
-  delivery: { approve: (id) => api.approveDeliveryBoy(id, { action: 'approve' }), reject: (id, reason) => api.approveDeliveryBoy(id, { action: 'reject', reason }) },
-  riders: { approve: (id) => api.approveRider(id), reject: (id, reason) => api.rejectRider(id, reason) },
-  assistants: { approve: (id) => api.approveAssistant(id), reject: (id, reason) => api.rejectAssistant(id, reason) },
-  lawyers: { approve: (id) => api.approveAdminLawyer(id), reject: (id, reason) => api.rejectAdminLawyer(id, reason) },
+  hospitals: { approve: (id: Unmodelled) => api.approveHospital(id), reject: (id: Unmodelled, reason: Unmodelled) => api.rejectHospital(id, { reason }) },
+  facilities: { approve: (id: Unmodelled) => api.approveFacility(id), reject: null },
+  delivery: { approve: (id: Unmodelled) => api.approveDeliveryBoy(id, { action: 'approve' }), reject: (id: Unmodelled, reason: Unmodelled) => api.approveDeliveryBoy(id, { action: 'reject', reason }) },
+  riders: { approve: (id: Unmodelled) => api.approveRider(id), reject: (id: Unmodelled, reason: Unmodelled) => api.rejectRider(id, reason) },
+  assistants: { approve: (id: Unmodelled) => api.approveAssistant(id), reject: (id: Unmodelled, reason: Unmodelled) => api.rejectAssistant(id, reason) },
+  lawyers: { approve: (id: Unmodelled) => api.approveAdminLawyer(id), reject: (id: Unmodelled, reason: Unmodelled) => api.rejectAdminLawyer(id, reason) },
 };
 
-function queueItemName(item) {
+function queueItemName(item: Unmodelled) {
   return item.name || item.hospitalName || item.facilityName || item.userId?.name || item.user?.name || item.email || 'Application';
 }
 
-function queueItemSub(item) {
+function queueItemSub(item: Unmodelled) {
   return item.email || item.phone || item.city || item.userId?.email || item.user?.email || '';
 }
 
@@ -92,7 +92,7 @@ export default function PendingApprovals() {
     }
   }
 
-  async function handleApprove(queue, id) {
+  async function handleApprove(queue: Unmodelled, id: Unmodelled) {
     setActingId(id);
     try {
       await QUEUE_ACTIONS[queue].approve(id);
@@ -105,7 +105,7 @@ export default function PendingApprovals() {
     }
   }
 
-  async function handleReject(queue, id) {
+  async function handleReject(queue: Unmodelled, id: Unmodelled) {
     if (!rejectReason.trim()) {
       toast.error('Please provide a rejection reason');
       return;
@@ -184,7 +184,7 @@ export default function PendingApprovals() {
         </div>
       ) : activeQueue !== 'hospitals' ? (
         <div className="space-y-3">
-          {queueItems.map((item) => {
+          {queueItems.map((item: Unmodelled) => {
             const id = item._id;
             const canReject = Boolean(QUEUE_ACTIONS[activeQueue]?.reject);
             return (

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const ticketStatusColors = { Open: 'bg-warning/10 text-warning', 'In Progress': 'bg-info/10 text-info', Resolved: 'bg-success/10 text-success', Closed: 'bg-muted text-muted-foreground' };
 const ticketStatusIcons = { Open: AlertCircle, 'In Progress': Clock, Resolved: CheckCircle2, Closed: TicketCheck };
@@ -28,7 +28,7 @@ export default function PatientSupport() {
 
   useEffect(() => { loadTickets(); }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: Unmodelled) => {
     e.preventDefault();
     if (!subject || !message) return toast.error('Please fill all fields');
     

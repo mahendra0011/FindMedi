@@ -6,15 +6,15 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-function patientRequest(path, opts = {}) {
+function patientRequest(path: Unmodelled, opts = {}) {
   return api.dispatch(null, path, opts);
 }
 const patientApi = {
   getFamily:     ()        => patientRequest('/patient/family'),
-  createFamily:  (b)       => patientRequest('/patient/family',    { method:'POST', body: JSON.stringify(b) }),
-  deleteFamily:  (id)      => patientRequest(`/patient/family/${id}`, { method:'DELETE' }),
+  createFamily:  (b: Unmodelled)       => patientRequest('/patient/family',    { method:'POST', body: JSON.stringify(b) }),
+  deleteFamily:  (id: Unmodelled)      => patientRequest(`/patient/family/${id}`, { method:'DELETE' }),
 };
 
 const relationColors = {
@@ -55,7 +55,7 @@ export default function PatientFamily() {
     } catch { toast.error('Failed to add member'); }
   };
 
-  const handleDelete = async (id, name) => {
+  const handleDelete = async (id: Unmodelled, name: Unmodelled) => {
     try {
       await patientApi.deleteFamily(id);
       setFamily(f => f.filter(m => m._id !== id));

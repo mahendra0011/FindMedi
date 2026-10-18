@@ -27,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function AdminVehicleRides() {
   const [activeTab, setActiveTab] = useState<'pending' | 'riders' | 'vehicles' | 'rides' | 'analytics'>('pending');
@@ -265,21 +266,21 @@ export default function AdminVehicleRides() {
             columns={[
               {
                 key: 'driver', label: 'Driver', sortable: false,
-                render: (_v, r) => (
+                render: (_v: Unmodelled, r: Unmodelled) => (
                   <>
                     <span className="font-medium text-foreground">{r.userId?.name || 'Driver'}</span>
                     <div className="text-[10px] text-muted-foreground">{r.userId?.phone}</div>
                   </>
                 ),
               },
-              { key: 'vehicle', label: 'Vehicle', sortable: false, render: (_v, r) => <span className="capitalize">{r.vehicleId?.type?.replace('_', ' ')} · {r.vehicleId?.rcNumber}</span> },
-              { key: 'riderStatus', label: 'Status', sortable: false, render: (v) => <Badge variant={v === 'active' ? 'default' : 'secondary'} className="text-[10px]">{v}</Badge> },
-              { key: 'isOnline', label: 'Online', sortable: false, render: (v) => <span className={`font-mono font-bold ${v ? 'text-emerald-600' : 'text-muted-foreground'}`}>{v ? 'Online' : 'Offline'}</span> },
-              { key: 'rating', label: 'Rating', sortable: false, render: (v) => <>⭐ {v?.avg || '5.0'}</> },
-              { key: 'totalEarnings', label: 'Total Earned', sortable: false, render: (v) => <span className="font-bold text-emerald-600">₹{v || 0}</span> },
+              { key: 'vehicle', label: 'Vehicle', sortable: false, render: (_v: Unmodelled, r: Unmodelled) => <span className="capitalize">{r.vehicleId?.type?.replace('_', ' ')} · {r.vehicleId?.rcNumber}</span> },
+              { key: 'riderStatus', label: 'Status', sortable: false, render: (v: Unmodelled) => <Badge variant={v === 'active' ? 'default' : 'secondary'} className="text-[10px]">{v}</Badge> },
+              { key: 'isOnline', label: 'Online', sortable: false, render: (v: Unmodelled) => <span className={`font-mono font-bold ${v ? 'text-emerald-600' : 'text-muted-foreground'}`}>{v ? 'Online' : 'Offline'}</span> },
+              { key: 'rating', label: 'Rating', sortable: false, render: (v: Unmodelled) => <>⭐ {v?.avg || '5.0'}</> },
+              { key: 'totalEarnings', label: 'Total Earned', sortable: false, render: (v: Unmodelled) => <span className="font-bold text-emerald-600">₹{v || 0}</span> },
               {
                 key: '_actions', label: 'Action', sortable: false,
-                render: (_v, r) => (
+                render: (_v: Unmodelled, r: Unmodelled) => (
                   <Button variant="outline" size="sm" onClick={() => handleSuspendToggle(r._id, r.riderStatus === 'active')} className="text-[11px] h-7 rounded-lg">
                     {r.riderStatus === 'active' ? 'Suspend' : 'Activate'}
                   </Button>
@@ -300,12 +301,12 @@ export default function AdminVehicleRides() {
         <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-sm">
           <DataGrid
             columns={[
-              { key: 'rcNumber', label: 'RC Number', sortable: false, render: (v) => <span className="font-mono font-bold text-primary">{v}</span> },
-              { key: 'type', label: 'Type', sortable: false, render: (v) => <span className="capitalize">{v?.replace('_', ' ')}</span> },
-              { key: 'brand', label: 'Brand & Model', sortable: false, render: (_v, v) => <span className="font-medium text-foreground">{v.brand} {v.model}</span> },
-              { key: 'fuelType', label: 'Fuel', sortable: false, render: (v) => v || 'Petrol' },
-              { key: 'capacity', label: 'Capacity', sortable: false, render: (v) => `${v || 4} seats` },
-              { key: 'isDocumentVerified', label: 'Doc Verified', sortable: false, render: (v) => <Badge variant={v ? 'default' : 'secondary'}>{v ? 'Verified' : 'Pending'}</Badge> },
+              { key: 'rcNumber', label: 'RC Number', sortable: false, render: (v: Unmodelled) => <span className="font-mono font-bold text-primary">{v}</span> },
+              { key: 'type', label: 'Type', sortable: false, render: (v: Unmodelled) => <span className="capitalize">{v?.replace('_', ' ')}</span> },
+              { key: 'brand', label: 'Brand & Model', sortable: false, render: (_v: Unmodelled, v: Unmodelled) => <span className="font-medium text-foreground">{v.brand} {v.model}</span> },
+              { key: 'fuelType', label: 'Fuel', sortable: false, render: (v: Unmodelled) => v || 'Petrol' },
+              { key: 'capacity', label: 'Capacity', sortable: false, render: (v: Unmodelled) => `${v || 4} seats` },
+              { key: 'isDocumentVerified', label: 'Doc Verified', sortable: false, render: (v: Unmodelled) => <Badge variant={v ? 'default' : 'secondary'}>{v ? 'Verified' : 'Pending'}</Badge> },
             ]}
             rows={allVehicles}
             rowKey="_id"
@@ -321,21 +322,21 @@ export default function AdminVehicleRides() {
         <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-sm">
           <DataGrid
             columns={[
-              { key: 'bookingNumber', label: 'Booking #', sortable: false, render: (v) => <span className="font-mono font-bold">{v}</span> },
-              { key: 'createdAt', label: 'Date', sortable: false, render: (v) => <span className="font-mono text-muted-foreground">{v ? new Date(v).toLocaleDateString('en-IN') : '—'}</span> },
+              { key: 'bookingNumber', label: 'Booking #', sortable: false, render: (v: Unmodelled) => <span className="font-mono font-bold">{v}</span> },
+              { key: 'createdAt', label: 'Date', sortable: false, render: (v: Unmodelled) => <span className="font-mono text-muted-foreground">{v ? new Date(v).toLocaleDateString('en-IN') : '—'}</span> },
               {
                 key: 'vehicleType', label: 'Vehicle', sortable: false,
-                render: (v, r) => (
+                render: (v: Unmodelled, r: Unmodelled) => (
                   <>
                     <span className="capitalize">{v?.replace('_', ' ')}</span>
                     {r.isEmergency && <span className="text-[9px] font-bold text-red-600 ml-1">EMERGENCY</span>}
                   </>
                 ),
               },
-              { key: 'passenger', label: 'Passenger', sortable: false, render: (_v, r) => r.userId?.name || 'Customer' },
-              { key: 'riderId', label: 'Driver', sortable: false, render: (v) => v?.name || '—' },
-              { key: 'fare', label: 'Total Fare', sortable: false, render: (v) => <span className="font-bold">₹{v?.total || 0}</span> },
-              { key: 'status', label: 'Status', sortable: false, render: (v) => <Badge variant={v === 'completed' ? 'default' : 'secondary'}>{v?.replace(/_/g, ' ')}</Badge> },
+              { key: 'passenger', label: 'Passenger', sortable: false, render: (_v: Unmodelled, r: Unmodelled) => r.userId?.name || 'Customer' },
+              { key: 'riderId', label: 'Driver', sortable: false, render: (v: Unmodelled) => v?.name || '—' },
+              { key: 'fare', label: 'Total Fare', sortable: false, render: (v: Unmodelled) => <span className="font-bold">₹{v?.total || 0}</span> },
+              { key: 'status', label: 'Status', sortable: false, render: (v: Unmodelled) => <Badge variant={v === 'completed' ? 'default' : 'secondary'}>{v?.replace(/_/g, ' ')}</Badge> },
             ]}
             rows={allRides}
             rowKey="_id"

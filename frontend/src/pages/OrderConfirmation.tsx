@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 
 export default function OrderConfirmation() {
@@ -24,7 +25,7 @@ export default function OrderConfirmation() {
   const [countdown] = useState(30);
   const [storeNames, setStoreNames] = useState({});
 
-  const getStore = (storeId) => {
+  const getStore = (storeId: Unmodelled) => {
     const name = storeNames[storeId];
     return name ? { id: storeId, name } : { id: storeId, name: 'Store' };
   };
@@ -36,10 +37,10 @@ export default function OrderConfirmation() {
           const facilities = await api.getFacilities({ type: 'pharmacy' });
           const list = Array.isArray(facilities) ? facilities : (facilities?.facilities || facilities?.data || []);
           const map = {};
-          list.forEach(f => { map[f._id] = f.name; map[f.id] = f.name; });
+          list.forEach((f: Unmodelled) => { map[f._id] = f.name; map[f.id] = f.name; });
           storeIds.forEach(sid => {
             if (sid) {
-              const found = list.find(f => f._id === sid || f.id === sid);
+              const found = list.find((f: Unmodelled) => f._id === sid || f.id === sid);
               if (found) map[sid] = found.name;
             }
           });
@@ -51,7 +52,7 @@ export default function OrderConfirmation() {
   }, [storeIds]);
 
   const displayStores = snapshotStores ?? stores;
-  const displayTotal = snapshotStores !== null ? snapshotTotal : entries.reduce((s, e) => s + e.item.price * e.qty, 0);
+  const displayTotal = snapshotStores !== null ? snapshotTotal : entries.reduce((s: Unmodelled, e: Unmodelled) => s + e.item.price * e.qty, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/50 to-background dark:from-emerald-950/10 dark:to-background">
@@ -66,7 +67,7 @@ export default function OrderConfirmation() {
 
         {/* Per-store order IDs */}
         <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {displayStores.map((st, i) => {
+          {displayStores.map((st: Unmodelled, i: Unmodelled) => {
             const store = getStore(st.storeId);
             return (
               <Badge key={st.storeId} className="text-sm px-4 py-1.5 bg-primary/10 text-primary border-primary/20 font-mono">
@@ -108,7 +109,7 @@ export default function OrderConfirmation() {
           <h3 className="font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
             <Package className="w-4 h-4 text-primary" /> Order Items
           </h3>
-          {displayStores.map((st, i) => {
+          {displayStores.map((st: Unmodelled, i: Unmodelled) => {
             const store = getStore(st.storeId);
             return (
               <div key={st.storeId} className={cn('pb-3', i < displayStores.length - 1 && 'mb-3 border-b border-border/30')}>
@@ -119,7 +120,7 @@ export default function OrderConfirmation() {
                   </div>
                   <Badge className="text-[10px] bg-primary/10 text-primary font-mono">{orderIds[i]}</Badge>
                 </div>
-                {st.items.map(e => (
+                {st.items.map((e: Unmodelled) => (
                   <div key={e.key} className="flex items-center justify-between py-1.5 text-sm">
                     <span className="text-muted-foreground">{e.item.name} x{e.qty}</span>
                     <span className="font-medium text-foreground">₹{e.item.price * e.qty}</span>
@@ -176,7 +177,7 @@ export default function OrderConfirmation() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 mb-8 justify-center">
-          {displayStores.map((st, i) => {
+          {displayStores.map((st: Unmodelled, i: Unmodelled) => {
             const tid = orderIds[i];
             return (
               <Button key={st.storeId} className="gap-2 rounded-xl flex-1" onClick={() =>               navigate(`/order-tracking/${tid}?rx=${hasRx}&storeId=${st.storeId}&type=${flowType}`)}>

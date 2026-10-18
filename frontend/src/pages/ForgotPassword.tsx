@@ -5,6 +5,7 @@ import { Activity, ArrowRight, CheckCircle, KeyRound, Mail, ArrowLeft, RefreshCw
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ export default function ForgotPassword() {
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
-  const requestReset = async (e) => {
+  const requestReset = async (e: Unmodelled) => {
     e.preventDefault();
     setError('');
     setMessage('');
@@ -56,7 +57,7 @@ export default function ForgotPassword() {
     }
   };
 
-  const resetPassword = async (e) => {
+  const resetPassword = async (e: Unmodelled) => {
     e.preventDefault();
     setError('');
     setMessage('');

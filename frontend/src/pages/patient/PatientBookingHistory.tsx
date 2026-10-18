@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
 
@@ -24,11 +24,11 @@ const statusConfig = {
   Serving: { label: 'Serving', color: 'bg-indigo-500/10 text-indigo-600', icon: AlertCircle },
 };
 
-function formatDate(d) {
+function formatDate(d: Unmodelled) {
   return formatDisplayDate(d);
 }
 
-function formatShortDate(d) {
+function formatShortDate(d: Unmodelled) {
   if (!d) return '';
   const dt = new Date(d);
   return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -84,19 +84,19 @@ export default function PatientBookingHistory({ initialType }: { initialType?: s
           : Promise.resolve({ data: [] }),
       ]);
 
-      const appointments = (Array.isArray(appointmentsRes) ? appointmentsRes : appointmentsRes?.data || []).map(a => ({
+      const appointments = (Array.isArray(appointmentsRes) ? appointmentsRes : appointmentsRes?.data || []).map((a: Unmodelled) => ({
         ...a,
         type: 'appointment',
         displayDate: a.createdAt || a.date,
       }));
 
-      const labBookings = (labBookingsRes?.data || []).map(l => ({
+      const labBookings = (labBookingsRes?.data || []).map((l: Unmodelled) => ({
         ...l,
         type: 'test',
         displayDate: l.createdAt || l.bookingDate,
       }));
 
-      const pharmacyOrders = (pharmacyOrdersRes?.data || []).map(p => ({
+      const pharmacyOrders = (pharmacyOrdersRes?.data || []).map((p: Unmodelled) => ({
         ...p,
         type: 'medicine',
         displayDate: p.createdAt || p.orderDate,

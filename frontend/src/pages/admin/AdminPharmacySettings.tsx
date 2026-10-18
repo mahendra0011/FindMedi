@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function AdminPharmacySettings() {
   const [loading, setLoading] = useState(true);
@@ -51,14 +52,14 @@ pincode: f.pincode || '',
     load();
   }, []);
 
-  const update = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const update = (k: Unmodelled, v: Unmodelled) => setForm(p => ({ ...p, [k]: v }));
 
   const addAccreditation = () => {
     const v = prompt('Enter accreditation:');
     if (v) update('accreditations', [...form.accreditations, v.trim().toUpperCase()]);
   };
 
-  const setOps = (k, v) => setForm(p => ({ ...p, pharmacyOps: { ...p.pharmacyOps, [k]: v } }));
+  const setOps = (k: Unmodelled, v: Unmodelled) => setForm(p => ({ ...p, pharmacyOps: { ...p.pharmacyOps, [k]: v } }));
 
   const handleSave = async () => {
     setSaving(true);
@@ -129,10 +130,10 @@ pincode: f.pincode || '',
           <div className="space-y-2">
             <div className="flex items-center justify-between"><Label>Accreditations</Label><Button variant="outline" size="sm" onClick={addAccreditation}><Plus className="w-3 h-3 mr-1" /> Add</Button></div>
             <div className="flex flex-wrap gap-2">
-              {form.accreditations?.map((a, i) => (
+              {form.accreditations?.map((a: Unmodelled, i: Unmodelled) => (
                 <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <CheckCircle2 className="w-3 h-3" /> {a}
-                  <button onClick={() => update('accreditations', form.accreditations.filter((_, j) => j !== i))}><X className="w-3 h-3 ml-1 hover:text-destructive" /></button>
+                  <button onClick={() => update('accreditations', form.accreditations.filter((_: Unmodelled, j: Unmodelled) => j !== i))}><X className="w-3 h-3 ml-1 hover:text-destructive" /></button>
                 </span>
               ))}
             </div>

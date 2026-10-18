@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function TypewriterText({ text, delay = 8, chunkSize = 2, onComplete }) {
+export default function TypewriterText({ text, delay = 8, chunkSize = 2, onComplete }: Unmodelled) {
   const [currentText, setCurrentText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
 

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { userFacingError } from '@/lib/errorCopy';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /**
  * Typed so the props are not implicit `any`.
@@ -180,7 +181,7 @@ export default function PatientSettings() {
         setIceName(p.iceName || u.emergencyContact?.name || '');
         setIcePhone(p.icePhone || u.emergencyContact?.phone || '');
         setBloodGroup(p.bloodGroup || u.bloodGroup || '');
-        setAllergies(p.allergies || (Array.isArray(u.allergies) ? u.allergies.map((a) => a.allergen).join(', ') : ''));
+        setAllergies(p.allergies || (Array.isArray(u.allergies) ? u.allergies.map((a: Unmodelled) => a.allergen).join(', ') : ''));
         setRefundDestination(p.refundDestination || 'source');
         setAbhaConsent(Boolean(p.abhaConsent));
         setWhatsappAlerts(p.whatsappAlerts !== false);

@@ -4,13 +4,14 @@ import { Search, Plus, Clock, X, CheckCircle, AlertTriangle, User, Home, Sparkle
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const hkApi = {
-  getTasks: (p) => api.getHousekeepingTasks(p),
-  createTask: (b) => api.createHousekeepingTask(b),
-  completeTask: (id, b) => api.completeHousekeepingTask(id, b),
-  verifyTask: (id, b) => api.verifyHousekeepingTask(id, b),
-  autoCreateOnDischarge: async (id, b) => { try { return await api.autoCreateHousekeepingOnDischarge({ id, ...b }); } catch { return {}; } },
+  getTasks: (p: Unmodelled) => api.getHousekeepingTasks(p),
+  createTask: (b: Unmodelled) => api.createHousekeepingTask(b),
+  completeTask: (id: Unmodelled, b: Unmodelled) => api.completeHousekeepingTask(id, b),
+  verifyTask: (id: Unmodelled, b: Unmodelled) => api.verifyHousekeepingTask(id, b),
+  autoCreateOnDischarge: async (id: Unmodelled, b: Unmodelled) => { try { return await api.autoCreateHousekeepingOnDischarge({ id, ...b }); } catch { return {}; } },
   getStats: async () => { try { return await api.getHousekeepingStats(); } catch { return { pending: 0, inProgress: 0, completed: 0, total: 0 }; } },
 };
 
@@ -53,7 +54,7 @@ export default function Housekeeping() {
   const verifyMut = useMutation({ mutationFn: ({ id, ...b }) => hkApi.verifyTask(id, b), onSuccess: () => { qc.invalidateQueries(['hk']); setShowVerify(null); } });
   const autoCreateMut = useMutation({ mutationFn: hkApi.autoCreateOnDischarge, onSuccess: () => qc.invalidateQueries(['hk']) });
 
-  const _renderChecklist = (task) => (
+  const _renderChecklist = (task: Unmodelled) => (
     <div className="bg-muted/20 rounded-lg p-3">
       <p className="text-xs font-semibold mb-2">Cleaning Checklist</p>
       {task.isInfectionCase && (
@@ -115,7 +116,7 @@ export default function Housekeeping() {
       </div>
 
       <div className="space-y-4">
-        {tasks.map(task => {
+        {tasks.map((task: Unmodelled) => {
           const isExpanded = expandedId === task._id;
           const checklistData = task.checklist || {};
           const checklistDone = cleaningChecklist.every(item => checklistData[item.key]);

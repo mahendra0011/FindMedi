@@ -29,6 +29,7 @@ import { Separator } from '@/components/ui/separator';
 import RatingModal from '@/components/vehicle/RatingModal';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function PatientRides() {
   const navigate = useNavigate();
@@ -285,7 +286,7 @@ export default function PatientRides() {
               {
                 key: 'createdAt',
                 label: 'Date & Time',
-                render: (v) => (
+                render: (v: Unmodelled) => (
                   <span className="font-mono text-muted-foreground whitespace-nowrap">
                     {new Date(v).toLocaleString('en-IN', {
                       day: '2-digit',
@@ -299,7 +300,7 @@ export default function PatientRides() {
               {
                 key: 'vehicleType',
                 label: 'Vehicle',
-                render: (v, ride) => {
+                render: (v: Unmodelled, ride: Unmodelled) => {
                   const Icon = getVehicleIcon(v);
                   return (
                     <div className="flex items-center gap-2 whitespace-nowrap">
@@ -321,7 +322,7 @@ export default function PatientRides() {
               {
                 key: 'pickup',
                 label: 'Route',
-                render: (v, ride) => (
+                render: (v: Unmodelled, ride: Unmodelled) => (
                   <div className="max-w-[200px]">
                     <p className="truncate text-foreground font-medium">
                       <span className="text-emerald-600 font-bold mr-1">P:</span>
@@ -338,7 +339,7 @@ export default function PatientRides() {
                 key: 'riderId',
                 label: 'Driver',
                 sortable: false,
-                render: (v, ride) => (
+                render: (v: Unmodelled, ride: Unmodelled) => (
                   <div className="whitespace-nowrap">
                     {v?.name ? (
                       <div>
@@ -357,7 +358,7 @@ export default function PatientRides() {
                 key: 'fare',
                 label: 'Fare',
                 sortable: false,
-                render: (v, ride) => (
+                render: (v: Unmodelled, ride: Unmodelled) => (
                   <div className="whitespace-nowrap">
                     <span className="font-bold text-foreground">₹{v?.total || 0}</span>
                     <div>
@@ -374,7 +375,7 @@ export default function PatientRides() {
               {
                 key: 'status',
                 label: 'Status',
-                render: (_v, ride) => (
+                render: (_v: Unmodelled, ride: Unmodelled) => (
                   <Badge
                     variant={
                       ride.status === 'completed'
@@ -393,7 +394,7 @@ export default function PatientRides() {
                 key: 'ratingByUser',
                 label: 'Rating',
                 sortable: false,
-                render: (v, ride) =>
+                render: (v: Unmodelled, ride: Unmodelled) =>
                   v?.stars ? (
                     <span className="flex items-center gap-1 font-semibold text-amber-600">
                       <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
@@ -419,7 +420,7 @@ export default function PatientRides() {
                 key: '_actions',
                 label: 'Action',
                 sortable: false,
-                render: (_v, ride) => (
+                render: (_v: Unmodelled, ride: Unmodelled) => (
                   <div className="text-right">
                     <Button
                       variant="outline"

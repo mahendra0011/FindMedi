@@ -9,8 +9,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function RevenueTab({ data }) {
+export default function RevenueTab({ data }: Unmodelled) {
   return (
     <>
   <div className="grid md:grid-cols-4 gap-4">

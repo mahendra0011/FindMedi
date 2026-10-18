@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
 import { api, resolveFileUrl } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = {
   Active: 'bg-warning/10 text-warning',
@@ -84,7 +84,7 @@ export default function AdminPrescriptionQueue() {
       ) : (
         <div className="space-y-4">
           {filtered.map((rx, i) => {
-            const dispensed = rx.medicines?.filter(m => m.isDispensed).length || 0;
+            const dispensed = rx.medicines?.filter((m: Unmodelled) => m.isDispensed).length || 0;
             const total = rx.medicines?.length || 0;
             const colors = statusColors[rx.status] || statusColors.Active;
             return (
@@ -168,7 +168,7 @@ export default function AdminPrescriptionQueue() {
               <div className="mb-6">
                 <p className="text-xs text-muted-foreground mb-3">Medicines ({selectedRx.medicines?.length || 0})</p>
                 <div className="space-y-2">
-                  {selectedRx.medicines?.map((med, idx) => (
+                  {selectedRx.medicines?.map((med: Unmodelled, idx: Unmodelled) => (
                     <div key={idx} className={`p-4 rounded-xl border ${med.isDispensed ? 'bg-success/5 border-success/20' : 'bg-muted/20 border-border/40'}`}>
                       <div className="flex items-center gap-2 mb-1">
                         <Pill className={`w-4 h-4 ${med.isDispensed ? 'text-success' : 'text-muted-foreground'}`} />

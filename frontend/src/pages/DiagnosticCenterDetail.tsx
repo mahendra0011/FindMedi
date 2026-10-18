@@ -25,7 +25,7 @@ import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
 import DiagnosticCenterCard from '@/components/DiagnosticCenterCard';
 import ReviewDialog from '@/components/ReviewDialog';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const CATEGORIES = ['All', 'Pathology Tests', 'Imaging Tests', 'Cardiac Tests', 'Health Packages'];
 
@@ -86,7 +86,7 @@ const AMENITIES_LIST = [
 
 const fadeUp = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } } };
 
-const SectionTitle = ({ icon:Icon, label }) => (
+const SectionTitle = ({ icon:Icon, label }: Unmodelled) => (
   <h2 className="font-heading text-lg font-bold text-foreground mb-5 flex items-center gap-2">
     <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
       <Icon className="w-3.5 h-3.5 text-primary" />
@@ -95,10 +95,10 @@ const SectionTitle = ({ icon:Icon, label }) => (
   </h2>
 );
 
-function deriveCategory(f) {
-  const s = (f.specialties || []).map(x => x.toLowerCase());
-  const hasPathology = s.some(x => x.includes('pathology') || x.includes('biochem') || x.includes('hematology') || x.includes('immunology') || x.includes('molecular') || x.includes('microbiology'));
-  const hasImaging = s.some(x => x.includes('imaging') || x.includes('radiology') || x.includes('mri') || x.includes('cardiology') || x.includes('neurology'));
+function deriveCategory(f: Unmodelled) {
+  const s = (f.specialties || []).map((x: Unmodelled) => x.toLowerCase());
+  const hasPathology = s.some((x: Unmodelled) => x.includes('pathology') || x.includes('biochem') || x.includes('hematology') || x.includes('immunology') || x.includes('molecular') || x.includes('microbiology'));
+  const hasImaging = s.some((x: Unmodelled) => x.includes('imaging') || x.includes('radiology') || x.includes('mri') || x.includes('cardiology') || x.includes('neurology'));
   if (hasImaging && !hasPathology) return 'Imaging Center';
   if (hasPathology && !hasImaging) return 'Pathology Lab';
   if (s.includes('imaging')) return 'Imaging Center';
@@ -303,25 +303,25 @@ export default function DiagnosticCenterDetail() {
     includes: p.includes || [],
     popular: p.popular || false,
   })) : PACKAGES;
-  const clinicEntries = entries.filter(e => e.item._id === clinicId);
-  const clinicCartCount = clinicEntries.reduce((s, e) => s + e.qty, 0);
-  const clinicCartTotal = clinicEntries.reduce((s, e) => s + e.item.price * e.qty, 0);
+  const clinicEntries = entries.filter((e: Unmodelled) => e.item._id === clinicId);
+  const clinicCartCount = clinicEntries.reduce((s: Unmodelled, e: Unmodelled) => s + e.qty, 0);
+  const clinicCartTotal = clinicEntries.reduce((s: Unmodelled, e: Unmodelled) => s + e.item.price * e.qty, 0);
 
-  const handleCopyCode = (code) => {
+  const handleCopyCode = (code: Unmodelled) => {
     navigator.clipboard?.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const getTestIcon = (test) => {
+  const getTestIcon = (test: Unmodelled) => {
     if (test.detailCategory === 'Imaging Tests') return Camera;
     if (test.detailCategory === 'Cardiac Tests') return Heart;
     return FlaskConical;
   };
 
-  const renderTestCard = (test) => {
+  const renderTestCard = (test: Unmodelled) => {
     const Icon = getTestIcon(test);
-    const entry = clinicEntries.find(e => e.item.id === test.id);
+    const entry = clinicEntries.find((e: Unmodelled) => e.item.id === test.id);
     return (
       <motion.div key={test.id}
         initial={{ opacity: 0, y: 20 }}
@@ -460,7 +460,7 @@ export default function DiagnosticCenterDetail() {
     {
       key: 'label',
       label: 'Day',
-      render: (v, r) => (
+      render: (v: Unmodelled, r: Unmodelled) => (
         <div className="flex items-center gap-2">
           <div className={cn('w-2 h-2 rounded-full', r.active ? 'bg-emerald-500' : 'bg-muted-foreground/30')} />
           <span className={cn('font-medium', r.isToday ? 'text-primary' : 'text-foreground')}>
@@ -473,7 +473,7 @@ export default function DiagnosticCenterDetail() {
     {
       key: 'status',
       label: 'Status',
-      render: (v, r) => (
+      render: (v: Unmodelled, r: Unmodelled) => (
         <span className={cn(
           'text-xs font-semibold px-2.5 py-1 rounded-full',
           r.active
@@ -482,7 +482,7 @@ export default function DiagnosticCenterDetail() {
         )}>{v}</span>
       ),
     },
-    { key: 'timings', label: 'Timings', render: (v) => <span className="text-muted-foreground">{v}</span> },
+    { key: 'timings', label: 'Timings', render: (v: Unmodelled) => <span className="text-muted-foreground">{v}</span> },
   ];
 
   return (
@@ -734,7 +734,7 @@ export default function DiagnosticCenterDetail() {
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {sortedPackages.map((pkg, i) => {
-                          const pkgEntry = clinicEntries.find(e => e.item.id === pkg.id);
+                          const pkgEntry = clinicEntries.find((e: Unmodelled) => e.item.id === pkg.id);
                           return (
                             <motion.div key={pkg.id}
                               initial={{ opacity: 0, y: 20 }}
@@ -759,7 +759,7 @@ export default function DiagnosticCenterDetail() {
                                   </div>
                                 </div>
                                 <div className="flex flex-wrap gap-1 mb-2">
-                                  {pkg.includes.map((inc, j) => (
+                                  {pkg.includes.map((inc: Unmodelled, j: Unmodelled) => (
                                     <span key={j} className="text-[9px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-md border border-border/30">{inc}</span>
                                   ))}
                                 </div>
@@ -975,7 +975,7 @@ export default function DiagnosticCenterDetail() {
                       rowKey="_id"
                       showSearch={false}
                       manualPagination
-                      rowClassName={(r) => cn('hover:bg-muted/20 transition-colors', r.isToday && 'bg-primary/5')}
+                      rowClassName={(r: Unmodelled) => cn('hover:bg-muted/20 transition-colors', r.isToday && 'bg-primary/5')}
                     />
                   ) : (
                     <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-muted/30 border border-border/60 text-sm text-muted-foreground">
@@ -1452,7 +1452,7 @@ export default function DiagnosticCenterDetail() {
         entityType="lab"
         entityId={clinicId}
         entityName={clinic?.name}
-        onReviewSubmitted={(review) => {
+        onReviewSubmitted={(review: Unmodelled) => {
           setReviewsData(prev => [review, ...(Array.isArray(prev) ? prev : [])]);
         }}
       />

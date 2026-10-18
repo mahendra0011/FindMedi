@@ -22,6 +22,7 @@ import { Input } from '../../components/ui/input';
 import { DataGrid } from '../../components/ui/System';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function AdminLawyers() {
   const [activeTab, setActiveTab] = useState<'approvals' | 'all' | 'bookings' | 'analytics'>('approvals');
@@ -297,14 +298,14 @@ export default function AdminLawyers() {
             {/* Search already hit the API (getAdminLawyers({search})). */}
             <DataGrid
               columns={[
-                { key: 'name', label: 'Advocate', sortable: false, render: (_v, l) => <span className="font-bold text-slate-900 dark:text-slate-100">Adv. {l.userId?.name || 'Advocate'}</span> },
-                { key: 'barCouncilNumber', label: 'Bar Reg Number', sortable: false, render: (v) => <span className="font-mono text-slate-900 dark:text-slate-100">{v}</span> },
-                { key: 'jurisdictionCity', label: 'City', sortable: false, render: (v) => <span className="text-slate-500">{v || 'N/A'}</span> },
-                { key: 'consultationFee', label: 'Fee (₹)', sortable: false, render: (v) => <span className="font-bold">₹{v || 500}</span> },
-                { key: 'lawyerStatus', label: 'Status', sortable: false, render: (v) => <Badge className={v === 'active' ? 'bg-emerald-600 text-white' : v === 'suspended' ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white'}>{v}</Badge> },
+                { key: 'name', label: 'Advocate', sortable: false, render: (_v: Unmodelled, l: Unmodelled) => <span className="font-bold text-slate-900 dark:text-slate-100">Adv. {l.userId?.name || 'Advocate'}</span> },
+                { key: 'barCouncilNumber', label: 'Bar Reg Number', sortable: false, render: (v: Unmodelled) => <span className="font-mono text-slate-900 dark:text-slate-100">{v}</span> },
+                { key: 'jurisdictionCity', label: 'City', sortable: false, render: (v: Unmodelled) => <span className="text-slate-500">{v || 'N/A'}</span> },
+                { key: 'consultationFee', label: 'Fee (₹)', sortable: false, render: (v: Unmodelled) => <span className="font-bold">₹{v || 500}</span> },
+                { key: 'lawyerStatus', label: 'Status', sortable: false, render: (v: Unmodelled) => <Badge className={v === 'active' ? 'bg-emerald-600 text-white' : v === 'suspended' ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white'}>{v}</Badge> },
                 {
                   key: '_actions', label: 'Action', sortable: false,
-                  render: (_v, l) => (
+                  render: (_v: Unmodelled, l: Unmodelled) => (
                     l.lawyerStatus === 'active' ? (
                       <Button type="button" variant="ghost" size="sm" onClick={() => handleSuspend(l._id, true)} className="text-rose-600 text-xs h-7">Suspend</Button>
                     ) : l.lawyerStatus === 'suspended' ? (
@@ -331,12 +332,12 @@ export default function AdminLawyers() {
 
             <DataGrid
               columns={[
-                { key: 'bookingNumber', label: 'Booking ID', sortable: false, render: (v, b) => <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{v || b._id.slice(-6)}</span> },
-                { key: 'client', label: 'Client', sortable: false, render: (_v, b) => <span className="text-slate-800 dark:text-slate-200">{b.userId?.name || 'Client'}</span> },
-                { key: 'advocate', label: 'Advocate', sortable: false, render: (_v, b) => <span className="font-bold text-slate-900 dark:text-slate-100">Adv. {b.lawyerId?.userId?.name || 'Assigned Advocate'}</span> },
-                { key: 'category', label: 'Category', sortable: false, render: (v) => <span className="capitalize text-slate-600 dark:text-slate-400">{v?.replace(/_/g, ' ')}</span> },
-                { key: 'fee', label: 'Fee', sortable: false, render: (v) => <span className="font-bold">₹{v}</span> },
-                { key: 'status', label: 'Status', sortable: false, render: (v) => <Badge className={v === 'completed' ? 'bg-emerald-600 text-white' : v === 'confirmed' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'bg-slate-500 text-white'}>{v?.replace(/_/g, ' ')}</Badge> },
+                { key: 'bookingNumber', label: 'Booking ID', sortable: false, render: (v: Unmodelled, b: Unmodelled) => <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{v || b._id.slice(-6)}</span> },
+                { key: 'client', label: 'Client', sortable: false, render: (_v: Unmodelled, b: Unmodelled) => <span className="text-slate-800 dark:text-slate-200">{b.userId?.name || 'Client'}</span> },
+                { key: 'advocate', label: 'Advocate', sortable: false, render: (_v: Unmodelled, b: Unmodelled) => <span className="font-bold text-slate-900 dark:text-slate-100">Adv. {b.lawyerId?.userId?.name || 'Assigned Advocate'}</span> },
+                { key: 'category', label: 'Category', sortable: false, render: (v: Unmodelled) => <span className="capitalize text-slate-600 dark:text-slate-400">{v?.replace(/_/g, ' ')}</span> },
+                { key: 'fee', label: 'Fee', sortable: false, render: (v: Unmodelled) => <span className="font-bold">₹{v}</span> },
+                { key: 'status', label: 'Status', sortable: false, render: (v: Unmodelled) => <Badge className={v === 'completed' ? 'bg-emerald-600 text-white' : v === 'confirmed' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'bg-slate-500 text-white'}>{v?.replace(/_/g, ' ')}</Badge> },
               ]}
               rows={bookings}
               rowKey="_id"

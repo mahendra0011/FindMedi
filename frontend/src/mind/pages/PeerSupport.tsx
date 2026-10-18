@@ -13,36 +13,36 @@ import { Check, MessageCircle, Pencil, Plus, Send, ThumbsDown, ThumbsUp, Trash2,
 import { useNavigate } from "react-router-dom";
 import { api } from "@/mind/lib/api";
 import { sanitizeInput } from "@/mind/lib/sanitize";
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 const CATEGORIES = ["General Wellness", "Exam Stress", "Sleep Issues", "Burnout", "Coping Strategies"];
 const emergencyKeywords = ["suicide", "self-harm", "panic attack", "abuse"];
-const hasEmergencyLanguage = (text) => emergencyKeywords.some((keyword) => String(text || "").toLowerCase().includes(keyword));
-async function listPosts(category) {
+const hasEmergencyLanguage = (text: Unmodelled) => emergencyKeywords.some((keyword) => String(text || "").toLowerCase().includes(keyword));
+async function listPosts(category: Unmodelled) {
     const q = category && category !== "All" ? `?category=${encodeURIComponent(category)}` : "";
     const { data } = await api.get(`/api/peer/posts${q}`);
     return data;
 }
-async function createPost(params) {
+async function createPost(params: Unmodelled) {
     const { data } = await api.post(`/api/peer/posts`, params);
     return data;
 }
-async function updatePost(id, params) {
+async function updatePost(id: Unmodelled, params: Unmodelled) {
     const { data } = await api.patch(`/api/peer/posts/${encodeURIComponent(id)}`, params);
     return data;
 }
-async function deletePost(id, params) {
+async function deletePost(id: Unmodelled, params: Unmodelled) {
     const { data } = await api.delete(`/api/peer/posts/${encodeURIComponent(id)}`, { data: params });
     return data;
 }
-async function votePost(id, direction) {
+async function votePost(id: Unmodelled, direction: Unmodelled) {
     const { data } = await api.post(`/api/peer/posts/${encodeURIComponent(id)}/vote`, { direction });
     return data;
 }
-async function listComments(postId) {
+async function listComments(postId: Unmodelled) {
     const { data } = await api.get(`/api/peer/comments?postId=${encodeURIComponent(postId)}`);
     return data;
 }
-async function createComment(params) {
+async function createComment(params: Unmodelled) {
     const { data } = await api.post(`/api/peer/comments`, params);
     return data;
 }
@@ -55,7 +55,7 @@ function getOrCreateAnonUID() {
     localStorage.setItem(key, uid);
     return uid;
 }
-function aliasFromUID(uid) {
+function aliasFromUID(uid: Unmodelled) {
     const animals = ["Panda", "Koala", "Sparrow", "Dolphin", "Otter", "Robin", "Fox", "Penguin", "Orchid", "Lotus"];
     const colors = ["Blue", "Green", "Amber", "Violet", "Teal", "Coral", "Indigo", "Rose", "Cyan", "Lime"];
     let seed = 0;
@@ -66,7 +66,7 @@ function aliasFromUID(uid) {
     const num = (seed % 9000) + 1000;
     return `${color} ${animal} #${num}`;
 }
-function aliasGradient(alias) {
+function aliasGradient(alias: Unmodelled) {
     const grads = [
         "from-blue-500/20 to-violet-500/20 border-blue-500/25",
         "from-emerald-500/20 to-teal-500/20 border-emerald-500/25",
@@ -108,7 +108,7 @@ const PeerSupport = () => {
                 if (!cancelled) {
                     setPosts(list);
                     if (selectedPost) {
-                        const fresh = list.find((p) => p.id === selectedPost.id);
+                        const fresh = list.find((p: Unmodelled) => p.id === selectedPost.id);
                         if (!fresh) {
                             setSelectedPost(null);
                             setComments([]);
@@ -169,10 +169,10 @@ const PeerSupport = () => {
             setLoading(false);
         }
     }
-    function canManagePost(post) {
+    function canManagePost(post: Unmodelled) {
         return String(post?.author_uid || "") === String(ownerId || "");
     }
-    function startEditPost(post) {
+    function startEditPost(post: Unmodelled) {
         if (!canManagePost(post))
             return;
         setEditingPostId(post.id);
@@ -182,7 +182,7 @@ const PeerSupport = () => {
         setEditingPostId("");
         setEditingPostContent("");
     }
-    async function saveEditedPost(post) {
+    async function saveEditedPost(post: Unmodelled) {
         const content = editingPostContent.trim();
         if (!content) {
             toast({ title: "Post content is required.", variant: "destructive" });
@@ -209,7 +209,7 @@ const PeerSupport = () => {
             setLoading(false);
         }
     }
-    async function removePost(post) {
+    async function removePost(post: Unmodelled) {
         if (!canManagePost(post))
             return;
         if (!window.confirm("Delete this post and its comments?"))
@@ -231,7 +231,7 @@ const PeerSupport = () => {
             setLoading(false);
         }
     }
-    async function openPost(p) {
+    async function openPost(p: Unmodelled) {
         setSelectedPost(p);
         try {
             const cs = await listComments(p.id);
@@ -262,7 +262,7 @@ const PeerSupport = () => {
             setLoading(false);
         }
     }
-    async function vote(p, dir) {
+    async function vote(p: Unmodelled, dir: Unmodelled) {
         try {
             await votePost(p.id, dir);
             await reloadPosts();
@@ -386,7 +386,7 @@ const PeerSupport = () => {
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border bg-gradient-to-br ${pGrad} text-[11px] font-bold text-foreground/80`}>
-                                  {(p.alias || "Anon").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                                  {(p.alias || "Anon").split(" ").map((w: Unmodelled) => w[0]).join("").slice(0, 2).toUpperCase()}
                                 </span>
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-2">
@@ -467,7 +467,7 @@ const PeerSupport = () => {
                                         <div className="flex items-center justify-between gap-2">
                                           <div className="flex items-center gap-2">
                                             <span className={`flex h-6 w-6 items-center justify-center rounded-lg border bg-gradient-to-br ${cGrad} text-[8px] font-bold`}>
-                                              {(c.alias || "Anon").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                                              {(c.alias || "Anon").split(" ").map((w: Unmodelled) => w[0]).join("").slice(0, 2).toUpperCase()}
                                             </span>
                                             <span className="text-xs font-semibold">{c.alias}</span>
                                           </div>

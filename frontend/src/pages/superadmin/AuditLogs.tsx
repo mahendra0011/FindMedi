@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
 import { DataGrid } from '@/components/ui/System';
 import { api, downloadAuditExport } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 // Mirrors TARGET_DETAIL_KEYS in backend/src/routes/auditLogs.js - the detail
 // keys an action may store its target under. Keep the two lists in step, or
@@ -196,20 +197,20 @@ function AuditLogsTab() {
               would sort30 rows and pretend to be the whole trail. */}
           <DataGrid
             columns={[
-              { key: 'timestamp', label: 'Timestamp', sortable: false, render: (v) => <span className="text-muted-foreground whitespace-nowrap text-xs">{v ? new Date(v).toLocaleString() : '—'}</span> },
+              { key: 'timestamp', label: 'Timestamp', sortable: false, render: (v: Unmodelled) => <span className="text-muted-foreground whitespace-nowrap text-xs">{v ? new Date(v).toLocaleString() : '—'}</span> },
               {
                 key: 'user', label: 'User', sortable: false,
-                render: (_v, log) => (
+                render: (_v: Unmodelled, log: Unmodelled) => (
                   <>
                     <span className="text-sm font-medium">{log.user?.name || log.userId || 'System'}</span>
                     {log.user?.email && <p className="text-xs text-muted-foreground">{log.user.email}</p>}
                   </>
                 ),
               },
-              { key: 'action', label: 'Action', sortable: false, render: (v) => <Badge variant="outline" className="text-xs font-mono">{v}</Badge> },
+              { key: 'action', label: 'Action', sortable: false, render: (v: Unmodelled) => <Badge variant="outline" className="text-xs font-mono">{v}</Badge> },
               {
                 key: '_target', label: 'Target', sortable: false,
-                render: (_v, log) => (
+                render: (_v: Unmodelled, log: Unmodelled) => (
                   targetOf(log) ? (
                     <button
                       type="button"
@@ -226,7 +227,7 @@ function AuditLogsTab() {
               },
               {
                 key: 'details', label: 'Details', sortable: false,
-                render: (v) => (
+                render: (v: Unmodelled) => (
                   <span
                     className="text-xs text-muted-foreground max-w-[260px] truncate block"
                     title={v ? JSON.stringify(v) : undefined}
@@ -239,7 +240,7 @@ function AuditLogsTab() {
                   </span>
                 ),
               },
-              { key: 'ip', label: 'IP', sortable: false, render: (v) => <span className="text-xs text-muted-foreground">{v || '—'}</span> },
+              { key: 'ip', label: 'IP', sortable: false, render: (v: Unmodelled) => <span className="text-xs text-muted-foreground">{v || '—'}</span> },
             ]}
             rows={logs.map((log, i) => ({ ...log, _id: log._id || `row-${i}` }))}
             rowKey="_id"

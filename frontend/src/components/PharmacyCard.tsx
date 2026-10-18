@@ -6,8 +6,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-const renderStars = (rating) => (
+const renderStars = (rating: Unmodelled) => (
   <div className="flex items-center gap-0.5">
     {[1, 2, 3, 4, 5].map((s) => (
       <Star
@@ -23,7 +24,7 @@ const renderStars = (rating) => (
   </div>
 );
 
-export default function PharmacyCard({ pharmacy, index = 0 }) {
+export default function PharmacyCard({ pharmacy, index = 0 }: Unmodelled) {
   const navigate = useNavigate();
 
   if (!pharmacy) return null;
@@ -35,7 +36,7 @@ export default function PharmacyCard({ pharmacy, index = 0 }) {
   } = pharmacy;
 
   const initials = (name || '')
-    .split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+    .split(' ').map((n: Unmodelled) => n[0]).join('').slice(0, 2).toUpperCase();
   const cover = image || logo;
   const fallbackDist = distance || pharmacy.distance;
 

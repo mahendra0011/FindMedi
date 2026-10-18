@@ -19,7 +19,7 @@ import UnifiedSearch from "@/components/search/UnifiedSearch";
 import InstallAppButton from "@/components/InstallAppButton";
 import NationalHelplinesModal from "@/components/emergency/NationalHelplinesModal";
 import AccessibilityControls from "@/components/accessibility/AccessibilityControls";
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const heroImage = "https://cdn.hms.hospital/123/01KNC4WSYHF1637VJ39K3KVJ2M.png";
 const doctorImage = "https://alliedsoftech89.wordpress.com/wp-content/uploads/2013/06/medical-doctor-jobs-in-china-expat-jobs-in-china.jpg";
@@ -41,7 +41,7 @@ const velocityMessages = [
 
 const fadeUp = {
   hidden: { opacity: 0, y: 50 },
-  visible: i => ({
+  visible: (i: Unmodelled) => ({
     opacity: 1, y: 0,
     transition: { delay: i * 0.1, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }
   })
@@ -253,7 +253,7 @@ const Home = () => {
       : 'User Dashboard';
   const primaryActionPath = user ? '/dashboard' : '/signup';
 
-  const handleCtaPointerMove = (event) => {
+  const handleCtaPointerMove = (event: Unmodelled) => {
     const rect = event.currentTarget.getBoundingClientRect();
     setCtaPointer({
       x: ((event.clientX - rect.left) / rect.width) * 100,

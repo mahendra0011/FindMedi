@@ -6,45 +6,45 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const consultationApi = {
-  getTokens: async (p) => {
+  getTokens: async (p: Unmodelled) => {
     try {
       return await api.getTokens(p);
     } catch {
       return { tokens: [] };
     }
   },
-  getPatients: async (p) => {
+  getPatients: async (p: Unmodelled) => {
     try {
       return await api.getPatients(p);
     } catch {
       return [];
     }
   },
-  getRecords: async (p) => {
+  getRecords: async (p: Unmodelled) => {
     try {
       return await api.getRecords(p);
     } catch {
       return { records: [] };
     }
   },
-  createRecord: async (b) => {
+  createRecord: async (b: Unmodelled) => {
     try {
       return await api.createRecord(b);
     } catch {
       return {};
     }
   },
-  updateToken: async (id, _b) => {
+  updateToken: async (id: Unmodelled, _b: Unmodelled) => {
     try {
       return await api.startTokenConsultation(id);
     } catch {
       return {};
     }
   },
-  completeToken: async (id) => {
+  completeToken: async (id: Unmodelled) => {
     try {
       return await api.completeToken(id);
     } catch {
@@ -130,7 +130,7 @@ export default function DoctorConsultation() {
     },
   });
 
-  const startConsultation = (token) => {
+  const startConsultation = (token: Unmodelled) => {
     setSelectedPatient(token);
     setConsultForm({
       ...emptyConsultation,
@@ -144,7 +144,7 @@ export default function DoctorConsultation() {
     loadPatientHistory(token.patientName);
   };
 
-  const loadPatientHistory = async (patientName) => {
+  const loadPatientHistory = async (patientName: Unmodelled) => {
     try {
       const data = await consultationApi.getRecords({ search: patientName });
       setPatientHistory(data?.data || data?.records || []);
@@ -481,7 +481,7 @@ export default function DoctorConsultation() {
           </div>
 
           <div className="space-y-3">
-            {tokens.filter(t => t.status !== 'Completed' && t.status !== 'Skipped').map(token => (
+            {tokens.filter((t: Unmodelled) => t.status !== 'Completed' && t.status !== 'Skipped').map((token: Unmodelled) => (
               <div
                 key={token._id}
                 className={`bg-card rounded-xl border p-4 transition-all ${
@@ -535,7 +535,7 @@ export default function DoctorConsultation() {
                 </div>
               </div>
             ))}
-            {tokens.filter(t => t.status !== 'Completed' && t.status !== 'Skipped').length === 0 && (
+            {tokens.filter((t: Unmodelled) => t.status !== 'Completed' && t.status !== 'Skipped').length === 0 && (
               <div className="text-center py-20">
                 <Stethoscope className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
                 <p className="text-muted-foreground">No patients in queue</p>
@@ -568,7 +568,7 @@ export default function DoctorConsultation() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {patients.map(patient => (
+            {patients.map((patient: Unmodelled) => (
               <div key={patient._id} className="bg-card rounded-xl border p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">

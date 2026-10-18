@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function LabReviews() {
   const { user } = useAuth();
@@ -26,7 +26,7 @@ export default function LabReviews() {
     fetchReviews();
   }, [user]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     try {
       await api.deleteReview(id);
       setReviews(prev => prev.filter(r => r._id !== id));

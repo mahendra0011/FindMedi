@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const typeIcons = {
   Prescription: { icon: Pill, color: 'text-success', bg: 'bg-success/10' },
@@ -38,7 +38,7 @@ export default function ClinicConsultations() {
     try {
       const data = await api.getRecords();
       const arr = data?.data || data?.records || data || [];
-      setRecords(arr.filter(r => r.doctor?.toLowerCase().includes(user?.name?.toLowerCase())));
+      setRecords(arr.filter((r: Unmodelled) => r.doctor?.toLowerCase().includes(user?.name?.toLowerCase())));
     } catch (e) { console.error(e); }
     setLoading(false);
   };

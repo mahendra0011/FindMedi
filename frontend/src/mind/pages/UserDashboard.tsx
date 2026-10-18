@@ -106,7 +106,7 @@ import { api } from "@/mind/lib/api";
 import { getRealtimeSocket } from "@/mind/lib/socket";
 import { sanitizeInput } from "@/mind/lib/sanitize";
 import SecureChatPanel from "@/mind/components/SecureChatPanel";
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const themeOptions = [
   { id: "default", name: "Midnight Calm", color: "bg-indigo-500" },
@@ -134,7 +134,7 @@ const defaultPrivacyPrefs = {
 
 const dashboardTabs = ["home", "wellness", "packages", "sessions", "schedule", "history", "prescriptions", "assignments", "journal", "settings"];
 
-function readStoredPrefs(key, fallback) {
+function readStoredPrefs(key: Unmodelled, fallback: Unmodelled) {
   try {
     const raw = localStorage.getItem(key);
     return raw ? { ...fallback, ...JSON.parse(raw) } : fallback;
@@ -151,7 +151,7 @@ function formatRupees(value = 0) {
   }).format(Number(value) || 0);
 }
 
-function modeLabel(mode) {
+function modeLabel(mode: Unmodelled) {
   const labels = { "online": "Online", "in-person": "In-Person", "voice-call": "Voice Call", "video": "Video", "google-meet": "Google Meet", "video-chat": "Video + Chat", "chat-only": "Chat Only" };
   return labels[mode] || mode;
 }
@@ -177,7 +177,7 @@ function buildDateChoices(count = 14) {
   });
 }
 
-function ScheduleCard({ pkg, counsellor, toast, loadDashboard, navigate }) {
+function ScheduleCard({ pkg, counsellor, toast, loadDashboard, navigate }: Unmodelled) {
   const [booking, setBooking] = useState({ mode: "google-meet", date: "", time: "" });
   const [concern, setConcern] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -192,7 +192,7 @@ function ScheduleCard({ pkg, counsellor, toast, loadDashboard, navigate }) {
   const daysUntilNext = lastDate ? Math.max(0, minCadenceDays - daysSinceLast) : 0;
   const nextAvailable = lastDate ? new Date(lastDate.getTime() + minCadenceDays * 24 * 60 * 60 * 1000) : now;
 
-  const initials = (name) => name?.split(" ").filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase()).join("") || "MS";
+  const initials = (name: Unmodelled) => name?.split(" ").filter(Boolean).slice(0, 2).map((p: Unmodelled) => p[0]?.toUpperCase()).join("") || "MS";
 
   return (
     <div className="dashboard-card-motion space-y-5">
@@ -562,7 +562,7 @@ const UserDashboard = () => {
           setEmergencyContactName(dashboardData.profile?.emergencyContactName || "");
           setEmergencyContactPhone(dashboardData.profile?.emergencyContactPhone || "");
           setEmergencyContactRelation(dashboardData.profile?.emergencyContactRelation || "");
-          setNotificationPrefs((current) => ({ ...defaultNotificationPrefs, ...current, ...(dashboardData.profile?.notificationSettings || {}) }));
+          setNotificationPrefs((current: Unmodelled) => ({ ...defaultNotificationPrefs, ...current, ...(dashboardData.profile?.notificationSettings || {}) }));
         }
       })
       // U-8: failures are visible — toast + error state + assignments reset.
@@ -835,7 +835,7 @@ const UserDashboard = () => {
     }
   };
 
-  const handleRefund = async (pkg) => {
+  const handleRefund = async (pkg: Unmodelled) => {
     if (!confirm(`Request refund for ${pkg.planName}?\n\n${pkg.sessionsUsed}/${pkg.sessionsTotal} sessions used.\nRefund within 7 days of purchase.`)) return;
     try {
       const { data: res } = await api.post(`/api/packages/${pkg.id}/refund`);
@@ -1936,7 +1936,7 @@ const UserDashboard = () => {
                                   <Avatar className="h-9 w-9 rounded-lg ring-2 ring-violet-500/20">
                                     <AvatarImage src={counsellor?.profilePhotoUrl} alt={pkg.counsellorName} />
                                     <AvatarFallback className="rounded-lg bg-gradient-to-br from-violet-500/30 to-cyan-500/30 text-xs font-bold text-violet-200">
-                                      {(pkg.counsellorName || "MS").split(" ").filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase()).join("") || "MS"}
+                                      {(pkg.counsellorName || "MS").split(" ").filter(Boolean).slice(0, 2).map((p: Unmodelled) => p[0]?.toUpperCase()).join("") || "MS"}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="min-w-0">
@@ -2451,10 +2451,10 @@ const UserDashboard = () => {
                       <CardDescription>Control reminders without leaving the dashboard.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                      <PreferenceToggle icon={CalendarClock} title="Session reminders" text="Appointment reminders and Google Meet alerts." checked={notificationPrefs.session} onToggle={() => setNotificationPrefs((prev) => ({ ...prev, session: !prev.session }))} />
-                      <PreferenceToggle icon={HeartPulse} title="Mood check-ins" text="Daily wellness tracking prompts." checked={notificationPrefs.mood} onToggle={() => setNotificationPrefs((prev) => ({ ...prev, mood: !prev.mood }))} />
-                      <PreferenceToggle icon={MessageCircle} title="Counsellor messages" text="Replies and follow-up chat notifications." checked={notificationPrefs.messages} onToggle={() => setNotificationPrefs((prev) => ({ ...prev, messages: !prev.messages }))} />
-                      <PreferenceToggle icon={Siren} title="Emergency SOS alerts" text="SOS confirmations and urgent support updates." checked={notificationPrefs.emergency} onToggle={() => setNotificationPrefs((prev) => ({ ...prev, emergency: !prev.emergency }))} />
+                      <PreferenceToggle icon={CalendarClock} title="Session reminders" text="Appointment reminders and Google Meet alerts." checked={notificationPrefs.session} onToggle={() => setNotificationPrefs((prev: Unmodelled) => ({ ...prev, session: !prev.session }))} />
+                      <PreferenceToggle icon={HeartPulse} title="Mood check-ins" text="Daily wellness tracking prompts." checked={notificationPrefs.mood} onToggle={() => setNotificationPrefs((prev: Unmodelled) => ({ ...prev, mood: !prev.mood }))} />
+                      <PreferenceToggle icon={MessageCircle} title="Counsellor messages" text="Replies and follow-up chat notifications." checked={notificationPrefs.messages} onToggle={() => setNotificationPrefs((prev: Unmodelled) => ({ ...prev, messages: !prev.messages }))} />
+                      <PreferenceToggle icon={Siren} title="Emergency SOS alerts" text="SOS confirmations and urgent support updates." checked={notificationPrefs.emergency} onToggle={() => setNotificationPrefs((prev: Unmodelled) => ({ ...prev, emergency: !prev.emergency }))} />
                     </CardContent>
                   </Card>
 
@@ -2470,9 +2470,9 @@ const UserDashboard = () => {
                       <CardDescription>Choose how your support experience behaves by default.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                      <PreferenceToggle icon={EyeOff} title="Anonymous session default" text="Use nickname-first identity when booking sessions." checked={privacyPrefs.anonymousDefault} onToggle={() => setPrivacyPrefs((prev) => ({ ...prev, anonymousDefault: !prev.anonymousDefault }))} />
-                      <PreferenceToggle icon={NotebookPen} title="Share journal with counsellor" text="Make sharing explicit before entries are visible." checked={privacyPrefs.shareJournal} onToggle={() => setPrivacyPrefs((prev) => ({ ...prev, shareJournal: !prev.shareJournal }))} />
-                      <PreferenceToggle icon={ShieldCheck} title="Emergency keyword alerts" text="Show urgent support options when crisis words appear." checked={privacyPrefs.crisisAlerts} onToggle={() => setPrivacyPrefs((prev) => ({ ...prev, crisisAlerts: !prev.crisisAlerts }))} />
+                      <PreferenceToggle icon={EyeOff} title="Anonymous session default" text="Use nickname-first identity when booking sessions." checked={privacyPrefs.anonymousDefault} onToggle={() => setPrivacyPrefs((prev: Unmodelled) => ({ ...prev, anonymousDefault: !prev.anonymousDefault }))} />
+                      <PreferenceToggle icon={NotebookPen} title="Share journal with counsellor" text="Make sharing explicit before entries are visible." checked={privacyPrefs.shareJournal} onToggle={() => setPrivacyPrefs((prev: Unmodelled) => ({ ...prev, shareJournal: !prev.shareJournal }))} />
+                      <PreferenceToggle icon={ShieldCheck} title="Emergency keyword alerts" text="Show urgent support options when crisis words appear." checked={privacyPrefs.crisisAlerts} onToggle={() => setPrivacyPrefs((prev: Unmodelled) => ({ ...prev, crisisAlerts: !prev.crisisAlerts }))} />
                     </CardContent>
                   </Card>
                 </div>
@@ -2517,7 +2517,7 @@ const UserDashboard = () => {
   );
 };
 
-function Metric({ title, value, icon: Icon, compact = false }) {
+function Metric({ title, value, icon: Icon, compact = false }: Unmodelled) {
   return (
     <Card className="dashboard-card-motion glass-card">
       <CardHeader className="pb-2">
@@ -2533,7 +2533,7 @@ function Metric({ title, value, icon: Icon, compact = false }) {
   );
 }
 
-function ProgressRow({ label, value }) {
+function ProgressRow({ label, value }: Unmodelled) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2 text-sm">
@@ -2545,11 +2545,11 @@ function ProgressRow({ label, value }) {
   );
 }
 
-function PanelText({ children }) {
+function PanelText({ children }: Unmodelled) {
   return <div className="dashboard-card-motion rounded-lg border border-glass-border/40 bg-background/60 p-3 text-sm text-foreground/75">{children}</div>;
 }
 
-function FeatureTile({ icon: Icon, title, text }) {
+function FeatureTile({ icon: Icon, title, text }: Unmodelled) {
   return (
     <Card className="dashboard-card-motion glass-card">
       <CardContent className="p-4">
@@ -2561,7 +2561,7 @@ function FeatureTile({ icon: Icon, title, text }) {
   );
 }
 
-function ResourceTile({ icon: Icon, title, text }) {
+function ResourceTile({ icon: Icon, title, text }: Unmodelled) {
   return (
     <Card className="dashboard-card-motion glass-card">
       <CardHeader>
@@ -2575,7 +2575,7 @@ function ResourceTile({ icon: Icon, title, text }) {
   );
 }
 
-function ActionCard({ title, text, action, onClick }) {
+function ActionCard({ title, text, action, onClick }: Unmodelled) {
   return (
     <div className="dashboard-card-motion rounded-lg border border-glass-border/40 bg-background/60 p-4">
       <div className="font-semibold">{title}</div>
@@ -2587,7 +2587,7 @@ function ActionCard({ title, text, action, onClick }) {
   );
 }
 
-function Tracker({ label, value, icon: Icon }) {
+function Tracker({ label, value, icon: Icon }: Unmodelled) {
   return (
     <div className="dashboard-card-motion rounded-lg border border-glass-border/40 bg-background/60 p-4 text-center">
       {Icon && (
@@ -2601,7 +2601,7 @@ function Tracker({ label, value, icon: Icon }) {
   );
 }
 
-function SessionCard({ appointment, onBook, onChat }) {
+function SessionCard({ appointment, onBook, onChat }: Unmodelled) {
   const isOnline = ["online", "google-meet"].includes(appointment.mode);
 
   return (
@@ -2639,7 +2639,7 @@ function SessionCard({ appointment, onBook, onChat }) {
   );
 }
 
-function MiniHabit({ icon: Icon, label }) {
+function MiniHabit({ icon: Icon, label }: Unmodelled) {
   return (
     <div className="dashboard-card-motion rounded-lg border border-glass-border/40 bg-background/60 p-3 flex items-center gap-3">
       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
@@ -2663,7 +2663,7 @@ function MiniHabit({ icon: Icon, label }) {
 
 
 
-function PreferenceToggle({ icon: Icon, title, text, checked, onToggle }) {
+function PreferenceToggle({ icon: Icon, title, text, checked, onToggle }: Unmodelled) {
   return (
     <button
       type="button"
@@ -2688,7 +2688,7 @@ function PreferenceToggle({ icon: Icon, title, text, checked, onToggle }) {
   );
 }
 
-function ConsentDialog({ open, onOpenChange, onAccept }) {
+function ConsentDialog({ open, onOpenChange, onAccept }: Unmodelled) {
   const { toast } = useToast();
   const [accepted, setAccepted] = useState({ dataPrivacy: false, terms: false, confidentiality: false, emergency: false });
   const [submitting, setSubmitting] = useState(false);
@@ -2741,7 +2741,7 @@ function ConsentDialog({ open, onOpenChange, onAccept }) {
             <label key={item.key} className="flex items-start gap-3 p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
               <Checkbox
                 checked={accepted[item.key]}
-                onCheckedChange={(v) => setAccepted(prev => ({ ...prev, [item.key]: !!v }))}
+                onCheckedChange={(v: Unmodelled) => setAccepted(prev => ({ ...prev, [item.key]: !!v }))}
                 className="mt-0.5"
               />
               <span className="text-sm text-slate-600 dark:text-slate-300">{item.label}</span>
@@ -2819,7 +2819,7 @@ function PrescriptionsTab() {
             <div>
               <span className="text-xs font-semibold text-foreground/60 uppercase tracking-wider">Medicines</span>
               <div className="mt-2 divide-y divide-border/50 rounded-xl border border-border/50 overflow-hidden">
-                {p.medicines.map((m, i) => (
+                {p.medicines.map((m: Unmodelled, i: Unmodelled) => (
                   <div key={i} className="flex items-start gap-3 p-3 bg-background/40">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
                       <Pill className="h-4 w-4 text-primary" />
@@ -2871,7 +2871,7 @@ function AssignmentsTab() {
     return () => { active = false; };
   }, []);
 
-  const handleComplete = async (id) => {
+  const handleComplete = async (id: Unmodelled) => {
     try {
       await api.patch(`/api/assignments/${id}/complete`);
       setAssignments((prev) =>
@@ -2971,7 +2971,7 @@ function AssignmentsTab() {
   );
 }
 
-function AssignmentStats({ assignments, filter, onFilterChange }) {
+function AssignmentStats({ assignments, filter, onFilterChange }: Unmodelled) {
   const filterOptions = [
     { id: "today", label: "Today" },
     { id: "this-week", label: "This Week" },
@@ -2989,13 +2989,13 @@ function AssignmentStats({ assignments, filter, onFilterChange }) {
     return startOfMonth;
   };
 
-  const filtered = assignments.filter((a) => {
+  const filtered = assignments.filter((a: Unmodelled) => {
     const d = new Date(a.createdAt);
     return d >= getFilterStart();
   });
 
   const total = filtered.length;
-  const completed = filtered.filter((a) => a.status === "completed").length;
+  const completed = filtered.filter((a: Unmodelled) => a.status === "completed").length;
   const pending = total - completed;
   const pctDone = total > 0 ? Math.round((completed / total) * 100) : 0;
 
@@ -3049,16 +3049,16 @@ function AssignmentStats({ assignments, filter, onFilterChange }) {
             </div>
           </div>
           <div className="space-y-2">
-            {filtered.filter((a) => a.status === "pending").slice(0, 3).map((a) => (
+            {filtered.filter((a: Unmodelled) => a.status === "pending").slice(0, 3).map((a: Unmodelled) => (
               <div key={a.id} className="flex items-center gap-2 rounded-lg bg-background/40 border border-glass-border/20 px-3 py-2">
                 <div className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
                 <span className="text-xs font-medium truncate">{a.title}</span>
                 {a.dueDate && <span className="ml-auto text-[10px] text-foreground/40 shrink-0">{new Date(a.dueDate).toLocaleDateString()}</span>}
               </div>
             ))}
-            {filtered.filter((a) => a.status === "pending").length > 3 && (
+            {filtered.filter((a: Unmodelled) => a.status === "pending").length > 3 && (
               <div className="text-center text-[10px] text-foreground/40">
-                +{filtered.filter((a) => a.status === "pending").length - 3} more pending
+                +{filtered.filter((a: Unmodelled) => a.status === "pending").length - 3} more pending
               </div>
             )}
           </div>

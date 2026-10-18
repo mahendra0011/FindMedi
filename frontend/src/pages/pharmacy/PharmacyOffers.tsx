@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function PharmacyOffers() {
   const [offers, setOffers] = useState<ApiRow[]>([]);
@@ -24,7 +24,7 @@ export default function PharmacyOffers() {
   useEffect(() => { load(); }, []);
 
   const openAdd = () => { setEditItem(null); setForm({ title:'', description:'', discountType:'percentage', discountValue:'', validFrom:'', validUntil:'', minPurchase:'', isActive:true }); setShowModal(true); };
-  const openEdit = (o) => { setEditItem(o); setForm({ title:o.title, description:o.description||'', discountType:o.discountType, discountValue:o.discountValue, validFrom:o.validFrom?.split('T')[0]||'', validUntil:o.validUntil?.split('T')[0]||'', minPurchase:o.minPurchase||'', isActive:o.isActive }); setShowModal(true); };
+  const openEdit = (o: Unmodelled) => { setEditItem(o); setForm({ title:o.title, description:o.description||'', discountType:o.discountType, discountValue:o.discountValue, validFrom:o.validFrom?.split('T')[0]||'', validUntil:o.validUntil?.split('T')[0]||'', minPurchase:o.minPurchase||'', isActive:o.isActive }); setShowModal(true); };
 
   const handleSave = async () => {
     try {
@@ -34,7 +34,7 @@ export default function PharmacyOffers() {
     } catch (e) { toast.error(e.message); }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Delete this offer?')) return;
     try { await api.deletePharmacyOffer(id); toast.success('Deleted'); load(); }
     catch (e) { toast.error(e.message); }

@@ -26,7 +26,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 import { isOfflineAppointment, isOfflineClinicAppointment, isHomeVisitAppointment } from '@/lib/appointmentModes';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
 
@@ -97,8 +97,8 @@ export default function DoctorAppointments() {
   const [dischargeData, setDischargeData] = useState(initialDischargeData);
   const [showReportModal, setShowReportModal] = useState(false);
 
-  const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  const getFirstDay = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  const getDaysInMonth = (date: Unmodelled) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  const getFirstDay = (date: Unmodelled) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
   const loadAppointments = useCallback(async (searchParams = {}) => {
     setLoading(true);
@@ -169,7 +169,7 @@ export default function DoctorAppointments() {
            t.includes('voice') || t.includes('audio') || t.includes('video') || t.includes('chat') || t.includes('online');
   }).length;
 
-  const handleStatus = async (id, status, extra = {}) => {
+  const handleStatus = async (id: Unmodelled, status: Unmodelled, extra = {}) => {
     try { await api.updateAppointment(id, { status, ...extra }); loadAppointments(); } catch (e) { console.error(e); toast.error('Failed to update appointment'); }
   };
 
@@ -183,7 +183,7 @@ export default function DoctorAppointments() {
     } catch (e) { console.error(e); toast.error('Failed to reschedule appointment'); }
   };
 
-  const openReportModal = useCallback((apt, type) => {
+  const openReportModal = useCallback((apt: Unmodelled, type: Unmodelled) => {
     setCompleteId(apt._id);
     setReportType(type);
     if (type === 'Prescription') {
@@ -198,12 +198,12 @@ export default function DoctorAppointments() {
 
   // Listen for "Write Prescription" from TodayAppointmentsSection
   useEffect(() => {
-    const handler = (e) => openReportModal(e.detail, 'Prescription');
+    const handler = (e: Unmodelled) => openReportModal(e.detail, 'Prescription');
     window.addEventListener('open-prescription', handler);
     return () => window.removeEventListener('open-prescription', handler);
   }, [openReportModal]);
 
-  const addMedication = (type) => {
+  const addMedication = (type: Unmodelled) => {
     if (type === 'Prescription') {
       setPrescriptionData({ ...prescriptionData, medications: [...prescriptionData.medications, { name: '', dosage: '', frequency: '', instructions: '' }] });
     } else {
@@ -211,7 +211,7 @@ export default function DoctorAppointments() {
     }
   };
 
-  const removeMedication = (type, index) => {
+  const removeMedication = (type: Unmodelled, index: Unmodelled) => {
     if (type === 'Prescription') {
       setPrescriptionData({ ...prescriptionData, medications: prescriptionData.medications.filter((_, i) => i !== index) });
     } else {
@@ -219,7 +219,7 @@ export default function DoctorAppointments() {
     }
   };
 
-  const updateMedication = (type, index, field, value) => {
+  const updateMedication = (type: Unmodelled, index: Unmodelled, field: Unmodelled, value: Unmodelled) => {
     if (type === 'Prescription') {
       const meds = [...prescriptionData.medications]; meds[index][field] = value;
       setPrescriptionData({ ...prescriptionData, medications: meds });
@@ -565,8 +565,8 @@ export default function DoctorAppointments() {
         <ApproveAppointmentSection
           appointments={offlineAppointments}
           allAppointments={appointments}
-          onConfirm={(a) => handleStatus(a._id, 'Confirmed')}
-          onReject={(a, reason) => handleStatus(a._id, 'Cancelled', { notes: reason })}
+          onConfirm={(a: Unmodelled) => handleStatus(a._id, 'Confirmed')}
+          onReject={(a: Unmodelled, reason: Unmodelled) => handleStatus(a._id, 'Cancelled', { notes: reason })}
         />
       ) : (
         <TodayAppointmentsSection
@@ -575,7 +575,7 @@ export default function DoctorAppointments() {
           calendar={CalendarWidget}
           onRefresh={loadAppointments}
           user={user}
-          onViewDetails={(a) => setDetailsApt(a)}
+          onViewDetails={(a: Unmodelled) => setDetailsApt(a)}
         />
       )}
 

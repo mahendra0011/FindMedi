@@ -2,16 +2,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/min
 import { Badge } from "@/mind/components/ui/badge";
 import { Button } from "@/mind/components/ui/button";
 import { AlertTriangle, CheckCircle2, Shield, ShieldAlert, ShieldCheck } from "lucide-react";
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function ReportsTab({ data, users, updateReportStatus }) {
+export default function ReportsTab({ data, users, updateReportStatus }: Unmodelled) {
   return (
     <>
   <div className="grid md:grid-cols-4 gap-4">
     {[
       { label: "Total Reports", value: (data.reports || []).length, color: "text-primary", icon: ShieldAlert },
-      { label: "Pending", value: (data.reports || []).filter(r => r.status === "pending").length, color: "text-amber-500", icon: AlertTriangle },
-      { label: "Reviewed", value: (data.reports || []).filter(r => r.status === "reviewed").length, color: "text-blue-500", icon: CheckCircle2 },
-      { label: "Dismissed", value: (data.reports || []).filter(r => r.status === "dismissed" || r.status === "resolved").length, color: "text-emerald-500", icon: Shield },
+      { label: "Pending", value: (data.reports || []).filter((r: Unmodelled) => r.status === "pending").length, color: "text-amber-500", icon: AlertTriangle },
+      { label: "Reviewed", value: (data.reports || []).filter((r: Unmodelled) => r.status === "reviewed").length, color: "text-blue-500", icon: CheckCircle2 },
+      { label: "Dismissed", value: (data.reports || []).filter((r: Unmodelled) => r.status === "dismissed" || r.status === "resolved").length, color: "text-emerald-500", icon: Shield },
     ].map((s) => (
       <div key={s.label} className="rounded-xl border border-glass-border/30 bg-gradient-to-br from-background/80 to-background/60 p-4 flex items-center justify-between">
         <div>
@@ -42,7 +43,7 @@ export default function ReportsTab({ data, users, updateReportStatus }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {data.reports.map((r) => {
+          {data.reports.map((r: Unmodelled) => {
             const statusColors = {
               pending: "bg-amber-500/15 text-amber-600 border-amber-500/20",
               reviewed: "bg-blue-500/15 text-blue-600 border-blue-500/20",

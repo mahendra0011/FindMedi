@@ -17,7 +17,7 @@ import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { bookTestLab, isBookingConflictError } from '@/lib/testBooking';
 import { useAuth } from '@/context/AuthContext';
 import { userFacingError } from '@/lib/errorCopy';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const DEPARTMENTS = [
   { id:'all', name:'All Departments', icon:FlaskConical, color:'from-primary/20 to-primary/5', textColor:'text-primary', hoverColor:'hover:border-primary/40' },
@@ -140,7 +140,7 @@ export default function HospitalTestBooking() {
         const params = testScopeId ? { hospitalId: testScopeId } : {};
         const testsRes = await api.getTests(params).catch(() => []);
         const list = Array.isArray(testsRes) ? testsRes : testsRes?.tests || [];
-        const mapped = list.map(t => ({
+        const mapped = list.map((t: Unmodelled) => ({
           id: t._id,
           _id: t._id,
           name: t.name,
@@ -162,8 +162,8 @@ export default function HospitalTestBooking() {
     load();
   }, [activeId]);
 
-  const addToCart = (testId) => setTestCart(p => ({ ...p, [testId]: (p[testId] || 0) + 1 }));
-  const removeFromCart = (testId) => setTestCart(p => {
+  const addToCart = (testId: Unmodelled) => setTestCart(p => ({ ...p, [testId]: (p[testId] || 0) + 1 }));
+  const removeFromCart = (testId: Unmodelled) => setTestCart(p => {
     const next = { ...p };
     if (next[testId] <= 1) delete next[testId];
     else next[testId]--;
@@ -171,7 +171,7 @@ export default function HospitalTestBooking() {
   });
 
   // Handle prescription file upload from camera
-  const handleCameraUpload = (e) => {
+  const handleCameraUpload = (e: Unmodelled) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -200,7 +200,7 @@ export default function HospitalTestBooking() {
   };
 
   // Handle prescription file upload from gallery/files
-  const handleFileUpload = (e) => {
+  const handleFileUpload = (e: Unmodelled) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -352,7 +352,7 @@ export default function HospitalTestBooking() {
 
   const displayHospital = hospital || { _id: activeId, name: hospital?.name || 'Healthcare Provider', rating: 0, address: '', verified: false };
 
-  const StepContent = ({ step }) => {
+  const StepContent = ({ step }: Unmodelled) => {
     switch (step) {
       case 1:
         return (
@@ -861,7 +861,7 @@ export default function HospitalTestBooking() {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1 mb-2">
-                      {test.includes?.map((inc, j) => (
+                      {test.includes?.map((inc: Unmodelled, j: Unmodelled) => (
                         <span key={j} className="text-[9px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-md border border-border/30">{inc}</span>
                       ))}
                     </div>

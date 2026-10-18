@@ -4,6 +4,7 @@ import {
   MessageCircle, User as UserIcon, ShieldAlert, Lock, ChevronDown, Plus, Stethoscope,
 } from 'lucide-react';
 import { messagePreview, saveDraft } from '@/lib/chatPrefs';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const FILTERS = [
   { key: 'all', label: 'All' },
@@ -12,7 +13,7 @@ const FILTERS = [
   { key: 'locked', label: 'Locked' },
 ];
 
-const timeLabel = (dateLike) => {
+const timeLabel = (dateLike: Unmodelled) => {
   if (!dateLike) return '';
   const d = new Date(dateLike);
   const now = new Date();
@@ -23,7 +24,7 @@ const timeLabel = (dateLike) => {
   return d.toLocaleDateString([], { day: '2-digit', month: 'short' });
 };
 
-function Avatar({ user, size = 12 }) {
+function Avatar({ user, size = 12 }: Unmodelled) {
   const cls = size === 12 ? 'w-12 h-12' : 'w-10 h-10';
   return (
     <div className={`${cls} rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold overflow-hidden flex-shrink-0`}>
@@ -61,7 +62,7 @@ export default function ChatList({
   onTogglePush = undefined as (() => void) | undefined,
   pushState = 'off',
   hidePreviewsInLocked,
-}) {
+}: Unmodelled) {
   const [showContacts, setShowContacts] = useState(false);
   const [contactQuery, setContactQuery] = useState('');
 
@@ -72,7 +73,7 @@ export default function ChatList({
     if (filter === 'all' && c.archived) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const other = (c.participants || []).find((p) => String(p._id) !== String(c.me));
+      const other = (c.participants || []).find((p: Unmodelled) => String(p._id) !== String(c.me));
       const name = (c.other?.name || other?.name || '').toLowerCase();
       const last = (c.lastMessage?.content || '').toLowerCase();
       if (!name.includes(q) && !last.includes(q)) return false;
@@ -80,7 +81,7 @@ export default function ChatList({
     return true;
   }), [conversations, filter, searchQuery]);
 
-  const peerOf = (c) => c.other || (c.participants || []).find((p) => String(p._id) !== String(c.me)) || {};
+  const peerOf = (c: Unmodelled) => c.other || (c.participants || []).find((p: Unmodelled) => String(p._id) !== String(c.me)) || {};
 
   const visibleContacts = useMemo(() => {
     const q = contactQuery.trim().toLowerCase();

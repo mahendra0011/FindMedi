@@ -10,7 +10,7 @@ import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { userFacingError } from '@/lib/errorCopy';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 function RevenueOverview() {
   const [stats, setStats] = useState(null);
@@ -83,8 +83,8 @@ function RevenueOverview() {
           <CardHeader><CardTitle className="text-lg">Monthly Commission Trend</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {stats.commission.monthlyTrend.slice().reverse().map((item, i) => {
-                const max = Math.max(...stats.commission.monthlyTrend.map(d => d.amount || 0), 1);
+              {stats.commission.monthlyTrend.slice().reverse().map((item: Unmodelled, i: Unmodelled) => {
+                const max = Math.max(...stats.commission.monthlyTrend.map((d: Unmodelled) => d.amount || 0), 1);
                 return (
                   <div key={i} className="flex items-center gap-3">
                     <span className="text-sm text-muted-foreground w-24">
@@ -108,7 +108,7 @@ function RevenueOverview() {
           <CardHeader><CardTitle className="text-lg">Revenue by Source</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {stats.commission.sourceBreakdown.map((item, i) => (
+              {stats.commission.sourceBreakdown.map((item: Unmodelled, i: Unmodelled) => (
                 <div key={i} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
                   <span className="text-sm capitalize font-medium">{item._id}</span>
                   <div className="flex items-center gap-4">
@@ -146,7 +146,7 @@ function CommissionConfigTab() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchConfigs(); }, []);
 
-  const handleSave = async (id) => {
+  const handleSave = async (id: Unmodelled) => {
     try {
       await api.updateCommissionConfig(id, editFields);
       toast.success('Commission config updated');
@@ -180,7 +180,7 @@ function CommissionConfigTab() {
         columns={[
           {
             key: 'facilityName', label: 'Facility', sortable: false,
-            render: (_v, c) => (
+            render: (_v: Unmodelled, c: Unmodelled) => (
               <>
                 <p className="font-medium text-foreground">{c.facilityName || 'Unknown'}</p>
                 <p className="text-xs text-muted-foreground capitalize">{c.facilityType}</p>
@@ -189,7 +189,7 @@ function CommissionConfigTab() {
           },
           {
             key: 'commissionPercent', label: 'Commission %', sortable: false,
-            render: (_v, c) => (
+            render: (_v: Unmodelled, c: Unmodelled) => (
               editId === c._id ? (
                 <Input type="number" value={editFields.commissionPercent ?? c.commissionPercent}
                   onChange={e => setEditFields(f => ({ ...f, commissionPercent: Number(e.target.value) }))}
@@ -201,7 +201,7 @@ function CommissionConfigTab() {
           },
           {
             key: 'commissionCap', label: 'Cap', sortable: false,
-            render: (_v, c) => (
+            render: (_v: Unmodelled, c: Unmodelled) => (
               editId === c._id ? (
                 <Input type="number" value={editFields.commissionCap ?? c.commissionCap}
                   onChange={e => setEditFields(f => ({ ...f, commissionCap: Number(e.target.value) }))}
@@ -213,7 +213,7 @@ function CommissionConfigTab() {
           },
           {
             key: 'payoutSchedule', label: 'Schedule', sortable: false,
-            render: (_v, c) => (
+            render: (_v: Unmodelled, c: Unmodelled) => (
               editId === c._id ? (
                 <select value={editFields.payoutSchedule ?? c.payoutSchedule}
                   onChange={e => setEditFields(f => ({ ...f, payoutSchedule: e.target.value }))}
@@ -227,11 +227,11 @@ function CommissionConfigTab() {
               )
             ),
           },
-          { key: 'totalEarnings', label: 'Earnings', sortable: false, render: (v) => <span className="font-medium">₹{(v || 0).toLocaleString()}</span> },
-          { key: 'pendingPayout', label: 'Pending', sortable: false, render: (v) => <span className="text-warning font-medium">₹{(v || 0).toLocaleString()}</span> },
+          { key: 'totalEarnings', label: 'Earnings', sortable: false, render: (v: Unmodelled) => <span className="font-medium">₹{(v || 0).toLocaleString()}</span> },
+          { key: 'pendingPayout', label: 'Pending', sortable: false, render: (v: Unmodelled) => <span className="text-warning font-medium">₹{(v || 0).toLocaleString()}</span> },
           {
             key: 'status', label: 'Status', sortable: false,
-            render: (_v, c) => (
+            render: (_v: Unmodelled, c: Unmodelled) => (
               editId === c._id ? (
                 <select value={editFields.status ?? c.status}
                   onChange={e => setEditFields(f => ({ ...f, status: e.target.value }))}
@@ -248,7 +248,7 @@ function CommissionConfigTab() {
           },
           {
             key: '_actions', label: 'Action', sortable: false,
-            render: (_v, c) => (
+            render: (_v: Unmodelled, c: Unmodelled) => (
               editId === c._id ? (
                 <div className="flex gap-1 justify-end">
                   <Button size="sm" onClick={() => handleSave(c._id)}>Save</Button>
@@ -335,13 +335,13 @@ function TransactionLedgerTab() {
         /* Server-paginated + server-filtered (source buttons above own the controls). */
         <DataGrid
           columns={[
-            { key: 'createdAt', label: 'Date', sortable: false, render: (v) => <span className="text-xs text-muted-foreground whitespace-nowrap">{v ? new Date(v).toLocaleDateString() : '—'}</span> },
-            { key: 'facilityName', label: 'Facility', sortable: false, render: (v) => <span className="text-sm font-medium">{v || '—'}</span> },
-            { key: 'source', label: 'Source', sortable: false, render: (v) => <span className="text-xs capitalize bg-muted px-2 py-0.5 rounded-full">{v}</span> },
-            { key: 'patientName', label: 'Patient', sortable: false, render: (v) => <span className="text-muted-foreground">{v || '—'}</span> },
-            { key: 'amount', label: 'Amount', sortable: false, render: (v) => <span className="text-right font-medium">₹{(v || 0).toLocaleString()}</span> },
-            { key: 'commissionAmount', label: 'Commission', sortable: false, render: (v) => <span className="text-right text-warning">₹{(v || 0).toLocaleString()}</span> },
-            { key: 'netAmount', label: 'Net', sortable: false, render: (v) => <span className="text-right text-success font-medium">₹{(v || 0).toLocaleString()}</span> },
+            { key: 'createdAt', label: 'Date', sortable: false, render: (v: Unmodelled) => <span className="text-xs text-muted-foreground whitespace-nowrap">{v ? new Date(v).toLocaleDateString() : '—'}</span> },
+            { key: 'facilityName', label: 'Facility', sortable: false, render: (v: Unmodelled) => <span className="text-sm font-medium">{v || '—'}</span> },
+            { key: 'source', label: 'Source', sortable: false, render: (v: Unmodelled) => <span className="text-xs capitalize bg-muted px-2 py-0.5 rounded-full">{v}</span> },
+            { key: 'patientName', label: 'Patient', sortable: false, render: (v: Unmodelled) => <span className="text-muted-foreground">{v || '—'}</span> },
+            { key: 'amount', label: 'Amount', sortable: false, render: (v: Unmodelled) => <span className="text-right font-medium">₹{(v || 0).toLocaleString()}</span> },
+            { key: 'commissionAmount', label: 'Commission', sortable: false, render: (v: Unmodelled) => <span className="text-right text-warning">₹{(v || 0).toLocaleString()}</span> },
+            { key: 'netAmount', label: 'Net', sortable: false, render: (v: Unmodelled) => <span className="text-right text-success font-medium">₹{(v || 0).toLocaleString()}</span> },
           ]}
           rows={transactions.map((t, i) => ({ ...t, _id: t._id || `txn-${i}` }))}
           rowKey="_id"
@@ -386,8 +386,8 @@ function PayoutsTab() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchPayouts(1); }, []);
 
-  const serverMsg = (err) => userFacingError(err, { fallback: 'Failed' });
-  const handleMarkPaid = async (id) => {
+  const serverMsg = (err: Unmodelled) => userFacingError(err, { fallback: 'Failed' });
+  const handleMarkPaid = async (id: Unmodelled) => {
     if (!confirm('Mark this payout as paid?')) return;
     try {
       await api.markPayoutPaid(id, { transactionRef: `TXN-${crypto.randomUUID()}` });
@@ -400,7 +400,7 @@ function PayoutsTab() {
     }
   };
 
-  const handleApprove = async (id) => {
+  const handleApprove = async (id: Unmodelled) => {
     try {
       await api.approvePayout(id);
       toast.success('Approval recorded');
@@ -438,20 +438,20 @@ function PayoutsTab() {
         /* Server-paginated (own Prev/Next below owns paging). */
         <DataGrid
           columns={[
-            { key: 'facilityName', label: 'Facility', sortable: false, render: (v) => <span className="font-medium">{v || '—'}</span> },
-            { key: 'periodStart', label: 'Period', sortable: false, render: (v, p) => <span className="text-xs text-muted-foreground">{v ? new Date(v).toLocaleDateString() : '—'} - {p.periodEnd ? new Date(p.periodEnd).toLocaleDateString() : '—'}</span> },
-            { key: 'grossRevenue', label: 'Gross', sortable: false, render: (v) => <span className="text-right">₹{(v || 0).toLocaleString()}</span> },
-            { key: 'commissionAmount', label: 'Commission', sortable: false, render: (v) => <span className="text-right text-warning">₹{(v || 0).toLocaleString()}</span> },
-            { key: 'netPayout', label: 'Net Payout', sortable: false, render: (v) => <span className="text-right font-semibold">₹{(v || 0).toLocaleString()}</span> },
+            { key: 'facilityName', label: 'Facility', sortable: false, render: (v: Unmodelled) => <span className="font-medium">{v || '—'}</span> },
+            { key: 'periodStart', label: 'Period', sortable: false, render: (v: Unmodelled, p: Unmodelled) => <span className="text-xs text-muted-foreground">{v ? new Date(v).toLocaleDateString() : '—'} - {p.periodEnd ? new Date(p.periodEnd).toLocaleDateString() : '—'}</span> },
+            { key: 'grossRevenue', label: 'Gross', sortable: false, render: (v: Unmodelled) => <span className="text-right">₹{(v || 0).toLocaleString()}</span> },
+            { key: 'commissionAmount', label: 'Commission', sortable: false, render: (v: Unmodelled) => <span className="text-right text-warning">₹{(v || 0).toLocaleString()}</span> },
+            { key: 'netPayout', label: 'Net Payout', sortable: false, render: (v: Unmodelled) => <span className="text-right font-semibold">₹{(v || 0).toLocaleString()}</span> },
             { key: 'transactionCount', label: 'Txns', sortable: false },
-            { key: 'status', label: 'Status', sortable: false, render: (v) => <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${v === 'paid' ? 'bg-success/10 text-success' : v === 'cancelled' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}`}>{v}</span> },
+            { key: 'status', label: 'Status', sortable: false, render: (v: Unmodelled) => <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${v === 'paid' ? 'bg-success/10 text-success' : v === 'cancelled' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}`}>{v}</span> },
             {
               key: '_actions', label: 'Action', sortable: false,
-              render: (_v, p) => (
+              render: (_v: Unmodelled, p: Unmodelled) => (
                 p.status === 'pending' ? (
                   <div className="flex gap-1.5 justify-end items-center">
                     {(p.netPayout || 0) >= 100000 && (
-                      <span className="text-[11px] text-muted-foreground tabular-nums" title={(p.approvals || []).map((a) => a.adminName || 'admin').join(', ') || 'No approvals yet'}>
+                      <span className="text-[11px] text-muted-foreground tabular-nums" title={(p.approvals || []).map((a: Unmodelled) => a.adminName || 'admin').join(', ') || 'No approvals yet'}>
                         {(p.approvals || []).length}/2 approvals
                       </span>
                     )}

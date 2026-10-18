@@ -37,6 +37,7 @@ import {
   Legend,
 } from 'recharts';
 import { AlarmOverlayModal, AlarmItem } from '@/components/patient/AlarmOverlayModal';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function PatientVitals() {
   const [activeTab, setActiveTab] = useState<'bp' | 'blood_sugar' | 'weight' | 'temperature'>('bp');
@@ -333,7 +334,7 @@ export default function PatientVitals() {
     {
       key: 'recordedAt',
       label: 'Date & Time',
-      render: (value, r) => (
+      render: (value: Unmodelled, r: Unmodelled) => (
         <span className="text-xs font-medium">
           {new Date(value).toLocaleString('en-IN', {
             day: 'numeric',
@@ -352,7 +353,7 @@ export default function PatientVitals() {
     {
       key: 'vitalType',
       label: 'Vital Type',
-      render: (value) => (
+      render: (value: Unmodelled) => (
         <span className="text-xs capitalize font-medium text-foreground">
           {String(value ?? '').replace('_', ' ')}
         </span>
@@ -361,12 +362,12 @@ export default function PatientVitals() {
     {
       key: 'reading',
       label: 'Reading',
-      render: (value) => <span className="font-bold text-foreground">{value}</span>,
+      render: (value: Unmodelled) => <span className="font-bold text-foreground">{value}</span>,
     },
     {
       key: 'note',
       label: 'Context / Note',
-      render: (value, r) => (
+      render: (value: Unmodelled, r: Unmodelled) => (
         <span className="text-xs text-muted-foreground">
           {r.values?.sugarContext && (
             <span className="font-semibold capitalize text-foreground mr-1">
@@ -380,7 +381,7 @@ export default function PatientVitals() {
     {
       key: 'flag',
       label: 'Status',
-      render: (value) => (
+      render: (value: Unmodelled) => (
         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${
           value === 'normal'
             ? 'bg-emerald-500/10 text-emerald-600'
@@ -396,7 +397,7 @@ export default function PatientVitals() {
       key: '_actions',
       label: 'Actions',
       sortable: false,
-      render: (_value, r) => (
+      render: (_value: Unmodelled, r: Unmodelled) => (
         <div className="text-right">
           {r.canEdit ? (
             <div className="flex items-center justify-end gap-1">

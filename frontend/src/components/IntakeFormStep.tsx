@@ -8,6 +8,7 @@ import { Upload, Loader2, FileText, CheckCircle2, ChevronDown, ChevronUp, ArrowR
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { userFacingError } from '@/lib/errorCopy';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function IntakeFormStep({ formData, setFormData, onNext, onBack }: any) {
   const [uploadingPrescription, setUploadingPrescription] = useState(false);
@@ -31,7 +32,7 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
     family_history: useRef(null)
   };
 
-  const handleUpload = async (e, setUploading, fieldPath) => {
+  const handleUpload = async (e: Unmodelled, setUploading: Unmodelled, fieldPath: Unmodelled) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -49,12 +50,12 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
       if (res && res.url) {
         toast.success('File uploaded successfully');
         if (fieldPath === 'prescriptionFile') {
-          setFormData(prev => ({
+          setFormData((prev: Unmodelled) => ({
             ...prev,
             currentTreatment: { ...prev.currentTreatment, prescriptionFile: res.url }
           }));
         } else if (fieldPath === 'reportFile') {
-          setFormData(prev => ({
+          setFormData((prev: Unmodelled) => ({
             ...prev,
             testReports: { ...prev.testReports, reportFile: res.url }
           }));
@@ -72,13 +73,13 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
     }
   };
 
-  const scrollToSection = (id) => {
+  const scrollToSection = (id: Unmodelled) => {
     setTimeout(() => {
       sectionRefs[id]?.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 150);
   };
 
-  const advanceTo = (id) => {
+  const advanceTo = (id: Unmodelled) => {
     setActiveSection(id);
     scrollToSection(id);
   };
@@ -88,7 +89,7 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
   ];
 
   // Render function (NOT a component) to prevent re-mounting inputs on each keystroke
-  const renderSection = (id, title, isCompleted, children) => {
+  const renderSection = (id: Unmodelled, title: Unmodelled, isCompleted: Unmodelled, children: Unmodelled) => {
     const isActive = activeSection === id;
     
     return (
@@ -129,7 +130,7 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
             <Label className="text-xs font-semibold text-muted-foreground">Chief Complaint / Main Symptom <span className="text-destructive">*</span></Label>
             <Select 
               value={formData.chiefComplaint} 
-              onValueChange={(val) => setFormData(p => ({ ...p, chiefComplaint: val }))}
+              onValueChange={(val) => setFormData((p: Unmodelled) => ({ ...p, chiefComplaint: val }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select your main problem" />
@@ -144,7 +145,7 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
               <Input 
                 placeholder="Please specify your problem" 
                 value={formData.chiefComplaintOther}
-                onChange={(e) => setFormData(p => ({ ...p, chiefComplaintOther: e.target.value }))}
+                onChange={(e) => setFormData((p: Unmodelled) => ({ ...p, chiefComplaintOther: e.target.value }))}
                 className="mt-2"
               />
             )}
@@ -154,7 +155,7 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
             <Textarea 
               placeholder="E.g., Since 3 days, For 2 weeks..." 
               value={formData.symptomsDuration}
-              onChange={(e) => setFormData(p => ({ ...p, symptomsDuration: e.target.value }))}
+              onChange={(e) => setFormData((p: Unmodelled) => ({ ...p, symptomsDuration: e.target.value }))}
               className="resize-none h-16"
             />
           </div>
@@ -169,15 +170,15 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">Do you have any past medical conditions like Diabetes, Blood Pressure, Asthma?</p>
           <div className="flex gap-2">
-            <Button type="button" variant={formData.pastMedicalHistory.hasHistory === true ? "default" : "outline"} size="sm" onClick={() => setFormData(p => ({ ...p, pastMedicalHistory: { ...p.pastMedicalHistory, hasHistory: true } }))}>Yes</Button>
-            <Button type="button" variant={formData.pastMedicalHistory.hasHistory === false ? "default" : "outline"} size="sm" onClick={() => { setFormData(p => ({ ...p, pastMedicalHistory: { ...p.pastMedicalHistory, hasHistory: false, details: '' } })); advanceTo('current_treatment'); }}>No</Button>
+            <Button type="button" variant={formData.pastMedicalHistory.hasHistory === true ? "default" : "outline"} size="sm" onClick={() => setFormData((p: Unmodelled) => ({ ...p, pastMedicalHistory: { ...p.pastMedicalHistory, hasHistory: true } }))}>Yes</Button>
+            <Button type="button" variant={formData.pastMedicalHistory.hasHistory === false ? "default" : "outline"} size="sm" onClick={() => { setFormData((p: Unmodelled) => ({ ...p, pastMedicalHistory: { ...p.pastMedicalHistory, hasHistory: false, details: '' } })); advanceTo('current_treatment'); }}>No</Button>
           </div>
           {formData.pastMedicalHistory.hasHistory && (
             <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
               <Textarea 
                 placeholder="Please detail your past medical history" 
                 value={formData.pastMedicalHistory.details}
-                onChange={(e) => setFormData(p => ({ ...p, pastMedicalHistory: { ...p.pastMedicalHistory, details: e.target.value } }))}
+                onChange={(e) => setFormData((p: Unmodelled) => ({ ...p, pastMedicalHistory: { ...p.pastMedicalHistory, details: e.target.value } }))}
                 className="resize-none h-16 mt-2"
               />
               <div className="flex justify-end">
@@ -193,8 +194,8 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">Are you currently taking or have taken treatment from another doctor for this?</p>
           <div className="flex gap-2">
-            <Button type="button" variant={formData.currentTreatment.hasPastTreatment === true ? "default" : "outline"} size="sm" onClick={() => setFormData(p => ({ ...p, currentTreatment: { ...p.currentTreatment, hasPastTreatment: true } }))}>Yes</Button>
-            <Button type="button" variant={formData.currentTreatment.hasPastTreatment === false ? "default" : "outline"} size="sm" onClick={() => { setFormData(p => ({ ...p, currentTreatment: { hasPastTreatment: false, doctorName: '', cityState: '', when: '', prescriptionFile: '', takingMedicines: false } })); advanceTo('test_reports'); }}>No</Button>
+            <Button type="button" variant={formData.currentTreatment.hasPastTreatment === true ? "default" : "outline"} size="sm" onClick={() => setFormData((p: Unmodelled) => ({ ...p, currentTreatment: { ...p.currentTreatment, hasPastTreatment: true } }))}>Yes</Button>
+            <Button type="button" variant={formData.currentTreatment.hasPastTreatment === false ? "default" : "outline"} size="sm" onClick={() => { setFormData((p: Unmodelled) => ({ ...p, currentTreatment: { hasPastTreatment: false, doctorName: '', cityState: '', when: '', prescriptionFile: '', takingMedicines: false } })); advanceTo('test_reports'); }}>No</Button>
           </div>
           
           {formData.currentTreatment.hasPastTreatment && (
@@ -202,16 +203,16 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Doctor Name</Label>
-                  <Input value={formData.currentTreatment.doctorName} onChange={(e) => setFormData(p => ({ ...p, currentTreatment: { ...p.currentTreatment, doctorName: e.target.value } }))} placeholder="Dr. Name" />
+                  <Input value={formData.currentTreatment.doctorName} onChange={(e) => setFormData((p: Unmodelled) => ({ ...p, currentTreatment: { ...p.currentTreatment, doctorName: e.target.value } }))} placeholder="Dr. Name" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">City / State</Label>
-                  <Input value={formData.currentTreatment.cityState} onChange={(e) => setFormData(p => ({ ...p, currentTreatment: { ...p.currentTreatment, cityState: e.target.value } }))} placeholder="City, State" />
+                  <Input value={formData.currentTreatment.cityState} onChange={(e) => setFormData((p: Unmodelled) => ({ ...p, currentTreatment: { ...p.currentTreatment, cityState: e.target.value } }))} placeholder="City, State" />
                 </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">When did you consult?</Label>
-                <Input value={formData.currentTreatment.when} onChange={(e) => setFormData(p => ({ ...p, currentTreatment: { ...p.currentTreatment, when: e.target.value } }))} placeholder="E.g., 2 weeks ago" />
+                <Input value={formData.currentTreatment.when} onChange={(e) => setFormData((p: Unmodelled) => ({ ...p, currentTreatment: { ...p.currentTreatment, when: e.target.value } }))} placeholder="E.g., 2 weeks ago" />
               </div>
               
               <div className="space-y-2">
@@ -223,7 +224,7 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
                     <div className="flex items-center gap-2 text-sm text-primary font-medium">
                       <CheckCircle2 className="w-4 h-4" /> Prescription Uploaded
                     </div>
-                    <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => setFormData(p => ({ ...p, currentTreatment: { ...p.currentTreatment, prescriptionFile: '' } }))}>Remove</Button>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => setFormData((p: Unmodelled) => ({ ...p, currentTreatment: { ...p.currentTreatment, prescriptionFile: '' } }))}>Remove</Button>
                   </div>
                 ) : (
                   <div className="relative">
@@ -249,8 +250,8 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
               <div className="space-y-2 pt-2 border-t border-border/40">
                 <Label className="text-xs block text-muted-foreground">Are you currently taking medicines prescribed by this doctor?</Label>
                 <div className="flex gap-2">
-                  <Button type="button" variant={formData.currentTreatment.takingMedicines ? "default" : "outline"} size="sm" onClick={() => setFormData(p => ({ ...p, currentTreatment: { ...p.currentTreatment, takingMedicines: true } }))}>Yes</Button>
-                  <Button type="button" variant={!formData.currentTreatment.takingMedicines ? "default" : "outline"} size="sm" onClick={() => setFormData(p => ({ ...p, currentTreatment: { ...p.currentTreatment, takingMedicines: false } }))}>No</Button>
+                  <Button type="button" variant={formData.currentTreatment.takingMedicines ? "default" : "outline"} size="sm" onClick={() => setFormData((p: Unmodelled) => ({ ...p, currentTreatment: { ...p.currentTreatment, takingMedicines: true } }))}>Yes</Button>
+                  <Button type="button" variant={!formData.currentTreatment.takingMedicines ? "default" : "outline"} size="sm" onClick={() => setFormData((p: Unmodelled) => ({ ...p, currentTreatment: { ...p.currentTreatment, takingMedicines: false } }))}>No</Button>
                 </div>
               </div>
 
@@ -267,8 +268,8 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">Do you have any recent lab tests or scan reports to show?</p>
           <div className="flex gap-2">
-            <Button type="button" variant={formData.testReports.hasReports === true ? "default" : "outline"} size="sm" onClick={() => setFormData(p => ({ ...p, testReports: { ...p.testReports, hasReports: true } }))}>Yes</Button>
-            <Button type="button" variant={formData.testReports.hasReports === false ? "default" : "outline"} size="sm" onClick={() => { setFormData(p => ({ ...p, testReports: { hasReports: false, reportFile: '' } })); advanceTo('current_meds'); }}>No</Button>
+            <Button type="button" variant={formData.testReports.hasReports === true ? "default" : "outline"} size="sm" onClick={() => setFormData((p: Unmodelled) => ({ ...p, testReports: { ...p.testReports, hasReports: true } }))}>Yes</Button>
+            <Button type="button" variant={formData.testReports.hasReports === false ? "default" : "outline"} size="sm" onClick={() => { setFormData((p: Unmodelled) => ({ ...p, testReports: { hasReports: false, reportFile: '' } })); advanceTo('current_meds'); }}>No</Button>
           </div>
           
           {formData.testReports.hasReports && (
@@ -280,7 +281,7 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
                   <div className="flex items-center gap-2 text-sm text-primary font-medium">
                     <CheckCircle2 className="w-4 h-4" /> Report Uploaded
                   </div>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => setFormData(p => ({ ...p, testReports: { ...p.testReports, reportFile: '' } }))}>Remove</Button>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:bg-destructive/10" onClick={() => setFormData((p: Unmodelled) => ({ ...p, testReports: { ...p.testReports, reportFile: '' } }))}>Remove</Button>
                 </div>
               ) : (
                 <div className="relative">
@@ -314,15 +315,15 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">Are you taking any general medicines on your own?</p>
           <div className="flex gap-2">
-            <Button type="button" variant={formData.currentMedications.hasMedications === true ? "default" : "outline"} size="sm" onClick={() => setFormData(p => ({ ...p, currentMedications: { ...p.currentMedications, hasMedications: true } }))}>Yes</Button>
-            <Button type="button" variant={formData.currentMedications.hasMedications === false ? "default" : "outline"} size="sm" onClick={() => { setFormData(p => ({ ...p, currentMedications: { hasMedications: false, details: '' } })); advanceTo('allergies'); }}>No</Button>
+            <Button type="button" variant={formData.currentMedications.hasMedications === true ? "default" : "outline"} size="sm" onClick={() => setFormData((p: Unmodelled) => ({ ...p, currentMedications: { ...p.currentMedications, hasMedications: true } }))}>Yes</Button>
+            <Button type="button" variant={formData.currentMedications.hasMedications === false ? "default" : "outline"} size="sm" onClick={() => { setFormData((p: Unmodelled) => ({ ...p, currentMedications: { hasMedications: false, details: '' } })); advanceTo('allergies'); }}>No</Button>
           </div>
           {formData.currentMedications.hasMedications && (
             <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
               <Textarea 
                 placeholder="Please detail medicines you are taking" 
                 value={formData.currentMedications.details}
-                onChange={(e) => setFormData(p => ({ ...p, currentMedications: { ...p.currentMedications, details: e.target.value } }))}
+                onChange={(e) => setFormData((p: Unmodelled) => ({ ...p, currentMedications: { ...p.currentMedications, details: e.target.value } }))}
                 className="resize-none h-16 mt-2"
               />
               <div className="flex justify-end">
@@ -338,15 +339,15 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">Any allergies to food or medicines?</p>
           <div className="flex gap-2">
-            <Button type="button" variant={formData.allergies.hasAllergies === true ? "default" : "outline"} size="sm" onClick={() => setFormData(p => ({ ...p, allergies: { ...p.allergies, hasAllergies: true } }))}>Yes</Button>
-            <Button type="button" variant={formData.allergies.hasAllergies === false ? "default" : "outline"} size="sm" onClick={() => { setFormData(p => ({ ...p, allergies: { hasAllergies: false, details: '' } })); advanceTo('family_history'); }}>No</Button>
+            <Button type="button" variant={formData.allergies.hasAllergies === true ? "default" : "outline"} size="sm" onClick={() => setFormData((p: Unmodelled) => ({ ...p, allergies: { ...p.allergies, hasAllergies: true } }))}>Yes</Button>
+            <Button type="button" variant={formData.allergies.hasAllergies === false ? "default" : "outline"} size="sm" onClick={() => { setFormData((p: Unmodelled) => ({ ...p, allergies: { hasAllergies: false, details: '' } })); advanceTo('family_history'); }}>No</Button>
           </div>
           {formData.allergies.hasAllergies && (
             <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
               <Textarea 
                 placeholder="Specify allergies" 
                 value={formData.allergies.details}
-                onChange={(e) => setFormData(p => ({ ...p, allergies: { ...p.allergies, details: e.target.value } }))}
+                onChange={(e) => setFormData((p: Unmodelled) => ({ ...p, allergies: { ...p.allergies, details: e.target.value } }))}
                 className="resize-none h-16 mt-2"
               />
               <div className="flex justify-end">
@@ -362,15 +363,15 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">Any serious diseases in the family? (e.g. Heart disease)</p>
           <div className="flex gap-2">
-            <Button type="button" variant={formData.familyHistory.hasHistory === true ? "default" : "outline"} size="sm" onClick={() => setFormData(p => ({ ...p, familyHistory: { ...p.familyHistory, hasHistory: true } }))}>Yes</Button>
-            <Button type="button" variant={formData.familyHistory.hasHistory === false ? "default" : "outline"} size="sm" onClick={() => { setFormData(p => ({ ...p, familyHistory: { hasHistory: false, details: '' } })); setActiveSection(null); }}>No</Button>
+            <Button type="button" variant={formData.familyHistory.hasHistory === true ? "default" : "outline"} size="sm" onClick={() => setFormData((p: Unmodelled) => ({ ...p, familyHistory: { ...p.familyHistory, hasHistory: true } }))}>Yes</Button>
+            <Button type="button" variant={formData.familyHistory.hasHistory === false ? "default" : "outline"} size="sm" onClick={() => { setFormData((p: Unmodelled) => ({ ...p, familyHistory: { hasHistory: false, details: '' } })); setActiveSection(null); }}>No</Button>
           </div>
           {formData.familyHistory.hasHistory && (
             <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
               <Textarea 
                 placeholder="Specify family history" 
                 value={formData.familyHistory.details}
-                onChange={(e) => setFormData(p => ({ ...p, familyHistory: { ...p.familyHistory, details: e.target.value } }))}
+                onChange={(e) => setFormData((p: Unmodelled) => ({ ...p, familyHistory: { ...p.familyHistory, details: e.target.value } }))}
                 className="resize-none h-16 mt-2"
               />
               <div className="flex justify-end">

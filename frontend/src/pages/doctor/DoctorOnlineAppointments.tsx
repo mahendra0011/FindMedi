@@ -30,7 +30,7 @@ const initialPrescriptionData = {
 };
 
 import { isOnlineAppointment, isOfflineAppointment } from '@/lib/appointmentModes';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function DoctorOnlineAppointments() {
   const { user } = useAuth();
@@ -38,7 +38,7 @@ export default function DoctorOnlineAppointments() {
   const [searchParams, setSearchParams] = useSearchParams();
   const isClinic = location.pathname.startsWith('/clinic') || user?.role === 'clinic_doctor';
   const tabParam = searchParams.get('tab');
-  const normalizeTab = (t) => {
+  const normalizeTab = (t: Unmodelled) => {
     if (t === 'approve' || t === 'pending') return 'approve';
     if (t === 'history' || t === 'complete') return 'history';
     if (t === 'approved' || t === 'today' || t === 'upcoming') return 'approved';
@@ -55,7 +55,7 @@ export default function DoctorOnlineAppointments() {
     }
   }, [searchParams]);
 
-  const handleTabChange = (t) => {
+  const handleTabChange = (t: Unmodelled) => {
     setActiveTab(t);
     setSearchParams({ tab: t });
   };
@@ -71,8 +71,8 @@ export default function DoctorOnlineAppointments() {
   const [prescriptionData, setPrescriptionData] = useState(initialPrescriptionData);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
 
-  const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  const getFirstDay = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  const getDaysInMonth = (date: Unmodelled) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  const getFirstDay = (date: Unmodelled) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
   const loadAppointments = useCallback(async (searchParams = {}) => {
     setLoading(true);
@@ -114,7 +114,7 @@ export default function DoctorOnlineAppointments() {
     return allAppointments.filter(a => isOfflineAppointment(a) && (a.status || '').toLowerCase() === 'pending').length;
   }, [allAppointments]);
 
-  const handleStatus = async (id, status, extra = {}) => {
+  const handleStatus = async (id: Unmodelled, status: Unmodelled, extra = {}) => {
     try {
       await api.updateAppointment(id, { status, ...extra });
       toast.success('Appointment updated');
@@ -125,7 +125,7 @@ export default function DoctorOnlineAppointments() {
     }
   };
 
-  const openPrescription = useCallback((apt) => {
+  const openPrescription = useCallback((apt: Unmodelled) => {
     setCompleteId(apt._id);
     setPrescriptionData({
       ...initialPrescriptionData,
@@ -137,7 +137,7 @@ export default function DoctorOnlineAppointments() {
   }, [user?.name, user?.specialization]);
 
   useEffect(() => {
-    const handler = (e) => openPrescription(e.detail);
+    const handler = (e: Unmodelled) => openPrescription(e.detail);
     window.addEventListener('open-prescription', handler);
     return () => window.removeEventListener('open-prescription', handler);
   }, [openPrescription]);
@@ -149,14 +149,14 @@ export default function DoctorOnlineAppointments() {
     });
   };
 
-  const removeMedication = (index) => {
+  const removeMedication = (index: Unmodelled) => {
     setPrescriptionData({
       ...prescriptionData,
       medications: prescriptionData.medications.filter((_, i) => i !== index),
     });
   };
 
-  const updateMedication = (index, field, value) => {
+  const updateMedication = (index: Unmodelled, field: Unmodelled, value: Unmodelled) => {
     const meds = [...prescriptionData.medications];
     meds[index][field] = value;
     setPrescriptionData({ ...prescriptionData, medications: meds });
@@ -444,8 +444,8 @@ export default function DoctorOnlineAppointments() {
         <ApproveAppointmentSection
           appointments={pendingAppointments}
           allAppointments={appointments}
-          onConfirm={(a) => handleStatus(a._id, 'Confirmed')}
-          onReject={(a, reason) => handleStatus(a._id, 'Cancelled', { notes: reason })}
+          onConfirm={(a: Unmodelled) => handleStatus(a._id, 'Confirmed')}
+          onReject={(a: Unmodelled, reason: Unmodelled) => handleStatus(a._id, 'Cancelled', { notes: reason })}
         />
       ) : activeTab === 'history' ? (
         /* ════════ HISTORY VIEW (Online Appointment History) ════════ */
@@ -458,7 +458,7 @@ export default function DoctorOnlineAppointments() {
           calendar={CalendarWidget}
           onRefresh={loadAppointments}
           user={user}
-          onViewDetails={(a) => setDetailsApt(a)}
+          onViewDetails={(a: Unmodelled) => setDetailsApt(a)}
         />
       )}
 

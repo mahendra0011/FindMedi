@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import FeedbackPrompt from '@/components/feedback/FeedbackPrompt';
 import { api, resolveFileUrl, getServerOrigin } from '@/lib/api';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const UPLOAD_BASE = getServerOrigin();
 
@@ -41,9 +42,9 @@ export default function MyReports() {
     try {
       const data = await api.getRecords();
       const allRecords = data?.data || data?.records || data || [];
-      const prescriptions = allRecords.filter(r => r.type === 'prescription');
-      const labReports = allRecords.filter(r => r.type === 'lab_report');
-      const dischargeSummaries = allRecords.filter(r => r.type === 'discharge_summary');
+      const prescriptions = allRecords.filter((r: Unmodelled) => r.type === 'prescription');
+      const labReports = allRecords.filter((r: Unmodelled) => r.type === 'lab_report');
+      const dischargeSummaries = allRecords.filter((r: Unmodelled) => r.type === 'discharge_summary');
       setReports({ prescriptions, labReports, dischargeSummaries });
     } catch (error) {
       console.error('Error fetching reports:', error);
@@ -51,7 +52,7 @@ export default function MyReports() {
     setLoading(false);
   };
 
-  const downloadReport = async (report) => {
+  const downloadReport = async (report: Unmodelled) => {
     try {
       if (report.reportUrl) {
         window.open(resolveFileUrl(report.reportUrl), '_blank');
@@ -68,7 +69,7 @@ export default function MyReports() {
     }
   };
 
-  const formatDate = (date) => {
+  const formatDate = (date: Unmodelled) => {
     if (!date) return '';
     const d = new Date(date);
     return d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -80,7 +81,7 @@ export default function MyReports() {
     { label: 'Discharge', count: reports.dischargeSummaries.length, icon: HeartPulse, color: 'text-rose-500', gradient: 'from-rose-500/20 to-rose-500/5' },
   ];
 
-  const ReportCard = ({ report, type }) => (
+  const ReportCard = ({ report, type }: Unmodelled) => (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
       className="group bg-card rounded-3xl border border-border/50 overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all duration-300">
       <div className="p-5 sm:p-6">
@@ -126,7 +127,7 @@ export default function MyReports() {
           <div className="mb-4 p-3 bg-muted/20 rounded-2xl border border-border/30">
             <p className="text-xs font-medium text-foreground mb-1.5">Medications ({report.data.medications.length})</p>
             <div className="space-y-1">
-              {report.data.medications.slice(0, 3).map((med, idx) => (
+              {report.data.medications.slice(0, 3).map((med: Unmodelled, idx: Unmodelled) => (
                 <p key={idx} className="text-xs text-muted-foreground flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary/50" />
                   {med.name} {med.dosage && `- ${med.dosage}`} {med.frequency && `(${med.frequency})`}
@@ -143,7 +144,7 @@ export default function MyReports() {
           <div className="mb-4 p-3 bg-muted/20 rounded-2xl border border-border/30">
             <p className="text-xs font-medium text-foreground mb-1.5">Test Results ({report.data.tests.length})</p>
             <div className="space-y-1">
-              {report.data.tests.slice(0, 3).map((test, idx) => (
+              {report.data.tests.slice(0, 3).map((test: Unmodelled, idx: Unmodelled) => (
                 <p key={idx} className="text-xs text-muted-foreground flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-purple-500/50" />
                   {test.name}: <span className="font-medium">{test.result}</span> {test.unit}
@@ -184,7 +185,7 @@ export default function MyReports() {
     </motion.div>
   );
 
-  const EmptyState = ({ type, icon: Icon }) => (
+  const EmptyState = ({ type, icon: Icon }: Unmodelled) => (
     <div className="text-center py-12">
       <div className="w-16 h-16 rounded-3xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
         <Icon className="w-8 h-8 text-muted-foreground/30" />

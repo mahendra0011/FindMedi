@@ -6,10 +6,11 @@ import {
   Link2, Ban, RotateCcw,
 } from 'lucide-react';
 import { parseRichText, isSuspiciousLink, QUICK_REACTIONS, formatBytes, formatDuration } from '@/lib/chatPrefs';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /* ─────────────────────────── helpers ─────────────────────────── */
 
-function ticksFor(message) {
+function ticksFor(message: Unmodelled) {
   if (message.failed) return 'failed';
   if (message.pending) return 'pending';
   if (message.readCount > 0) return 'read';
@@ -17,7 +18,7 @@ function ticksFor(message) {
   return 'sent';
 }
 
-export function Ticks({ state }) {
+export function Ticks({ state }: Unmodelled) {
   if (state === 'failed') return <AlertCircle className="w-[14px] h-[14px] text-red-500" />;
   if (state === 'pending') return <Clock className="w-[13px] h-[13px] opacity-70" />;
   if (state === 'read') return <CheckCheck className="w-[15px] h-[15px] text-sky-400" />;
@@ -65,7 +66,7 @@ export function RichText({ text = '', isMine = false }) {
 }
 
 /** Link preview card (message ka pehla link) */
-function LinkPreview({ url, isMine }) {
+function LinkPreview({ url, isMine }: Unmodelled) {
   let host = url;
   try { host = new URL(url.startsWith('http') ? url : `https://${url}`).hostname.replace('www.', ''); } catch { /* keep raw */ }
   return (
@@ -89,7 +90,7 @@ function LinkPreview({ url, isMine }) {
 
 /* ─────────────────────────── media players ─────────────────────────── */
 
-function AudioPlayer({ url, isMine, duration, isVoice }) {
+function AudioPlayer({ url, isMine, duration, isVoice }: Unmodelled) {
   const ref = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -146,7 +147,7 @@ function AudioPlayer({ url, isMine, duration, isVoice }) {
   );
 }
 
-function ImageAttachment({ att, onOpen }) {
+function ImageAttachment({ att, onOpen }: Unmodelled) {
   return (
     <button onClick={() => onOpen?.(att)} className="block w-full">
       <img
@@ -161,7 +162,7 @@ function ImageAttachment({ att, onOpen }) {
 
 /* ─────────────────────────── reaction row ─────────────────────────── */
 
-function ReactionRow({ reactions = [], isMine, onToggle, onShowDetails }) {
+function ReactionRow({ reactions = [], isMine, onToggle, onShowDetails }: Unmodelled) {
   if (!reactions.length) return null;
   return (
     <div className={`flex flex-wrap gap-1 mt-1 ${isMine ? 'justify-end' : ''}`}>
@@ -207,7 +208,7 @@ export default function MessageBubble({
   onToggleSelect,
   onShowReactions,
   highlight = false,
-}) {
+}: Unmodelled) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [translating, setTranslating] = useState(false);
@@ -219,7 +220,7 @@ export default function MessageBubble({
 
   useEffect(() => {
     if (!menuOpen && !pickerOpen) return;
-    const close = (e) => {
+    const close = (e: Unmodelled) => {
       if (!wrapRef.current?.contains(e.target)) { setMenuOpen(false); setPickerOpen(false); }
     };
     document.addEventListener('mousedown', close);
@@ -229,7 +230,7 @@ export default function MessageBubble({
   // "Long press" ke baad menu khula ho to click par turant band na ho
   useEffect(() => {
     if (!menuOpen && !pickerOpen) return;
-    const esc = (e) => { if (e.key === 'Escape') { setMenuOpen(false); setPickerOpen(false); } };
+    const esc = (e: Unmodelled) => { if (e.key === 'Escape') { setMenuOpen(false); setPickerOpen(false); } };
     document.addEventListener('keydown', esc);
     return () => document.removeEventListener('keydown', esc);
   }, [menuOpen, pickerOpen]);
@@ -240,11 +241,11 @@ export default function MessageBubble({
   // CHAT-M-02: server stores `mimeType` (camelCase); tolerate the legacy
   // lowercase key so old rows still classify.
   const mimeOf = (a: any) => a.mimeType || a.mimetype;
-  const imageAtt = attachments.find((a) => mimeOf(a)?.startsWith('image/'));
-  const videoAtt = attachments.find((a) => mimeOf(a)?.startsWith('video/'));
-  const audioAtt = attachments.find((a) => mimeOf(a)?.startsWith('audio/'));
+  const imageAtt = attachments.find((a: Unmodelled) => mimeOf(a)?.startsWith('image/'));
+  const videoAtt = attachments.find((a: Unmodelled) => mimeOf(a)?.startsWith('video/'));
+  const audioAtt = attachments.find((a: Unmodelled) => mimeOf(a)?.startsWith('audio/'));
   const fileAtts = attachments.filter(
-    (a) => !mimeOf(a)?.startsWith('image/') && !mimeOf(a)?.startsWith('video/') && !mimeOf(a)?.startsWith('audio/')
+    (a: Unmodelled) => !mimeOf(a)?.startsWith('image/') && !mimeOf(a)?.startsWith('video/') && !mimeOf(a)?.startsWith('audio/')
   );
   const firstUrl = (message.content?.match(/(https?:\/\/[^\s<>"']+)/) || [])[0];
 
@@ -252,11 +253,11 @@ export default function MessageBubble({
   const startPress = () => { pressTimer.current = setTimeout(() => setMenuOpen(true), 480); };
   const cancelPress = () => { if (pressTimer.current) clearTimeout(pressTimer.current); };
 
-  const onTouchStart = (e) => {
+  const onTouchStart = (e: Unmodelled) => {
     touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     startPress();
   };
-  const onTouchMove = (e) => {
+  const onTouchMove = (e: Unmodelled) => {
     const start = touchStart.current;
     if (!start) return;
     const dx = e.touches[0].clientX - start.x;
@@ -280,7 +281,7 @@ export default function MessageBubble({
         `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=hi&dt=t&q=${encodeURIComponent(message.content)}`
       );
       const data = await res.json();
-      const text = (data?.[0] || []).map((row) => row?.[0] || '').join('');
+      const text = (data?.[0] || []).map((row: Unmodelled) => row?.[0] || '').join('');
       setTranslated(text || 'Translation unavailable');
     } catch {
       setTranslated('Translation unavailable (offline)');
@@ -384,7 +385,7 @@ export default function MessageBubble({
                 <AudioPlayer url={audioAtt.url} isMine={isMine} duration={audioAtt.duration} isVoice={message.type === 'voice'} />
               )}
 
-              {fileAtts.map((att) => (
+              {fileAtts.map((att: Unmodelled) => (
                 <a
                   key={att.url}
                   href={att.url}
@@ -514,15 +515,15 @@ export default function MessageBubble({
         <ReactionRow
           reactions={message.reactions}
           isMine={isMine}
-          onToggle={(emoji) => onReact?.(message, emoji)}
-          onShowDetails={(r) => onShowReactions?.(message, r)}
+          onToggle={(emoji: Unmodelled) => onReact?.(message, emoji)}
+          onShowDetails={(r: Unmodelled) => onShowReactions?.(message, r)}
         />
       </div>
     </div>
   );
 }
 
-function MenuItem({ icon: Icon, label, onClick, danger }) {
+function MenuItem({ icon: Icon, label, onClick, danger }: Unmodelled) {
   return (
     <button
       onClick={onClick}
@@ -536,7 +537,7 @@ function MenuItem({ icon: Icon, label, onClick, danger }) {
 
 /* ─────────────────────────── list helpers ─────────────────────────── */
 
-export function DateSeparator({ label }) {
+export function DateSeparator({ label }: Unmodelled) {
   return (
     <div className="flex items-center justify-center my-3 px-4">
       <span className="px-3 py-1 rounded-full bg-card/90 border border-border text-[11px] font-medium text-muted-foreground shadow-sm">{label}</span>
@@ -544,7 +545,7 @@ export function DateSeparator({ label }) {
   );
 }
 
-export function UnreadDivider({ count }) {
+export function UnreadDivider({ count }: Unmodelled) {
   return (
     <div className="flex items-center gap-3 my-3 px-4">
       <span className="flex-1 h-px bg-primary/30" />
@@ -554,7 +555,7 @@ export function UnreadDivider({ count }) {
   );
 }
 
-export function SystemNotice({ text, tone = 'info' }) {
+export function SystemNotice({ text, tone = 'info' }: Unmodelled) {
   const tones = {
     info: 'bg-muted/80 text-muted-foreground border-border',
     warn: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',

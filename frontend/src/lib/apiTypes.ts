@@ -18,3 +18,18 @@
  * Prefer a real type the moment one exists for the payload in question.
  */
 export type ApiRow = Record<string, any>;
+
+/**
+ * TEST-B-03 ratchet — interim shape for a callback parameter whose argument
+ * type was never modelled (tsc's TS7006 "implicitly has an 'any' type").
+ *
+ * Same reasoning as `ApiRow`: the parameter was always used as `any` at
+ * runtime — the annotation only tells the compiler to stop emitting the
+ * diagnostic so real type errors stay visible. Like `ApiRow`, prefer a real
+ * type the moment one exists for the callback's payload.
+ *
+ * Applied mechanically by `scripts/codemod-implicit-any-params.mjs` (simple
+ * parameters) and `scripts/codemod-destructure-any.mjs` (patterns such as
+ * `function Card({ title })`).
+ */
+export type Unmodelled = any;

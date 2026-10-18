@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Search, Smile, Sticker, Clock, X } from 'lucide-react';
 import { STICKER_PACKS, searchEmoji } from '@/lib/chatPrefs';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const RECENT_KEY = 'findmedi_chat_recent_emoji';
 const LEGACY_RECENT_KEY = 'medicore_chat_recent_emoji';
@@ -8,8 +9,8 @@ const LEGACY_RECENT_KEY = 'medicore_chat_recent_emoji';
 function readRecent() {
   try { return JSON.parse((localStorage.getItem(RECENT_KEY) || localStorage.getItem(LEGACY_RECENT_KEY)) || '[]'); } catch { return []; }
 }
-function pushRecent(emoji) {
-  const next = [emoji, ...readRecent().filter((e) => e !== emoji)].slice(0, 24);
+function pushRecent(emoji: Unmodelled) {
+  const next = [emoji, ...readRecent().filter((e: Unmodelled) => e !== emoji)].slice(0, 24);
   try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* ignore */ }
   return next;
 }
@@ -20,14 +21,14 @@ function pushRecent(emoji) {
  *  - Sticker: curated health/chat stickers (text based)
  *  - GIF search is disabled to keep free-text health queries on-platform.
  */
-export default function EmojiPicker({ onPickEmoji, onPickSticker, onClose, className = '' }) {
+export default function EmojiPicker({ onPickEmoji, onPickSticker, onClose, className = '' }: Unmodelled) {
   const [tab, setTab] = useState('emoji');
   const [query, setQuery] = useState('');
   const [recent, setRecent] = useState(readRecent());
 
   const groups = useMemo(() => searchEmoji(query), [query]);
 
-  const pickEmoji = (emoji) => {
+  const pickEmoji = (emoji: Unmodelled) => {
     setRecent(pushRecent(emoji));
     onPickEmoji?.(emoji);
   };
@@ -65,7 +66,7 @@ export default function EmojiPicker({ onPickEmoji, onPickSticker, onClose, class
                   <Clock className="w-3 h-3" /> Frequently used
                 </p>
                 <div className="flex flex-wrap gap-0.5">
-                  {recent.map((e, index) => (
+                  {recent.map((e: Unmodelled, index: Unmodelled) => (
                     <button key={`${e}-${index}`} onClick={() => pickEmoji(e)} className="w-8 h-8 rounded-lg text-[18px] hover:bg-muted">{e}</button>
                   ))}
                 </div>

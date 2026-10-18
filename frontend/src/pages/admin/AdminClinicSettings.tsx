@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const DAY_LABELS = { monday:'Monday', tuesday:'Tuesday', wednesday:'Wednesday', thursday:'Thursday', friday:'Friday', saturday:'Saturday', sunday:'Sunday' };
 
@@ -84,9 +85,9 @@ export default function AdminClinicSettings() {
     load();
   }, []);
 
-  const update = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const update = (k: Unmodelled, v: Unmodelled) => setForm(p => ({ ...p, [k]: v }));
 
-  const toggleMode = (mode) => {
+  const toggleMode = (mode: Unmodelled) => {
     const current = form.appointmentModes || [];
     if (current.includes(mode)) {
       if (current.length === 1) {

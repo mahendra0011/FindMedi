@@ -19,9 +19,9 @@ import { getSocket } from '@/lib/socket';
 import ProviderIncomingCall from '@/components/emergency/ProviderIncomingCall';
 import EmergencyVideoRoom from '@/components/emergency/EmergencyVideoRoom';
 import { userFacingError } from '@/lib/errorCopy';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-function isInPersonAppointment(appt) {
+function isInPersonAppointment(appt: Unmodelled) {
   if (!appt) return false;
   const mode = (appt.appointmentMode || '').toLowerCase();
   const type = (appt.type || '').toLowerCase();
@@ -34,7 +34,7 @@ function isInPersonAppointment(appt) {
   return !isOnline;
 }
 
-function getAppointmentModeMeta(appt) {
+function getAppointmentModeMeta(appt: Unmodelled) {
   if (!appt) return { key: 'hospital', label: 'In Hospital', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' };
   const mode = (appt.appointmentMode || appt.type || '').toLowerCase();
   const intakeMode = (appt.preConsultationDetails?.appointmentMode || appt.preConsultationDetails?.mode || '').toLowerCase();
@@ -77,7 +77,7 @@ export default function DoctorDashboard() {
   const [consultVideoOpen, setConsultVideoOpen] = useState(false);
   const mounted = useRef(true);
   const appointmentsSectionRef = useRef(null);
-  const handleStatClick = (tab) => {
+  const handleStatClick = (tab: Unmodelled) => {
     setApptTab(tab);
     appointmentsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -106,7 +106,7 @@ export default function DoctorDashboard() {
 
       const allRecords = records?.data || records?.records || records || [];
       const myLabReports = allRecords
-        .filter(rec => rec.type === 'lab_report')
+        .filter((rec: Unmodelled) => rec.type === 'lab_report')
         .slice(-10)
         .reverse();
       setLabReports(myLabReports);
@@ -210,7 +210,7 @@ export default function DoctorDashboard() {
 
   const [apptTab, setApptTab] = useState('today');
 
-  const handleQuickStatus = async (id, status, e) => {
+  const handleQuickStatus = async (id: Unmodelled, status: Unmodelled, e: Unmodelled) => {
     if (e) e.stopPropagation();
     try {
       await api.updateAppointment(id, { status });
@@ -952,7 +952,7 @@ export default function DoctorDashboard() {
                 </div>
                 {report.data?.tests && report.data.tests.length > 0 && (
                   <span className="shrink-0 text-xs font-medium text-success">
-                    {report.data.tests.filter(t => t.result !== undefined && t.result !== null).length}/{report.data.tests.length} done
+                    {report.data.tests.filter((t: Unmodelled) => t.result !== undefined && t.result !== null).length}/{report.data.tests.length} done
                   </span>
                 )}
               </div>

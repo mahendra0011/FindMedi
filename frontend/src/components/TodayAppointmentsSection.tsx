@@ -18,6 +18,7 @@ import PatientHistoryModal from '@/components/PatientHistoryModal';
 import { formatDisplayDate } from '@/lib/dateUtils';
 import { useAudioCall } from '@/context/AudioCallContext';
 import { useVideoCall } from '@/context/VideoCallContext';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /**
  * Shared 3-column "Today Appointments" dashboard for Doctor & Clinic dashboards.
@@ -44,11 +45,11 @@ export default function TodayAppointmentsSection({
   onRefresh,
   user,
   onViewDetails,
-}) {
+}: Unmodelled) {
   const hourSlots = useMemo(() => getHourSlots(), []);
 
   // Sort by actual clock time so cards/list follow the day's time-slot sequence
-  const sortByTime = (a, b) => {
+  const sortByTime = (a: Unmodelled, b: Unmodelled) => {
     const ta = parseTime(a.time);
     const tb = parseTime(b.time);
     if (ta.hour == null || tb.hour == null) return 0;
@@ -57,24 +58,24 @@ export default function TodayAppointmentsSection({
 
   // Today's appointments split into "active" (confirmed/queued/serving) and "completed"
   const todays = useMemo(
-    () => appointments.filter(a => a.date === selectedDate).sort(sortByTime),
+    () => appointments.filter((a: Unmodelled) => a.date === selectedDate).sort(sortByTime),
     [appointments, selectedDate]
   );
   // Today's appointments split into "active" (confirmed/queued/serving) and "completed".
   // Pending is intentionally EXCLUDED here — pending appointments belong to the Approve view.
   const activeAppointments = useMemo(
-    () => todays.filter(a => {
+    () => todays.filter((a: Unmodelled) => {
       const s = (a.status || '').toLowerCase();
       return s === 'confirmed' || s === 'in queue' || s === 'serving';
     }),
     [todays]
   );
   const completedAppointments = useMemo(
-    () => todays.filter(a => (a.status || '').toLowerCase() === 'completed'),
+    () => todays.filter((a: Unmodelled) => (a.status || '').toLowerCase() === 'completed'),
     [todays]
   );
   const absentAppointments = useMemo(
-    () => todays.filter(a => (a.status || '').toLowerCase() === 'missed'),
+    () => todays.filter((a: Unmodelled) => (a.status || '').toLowerCase() === 'missed'),
     [todays]
   );
   const [rightTab, setRightTab] = useState('completed');
@@ -83,7 +84,7 @@ export default function TodayAppointmentsSection({
   const filteredCompleted = useMemo(() => {
     if (!completedSearch.trim()) return shownRightAppointments;
     const q = completedSearch.toLowerCase();
-    return shownRightAppointments.filter(a =>
+    return shownRightAppointments.filter((a: Unmodelled) =>
       (a.patient || '').toLowerCase().includes(q) ||
       (a.patientId?.name || '').toLowerCase().includes(q) ||
       (a.patientId?.phone || '').toLowerCase().includes(q)
@@ -97,20 +98,20 @@ export default function TodayAppointmentsSection({
   // Sub-slot row: when an hour is filtered show its sub-slots, otherwise all sub-slots present today
   const subSlots = useMemo(() => {
     if (selectedHour) return getSubSlotsForHour(selectedHour);
-    const present = [...new Set(activeAppointments.map(a => subSlotFor(a.time)).filter(Boolean))];
+    const present = [...new Set(activeAppointments.map((a: Unmodelled) => subSlotFor(a.time)).filter(Boolean))];
     return present.length ? present : getSubSlotsForHour(hourBoxFor(activeAppointments[0]?.time) || hourSlots[0]);
   }, [selectedHour, activeAppointments, hourSlots]);
 
   // Cards shown in the middle panel: no filter → all of today's active appointments in time order
   const hourAppointments = useMemo(
     () => selectedHour
-      ? activeAppointments.filter(a => hourBoxFor(a.time) === selectedHour)
+      ? activeAppointments.filter((a: Unmodelled) => hourBoxFor(a.time) === selectedHour)
       : activeAppointments,
     [activeAppointments, selectedHour]
   );
   const slotAppointments = useMemo(() => {
     if (!selectedSubSlot) return hourAppointments;
-    return hourAppointments.filter(a => subSlotFor(a.time) === selectedSubSlot);
+    return hourAppointments.filter((a: Unmodelled) => subSlotFor(a.time) === selectedSubSlot);
   }, [hourAppointments, selectedSubSlot]);
 
   // Highlighted patient in the left panel list (cards are always all visible in the middle)
@@ -127,7 +128,7 @@ export default function TodayAppointmentsSection({
 
   // Open uploaded intake files in the popup. Local /auth-protected URLs are
   // fetched with credentials + Bearer token → blob URL, so <img>/<iframe> don't get a 401.
-  const openFileViewer = useCallback(async (url) => {
+  const openFileViewer = useCallback(async (url: Unmodelled) => {
     if (!url) return;
     if (!isValidFileUrl(url)) {
       toast.error('File unavailable — upload was not completed. Please ask the patient to re-upload it.');
@@ -169,10 +170,10 @@ export default function TodayAppointmentsSection({
   }, [fileViewerUrl]);
 
   // Visit-number for history button visibility (2nd+ visit)
-  const pastVisitCountFor = useCallback((apt) => {
+  const pastVisitCountFor = useCallback((apt: Unmodelled) => {
     const pid = apt.patientId?._id || apt.patientId;
     if (!pid) return 0;
-    return appointments.filter(a =>
+    return appointments.filter((a: Unmodelled) =>
       a.status === 'Completed' &&
       a.date < selectedDate &&
       String(a.patientId?._id || a.patientId) === String(pid)
@@ -180,18 +181,18 @@ export default function TodayAppointmentsSection({
   }, [appointments, selectedDate]);
 
   // ── Handlers ──────────────────────────────────────────────
-  const handleHourClick = (h) => {
+  const handleHourClick = (h: Unmodelled) => {
     setSelectedHour(selectedHour === h ? null : h); // toggle = filter on/off
     setSelectedSubSlot(null);
     setSelectedAptId(null);
   };
 
-  const handleSubSlotClick = (s) => {
+  const handleSubSlotClick = (s: Unmodelled) => {
     setSelectedSubSlot(s === selectedSubSlot ? null : s);
     setSelectedAptId(null);
   };
 
-  const openHistory = (apt) => {
+  const openHistory = (apt: Unmodelled) => {
     const pid = apt.patientId?._id || apt.patientId;
     if (!pid) {
       toast.info('Patient ID not available.');
@@ -202,7 +203,7 @@ export default function TodayAppointmentsSection({
     setHistoryPatient({ patient: apt.patientId, patientName: apt.patient });
   };
 
-  const handleConfirmComplete = async (apt, note) => {
+  const handleConfirmComplete = async (apt: Unmodelled, note: Unmodelled) => {
     if (!apt) return false;
     try {
       // Always mark completed first — this is the critical action
@@ -237,7 +238,7 @@ export default function TodayAppointmentsSection({
     }
   };
 
-  const handleRevert = async (apt) => {
+  const handleRevert = async (apt: Unmodelled) => {
     try {
       await api.updateAppointment(apt._id, { status: 'Confirmed' });
       toast.success('Appointment reverted to Confirmed');
@@ -248,17 +249,17 @@ export default function TodayAppointmentsSection({
     }
   };
 
-  const handleWritePrescription = (apt) => {
+  const handleWritePrescription = (apt: Unmodelled) => {
     // Delegate to parent via custom event so each page can open its own modal
     window.dispatchEvent(new CustomEvent('open-prescription', { detail: apt }));
   };
 
-  const handleDownloadPrescription = async (apt) => {
+  const handleDownloadPrescription = async (apt: Unmodelled) => {
     try {
       const pid = apt.patientId?._id || apt.patientId;
       const res = await api.getPatientRecords(pid);
       const recs = res?.records || res?.data || res || [];
-      const rx = recs.find(r => r.type === 'prescription');
+      const rx = recs.find((r: Unmodelled) => r.type === 'prescription');
       if (!rx) { toast.info('No prescription record found'); return; }
       toast.success('Opening prescription…');
       // Open any attachment if present, else show a toast with details
@@ -287,7 +288,7 @@ export default function TodayAppointmentsSection({
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Select Time</p>
           <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
             {hourSlots.map(h => {
-              const count = activeAppointments.filter(a => hourBoxFor(a.time) === h).length;
+              const count = activeAppointments.filter((a: Unmodelled) => hourBoxFor(a.time) === h).length;
               return (
                 <button
                   key={h}
@@ -311,7 +312,7 @@ export default function TodayAppointmentsSection({
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mt-3 mb-1.5">Select Slot</p>
           <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
             {subSlots.map(s => {
-              const count = hourAppointments.filter(a => subSlotFor(a.time) === s).length;
+              const count = hourAppointments.filter((a: Unmodelled) => subSlotFor(a.time) === s).length;
               return (
                 <button
                   key={s}
@@ -348,7 +349,7 @@ export default function TodayAppointmentsSection({
             </div>
           ) : (
             <div className="space-y-4 flex flex-col min-h-full">
-              {slotAppointments.map(apt => (
+              {slotAppointments.map((apt: Unmodelled) => (
                 <div key={apt._id} id={`apt-card-${apt._id}`} className="scroll-mt-4 flex-1 flex flex-col">
                   <PatientDetailCard
                     apt={apt}
@@ -410,7 +411,7 @@ export default function TodayAppointmentsSection({
           {/* Compact hour boxes (smaller) */}
           <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
             {hourSlots.map(h => {
-              const count = shownRightAppointments.filter(a => hourBoxFor(a.time) === h).length;
+              const count = shownRightAppointments.filter((a: Unmodelled) => hourBoxFor(a.time) === h).length;
               return (
                 <button
                   key={h}
@@ -428,7 +429,7 @@ export default function TodayAppointmentsSection({
           {/* Sub-slots row — show all unique sub-slots from shown appointments */}
           <div className="flex gap-1.5 overflow-x-auto pb-2 mt-1 scrollbar-thin">
             {(() => {
-              const subSlotsList = [...new Set(shownRightAppointments.map(a => subSlotFor(a.time)).filter(Boolean))];
+              const subSlotsList = [...new Set(shownRightAppointments.map((a: Unmodelled) => subSlotFor(a.time)).filter(Boolean))];
               if (subSlotsList.length === 0) {
                 return <span className="text-[10px] text-muted-foreground/50 px-1">No slots</span>;
               }
@@ -469,14 +470,14 @@ export default function TodayAppointmentsSection({
             </div>
           ) : (
             <div className="space-y-3 flex flex-col min-h-full">
-              {filteredCompleted.map(apt => (
+              {filteredCompleted.map((apt: Unmodelled) => (
                 <div key={apt._id} className="flex-1 flex flex-col">
                   {rightTab === 'completed' ? (
                     <CompletedCard
                       apt={apt}
                       onRevert={handleRevert}
                       onDownloadPrescription={handleDownloadPrescription}
-                      onDownloadInvoice={(a) => a.invoiceId && downloadInvoicePdf(a.invoiceId, `invoice-${a.patient}.pdf`)}
+                      onDownloadInvoice={(a: Unmodelled) => a.invoiceId && downloadInvoicePdf(a.invoiceId, `invoice-${a.patient}.pdf`)}
                       onViewDetails={onViewDetails}
                       subSlotFor={subSlotFor}
                     onViewFile={openFileViewer}
@@ -579,7 +580,7 @@ function PatientDetailCard({
   apt, pastVisitCount,
   onConfirmComplete, onOpenHistory, onWritePrescription, onViewFile,
   onRefresh, user, selectedDate,
-}) {
+}: Unmodelled) {
   const navigate = useNavigate();
   const { initiateCall } = useAudioCall();
   const { initiateVideoCall } = useVideoCall();
@@ -1074,7 +1075,7 @@ function PatientDetailCard({
  * Completed appointment card (right panel)
  * Shows patient info, intake details, and small action buttons.
  * ════════════════════════════════════════════════════════════ */
-export function CompletedCard({ apt, subSlotFor, onRevert, onDownloadPrescription, onDownloadInvoice, onViewFile, stats }) {
+export function CompletedCard({ apt, subSlotFor, onRevert, onDownloadPrescription, onDownloadInvoice, onViewFile, stats }: Unmodelled) {
   const patient = apt.patientId;
   const intake = apt.preConsultationDetails;
 
@@ -1305,7 +1306,7 @@ export function CompletedCard({ apt, subSlotFor, onRevert, onDownloadPrescriptio
  * Absent appointment card (right panel - absent tab)
  * Shows patient info with red "Missed" badge and revert button.
  * ════════════════════════════════════════════════════════════ */
-function AbsentCard({ apt, subSlotFor }) {
+function AbsentCard({ apt, subSlotFor }: Unmodelled) {
   const patient = apt.patientId;
   const intake = apt.preConsultationDetails;
   const [showDetails, setShowDetails] = useState(false);
@@ -1478,7 +1479,7 @@ function AbsentCard({ apt, subSlotFor }) {
 }
 
 /* ── Small helpers ── */
-function Detail({ icon: Icon, label, value }) {
+function Detail({ icon: Icon, label, value }: Unmodelled) {
   return (
     <div className="flex items-start gap-1.5">
       <Icon className="w-3.5 h-3.5 text-muted-foreground mt-0.5 shrink-0" />
@@ -1490,7 +1491,7 @@ function Detail({ icon: Icon, label, value }) {
   );
 }
 
-function IntakeRow({ label, value, danger }) {
+function IntakeRow({ label, value, danger }: Unmodelled) {
   return (
     <div className="flex items-start gap-2">
       <span className="text-xs font-bold text-foreground shrink-0 min-w-[110px]">{label}:</span>

@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 /* ─── Premium Skeleton Loader ─────────────────────── */
 function EarningsSkeleton() {
@@ -91,7 +91,7 @@ export default function DoctorEarnings() {
       ]);
       const [b, p] = results.map(res => res.status === 'fulfilled' ? res.value : []);
       const ba = b?.data || b?.bills || b || [];
-      setBills(ba.filter(bill =>
+      setBills(ba.filter((bill: Unmodelled) =>
         bill.doctor?.toLowerCase().includes(user?.name?.toLowerCase()) ||
         bill.doctorId?.name?.toLowerCase().includes(user?.name?.toLowerCase())
       ));

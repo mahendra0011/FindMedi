@@ -11,6 +11,7 @@ import { useToast } from "@/mind/components/ui/use-toast";
 import { api } from "@/mind/lib/api";
 import { ArrowLeft, ClipboardList, Loader2, Shield } from "lucide-react";
 import { sanitizeInput } from "@/mind/lib/sanitize";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const concernOptions = [
   "Stress", "Anxiety", "Depression", "Relationship issues", "Trauma",
@@ -41,7 +42,7 @@ export default function IntakeFormPage() {
     }
   }, [packageId]);
 
-  const toggleConcern = (c) => {
+  const toggleConcern = (c: Unmodelled) => {
     setForm(prev => ({
       ...prev,
       concerns: prev.concerns.includes(c)
@@ -50,7 +51,7 @@ export default function IntakeFormPage() {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: Unmodelled) => {
     e.preventDefault();
     if (!form.fullName.trim()) {
       toast({ title: "Required", description: "Please enter your full name", variant: "destructive" });

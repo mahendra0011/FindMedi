@@ -14,6 +14,7 @@ import { useCart } from '@/context/CartContext';
 import { FLOW_TYPE, TRACKING_STAGES } from '@/hooks/useBookingFlow';
 import { api, getApiBaseUrl } from '@/lib/api';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 // ─── Icon map (string key → Lucide component) ─────────────────────────────────
 const ICON_MAP = {
@@ -91,9 +92,9 @@ export default function OrderTracking() {
         const res = await api.getFacilities({ type: 'pharmacy' });
         const list = Array.isArray(res) ? res : (res?.facilities || res?.data || []);
         const map = {};
-        list.forEach(f => { map[f._id] = f.name; map[f.id] = f.name; });
+        list.forEach((f: Unmodelled) => { map[f._id] = f.name; map[f.id] = f.name; });
         if (storeId) {
-          const found = list.find(f => f._id === storeId || f.id === storeId);
+          const found = list.find((f: Unmodelled) => f._id === storeId || f.id === storeId);
           if (found) map[storeId] = found.name;
         }
         setStoreNameMap(map);
@@ -148,7 +149,7 @@ export default function OrderTracking() {
       const res = await api.getOrder(orderId);
       const ord = res?.order || res;
       if (ord?.items) {
-        ord.items.forEach(item => addItem(item, ord.facilityId || ord.storeId || storeId));
+        ord.items.forEach((item: Unmodelled) => addItem(item, ord.facilityId || ord.storeId || storeId));
         toast.success('Previous order items added to cart');
         navigate('/cart');
       } else {
@@ -189,7 +190,7 @@ export default function OrderTracking() {
   };
 
   // ─── Stage icon resolution ──────────────────────────────────────────────────
-  const resolveIcon = (iconKey) => ICON_MAP[iconKey] || Package;
+  const resolveIcon = (iconKey: Unmodelled) => ICON_MAP[iconKey] || Package;
 
   // ─── Progress percentage ───────────────────────────────────────────────────
   const progressPct = STAGES.length > 1

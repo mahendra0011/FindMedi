@@ -15,14 +15,14 @@ import HospitalCard from '@/components/HospitalCard';
 import ClinicCard from '@/components/ClinicCard';
 import DiagnosticCenterCard from '@/components/DiagnosticCenterCard';
 import PharmacyCard from '@/components/PharmacyCard';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-function patientRequest(path, opts = {}) {
+function patientRequest(path: Unmodelled, opts = {}) {
   return api.dispatch(null, path, opts);
 }
 const patientApi = {
   getFavorites:   (p = {}) => patientRequest('/patient/favorites?' + new URLSearchParams(p)),
-  removeFavorite: (id) => patientRequest(`/patient/favorites/${id}`, { method: 'DELETE' }),
+  removeFavorite: (id: Unmodelled) => patientRequest(`/patient/favorites/${id}`, { method: 'DELETE' }),
 };
 
 // Filter chip config — colors match the listing-page accents.
@@ -45,7 +45,7 @@ const statsConfig = {
 };
 
 // Generic fallback card (used for anything unmapped).
-function GenericCard({ favorite }) {
+function GenericCard({ favorite }: Unmodelled) {
   const p = favorite?.profile || {};
   return (
     <div className="bg-card rounded-2xl border border-border/50 overflow-hidden h-full flex flex-col">
@@ -92,7 +92,7 @@ export default function PatientFavorites() {
 
   useEffect(() => { load(); }, []);
 
-  const handleRemove = async (id) => {
+  const handleRemove = async (id: Unmodelled) => {
     // Optimistic removal
     const prev = favorites;
     setFavorites((fs) => (Array.isArray(fs) ? fs : []).filter((f) => f._id !== id));
@@ -121,7 +121,7 @@ export default function PatientFavorites() {
   }, [favorites, activeFilter]);
 
   // Render the matching full card for a favorite
-  const renderCard = (f, index) => {
+  const renderCard = (f: Unmodelled, index: Unmodelled) => {
     const p = f.profile;
     switch (f.refType) {
       case 'doctor':

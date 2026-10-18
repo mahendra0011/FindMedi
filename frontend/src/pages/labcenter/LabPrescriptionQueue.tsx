@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const STATUS_COLORS = {
   Pending:  'bg-amber-500/10 text-amber-600 border-amber-200',
@@ -30,7 +30,7 @@ const REJECTION_REASONS = [
 ];
 
 // Humanise minutes-since
-function minutesSince(iso) {
+function minutesSince(iso: Unmodelled) {
   if (!iso) return null;
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (diff < 1) return 'Just now';
@@ -39,7 +39,7 @@ function minutesSince(iso) {
 }
 
 // SLA urgency: amber >10 min, red >20 min
-function urgencyLevel(iso) {
+function urgencyLevel(iso: Unmodelled) {
   if (!iso) return null;
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (mins > 20) return 'critical';
@@ -101,7 +101,7 @@ export default function LabPrescriptionQueue() {
   const rejectedToday      = counts.Rejected;
   const avgProcessingMins  = verifiedToday > 0 ? Math.round(480 / verifiedToday) : 0;
 
-  const handleAccept = async (id) => {
+  const handleAccept = async (id: Unmodelled) => {
     setProcessing(true);
     try {
       await api.updateLabBooking(id, { status: 'Verified' });
@@ -114,7 +114,7 @@ export default function LabPrescriptionQueue() {
     setProcessing(false);
   };
 
-  const openRejectModal = (rx) => {
+  const openRejectModal = (rx: Unmodelled) => {
     setRejectTarget(rx);
     setRejectReason('');
     setShowRejectDlg(true);
@@ -138,7 +138,7 @@ export default function LabPrescriptionQueue() {
     setProcessing(false);
   };
 
-  const openPanel = (rx) => { setSelectedRx(rx); setShowPanel(true); };
+  const openPanel = (rx: Unmodelled) => { setSelectedRx(rx); setShowPanel(true); };
 
   if (loading) {
     return (
@@ -247,7 +247,7 @@ export default function LabPrescriptionQueue() {
 
                       {/* Tests */}
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        {(rx.testNames || []).map(t => (
+                        {(rx.testNames || []).map((t: Unmodelled) => (
                           <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium flex items-center gap-1">
                             <FlaskConical className="w-2.5 h-2.5" /> {t}
                           </span>
@@ -350,7 +350,7 @@ export default function LabPrescriptionQueue() {
               <div className="space-y-3">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">Tests Requested</p>
-                  {(selectedRx.testNames || []).map(t => (
+                  {(selectedRx.testNames || []).map((t: Unmodelled) => (
                     <div key={t} className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 mb-1">
                       <FlaskConical className="w-3.5 h-3.5 text-primary" />
                       <span className="text-sm font-medium">{t}</span>

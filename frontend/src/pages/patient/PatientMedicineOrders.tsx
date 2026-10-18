@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import FeedbackPrompt from '@/components/feedback/FeedbackPrompt';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusConfig = {
   Pending: { label: 'Pending', icon: Clock, color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
@@ -191,7 +191,7 @@ export default function PatientMedicineOrders() {
                     <div className="mb-4 p-3 bg-muted/20 rounded-2xl border border-border/30">
                       <p className="text-xs font-medium text-foreground mb-2">Items ({order.items.length})</p>
                       <div className="space-y-1.5">
-                        {order.items.slice(0, 4).map((item, j) => (
+                        {order.items.slice(0, 4).map((item: Unmodelled, j: Unmodelled) => (
                           <div key={j} className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2 min-w-0">
                               <Pill className="w-3 h-3 text-primary shrink-0" />

@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api, txToEarningsBill } from '@/lib/api';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 /* ─── Premium Skeleton Loader ─────────────────────── */
 function EarningsSkeleton() {
@@ -88,9 +88,9 @@ export default function ClinicEarnings() {
       const res = await api.getTransactions({ limit: 500 });
       const list = res?.data || res?.payments || res || [];
       setBills(list
-        .filter(t => t.status === 'completed' || t.status === 'pending')
+        .filter((t: Unmodelled) => t.status === 'completed' || t.status === 'pending')
         .map(txToEarningsBill));
-      setPayments(list.filter(t => t.status === 'completed'));
+      setPayments(list.filter((t: Unmodelled) => t.status === 'completed'));
       if (isRefresh) toast.success('Earnings data refreshed');
     } catch (e) {
       toast.error(e.message || 'Failed to load earnings');

@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 function MyAutoConfirmToggle() {
   const [value, setValue] = useState(true);
@@ -30,7 +31,7 @@ function MyAutoConfirmToggle() {
     setSaving(false);
   };
 
-  const saveSlotCapacity = async (n) => {
+  const saveSlotCapacity = async (n: Unmodelled) => {
     setMaxSlot(n);
     try { await api.updateMySlotCapacity(n); toast.success('Slot capacity updated'); }
     catch { toast.error('Failed to update slot capacity'); }
@@ -115,7 +116,7 @@ export default function DoctorProfile() {
       setLoading(true);
       try {
         const doctors = (await api.getDoctors())?.data || [];
-        const myDoc = doctors.find(d => d.email === user?.email) || doctors.find(d => d.name?.includes(user?.name)) || null;
+        const myDoc = doctors.find((d: Unmodelled) => d.email === user?.email) || doctors.find((d: Unmodelled) => d.name?.includes(user?.name)) || null;
         if (myDoc) {
           setDoctor(myDoc);
           setBio(myDoc.bio || '');
@@ -128,7 +129,7 @@ export default function DoctorProfile() {
           setSignatureUrl(myDoc.signatureUrl || '');
           // §8 settings live under settings.* (flat legacy keys as fallback).
           const st = myDoc.settings || {};
-          const pick = (k, fb = '') => (st[k] !== undefined && st[k] !== '' ? st[k] : (myDoc[k] !== undefined && myDoc[k] !== '' ? myDoc[k] : fb));
+          const pick = (k: Unmodelled, fb = '') => (st[k] !== undefined && st[k] !== '' ? st[k] : (myDoc[k] !== undefined && myDoc[k] !== '' ? myDoc[k] : fb));
           setEmergencyOnCall(Boolean(st.emergencyOnCall ?? myDoc.emergencyOnCall ?? false));
           setRefundGuarantee(pick('refundGuarantee', 'auto-refund'));
           setVideoFee(String(pick('videoFee', myDoc.video_fee || '')));
@@ -202,7 +203,7 @@ export default function DoctorProfile() {
     setSaving(false);
   };
 
-  const handleSignatureUpload = async (e) => {
+  const handleSignatureUpload = async (e: Unmodelled) => {
     const file = e.target.files?.[0];
     if (!file || !doctor) return;
     setSignatureUploading(true);
@@ -213,7 +214,7 @@ export default function DoctorProfile() {
     setSignatureUploading(false);
   };
 
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = (e: Unmodelled) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();

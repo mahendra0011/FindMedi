@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /**
  * Audio wave animation bars.
  * If an active MediaStream is passed, analyzes actual volume frequency data via AnalyserNode.
  * Otherwise provides a smooth rhythmic breathing wave.
  */
-export default function AudioWaveVisualizer({ stream, isMuted = false, active = true, barCount = 18 }) {
+export default function AudioWaveVisualizer({ stream, isMuted = false, active = true, barCount = 18 }: Unmodelled) {
   const canvasRef = useRef(null);
 
   useEffect(() => {

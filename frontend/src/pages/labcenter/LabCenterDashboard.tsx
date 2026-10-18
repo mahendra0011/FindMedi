@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
 import { getISTDateString } from '@/lib/dateUtils';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = {
   Pending: { bg: 'bg-warning/10', text: 'text-warning' },
@@ -101,15 +102,15 @@ export default function LabCenterDashboard() {
   }, []);
 
   const today = getISTDateString();
-  const todayBookings = bookings.filter(b => (b.bookingDate || '').startsWith(today));
-  const pendingBookings = bookings.filter(b => b.status === 'Pending');
-  const upcomingBookings = bookings.filter(b => b.status === 'Confirmed' || (b.bookingDate && b.bookingDate > today && b.status !== 'Completed' && b.status !== 'Cancelled'));
-  const completedBookings = bookings.filter(b => b.status === 'Completed');
+  const todayBookings = bookings.filter((b: Unmodelled) => (b.bookingDate || '').startsWith(today));
+  const pendingBookings = bookings.filter((b: Unmodelled) => b.status === 'Pending');
+  const upcomingBookings = bookings.filter((b: Unmodelled) => b.status === 'Confirmed' || (b.bookingDate && b.bookingDate > today && b.status !== 'Completed' && b.status !== 'Cancelled'));
+  const completedBookings = bookings.filter((b: Unmodelled) => b.status === 'Completed');
   const pendingReports = stats?.pending ?? pendingBookings.length;
-  const totalEarned = bookings.filter(b => b.status === 'Completed').reduce((s, b) => s + Number(b.amount || 0), 0);
-  const completedTests = bookings.filter(b => b.status === 'Completed').reduce((s, b) => s + (b.tests?.length || 0), 0);
-  const totalRefunded = refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0);
-  const pendingRefunds = refunds.filter(r => r.status === 'Pending' || r.status === 'pending').length;
+  const totalEarned = bookings.filter((b: Unmodelled) => b.status === 'Completed').reduce((s: Unmodelled, b: Unmodelled) => s + Number(b.amount || 0), 0);
+  const completedTests = bookings.filter((b: Unmodelled) => b.status === 'Completed').reduce((s: Unmodelled, b: Unmodelled) => s + (b.tests?.length || 0), 0);
+  const totalRefunded = refunds.reduce((s: Unmodelled, r: Unmodelled) => s + (r.refund_amount || r.amount || 0), 0);
+  const pendingRefunds = refunds.filter((r: Unmodelled) => r.status === 'Pending' || r.status === 'pending').length;
 
   const tatPriorities = ['STAT', 'Urgent', 'Routine'];
   const tatAvgHrs = tatPriorities.reduce((max, p) => {
@@ -118,11 +119,11 @@ export default function LabCenterDashboard() {
   }, 0);
   const tatBreached = Number(tat?.breached || 0);
   const rejectionRate = rejection?.data?.rejectionRate;
-  const homeCollectionsToday = bookings.filter(b =>
+  const homeCollectionsToday = bookings.filter((b: Unmodelled) =>
     b.visitType === 'Home Collection' && String(b.bookingDate || '').startsWith(today)
     && !['Cancelled', 'Failed', 'Completed'].includes(b.status)).length;
   const monthFromNow = Date.now() + 30 * 86400000;
-  const calibrationDueList = equipment.filter(e => {
+  const calibrationDueList = equipment.filter((e: Unmodelled) => {
     if (!e.calibrationDue) return false;
     const due = new Date(e.calibrationDue).getTime();
     return !Number.isNaN(due) && due <= monthFromNow;
@@ -392,7 +393,7 @@ export default function LabCenterDashboard() {
             </div>
           ) : (
             <div className="space-y-3">
-              {displayedBookings.slice(0, 5).map(b => {
+              {displayedBookings.slice(0, 5).map((b: Unmodelled) => {
                 const colors = statusColors[b.status] || statusColors.Pending;
                 return (
                   <motion.div key={b._id || b.id} whileHover={{ x: 4 }}
@@ -434,14 +435,14 @@ export default function LabCenterDashboard() {
             </h2>
           </div>
 
-          {bookings.filter(b => b.status !== 'Completed').length === 0 ? (
+          {bookings.filter((b: Unmodelled) => b.status !== 'Completed').length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-2 opacity-30" />
               <p>No pending reports</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {bookings.filter(b => b.status !== 'Completed').slice(0, 5).map(b => (
+              {bookings.filter((b: Unmodelled) => b.status !== 'Completed').slice(0, 5).map((b: Unmodelled) => (
                 <div key={b._id || b.id} className="p-4 bg-muted/30 rounded-xl">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-medium text-foreground">{b.patientName || b.patient}</p>
@@ -476,7 +477,7 @@ export default function LabCenterDashboard() {
           </div>
         ) : (
           <div className="space-y-3">
-            {refunds.map(r => (
+            {refunds.map((r: Unmodelled) => (
               <div key={r._id} className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">

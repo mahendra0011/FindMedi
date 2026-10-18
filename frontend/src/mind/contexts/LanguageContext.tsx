@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const LANGUAGES = [
   { code: "en", name: "English", nativeName: "English" },
@@ -13,12 +14,12 @@ const STORAGE_KEY = "mindsupport_language";
 
 const LanguageContext = createContext(null);
 
-export function LanguageProvider({ children }) {
+export function LanguageProvider({ children }: Unmodelled) {
   const [language, setLanguageState] = useState(() => {
     return localStorage.getItem(STORAGE_KEY) || "en";
   });
 
-  const setLanguage = useCallback((code) => {
+  const setLanguage = useCallback((code: Unmodelled) => {
     setLanguageState(code);
     localStorage.setItem(STORAGE_KEY, code);
     document.documentElement.lang = code;

@@ -4,7 +4,7 @@ import { Button } from '@/mind/components/ui/button';
 import { Textarea } from '@/mind/components/ui/textarea';
 import { Badge } from '@/mind/components/ui/badge';
 import { Smile, Meh, Frown, Heart } from 'lucide-react';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 const MOOD_EMOJIS = [
     { icon: <Frown className="h-8 w-8"/>, label: 'Very Low', color: 'text-destructive' },
     { icon: <Meh className="h-8 w-8"/>, label: 'Low', color: 'text-warning' },
@@ -17,7 +17,7 @@ const MoodTracker = () => {
     const [currentMood, setCurrentMood] = useState(3);
     const [notes, setNotes] = useState('');
     const [selectedTags, setSelectedTags] = useState<ApiRow[]>([]);
-    const toggleTag = (tag) => {
+    const toggleTag = (tag: Unmodelled) => {
         setSelectedTags(prev => prev.includes(tag)
             ? prev.filter(t => t !== tag)
             : [...prev, tag]);

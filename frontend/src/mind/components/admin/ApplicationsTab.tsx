@@ -1,8 +1,9 @@
 import { Badge } from "@/mind/components/ui/badge";
 import { Button } from "@/mind/components/ui/button";
 import { AlertTriangle, Briefcase, CheckCircle2, CreditCard, ExternalLink, FileText, Globe, Search, Shield, ShieldCheck, UserCog, X } from "lucide-react";
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function ApplicationsTab({ data, users, reviewApplication }) {
+export default function ApplicationsTab({ data, users, reviewApplication }: Unmodelled) {
   return (
     <>
   {/* Application Stats */}
@@ -33,7 +34,7 @@ export default function ApplicationsTab({ data, users, reviewApplication }) {
           </div>
           <span className="text-[10px] uppercase tracking-widest text-amber-400/60 font-medium">Pending</span>
         </div>
-        <div className="text-2xl font-bold text-amber-400">{data.counsellorApplications.filter(a => a.status === "pending" || a.status === "reviewing").length}</div>
+        <div className="text-2xl font-bold text-amber-400">{data.counsellorApplications.filter((a: Unmodelled) => a.status === "pending" || a.status === "reviewing").length}</div>
         <div className="flex items-center gap-1.5 mt-1.5">
           <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
           <span className="text-xs text-amber-400/60">Awaiting review</span>
@@ -50,7 +51,7 @@ export default function ApplicationsTab({ data, users, reviewApplication }) {
           </div>
           <span className="text-[10px] uppercase tracking-widest text-emerald-400/60 font-medium">Approved</span>
         </div>
-        <div className="text-2xl font-bold text-emerald-400">{data.counsellorApplications.filter(a => a.status === "approved").length}</div>
+        <div className="text-2xl font-bold text-emerald-400">{data.counsellorApplications.filter((a: Unmodelled) => a.status === "approved").length}</div>
         <div className="flex items-center gap-1.5 mt-1.5">
           <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-xs text-emerald-400/60">Approved applications</span>
@@ -67,7 +68,7 @@ export default function ApplicationsTab({ data, users, reviewApplication }) {
           </div>
           <span className="text-[10px] uppercase tracking-widest text-rose-400/60 font-medium">Rejected</span>
         </div>
-        <div className="text-2xl font-bold text-rose-400">{data.counsellorApplications.filter(a => a.status === "rejected").length}</div>
+        <div className="text-2xl font-bold text-rose-400">{data.counsellorApplications.filter((a: Unmodelled) => a.status === "rejected").length}</div>
         <div className="flex items-center gap-1.5 mt-1.5">
           <div className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
           <span className="text-xs text-rose-400/60">Rejected applications</span>
@@ -87,7 +88,7 @@ export default function ApplicationsTab({ data, users, reviewApplication }) {
         <p className="text-sm text-foreground/50 mt-1">Counsellor applications will appear here when users submit them.</p>
       </div>
     ) : (
-      data.counsellorApplications.map((application) => {
+      data.counsellorApplications.map((application: Unmodelled) => {
         const isApproved = application.status === "approved";
         const isRejected = application.status === "rejected";
         const isReviewing = application.status === "reviewing";

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = {
   pending: 'bg-warning/10 text-warning',
@@ -46,7 +46,7 @@ export default function SuperAdminDelivery() {
     setLoading(false);
   };
 
-  const handleApprove = async (id) => {
+  const handleApprove = async (id: Unmodelled) => {
     try {
       await api.put(`/delivery-partners/${id}/verify`, { action: 'approve' });
       toast.success('Delivery partner approved');
@@ -56,7 +56,7 @@ export default function SuperAdminDelivery() {
     }
   };
 
-  const handleReject = async (id) => {
+  const handleReject = async (id: Unmodelled) => {
     if (!rejectReason.trim()) {
       toast.error('Please provide a rejection reason');
       return;
@@ -72,7 +72,7 @@ export default function SuperAdminDelivery() {
     }
   };
 
-  const handleSuspend = async (id) => {
+  const handleSuspend = async (id: Unmodelled) => {
     try {
       await api.put(`/delivery-partners/${id}/verify`, { action: 'reject', reason: 'Suspended by admin' });
       toast.success('Delivery partner suspended');
@@ -242,7 +242,7 @@ export default function SuperAdminDelivery() {
             columns={[
               {
                 key: 'name', label: 'Partner',
-                render: (v, p) => (
+                render: (v: Unmodelled, p: Unmodelled) => (
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">
                       {v?.charAt(0)}
@@ -254,13 +254,13 @@ export default function SuperAdminDelivery() {
                   </div>
                 ),
               },
-              { key: 'vehicleType', label: 'Vehicle', render: (v, p) => <span className="text-muted-foreground">{v} {p.vehicleNumber}</span> },
-              { key: 'status', label: 'Status', render: (v) => <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[v] || 'bg-muted text-muted-foreground'}`}>{v}</span> },
-              { key: 'totalDeliveries', label: 'Deliveries', render: (v) => <span className="text-right block text-card-foreground">{v || 0}</span> },
-              { key: 'rating', label: 'Rating', render: (v) => <span className="text-right block text-card-foreground">{v || '—'}</span> },
+              { key: 'vehicleType', label: 'Vehicle', render: (v: Unmodelled, p: Unmodelled) => <span className="text-muted-foreground">{v} {p.vehicleNumber}</span> },
+              { key: 'status', label: 'Status', render: (v: Unmodelled) => <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[v] || 'bg-muted text-muted-foreground'}`}>{v}</span> },
+              { key: 'totalDeliveries', label: 'Deliveries', render: (v: Unmodelled) => <span className="text-right block text-card-foreground">{v || 0}</span> },
+              { key: 'rating', label: 'Rating', render: (v: Unmodelled) => <span className="text-right block text-card-foreground">{v || '—'}</span> },
               {
                 key: '_actions', label: 'Actions', sortable: false,
-                render: (_v, p) => (
+                render: (_v: Unmodelled, p: Unmodelled) => (
                   p.status === 'approved' ? (
                     <Button size="sm" variant="outline" onClick={() => handleSuspend(p._id)} className="text-xs">Suspend</Button>
                   ) : p.status === 'suspended' ? (

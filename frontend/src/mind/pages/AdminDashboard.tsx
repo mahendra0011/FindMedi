@@ -68,7 +68,7 @@ import UsersTab from "@/mind/components/admin/UsersTab";
 import RevenueTab from "@/mind/components/admin/RevenueTab";
 import ExportsTab from "@/mind/components/admin/ExportsTab";
 import AnalyticsTab from "@/mind/components/admin/AnalyticsTab";
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const themeOptions = [
   { id: "default", name: "Midnight Calm", color: "bg-indigo-500" },
@@ -186,7 +186,7 @@ const AdminDashboard = () => {
     return { userCount, appointmentCount };
   }, [data]);
 
-  const createUser = async (event) => {
+  const createUser = async (event: Unmodelled) => {
     event.preventDefault();
     try {
       await api.post("/api/admin/users", newUser);
@@ -198,7 +198,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const updateUserStatus = async (user, status) => {
+  const updateUserStatus = async (user: Unmodelled, status: Unmodelled) => {
     try {
       await api.patch(`/api/admin/users/${user.id}`, { status });
       toast({ title: "Account updated" });
@@ -208,7 +208,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const updateUserDetails = async (user, payload, success = "Account updated") => {
+  const updateUserDetails = async (user: Unmodelled, payload: Unmodelled, success = "Account updated") => {
     try {
       await api.patch(`/api/admin/users/${user.id}`, payload);
       toast({ title: success });
@@ -218,7 +218,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const updateReportStatus = async (report, status) => {
+  const updateReportStatus = async (report: Unmodelled, status: Unmodelled) => {
     try {
       await api.patch(`/api/reports/counsellor/${report.id}`, { status });
       setData((prev) => ({
@@ -231,7 +231,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const deleteUser = async (user) => {
+  const deleteUser = async (user: Unmodelled) => {
     try {
       await api.delete(`/api/admin/users/${user.id}`);
       toast({ title: "Account deleted", description: `${user.email} was removed from the platform.` });
@@ -241,7 +241,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const reviewApplication = async (application, status) => {
+  const reviewApplication = async (application: Unmodelled, status: Unmodelled) => {
     try {
       const { data: result } = await api.patch(`/api/admin/counsellor-applications/${application.id}`, { status });
       toast({
@@ -254,7 +254,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const moderateReview = async (review, status, action) => {
+  const moderateReview = async (review: Unmodelled, status: Unmodelled, action: Unmodelled) => {
     try {
       await api.patch(`/api/admin/reviews/${review.id}`, { status, action });
       toast({
@@ -309,7 +309,7 @@ const sendAnnouncement = async () => {
     }
   };
 
-  const handleAddPackage = async (pkg) => {
+  const handleAddPackage = async (pkg: Unmodelled) => {
     const result = await dispatch(createSupportPackage(pkg));
     if (result.meta.requestStatus === "fulfilled") {
       toast({ title: "Package added", description: `${pkg.name} has been created.` });
@@ -320,12 +320,12 @@ const sendAnnouncement = async () => {
     }
   };
 
-  const handleEditPackage = async (pkg) => {
+  const handleEditPackage = async (pkg: Unmodelled) => {
     setEditingPackage(pkg);
     setShowPackageForm(true);
   };
 
-  const handleUpdatePackage = async (pkg) => {
+  const handleUpdatePackage = async (pkg: Unmodelled) => {
     const result = await dispatch(updateSupportPackage(pkg));
     if (result.meta.requestStatus === "fulfilled") {
       toast({ title: "Package updated", description: `${pkg.name} has been updated.` });
@@ -336,7 +336,7 @@ const sendAnnouncement = async () => {
     }
   };
 
-  const handleDeletePackage = async (pkgId) => {
+  const handleDeletePackage = async (pkgId: Unmodelled) => {
     if (!confirm("Are you sure you want to delete this package? This cannot be undone.")) return;
     const result = await dispatch(deleteSupportPackage(pkgId));
     if (result.meta.requestStatus === "fulfilled") {
@@ -360,7 +360,7 @@ const sendAnnouncement = async () => {
     theme: "default",
   });
 
-  const savePackage = (e) => {
+  const savePackage = (e: Unmodelled) => {
     e.preventDefault();
     if (editingPackage) {
       handleUpdatePackage(newPackage);
@@ -608,7 +608,7 @@ const sendAnnouncement = async () => {
   );
 };
 
-function Breakdown({ title, data }) {
+function Breakdown({ title, data }: Unmodelled) {
   const entries = Object.entries(data || {});
   if (entries.length === 0) return <PanelText>No {title.toLowerCase()} data yet.</PanelText>;
   return (
@@ -626,11 +626,11 @@ function Breakdown({ title, data }) {
   );
 }
 
-function PanelText({ children }) {
+function PanelText({ children }: Unmodelled) {
   return <div className="rounded-lg border border-glass-border/40 bg-background/60 p-3 text-sm text-foreground/75">{children}</div>;
 }
 
-function AnalyticsCard({ title, data, labelKey = "month" }) {
+function AnalyticsCard({ title, data, labelKey = "month" }: Unmodelled) {
   return (
     <Card className="glass-card">
       <CardHeader>

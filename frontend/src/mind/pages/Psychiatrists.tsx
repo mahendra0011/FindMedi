@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import BookingModal from '@/components/BookingModal';
 import NavigationBar from '@/mind/components/Navigation';
 import Footer from '@/mind/components/Footer';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const PSYCH_CATEGORIES = [
   { name: 'Depression', icon: Heart, color: 'from-red-500/20 to-red-500/5', textColor: 'text-red-500', keywords: ['depress', 'mood disorder', 'dysthymia'] },
@@ -34,32 +34,32 @@ const EXPERIENCE_RANGES = [
   { label: '10+ years', min: 10, max: 999 },
 ];
 
-function getExpYears(exp) {
+function getExpYears(exp: Unmodelled) {
   if (!exp) return 0;
   const m = String(exp).match(/(\d+)/);
   return m ? parseInt(m[1]) : 0;
 }
 
-function getClinicName(doc) {
+function getClinicName(doc: Unmodelled) {
   if (!doc) return '';
   return doc.clinicProfile?.clinic_name || doc.facilityId?.name || doc.location?.split(',')?.[0] || 'Clinic';
 }
 
-function getClinicAddress(doc) {
+function getClinicAddress(doc: Unmodelled) {
   return doc.clinicProfile?.clinic_address || doc.facilityId?.address || doc.location || doc.area || doc.address || doc.city || '';
 }
 
-function isPsychiatrist(doc) {
+function isPsychiatrist(doc: Unmodelled) {
   const spec = (doc.specialization || '').toLowerCase();
   return spec.includes('psychiatr');
 }
 
-function doctorSearchText(doc) {
+function doctorSearchText(doc: Unmodelled) {
   return [doc.specialization, doc.qualifications, doc.bio, doc.department, doc.subSpeciality, (doc.focusAreas || []).join(' ')]
     .filter(Boolean).join(' ').toLowerCase();
 }
 
-function matchesCategory(doc, category) {
+function matchesCategory(doc: Unmodelled, category: Unmodelled) {
   if (category === 'All') return true;
   const entry = PSYCH_CATEGORIES.find(c => c.name === category);
   if (!entry) return true;
@@ -80,10 +80,10 @@ export default function Psychiatrists() {
   const [savedIds, setSavedIds] = useState(() => {
     try { return JSON.parse(localStorage.getItem('fav_doctor_ids') || '[]'); } catch { return []; }
   });
-  const toggleSavedDoctor = async (docId, e) => {
+  const toggleSavedDoctor = async (docId: Unmodelled, e: Unmodelled) => {
     if (e) e.stopPropagation();
     const nowSaved = !savedIds.includes(docId);
-    const next = nowSaved ? [...savedIds, docId] : savedIds.filter(id => id !== docId);
+    const next = nowSaved ? [...savedIds, docId] : savedIds.filter((id: Unmodelled) => id !== docId);
     setSavedIds(next);
     try {
       if (nowSaved) {
@@ -196,7 +196,7 @@ export default function Psychiatrists() {
     setDoctors(filtered);
   }, [allDoctors, catFilter, clinicFilter, locationFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, qualificationFilter, languageFilter, sortBy]);
 
-  const renderStars = (rating) => (
+  const renderStars = (rating: Unmodelled) => (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map(s => (
         <Star key={s} className={`w-3.5 h-3.5 ${s <= Math.round(rating) ? 'text-warning fill-warning' : 'text-muted-foreground/30'}`} />

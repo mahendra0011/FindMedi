@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { userFacingError } from '@/lib/errorCopy';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function ClinicPlatformSettings() {
   const { user } = useAuth();
@@ -61,7 +62,7 @@ export default function ClinicPlatformSettings() {
     const loadDoctor = async () => {
       try {
         const doctors = (await api.getDoctors())?.data || [];
-        const myDoc = doctors.find(d => d.email === user?.email) || doctors.find(d => d.name?.includes(user?.name)) || null;
+        const myDoc = doctors.find((d: Unmodelled) => d.email === user?.email) || doctors.find((d: Unmodelled) => d.name?.includes(user?.name)) || null;
         if (myDoc) {
           setDoctorId(myDoc._id);
           setSignatureUrl(myDoc.signatureUrl || '');
@@ -69,7 +70,7 @@ export default function ClinicPlatformSettings() {
           if (myDoc.emergencySupport !== undefined) setEmergencySupport(myDoc.emergencySupport);
           if (myDoc.refundOnMissedOrCancelled !== undefined) setRefundOnMissedOrCancelled(myDoc.refundOnMissedOrCancelled);
           const st = myDoc.settings || {};
-          const pick = (k, fb = '') => (st[k] !== undefined && st[k] !== '' ? st[k] : fb);
+          const pick = (k: Unmodelled, fb = '') => (st[k] !== undefined && st[k] !== '' ? st[k] : fb);
           if (st.walkInAccepted !== undefined) setWalkInAccepted(Boolean(st.walkInAccepted));
           setRefundTier(pick('refundTier', 'full_2h'));
           setInClinicFee(String(pick('inClinicFee', '')));
@@ -93,7 +94,7 @@ export default function ClinicPlatformSettings() {
     if (user?.email) loadDoctor();
   }, [user?.email, user?.name]);
 
-  const toggleMode = (mode) => {
+  const toggleMode = (mode: Unmodelled) => {
     if (appointmentModes.includes(mode)) {
       if (appointmentModes.length === 1) {
         toast.warning('At least one consultation mode must remain active');
@@ -144,7 +145,7 @@ export default function ClinicPlatformSettings() {
     }
   };
 
-  const handleSignatureUpload = async (e) => {
+  const handleSignatureUpload = async (e: Unmodelled) => {
     const file = e.target.files?.[0];
     if (!file || !doctorId) return;
     setSignatureUploading(true);

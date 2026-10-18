@@ -33,7 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/mind/components/ui/t
 import { Textarea } from "@/mind/components/ui/textarea";
 import { useToast } from "@/mind/components/ui/use-toast";
 import { api } from "@/mind/lib/api";
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const moodOptions = [
   { value: 1, label: "Very Low", emoji: "😰" },
@@ -102,8 +102,8 @@ const emergencyContacts = [
   { label: "Emergency Services", sub: "Local emergency number", value: "Call now" },
 ];
 
-const getMood = (value) => moodOptions.find((item) => item.value === Number(value)) || moodOptions[2];
-const pct = (value, total) => (total ? Math.round((value / total) * 100) : 0);
+const getMood = (value: Unmodelled) => moodOptions.find((item) => item.value === Number(value)) || moodOptions[2];
+const pct = (value: Unmodelled, total: Unmodelled) => (total ? Math.round((value / total) * 100) : 0);
 
 const MyWellness = () => {
   const { toast } = useToast();
@@ -202,7 +202,7 @@ const MyWellness = () => {
     return () => window.clearInterval(timer);
   }, [breathing.active]);
 
-  const submitMood = async (mood) => {
+  const submitMood = async (mood: Unmodelled) => {
     setCurrentMood(mood);
     try {
       const { data: entry } = await api.post("/api/wellness/mood", { mood, note: moodNote });
@@ -214,13 +214,13 @@ const MyWellness = () => {
     }
   };
 
-  const chooseAssessmentType = (value) => {
+  const chooseAssessmentType = (value: Unmodelled) => {
     setAssessmentType(value);
     setAssessmentStep(0);
     setResponses({});
   };
 
-  const answerCurrentQuestion = (value) => {
+  const answerCurrentQuestion = (value: Unmodelled) => {
     setResponses((prev) => ({ ...prev, [assessmentStep]: Number(value) }));
   };
 
@@ -258,7 +258,7 @@ const MyWellness = () => {
     }
   };
 
-  const toggleNotification = (key) => {
+  const toggleNotification = (key: Unmodelled) => {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -336,7 +336,7 @@ const MyWellness = () => {
                     </div>
                     <div className="pt-2 space-y-2">
                       <div className="font-semibold text-sm">Recommendations:</div>
-                      {(assessment?.recommendations || ["Continue with daily mood tracking", "Consider booking a follow-up session"]).slice(0, 2).map((item) => (
+                      {(assessment?.recommendations || ["Continue with daily mood tracking", "Consider booking a follow-up session"]).slice(0, 2).map((item: Unmodelled) => (
                         <div key={item} className="flex gap-2 text-sm text-foreground/75">
                           <CheckCircle2 className="h-4 w-4 text-emerald-400 mt-0.5" />
                           <span>{item}</span>
@@ -589,11 +589,11 @@ const MyWellness = () => {
   );
 };
 
-function WellnessPanel({ children, className = "" }) {
+function WellnessPanel({ children, className = "" }: Unmodelled) {
   return <div className={`dashboard-card-motion rounded-2xl border border-glass-border/30 bg-glass/70 p-5 shadow-2xl ${className}`}>{children}</div>;
 }
 
-function PanelHeader({ icon: Icon, title, subtitle, danger = false }) {
+function PanelHeader({ icon: Icon, title, subtitle, danger = false }: Unmodelled) {
   return (
     <div>
       <div className={`flex items-center gap-2 text-2xl font-bold ${danger ? "text-red-500" : "text-foreground"}`}>
@@ -605,7 +605,7 @@ function PanelHeader({ icon: Icon, title, subtitle, danger = false }) {
   );
 }
 
-function QuickButton({ icon: Icon, label, highlight = false, onClick }) {
+function QuickButton({ icon: Icon, label, highlight = false, onClick }: Unmodelled) {
   return (
     <button
       type="button"
@@ -621,7 +621,7 @@ function QuickButton({ icon: Icon, label, highlight = false, onClick }) {
   );
 }
 
-function ScorePanel({ title, value, suffix = "", caption, progress }) {
+function ScorePanel({ title, value, suffix = "", caption, progress }: Unmodelled) {
   const shownProgress = progress ?? Number(value) * 20;
   return (
     <WellnessPanel>
@@ -635,7 +635,7 @@ function ScorePanel({ title, value, suffix = "", caption, progress }) {
   );
 }
 
-function JourneyMetric({ value, label, color }) {
+function JourneyMetric({ value, label, color }: Unmodelled) {
   return (
     <div>
       <div className={`text-2xl font-bold ${color}`}>{value}</div>
@@ -644,10 +644,10 @@ function JourneyMetric({ value, label, color }) {
   );
 }
 
-function MoodTrends({ entries, averageMood }) {
+function MoodTrends({ entries, averageMood }: Unmodelled) {
   const distribution = [1, 2, 3, 4, 5].map((mood) => ({
     mood,
-    count: entries.filter((entry) => Number(entry.mood) === mood).length,
+    count: entries.filter((entry: Unmodelled) => Number(entry.mood) === mood).length,
   }));
   const total = entries.length || 1;
 
@@ -671,7 +671,7 @@ function MoodTrends({ entries, averageMood }) {
       </div>
       <div className="mt-7 space-y-4">
         <div className="font-semibold">Recent Timeline</div>
-        {entries.slice(0, 5).map((entry, index) => (
+        {entries.slice(0, 5).map((entry: Unmodelled, index: Unmodelled) => (
           <div key={entry.id || `${entry.date}-${index}`} className="grid grid-cols-[120px_40px_1fr] items-center gap-3 border-b border-glass-border/20 pb-3 text-sm">
             <span className="font-medium">{entry.date}</span>
             <span>{getMood(entry.mood).emoji}</span>

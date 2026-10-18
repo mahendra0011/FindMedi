@@ -4,15 +4,16 @@ import { Search, Plus, Clock, X, Brain, CheckCircle, AlertTriangle, User, FileTe
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const mhApi = {
-  getCases: (p) => api.dispatch(() => Promise.resolve({ cases: [] }), '/mentalhealth?' + new URLSearchParams(p)),
-  createCase: (b) => api.dispatch(() => Promise.resolve({}), '/mentalhealth', { method: 'POST', body: JSON.stringify(b) }),
-  addAssessment: (id, b) => api.dispatch(() => Promise.resolve({}), `/mentalhealth/${id}/assessment`, { method: 'PUT', body: JSON.stringify(b) }),
-  addMse: (id, b) => api.dispatch(() => Promise.resolve({}), `/mentalhealth/${id}/mse`, { method: 'PUT', body: JSON.stringify(b) }),
-  createPlan: (id, b) => api.dispatch(() => Promise.resolve({}), `/mentalhealth/${id}/plan`, { method: 'PUT', body: JSON.stringify(b) }),
-  addSession: (id, b) => api.dispatch(() => Promise.resolve({}), `/mentalhealth/${id}/session`, { method: 'PUT', body: JSON.stringify(b) }),
-  updateConfidentiality: (id, b) => api.dispatch(() => Promise.resolve({}), `/mentalhealth/${id}/confidentiality`, { method: 'PUT', body: JSON.stringify(b) }),
+  getCases: (p: Unmodelled) => api.dispatch(() => Promise.resolve({ cases: [] }), '/mentalhealth?' + new URLSearchParams(p)),
+  createCase: (b: Unmodelled) => api.dispatch(() => Promise.resolve({}), '/mentalhealth', { method: 'POST', body: JSON.stringify(b) }),
+  addAssessment: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/mentalhealth/${id}/assessment`, { method: 'PUT', body: JSON.stringify(b) }),
+  addMse: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/mentalhealth/${id}/mse`, { method: 'PUT', body: JSON.stringify(b) }),
+  createPlan: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/mentalhealth/${id}/plan`, { method: 'PUT', body: JSON.stringify(b) }),
+  addSession: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/mentalhealth/${id}/session`, { method: 'PUT', body: JSON.stringify(b) }),
+  updateConfidentiality: (id: Unmodelled, b: Unmodelled) => api.dispatch(() => Promise.resolve({}), `/mentalhealth/${id}/confidentiality`, { method: 'PUT', body: JSON.stringify(b) }),
   getStats: () => api.dispatch(() => Promise.resolve({ active: 0, critical: 0, followUp: 0, total: 0 }), '/mentalhealth/stats'),
 };
 
@@ -115,7 +116,7 @@ export default function MentalHealth() {
       </div>
 
       <div className="space-y-4">
-        {cases.map(c => {
+        {cases.map((c: Unmodelled) => {
           const isExpanded = expandedId === c._id;
 
           return (
@@ -193,7 +194,7 @@ export default function MentalHealth() {
                   {c.sessions?.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs font-semibold text-muted-foreground">Session Notes ({c.sessions.length})</p>
-                      {c.sessions.slice(-3).map((s, i) => (
+                      {c.sessions.slice(-3).map((s: Unmodelled, i: Unmodelled) => (
                         <div key={i} className="bg-muted/30 rounded-lg p-2 text-xs">
                           <div className="flex justify-between">
                             <span className="font-medium">{s.therapyType}</span>

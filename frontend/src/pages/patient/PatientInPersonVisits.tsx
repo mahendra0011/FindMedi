@@ -22,10 +22,10 @@ import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 import {
   Map, MapMarker, MarkerContent, MapRoute, MapControls
 } from '@/components/ui/map';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 // Helper to test if an appointment is Home Visit (offline/home_visit)
-function isInPersonAppointment(appt) {
+function isInPersonAppointment(appt: Unmodelled) {
   const mode = (appt.appointmentMode || '').toLowerCase();
   const type = (appt.type || '').toLowerCase();
   const intakeMode = (appt.preConsultationDetails?.appointmentMode || appt.preConsultationDetails?.mode || '').toLowerCase();
@@ -41,7 +41,7 @@ function isInPersonAppointment(appt) {
 }
 
 // Distance formula
-function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+function getDistanceFromLatLonInKm(lat1: Unmodelled, lon1: Unmodelled, lat2: Unmodelled, lon2: Unmodelled) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -53,13 +53,13 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
   return Math.round(R * c * 10) / 10;
 }
 
-function estimateEtaMinutes(distKm) {
+function estimateEtaMinutes(distKm: Unmodelled) {
   if (!distKm || distKm <= 0) return 0;
   const minutes = Math.round((distKm / 25) * 60) + 4;
   return Math.max(3, minutes);
 }
 
-function generateRouteLine(startCoords, endCoords) {
+function generateRouteLine(startCoords: Unmodelled, endCoords: Unmodelled) {
   if (!startCoords || !endCoords) return [];
   const [lng1, lat1] = startCoords;
   const [lng2, lat2] = endCoords;
@@ -125,7 +125,7 @@ export default function PatientInPersonVisits() {
       setAppointments(inPerson);
 
       if (inPerson.length > 0 && !selectedApptId) {
-        const firstActive = inPerson.find(a => (a.status || '').toLowerCase() !== 'completed') || inPerson[0];
+        const firstActive = inPerson.find((a: Unmodelled) => (a.status || '').toLowerCase() !== 'completed') || inPerson[0];
         setSelectedApptId(firstActive._id);
       }
     } catch (err) {
@@ -223,7 +223,7 @@ export default function PatientInPersonVisits() {
   }, [userLocation, clinicCoordinates]);
 
   // Patient Transit Action: update "on_the_way" or "arrived"
-  const handleTransitUpdate = async (apptId, newStatus) => {
+  const handleTransitUpdate = async (apptId: Unmodelled, newStatus: Unmodelled) => {
     setUpdatingTransit(true);
     try {
       await api.updateAppointmentTransit(apptId, {

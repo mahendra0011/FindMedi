@@ -3,6 +3,7 @@ import { FileCheck, AlertOctagon, X, Mic, History, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 interface Props {
   order: any;
@@ -88,7 +89,7 @@ export const RadiologyReportingModal: React.FC<Props> = ({ order, onClose, onSub
       recognition.start();
       recognition.onresult = (e: any) => {
         const text = e.results[0][0].transcript;
-        setFindings(prev => prev ? `${prev} ${text}` : text);
+        setFindings((prev: Unmodelled) => prev ? `${prev} ${text}` : text);
         setDictating(false);
       };
       recognition.onerror = () => setDictating(false);

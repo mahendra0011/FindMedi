@@ -4,6 +4,7 @@ import { api } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const STEPS = ['Personal', 'Vehicle', 'KYC', 'Preferences', 'Review'];
 
@@ -20,8 +21,8 @@ export default function DeliveryPartnerRegister() {
     emergencyContact: { name: '', phone: '' },
   });
 
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const setNested = (parent, k, v) => setForm((f) => ({ ...f, [parent]: { ...f[parent], [k]: v } }));
+  const set = (k: Unmodelled, v: Unmodelled) => setForm((f) => ({ ...f, [k]: v }));
+  const setNested = (parent: Unmodelled, k: Unmodelled, v: Unmodelled) => setForm((f) => ({ ...f, [parent]: { ...f[parent], [k]: v } }));
 
   const submit = async () => {
     try {

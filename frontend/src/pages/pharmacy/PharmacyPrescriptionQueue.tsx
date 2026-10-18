@@ -9,17 +9,17 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api, resolveFileUrl } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 // SLA helpers
-function minutesSince(iso) {
+function minutesSince(iso: Unmodelled) {
   if (!iso) return null;
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (diff < 1) return 'Just now';
   if (diff < 60) return `${diff}m ago`;
   return `${Math.floor(diff / 60)}h ${diff % 60}m ago`;
 }
-function urgencyLevel(iso) {
+function urgencyLevel(iso: Unmodelled) {
   if (!iso) return null;
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (mins > 20) return 'critical';
@@ -34,12 +34,12 @@ const statusColors = {
   Cancelled: 'bg-destructive/10 text-destructive',
 };
 
-const statusBadge = (status) => {
+const statusBadge = (status: Unmodelled) => {
   const colors = statusColors[status] || statusColors.Active;
   return <Badge className={colors}>{status}</Badge>;
 };
 
-const medicineStatusBadge = (isDispensed) => (
+const medicineStatusBadge = (isDispensed: Unmodelled) => (
   <Badge className={isDispensed ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}>
     {isDispensed ? 'Dispensed' : 'Pending'}
   </Badge>
@@ -70,7 +70,7 @@ export default function PharmacyPrescriptionQueue() {
     return ms && mf;
   });
 
-  const handleDispense = async (rxId, medicineIndex) => {
+  const handleDispense = async (rxId: Unmodelled, medicineIndex: Unmodelled) => {
     setError('');
     setSuccessMsg('');
     try {
@@ -85,7 +85,7 @@ export default function PharmacyPrescriptionQueue() {
     }
   };
 
-  const handleCancel = async (id) => {
+  const handleCancel = async (id: Unmodelled) => {
     setError('');
     setSuccessMsg('');
     try {
@@ -102,7 +102,7 @@ export default function PharmacyPrescriptionQueue() {
   const totalPartial   = queue.filter(r => r.status === 'Partially Dispensed').length;
   const avgMins = 12; // mock average
 
-  const handleNotifyNextProvider = (rx) => {
+  const handleNotifyNextProvider = (rx: Unmodelled) => {
     toast.info(`🔄 Notifying next preferred pharmacy for ${rx.patientName}'s prescription...`, { duration: 5000 });
     setTimeout(() => toast.success(`✅ Next provider (HealthFirst Medicals) notified.`, { duration: 4000 }), 1500);
   };
@@ -171,7 +171,7 @@ export default function PharmacyPrescriptionQueue() {
       ) : (
         <div className="space-y-4">
           {filtered.map((rx, i) => {
-            const dispensed = rx.medicines?.filter(m => m.isDispensed).length || 0;
+            const dispensed = rx.medicines?.filter((m: Unmodelled) => m.isDispensed).length || 0;
             const total = rx.medicines?.length || 0;
             return (
               <motion.div key={rx._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
@@ -299,7 +299,7 @@ export default function PharmacyPrescriptionQueue() {
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {selectedRx.medicines?.map((med, idx) => (
+                  {selectedRx.medicines?.map((med: Unmodelled, idx: Unmodelled) => (
                     <div key={idx}
                       className={`p-4 rounded-xl border ${med.isDispensed ? 'bg-success/5 border-success/20' : 'bg-muted/20 border-border/40'}`}>
                       <div className="flex items-start justify-between">

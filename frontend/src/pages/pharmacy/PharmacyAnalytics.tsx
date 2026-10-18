@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Pill, TrendingUp, IndianRupee, Package, ShoppingCart, BarChart3, Activity, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const generateMockAnalytics = () => ({
   totalMedicines: 0,
@@ -38,7 +39,7 @@ export default function PharmacyAnalytics() {
     ]).then(([stats, ordersRes]) => {
       const orders = Array.isArray(ordersRes) ? ordersRes : (ordersRes?.orders || ordersRes?.data || []);
       const medRevenue = {};
-      orders.forEach(o => (o.items || []).forEach(item => {
+      orders.forEach((o: Unmodelled) => (o.items || []).forEach((item: Unmodelled) => {
         medRevenue[item.medicineName] = (medRevenue[item.medicineName] || 0) + (item.price * item.qty);
       }));
       const popular = Object.entries(medRevenue)
@@ -46,7 +47,7 @@ export default function PharmacyAnalytics() {
         .slice(0, 5)
         .map(([name, revenue], _i) => ({
           name,
-          count: orders.filter(o => o.items?.some(i => i.medicineName === name)).length,
+          count: orders.filter((o: Unmodelled) => o.items?.some((i: Unmodelled) => i.medicineName === name)).length,
           revenue,
         }));
       setAnalytics(prev => ({

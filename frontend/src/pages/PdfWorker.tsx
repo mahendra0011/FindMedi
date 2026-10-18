@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /** File 22 P2-33: PDF print/worker page. */
 export default function PdfWorker() {
@@ -50,7 +51,7 @@ export default function PdfWorker() {
             value={css}
             onChange={(e) => setCss(e.target.value)}
           />
-          <Input placeholder="Filename" value={filename} onChange={(e) => setFilename(e.target.value)} />
+          <Input placeholder="Filename" value={filename} onChange={(e: Unmodelled) => setFilename(e.target.value)} />
           <Button size="sm" onClick={submit} disabled={polling}>
             {polling ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
             {polling ? 'Rendering...' : 'Generate PDF'}

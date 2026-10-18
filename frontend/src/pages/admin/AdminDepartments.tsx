@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function AdminDepartments() {
   const [departments, setDepartments] = useState<ApiRow[]>([]);
@@ -40,13 +40,13 @@ export default function AdminDepartments() {
     } catch { toast.error(editId ? 'Failed to update department' : 'Failed to create department'); }
   };
 
-  const handleEdit = (dept) => {
+  const handleEdit = (dept: Unmodelled) => {
     setForm({ name: dept.name, description: dept.description, head: dept.head, active: dept.active, fees_structure: dept.fees_structure });
     setEditId(dept._id);
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Permanently delete this department?')) return;
     try { await api.deleteDepartment(id); loadDepartments(); } catch { toast.error('Failed to delete department'); }
   };

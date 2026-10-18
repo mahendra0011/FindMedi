@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api, apiClient, getApiBaseUrl } from '@/lib/api';
 import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const typeIcons = {
   Prescription: { icon: Pill, color: 'text-success', bg: 'bg-success/10' },
@@ -44,7 +44,7 @@ export default function DoctorConsultations() {
     try {
       const data = await api.getRecords();
       const recordsArray = data?.data || data?.records || data || [];
-      setRecords(recordsArray.filter(r => 
+      setRecords(recordsArray.filter((r: Unmodelled) => 
         r.doctor?.toLowerCase().includes(user?.name?.toLowerCase())
       ));
     } catch (e) { toast.error(e.message); }
@@ -54,7 +54,7 @@ export default function DoctorConsultations() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadRecords(); }, [user?.name]);
 
-  const handleDownloadPdf = async (recordId) => {
+  const handleDownloadPdf = async (recordId: Unmodelled) => {
     try {
       const res = await apiClient.get(`/records/${recordId}/prescription-pdf`, {
         responseType: 'blob',

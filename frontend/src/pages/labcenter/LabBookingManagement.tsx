@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = { Pending: 'bg-warning/10 text-warning', Confirmed: 'bg-success/10 text-success', Completed: 'bg-primary/10 text-primary', Cancelled: 'bg-destructive/10 text-destructive' };
 const filters = ['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled'];
@@ -33,7 +33,7 @@ export default function LabBookingManagement() {
     return ms && mf;
   });
 
-  const handleStatus = async (id, status, slot) => {
+  const handleStatus = async (id: Unmodelled, status: Unmodelled, slot: Unmodelled) => {
     const prev = bookings;
     setBookings(prev => prev.map(b => b._id === id ? { ...b, status, ...(slot ? { timeSlot: slot } : {}) } : b));
     try {
@@ -112,7 +112,7 @@ export default function LabBookingManagement() {
                       </div>
                       <div><p className="text-xs text-muted-foreground mb-1">Selected Tests ({b.tests.length})</p>
                         <div className="flex flex-wrap gap-1.5">
-                          {b.tests.map((t, j) => <Badge key={j} variant="secondary">{t}</Badge>)}
+                          {b.tests.map((t: Unmodelled, j: Unmodelled) => <Badge key={j} variant="secondary">{t}</Badge>)}
                         </div>
                       </div>
                       {b.status === 'Pending' && (

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function DoctorReviews() {
   const { user } = useAuth();
@@ -19,14 +19,14 @@ export default function DoctorReviews() {
       setLoading(true);
       try {
         const data = await api.getReviews();
-        setReviews(data.filter(r => r.doctorName === user?.name));
+        setReviews(data.filter((r: Unmodelled) => r.doctorName === user?.name));
       } catch (e) { console.error(e); }
       setLoading(false);
     };
     load();
   }, [user?.name]);
 
-  const handleReply = async (reviewId) => {
+  const handleReply = async (reviewId: Unmodelled) => {
     if (!replyText[reviewId]?.trim()) return;
     try {
       const updated = await api.replyToReview(reviewId, { reply: replyText[reviewId] });

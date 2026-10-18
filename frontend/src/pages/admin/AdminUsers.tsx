@@ -6,7 +6,7 @@ import { DataGrid } from '@/components/ui/System';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const roleColors = {
   superadmin: 'bg-destructive/10 text-destructive',
@@ -43,12 +43,12 @@ export default function AdminUsers() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadUsers(); }, [search, roleFilter]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     if (!confirm('Permanently delete this user?')) return;
     try { await api.deleteUser(id); loadUsers(); } catch { toast.error('Failed to delete user'); }
   };
 
-  const handleBlock = async (id, currentlyBlocked) => {
+  const handleBlock = async (id: Unmodelled, currentlyBlocked: Unmodelled) => {
     if (!confirm(currentlyBlocked ? 'Unblock this user?' : 'Block this user?')) return;
     try { await api.blockUser(id); loadUsers(); } catch { toast.error('Failed to update user status'); }
   };
@@ -56,7 +56,7 @@ export default function AdminUsers() {
   const columns = [
     {
       key: 'name', label: 'User',
-      render: (v) => (
+      render: (v: Unmodelled) => (
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
             {v?.charAt(0).toUpperCase()}
@@ -65,10 +65,10 @@ export default function AdminUsers() {
         </div>
       ),
     },
-    { key: 'email', label: 'Email', render: (v) => <span className="text-sm text-muted-foreground">{v}</span> },
+    { key: 'email', label: 'Email', render: (v: Unmodelled) => <span className="text-sm text-muted-foreground">{v}</span> },
     {
       key: 'role', label: 'Role',
-      render: (v) => {
+      render: (v: Unmodelled) => {
         const RoleIcon = roleIcons[v] || UserRound;
         return (
           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize flex items-center gap-1 w-fit ${roleColors[v]}`}>
@@ -79,7 +79,7 @@ export default function AdminUsers() {
     },
     {
       key: 'status', label: 'Status',
-      render: (v, u) => (
+      render: (v: Unmodelled, u: Unmodelled) => (
         <>
           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${v === 'blocked' ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>
             {v || 'active'}
@@ -92,7 +92,7 @@ export default function AdminUsers() {
     },
     {
       key: '_actions', label: 'Actions', sortable: false,
-      render: (_v, u) => (
+      render: (_v: Unmodelled, u: Unmodelled) => (
         <div className="flex items-center gap-2 justify-end">
           <Button variant="outline" size="sm" className="gap-1" onClick={() => handleBlock(u._id, u.status === 'blocked')}>
             {u.status === 'blocked' ? <CheckCircle className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}

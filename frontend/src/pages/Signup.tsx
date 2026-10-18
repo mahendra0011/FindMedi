@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { setAuthTokens } from '@/lib/axios';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -87,7 +88,7 @@ export default function Signup() {
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   // Handle Google Account selection
-  const handleGoogleCredential = async (idToken, accessToken) => {
+  const handleGoogleCredential = async (idToken: Unmodelled, accessToken: Unmodelled) => {
     setError('');
     setGoogleLoading(true);
     try {
@@ -139,14 +140,14 @@ export default function Signup() {
         const tokenClient = window.google.accounts.oauth2.initTokenClient({
           client_id: GOOGLE_CLIENT_ID,
           scope: 'email profile openid',
-          callback: (tokenResponse) => {
+          callback: (tokenResponse: Unmodelled) => {
             if (tokenResponse?.access_token) {
               // AUTH-B-01: the OAuth2 code path returns an id_token as well when
               // the `openid` scope is requested — keep it for the signup step 2.
               handleGoogleCredential(tokenResponse.id_token || null, tokenResponse.access_token);
             }
           },
-          error_callback: (err) => {
+          error_callback: (err: Unmodelled) => {
             console.error('Google OAuth error:', err);
             setError('Google sign-in was cancelled.');
           },
@@ -161,7 +162,7 @@ export default function Signup() {
     if (window.google?.accounts?.id) {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
-        callback: (response) => handleGoogleCredential(response.credential),
+        callback: (response: Unmodelled) => handleGoogleCredential(response.credential),
       });
       window.google.accounts.id.prompt();
     } else {
@@ -176,7 +177,7 @@ export default function Signup() {
     localStorage.removeItem('google_signup');
   };
 
-  const handleSignup = async (e) => {
+  const handleSignup = async (e: Unmodelled) => {
     e.preventDefault();
     setError('');
 

@@ -1,4 +1,5 @@
 import { CheckCircle, XCircle } from 'lucide-react';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -10,7 +11,7 @@ const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'
  * @param {any}    value     - the raw stored value
  * @returns {string}
  */
-export function formatFieldValue(fieldKey, value) {
+export function formatFieldValue(fieldKey: Unmodelled, value: Unmodelled) {
   if (value == null) return '—';
   switch (fieldKey) {
     case 'slotDuration':
@@ -53,7 +54,7 @@ export function formatFieldValue(fieldKey, value) {
  *
  * Black text inside per spec.
  */
-export default function ScheduleFieldHighlight({ status, label, oldText, newText }) {
+export default function ScheduleFieldHighlight({ status, label, oldText, newText }: Unmodelled) {
   if (!status || (status !== 'approved' && status !== 'rejected')) return null;
   const isApproved = status === 'approved';
 

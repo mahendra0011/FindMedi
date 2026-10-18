@@ -11,6 +11,7 @@ import { allCities } from '@/data/cities';
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const MAIN_NAV_ITEMS = [
   { label: 'Diagnostic Centers', path: '/diagnostic-centers' },
@@ -284,7 +285,7 @@ export default function PublicNavbar() {
     setCityOpen(false);
   };
 
-  const isActive = (path) => {
+  const isActive = (path: Unmodelled) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
   };

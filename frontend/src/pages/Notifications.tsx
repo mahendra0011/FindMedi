@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useNotificationCount } from '@/context/NotificationContext';
 import { api } from '@/lib/api';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const typeIcons = { reminder: Calendar, payment: CreditCard, appointment: Calendar, records: FileText, system: AlertCircle };
 const typeColors = { reminder: 'bg-warning/10 text-warning', payment: 'bg-success/10 text-success', appointment: 'bg-info/10 text-info', records: 'bg-primary/10 text-primary', system: 'bg-purple-500/10 text-purple-600' };
@@ -24,7 +24,7 @@ export default function Notifications() {
       const userId = (user?._id || user?.id)?.toString();
       let filtered = list;
       if (user?.role !== 'hospital_admin') {
-        filtered = list.filter(n => n.userId === userId);
+        filtered = list.filter((n: Unmodelled) => n.userId === userId);
       }
       setNotifications(filtered);
     } catch (e) { 
@@ -37,7 +37,7 @@ export default function Notifications() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadNotifications(); }, [user?._id, user?.id, user?.role]);
 
-  const handleMarkRead = async (id) => {
+  const handleMarkRead = async (id: Unmodelled) => {
     try { 
       await api.markNotificationRead(id); 
       loadNotifications();
@@ -53,7 +53,7 @@ export default function Notifications() {
     } catch (e) { console.error(e); }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: Unmodelled) => {
     try { 
       await api.deleteNotification(id); 
       loadNotifications();

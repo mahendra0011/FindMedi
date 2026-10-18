@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = {
   Pending: 'bg-warning/10 text-warning border-warning/20',
@@ -32,7 +32,7 @@ export default function AdminLeaveRequests() {
 
   useEffect(() => { loadLeaves(); }, []);
 
-  const handleStatus = async (id, status) => {
+  const handleStatus = async (id: Unmodelled, status: Unmodelled) => {
     try {
       const body = { status, adminNotes: notes[id] || '' };
       await api.updateLeaveRequestStatus(id, body);

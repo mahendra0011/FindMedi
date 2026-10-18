@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
-import type { ApiRow } from '@/lib/apiTypes';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const statusColors = { Paid: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Overdue: 'bg-destructive/10 text-destructive' };
 
@@ -27,7 +27,7 @@ export default function LabBilling() {
     Promise.all([
       api.getLabBookings({ status: 'Completed' }).then(res => {
         const bookings = res.bookings || [];
-        setBills(bookings.map((b, i) => ({
+        setBills(bookings.map((b: Unmodelled, i: Unmodelled) => ({
           _id: b._id || `bill_${i}`,
           invoiceId: b.invoiceId || `INV-TST-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}${String(new Date().getHours()).padStart(2, '0')}${String(new Date().getMinutes()).padStart(2, '0')}${crypto.randomUUID()}`,
           patient: b.patient || b.patientName || 'Unknown',
@@ -84,7 +84,7 @@ export default function LabBilling() {
     setSaving(false);
   };
 
-  const markPaid = async (id) => {
+  const markPaid = async (id: Unmodelled) => {
     try {
       await api.updateLabBooking(id, { status: 'Paid' });
       setBills(prev => prev.map(b => b._id === id ? { ...b, status: 'Paid' } : b));
@@ -151,15 +151,15 @@ export default function LabBilling() {
           {/* The search box and status chips above already narrowed this list. */}
           <DataGrid
             columns={[
-              { key: 'invoiceId', label: 'Invoice', render: (v) => <span className="text-sm font-mono text-primary">{v}</span> },
-              { key: 'patient', label: 'Patient', render: (v) => <span className="text-sm font-medium">{v}</span> },
-              { key: 'tests', label: 'Tests', render: (v) => <span className="text-sm text-muted-foreground">{v?.length || 0} test(s)</span> },
-              { key: 'date', label: 'Date', render: (v) => <span className="text-sm text-muted-foreground">{v}</span> },
-              { key: 'total', label: 'Amount', render: (v, b) => <span className="text-sm font-semibold">₹{v || b.amount}</span> },
-              { key: 'status', label: 'Status', render: (v) => <Badge className={statusColors[v] || 'bg-muted'}>{v}</Badge> },
+              { key: 'invoiceId', label: 'Invoice', render: (v: Unmodelled) => <span className="text-sm font-mono text-primary">{v}</span> },
+              { key: 'patient', label: 'Patient', render: (v: Unmodelled) => <span className="text-sm font-medium">{v}</span> },
+              { key: 'tests', label: 'Tests', render: (v: Unmodelled) => <span className="text-sm text-muted-foreground">{v?.length || 0} test(s)</span> },
+              { key: 'date', label: 'Date', render: (v: Unmodelled) => <span className="text-sm text-muted-foreground">{v}</span> },
+              { key: 'total', label: 'Amount', render: (v: Unmodelled, b: Unmodelled) => <span className="text-sm font-semibold">₹{v || b.amount}</span> },
+              { key: 'status', label: 'Status', render: (v: Unmodelled) => <Badge className={statusColors[v] || 'bg-muted'}>{v}</Badge> },
               {
                 key: '_actions', label: 'Action', sortable: false,
-                render: (_v, b) => (
+                render: (_v: Unmodelled, b: Unmodelled) => (
                   b.status !== 'Paid' && (
                     <Button size="sm" variant="outline" onClick={() => markPaid(b._id)} className="gap-1 text-success border-success/30">
                       <CheckCircle className="w-3.5 h-3.5" /> Mark Paid

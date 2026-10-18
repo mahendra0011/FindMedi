@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Phone, Bike } from 'lucide-react';
 import { getSocket, joinRoom } from '@/lib/socket';
+import type { Unmodelled } from '@/lib/apiTypes';
 
-export default function DeliveryTrackingMap({ orderId, pickup, drop, partner }) {
+export default function DeliveryTrackingMap({ orderId, pickup, drop, partner }: Unmodelled) {
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const [position, setPosition] = useState(null);
@@ -14,11 +15,11 @@ export default function DeliveryTrackingMap({ orderId, pickup, drop, partner }) 
     // Shared socket — order room join har (re)connect par dobara fire hota hai
     const cleanupJoin = joinRoom('order:join_tracking', orderId);
 
-    const onLocation = ({ lat, lng }) => {
+    const onLocation = ({ lat, lng }: Unmodelled) => {
       setPosition({ lat, lng });
       if (markerRef.current) markerRef.current.setPosition({ lat, lng });
     };
-    const onStatus = ({ status }) => setStatus(status);
+    const onStatus = ({ status }: Unmodelled) => setStatus(status);
     socket.on('location:updated', onLocation);
     socket.on('delivery:status', onStatus);
 

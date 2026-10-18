@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateUtils';
 import { useCategories } from '@/hooks/useCategories';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const STATUSES = ['All','Confirmed','Cancelled','Completed'];
 const FALLBACK_DEPARTMENTS = ['Cardiology','Neurology','Orthopaedics','Paediatrics','Dermatology','Oncology'];
@@ -17,13 +18,13 @@ const statusColors = {
   Completed: { bg: 'bg-info/10', text: 'text-info', dot: 'bg-info' },
 };
 
-function formatDate(dateStr) {
+function formatDate(dateStr: Unmodelled) {
   return formatDisplayDate(dateStr);
 }
 
-function getInitials(name) {
+function getInitials(name: Unmodelled) {
   if (!name) return '?';
-  return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  return name.split(' ').map((n: Unmodelled) => n[0]).join('').slice(0, 2).toUpperCase();
 }
 
 export default function Appointments() {
@@ -43,10 +44,10 @@ export default function Appointments() {
   const updateMut = useMutation({ mutationFn: ({ id, data }) => api.updateAppointment(id, data), onSuccess: () => qc.invalidateQueries(['appointments']) });
   const deleteMut = useMutation({ mutationFn: api.deleteAppointment, onSuccess: () => qc.invalidateQueries(['appointments']) });
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const submit = (e) => { e.preventDefault(); createMut.mutate(form); };
+  const set = (k: Unmodelled, v: Unmodelled) => setForm(f => ({ ...f, [k]: v }));
+  const submit = (e: Unmodelled) => { e.preventDefault(); createMut.mutate(form); };
 
-  const statusCounts = STATUSES.slice(1).reduce((acc, s) => ({ ...acc, [s]: appointments.filter(a=>a.status===s).length }), {});
+  const statusCounts = STATUSES.slice(1).reduce((acc, s) => ({ ...acc, [s]: appointments.filter((a: Unmodelled)=>a.status===s).length }), {});
 
   return (
     <div>
@@ -80,7 +81,7 @@ export default function Appointments() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {appointments.map(apt => {
+          {appointments.map((apt: Unmodelled) => {
             const sc = statusColors[apt.status] || statusColors.Pending;
             const initials = getInitials(apt.doctor);
             return (

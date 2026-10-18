@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import PatientBanner from '@/components/clinical/PatientBanner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const CHART_TABS = [
   { key: 'Vitals', label: 'Vitals', icon: Heart },
@@ -73,7 +74,7 @@ export default function NursingCharts() {
   };
 
   const charts = data?.charts || [];
-  const filtered = charts.filter(c => c.patientName?.toLowerCase().includes(search.toLowerCase()));
+  const filtered = charts.filter((c: Unmodelled) => c.patientName?.toLowerCase().includes(search.toLowerCase()));
 
   const statCards = [
     { label: 'Vitals', value: statsData?.vitals || 0, icon: Heart, color: 'text-rose-500', bg: 'bg-rose-500/10' },
@@ -184,7 +185,7 @@ export default function NursingCharts() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((chart, i) => (
+          {filtered.map((chart: Unmodelled, i: Unmodelled) => (
             <motion.div key={chart._id || i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               className="bg-card rounded-xl border p-4">
               <div className="flex items-center justify-between mb-2">
