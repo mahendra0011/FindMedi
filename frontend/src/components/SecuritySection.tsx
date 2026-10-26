@@ -79,7 +79,7 @@ export default function SecuritySection() {
   // ── Passkey registration ───────────────────────────────────────────────
   const registerPasskey = async () => {
     try {
-      const { default: WebAuthnClient } = await import('@simplewebauthn/browser');
+      const WebAuthnClient = ((await import('@simplewebauthn/browser')) as Unmodelled);
       const optsResp = await fetch('/api/webauthn/register/options', { credentials: 'include' });
       const opts = await optsResp.json();
       opts.user.id = b64url(fromB64url(opts.user.id));
@@ -103,7 +103,7 @@ export default function SecuritySection() {
 
   const removePasskey = async () => {
     try {
-      await api.removePasskey();
+      await (api as Unmodelled).removePasskey();
       setHasPasskey(false);
       toast.success('Passkey removed');
     } catch { toast.error('Could not remove passkey'); }
@@ -186,7 +186,7 @@ export default function SecuritySection() {
 }
 
 function IPAllowlistEditor() {
-  const [ips, setIps] = useState<ApiRow[]>([]);
+  const [ips, setIps] = useState<Unmodelled[]>([]);
   const [val, setVal] = useState('');
 
   const add = () => {

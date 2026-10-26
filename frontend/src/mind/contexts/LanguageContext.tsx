@@ -12,7 +12,7 @@ const LANGUAGES = [
 
 const STORAGE_KEY = "mindsupport_language";
 
-const LanguageContext = createContext(null);
+const LanguageContext = createContext<Unmodelled>(null);
 
 export function LanguageProvider({ children }: Unmodelled) {
   const [language, setLanguageState] = useState(() => {

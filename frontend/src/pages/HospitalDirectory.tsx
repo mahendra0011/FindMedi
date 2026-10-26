@@ -32,7 +32,7 @@ const INITIAL_VISIBLE = 14;
 export default function HospitalDirectory() {
   const [searchParams] = useSearchParams();
   const [hospitals, setHospitals] = useState<ApiRow[]>([]);
-  const [allHospitals, setAllHospitals] = useState<ApiRow[]>([]);
+  const [allHospitals, setAllHospitals] = useState<Unmodelled>([]);
   const [search, setSearch] = useState(searchParams.get('q') || searchParams.get('search') || '');
   const [cityFilter, setCityFilter] = useState(
     () => searchParams.get('city') || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city') || ''
@@ -72,13 +72,13 @@ export default function HospitalDirectory() {
   const [filterInsurance, setFilterInsurance] = useState(false);
   const [filterBedAvailable, setFilterBedAvailable] = useState(false);
   const [filterCategory, setFilterCategory] = useState<string[]>([]);
-  const [filterAccreditation, setFilterAccreditation] = useState<ApiRow[]>([]);
+  const [filterAccreditation, setFilterAccreditation] = useState<Unmodelled[]>([]);
   const [filterBedSize, setFilterBedSize] = useState('');
   const [filterAmbulance, setFilterAmbulance] = useState(false);
   const [filterEstablished, setFilterEstablished] = useState('');
-  const [filterFacilities, setFilterFacilities] = useState<ApiRow[]>([]);
+  const [filterFacilities, setFilterFacilities] = useState<Unmodelled[]>([]);
   const [filterDoctorsRange, setFilterDoctorsRange] = useState('');
-  const [filterPayment, setFilterPayment] = useState<ApiRow[]>([]);
+  const [filterPayment, setFilterPayment] = useState<Unmodelled[]>([]);
   const [filterInsuranceProvider, setFilterInsuranceProvider] = useState('');
 
   // Healthcare catalogue se aaye query params (?type= ?category= ?emergency= ?specialty= ?q=)
@@ -113,7 +113,7 @@ export default function HospitalDirectory() {
   const loadHospitals = async () => {
     setLoading(true);
     try {
-      const params = { status: 'approved' };
+      const params: Unmodelled = { status: 'approved' };
       if (search) params.search = search;
       if (cityFilter && cityFilter !== 'All') params.city = cityFilter;
       if (specFilter && specFilter !== 'All') params.specialty = specFilter;
@@ -458,7 +458,7 @@ export default function HospitalDirectory() {
                       </Button>
                       <select value={filterInsuranceProvider} onChange={e => setFilterInsuranceProvider(e.target.value)} className="w-full h-8 text-xs rounded-lg border border-border bg-background">
                         <option value="">Any Insurance Provider</option>
-                        {insuranceProviders.map(p => (
+                        {insuranceProviders.map((p: Unmodelled)  => (
                           <option key={p} value={p}>{p}</option>
                         ))}
                       </select>

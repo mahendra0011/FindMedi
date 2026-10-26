@@ -22,7 +22,7 @@ export default function MedicalRecords() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [expandedDoctor, setExpandedDoctor] = useState<Unmodelled>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading }: Unmodelled = useQuery({
     queryKey: ['records', search, categoryFilter],
     queryFn: async () => {
       const result = await api.getRecords({ 
@@ -63,7 +63,7 @@ export default function MedicalRecords() {
 
   const deleteMut = useMutation({ 
     mutationFn: api.deleteRecord, 
-    onSuccess: () => qc.invalidateQueries(['records']) 
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['records'] }) 
   });
 
   return (
@@ -101,7 +101,7 @@ export default function MedicalRecords() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {doctorList.map((group, _i) => {
+          {doctorList.map((group: Unmodelled, _i) => {
             const counts = getCategoryCounts(group.records);
             const isExpanded = expandedDoctor === group.doctor;
             return (
@@ -119,7 +119,7 @@ export default function MedicalRecords() {
 
                 {/* Category counts */}
                 <div className="grid grid-cols-2 gap-2 mb-4">
-                  {Object.entries(categoryConfig).map(([key, cfg]) => {
+                  {Object.entries(categoryConfig).map(([key, cfg]: Unmodelled) => {
                     const Icon = cfg.icon;
                     return (
                       <div key={key} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg ${cfg.bg} ${counts[key] > 0 ? '' : 'opacity-40'}`}>

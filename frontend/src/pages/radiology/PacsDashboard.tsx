@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { Unmodelled } from '@/lib/apiTypes';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -105,7 +106,7 @@ export default function PacsDashboard() {
     onError: (e: any) => toast.error(errMessage(e, 'Retry failed')),
   });
   const viewerMut = useMutation({
-    mutationFn: (studyUidVal: string) => radApi.dicomViewerUrl(studyUidVal),
+    mutationFn: (studyUidVal: string) => (radApi as Unmodelled).dicomViewerUrl(studyUidVal),
     onSuccess: (res: any) => {
       if (res?.url) window.open(res.url, '_blank');
       else toast.error('No viewer URL returned');

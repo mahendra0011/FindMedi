@@ -39,7 +39,7 @@ const velocityMessages = [
   "insurance claims  billing  pharmacy  ipd management  triage  emergency care",
 ];
 
-const fadeUp = {
+const fadeUp: Unmodelled = {
   hidden: { opacity: 0, y: 50 },
   visible: (i: Unmodelled) => ({
     opacity: 1, y: 0,
@@ -692,8 +692,8 @@ const Home = () => {
                     className="group bg-card rounded-2xl border border-border/60 p-4 hover:shadow-lg hover:border-primary/30 transition-all flex items-center gap-4"
                   >
                     <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/30 to-blue-500/30 flex items-center justify-center shrink-0 overflow-hidden">
-                      {doc.profile_photo
-                        ? <img src={doc.profile_photo} alt={doc.name || 'Doctor'} className="w-full h-full object-cover" />
+                      {(doc as Unmodelled).profile_photo
+                        ? <img src={(doc as Unmodelled).profile_photo} alt={doc.name || 'Doctor'} className="w-full h-full object-cover" />
                         : <UserRound className="w-7 h-7 text-primary" />}
                     </div>
                     <div className="flex-1">
@@ -798,7 +798,7 @@ const Home = () => {
             className="h-[460px] sm:h-[540px] overflow-hidden rounded-[28px] border border-border/60 shadow-2xl"
           >
             <FlowingMenu
-              items={flowingMenuItems}
+              items={(flowingMenuItems as Unmodelled)}
               speed={13}
               bgColor="hsl(var(--sidebar-background))"
               textColor="hsl(var(--sidebar-foreground))"

@@ -38,7 +38,7 @@ export function formatFieldValue(fieldKey: Unmodelled, value: Unmodelled) {
       if (!value || typeof value !== 'object') return 'None';
       const entries = Object.entries(value).filter(([, s]) => Array.isArray(s) && s.length > 0);
       if (entries.length === 0) return 'None';
-      return entries.map(([d, s]) => `${d} (${s.length})`).join(', ');
+      return entries.map(([d, s]: Unmodelled) => `${d} (${s.length})`).join(', ');
     }
     default:
       return String(value);

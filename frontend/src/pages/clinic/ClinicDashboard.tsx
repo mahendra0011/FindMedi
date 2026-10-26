@@ -1107,7 +1107,7 @@ const [refunds, setRefunds] = useState<ApiRow[]>([]);
           </div>
           {patients.length > 0 ? (
             <div className="space-y-3">
-              {patients.slice(0, 3).map((p, idx) => (
+              {patients.slice(0, 3).map((p: Unmodelled, idx) => (
                 <div key={idx} className="group flex items-center gap-2 p-3.5 bg-muted/20 rounded-2xl border border-border/30 hover:bg-muted/40 hover:border-amber-500/20 transition-all duration-200">
                   <div className="w-2 h-2 rounded-full bg-amber-500" />
                   <p className="text-sm font-semibold text-foreground truncate">{p}</p>

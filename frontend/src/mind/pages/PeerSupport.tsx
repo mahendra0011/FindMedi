@@ -197,7 +197,7 @@ const PeerSupport = () => {
             });
             cancelEditPost();
             if (selectedPost?.id === post.id) {
-                setSelectedPost((current) => (current ? { ...current, content } : current));
+                setSelectedPost((current: Unmodelled) => (current ? { ...current, content } : current));
             }
             await reloadPosts();
             toast({ title: "Post updated" });

@@ -30,16 +30,16 @@ export default function Inventory() {
   const [poData, setPoData] = useState({ supplier: '', itemName: '', quantity: '1', unitPrice: '', expectedDate: '' });
   const [newItem, setNewItem] = useState({ itemName: '', category: 'Consumable', unit: 'Pieces', currentStock: '0', minStockLevel: '10', unitPrice: '', supplier: '', location: '' });
 
-  const { data } = useQuery({ queryKey: ['inventory', search], queryFn: () => invApi.getItems({ search }) });
-  const { data: stats } = useQuery({ queryKey: ['inv-stats'], queryFn: invApi.getStats });
+  const { data }: Unmodelled = useQuery({ queryKey: ['inventory', search], queryFn: () => invApi.getItems({ search }) });
+  const { data: stats }: Unmodelled = useQuery({ queryKey: ['inv-stats'], queryFn: invApi.getStats });
   const items = data?.items || [];
 
   const createMut = useMutation({ mutationFn: invApi.createItem, onSuccess: () => { qc.invalidateQueries(['inventory']); setShowAdd(false); } });
-  const stockMut = useMutation({ mutationFn: ({ id, ...b }) => invApi.addStock(id, b), onSuccess: () => qc.invalidateQueries(['inventory']) });
-  const issueMut = useMutation({ mutationFn: ({ id, ...b }) => invApi.issueItem(id, b), onSuccess: () => { qc.invalidateQueries(['inventory']); setShowIssue(null); } });
+  const stockMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => invApi.addStock(id, b), onSuccess: () => qc.invalidateQueries(['inventory']) });
+  const issueMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => invApi.issueItem(id, b), onSuccess: () => { qc.invalidateQueries(['inventory']); setShowIssue(null); } });
   const prMut = useMutation({ mutationFn: invApi.createPR, onSuccess: () => { qc.invalidateQueries(['inventory']); setShowPR(false); } });
   const poMut = useMutation({ mutationFn: invApi.createPO, onSuccess: () => { qc.invalidateQueries(['inventory']); setShowPO(false); } });
-  useMutation({ mutationFn: ({ id, ...b }) => invApi.receiveGRN(id, b), onSuccess: () => { qc.invalidateQueries(['inventory']); } });
+  useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => invApi.receiveGRN(id, b), onSuccess: () => { qc.invalidateQueries(['inventory']); } });
 
   const isLowStock = (item: Unmodelled) => item.currentStock <= item.minStockLevel;
   const isExpiring = (item: Unmodelled) => item.expiryDate && new Date(item.expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -95,9 +95,9 @@ export default function Inventory() {
                     <span className="font-heading font-semibold text-foreground">{item.itemName}</span>
                   </div>
                   <div className="flex gap-1">
-                    {isLowStock(item) && <AlertTriangle className="w-4 h-4 text-warning" title="Low Stock" />}
-                    {isExpiring(item) && <AlertOctagon className="w-4 h-4 text-destructive" title="Expiring Soon" />}
-                    {isDeadStock(item) && <Clock className="w-4 h-4 text-muted-foreground" title="Dead Stock" />}
+                    {isLowStock(item) && <AlertTriangle className="w-4 h-4 text-warning" aria-label="Low Stock" />}
+                    {isExpiring(item) && <AlertOctagon className="w-4 h-4 text-destructive" aria-label="Expiring Soon" />}
+                    {isDeadStock(item) && <Clock className="w-4 h-4 text-muted-foreground" aria-label="Dead Stock" />}
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground space-y-1">
@@ -197,7 +197,7 @@ export default function Inventory() {
               <div><label className="text-xs text-muted-foreground mb-1 block">Reason</label>
                 <textarea value={prData.reason} onChange={e => setPrData(d => ({ ...d, reason: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm resize-none h-16" />
               </div>
-              <Button className="w-full" onClick={() => prMut.mutate(prData)}>Submit PR</Button>
+              <Button className="w-full" onClick={() => prMut.mutate((prData as Unmodelled))}>Submit PR</Button>
             </div>
           </div>
         </div>
@@ -216,7 +216,7 @@ export default function Inventory() {
                 <div><label className="text-xs text-muted-foreground mb-1 block">Unit Price (₹)</label><Input type="number" value={poData.unitPrice} onChange={e => setPoData(d => ({ ...d, unitPrice: e.target.value }))} /></div>
               </div>
               <div><label className="text-xs text-muted-foreground mb-1 block">Expected Date</label><Input type="date" value={poData.expectedDate} onChange={e => setPoData(d => ({ ...d, expectedDate: e.target.value }))} /></div>
-              <Button className="w-full" onClick={() => poMut.mutate(poData)}>Create PO</Button>
+              <Button className="w-full" onClick={() => poMut.mutate((poData as Unmodelled))}>Create PO</Button>
             </div>
           </div>
         </div>
@@ -245,7 +245,7 @@ export default function Inventory() {
               <div><label className="text-sm font-medium mb-1 block">Supplier</label><Input value={newItem.supplier} onChange={e => setNewItem({ ...newItem, supplier: e.target.value })} /></div>
               <div className="col-span-2"><label className="text-sm font-medium mb-1 block">Storage Location</label><Input value={newItem.location} onChange={e => setNewItem({ ...newItem, location: e.target.value })} placeholder="e.g. Shelf A-12" /></div>
             </div>
-            <Button className="w-full mt-6" onClick={() => createMut.mutate(newItem)} disabled={createMut.isPending || !newItem.itemName}>Add Item</Button>
+            <Button className="w-full mt-6" onClick={() => createMut.mutate((newItem as Unmodelled))} disabled={createMut.isPending || !newItem.itemName}>Add Item</Button>
           </div>
         </div>
       )}

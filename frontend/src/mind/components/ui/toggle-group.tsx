@@ -7,7 +7,7 @@ const ToggleGroupContext = React.createContext({
     size: "default",
     variant: "default",
 });
-const ToggleGroup = React.forwardRef<Unmodelled, Unmodelled>(({ className, variant, size, children, ...props }, ref) => (<ToggleGroupPrimitive.Root ref={ref} className={cn("flex items-center justify-center gap-1", className)} {...props}>
+const ToggleGroup = React.forwardRef<Unmodelled, Unmodelled>(({ className, variant, size, children, ...props }, ref) => (<ToggleGroupPrimitive.Root ref={ref} className={cn("flex items-center justify-center gap-1", className)} {...(props as Unmodelled)}>
     <ToggleGroupContext.Provider value={{ variant, size }}>{children}</ToggleGroupContext.Provider>
   </ToggleGroupPrimitive.Root>));
 ToggleGroup.displayName = ToggleGroupPrimitive.Root.displayName;
@@ -16,7 +16,7 @@ const ToggleGroupItem = React.forwardRef<Unmodelled, Unmodelled>(({ className, c
     return (<ToggleGroupPrimitive.Item ref={ref} className={cn(toggleVariants({
             variant: context.variant || variant,
             size: context.size || size,
-        }), className)} {...props}>
+        }), className)} {...(props as Unmodelled)}>
       {children}
     </ToggleGroupPrimitive.Item>);
 });

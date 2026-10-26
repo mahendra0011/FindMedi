@@ -105,15 +105,15 @@ export default function DiagnosticDashboard() {
   };
 
   // Data queries
-  const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useQuery({ queryKey: ['lab-stats'], queryFn: labApi.getStats, retry: 1 });
-  const { data: ordersData, isLoading: ordersLoading, isError: ordersError, refetch: refetchOrders } = useQuery({ queryKey: ['lab-orders'], queryFn: () => labApi.getOrders({ limit: 200, page: 1 }), retry: 1 });
-  const { data: testsData } = useQuery({ queryKey: ['lab-tests'], queryFn: () => labApi.getTests({}) });
-  const { data: bookingsData, isLoading: bookingsLoading, isError: bookingsError, refetch: refetchBookings } = useQuery({ queryKey: ['lab-bookings'], queryFn: () => labApi.getBookings({ limit: 200, page: 1 }), retry: 1 });
-  const { data: equipmentData } = useQuery({ queryKey: ['lab-equipment'], queryFn: () => labApi.getEquipment({}) });
-  const { data: packagesData } = useQuery({ queryKey: ['lab-packages'], queryFn: () => labApi.getPackages({}) });
-  const { data: staffData } = useQuery({ queryKey: ['lab-staff'], queryFn: () => api.getStaff({ role: 'lab', limit: 200 }).catch(() => []) });
-  const { data: reviewsData } = useQuery({ queryKey: ['lab-reviews'], queryFn: () => api.getReviews({ limit: 100 }).catch(() => []) });
-  const { data: refundsData } = useQuery({ queryKey: ['lab-refunds'], queryFn: () => api.getRefunds({ limit: 100 }).catch(() => ({ payments: [] })) });
+  const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats }: Unmodelled = useQuery({ queryKey: ['lab-stats'], queryFn: labApi.getStats, retry: 1 });
+  const { data: ordersData, isLoading: ordersLoading, isError: ordersError, refetch: refetchOrders }: Unmodelled = useQuery({ queryKey: ['lab-orders'], queryFn: () => labApi.getOrders({ limit: 200, page: 1 }), retry: 1 });
+  const { data: testsData }: Unmodelled = useQuery({ queryKey: ['lab-tests'], queryFn: () => labApi.getTests({}) });
+  const { data: bookingsData, isLoading: bookingsLoading, isError: bookingsError, refetch: refetchBookings }: Unmodelled = useQuery({ queryKey: ['lab-bookings'], queryFn: () => labApi.getBookings({ limit: 200, page: 1 }), retry: 1 });
+  const { data: equipmentData }: Unmodelled = useQuery({ queryKey: ['lab-equipment'], queryFn: () => labApi.getEquipment({}) });
+  const { data: packagesData }: Unmodelled = useQuery({ queryKey: ['lab-packages'], queryFn: () => labApi.getPackages({}) });
+  const { data: staffData }: Unmodelled = useQuery({ queryKey: ['lab-staff'], queryFn: () => api.getStaff({ role: 'lab', limit: 200 }).catch(() => []) });
+  const { data: reviewsData }: Unmodelled = useQuery({ queryKey: ['lab-reviews'], queryFn: () => api.getReviews({ limit: 100 }).catch(() => []) });
+  const { data: refundsData }: Unmodelled = useQuery({ queryKey: ['lab-refunds'], queryFn: () => api.getRefunds({ limit: 100 }).catch(() => ({ payments: [] })) });
   const labLoading = statsLoading || ordersLoading || bookingsLoading;
   const labError = statsError || ordersError || bookingsError;
   const refetchLab = () => { refetchStats(); refetchOrders(); refetchBookings(); };
@@ -131,16 +131,16 @@ export default function DiagnosticDashboard() {
 
   // Mutations
   const updateBookingMut = useMutation({
-    mutationFn: ({ id, ...b }) => labApi.updateBooking(id, b),
+    mutationFn: ({ id, ...b  }: Unmodelled) => labApi.updateBooking(id, b),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-bookings'] }); qc.invalidateQueries({ queryKey: ['lab-stats'] }); },
   });
   const createBookingMut = useMutation({
-    mutationFn: (b) => labApi.createBooking(b),
+    mutationFn: (b: Unmodelled) => labApi.createBooking(b),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-bookings'] }); qc.invalidateQueries({ queryKey: ['lab-stats'] }); setShowModal(null); showToast('Booking created'); },
     onError: () => showToast('Unable to create booking', 'error'),
   });
   const deliverReportMut = useMutation({
-    mutationFn: ({ id, ...b }) => labApi.deliverReport(id, b),
+    mutationFn: ({ id, ...b  }: Unmodelled) => labApi.deliverReport(id, b),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-orders'] }); setShowModal(null); showToast('Report delivered and patient notified'); },
     onError: () => showToast('Unable to update report', 'error'),
   });
@@ -149,7 +149,7 @@ export default function DiagnosticDashboard() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-equipment'] }); setShowModal(null); },
   });
   const updateEquipmentMut = useMutation({
-    mutationFn: ({ id, ...b }) => labApi.updateEquipment(id, b),
+    mutationFn: ({ id, ...b  }: Unmodelled) => labApi.updateEquipment(id, b),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-equipment'] }); setShowModal(null); },
   });
   const createPackageMut = useMutation({
@@ -157,7 +157,7 @@ export default function DiagnosticDashboard() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-packages'] }); setShowModal(null); },
   });
   const updatePackageMut = useMutation({
-    mutationFn: ({ id, ...b }) => labApi.updatePackage(id, b),
+    mutationFn: ({ id, ...b  }: Unmodelled) => labApi.updatePackage(id, b),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-packages'] }); setShowModal(null); },
   });
   const createStaffMut = useMutation({
@@ -165,7 +165,7 @@ export default function DiagnosticDashboard() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-staff'] }); setShowModal(null); },
   });
   const updateStaffMut = useMutation({
-    mutationFn: ({ id, ...b }) => api.updateStaff(id, b),
+    mutationFn: ({ id, ...b  }: Unmodelled) => api.updateStaff(id, b),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-staff'] }),
   });
   const createTestMut = useMutation({
@@ -173,7 +173,7 @@ export default function DiagnosticDashboard() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-tests'] }); setShowModal(null); },
   });
   const updateTestMut = useMutation({
-    mutationFn: ({ id, ...b }) => api.updateTest(id, b),
+    mutationFn: ({ id, ...b  }: Unmodelled) => api.updateTest(id, b),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-tests'] }); setShowModal(null); },
   });
 
@@ -501,7 +501,7 @@ export default function DiagnosticDashboard() {
               <SectionHeader title="Appointment / Visit Management" subtitle="Schedule and manage imaging scan slots"
                 action={<Button size="sm" onClick={() => setShowModal('add-appointment')}><Plus className="w-4 h-4 mr-1" /> New Appointment</Button>} />
               <div className="space-y-3">
-                {bookings.filter((b: Unmodelled) => b.status !== 'Cancelled').sort((a: Unmodelled, b: Unmodelled) => new Date(b.bookingDate) - new Date(a.bookingDate)).map((b: Unmodelled) => (
+                {bookings.filter((b: Unmodelled) => b.status !== 'Cancelled').sort((a: Unmodelled, b: Unmodelled) => (+new Date(b.bookingDate)) - (+new Date(a.bookingDate))).map((b: Unmodelled) => (
                   <div key={b._id} className="bg-card rounded-xl border p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
@@ -786,7 +786,7 @@ export default function DiagnosticDashboard() {
                   {[
                     ...bookings.slice(0, 4).map((b: Unmodelled) => ({ text: `Booking ${b.bookingId} ${b.status.toLowerCase()} for ${b.patientName}`, time: b.bookingDate })),
                     ...orders.slice(0, 3).map((o: Unmodelled) => ({ text: `Lab order ${o.orderId} ${o.status.toLowerCase()} - ${o.patientName}`, time: o.createdAt })),
-                  ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 8).map((act, i) => (
+                  ].sort((a, b) => (+new Date(b.time)) - (+new Date(a.time))).slice(0, 8).map((act, i) => (
                     <div key={i} className="flex items-center gap-3 text-sm">
                       <div className="w-2 h-2 rounded-full bg-primary" />
                       <span className="flex-1">{act.text}</span>
@@ -812,7 +812,7 @@ export default function DiagnosticDashboard() {
                 ].map(f => (
                   <div key={f.key}>
                     <label className="text-sm font-medium mb-1 block">{f.label}</label>
-                    <Input value={centerSettings[f.key]} onChange={e => setCenterSettings(s => ({ ...s, [f.key]: e.target.value }))} />
+                    <Input value={(centerSettings as Unmodelled)[f.key]} onChange={e => setCenterSettings(s => ({ ...s, [f.key]: e.target.value }))} />
                   </div>
                 ))}
                 <div className="grid grid-cols-2 gap-4">
@@ -848,11 +848,11 @@ export default function DiagnosticDashboard() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               {[{ key: 'popular', label: 'Popular' }, { key: 'homeCollection', label: 'Home Collection' }, { key: 'prescriptionReq', label: 'Prescription Required' }, { key: 'nablAccredited', label: 'NABL Accredited' }].map(toggle => (
-                <label key={toggle.key} className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border"><input type="checkbox" checked={testForm[toggle.key]} onChange={e => setTestForm({ ...testForm, [toggle.key]: e.target.checked })} className="rounded" /> {toggle.label}</label>
+                <label key={toggle.key} className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border"><input type="checkbox" checked={(testForm as Unmodelled)[toggle.key]} onChange={e => setTestForm({ ...testForm, [toggle.key]: e.target.checked })} className="rounded" /> {toggle.label}</label>
               ))}
             </div>
             <div><label className="text-sm font-medium mb-1 block">Description</label><textarea value={testForm.description} onChange={e => setTestForm({ ...testForm, description: e.target.value })} rows={2} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none" /></div>
-            <Button className="w-full" onClick={() => { if (editTestId) { updateTestMut.mutate({ id: editTestId, ...testForm }); } else { createTestMut.mutate(testForm); } showToast(editTestId ? 'Test updated' : 'Test added'); }} disabled={(editTestId ? updateTestMut.isPending : createTestMut.isPending) || !testForm.name || !testForm.price}>{editTestId ? 'Update Test' : 'Add Test'}</Button>
+            <Button className="w-full" onClick={() => { if (editTestId) { updateTestMut.mutate({ id: editTestId, ...testForm }); } else { createTestMut.mutate((testForm as Unmodelled)); } showToast(editTestId ? 'Test updated' : 'Test added'); }} disabled={(editTestId ? updateTestMut.isPending : createTestMut.isPending) || !testForm.name || !testForm.price}>{editTestId ? 'Update Test' : 'Add Test'}</Button>
           </div>
         </Modal>
       )}
@@ -870,7 +870,7 @@ export default function DiagnosticDashboard() {
               <div><label className="text-sm font-medium mb-1 block">Date</label><Input type="date" value={bookingForm.bookingDate} onChange={e => setBookingForm({ ...bookingForm, bookingDate: e.target.value })} /></div>
               <div><label className="text-sm font-medium mb-1 block">Time Slot</label><Input value={bookingForm.timeSlot} onChange={e => setBookingForm({ ...bookingForm, timeSlot: e.target.value })} placeholder="e.g. 10:00 AM" /></div>
             </div>
-            <Button className="w-full" onClick={() => createBookingMut.mutate(bookingForm)} disabled={createBookingMut.isPending || !bookingForm.patientName || !bookingForm.patientPhone}>Create Booking</Button>
+            <Button className="w-full" onClick={() => createBookingMut.mutate((bookingForm as Unmodelled))} disabled={createBookingMut.isPending || !bookingForm.patientName || !bookingForm.patientPhone}>Create Booking</Button>
           </div>
         </Modal>
       )}
@@ -880,12 +880,12 @@ export default function DiagnosticDashboard() {
         <Modal title={editEquipId ? 'Edit Equipment' : 'Add Equipment'} onClose={() => setShowModal(null)}>
           <div className="grid grid-cols-2 gap-4">
             {[{ key: 'name', label: 'Equipment Name' }, { key: 'model', label: 'Model' }, { key: 'serialNumber', label: 'Serial Number' }, { key: 'manufacturer', label: 'Manufacturer' }, { key: 'installationDate', label: 'Installation Date', type: 'date' }, { key: 'nextMaintenanceDate', label: 'Next Maintenance', type: 'date' }, { key: 'location', label: 'Location' }, { key: 'notes', label: 'Notes' }].map(f => (
-              <div key={f.key}><label className="text-sm font-medium mb-1 block">{f.label}</label><Input type={f.type || 'text'} value={equipForm[f.key]} onChange={e => setEquipForm({ ...equipForm, [f.key]: e.target.value })} /></div>
+              <div key={f.key}><label className="text-sm font-medium mb-1 block">{f.label}</label><Input type={f.type || 'text'} value={(equipForm as Unmodelled)[f.key]} onChange={e => setEquipForm({ ...equipForm, [f.key]: e.target.value })} /></div>
             ))}
             <div><label className="text-sm font-medium mb-1 block">Type</label><select value={equipForm.type} onChange={e => setEquipForm({ ...equipForm, type: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['MRI', 'CT Scan', 'X-Ray', 'Ultrasound', 'ECG', 'EEG', 'Mammography', 'DEXA', 'PET Scan', 'Lab Analyzer', 'Centrifuge', 'Microscope', 'Other'].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
             <div><label className="text-sm font-medium mb-1 block">Status</label><select value={equipForm.status} onChange={e => setEquipForm({ ...equipForm, status: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Operational', 'Under Maintenance', 'Out of Service', 'Retired'].map(s => <option key={s} value={s}>{s}</option>)}</select></div>
           </div>
-          <Button className="w-full mt-6" onClick={() => { if (editEquipId) { updateEquipmentMut.mutate({ id: editEquipId, ...equipForm }); } else { createEquipmentMut.mutate(equipForm); } showToast(editEquipId ? 'Equipment updated' : 'Equipment added'); }} disabled={(editEquipId ? updateEquipmentMut.isPending : createEquipmentMut.isPending) || !equipForm.name}>{editEquipId ? 'Update Equipment' : 'Add Equipment'}</Button>
+          <Button className="w-full mt-6" onClick={() => { if (editEquipId) { updateEquipmentMut.mutate({ id: editEquipId, ...equipForm }); } else { createEquipmentMut.mutate((equipForm as Unmodelled)); } showToast(editEquipId ? 'Equipment updated' : 'Equipment added'); }} disabled={(editEquipId ? updateEquipmentMut.isPending : createEquipmentMut.isPending) || !equipForm.name}>{editEquipId ? 'Update Equipment' : 'Add Equipment'}</Button>
         </Modal>
       )}
 
@@ -907,7 +907,7 @@ export default function DiagnosticDashboard() {
               <label className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border"><input type="checkbox" checked={pkgForm.popular} onChange={e => setPkgForm({ ...pkgForm, popular: e.target.checked })} className="rounded" /> Popular</label>
               <label className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border"><input type="checkbox" checked={pkgForm.homeCollectionAvailable} onChange={e => setPkgForm({ ...pkgForm, homeCollectionAvailable: e.target.checked })} className="rounded" /> Home Collection</label>
             </div>
-            <Button className="w-full" onClick={() => { const payload = { ...pkgForm, testNames: pkgForm.testNames.split(',').map(s => s.trim()).filter(Boolean) }; if (editPkgId) { updatePackageMut.mutate({ id: editPkgId, ...payload }); } else { createPackageMut.mutate(payload); } showToast(editPkgId ? 'Package updated' : 'Package created'); }} disabled={(editPkgId ? updatePackageMut.isPending : createPackageMut.isPending) || !pkgForm.name || !pkgForm.packagePrice}>{editPkgId ? 'Update Package' : 'Create Package'}</Button>
+            <Button className="w-full" onClick={() => { const payload = { ...pkgForm, testNames: pkgForm.testNames.split(',').map(s => s.trim()).filter(Boolean) }; if (editPkgId) { updatePackageMut.mutate({ id: editPkgId, ...payload }); } else { createPackageMut.mutate((payload as Unmodelled)); } showToast(editPkgId ? 'Package updated' : 'Package created'); }} disabled={(editPkgId ? updatePackageMut.isPending : createPackageMut.isPending) || !pkgForm.name || !pkgForm.packagePrice}>{editPkgId ? 'Update Package' : 'Create Package'}</Button>
           </div>
         </Modal>
       )}
@@ -917,11 +917,11 @@ export default function DiagnosticDashboard() {
         <Modal title="Add Staff Member" onClose={() => setShowModal(null)}>
           <div className="grid grid-cols-2 gap-4">
             {[{ key: 'name', label: 'Full Name' }, { key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' }, { key: 'licenseNumber', label: 'License Number' }, { key: 'experience', label: 'Experience' }].map(f => (
-              <div key={f.key}><label className="text-sm font-medium mb-1 block">{f.label}</label><Input value={newStaff[f.key]} onChange={e => setNewStaff({ ...newStaff, [f.key]: e.target.value })} /></div>
+              <div key={f.key}><label className="text-sm font-medium mb-1 block">{f.label}</label><Input value={(newStaff as Unmodelled)[f.key]} onChange={e => setNewStaff({ ...newStaff, [f.key]: e.target.value })} /></div>
             ))}
             <div><label className="text-sm font-medium mb-1 block">Role</label><select value={newStaff.role} onChange={e => setNewStaff({ ...newStaff, role: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Pathologist', 'Radiologist', 'Lab Technician', 'Phlebotomist', 'Lab Receptionist', 'Lab Manager'].map(r => <option key={r} value={r}>{r}</option>)}</select></div>
           </div>
-          <Button className="w-full mt-6" onClick={() => { createStaffMut.mutate(newStaff); showToast('Staff added'); }} disabled={createStaffMut.isPending || !newStaff.name}>Add Staff</Button>
+          <Button className="w-full mt-6" onClick={() => { createStaffMut.mutate((newStaff as Unmodelled)); showToast('Staff added'); }} disabled={createStaffMut.isPending || !newStaff.name}>Add Staff</Button>
         </Modal>
       )}
 

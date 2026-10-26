@@ -33,13 +33,13 @@ export default function OPDRegistration() {
 
   const createMut = useMutation({
     mutationFn: async (body) => { return await api.createPatient(body); },
-    onSuccess: () => { qc.invalidateQueries(['opd-patients']); setShowAdd(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['opd-patients'] }); setShowAdd(false); },
     onError: (e) => toast.error(e.message),
   });
 
   const generateTokenMut = useMutation({
     mutationFn: tokenApi.generate,
-    onSuccess: () => qc.invalidateQueries(['opd-tokens']),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['opd-tokens'] }),
     onError: (e) => toast.error(e.message),
   });
 
@@ -63,7 +63,7 @@ export default function OPDRegistration() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search by UHID/Phone..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <Button variant="outline" onClick={() => qc.invalidateQueries(['opd-tokens'])}>Refresh Tokens</Button>
+        <Button variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ['opd-tokens'] })}>Refresh Tokens</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -119,7 +119,7 @@ export default function OPDRegistration() {
               <div><label className="text-sm font-medium mb-1 block">Blood Group</label><Input value={form.bloodGroup} onChange={e => setForm({...form, bloodGroup: e.target.value})} placeholder="A+, B-, etc" /></div>
               <div className="col-span-2"><label className="text-sm font-medium mb-1 block">Address</label><Input value={form.address} onChange={e => setForm({...form, address: e.target.value})} /></div>
             </div>
-            <Button className="w-full mt-6" onClick={() => createMut.mutate(form)} disabled={createMut.isPending || !form.name || !form.age || !form.phone}>Register Patient</Button>
+            <Button className="w-full mt-6" onClick={() => createMut.mutate((form as Unmodelled))} disabled={createMut.isPending || !form.name || !form.age || !form.phone}>Register Patient</Button>
           </div>
         </div>
       )}

@@ -27,8 +27,8 @@ import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const CATEGORIES = ['All', 'Prescription', 'OTC', 'Generic', 'Baby Care', 'Ayurvedic', 'Devices', 'Vitamins'];
 
-const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
-const fadeUp = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } } };
+const stagger: Unmodelled = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
+const fadeUp: Unmodelled = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } } };
 
 const SectionTitle = ({ icon:Icon, label }: Unmodelled) => (
   <h2 className="font-heading text-lg font-bold text-foreground mb-5 flex items-center gap-2">
@@ -91,7 +91,7 @@ export default function MedicineStoreDetail() {
   const { storeId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { entries, addItem, updateQty } = useCart();
+  const { entries, addItem, updateQty }: Unmodelled = useCart();
   const [store, setStore] = useState<Unmodelled>(null);
   const [suggestedStores, setSuggestedStores] = useState<ApiRow[]>([]);
   const [allMeds, setAllMeds] = useState<ApiRow[]>([]);

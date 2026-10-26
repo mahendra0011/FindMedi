@@ -60,7 +60,7 @@ export function isFeatureEnabled(flagName: string, context?: Record<string, unkn
   try {
     // §6.7: flag context must stay pseudonymous — hash any userId/email/phone
     // the caller passes instead of shipping raw PII to the flag service.
-    return unleash.isEnabled(flagName, scrubFlagContext(context));
+    return (unleash.isEnabled as Unmodelled)(flagName, scrubFlagContext(context));
   } catch {
     return false;
   }
@@ -69,7 +69,7 @@ export function isFeatureEnabled(flagName: string, context?: Record<string, unkn
 export function getVariant(flagName: string, context?: Record<string, unknown>) {
   if (!unleash) return null;
   try {
-    return unleash.getVariant(flagName, scrubFlagContext(context));
+    return (unleash.getVariant as Unmodelled)(flagName, scrubFlagContext(context));
   } catch {
     return null;
   }

@@ -33,15 +33,15 @@ export default function OPDToken() {
   const [newToken, setNewToken] = useState({ patientName: '', patientId: '', uhid: '', doctorName: '', department: 'General', type: 'OPD', priority: 'Normal' });
   const [displayToken, setDisplayToken] = useState<Unmodelled>(null);
 
-  const { data } = useQuery({ queryKey: ['tokens', search, deptFilter], queryFn: () => tokenApi.getAll({ search, department: deptFilter }) });
-  const { data: stats } = useQuery({ queryKey: ['token-stats'], queryFn: tokenApi.getStats });
+  const { data }: Unmodelled = useQuery({ queryKey: ['tokens', search, deptFilter], queryFn: () => tokenApi.getAll({ search, department: deptFilter }) });
+  const { data: stats }: Unmodelled = useQuery({ queryKey: ['token-stats'], queryFn: tokenApi.getStats });
   const tokens = data?.tokens || [];
 
   const generateMut = useMutation({ mutationFn: tokenApi.generate, onSuccess: (d) => { qc.invalidateQueries(['tokens', 'token-stats']); setShowGenerate(false); setDisplayToken(d); setTimeout(() => setDisplayToken(null), 5000); }, onError: (e) => toast.error(e.message) });
   const callMut = useMutation({ mutationFn: tokenApi.call, onSuccess: () => qc.invalidateQueries(['tokens']), onError: (e) => toast.error(e.message) });
   const startMut = useMutation({ mutationFn: tokenApi.startConsultation, onSuccess: () => qc.invalidateQueries(['tokens']), onError: (e) => toast.error(e.message) });
   const completeMut = useMutation({ mutationFn: tokenApi.complete, onSuccess: () => qc.invalidateQueries(['tokens', 'token-stats']), onError: (e) => toast.error(e.message) });
-  const skipMut = useMutation({ mutationFn: ({ id, ...b }) => tokenApi.skip(id, b), onSuccess: () => qc.invalidateQueries(['tokens']), onError: (e) => toast.error(e.message) });
+  const skipMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => tokenApi.skip(id, b), onSuccess: () => qc.invalidateQueries(['tokens']), onError: (e) => toast.error(e.message) });
   const recallMut = useMutation({ mutationFn: tokenApi.recall, onSuccess: () => qc.invalidateQueries(['tokens']), onError: (e) => toast.error(e.message) });
 
   return (
@@ -138,7 +138,7 @@ export default function OPDToken() {
                 <div><label className="text-sm font-medium mb-1 block">Type</label><select value={newToken.type} onChange={e => setNewToken({ ...newToken, type: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option>OPD</option><option>Follow-up</option><option>Emergency</option></select></div>
                 <div><label className="text-sm font-medium mb-1 block">Priority</label><select value={newToken.priority} onChange={e => setNewToken({ ...newToken, priority: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option>Normal</option><option>Urgent</option><option>Emergency</option><option>FollowUp</option></select></div>
               </div>
-              <Button className="w-full" onClick={() => generateMut.mutate(newToken)} disabled={generateMut.isPending || !newToken.patientName}>Generate Token</Button>
+              <Button className="w-full" onClick={() => generateMut.mutate((newToken as Unmodelled))} disabled={generateMut.isPending || !newToken.patientName}>Generate Token</Button>
             </div>
           </div>
         </div>

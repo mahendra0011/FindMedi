@@ -72,7 +72,7 @@ export default function ClinicPaymentHistory() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const filter = {};
+      const filter: Unmodelled = {};
       if (typeFilter !== 'All') filter.serviceType = typeFilter;
       const res = await api.getTransactions(filter);
       const list = res?.data || res?.payments || [];

@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/mind/components/ui/progress";
 import { MessageCircle, Phone, Link as LinkIcon, Video, CalendarX, Power, Trash2, PlusCircle, CreditCard, History, Star, BadgeCheck, Heart, CheckCircle2 } from "lucide-react";
 import { dayOptions, sessionStatusLabel, statusTone, counsellingModeLabel, formatMoney, initials } from "@/mind/lib/providerDashboardShared";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export function AppointmentInfo({ label, value }: any) {
   return (
@@ -428,7 +429,7 @@ export function RequestRow({ appointment, onConfirm, onDecline, onMeet, onChat }
           <div className="text-sm text-foreground/60">{appointment.date} at {appointment.time} · {counsellingModeLabel(appointment.mode)}</div>
           {appointment.concern && <p className="mt-2 text-sm text-foreground/75">{appointment.concern}</p>}
         </div>
-        <Badge className={statusTone[appointment.status] || statusTone.pending}>{appointment.status}</Badge>
+        <Badge className={(statusTone as Unmodelled)[appointment.status] || statusTone.pending}>{appointment.status}</Badge>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         <Button size="sm" onClick={onConfirm}>
@@ -464,7 +465,7 @@ export function UpcomingAppointmentCard({ appointment, packageBadge, draft, onDr
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-lg font-semibold">{appointment.studentName || appointment.studentEmail || "User"}</h3>
-            <Badge className={statusTone[appointment.status] || statusTone.upcoming}>{displayStatus}</Badge>
+            <Badge className={(statusTone as Unmodelled)[appointment.status] || statusTone.upcoming}>{displayStatus}</Badge>
             {packageBadge ? (
               <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-medium">
                 {packageBadge}

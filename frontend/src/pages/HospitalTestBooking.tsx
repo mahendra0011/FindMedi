@@ -192,7 +192,7 @@ export default function HospitalTestBooking() {
     // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPrescriptionPreview(reader.result);
+      setPrescriptionPreview(reader.result as Unmodelled);
     };
     reader.readAsDataURL(file);
     
@@ -223,7 +223,7 @@ export default function HospitalTestBooking() {
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPrescriptionPreview(reader.result);
+        setPrescriptionPreview(reader.result as Unmodelled);
       };
       reader.readAsDataURL(file);
     } else {
@@ -267,13 +267,13 @@ export default function HospitalTestBooking() {
     filtered.sort((a, b) => (b.popular ? 1 : 0) - (a.popular ? 1 : 0));
   }
 
-  const cartItems = Object.entries(testCart).map(([tid, qty]) => {
+  const cartItems = Object.entries(testCart).map(([tid, qty]: Unmodelled) => {
     const test = tests.find(t => t.id === tid);
-    return { ...test, qty };
+    return { ...(test as Unmodelled), qty };
   }).filter(Boolean);
 
-  const cartTotal = cartItems.reduce((s, t) => s + t.price * t.qty, 0);
-  const cartCount = cartItems.reduce((s, t) => s + t.qty, 0);
+  const cartTotal = cartItems.reduce((s: Unmodelled, t: Unmodelled) => s + t.price * t.qty, 0);
+  const cartCount = cartItems.reduce((s: Unmodelled, t: Unmodelled) => s + t.qty, 0);
   const hasRx = cartItems.some(t => t.rx);
   const hasFasting = cartItems.some(t => FASTING_TESTS.some(f => t.name.includes(f)));
 

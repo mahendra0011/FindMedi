@@ -57,7 +57,7 @@ export default function DoctorReviews() {
           <div className="text-center">
             <p className="font-heading text-5xl font-extrabold text-foreground">{avgRating}</p>
             <div className="flex items-center gap-0.5 mt-1">
-              {[1,2,3,4,5].map(s => <Star key={s} className={`w-5 h-5 ${s <= Math.round(avgRating) ? 'text-warning fill-warning' : 'text-muted'}`} />)}
+              {[1,2,3,4,5].map(s => <Star key={s} className={`w-5 h-5 ${s <= Math.round(avgRating as Unmodelled) ? 'text-warning fill-warning' : 'text-muted'}`} />)}
             </div>
             <p className="text-sm text-muted-foreground mt-1">{reviews.length} reviews</p>
           </div>

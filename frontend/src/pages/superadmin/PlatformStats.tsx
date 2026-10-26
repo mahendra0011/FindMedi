@@ -101,7 +101,7 @@ export default function PlatformStats() {
               {growthRate && (
                 <Badge variant="outline" className={`ml-auto text-xs gap-1 ${Number(growthRate) >= 0 ? 'text-success' : 'text-destructive'}`}>
                   {Number(growthRate) >= 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                  {Math.abs(growthRate)}%
+                  {Math.abs(growthRate as Unmodelled)}%
                 </Badge>
               )}
             </CardTitle>

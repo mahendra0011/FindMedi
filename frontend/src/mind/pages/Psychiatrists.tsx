@@ -110,8 +110,8 @@ export default function Psychiatrists() {
   const [sortBy, setSortBy] = useState('relevance');
   const [loadError, setLoadError] = useState('');
 
-  const [qualificationFilter, setQualificationFilter] = useState<ApiRow[]>([]);
-  const [languageFilter, setLanguageFilter] = useState<ApiRow[]>([]);
+  const [qualificationFilter, setQualificationFilter] = useState<Unmodelled[]>([]);
+  const [languageFilter, setLanguageFilter] = useState<Unmodelled[]>([]);
 
   const [selectedCity, setSelectedCity] = useState(() => (localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city')) || '');
 

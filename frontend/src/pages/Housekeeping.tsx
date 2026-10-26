@@ -43,16 +43,16 @@ export default function Housekeeping() {
   const [verifyData, setVerifyData] = useState({ rating: 'Good', comments: '', issuesFound: '' });
   const [newTask, setNewTask] = useState({ room: '', bedNumber: '', ward: '', type: 'Routine Cleaning', priority: 'Routine', assignedTo: '', notes: '', isInfectionCase: false });
 
-  const { data } = useQuery({ queryKey: ['hk', search, statusFilter], queryFn: () => hkApi.getTasks({ search, status: statusFilter }) });
-  const { data: stats } = useQuery({ queryKey: ['hk-stats'], queryFn: hkApi.getStats });
+  const { data }: Unmodelled = useQuery({ queryKey: ['hk', search, statusFilter], queryFn: () => hkApi.getTasks({ search, status: statusFilter }) });
+  const { data: stats }: Unmodelled = useQuery({ queryKey: ['hk-stats'], queryFn: hkApi.getStats });
   const tasks = data?.tasks || [];
 
   const createMut = useMutation({ mutationFn: hkApi.createTask, onSuccess: () => { qc.invalidateQueries(['hk']); setShowCreate(false); } });
-  const completeMut = useMutation({ mutationFn: ({ id, ...b }) => hkApi.completeTask(id, b), onSuccess: () => qc.invalidateQueries(['hk']) });
+  const completeMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => hkApi.completeTask(id, b), onSuccess: () => qc.invalidateQueries(['hk']) });
   const [_showVerify, setShowVerify] = useState<Unmodelled>(null);
   const [_showChecklist, setShowChecklist] = useState<Unmodelled>(null);
-  const verifyMut = useMutation({ mutationFn: ({ id, ...b }) => hkApi.verifyTask(id, b), onSuccess: () => { qc.invalidateQueries(['hk']); setShowVerify(null); } });
-  const autoCreateMut = useMutation({ mutationFn: hkApi.autoCreateOnDischarge, onSuccess: () => qc.invalidateQueries(['hk']) });
+  const verifyMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => hkApi.verifyTask(id, b), onSuccess: () => { qc.invalidateQueries(['hk']); setShowVerify(null); } });
+  const autoCreateMut = useMutation({ mutationFn: (v: Unmodelled) => hkApi.autoCreateOnDischarge(v), onSuccess: () => qc.invalidateQueries(['hk']) });
 
   const _renderChecklist = (task: Unmodelled) => (
     <div className="bg-muted/20 rounded-lg p-3">
@@ -280,7 +280,7 @@ export default function Housekeeping() {
                 <input type="checkbox" checked={newTask.isInfectionCase} onChange={e => setNewTask({ ...newTask, isInfectionCase: e.target.checked })} className="w-4 h-4" />
                 Infection Control Case (Terminal Cleaning Required)
               </label>
-              <Button className="w-full" onClick={() => createMut.mutate(newTask)} disabled={createMut.isPending || !newTask.room}>Create Task</Button>
+              <Button className="w-full" onClick={() => createMut.mutate((newTask as Unmodelled))} disabled={createMut.isPending || !newTask.room}>Create Task</Button>
             </div>
           </div>
         </div>

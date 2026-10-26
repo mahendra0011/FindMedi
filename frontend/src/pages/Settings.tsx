@@ -37,7 +37,8 @@ import { api } from '@/lib/api';
 import { applyUserSettings, t } from '@/lib/settings';
 import { useSettings, useUpdateSetting, useLoadUserSettings } from '@/store/useSettingsStore';
 import PreferredPharmacySettings from '@/components/PreferredPharmacySettings';
-import type { ApiRow } from '@/lib/apiTypes';
+import SecuritySection from '@/components/SecuritySection';
+import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 interface NoticeState {
   type: 'error' | 'success';
@@ -267,7 +268,7 @@ function TwoFactorSection() {
         <p className="text-sm font-medium text-foreground">Backup Codes</p>
         <p className="text-xs text-muted-foreground">Save these one-time backup codes in a secure place. You won't be able to see them again.</p>
         <div className="bg-muted/50 rounded-lg p-3 font-mono text-sm space-y-1">
-          {backupCodes.map((code, i) => (
+          {backupCodes.map((code: Unmodelled, i) => (
             <div key={i} className="flex items-center gap-2">
               <KeyRound className="w-3 h-3 text-muted-foreground" />
               <span>{code}</span>

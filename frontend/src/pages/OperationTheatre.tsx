@@ -67,19 +67,19 @@ export default function OperationTheatre() {
     anaesthesiaType: 'General', otNumber: '', scheduledDate: '', surgeonName: '', notes: ''
   });
 
-  const { data } = useQuery({ queryKey: ['ot', search, statusFilter], queryFn: () => otApi.getSurgeries({ search, status: statusFilter }) });
-  const { data: stats } = useQuery({ queryKey: ['ot-stats'], queryFn: otApi.getStats });
+  const { data }: Unmodelled = useQuery({ queryKey: ['ot', search, statusFilter], queryFn: () => otApi.getSurgeries({ search, status: statusFilter }) });
+  const { data: stats }: Unmodelled = useQuery({ queryKey: ['ot-stats'], queryFn: otApi.getStats });
   const surgeries = data?.surgeries || [];
 
   const createMut = useMutation({ mutationFn: otApi.createSurgery, onSuccess: () => { qc.invalidateQueries(['ot']); setShowCreate(false); } });
   const preOpMut = useMutation({ mutationFn: otApi.startPreOp, onSuccess: () => qc.invalidateQueries(['ot']) });
   const startMut = useMutation({ mutationFn: otApi.startSurgery, onSuccess: () => qc.invalidateQueries(['ot']) });
   const completeMut = useMutation({
-    mutationFn: ({ id, ...b }) => otApi.completeSurgery(id, b),
+    mutationFn: ({ id, ...b  }: Unmodelled) => otApi.completeSurgery(id, b),
     onSuccess: () => qc.invalidateQueries(['ot']),
   });
-  const recoveryMut = useMutation({ mutationFn: ({ id, ...b }) => otApi.recoveryUpdate(id, b), onSuccess: () => qc.invalidateQueries(['ot']) });
-  const checklistMut = useMutation({ mutationFn: ({ id, ...b }) => otApi.checklistUpdate(id, b), onSuccess: () => { qc.invalidateQueries(['ot']); setShowChecklist(false); } });
+  const recoveryMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => otApi.recoveryUpdate(id, b), onSuccess: () => qc.invalidateQueries(['ot']) });
+  const checklistMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => otApi.checklistUpdate(id, b), onSuccess: () => { qc.invalidateQueries(['ot']); setShowChecklist(false); } });
   const wardShiftMut = useMutation({ mutationFn: otApi.shiftToWard, onSuccess: () => qc.invalidateQueries(['ot']) });
 
   const handleCompleteSurgery = (surgery: Unmodelled) => {
@@ -94,10 +94,10 @@ export default function OperationTheatre() {
       id: surgery._id,
       findings,
       procedure,
-      instrumentsBefore: parseInt(instrBefore) || 0,
-      instrumentsAfter: parseInt(instrAfter) || 0,
-      spongesBefore: parseInt(spongeBefore) || 0,
-      spongesAfter: parseInt(spongeAfter) || 0,
+      instrumentsBefore: parseInt((instrBefore as string)) || 0,
+      instrumentsAfter: parseInt((instrAfter as string)) || 0,
+      spongesBefore: parseInt((spongeBefore as string)) || 0,
+      spongesAfter: parseInt((spongeAfter as string)) || 0,
     });
   };
 
@@ -364,7 +364,7 @@ export default function OperationTheatre() {
               </div>
               <div><label className="text-sm font-medium mb-1 block">Surgeon Name</label><Input value={newSurgery.surgeonName} onChange={e => setNewSurgery({ ...newSurgery, surgeonName: e.target.value })} /></div>
               <div><label className="text-sm font-medium mb-1 block">Notes</label><textarea value={newSurgery.notes} onChange={e => setNewSurgery({ ...newSurgery, notes: e.target.value })} className="w-full min-h-[60px] rounded-lg border border-input bg-background px-3 py-2 text-sm" /></div>
-              <Button className="w-full" onClick={() => createMut.mutate(newSurgery)} disabled={createMut.isPending || !newSurgery.patientName || !newSurgery.surgeryName}>Schedule Surgery</Button>
+              <Button className="w-full" onClick={() => createMut.mutate((newSurgery as Unmodelled))} disabled={createMut.isPending || !newSurgery.patientName || !newSurgery.surgeryName}>Schedule Surgery</Button>
             </div>
           </div>
         </div>

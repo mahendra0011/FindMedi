@@ -124,9 +124,9 @@ export default function LawyerCard({ lawyer, index = 0 }: LawyerCardProps) {
               <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 leading-tight truncate">
                 Adv. {name}
               </h3>
-              <BadgeCheck className="w-4 h-4 text-slate-900 dark:text-slate-100 shrink-0" title="Bar Council Verified" />
+              <BadgeCheck className="w-4 h-4 text-slate-900 dark:text-slate-100 shrink-0" aria-label="Bar Council Verified" />
               {isPoliceVerified && (
-                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" title="Police Verified" />
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" aria-label="Police Verified" />
               )}
             </div>
 

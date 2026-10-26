@@ -95,10 +95,10 @@ function parseAvailabilityRows(items = []) {
   });
 }
 
-function serializeAvailabilityRows(rows = []) {
+function serializeAvailabilityRows(rows: Unmodelled = []) {
   return rows
-    .filter((row) => row.day && row.start && row.end)
-    .map((row) => `${row.day}: ${row.start}-${row.end}`);
+    .filter((row: Unmodelled) => row.day && row.start && row.end)
+    .map((row: Unmodelled) => `${row.day}: ${row.start}-${row.end}`);
 }
 
 function todayYMD() {
@@ -116,7 +116,7 @@ function normalizePackagePrices(profile: any = {}) {
     const saved = Number(source[plan.key]);
     const multiplier = plan.key === "oneTime" ? 1 : plan.key === "shortTerm" ? 3 : plan.key === "mediumTerm" ? 5 : 8;
     const fallback = saved || (basePrice ? Math.round((basePrice * multiplier) / 50) * 50 - 1 : plan.fallback);
-    acc[plan.key] = String(saved > 0 ? saved : fallback || plan.fallback);
+    (acc as Unmodelled)[plan.key] = String(saved > 0 ? saved : fallback || plan.fallback);
     return acc;
   }, {});
 }
@@ -146,7 +146,7 @@ function counsellingModeLabel(mode = "") {
   return labels[mode] || mode || "Google Meet";
 }
 
-const modeLabel = (v: Unmodelled) => ({ "video-chat": "Video+Chat", "chat-only": "Chat Only", "google-meet": "Video", "in-person": "Visit+Video", "voice-call": "Voice" })[v] || v || "Meet";
+const modeLabel = (v: Unmodelled) => ({ "video-chat": "Video+Chat", "chat-only": "Chat Only", "google-meet": "Video", "in-person": "Visit+Video", "voice-call": "Voice" } as Unmodelled)[v as string] || v || "Meet";
 
 function initials(name = "MS") {
   return name

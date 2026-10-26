@@ -49,7 +49,7 @@ export default function ClinicTestRequests() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {};
+      const params: Unmodelled = {};
       if (statusFilter !== 'All') params.status = statusFilter;
       if (dateFilter) params.date = dateFilter;
       if (search) params.search = search;

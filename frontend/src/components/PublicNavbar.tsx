@@ -260,7 +260,7 @@ export default function PublicNavbar() {
   };
   const themeToggleLabel = isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode';
 
-  const { totalItems } = useCart();
+  const { totalItems }: Unmodelled = useCart();
   const [selectedCity, setSelectedCity] = useState(() => (localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city')) || 'Jabalpur');
 
   useEffect(() => {

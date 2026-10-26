@@ -219,7 +219,7 @@ export default function DoctorProfile() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      setAvatar(ev.target.result);
+      setAvatar((ev.target as Unmodelled).result);
     };
     reader.readAsDataURL(file);
   };
@@ -395,7 +395,7 @@ export default function DoctorProfile() {
                   <Clock className="w-3.5 h-3.5 text-muted-foreground" /> Clinic Timing
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[['Mon', clinicTimingMon, setClinicTimingMon],['Tue', clinicTimingTue, setClinicTimingTue],['Wed', clinicTimingWed, setClinicTimingWed],['Thu', clinicTimingThu, setClinicTimingThu],['Fri', clinicTimingFri, setClinicTimingFri],['Sat', clinicTimingSat, setClinicTimingSat],['Sun', clinicTimingSun, setClinicTimingSun]].map(([day, val, set]) => (
+                  {[['Mon', clinicTimingMon, setClinicTimingMon],['Tue', clinicTimingTue, setClinicTimingTue],['Wed', clinicTimingWed, setClinicTimingWed],['Thu', clinicTimingThu, setClinicTimingThu],['Fri', clinicTimingFri, setClinicTimingFri],['Sat', clinicTimingSat, setClinicTimingSat],['Sun', clinicTimingSun, setClinicTimingSun]].map(([day, val, set]: Unmodelled) => (
                     <div key={day}>
                       <label className="text-xs text-muted-foreground">{day}</label>
                       <Input value={val} onChange={e => set(e.target.value)} placeholder="e.g. 10AM-8PM" className="text-xs" />

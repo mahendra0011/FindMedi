@@ -5,10 +5,10 @@ import { cn } from "@/mind/lib/utils";
 import { Label } from "@/mind/components/ui/label";
 import type { Unmodelled } from '@/lib/apiTypes';
 const Form = FormProvider;
-const FormFieldContext = React.createContext({});
+const FormFieldContext = React.createContext<Unmodelled>({});
 const FormField = ({ ...props }) => {
     return (<FormFieldContext.Provider value={{ name: props.name }}>
-      <Controller {...props}/>
+      <Controller {...(props as Unmodelled)}/>
     </FormFieldContext.Provider>);
 };
 const useFormField = () => {
@@ -29,7 +29,7 @@ const useFormField = () => {
         ...fieldState,
     };
 };
-const FormItemContext = React.createContext({});
+const FormItemContext = React.createContext<Unmodelled>({});
 const FormItem = React.forwardRef<Unmodelled, Unmodelled>(({ className, ...props }, ref) => {
     const id = React.useId();
     return (<FormItemContext.Provider value={{ id }}>

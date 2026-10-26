@@ -105,7 +105,7 @@ export default function Integrations() {
       </div>
 
       <div className="space-y-6">
-        {Object.entries(grouped).map(([category, items]) => {
+        {Object.entries(grouped).map(([category, items]: Unmodelled) => {
           const CatIcon = CATEGORY_ICONS[category] || Settings;
           return (
             <Card key={category}>
@@ -145,7 +145,7 @@ export default function Integrations() {
                     </div>
 
                     <div className="space-y-2">
-                      {Object.entries(integration.config || {}).map(([key, val]) => (
+                      {Object.entries(integration.config || {}).map(([key, val]: Unmodelled) => (
                         <div key={key} className="flex items-center gap-2">
                           <label className="text-xs font-medium text-muted-foreground w-32 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</label>
                           <div className="relative flex-1">

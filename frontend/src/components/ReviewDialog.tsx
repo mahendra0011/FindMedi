@@ -49,7 +49,7 @@ export default function ReviewDialog({ open, onOpenChange, entityType, entityId,
 
       // If the entity is a hospital/lab/clinic, also set hospitalId
       if (['hospital', 'clinic', 'lab', 'pharmacy'].includes(entityType)) {
-        body.hospitalId = entityId;
+        (body as Unmodelled).hospitalId = entityId;
       }
 
       const review = await api.createReview(body);

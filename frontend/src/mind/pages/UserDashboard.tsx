@@ -467,7 +467,7 @@ const defaultHabits = [
   { name: "Hydration", progress: 0 },
 ];
 
-const emptyData = {
+const emptyData: Unmodelled = {
   stats: {
     upcomingSessions: 0,
     completedSessions: 0,
@@ -519,7 +519,7 @@ const UserDashboard = () => {
   const [journalTrigger, setJournalTrigger] = useState("");
   const [activeTab, setActiveTab] = useState(() => {
     const tab = searchParams.get("tab");
-    return dashboardTabs.includes(tab) ? tab : "home";
+    return dashboardTabs.includes((tab as string)) ? tab : "home";
   });
   const [sessionFilter, setSessionFilter] = useState("all");
   const [historyFilter, setHistoryFilter] = useState("all");
@@ -592,7 +592,7 @@ const UserDashboard = () => {
       try {
         const { data: list } = await api.get("/api/notifications/my");
         if (active && Array.isArray(list)) {
-          setData((current) => ({ ...current, notifications: list }));
+          setData((current: Unmodelled) => ({ ...current, notifications: list }));
         }
       } catch {
         // Keep the last dashboard notifications if a background poll fails.
@@ -607,7 +607,7 @@ const UserDashboard = () => {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (dashboardTabs.includes(tab)) setActiveTab(tab);
+    if (dashboardTabs.includes((tab as string))) setActiveTab(tab);
   }, [searchParams]);
 
   // B6-13 parity: debounce socket-triggered reloads (silent — no spinner storm).
@@ -653,10 +653,10 @@ const UserDashboard = () => {
   // U-5: intake status is fetched once per package id (not on every
   // packages identity change / socket refresh), with abort on unmount.
   useEffect(() => {
-    const ids = (data.packages || []).map((p) => p.id).filter((id) => id && !intakeSubmitted[id]);
+    const ids = (data.packages || []).map((p: Unmodelled) => p.id).filter((id: Unmodelled) => id && !intakeSubmitted[id]);
     if (ids.length === 0) return undefined;
     let active = true;
-    ids.forEach((id) => {
+    ids.forEach((id: Unmodelled) => {
       api.get(`/api/intake/${id}`).then(({ data: intake }) => {
         if (active && intake.submitted) setIntakeSubmitted((prev) => ({ ...prev, [id]: true }));
       }).catch(() => {});
@@ -680,19 +680,19 @@ const UserDashboard = () => {
     localStorage.setItem("mindsupport_privacy_prefs", JSON.stringify(privacyPrefs));
   }, [privacyPrefs]);
 
-  const upcoming = data.appointments.filter((item) => !["cancelled", "completed", "declined"].includes(item.status)).slice(0, 4);
+  const upcoming = data.appointments.filter((item: Unmodelled) => !["cancelled", "completed", "declined"].includes(item.status)).slice(0, 4);
   const sessionStats = useMemo(() => {
     const total = data.appointments.length;
-    const upcomingCount = data.appointments.filter((a) => !["cancelled", "completed", "declined"].includes(a.status)).length;
-    const completedCount = data.appointments.filter((a) => a.status === "completed").length;
-    const cancelledCount = data.appointments.filter((a) => a.status === "cancelled" || a.status === "declined").length;
+    const upcomingCount = data.appointments.filter((a: Unmodelled) => !["cancelled", "completed", "declined"].includes(a.status)).length;
+    const completedCount = data.appointments.filter((a: Unmodelled) => a.status === "completed").length;
+    const cancelledCount = data.appointments.filter((a: Unmodelled) => a.status === "cancelled" || a.status === "declined").length;
     return { total, upcoming: upcomingCount, completed: completedCount, cancelled: cancelledCount };
   }, [data.appointments]);
   const filteredAppointments: Unmodelled = useMemo(() => {
     if (sessionFilter === "all") return data.appointments;
-    if (sessionFilter === "upcoming") return data.appointments.filter((a) => !["cancelled", "completed", "declined"].includes(a.status));
-    if (sessionFilter === "completed") return data.appointments.filter((a) => a.status === "completed");
-    if (sessionFilter === "cancelled") return data.appointments.filter((a) => a.status === "cancelled" || a.status === "declined");
+    if (sessionFilter === "upcoming") return data.appointments.filter((a: Unmodelled) => !["cancelled", "completed", "declined"].includes(a.status));
+    if (sessionFilter === "completed") return data.appointments.filter((a: Unmodelled) => a.status === "completed");
+    if (sessionFilter === "cancelled") return data.appointments.filter((a: Unmodelled) => a.status === "cancelled" || a.status === "declined");
     return data.appointments;
   }, [data.appointments, sessionFilter]);
   const latestMood = data.moodEntries?.[0]?.mood || data.stats.moodScore || null;
@@ -701,13 +701,13 @@ const UserDashboard = () => {
     const counts: Unmodelled = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     const labels: Unmodelled = { 1: "Very Low", 2: "Low", 3: "Neutral", 4: "Good", 5: "Excellent" };
     const colors: Unmodelled = { 1: "#ef4444", 2: "#f97316", 3: "#a1a1aa", 4: "#22c55e", 5: "#8b5cf6" };
-    (data.moodEntries || []).forEach((entry) => {
+    (data.moodEntries || []).forEach((entry: Unmodelled) => {
       const mood: Unmodelled = entry.mood || 3;
       counts[mood] = (counts[mood] || 0) + 1;
     });
     return Object.entries(counts)
       .map(([key, value]) => ({ name: labels[key], value, color: colors[key] }))
-      .filter((d) => d.value > 0);
+      .filter((d: Unmodelled) => d.value > 0);
   }, [data.moodEntries]);
   const radarData = useMemo(
     () => [
@@ -853,7 +853,7 @@ const UserDashboard = () => {
       <main className="pt-2">
         <section className="dashboard-motion py-6 md:py-10 bg-gradient-to-br from-primary/8 via-background via-secondary/8 to-accent/5">
           <div className="dashboard-shell max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={(activeTab as Unmodelled) || ""} onValueChange={setActiveTab}>
               {/* U-8: load failures are visible with retry. */}
               {loadError && (
                 <div className="mb-4 p-4 bg-destructive/10 border border-destructive/30 rounded-lg flex items-start justify-between gap-3">
@@ -1081,7 +1081,7 @@ const UserDashboard = () => {
                                 iconType="circle"
                                 formatter={(value, entry) => {
                                   const item = moodDistribution.find(d => d.name === value);
-                                  return <span className="text-xs text-foreground/70">{value} {item ? `(${Math.round(item.value / moodDistribution.reduce((a,b) => a + b.value, 0) * 100)}%)` : ''}</span>;
+                                  return <span className="text-xs text-foreground/70">{value} {item ? `(${Math.round((item as Unmodelled).value / moodDistribution.reduce((a: Unmodelled, b: Unmodelled) => a + b.value, 0) * 100)}%)` : ''}</span>;
                                 }}
                               />
                             </PieChart>
@@ -1154,7 +1154,7 @@ const UserDashboard = () => {
                           <Button size="sm" className="mt-4" onClick={() => navigate("/mind/counselling")}>Browse Counsellors</Button>
                         </div>
                       ) : (
-                        upcoming.map((appointment) => (
+                        upcoming.map((appointment: Unmodelled) => (
                           <div key={appointment.id} className="dashboard-card-motion rounded-xl border border-glass-border/40 bg-background/60 p-4 hover:bg-background/80 hover:border-primary/20 transition-all duration-200">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                               <div className="flex items-start gap-3">
@@ -1296,7 +1296,7 @@ const UserDashboard = () => {
                       {data.journal.length === 0 ? (
                         <PanelText>No journal entries yet. Start writing your thoughts.</PanelText>
                       ) : (
-                        data.journal.slice(0, 3).map((entry, idx) => (
+                        data.journal.slice(0, 3).map((entry: Unmodelled, idx: Unmodelled) => (
                           <div key={entry.id || idx} className="dashboard-card-motion rounded-xl border border-glass-border/40 bg-background/60 p-4 hover:bg-background/80 transition-all duration-200">
                             <div className="flex items-center justify-between gap-2">
                               <div className="font-medium truncate flex items-center gap-2">
@@ -1450,7 +1450,7 @@ const UserDashboard = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {(data.habits.length > 0 ? data.habits : defaultHabits).map((habit, idx) => {
+                        {(data.habits.length > 0 ? data.habits : defaultHabits).map((habit: Unmodelled, idx: Unmodelled) => {
                           const colors = [
                             { bg: "from-violet-500/60 to-violet-500", track: "bg-violet-500/10", text: "text-violet-500", icon: "🌙" },
                             { bg: "from-blue-500/60 to-blue-500", track: "bg-blue-500/10", text: "text-blue-500", icon: "🧘" },
@@ -1482,7 +1482,7 @@ const UserDashboard = () => {
                           <span>Average completion</span>
                           <span className="font-semibold text-foreground/80">
                             {Math.round(
-                              ((data.habits.length > 0 ? data.habits : defaultHabits).reduce((sum, h) => sum + (h.progress || 0), 0)) /
+                              ((data.habits.length > 0 ? data.habits : defaultHabits).reduce((sum: Unmodelled, h: Unmodelled) => sum + (h.progress || 0), 0)) /
                                 ((data.habits.length > 0 ? data.habits : defaultHabits).length || 1)
                             )}%
                           </span>
@@ -1492,7 +1492,7 @@ const UserDashboard = () => {
                             className="h-full rounded-full bg-gradient-to-r from-primary via-secondary to-emerald-500 transition-all duration-1000 ease-out"
                             style={{
                               width: `${Math.round(
-                                ((data.habits.length > 0 ? data.habits : defaultHabits).reduce((sum, h) => sum + (h.progress || 0), 0)) /
+                                ((data.habits.length > 0 ? data.habits : defaultHabits).reduce((sum: Unmodelled, h: Unmodelled) => sum + (h.progress || 0), 0)) /
                                   ((data.habits.length > 0 ? data.habits : defaultHabits).length || 1)
                               )}%`,
                             }}
@@ -1615,7 +1615,7 @@ const UserDashboard = () => {
                       </Button>
                     </div>
                     <div className="dashboard-stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {(data.packages || []).filter(p => p.status === "active" && p.sessionsRemaining > 0).map((pkg) => (
+                      {(data.packages || []).filter((p: Unmodelled) => p.status === "active" && p.sessionsRemaining > 0).map((pkg: Unmodelled) => (
                         <Card key={pkg.id} className="dashboard-card-motion glass-card bg-gradient-to-br from-violet-500/5 via-violet-500/3 to-cyan-500/5 border-violet-500/20 overflow-hidden relative group">
                           <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
                           <CardHeader className="pb-2">
@@ -1676,14 +1676,14 @@ const UserDashboard = () => {
                         </Card>
                       ))}
                     </div>
-                    {(data.packages || []).filter(p => p.status === "completed" || p.status === "expired" || p.sessionsRemaining <= 0).length > 0 && (
+                    {(data.packages || []).filter((p: Unmodelled) => p.status === "completed" || p.status === "expired" || p.sessionsRemaining <= 0).length > 0 && (
                       <div className="dashboard-motion space-y-2 pt-2">
                         <h3 className="text-sm font-medium text-foreground/60 flex items-center gap-2">
                           <Archive className="h-4 w-4" />
                           Past Packages
                         </h3>
                         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                          {(data.packages || []).filter(p => p.status === "completed" || p.status === "expired" || p.sessionsRemaining <= 0).map((pkg) => (
+                          {(data.packages || []).filter((p: Unmodelled) => p.status === "completed" || p.status === "expired" || p.sessionsRemaining <= 0).map((pkg: Unmodelled) => (
                             <Card key={pkg.id} className="glass-card bg-background/40 border-glass-border/30 opacity-70 hover:opacity-100 transition-opacity">
                               <CardContent className="p-4">
                                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -1771,7 +1771,7 @@ const UserDashboard = () => {
                     <CardDescription>Scheduled sessions — join, reschedule, or cancel</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {filteredAppointments.filter(a => !["cancelled", "completed", "declined", "no-show"].includes(a.status)).length === 0 ? (
+                    {filteredAppointments.filter((a: Unmodelled) => !["cancelled", "completed", "declined", "no-show"].includes(a.status)).length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-10 text-center">
                         <CalendarDays className="h-10 w-10 text-foreground/20 mb-3" />
                         <p className="text-foreground/60 font-medium">No upcoming bookings</p>
@@ -1781,7 +1781,7 @@ const UserDashboard = () => {
                         </Button>
                       </div>
                     ) : (
-                      filteredAppointments.filter(a => !["cancelled", "completed", "declined", "no-show"].includes(a.status)).map((appointment) => {
+                      filteredAppointments.filter((a: Unmodelled) => !["cancelled", "completed", "declined", "no-show"].includes(a.status)).map((appointment: Unmodelled) => {
                         const modeIcons: any = { "online": Video, "google-meet": Video, "voice-call": Phone, "in-person": MapPin, "video-chat": Video, "chat-only": MessageCircle };
                         const ModeIcon = modeIcons[appointment.mode] || Video;
                         return (
@@ -1888,7 +1888,7 @@ const UserDashboard = () => {
 
               <TabsContent value="schedule" className="dashboard-tab-motion space-y-6">
                 {(() => {
-                  const activePackages: Unmodelled = (data.packages || []).filter(p => p.status === "active" && p.sessionsRemaining > 0);
+                  const activePackages: Unmodelled = (data.packages || []).filter((p: Unmodelled) => p.status === "active" && p.sessionsRemaining > 0);
                   if (activePackages.length === 0) {
                     return (
                       <div className="dashboard-motion text-center py-12">
@@ -1901,7 +1901,7 @@ const UserDashboard = () => {
                       </div>
                     );
                   }
-                  const selected: Unmodelled = selectedPkgId ? activePackages.find(p => p.id === selectedPkgId) : activePackages[0];
+                  const selected: Unmodelled = selectedPkgId ? activePackages.find((p: Unmodelled) => p.id === selectedPkgId) : activePackages[0];
                   return (
                     <>
                       <div className="dashboard-motion">
@@ -1913,9 +1913,9 @@ const UserDashboard = () => {
                           <span className="text-xs text-foreground/50">{activePackages.length} active package{activePackages.length !== 1 ? "s" : ""}</span>
                         </div>
                         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-                          {activePackages.map((pkg) => {
+                          {activePackages.map((pkg: Unmodelled) => {
                             const isSelected = (selected?.id === pkg.id);
-                            const counsellor: Unmodelled = (data.therapists || []).find(t => t.id === pkg.counsellorId);
+                            const counsellor: Unmodelled = (data.therapists || []).find((t: Unmodelled) => t.id === pkg.counsellorId);
                             return (
                               <button
                                 key={pkg.id}
@@ -1957,7 +1957,7 @@ const UserDashboard = () => {
                         </div>
                       </div>
                       {selected && (
-                        <ScheduleCard key={selected.id} pkg={selected} counsellor={(data.therapists || []).find(t => t.id === selected.counsellorId)} toast={toast} loadDashboard={loadDashboard} navigate={navigate} />
+                        <ScheduleCard key={selected.id} pkg={selected} counsellor={(data.therapists || []).find((t: Unmodelled) => t.id === selected.counsellorId)} toast={toast} loadDashboard={loadDashboard} navigate={navigate} />
                       )}
                     </>
                   );
@@ -1967,10 +1967,10 @@ const UserDashboard = () => {
               <TabsContent value="history" className="dashboard-tab-motion space-y-6">
                 {(() => {
                   const historyStatuses: Unmodelled = ["completed", "cancelled", "declined", "no-show"];
-                  const allHistory = data.appointments.filter(a => historyStatuses.includes(a.status));
-                  const completed = data.appointments.filter(a => a.status === "completed");
-                  const cancelled = data.appointments.filter(a => a.status === "cancelled" || a.status === "declined");
-                  const noShow = data.appointments.filter(a => a.status === "no-show");
+                  const allHistory = data.appointments.filter((a: Unmodelled) => historyStatuses.includes(a.status));
+                  const completed = data.appointments.filter((a: Unmodelled) => a.status === "completed");
+                  const cancelled = data.appointments.filter((a: Unmodelled) => a.status === "cancelled" || a.status === "declined");
+                  const noShow = data.appointments.filter((a: Unmodelled) => a.status === "no-show");
                   const filteredHistory = historyFilter === "all" ? allHistory
                     : historyFilter === "cancelled" ? cancelled
                     : historyFilter === "noshow" ? noShow
@@ -2028,7 +2028,7 @@ const UserDashboard = () => {
                           </p>
                         </div>
                       ) : (
-                        filteredHistory.map((appointment) => {
+                        filteredHistory.map((appointment: Unmodelled) => {
                           const modeIcons: any = { "online": Video, "google-meet": Video, "video-chat": Video, "chat-only": MessageCircle, "voice-call": Phone, "in-person": MapPin };
                           const ModeIcon = modeIcons[appointment.mode] || Video;
                           const statusConfig: Unmodelled = {
@@ -2234,7 +2234,7 @@ const UserDashboard = () => {
                         </div>
                       ) : (
                         <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1 chat-scrollbar">
-                          {data.journal.map((entry, idx) => {
+                          {data.journal.map((entry: Unmodelled, idx: Unmodelled) => {
                             const moodEmojis: Unmodelled = { Calm: "😌", Hopeful: "🌟", Stressed: "😰", Low: "😔", Grateful: "🙏", Anxious: "😟" };
                             const moodColors: Unmodelled = { Calm: "bg-blue-500/20 text-blue-400", Hopeful: "bg-amber-500/20 text-amber-400", Stressed: "bg-red-500/20 text-red-400", Low: "bg-purple-500/20 text-purple-400", Grateful: "bg-emerald-500/20 text-emerald-400", Anxious: "bg-orange-500/20 text-orange-400" };
                             return (
@@ -2740,7 +2740,7 @@ function ConsentDialog({ open, onOpenChange, onAccept }: Unmodelled) {
           ].map(item => (
             <label key={item.key} className="flex items-start gap-3 p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
               <Checkbox
-                checked={accepted[item.key]}
+                checked={(accepted as Unmodelled)[item.key]}
                 onCheckedChange={(v: Unmodelled) => setAccepted(prev => ({ ...prev, [item.key]: !!v }))}
                 className="mt-0.5"
               />

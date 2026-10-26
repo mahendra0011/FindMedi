@@ -5,7 +5,7 @@ import "./FlowingMenu.css";
 import type { Unmodelled } from '@/lib/apiTypes';
 
 function FlowingMenu({
-  items = [],
+  items = [] as Unmodelled[],
   speed = 15,
   textColor = "#fff",
   bgColor = "#120F17",
@@ -16,7 +16,7 @@ function FlowingMenu({
   return (
     <div className="menu-wrap" style={{ backgroundColor: bgColor }}>
       <nav className="menu">
-        {items.map((item, idx) => (
+        {items.map((item: Unmodelled, idx: Unmodelled) => (
           <MenuItem
             key={idx}
             {...item}

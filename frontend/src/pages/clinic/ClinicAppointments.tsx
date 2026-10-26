@@ -53,8 +53,8 @@ export default function ClinicAppointments() {
   const [rescheduleId, setRescheduleId] = useState<Unmodelled>(null);
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
-  const [bookedSlots, setBookedSlots] = useState<ApiRow[]>([]);
-  const [dateDisabledSlots, setDateDisabledSlots] = useState<ApiRow[]>([]);
+  const [bookedSlots, setBookedSlots] = useState<Unmodelled[]>([]);
+  const [dateDisabledSlots, setDateDisabledSlots] = useState<Unmodelled[]>([]);
   const [completeId, setCompleteId] = useState<Unmodelled>(null);
   const [billAmount, setBillAmount] = useState(500);
   const [billModal, setBillModal] = useState(false);
@@ -155,7 +155,7 @@ export default function ClinicAppointments() {
     setPrescriptionData({
       ...prescriptionInitialState,
       patientName: apt.patient,
-      doctorName: user?.name,
+      doctorName: (user?.name as string),
       specialization: user?.specialization || '',    });
     setShowPrescriptionModal(true);
   }, [user?.name, user?.specialization]);

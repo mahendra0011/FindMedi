@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function DeliveryDocuments() {
   const [profile, setProfile] = useState<any>(null);
@@ -97,7 +98,7 @@ export default function DeliveryDocuments() {
     formData.append('documentType', selectedDocKey);
 
     try {
-      await api.post('/delivery-partners/upload-document', formData, {
+      await (api as Unmodelled).post('/delivery-partners/upload-document', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       toast.success('Document uploaded successfully! Under admin review.');

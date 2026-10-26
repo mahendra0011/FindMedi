@@ -29,7 +29,7 @@ const GAD7_QUESTIONS = [
 ];
 const ScreeningForm = ({ type, onComplete }: Unmodelled) => {
     const [currentQuestion, setCurrentQuestion] = useState(0);
-    const [answers, setAnswers] = useState<ApiRow[]>([]);
+    const [answers, setAnswers] = useState<Unmodelled[]>([]);
     const [showResults, setShowResults] = useState(false);
     const questions = type === 'PHQ9' ? PHQ9_QUESTIONS : GAD7_QUESTIONS;
     const totalQuestions = questions.length;

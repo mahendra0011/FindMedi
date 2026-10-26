@@ -129,7 +129,7 @@ export default function PendingApprovals() {
     }
   }
 
-  const queueItems = activeQueue === 'hospitals' ? pendingHospitals : (aggregated[activeQueue] || []);
+  const queueItems = activeQueue === 'hospitals' ? pendingHospitals : ((aggregated as Unmodelled)[activeQueue] || []);
   const queueCounts: Unmodelled = {
     hospitals: pendingHospitals.length,
     facilities: aggregated.facilities.length,

@@ -12,7 +12,7 @@ import {
 } from '@/store/slices/cartSlice';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const CartContext = createContext();
+const CartContext = createContext<Unmodelled>(null);
 
 export function CartProvider({ children }: Unmodelled) {
   const dispatch = useDispatch();

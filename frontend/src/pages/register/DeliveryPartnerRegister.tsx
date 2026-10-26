@@ -22,7 +22,7 @@ export default function DeliveryPartnerRegister() {
   });
 
   const set = (k: Unmodelled, v: Unmodelled) => setForm((f) => ({ ...f, [k]: v }));
-  const setNested = (parent: Unmodelled, k: Unmodelled, v: Unmodelled) => setForm((f) => ({ ...f, [parent]: { ...f[parent], [k]: v } }));
+  const setNested = (parent: Unmodelled, k: Unmodelled, v: Unmodelled) => setForm((f) => ({ ...f, [parent]: { ...(f as Unmodelled)[parent], [k]: v } }));
 
   const submit = async () => {
     try {
@@ -51,7 +51,7 @@ export default function DeliveryPartnerRegister() {
           <Input placeholder="Address" value={form.address} onChange={(e) => set('address', e.target.value)} />
           <Input placeholder="City" value={form.city} onChange={(e) => set('city', e.target.value)} />
           <Input placeholder="Pincode" value={form.pincode} onChange={(e) => set('pincode', e.target.value)} />
-          <input type="file" accept="image/*" onChange={(e) => set('photo', e.target.files[0])} />
+          <input type="file" accept="image/*" onChange={(e) => set('photo', e.target.files![0])} />
         </div>
       )}
 
@@ -68,9 +68,9 @@ export default function DeliveryPartnerRegister() {
             <>
               <Input placeholder="Vehicle Number" value={form.vehicleNumber} onChange={(e) => set('vehicleNumber', e.target.value)} />
               <label className="text-xs text-muted-foreground">Driving License</label>
-              <input type="file" onChange={(e) => set('drivingLicenseDoc', e.target.files[0])} />
+              <input type="file" onChange={(e) => set('drivingLicenseDoc', e.target.files![0])} />
               <label className="text-xs text-muted-foreground">Vehicle RC</label>
-              <input type="file" onChange={(e) => set('vehicleRcDoc', e.target.files[0])} />
+              <input type="file" onChange={(e) => set('vehicleRcDoc', e.target.files![0])} />
             </>
           )}
         </div>
@@ -79,9 +79,9 @@ export default function DeliveryPartnerRegister() {
       {step === 2 && (
         <div className="space-y-3">
           <label className="text-xs text-muted-foreground">Aadhar Card</label>
-          <input type="file" onChange={(e) => set('aadharDoc', e.target.files[0])} />
+          <input type="file" onChange={(e) => set('aadharDoc', e.target.files![0])} />
           <label className="text-xs text-muted-foreground">PAN Card</label>
-          <input type="file" onChange={(e) => set('panDoc', e.target.files[0])} />
+          <input type="file" onChange={(e) => set('panDoc', e.target.files![0])} />
           <Input placeholder="Bank Account Number" value={form.bankDetails.accountNo}
             onChange={(e) => setNested('bankDetails', 'accountNo', e.target.value)} />
           <Input placeholder="IFSC Code" value={form.bankDetails.ifsc}

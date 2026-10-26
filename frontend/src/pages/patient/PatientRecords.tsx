@@ -62,7 +62,7 @@ export default function PatientRecords() {
     return counts;
   };
 
-  const calcAge = (dob: Unmodelled) => { if (!dob) return '--'; const a = Math.floor((new Date() - new Date(dob)) / 31557600000); return a >= 0 ? a : '--'; };
+  const calcAge = (dob: Unmodelled) => { if (!dob) return '--'; const a = Math.floor((+new Date() - +new Date(dob)) / 31557600000); return a >= 0 ? a : '--'; };
   const allergiesList = user?.allergies?.map((a: Unmodelled) => a.allergen || a).filter(Boolean).join(', ') || 'None';
 
   if (loading) return (
@@ -170,11 +170,11 @@ export default function PatientRecords() {
                     if (filtered.length === 0) return null;
                   }
                   const counts = getCategoryCounts(visitRecs);
-                  const hasAny = Object.values(counts).some(v => v > 0);
+                  const hasAny = Object.values(counts).some((v: Unmodelled) => v > 0);
                   if (!hasAny) return null;
                   return (
                     <div className="flex gap-2 mb-3 flex-wrap">
-                      {Object.entries(categoryConfig).map(([key, cfg]) => {
+                      {Object.entries(categoryConfig).map(([key, cfg]: Unmodelled) => {
                         const Icon = cfg.icon;
                         return (
                           <div key={key} className={`flex items-center gap-1 px-2 py-0.5 rounded-md ${cfg.bg} ${counts[key] > 0 ? '' : 'opacity-40'}`}>

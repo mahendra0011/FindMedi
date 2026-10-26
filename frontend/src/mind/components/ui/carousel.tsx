@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/mind/lib/utils";
 import { Button } from "@/mind/components/ui/button";
 import type { Unmodelled } from '@/lib/apiTypes';
-const CarouselContext = React.createContext(null);
+const CarouselContext = React.createContext<Unmodelled>(null);
 function useCarousel() {
     const context = React.useContext(CarouselContext);
     if (!context) {

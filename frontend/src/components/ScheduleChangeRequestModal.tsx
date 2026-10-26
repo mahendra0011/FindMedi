@@ -11,7 +11,7 @@ import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 // Deep equality check for objects/arrays (handles dateDisabledSlots nested structure)
-function deepEqual(a: Unmodelled, b: Unmodelled) {
+function deepEqual(a: Unmodelled, b: Unmodelled): Unmodelled {
   if (a === b) return true;
   if (a == null && b == null) return true;
   if (a == null || b == null) return false;
@@ -34,7 +34,7 @@ function formatDateDisabled(obj: Unmodelled) {
   if (!obj || typeof obj !== 'object') return 'None';
   const entries = Object.entries(obj).filter(([, slots]) => Array.isArray(slots) && slots.length > 0);
   if (entries.length === 0) return 'None';
-  return entries.map(([date, slots]) => `${date} (${slots.length} slot${slots.length !== 1 ? 's' : ''})`).join(', ');
+  return entries.map(([date, slots]: Unmodelled) => `${date} (${slots.length} slot${slots.length !== 1 ? 's' : ''})`).join(', ');
 }
 
 // Format weekly schedule object for display

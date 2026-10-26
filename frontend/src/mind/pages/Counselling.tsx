@@ -221,7 +221,7 @@ const Counselling = () => {
 
   const recommendedPlanId = useMemo(() => {
     for (const tag of concernTags) {
-      const mapped = concernToPlan[tag];
+      const mapped = concernToPlan[tag as Unmodelled];
       if (mapped) return mapped;
     }
     if (category && category !== "All") return concernToPlan[category] || null;
@@ -235,7 +235,7 @@ const Counselling = () => {
   }, [recommendedPlanId, counsellorId]);
 
   useEffect(() => {
-    dispatch(fetchCounsellors());
+    (dispatch as Unmodelled)(fetchCounsellors());
     api.get("/api/appointments/my")
       .then(({ data }) => setAppointments(Array.isArray(data) ? data : []))
       .catch(() => {});
@@ -922,7 +922,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
     if (star >= 1 && star <= 5) breakdown[star]++;
   });
   const breakdownPct = totalReviews > 0
-    ? Object.fromEntries(Object.entries(breakdown).map(([k, v]) => [k, Math.round((v / totalReviews) * 100)]))
+    ? Object.fromEntries(Object.entries(breakdown).map(([k, v]: Unmodelled) => [k, Math.round((v / totalReviews) * 100)]))
     : { 5: 72, 4: 18, 3: 7, 2: 2, 1: 1 };
 
   const renderStars = (rating: Unmodelled, size = "w-3.5 h-3.5") => (
@@ -936,8 +936,8 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
   const ratingBreakdown = () => {
     const counts: Unmodelled = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     reviews.forEach(r => { if (r.rating >= 1 && r.rating <= 5) counts[Math.round(r.rating)]++; });
-    const max = Math.max(...Object.values(counts), 1);
-    return Object.entries(counts).reverse().map(([star, count]) => (
+    const max = Math.max(...(Object.values(counts) as number[]), 1);
+    return Object.entries(counts).reverse().map(([star, count]: Unmodelled) => (
       <div key={star} className="flex items-center gap-2 text-sm">
         <span className="text-muted-foreground w-6 text-right">{star}</span>
         <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />

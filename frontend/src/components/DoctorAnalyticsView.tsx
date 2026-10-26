@@ -128,7 +128,7 @@ function HeroCard({ icon: Icon, label, value, color, gradient, shadow, delay = 0
 /* ═══════════════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════════════ */
-export default function DoctorAnalyticsView({ appointments = [], patients = [], bills = [], labBookings = [], title = 'Analytics' }) {
+export default function DoctorAnalyticsView({ appointments = [], patients = [], bills = [], labBookings = [], title = 'Analytics' }: Unmodelled) {
   const stats: Unmodelled = useMemo(() => {
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);
@@ -142,28 +142,28 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
 
     // ═══ APPOINTMENT STATS ═══
     const totalAppts = appointments.length;
-    const todayAppts = appointments.filter(a => a.date?.slice(0, 10) === todayStr).length;
-    const thisWeekAppts = appointments.filter(a => { const d = a.date?.slice(0, 10); return d >= weekStartStr && d <= todayStr; }).length;
-    const thisMonthAppts = appointments.filter(a => a.date?.startsWith(monthKey)).length;
-    const sixMonthAppts = appointments.filter(a => a.date?.slice(0, 10) >= sixMonthsAgoStr).length;
-    const pendingAppts = appointments.filter(a => ['Pending', 'Confirmed', 'In Queue'].includes(a.status)).length;
-    const completedAppts = appointments.filter(a => a.status === 'Completed').length;
-    const cancelledAppts = appointments.filter(a => a.status === 'Cancelled').length;
+    const todayAppts = appointments.filter((a: Unmodelled) => a.date?.slice(0, 10) === todayStr).length;
+    const thisWeekAppts = appointments.filter((a: Unmodelled) => { const d = a.date?.slice(0, 10); return d >= weekStartStr && d <= todayStr; }).length;
+    const thisMonthAppts = appointments.filter((a: Unmodelled) => a.date?.startsWith(monthKey)).length;
+    const sixMonthAppts = appointments.filter((a: Unmodelled) => a.date?.slice(0, 10) >= sixMonthsAgoStr).length;
+    const pendingAppts = appointments.filter((a: Unmodelled) => ['Pending', 'Confirmed', 'In Queue'].includes(a.status)).length;
+    const completedAppts = appointments.filter((a: Unmodelled) => a.status === 'Completed').length;
+    const cancelledAppts = appointments.filter((a: Unmodelled) => a.status === 'Cancelled').length;
     const completionRate = totalAppts > 0 ? Math.round((completedAppts / totalAppts) * 100) : 0;
 
     // ═══ TEST STATS ═══
     const bd = (t: Unmodelled) => { try { return t.bookingDate?.slice?.(0, 10) || new Date(t.bookingDate).toISOString().slice(0, 10); } catch { return ''; } };
     const totalTests = labBookings.length;
-    const todayTests = labBookings.filter(t => bd(t) === todayStr).length;
-    const thisWeekTests = labBookings.filter(t => { const d = bd(t); return d >= weekStartStr && d <= todayStr; }).length;
-    const thisMonthTests = labBookings.filter(t => bd(t)?.startsWith(monthKey)).length;
-    const sixMonthTests = labBookings.filter(t => bd(t) >= sixMonthsAgoStr).length;
-    const pendingTests = labBookings.filter(t => ['Pending', 'Confirmed', 'Sample Collected', 'Processing'].includes(t.status)).length;
-    const completedTests = labBookings.filter(t => t.status === 'Completed').length;
+    const todayTests = labBookings.filter((t: Unmodelled) => bd(t) === todayStr).length;
+    const thisWeekTests = labBookings.filter((t: Unmodelled) => { const d = bd(t); return d >= weekStartStr && d <= todayStr; }).length;
+    const thisMonthTests = labBookings.filter((t: Unmodelled) => bd(t)?.startsWith(monthKey)).length;
+    const sixMonthTests = labBookings.filter((t: Unmodelled) => bd(t) >= sixMonthsAgoStr).length;
+    const pendingTests = labBookings.filter((t: Unmodelled) => ['Pending', 'Confirmed', 'Sample Collected', 'Processing'].includes(t.status)).length;
+    const completedTests = labBookings.filter((t: Unmodelled) => t.status === 'Completed').length;
 
     // ═══ DAILY TRENDS (30d) ═══
     const dailyApptMap: Unmodelled = {};
-    appointments.forEach(a => {
+    appointments.forEach((a: Unmodelled) => {
       if (!a.date) return;
       const key = a.date.slice(0, 10);
       if (!dailyApptMap[key]) dailyApptMap[key] = { total: 0, completed: 0 };
@@ -179,13 +179,13 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
 
     // ═══ STATUS PIE ═══
     const sc: Unmodelled = {};
-    appointments.forEach(a => { const s = a.status || 'Pending'; sc[s] = (sc[s] || 0) + 1; });
+    appointments.forEach((a: Unmodelled) => { const s = a.status || 'Pending'; sc[s] = (sc[s] || 0) + 1; });
     const sColors: Unmodelled = { 'Completed': '#10b981', 'Cancelled': '#ef4444', 'Pending': '#f59e0b', 'Confirmed': '#3b82f6', 'In Queue': '#6366f1', 'Serving': '#8b5cf6', 'Missed': '#94a3b8' };
     const statusData = Object.entries(sc).map(([name, value]) => ({ name, value, color: sColors[name] || '#6366f1' }));
 
     // ═══ TYPE PIE ═══
     const tc: Unmodelled = {};
-    appointments.forEach(a => { const t: Unmodelled = a.type || 'Consultation'; tc[t] = (tc[t] || 0) + 1; });
+    appointments.forEach((a: Unmodelled) => { const t: Unmodelled = a.type || 'Consultation'; tc[t] = (tc[t] || 0) + 1; });
     const tColors: Unmodelled = { 'Consultation': '#3b82f6', 'Follow-up': '#8b5cf6', 'Check-up': '#10b981', 'Emergency': '#ef4444' };
     const typeData = Object.entries(tc).map(([name, value]) => ({ name, value, color: tColors[name] || '#6366f1' }));
 
@@ -196,15 +196,15 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
       const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       monthlyData.push({
         month: MONTH_LABELS[d.getMonth()],
-        Appointments: appointments.filter(a => a.date?.startsWith(mKey)).length,
-        Completed: appointments.filter(a => a.date?.startsWith(mKey) && a.status === 'Completed').length,
-        Tests: labBookings.filter(t => bd(t)?.startsWith(mKey)).length,
+        Appointments: appointments.filter((a: Unmodelled) => a.date?.startsWith(mKey)).length,
+        Completed: appointments.filter((a: Unmodelled) => a.date?.startsWith(mKey) && a.status === 'Completed').length,
+        Tests: labBookings.filter((t: Unmodelled) => bd(t)?.startsWith(mKey)).length,
       });
     }
 
     // ═══ PEAK HOURS ═══
     const hourlyDist = new Array(24).fill(0);
-    appointments.forEach(a => { if (a.time) { const h = parseInt(a.time.split(':')[0]) || 0; hourlyDist[h]++; } });
+    appointments.forEach((a: Unmodelled) => { if (a.time) { const h = parseInt(a.time.split(':')[0]) || 0; hourlyDist[h]++; } });
     const peakHours = [
       { slot: '6–9 AM', value: hourlyDist.slice(6, 9).reduce((s, v) => s + v, 0), emoji: '🌅' },
       { slot: '9–12 PM', value: hourlyDist.slice(9, 12).reduce((s, v) => s + v, 0), emoji: '☀️' },
@@ -225,7 +225,7 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
 
     const HEAT_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     for (let w: Unmodelled = 0; w < 4; w++) {
-      const weekRow = { week: `W${w + 1}`, cells: [] };
+      const weekRow = { week: `W${w + 1}`, cells: [] as Unmodelled[] };
       for (let d = 0; d < 7; d++) {
         const cellDate = new Date(startRef);
         cellDate.setDate(startRef.getDate() + w * 7 + d);
@@ -241,11 +241,11 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
       heatmapRows.push(weekRow);
     }
     let heatMax = 0;
-    heatmapRows.forEach(w => w.cells.forEach(c => { if (c.value > heatMax) heatMax = c.value; }));
+    heatmapRows.forEach((w: Unmodelled) => w.cells.forEach((c: Unmodelled) => { if (c.value > heatMax) heatMax = c.value; }));
 
     // ═══ TEST STATUS ═══
     const tsc: Unmodelled = {};
-    labBookings.forEach(t => { const s = t.status || 'Pending'; tsc[s] = (tsc[s] || 0) + 1; });
+    labBookings.forEach((t: Unmodelled) => { const s = t.status || 'Pending'; tsc[s] = (tsc[s] || 0) + 1; });
     const tsColors: Unmodelled = { 'Pending': '#f59e0b', 'Confirmed': '#3b82f6', 'Sample Collected': '#8b5cf6', 'Processing': '#6366f1', 'Completed': '#10b981', 'Cancelled': '#ef4444', 'Rescheduled': '#f97316' };
     const testStatusData = Object.entries(tsc).map(([name, value]) => ({ name, value, color: tsColors[name] || '#6366f1' }));
 
@@ -364,7 +364,7 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
               <PieChart>
                 <Pie data={stats.statusData.length ? stats.statusData : [{ name: 'No Data', value: 1, color: '#334155' }]}
                   dataKey="value" nameKey="name" innerRadius={60} outerRadius={88} paddingAngle={3} strokeWidth={0}>
-                  {(stats.statusData.length ? stats.statusData : [{ name: 'No Data', value: 1, color: '#334155' }]).map(d => (
+                  {(stats.statusData.length ? stats.statusData : [{ name: 'No Data', value: 1, color: '#334155' }]).map((d: Unmodelled) => (
                     <Cell key={d.name} fill={d.color} />
                   ))}
                 </Pie>
@@ -377,7 +377,7 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 mt-3">
-            {stats.statusData.map(d => (
+            {stats.statusData.map((d: Unmodelled) => (
               <div key={d.name} className="flex items-center gap-1.5 text-xs py-1">
                 <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: d.color }} />
                 <span className="text-muted-foreground truncate">{d.name}</span>
@@ -434,7 +434,7 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
               <PieChart>
                 <Pie data={stats.testStatusData.length ? stats.testStatusData : [{ name: 'No Data', value: 1, color: '#334155' }]}
                   dataKey="value" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={3} strokeWidth={0}>
-                  {(stats.testStatusData.length ? stats.testStatusData : [{ name: 'No Data', value: 1, color: '#334155' }]).map(d => (
+                  {(stats.testStatusData.length ? stats.testStatusData : [{ name: 'No Data', value: 1, color: '#334155' }]).map((d: Unmodelled) => (
                     <Cell key={d.name} fill={d.color} />
                   ))}
                 </Pie>
@@ -447,7 +447,7 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
             </div>
           </div>
           <div className="space-y-1.5 mt-2">
-            {stats.testStatusData.map(d => (
+            {stats.testStatusData.map((d: Unmodelled) => (
               <div key={d.name} className="flex items-center gap-2 text-xs py-1 px-2 rounded-lg hover:bg-muted/30 transition-colors">
                 <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: d.color }} />
                 <span className="text-muted-foreground font-medium truncate">{d.name}</span>
@@ -463,8 +463,8 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
         {/* Peak Hours */}
         <GlassCard title="Peak Hours" subtitle="Busiest time slots" icon={Timer} iconColor="text-amber-500">
           <div className="space-y-4">
-            {stats.peakHours.map((h, i) => {
-              const maxVal = Math.max(...stats.peakHours.map(p => p.value), 1);
+            {stats.peakHours.map((h: Unmodelled, i: Unmodelled) => {
+              const maxVal = Math.max(...stats.peakHours.map((p: Unmodelled) => p.value), 1);
               const pct = Math.round((h.value / maxVal) * 100);
               const isPeak = h.slot === stats.peakSlot?.slot && h.value > 0;
               return (
@@ -537,10 +537,10 @@ export default function DoctorAnalyticsView({ appointments = [], patients = [], 
                   ))}
                 </div>
                 {/* Week rows */}
-                {stats.heatmapRows.map((week, wi) => (
+                {stats.heatmapRows.map((week: Unmodelled, wi: Unmodelled) => (
                   <div key={wi} className="flex items-center gap-1.5 mb-1.5">
                     <div className="w-8 text-[9px] text-muted-foreground font-bold">{week.week}</div>
-                    {week.cells.map((cell, ci) => {
+                    {week.cells.map((cell: Unmodelled, ci: Unmodelled) => {
                       const intensity = stats.heatMax > 0 ? cell.value / stats.heatMax : 0;
                       
                       // Enhanced styling for cells

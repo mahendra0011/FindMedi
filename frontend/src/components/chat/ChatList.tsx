@@ -19,7 +19,7 @@ const timeLabel = (dateLike: Unmodelled) => {
   const now = new Date();
   const sameDay = d.toDateString() === now.toDateString();
   if (sameDay) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const diffDays = Math.floor((now - d) / 86400000);
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
   if (diffDays < 7) return d.toLocaleDateString([], { weekday: 'short' });
   return d.toLocaleDateString([], { day: '2-digit', month: 'short' });
 };
@@ -66,7 +66,7 @@ export default function ChatList({
   const [showContacts, setShowContacts] = useState(false);
   const [contactQuery, setContactQuery] = useState('');
 
-  const filtered = useMemo(() => conversations.filter((c) => {
+  const filtered = useMemo(() => conversations.filter((c: Unmodelled) => {
     if (filter === 'unread' && !c.unread) return false;
     if (filter === 'archived' && !c.archived) return false;
     if (filter === 'locked' && !c.locked) return false;
@@ -87,7 +87,7 @@ export default function ChatList({
     const q = contactQuery.trim().toLowerCase();
     const list = contacts || [];
     if (!q) return list.slice(0, 40);
-    return list.filter((c) =>
+    return list.filter((c: Unmodelled) =>
       (c.user?.name || '').toLowerCase().includes(q) ||
       (c.user?.email || '').toLowerCase().includes(q) ||
       (c.user?.uhid || '').toLowerCase().includes(q) ||
@@ -160,7 +160,7 @@ export default function ChatList({
           <div className="px-3 py-2 flex items-center gap-2 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
             <ShieldAlert className="w-3.5 h-3.5" /> Message requests ({requests.length})
           </div>
-          {requests.map((r) => (
+          {requests.map((r: Unmodelled) => (
             <div key={r._id} className="px-3 pb-3">
               <div className="flex items-center gap-3 mb-2">
                 <Avatar user={r.other} size={10} />
@@ -218,7 +218,7 @@ export default function ChatList({
               Koi contact nahi mila. Chat sirf un doctors/patients ke saath hoti hai jinke saath appointment hai.
             </p>
           )}
-          {visibleContacts.map((c) => (
+          {visibleContacts.map((c: Unmodelled) => (
             <button
               key={c.user._id}
               onClick={() => { onNewChat?.(c); setShowContacts(false); }}
@@ -268,7 +268,7 @@ export default function ChatList({
           </div>
         )}
 
-        {filtered.map((c) => {
+        {filtered.map((c: Unmodelled) => {
           const peer = peerOf(c);
           const typing = typingUsers[c._id];
           const recording = recordingUsers[c._id];
@@ -360,7 +360,7 @@ export default function ChatList({
 
       <div className="px-3 py-2 border-t border-border flex items-center justify-between text-[10px] text-muted-foreground">
         <span className="flex items-center gap-1">
-          <CheckCheck className="w-3 h-3" /> {conversations.reduce((s, c) => s + (c.unread || 0), 0)} unread
+          <CheckCheck className="w-3 h-3" /> {conversations.reduce((s: Unmodelled, c: Unmodelled) => s + (c.unread || 0), 0)} unread
         </span>
         <span className="flex items-center gap-1">
           <Stethoscope className="w-3 h-3" /> Doctor ↔ Patient only

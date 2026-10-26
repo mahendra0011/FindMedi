@@ -88,7 +88,7 @@ export default function Signup() {
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   // Handle Google Account selection
-  const handleGoogleCredential = async (idToken: Unmodelled, accessToken: Unmodelled) => {
+  const handleGoogleCredential = async (idToken: Unmodelled, accessToken?: Unmodelled) => {
     setError('');
     setGoogleLoading(true);
     try {

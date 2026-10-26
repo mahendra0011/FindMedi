@@ -285,7 +285,7 @@ export default function ClinicNotifications() {
                 </div>
               )}
               {!detailModal.read && (
-                <Button className="w-full" onClick={() => { markRead(detailModal._id); setDetailModal(prev => ({ ...prev, read: true })); }}>
+                <Button className="w-full" onClick={() => { markRead(detailModal._id); setDetailModal((prev: Unmodelled) => ({ ...prev, read: true })); }}>
                   <CheckCheck className="w-4 h-4 mr-1" /> Mark as Read
                 </Button>
               )}

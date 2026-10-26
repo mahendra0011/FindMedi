@@ -43,7 +43,7 @@ export default function GlobalCatalog() {
       setCategories(catList);
 
       const seen: Unmodelled = {};
-      const dups = [];
+      const dups: Unmodelled[] = [];
       (Array.isArray(testList) ? testList : []).forEach(t => {
         const key = t.name?.toLowerCase().trim();
         if (seen[key]) { dups.push({ a: seen[key], b: t }); }

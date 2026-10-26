@@ -150,8 +150,8 @@ export default function OverviewTab({ data, users, totals, loading, load, export
                 </h3>
                 <div className="space-y-2">
                   {Object.entries(data.stats.usersByRole || {}).length > 0 ? (
-                    Object.entries(data.stats.usersByRole).map(([name, count]) => {
-                      const total = Object.values(data.stats.usersByRole).reduce((a, b) => a + b, 0);
+                    Object.entries(data.stats.usersByRole).map(([name, count]: Unmodelled) => {
+                      const total: Unmodelled = Object.values(data.stats.usersByRole).reduce((a: Unmodelled, b: Unmodelled) => a + b, 0);
                       const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
                       const colors: Unmodelled = {
                         user: { bar: "from-blue-500 to-blue-400", dot: "bg-blue-500" },
@@ -190,8 +190,8 @@ export default function OverviewTab({ data, users, totals, loading, load, export
                 </h3>
                 <div className="space-y-2">
                   {Object.entries(data.stats.appointmentsByStatus || {}).length > 0 ? (
-                    Object.entries(data.stats.appointmentsByStatus).map(([name, count]) => {
-                      const total = Object.values(data.stats.appointmentsByStatus).reduce((a, b) => a + b, 0);
+                    Object.entries(data.stats.appointmentsByStatus).map(([name, count]: Unmodelled) => {
+                      const total: Unmodelled = Object.values(data.stats.appointmentsByStatus).reduce((a: Unmodelled, b: Unmodelled) => a + b, 0);
                       const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
                       const colors: Unmodelled = {
                         completed: { bar: "from-emerald-500 to-emerald-400", dot: "bg-emerald-500" },

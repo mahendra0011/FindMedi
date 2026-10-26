@@ -100,7 +100,7 @@ export default function LabStaff() {
               {[ {key:'name', label:'Full Name'}, {key:'role', label:'Role'}, {key:'email', label:'Email', type:'email'}, {key:'phone', label:'Phone'}, {key:'department', label:'Department'}, {key:'qualification', label:'Qualification'}, {key:'joinDate', label:'Join Date', type:'date'} ].map(f => (
                 <div key={f.key}>
                   <label className="text-sm font-medium mb-1 block">{f.label}</label>
-                  <Input type={f.type || 'text'} value={form[f.key]} onChange={e => setForm({...form, [f.key]: e.target.value})} required={f.key === 'name' || f.key === 'role'} />
+                  <Input type={f.type || 'text'} value={(form as Unmodelled)[f.key]} onChange={e => setForm({...form, [f.key]: e.target.value})} required={f.key === 'name' || f.key === 'role'} />
                 </div>
               ))}
               <div>

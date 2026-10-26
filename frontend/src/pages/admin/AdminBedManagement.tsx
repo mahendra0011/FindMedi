@@ -121,7 +121,7 @@ export default function AdminBedManagement() {
               (acc[f] = acc[f] || []).push(b);
               return acc;
             }, {})
-          ).map(([floor, list]) => (
+          ).map(([floor, list]: Unmodelled) => (
             <div key={floor} className="rounded-2xl border border-border/60 p-4">
               <p className="text-sm font-bold mb-3">Floor: {floor} <span className="text-muted-foreground font-normal">({list.length} beds · {list.filter((b: Unmodelled) => b.status === 'Available').length} free)</span></p>
               <div className="space-y-3">
@@ -130,7 +130,7 @@ export default function AdminBedManagement() {
                     (acc[b.ward || 'General'] = acc[b.ward || 'General'] || []).push(b);
                     return acc;
                   }, {})
-                ).map(([ward, beds]) => (
+                ).map(([ward, beds]: Unmodelled) => (
                   <div key={ward}>
                     <p className="text-xs font-semibold text-muted-foreground mb-1.5">{ward}</p>
                     <div className="flex flex-wrap gap-1.5">

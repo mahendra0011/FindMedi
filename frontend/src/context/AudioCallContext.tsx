@@ -13,7 +13,7 @@ import {
 } from '@/lib/audioCallSounds';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const AudioCallContext = createContext(null);
+const AudioCallContext = createContext<Unmodelled>(null);
 
 const ICE_SERVERS = {
   iceServers: [
@@ -62,7 +62,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
   const qualityIntervalRef = useRef<Unmodelled>(null);
   const stopToneRef = useRef<Unmodelled>(null);
   const mediaRecorderRef: Unmodelled = useRef<Unmodelled>(null);
-  const recordedChunksRef = useRef([]);
+  const recordedChunksRef = useRef<Unmodelled[]>([]);
   const recordingAudioCtxRef: Unmodelled = useRef<Unmodelled>(null);
 
   // Create remote audio element on mount
@@ -70,7 +70,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
     if (!remoteAudioElemRef.current) {
       const audio = document.createElement('audio');
       audio.autoplay = true;
-      audio.playsInline = true;
+      (audio as Unmodelled).playsInline = true;
       remoteAudioElemRef.current = audio;
     }
   }, []);
@@ -291,7 +291,7 @@ export function AudioCallProvider({ children }: Unmodelled) {
     }
 
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const AudioCtx = window.AudioContext || (window as Unmodelled).webkitAudioContext;
       const ctx = new AudioCtx();
       recordingAudioCtxRef.current = ctx;
 

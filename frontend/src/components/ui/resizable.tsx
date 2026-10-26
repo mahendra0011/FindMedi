@@ -1,7 +1,7 @@
 "use client"
 
 import { GripVertical } from "lucide-react"
-import { Group as ResizablePanelGroupPrimitive, Panel as ResizablePanelPrimitive, Separator as ResizableHandlePrimitive } from "react-resizable-panels"
+import { PanelGroup as ResizablePanelGroupPrimitive, Panel as ResizablePanelPrimitive, PanelResizeHandle as ResizableHandlePrimitive } from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
 

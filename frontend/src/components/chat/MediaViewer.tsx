@@ -24,8 +24,8 @@ export default function MediaViewer({ items = [], index = 0, onClose, onForward,
   useEffect(() => {
     const onKey = (e: Unmodelled) => {
       if (e.key === 'Escape') onClose?.();
-      if (e.key === 'ArrowRight') setCurrent((c) => (c + 1) % items.length);
-      if (e.key === 'ArrowLeft') setCurrent((c) => (c - 1 + items.length) % items.length);
+      if (e.key === 'ArrowRight') setCurrent((c: Unmodelled) => (c + 1) % items.length);
+      if (e.key === 'ArrowLeft') setCurrent((c: Unmodelled) => (c - 1 + items.length) % items.length);
       if (e.key === '+' || e.key === '=') setZoom((z) => Math.min(z + 0.25, 4));
       if (e.key === '-') setZoom((z) => Math.max(z - 0.25, 1));
     };
@@ -35,8 +35,8 @@ export default function MediaViewer({ items = [], index = 0, onClose, onForward,
 
   if (!item) return null;
 
-  const next = () => setCurrent((c) => (c + 1) % items.length);
-  const prev = () => setCurrent((c) => (c - 1 + items.length) % items.length);
+  const next = () => setCurrent((c: Unmodelled) => (c + 1) % items.length);
+  const prev = () => setCurrent((c: Unmodelled) => (c - 1 + items.length) % items.length);
   // CHAT-M-02: server stores `mimeType` (camelCase); tolerate legacy lowercase.
   const mime = item.mimeType || item.mimetype;
   const isImage = mime?.startsWith('image/');
@@ -165,7 +165,7 @@ export default function MediaViewer({ items = [], index = 0, onClose, onForward,
 
       {items.length > 1 && (
         <div className="px-3 sm:px-5 py-2.5 border-t border-white/10 flex items-center gap-2 overflow-x-auto scrollbar-hide">
-          {items.map((it, i) => (
+          {items.map((it: Unmodelled, i: Unmodelled) => (
             <button
               key={`${it.url}-${i}`}
               onClick={() => setCurrent(i)}

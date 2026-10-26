@@ -45,17 +45,17 @@ export default function Physiotherapy() {
   const [dischargeData, setDischargeData] = useState({ outcome: 'Improved', homeExercisePlan: '', precautions: '', followUpDate: '', summary: '' });
   const [newReferral, setNewReferral] = useState({ patientName: '', patientId: '', diagnosis: '', referringDoctor: '', priority: 'Routine', notes: '' });
 
-  const { data } = useQuery({ queryKey: ['physio', search, statusFilter], queryFn: () => physioApi.getReferrals({ search, status: statusFilter }) });
-  const { data: stats } = useQuery({ queryKey: ['physio-stats'], queryFn: physioApi.getStats });
+  const { data }: Unmodelled = useQuery({ queryKey: ['physio', search, statusFilter], queryFn: () => physioApi.getReferrals({ search, status: statusFilter }) });
+  const { data: stats }: Unmodelled = useQuery({ queryKey: ['physio-stats'], queryFn: physioApi.getStats });
   const referrals = data?.referrals || [];
 
   const createMut = useMutation({ mutationFn: physioApi.createReferral, onSuccess: () => { qc.invalidateQueries(['physio']); setShowCreate(false); } });
-  const assessMut = useMutation({ mutationFn: ({ id, ...b }) => physioApi.startAssessment(id, b), onSuccess: () => { qc.invalidateQueries(['physio']); setShowAssessment(null); } });
-  const planMut = useMutation({ mutationFn: ({ id, ...b }) => physioApi.createPlan(id, b), onSuccess: () => { qc.invalidateQueries(['physio']); setShowPlan(null); } });
-  const sessionMut = useMutation({ mutationFn: ({ id, ...b }) => physioApi.addSession(id, b), onSuccess: () => { qc.invalidateQueries(['physio']); setShowSession(null); } });
-  const reviewMut = useMutation({ mutationFn: ({ id, ...b }) => physioApi.midReview(id, b), onSuccess: () => { qc.invalidateQueries(['physio']); setShowReview(null); } });
-  const dischargeMut = useMutation({ mutationFn: ({ id, ...b }) => physioApi.discharge(id, b), onSuccess: () => { qc.invalidateQueries(['physio']); setShowDischarge(null); } });
-  const billingMut = useMutation({ mutationFn: ({ id, ...b }) => physioApi.addToBilling(id, b), onSuccess: () => qc.invalidateQueries(['physio']) });
+  const assessMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => physioApi.startAssessment(id, b), onSuccess: () => { qc.invalidateQueries(['physio']); setShowAssessment(null); } });
+  const planMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => physioApi.createPlan(id, b), onSuccess: () => { qc.invalidateQueries(['physio']); setShowPlan(null); } });
+  const sessionMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => physioApi.addSession(id, b), onSuccess: () => { qc.invalidateQueries(['physio']); setShowSession(null); } });
+  const reviewMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => physioApi.midReview(id, b), onSuccess: () => { qc.invalidateQueries(['physio']); setShowReview(null); } });
+  const dischargeMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => physioApi.discharge(id, b), onSuccess: () => { qc.invalidateQueries(['physio']); setShowDischarge(null); } });
+  const billingMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => physioApi.addToBilling(id, b), onSuccess: () => qc.invalidateQueries(['physio']) });
 
   return (
     <div>
@@ -471,7 +471,7 @@ export default function Physiotherapy() {
                 <div><label className="text-sm font-medium mb-1 block">Priority</label><select value={newReferral.priority} onChange={e => setNewReferral({ ...newReferral, priority: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Routine', 'Urgent', 'Emergency'].map(p => <option key={p} value={p}>{p}</option>)}</select></div>
               </div>
               <div><label className="text-sm font-medium mb-1 block">Notes</label><textarea value={newReferral.notes} onChange={e => setNewReferral({ ...newReferral, notes: e.target.value })} className="w-full min-h-[60px] rounded-lg border border-input bg-background px-3 py-2 text-sm" /></div>
-              <Button className="w-full" onClick={() => createMut.mutate(newReferral)} disabled={createMut.isPending || !newReferral.patientName || !newReferral.diagnosis}>Create Referral</Button>
+              <Button className="w-full" onClick={() => createMut.mutate((newReferral as Unmodelled))} disabled={createMut.isPending || !newReferral.patientName || !newReferral.diagnosis}>Create Referral</Button>
             </div>
           </div>
         </div>

@@ -57,21 +57,21 @@ export default function IPD() {
   const [newDoctorNote, setNewDoctorNote] = useState({ subjective: '', objective: '', assessment: '', plan: '' });
   const [dischargeForm, setDischargeForm] = useState({ summary: '', medicines: '', followUpDate: '', instructions: '' });
 
-  const { data: bedsData } = useQuery({ queryKey: ['beds', wardFilter], queryFn: () => ipdApi.getBeds({ ward: wardFilter }) });
-  const { data: admissionsData } = useQuery({ queryKey: ['admissions', search], queryFn: () => ipdApi.getAdmissions({ search }) });
-  const { data: stats } = useQuery({ queryKey: ['ipd-stats'], queryFn: ipdApi.getStats });
+  const { data: bedsData }: Unmodelled = useQuery({ queryKey: ['beds', wardFilter], queryFn: () => ipdApi.getBeds({ ward: wardFilter }) });
+  const { data: admissionsData }: Unmodelled = useQuery({ queryKey: ['admissions', search], queryFn: () => ipdApi.getAdmissions({ search }) });
+  const { data: stats }: Unmodelled = useQuery({ queryKey: ['ipd-stats'], queryFn: ipdApi.getStats });
 
   const beds = bedsData?.beds || [];
   const admissions = admissionsData?.admissions || [];
 
   const createBedMut = useMutation({ mutationFn: ipdApi.createBed, onSuccess: () => { qc.invalidateQueries(['beds']); setShowAdd(false); } });
   const admitMut = useMutation({ mutationFn: ipdApi.createAdmission, onSuccess: () => { qc.invalidateQueries(['admissions', 'beds']); setShowAdd(false); } });
-  const dischargeMut = useMutation({ mutationFn: ({ id, ...b }) => ipdApi.discharge(id, b), onSuccess: () => qc.invalidateQueries(['admissions', 'beds']) });
-  const vitalsMut = useMutation({ mutationFn: ({ id, ...b }) => ipdApi.addVitals(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
-  const marMut = useMutation({ mutationFn: ({ id, ...b }) => ipdApi.addMar(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
-  const ioMut = useMutation({ mutationFn: ({ id, ...b }) => ipdApi.addIO(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
-  const nursingNoteMut = useMutation({ mutationFn: ({ id, ...b }) => ipdApi.addNursingNote(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
-  const doctorNoteMut = useMutation({ mutationFn: ({ id, ...b }) => ipdApi.addDoctorNote(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
+  const dischargeMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => ipdApi.discharge(id, b), onSuccess: () => qc.invalidateQueries(['admissions', 'beds']) });
+  const vitalsMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => ipdApi.addVitals(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
+  const marMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => ipdApi.addMar(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
+  const ioMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => ipdApi.addIO(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
+  const nursingNoteMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => ipdApi.addNursingNote(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
+  const doctorNoteMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => ipdApi.addDoctorNote(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
   
 
   const renderAdmissionDetails = (adm: Unmodelled) => {
@@ -284,7 +284,7 @@ export default function IPD() {
               <div><label className="text-sm font-medium mb-1 block">Floor</label><Input value={newBed.floor} onChange={e => setNewBed({ ...newBed, floor: e.target.value })} placeholder="e.g. 1st" /></div>
               <div className="col-span-2 flex items-center gap-2"><input type="checkbox" checked={newBed.isAC} onChange={e => setNewBed({ ...newBed, isAC: e.target.checked })} className="w-4 h-4" /><label className="text-sm">AC Room</label></div>
             </div>
-            <Button className="w-full mt-6" onClick={() => createBedMut.mutate(newBed)} disabled={createBedMut.isPending || !newBed.bedNumber}>Add Bed</Button>
+            <Button className="w-full mt-6" onClick={() => createBedMut.mutate((newBed as Unmodelled))} disabled={createBedMut.isPending || !newBed.bedNumber}>Add Bed</Button>
           </div>
         </div>
       )}
@@ -303,7 +303,7 @@ export default function IPD() {
                 <div><label className="text-sm font-medium mb-1 block">Attendant Phone</label><Input value={newAdmission.attendantPhone} onChange={e => setNewAdmission({ ...newAdmission, attendantPhone: e.target.value })} /></div>
               </div>
               <div><label className="text-sm font-medium mb-1 block">Estimated Stay (days)</label><Input type="number" value={newAdmission.estimatedStay} onChange={e => setNewAdmission({ ...newAdmission, estimatedStay: e.target.value })} /></div>
-              <Button className="w-full" onClick={() => admitMut.mutate(newAdmission)} disabled={admitMut.isPending || !newAdmission.patientName}>Admit Patient</Button>
+              <Button className="w-full" onClick={() => admitMut.mutate((newAdmission as Unmodelled))} disabled={admitMut.isPending || !newAdmission.patientName}>Admit Patient</Button>
             </div>
           </div>
         </div>

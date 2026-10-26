@@ -157,7 +157,7 @@ export default function Reports() {
                     {/* Summary Cards */}
                     {reportData.summary && Object.keys(reportData.summary).length > 0 && (
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                        {Object.entries(reportData.summary).map(([key, value]) => (
+                        {Object.entries(reportData.summary).map(([key, value]: Unmodelled) => (
                           <div key={key} className="bg-muted/20 rounded-lg p-3 text-center">
                             <p className="text-lg font-bold text-foreground">{value}</p>
                             <p className="text-xs text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</p>

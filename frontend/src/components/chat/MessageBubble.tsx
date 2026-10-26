@@ -118,8 +118,8 @@ function AudioPlayer({ url, isMine, duration, isVoice }: Unmodelled) {
         ref={ref}
         src={url}
         preload="metadata"
-        onLoadedMetadata={(e) => { if (!total) setTotal(e.target.duration || 0); e.target.playbackRate = speed; }}
-        onTimeUpdate={(e) => setProgress(e.target.currentTime)}
+        onLoadedMetadata={(e) => { if (!total) setTotal((e.target as Unmodelled).duration || 0); (e.target as Unmodelled).playbackRate = speed; }}
+        onTimeUpdate={(e) => setProgress((e.target as Unmodelled).currentTime)}
         onEnded={() => { setPlaying(false); setProgress(0); }}
       />
       <div className="flex-1 min-w-0">
@@ -166,7 +166,7 @@ function ReactionRow({ reactions = [], isMine, onToggle, onShowDetails }: Unmode
   if (!reactions.length) return null;
   return (
     <div className={`flex flex-wrap gap-1 mt-1 ${isMine ? 'justify-end' : ''}`}>
-      {reactions.map((r) => (
+      {reactions.map((r: Unmodelled) => (
         <button
           key={r.emoji}
           onClick={(e) => { e.stopPropagation(); onToggle?.(r.emoji); }}
@@ -446,7 +446,7 @@ export default function MessageBubble({
           <div className={`flex items-center gap-1 justify-end mt-0.5 text-[10px] leading-none ${isMine ? 'text-white/75' : 'text-muted-foreground'}`}>
             {message.starred && <Star className="w-3 h-3 fill-current" />}
             {message.edited && !isDeleted && <span className="italic">edited</span>}
-            {message.expiresAt && <Clock className="w-3 h-3" title="Disappearing message" />}
+            {message.expiresAt && <Clock className="w-3 h-3" aria-label="Disappearing message" />}
             <span>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             {isMine && <Ticks state={state} />}
           </div>

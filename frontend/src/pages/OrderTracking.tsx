@@ -60,7 +60,7 @@ export default function OrderTracking() {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { addItem } = useCart();
+  const { addItem }: Unmodelled = useCart();
 
   const hasRx   = searchParams.get('rx')      === 'true';
   const storeId = searchParams.get('storeId') || 's1';

@@ -99,7 +99,7 @@ export function AppearanceSettings({ prefs, setPrefs, theme, onThemeChange, priv
 
   const update = (patch: Unmodelled) => {
     setPrefs(patch);
-    const serverPatch = {};
+    const serverPatch: Unmodelled = {};
     if (patch.wallpaper !== undefined) serverPatch.wallpaper = patch.wallpaper;
     if (patch.bubbleStyle !== undefined) serverPatch.bubbleStyle = patch.bubbleStyle;
     if (patch.density !== undefined) serverPatch.density = patch.density;
@@ -263,7 +263,7 @@ export function StorageSettings({ storage, prefs, setPrefs, setPrivacyField, pri
         </div>
         {storage?.byType && (
           <div className="space-y-1.5">
-            {Object.entries(storage.byType).map(([type, bytes]) => (
+            {Object.entries(storage.byType).map(([type, bytes]: Unmodelled) => (
               <div key={type} className="flex items-center gap-2 text-[12px]">
                 <span className="w-20 capitalize text-muted-foreground">{type}</span>
                 <span className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
@@ -491,7 +491,7 @@ export function PrivacySettings({ privacy, setPrivacyField, blocked = [], onUnbl
 
       <SectionCard title="Blocked users" description={`${blocked.length} blocked user${blocked.length === 1 ? '' : 's'}`}>
         {blocked.length === 0 && <p className="text-[12px] text-muted-foreground py-2">Abhi koi user blocked nahi hai.</p>}
-        {blocked.map((b) => (
+        {blocked.map((b: Unmodelled) => (
           <Row key={b._id} icon={Ban} title={b.name || 'User'} description={b.role}>
             <button
               onClick={() => onUnblock?.(b._id)}
@@ -504,7 +504,7 @@ export function PrivacySettings({ privacy, setPrivacyField, blocked = [], onUnbl
       </SectionCard>
 
       <SectionCard title="My reports" description="Aapne jo report kiya, uska status.">
-        {reports.slice(0, 6).map((r) => (
+        {reports.slice(0, 6).map((r: Unmodelled) => (
           <Row
             key={r._id}
             icon={Flag}
@@ -565,7 +565,7 @@ export function ChatsSettings({ privacy, setPrivacyField, prefs, setPrefs, locks
 
       <SectionCard title="Locked chats" description="Chat lock se chat list me preview hide ho jata hai aur PIN maangta hai.">
         {locks.length === 0 && <p className="text-[12px] text-muted-foreground py-2">Koi chat locked nahi hai.</p>}
-        {locks.map((c) => (
+        {locks.map((c: Unmodelled) => (
           <Row key={c._id} icon={Lock} title={c.other?.name || 'Chat'} description="Locked">
             <button onClick={() => onOpenLocked?.(c)} className="px-2.5 py-1.5 rounded-lg bg-muted hover:bg-muted/70 text-[11px] font-medium">
               Open
@@ -723,7 +723,7 @@ export function AccountSecuritySettings({ privacy, setPrivacyField, pinSet, onSe
 export function AccessibilitySettings({ prefs, setPrefs, privacy, setPrivacyField }: Unmodelled) {
   const set = (patch: Unmodelled) => {
     setPrefs(patch);
-    const serverPatch = {};
+    const serverPatch: Unmodelled = {};
     if (patch.fontScale !== undefined) serverPatch.fontScale = patch.fontScale;
     if (patch.reduceMotion !== undefined) serverPatch.reduceMotion = patch.reduceMotion;
     if (patch.animations !== undefined) serverPatch.animations = patch.animations;
@@ -803,7 +803,7 @@ export function SafetySettings({ blocked = [], onUnblock, reports = [], privacy,
     <>
       <SectionCard title="Blocking" description="Blocked user na message bhej sakta, na call kar sakta.">
         {blocked.length === 0 && <p className="text-[12px] text-muted-foreground py-2">Koi user blocked nahi hai.</p>}
-        {blocked.map((b) => (
+        {blocked.map((b: Unmodelled) => (
           <Row key={b._id} icon={Ban} title={b.name || 'User'} description={b.role}>
             <button onClick={() => onUnblock?.(b._id)} className="px-2.5 py-1.5 rounded-lg bg-muted hover:bg-muted/70 text-[11px] font-medium">
               Unblock
@@ -838,7 +838,7 @@ export function SafetySettings({ blocked = [], onUnblock, reports = [], privacy,
       </SectionCard>
 
       <SectionCard title="My reports" description="Aapke reports ka status.">
-        {reports.slice(0, 8).map((r) => (
+        {reports.slice(0, 8).map((r: Unmodelled) => (
           <Row
             key={r._id}
             icon={Flag}

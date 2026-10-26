@@ -63,16 +63,16 @@ export default function MentalHealth() {
   const [confData, setConfData] = useState({ consentGiven: false, shareWithFamily: false, shareWithDoctor: true, accessLevel: 'Care Team Only', notes: '' });
   const [newCase, setNewCase] = useState({ patientName: '', source: 'Doctor', diagnosis: '', riskLevel: 'Low', notes: '', isConfidential: false });
 
-  const { data } = useQuery({ queryKey: ['mental', search, statusFilter], queryFn: () => mhApi.getCases({ search, status: statusFilter }) });
-  const { data: stats } = useQuery({ queryKey: ['mental-stats'], queryFn: mhApi.getStats });
+  const { data }: Unmodelled = useQuery({ queryKey: ['mental', search, statusFilter], queryFn: () => mhApi.getCases({ search, status: statusFilter }) });
+  const { data: stats }: Unmodelled = useQuery({ queryKey: ['mental-stats'], queryFn: mhApi.getStats });
   const cases = data?.cases || [];
 
   const createMut = useMutation({ mutationFn: mhApi.createCase, onSuccess: () => { qc.invalidateQueries(['mental']); setShowCreate(false); } });
-  const assessMut = useMutation({ mutationFn: ({ id, ...b }) => mhApi.addAssessment(id, b), onSuccess: () => { qc.invalidateQueries(['mental']); setShowAssessment(null); } });
-  const mseMut = useMutation({ mutationFn: ({ id, ...b }) => mhApi.addMse(id, b), onSuccess: () => { qc.invalidateQueries(['mental']); setShowMse(null); } });
-  const planMut = useMutation({ mutationFn: ({ id, ...b }) => mhApi.createPlan(id, b), onSuccess: () => { qc.invalidateQueries(['mental']); setShowPlan(null); } });
-  const sessionMut = useMutation({ mutationFn: ({ id, ...b }) => mhApi.addSession(id, b), onSuccess: () => { qc.invalidateQueries(['mental']); setShowSession(null); } });
-  const confMut = useMutation({ mutationFn: ({ id, ...b }) => mhApi.updateConfidentiality(id, b), onSuccess: () => { qc.invalidateQueries(['mental']); setShowConfidentiality(null); } });
+  const assessMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => mhApi.addAssessment(id, b), onSuccess: () => { qc.invalidateQueries(['mental']); setShowAssessment(null); } });
+  const mseMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => mhApi.addMse(id, b), onSuccess: () => { qc.invalidateQueries(['mental']); setShowMse(null); } });
+  const planMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => mhApi.createPlan(id, b), onSuccess: () => { qc.invalidateQueries(['mental']); setShowPlan(null); } });
+  const sessionMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => mhApi.addSession(id, b), onSuccess: () => { qc.invalidateQueries(['mental']); setShowSession(null); } });
+  const confMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => mhApi.updateConfidentiality(id, b), onSuccess: () => { qc.invalidateQueries(['mental']); setShowConfidentiality(null); } });
 
   const icd10Codes = [
     'F32.0 - Mild Depressive Episode', 'F32.1 - Moderate Depressive Episode', 'F32.2 - Severe Depressive Episode',
@@ -497,7 +497,7 @@ export default function MentalHealth() {
                 <input type="checkbox" checked={newCase.isConfidential} onChange={e => setNewCase({ ...newCase, isConfidential: e.target.checked })} className="w-4 h-4" />
                 Mark as Confidential
               </label>
-              <Button className="w-full" onClick={() => createMut.mutate(newCase)} disabled={createMut.isPending || !newCase.patientName}>Create Case</Button>
+              <Button className="w-full" onClick={() => createMut.mutate((newCase as Unmodelled))} disabled={createMut.isPending || !newCase.patientName}>Create Case</Button>
             </div>
           </div>
         </div>

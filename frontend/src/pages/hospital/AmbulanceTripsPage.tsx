@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { Unmodelled } from '@/lib/apiTypes';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -109,15 +110,15 @@ export default function AmbulanceTripsPage() {
     try {
       setLoading(true);
       const [tripsRes, logsRes]: any = await Promise.all([
-        api.get('/ambulance-trips/trips', { params: { ambulanceId: selectedAmbulanceId || undefined } }),
-        api.get('/ambulance-trips/logs', { params: { ambulanceId: selectedAmbulanceId || undefined } }),
+        (api as Unmodelled).get('/ambulance-trips/trips', { params: { ambulanceId: selectedAmbulanceId || undefined } }),
+        (api as Unmodelled).get('/ambulance-trips/logs', { params: { ambulanceId: selectedAmbulanceId || undefined } }),
       ]);
       setTrips(tripsRes.data?.trips || []);
       setLogs(logsRes.data?.logs || []);
 
       if (selectedAmbulanceId) {
         try {
-          const statsRes: any = await api.get('/ambulance-trips/stats', { params: { ambulanceId: selectedAmbulanceId } });
+          const statsRes: any = await (api as Unmodelled).get('/ambulance-trips/stats', { params: { ambulanceId: selectedAmbulanceId } });
           setStats(statsRes.data);
         } catch {
           setStats(null);

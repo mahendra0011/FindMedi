@@ -98,7 +98,7 @@ export default function DoctorInPersonAppointments() {
 
   // Clinic coordinates (from doctor's facility or central default)
   const clinicCoordinates = useMemo(() => {
-    return [77.2180, 28.6280]; // Central medical hub coordinates
+    return [77.2180, 28.6280] as [number, number]; // Central medical hub coordinates
   }, []);
 
   // Fetch appointments
@@ -231,7 +231,7 @@ export default function DoctorInPersonAppointments() {
     return [
       (patientLocationData.coordinates[0] + clinicCoordinates[0]) / 2,
       (patientLocationData.coordinates[1] + clinicCoordinates[1]) / 2,
-    ];
+    ] as [number, number];
   }, [patientLocationData, clinicCoordinates]);
 
   // Status counts

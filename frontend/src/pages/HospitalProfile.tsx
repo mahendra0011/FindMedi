@@ -35,11 +35,11 @@ import ReviewDialog from '@/components/ReviewDialog';
 import { userFacingError } from '@/lib/errorCopy';
 
 // ─── Animation Variants ────────────────────────────────────────────────────
-const stagger = {
+const stagger: Unmodelled = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.06, delayChildren: 0.1 } }
 };
-const fadeUp = {
+const fadeUp: Unmodelled = {
   hidden: { opacity: 0, y: 30 },
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } }
 };
@@ -109,7 +109,7 @@ export default function HospitalProfile() {
   const [testRxFilter, setTestRxFilter] = useState('all');
   const [testHomeFilter, setTestHomeFilter] = useState('all');
   const [testSort, setTestSort] = useState('popularity');
-  const [priceRange, setPriceRange] = useState('all');
+  const [priceRange, setPriceRange] = useState<Unmodelled>('all');
   const [testCatalog, setTestCatalog] = useState<ApiRow[]>([]);
 
   const carouselRef = useRef<Unmodelled>(null);
@@ -279,7 +279,7 @@ export default function HospitalProfile() {
     return next;
   });
 
-  const DEPARTMENTS = [];
+  const DEPARTMENTS: Unmodelled[] = [];
 
   const apiTestDept = testCatalog.length > 0 ? [{
     id:'lab-tests', name:'Lab Tests', icon:FlaskConical, count:testCatalog.length,

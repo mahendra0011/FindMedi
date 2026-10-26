@@ -65,7 +65,7 @@ export default function KycCommand() {
     if (!silent) setLoading(true);
     try {
       const q = QUEUES.find((x) => x.key === key);
-      const list = await q.fetch();
+      const list = await (q as Unmodelled).fetch();
       setItems(Array.isArray(list) ? list : []);
       setCounts((c) => ({ ...c, [key]: Array.isArray(list) ? list.length : 0 }));
     } catch { if (!silent) toast.error(`Failed to load ${key} queue`); }
@@ -84,12 +84,12 @@ export default function KycCommand() {
 
   useEffect(() => { loadQueue(active); loadCounts(); }, [active, loadQueue, loadCounts]);
 
-  const queue = QUEUES.find((q) => q.key === active);
+  const queue = QUEUES.find((q) => q.key === active)!;
 
   const approve = async (id: Unmodelled) => {
     setActingId(id);
     try {
-      await queue.approve(id);
+      await queue.approve!(id);
       toast.success('Approved successfully');
       loadQueue(active, true);
       loadCounts();
@@ -99,10 +99,10 @@ export default function KycCommand() {
 
   const reject = async (id: Unmodelled) => {
     if (!rejectReason.trim()) { toast.error('Pick a rejection template or type a reason'); return; }
-    if (!queue.reject) { toast.error('Reject is not supported for this queue yet'); return; }
+    if (!(queue.reject as Unmodelled)) { toast.error('Reject is not supported for this queue yet'); return; }
     setActingId(id);
     try {
-      await queue.reject(id, rejectReason.trim());
+      await queue.reject!(id, rejectReason.trim());
       toast.success('Rejected with reason dispatched');
       setRejectingId(null);
       setRejectReason('');
@@ -121,8 +121,8 @@ export default function KycCommand() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Single pan-platform verification queue with standardized rejection reasons</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => window.open(queue.deepLink, '_self')} className="gap-1.5">
-          <ExternalLink className="w-3.5 h-3.5" /> Open {queue.label} workspace
+        <Button variant="outline" size="sm" onClick={() => window.open(queue.deepLink!, '_self')} className="gap-1.5">
+          <ExternalLink className="w-3.5 h-3.5" /> Open {queue.label!} workspace
         </Button>
       </div>
 
@@ -158,7 +158,7 @@ export default function KycCommand() {
         <div className="text-center py-16 text-muted-foreground">
           <CheckCircle className="w-10 h-10 mx-auto mb-3 text-success" />
           <p className="font-semibold text-foreground">Queue clear</p>
-          <p className="text-sm">No pending {queue.label.toLowerCase()} applications.</p>
+          <p className="text-sm">No pending {(queue.label as Unmodelled).toLowerCase()} applications.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -183,7 +183,7 @@ export default function KycCommand() {
                         <Button size="sm" className="bg-success hover:bg-success/90 gap-1.5" disabled={actingId === id} onClick={() => approve(id)}>
                           <CheckCircle className="w-3.5 h-3.5" /> Approve
                         </Button>
-                        {queue.reject && (
+                        {(queue.reject as Unmodelled) && (
                           <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5" onClick={() => setRejectingId(id)}>
                             <XCircle className="w-3.5 h-3.5" /> Reject
                           </Button>

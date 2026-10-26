@@ -79,7 +79,7 @@ export default function OTPVerification() {
       }
 
       if (data?.token && data?.user) {
-        completeOtpLogin({ token: data.token, user: data.user });
+        completeOtpLogin({ token: data.token, user: data.user } as Unmodelled);
       }
 
       navigate('/dashboard');

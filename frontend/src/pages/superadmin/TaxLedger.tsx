@@ -162,7 +162,7 @@ export default function TaxLedger() {
             <span className="text-xs text-muted-foreground">Quarter (fiscal):</span>
             <select value={quarter} onChange={(e) => setQuarter(e.target.value)} className="h-9 rounded-lg border border-input bg-background px-2 text-sm">
               {(() => {
-                const out = [];
+                const out: Unmodelled[] = [];
                 const now = new Date();
                 for (let i = 0; i < 8; i++) {
                   const d = new Date(now.getFullYear(), now.getMonth() - i * 3, 1);

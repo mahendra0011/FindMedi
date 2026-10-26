@@ -119,7 +119,7 @@ export default function PatientProfile() {
           ].map(f => (
             <div key={f.key}>
               <label className="text-sm font-medium mb-1 block">{f.label}</label>
-              <Input type={f.type || 'text'} value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} />
+              <Input type={f.type || 'text'} value={(form as Unmodelled)[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} />
             </div>
           ))}
         </div>

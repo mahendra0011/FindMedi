@@ -104,7 +104,7 @@ export default function PatientBookingHistory({ initialType }: { initialType?: s
 
       // Sort by createdAt descending (newest first)
       const merged = [...appointments, ...labBookings, ...pharmacyOrders].sort(
-        (a, b) => new Date(b.displayDate) - new Date(a.displayDate)
+        (a, b) => (+new Date(b.displayDate)) - (+new Date(a.displayDate))
       );
 
       setBookings(merged);

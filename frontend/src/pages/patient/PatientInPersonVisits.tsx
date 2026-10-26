@@ -91,7 +91,7 @@ export default function PatientInPersonVisits() {
   const [intakeAppt, setIntakeAppt] = useState<Unmodelled>(null);
 
   // User's live GPS coordinates (browser or fallback)
-  const [userLocation, setUserLocation] = useState([77.2090, 28.6139]); // Default Central Delhi
+  const [userLocation, setUserLocation] = useState<[number, number]>([77.2090, 28.6139]); // Default Central Delhi
   const [geoLocating, setGeoLocating] = useState(false);
 
   // Get user browser location
@@ -190,12 +190,12 @@ export default function PatientInPersonVisits() {
 
   // Derive Clinic Coordinates
   const clinicCoordinates = useMemo(() => {
-    if (!selectedAppt) return [77.2180, 28.6280];
+    if (!selectedAppt) return [77.2180, 28.6280] as [number, number];
     const hospLoc = selectedAppt.hospitalId?.location?.coordinates;
     if (Array.isArray(hospLoc) && hospLoc.length === 2 && hospLoc[0] && hospLoc[1]) {
-      return [hospLoc[0], hospLoc[1]];
+      return [hospLoc[0], hospLoc[1]] as [number, number];
     }
-    return [77.2180, 28.6280];
+    return [77.2180, 28.6280] as [number, number];
   }, [selectedAppt]);
 
   // Distance & ETA calculation from patient's current location to clinic
@@ -219,7 +219,7 @@ export default function PatientInPersonVisits() {
     return [
       (userLocation[0] + clinicCoordinates[0]) / 2,
       (userLocation[1] + clinicCoordinates[1]) / 2,
-    ];
+    ] as [number, number];
   }, [userLocation, clinicCoordinates]);
 
   // Patient Transit Action: update "on_the_way" or "arrived"

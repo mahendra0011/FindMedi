@@ -42,25 +42,25 @@ export default function NursingCharts() {
   });
 
   const createVitalsMut = useMutation({
-    mutationFn: (b) => api.createVitalsChart(b),
+    mutationFn: (b: Unmodelled) => api.createVitalsChart(b),
     onSuccess: () => { toast.success('Vitals recorded'); setChartDialog(false); refetch(); },
     onError: (e) => toast.error(e.message),
   });
 
   const createMARMut = useMutation({
-    mutationFn: (b) => api.createMARChart(b),
+    mutationFn: (b: Unmodelled) => api.createMARChart(b),
     onSuccess: () => { toast.success('MAR entry recorded'); setChartDialog(false); refetch(); },
     onError: (e) => toast.error(e.message),
   });
 
   const createIOMut = useMutation({
-    mutationFn: (b) => api.createIOChart(b),
+    mutationFn: (b: Unmodelled) => api.createIOChart(b),
     onSuccess: () => { toast.success('I/O entry recorded'); setChartDialog(false); refetch(); },
     onError: (e) => toast.error(e.message),
   });
 
   const createWoundMut = useMutation({
-    mutationFn: (b) => api.createWoundChart(b),
+    mutationFn: (b: Unmodelled) => api.createWoundChart(b),
     onSuccess: () => { toast.success('Wound dressing recorded'); setChartDialog(false); refetch(); },
     onError: (e) => toast.error(e.message),
   });

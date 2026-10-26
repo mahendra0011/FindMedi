@@ -89,8 +89,8 @@ export default function AppMotion({ children }: Unmodelled) {
       elements.forEach((element) => {
         if (!isVisibleCandidate(element)) return;
 
-        element.dataset.motionReady = 'true';
-        element.style.setProperty('--motion-index', String(sequence % 8));
+        (element as HTMLElement).dataset.motionReady = 'true';
+        (element as HTMLElement).style.setProperty('--motion-index', String(sequence % 8));
         element.classList.add('motion-reveal');
         revealObserver.observe(element);
         if (isInViewport(element)) {

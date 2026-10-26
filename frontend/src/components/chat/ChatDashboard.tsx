@@ -62,7 +62,7 @@ export default function ChatDashboard() {
   const [replyTo, setReplyTo] = useState<Unmodelled>(null);
   const [editMessage, setEditMessage] = useState<Unmodelled>(null);
   const [showEmoji, setShowEmoji] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState<Unmodelled>(false);
   const [pendingAttachments, setPendingAttachments] = useState<ApiRow[]>([]);
   const fileInputRef: Unmodelled = useRef<Unmodelled>(null);
   const [highlightId, setHighlightId] = useState<any>(null);
@@ -191,7 +191,7 @@ export default function ChatDashboard() {
   );
 
   const grouped = useMemo(() => {
-    const out = [];
+    const out: Unmodelled[] = [];
     let lastDay = '';
     messages.forEach((m) => {
       const day = new Date(m.createdAt).toDateString();
@@ -506,7 +506,7 @@ export default function ChatDashboard() {
   }, []);
 
   const handleFilesPicked = useCallback(async (fileList: Unmodelled) => {
-    const files = Array.from(fileList || []);
+    const files: Unmodelled[] = Array.from(fileList || []);
     if (!files.length) return;
     setUploading(0.15);
     try {
@@ -533,7 +533,7 @@ export default function ChatDashboard() {
       const type = mime?.startsWith('image/') ? 'image'
         : mime?.startsWith('video/') ? 'video'
           : mime?.startsWith('audio/') ? 'audio' : 'file';
-      await sendMessage({ text: draftText.trim(), type, attachments: uploaded });
+      await sendMessage({ text: draftText.trim(), type, attachments: uploaded } as Unmodelled);
     } catch (err: any) {
       setUploading(false);
       toast.error(userFacingError(err, { fallback: 'Upload fail' }));
@@ -545,7 +545,7 @@ export default function ChatDashboard() {
     try {
       const meta = await uploadDataUrl(dataUrl, `voice-${Date.now()}.webm`);
       setUploading(false);
-      await sendMessage({ type: 'voice', attachments: [{ ...meta, duration }] });
+      await sendMessage({ type: 'voice', attachments: [{ ...meta, duration }] } as Unmodelled);
     } catch (err: any) {
       setUploading(false);
       toast.error(userFacingError(err, { fallback: 'Voice message fail' }));
@@ -774,7 +774,7 @@ export default function ChatDashboard() {
   useEffect(() => {
     const isDark = document.documentElement.classList.contains('dark');
     const convWall = readConversationWallpapers()[uid(selectedId)] || prefs.wallpaper;
-    const css = wallpaperCss(convWall, isDark);
+    const css = (wallpaperCss as Unmodelled)(convWall, isDark);
     const el = document.getElementById('chat-wallpaper');
     if (el) el.style.cssText = css;
   }, [selectedId, prefs.wallpaper, theme]);

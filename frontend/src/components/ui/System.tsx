@@ -19,7 +19,7 @@ export function AlertBanner({ alerts = [], onAck, onSnooze }: Unmodelled) {
   if (!alerts.length) return null;
   return (
     <div className="space-y-1.5" role="alert">
-      {alerts.filter(a => a.status === 'open').slice(0, 5).map(a => (
+      {alerts.filter((a: Unmodelled) => a.status === 'open').slice(0, 5).map((a: Unmodelled) => (
         <div key={a._id} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
           a.severity === 'critical' ? 'border-red-300 bg-red-50 text-red-900'
           : a.severity === 'warning' ? 'border-amber-300 bg-amber-50 text-amber-900'
@@ -131,7 +131,7 @@ export function DataGrid({
   renderDetail,
 }: Unmodelled) {
   const [globalFilter, setGlobalFilter] = useState('');
-  const [sorting, setSorting] = useState<ApiRow[]>([]);
+  const [sorting, setSorting] = useState<Unmodelled[]>([]);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize });
   const parentRef = useRef<Unmodelled>(null);
 
@@ -140,7 +140,7 @@ export function DataGrid({
     setPagination(p => (p.pageSize === pageSize ? p : { ...p, pageSize, pageIndex: 0 }));
   }, [pageSize]);
 
-  const tanstackColumns = useMemo(() => columns.map(c => ({
+  const tanstackColumns = useMemo(() => columns.map((c: Unmodelled) => ({
     id: c.key,
     accessorFn: (row: Unmodelled) => row[c.key],
     header: c.label,
@@ -153,7 +153,7 @@ export function DataGrid({
   const globalFilterFn = useCallback((row: Unmodelled, _columnId: Unmodelled, filterValue: Unmodelled) => {
     const needle = String(filterValue ?? '').trim().toLowerCase();
     if (!needle) return true;
-    return columns.some(c => String(row.getValue(c.key) ?? '').toLowerCase().includes(needle));
+    return columns.some((c: Unmodelled) => String(row.getValue(c.key) ?? '').toLowerCase().includes(needle));
   }, [columns]);
 
   const table = useReactTable({
@@ -168,7 +168,7 @@ export function DataGrid({
     // would otherwise hand TanStack duplicate row ids, and React then keys two
     // <tr>s identically — rendering the row twice and breaking sort order.
     // The index is the SOURCE index, so it stays stable across sorts.
-    getRowId: (row, index) => `${rowKey != null && row?.[rowKey] != null ? String(row[rowKey]) : 'row'}-${index}`,
+    getRowId: (row: Unmodelled, index) => `${rowKey != null && (row as Unmodelled)?.[rowKey] != null ? String(row[rowKey]) : 'row'}-${index}`,
     globalFilterFn,
     // TanStack's auto sort dir is DESC for numeric columns. Every other list in
     // this product starts with the first click = ascending, so pin it.
@@ -232,7 +232,7 @@ export function DataGrid({
         onClick={onRowClick ? () => onRowClick(r) : undefined}
         className={[onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-colors' : '', rowClassName ? rowClassName(r) : ''].filter(Boolean).join(' ') || undefined}
       >
-        {columns.map(c => (
+        {columns.map((c: Unmodelled) => (
           <td key={c.key} className="px-3 py-2 text-sm">
             {c.render ? c.render(r[c.key], r) : String(r[c.key] ?? '')}
           </td>
@@ -360,7 +360,7 @@ export function FilterBar({ filters = [], value = {}, onChange }: Unmodelled) {
   const set = (key: Unmodelled, val: Unmodelled) => onChange({ ...value, [key]: val });
   return (
     <div className="flex flex-wrap gap-2">
-      {filters.map(f => {
+      {filters.map((f: Unmodelled) => {
         if (f.type === 'select') {
           return (
             <select

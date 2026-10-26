@@ -19,6 +19,7 @@ import { useSettings } from '@/store/useSettingsStore';
 import { applyUserSettings } from '@/lib/settings';
 import { getISTDateString } from '@/lib/dateUtils';
 import { userFacingError } from '@/lib/errorCopy';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const COLORS = ['hsl(174,62%,38%)','hsl(210,80%,55%)','hsl(38,92%,50%)','hsl(152,60%,42%)','hsl(210,12%,50%)'];
 
@@ -127,7 +128,7 @@ type ApiError = Error & { response?: { data?: { message?: string } } };
  */
 function apiErrorMessage(error: unknown): string {
   if (!error) return '';
-  const status = (error as ApiError)?.response?.status;
+  const status: Unmodelled = (error as Unmodelled)?.response?.status;
   // Aborted/ignored queries must not produce a banner.
   if (status === undefined && (error as Error)?.name === 'CanceledError') return '';
   return userFacingError(error);

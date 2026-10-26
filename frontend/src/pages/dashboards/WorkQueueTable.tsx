@@ -157,52 +157,6 @@ export const ROLE_QUEUE_DATA: Record<string, Record<string, WorkQueueItem[]>> = 
     ],
   },
 
-  lab_technician: {
-    'Accession & Barcode Queue': [
-      { id: 'ACC-819', name: 'Aarav Sharma (Blood Sample)', meta: 'Test: Complete Blood Count (CBC) + ESR', detail: 'Barcoded purple EDTA vial · Ward 2 collection', timeOrWait: 'Received 10m ago', status: 'Sample Accepted', statusColor: 'info', primaryActionLabel: 'Load on Analyzer', primaryActionRoute: '/hospital/lab?tab=results' },
-      { id: 'ACC-820', name: 'Sunita Devi (Serum Sample)', meta: 'Test: HbA1c + Lipid Profile', detail: 'Barcoded yellow SST tube · Fasting verified', timeOrWait: 'Received 20m ago', status: 'Sample Accepted', statusColor: 'info', primaryActionLabel: 'Load on Analyzer', primaryActionRoute: '/hospital/lab?tab=results' },
-    ],
-    'Processing Workbench': [
-      { id: 'RUN-14', name: 'Sysmex XN-550 Hematology Batch', meta: 'Batch: 8 samples in run', detail: 'QC Passed · Automated differential count in progress', timeOrWait: 'ETA 8 mins', status: 'Analyzer Running', statusColor: 'warn', primaryActionLabel: 'View Analyzer Logs', primaryActionRoute: '/hospital/lab?tab=qc' },
-    ],
-    'QC Calibration Log': [
-      { id: 'QC-01', name: 'Bio-Rad Lyphochek Level 1 & 2', meta: 'Hematology & Biochemistry', detail: 'All standard deviations within +/- 2 SD limits', timeOrWait: '08:00 AM Today', status: 'QC 100% Passed', statusColor: 'success', primaryActionLabel: 'View Levey-Jennings', primaryActionRoute: '/hospital/lab?tab=qc' },
-    ],
-    'Results Awaiting Review': [
-      { id: 'RES-401', name: 'Mohan Lal (Emergency Troponin I)', meta: 'Result: 0.84 ng/mL (High / Panic)', detail: 'Critical alert telephoned to ER Doctor on duty', timeOrWait: 'Panic Flagged', status: 'Critical Value Flagged', statusColor: 'urgent', primaryActionLabel: 'Sign & Release', primaryActionRoute: '/hospital/lab?tab=critical' },
-    ],
-  },
-
-  radiology_technician: {
-    'Modality Worklist Queue': [
-      { id: 'RAD-101', name: 'Vikram Malhotra (Chest X-Ray PA)', meta: 'Modality: Digital X-Ray Room 1', detail: 'Rule out pneumonia / consolidation · Patient ready', timeOrWait: 'Waiting 10m', status: 'Patient Ready', statusColor: 'info', primaryActionLabel: 'Acquire Image', primaryActionRoute: '/hospital/radiology?tab=worklist' },
-      { id: 'RAD-102', name: 'Emergency Polytrauma (CT Whole Body)', meta: 'Modality: 128-Slice CT Scanner', detail: 'Trauma protocol non-contrast head + chest/abdomen contrast', timeOrWait: 'Urgent Stat', status: 'Urgent Modality Call', statusColor: 'urgent', primaryActionLabel: 'Start CT Protocol', primaryActionRoute: '/hospital/radiology?tab=worklist' },
-    ],
-    'Contrast Safety Checklists': [
-      { id: 'CHK-01', name: 'Emergency Polytrauma Contrast Consent', meta: 'Serum Creatinine: 0.9 mg/dL (Normal)', detail: 'eGFR: >90 · Allergy screening signed by radiologist', timeOrWait: 'Cleared', status: 'Safety Cleared', statusColor: 'success', primaryActionLabel: 'Log Injection', primaryActionRoute: '/hospital/radiology?tab=safety' },
-    ],
-    'PACS Push Status Log': [
-      { id: 'DICOM-88', name: 'Series: Vikram Malhotra Chest X-Ray', meta: 'Images: 2 DICOM frames', detail: 'Pushed to Hospital PACS server · Ready for radiologist reporting', timeOrWait: 'Transferred', status: 'PACS Synced ✅', statusColor: 'success', primaryActionLabel: 'Open in PACS', primaryActionRoute: '/hospital/radiology?tab=pacs' },
-    ],
-  },
-
-  radiologist: {
-    'PACS Unread Queue': [
-      { id: 'PACS-01', name: 'Vikram Malhotra (HRCT Chest)', meta: '128-Slice CT Scanner · 340 Slices', detail: 'Rule out pulmonary embolism and ARDS consolidation · Non-contrast protocol', timeOrWait: 'Ordered 15m ago', status: 'Unread Urgent', statusColor: 'urgent', primaryActionLabel: 'Open Web PACS', primaryActionRoute: '/hospital/radiology?tab=pacs' },
-      { id: 'PACS-02', name: 'Sunita Devi (MRI Brain with Contrast)', meta: '3T MRI · T1, T2, FLAIR, DWI series', detail: 'Chronic progressive headache · Exclude mass lesion or infarction', timeOrWait: 'Ordered 40m ago', status: 'Awaiting Report', statusColor: 'warn', primaryActionLabel: 'Dictate Report', primaryActionRoute: '/hospital/radiology?tab=reporting' },
-      { id: 'PACS-03', name: 'Pooja Nair (X-Ray Lumbar Spine)', meta: 'Digital Radiography (Room 1)', detail: 'Chronic lower back pain · AP and Lateral standing projections', timeOrWait: 'Ordered 1h ago', status: 'Routine Queue', statusColor: 'info', primaryActionLabel: 'Sign & Release', primaryActionRoute: '/hospital/radiology?tab=signoff' },
-    ],
-    'Stat / Urgent Studies': [
-      { id: 'URG-RAD-01', name: 'Emergency Trauma Patient #1', meta: 'Casualty Trauma Protocol NCCT Head', detail: 'Acute left subdural hematoma 7mm with 4mm midline shift · Neuro alert required', timeOrWait: 'Critical Stat', status: 'Critical Finding Flagged', statusColor: 'urgent', primaryActionLabel: 'Telephone Alert ER', primaryActionRoute: '/hospital/radiology?tab=critical' },
-    ],
-    'Voice Dictation Queue': [
-      { id: 'DICT-01', name: 'Ultrasound Whole Abdomen Batch', meta: '5 Completed Sonography Studies', detail: 'Cholelithiasis and renal calculi cases awaiting speech-to-text report compilation', timeOrWait: '5 in Queue', status: 'Voice Draft Ready', statusColor: 'info', primaryActionLabel: 'Open Dictation', primaryActionRoute: '/hospital/radiology?tab=reporting' },
-    ],
-    'Finalized Reports': [
-      { id: 'FIN-01', name: 'Today Signed Diagnostic Archive', meta: '64 Studies Validated Today', detail: 'All reports electronically signed with digital certificate and delivered to EMR', timeOrWait: '64 Delivered', status: 'EMR Synced ✅', statusColor: 'success', primaryActionLabel: 'View Archive', primaryActionRoute: '/hospital/radiology?tab=pacs' },
-    ],
-  },
-
   pharmacist: {
     'OPD Dispensing Queue': [
       { id: 'RX-901', name: 'Aarav Sharma (Prescription)', meta: 'Prescribed by: Dr. Sharma · 3 Items', detail: 'Tab Amoxiclav 625mg (10 tabs) · Paracetamol 650mg (15 tabs) · Cetirizine 10mg (10 tabs)', timeOrWait: '5m waiting', status: 'Awaiting Dispense', statusColor: 'warn', primaryActionLabel: 'Dispense & Scan Barcode', primaryActionRoute: '/hospital/pharmacy?tab=dispense' },

@@ -758,7 +758,7 @@ export default function DoctorDashboard() {
                     const Icon = meta.icon;
                     const d1 = new Date(today + 'T00:00:00');
                     const d2 = new Date(apt.date + 'T00:00:00');
-                    const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+                    const diffDays = Math.round((Number(d2) - Number(d1)) / (1000 * 60 * 60 * 24));
                     const relativeBadge = diffDays === 1 ? 'Tomorrow' : diffDays > 1 && diffDays <= 7 ? `In ${diffDays} days` : formatDisplayDate(apt.date);
 
                     return (

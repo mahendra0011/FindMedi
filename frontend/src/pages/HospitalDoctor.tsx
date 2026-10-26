@@ -28,7 +28,7 @@ import DoctorCard from '@/components/DoctorCard';
 import { getISTDateString } from '@/lib/dateUtils';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const fadeUp = {
+const fadeUp: Unmodelled = {
   hidden: { opacity: 0, y: 30 },
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } }
 };
@@ -157,8 +157,8 @@ export default function HospitalDoctor() {
   const ratingBreakdown = () => {
     const counts: Unmodelled = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     (Array.isArray(reviews) ? reviews : []).forEach(r => { if (r.rating >= 1 && r.rating <= 5) counts[r.rating]++; });
-    const max = Math.max(...Object.values(counts), 1);
-    return Object.entries(counts).reverse().map(([star, count]) => (
+    const max = Math.max(...(Object.values(counts) as number[]), 1);
+    return Object.entries(counts).reverse().map(([star, count]: Unmodelled) => (
       <div key={star} className="flex items-center gap-2 text-sm">
         <span className="text-muted-foreground w-6 text-right">{star}</span>
         <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />

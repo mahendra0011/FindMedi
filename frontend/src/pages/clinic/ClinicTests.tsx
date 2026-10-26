@@ -12,7 +12,7 @@ const testCategories = ['Basic', 'Lab', 'Imaging', 'Cardiac', 'Other'];
 const DEPARTMENTS = ['Pathology', 'Radiology', 'Cardiology', 'Health Packages'];
 const REPORT_TIMES = ['30 mins', '1 hr', '2 hrs', '6 hrs', '12 hrs', '24 hrs', '48 hrs', '72 hrs'];
 
-const defaultTests = [
+const defaultTests: Unmodelled[] = [
   { _id: 't1', name: 'Blood Pressure Check', price: 100, mrp: 150, category: 'Basic', department: 'Pathology', reportTime: '30 mins' },
   { _id: 't2', name: 'Blood Sugar Test', price: 150, mrp: 200, category: 'Lab', department: 'Pathology', reportTime: '1 hr' },
   { _id: 't3', name: 'Full Blood Count', price: 300, mrp: 400, category: 'Lab', department: 'Pathology', reportTime: '6 hrs' },
@@ -357,7 +357,7 @@ export default function ClinicTests() {
                   { key: 'nablAccredited', label: 'NABL Accredited' },
                 ].map(toggle => (
                   <label key={toggle.key} className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border border-border/40 hover:bg-muted/30">
-                    <input type="checkbox" checked={form[toggle.key]} onChange={e => setForm({ ...form, [toggle.key]: e.target.checked })} className="rounded border-border/60" />
+                    <input type="checkbox" checked={(form as Unmodelled)[toggle.key]} onChange={e => setForm({ ...form, [toggle.key]: e.target.checked })} className="rounded border-border/60" />
                     <span className="text-sm text-foreground">{toggle.label}</span>
                   </label>
                 ))}

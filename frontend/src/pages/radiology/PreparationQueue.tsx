@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { Unmodelled } from '@/lib/apiTypes';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -44,7 +45,7 @@ export default function PreparationQueue() {
       items.push({ item: d, done: Boolean(hit?.done) });
     }
     for (const s of stored) {
-      if (!items.some((i: string) => i.item === s.item)) items.push({ item: s.item, done: Boolean(s.done) });
+      if (!items.some((i: Unmodelled) => i.item === s.item)) items.push({ item: s.item, done: Boolean(s.done) });
     }
     return items;
   };

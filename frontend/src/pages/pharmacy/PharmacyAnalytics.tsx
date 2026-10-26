@@ -43,14 +43,14 @@ export default function PharmacyAnalytics() {
         medRevenue[item.medicineName] = (medRevenue[item.medicineName] || 0) + (item.price * item.qty);
       }));
       const popular = Object.entries(medRevenue)
-        .sort((a, b) => b[1] - a[1])
+        .sort((a: Unmodelled, b: Unmodelled) => b[1] - a[1])
         .slice(0, 5)
         .map(([name, revenue], _i) => ({
           name,
           count: orders.filter((o: Unmodelled) => o.items?.some((i: Unmodelled) => i.medicineName === name)).length,
           revenue,
         }));
-      setAnalytics(prev => ({
+      setAnalytics((prev: Unmodelled) => ({
         ...prev,
         totalMedicines: stats.totalMedicines || 0,
         totalOrders: stats.totalOrders || 0,

@@ -20,7 +20,7 @@ export default function UserManagementTab() {
   const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { search, role: roleFilter };
+      const params: Unmodelled = { search, role: roleFilter };
       if (showFlagged) params.flagged = 'true';
       const data = await api.getUsers(params);
       setUsers(data?.users || data?.data || data || []);

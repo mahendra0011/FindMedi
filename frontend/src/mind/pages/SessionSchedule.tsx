@@ -153,7 +153,7 @@ const SessionSchedule = () => {
 
   useEffect(() => {
     if (counsellorsStatus === "idle") {
-      dispatch(fetchCounsellors());
+      (dispatch as Unmodelled)(fetchCounsellors());
     }
     setLoading(true);
     api.get("/api/appointments/my")
@@ -238,7 +238,7 @@ const SessionSchedule = () => {
           ? `${selectedCounsellor.name} is confirmed. Session deducted from your ${userPackage?.planName || "package"}.`
           : `${selectedCounsellor.name} is confirmed for ${selectedPlan.name}. Payment receipt sent to your email.`,
       });
-      dispatch(fetchCounsellors());
+      (dispatch as Unmodelled)(fetchCounsellors());
     } catch (error: any) {
       toast({ variant: "destructive", title: "Booking failed", description: error?.message || "" });
     } finally {

@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const inr = (n: Unmodelled) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
-const countOf = (res: Unmodelled, keys = []) => {
+const countOf = (res: Unmodelled, keys: Unmodelled = []) => {
   if (!res) return 0;
   if (Array.isArray(res)) return res.length;
   for (const k of keys) {

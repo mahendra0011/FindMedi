@@ -36,15 +36,15 @@ export default function TriagePage() {
     vitals: {}, isMLCO: false,
   });
 
-  const { data } = useQuery({ queryKey: ['triage', search, triageFilter], queryFn: () => triageApi.getAll({ search, triageLevel: triageFilter }) });
-  const { data: stats } = useQuery({ queryKey: ['triage-stats'], queryFn: triageApi.getStats });
+  const { data }: Unmodelled = useQuery({ queryKey: ['triage', search, triageFilter], queryFn: () => triageApi.getAll({ search, triageLevel: triageFilter }) });
+  const { data: stats }: Unmodelled = useQuery({ queryKey: ['triage-stats'], queryFn: triageApi.getStats });
   const entries = data?.entries || [];
 
   const createMut = useMutation({ mutationFn: triageApi.create, onSuccess: () => { qc.invalidateQueries(['triage', 'triage-stats']); setShowCreate(false); } });
-  const assignMut = useMutation({ mutationFn: ({ id, ...b }) => triageApi.assign(id, b), onSuccess: () => qc.invalidateQueries(['triage']) });
-  const mlcMut = useMutation({ mutationFn: ({ id, ...b }) => triageApi.addMlc(id, b), onSuccess: () => qc.invalidateQueries(['triage']) });
-  const noteMut = useMutation({ mutationFn: ({ id, ...b }) => triageApi.addNote(id, b), onSuccess: () => qc.invalidateQueries(['triage']) });
-  const dischargeMut = useMutation({ mutationFn: ({ id }) => triageApi.update(id, { status: 'Discharged', dischargedAt: new Date() }), onSuccess: () => qc.invalidateQueries(['triage', 'triage-stats']) });
+  const assignMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => triageApi.assign(id, b), onSuccess: () => qc.invalidateQueries(['triage']) });
+  const mlcMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => triageApi.addMlc(id, b), onSuccess: () => qc.invalidateQueries(['triage']) });
+  const noteMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => triageApi.addNote(id, b), onSuccess: () => qc.invalidateQueries(['triage']) });
+  const dischargeMut = useMutation({ mutationFn: ({ id  }: Unmodelled) => triageApi.update(id, { status: 'Discharged', dischargedAt: new Date() }), onSuccess: () => qc.invalidateQueries(['triage', 'triage-stats']) });
 
   return (
     <div>
@@ -142,7 +142,7 @@ export default function TriagePage() {
                 <div><label className="text-sm font-medium mb-1 block">Brought By</label><Input value={newEntry.broughtBy} onChange={e => setNewEntry({ ...newEntry, broughtBy: e.target.value })} placeholder="e.g. Ambulance #123" /></div>
                 <div className="col-span-2"><label className="text-sm font-medium mb-1 block">Triage Notes</label><textarea value={newEntry.triageNotes} onChange={e => setNewEntry({ ...newEntry, triageNotes: e.target.value })} className="w-full min-h-[60px] rounded-lg border border-input bg-background px-3 py-2 text-sm" /></div>
               </div>
-              <Button className="w-full" onClick={() => createMut.mutate(newEntry)} disabled={createMut.isPending || !newEntry.patientName || !newEntry.chiefComplaint}>Create Triage Entry</Button>
+              <Button className="w-full" onClick={() => createMut.mutate((newEntry as Unmodelled))} disabled={createMut.isPending || !newEntry.patientName || !newEntry.chiefComplaint}>Create Triage Entry</Button>
             </div>
           </div>
         </div>

@@ -22,7 +22,7 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: U
 
   const mediaRef: Unmodelled = useRef<Unmodelled>(null);
   const streamRef: Unmodelled = useRef<Unmodelled>(null);
-  const chunksRef = useRef([]);
+  const chunksRef = useRef<Unmodelled[]>([]);
   const rafRef = useRef<Unmodelled>(null);
   const timerRef = useRef<Unmodelled>(null);
   const audioCtxRef: Unmodelled = useRef<Unmodelled>(null);
@@ -77,7 +77,7 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: U
       onRecordingChange?.(true);
 
       // Live waveform — AnalyserNode se amplitude nikaal kar bars banate hain
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = new (window.AudioContext || (window as Unmodelled).webkitAudioContext)();
       audioCtxRef.current = ctx;
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
@@ -86,7 +86,7 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: U
       const draw = () => {
         analyser.getByteFrequencyData(data);
         const level = data.reduce((a, b) => a + b, 0) / data.length;
-        setBars((prev) => [...prev.slice(-59), Math.min(100, Math.round(level * 1.6))]);
+        setBars((prev: Unmodelled) => [...prev.slice(-59), Math.min(100, Math.round(level * 1.6))]);
         rafRef.current = requestAnimationFrame(draw);
       };
       rafRef.current = requestAnimationFrame(draw);
@@ -145,7 +145,7 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: U
       <span className="text-[12px] font-mono tabular-nums w-10 flex-shrink-0">{formatDuration(seconds)}</span>
 
       <div className="flex-1 flex items-center gap-[2px] h-7 overflow-hidden">
-        {bars.slice(-46).map((b, i) => (
+        {bars.slice(-46).map((b: Unmodelled, i: Unmodelled) => (
           <span key={i} style={{ height: `${Math.max(12, b / 2.6)}px` }} className="w-[2.5px] rounded-full bg-primary/70" />
         ))}
       </div>

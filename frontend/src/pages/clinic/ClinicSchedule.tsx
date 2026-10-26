@@ -12,8 +12,8 @@ import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
-function generateTimeSlots(startTime: Unmodelled, endTime: Unmodelled, slotDuration: Unmodelled, breakTime = {}) {
-  const slots = [];
+function generateTimeSlots(startTime: Unmodelled, endTime: Unmodelled, slotDuration: Unmodelled, breakTime: Unmodelled = {}) {
+  const slots: Unmodelled[] = [];
   const toMins = (t: Unmodelled) => {
     if (!t) return null;
     const [h, m] = t.split(':').map(Number);
@@ -42,7 +42,7 @@ function generateTimeSlots(startTime: Unmodelled, endTime: Unmodelled, slotDurat
   return slots;
 }
 
-export default function ClinicSchedule() {
+export default function ClinicSchedule(_props: Unmodelled) {
   const { user } = useAuth();
   const [doctor, setDoctor] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +50,7 @@ export default function ClinicSchedule() {
   const [saved, setSaved] = useState(false);
   const [selectedSlots, setSelectedSlots] = useState<ApiRow[]>([]);
   const [schedule, setSchedule] = useState<ApiRow>({});
-  const [leaves, setLeaves] = useState<ApiRow[]>([]);
+  const [leaves, setLeaves] = useState<Unmodelled[]>([]);
   const [newLeave, setNewLeave] = useState('');
   const [slotDuration, setSlotDuration] = useState('15');
   const [bufferPerHour, setBufferPerHour] = useState('1');
@@ -64,9 +64,9 @@ export default function ClinicSchedule() {
   const [dateDisabledSlots, setDateDisabledSlots] = useState<ApiRow>({});
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
   // Slots already booked by patients for the selected date (read-only)
-  const [bookedSlots, setBookedSlots] = useState<ApiRow[]>([]);
+  const [bookedSlots, setBookedSlots] = useState<Unmodelled[]>([]);
 
-  const patientsPerHour = useMemo(() => Math.floor(60 / parseInt(slotDuration || 15)), [slotDuration]);
+  const patientsPerHour = useMemo(() => Math.floor(60 / parseInt((slotDuration || 15) as string)), [slotDuration]);
   const totalWorkingMinutes = useMemo(() => {
     const [sh, sm] = startTime.split(':').map(Number);
     const [eh, em] = endTime.split(':').map(Number);
@@ -198,7 +198,7 @@ export default function ClinicSchedule() {
     if (!m) return slot;
     let h = parseInt(m[1], 10) % 12; if (/PM/i.test(m[3])) h += 12;
     const mm = parseInt(m[2], 10);
-    const endMins = h * 60 + mm + parseInt(slotDuration || 15);
+    const endMins = h * 60 + mm + parseInt((slotDuration || 15) as string);
     const eh = Math.floor(endMins / 60) % 24;
     const eMin = endMins % 60;
     let e12 = eh % 12; if (e12 === 0) e12 = 12;

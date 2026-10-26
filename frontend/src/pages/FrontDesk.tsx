@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import PatientBanner from '@/components/clinical/PatientBanner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /**
  * File 09 §5.1 — front-desk stub: quick patient search (UHID/phone/name),
@@ -91,7 +92,7 @@ export default function FrontDesk() {
               }}>Check in</Button>
               <Button size="sm" variant="outline" onClick={async () => {
                 try {
-                  const r: any = await api.getBills({ patientId: selectedId, status: 'Unpaid', limit: 1 });
+                  const r: any = await (api as Unmodelled).getBills({ patientId: selectedId, status: 'Unpaid', limit: 1 });
                   const bill = (r?.data || r?.bills || [])[0];
                   if (bill) { setSelectedBillId(bill._id); toast.info(`Bill ${bill.invoiceId} — balance ₹${bill.balance ?? bill.amount}`); }
                   else toast.success('No unpaid bills');

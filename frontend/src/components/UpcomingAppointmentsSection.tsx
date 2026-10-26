@@ -23,7 +23,7 @@ function getRelativeDays(targetDate: Unmodelled, todayStr: Unmodelled) {
   const [y2, m2, d2] = targetDate.split('-').map(Number);
   const dt1 = new Date(y1, m1 - 1, d1);
   const dt2 = new Date(y2, m2 - 1, d2);
-  const diffDays = Math.round((dt2 - dt1) / (1000 * 60 * 60 * 24));
+  const diffDays = Math.round((Number(dt2) - Number(dt1)) / (1000 * 60 * 60 * 24));
 
   if (diffDays === 1) return 'Tomorrow';
   if (diffDays > 1) return `In ${diffDays} days`;
@@ -81,13 +81,13 @@ export default function UpcomingAppointmentsSection({
 
   // Filter only future confirmed/scheduled online appointments
   const upcomingList = useMemo(() => {
-    return appointments.filter(a => {
+    return appointments.filter((a: Unmodelled) => {
       const s = (a.status || '').toLowerCase();
       // Must be future date and confirmed or scheduled
       const isFuture = (a.date || '') > today;
       const isConfirmed = s === 'confirmed' || s === 'scheduled';
       return isFuture && isConfirmed;
-    }).sort((a, b) => {
+    }).sort((a: Unmodelled, b: Unmodelled) => {
       // Sort by date ascending, then time ascending
       if (a.date !== b.date) return (a.date || '').localeCompare(b.date || '');
       const ta = parseTime(a.time);
@@ -102,7 +102,7 @@ export default function UpcomingAppointmentsSection({
     let video = 0;
     let audio = 0;
     let chat = 0;
-    upcomingList.forEach(a => {
+    upcomingList.forEach((a: Unmodelled) => {
       const { mode } = getModeDetails(a);
       if (mode === 'video') video++;
       else if (mode === 'audio') audio++;
@@ -126,7 +126,7 @@ export default function UpcomingAppointmentsSection({
 
   // Apply filters
   const filteredAppointments = useMemo(() => {
-    return upcomingList.filter(a => {
+    return upcomingList.filter((a: Unmodelled) => {
       // Mode filter
       if (selectedMode !== 'all') {
         const { mode } = getModeDetails(a);
@@ -157,7 +157,7 @@ export default function UpcomingAppointmentsSection({
   // Group filtered appointments by date for structured reading
   const groupedByDate = useMemo(() => {
     const groups: Unmodelled = {};
-    filteredAppointments.forEach(apt => {
+    filteredAppointments.forEach((apt: Unmodelled) => {
       const dateKey = apt.date || 'Unknown';
       if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(apt);
@@ -332,7 +332,7 @@ export default function UpcomingAppointmentsSection({
         </div>
       ) : (
         <div className="space-y-6">
-          {Object.entries(groupedByDate).map(([dateStr, list]) => {
+          {Object.entries(groupedByDate).map(([dateStr, list]: Unmodelled) => {
             const relText = getRelativeDays(dateStr, today);
             return (
               <div key={dateStr} className="space-y-3">
@@ -363,7 +363,7 @@ export default function UpcomingAppointmentsSection({
                     const ModeIcon = modeDetails.icon;
                     const patient = apt.patientId;
                     const age = patient?.dateOfBirth
-                      ? Math.floor((new Date() - new Date(patient.dateOfBirth)) / 31557600000)
+                      ? Math.floor((+new Date() - +new Date(patient.dateOfBirth)) / 31557600000)
                       : null;
 
                     return (

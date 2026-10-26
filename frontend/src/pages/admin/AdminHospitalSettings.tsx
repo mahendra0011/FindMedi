@@ -76,7 +76,7 @@ function DoctorAutoConfirmList() {
 export default function AdminHospitalSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<Unmodelled>({
     name: '',
     email: '',
     phone: '',
@@ -171,7 +171,7 @@ export default function AdminHospitalSettings() {
     load();
   }, []);
 
-  const update = (k: Unmodelled, v: Unmodelled) => { setIsDirty(true); setForm(p => ({ ...p, [k]: v })); };
+  const update = (k: Unmodelled, v: Unmodelled) => { setIsDirty(true); setForm((p: Unmodelled) => ({ ...p, [k]: v })); };
 
   const [uploadingField, setUploadingField] = useState<Unmodelled>(null);
   // §7: real file upload (Cloudinary) with progress — replaces raw-URL-only inputs.
@@ -205,7 +205,7 @@ export default function AdminHospitalSettings() {
         toast.warning('At least one consultation mode must remain enabled');
         return;
       }
-      update('appointmentModes', current.filter(m => m !== mode));
+      update('appointmentModes', current.filter((m: Unmodelled) => m !== mode));
     } else {
       update('appointmentModes', [...current, mode]);
     }
@@ -466,7 +466,7 @@ export default function AdminHospitalSettings() {
           {Object.entries(form.workingHours || {}).map(([k, v]) => (
             <div key={k} className="space-y-1">
               <Label className="text-xs capitalize">{k}</Label>
-              <Input value={v || ''} onChange={e => update('workingHours', { ...form.workingHours, [k]: e.target.value })} placeholder="9AM-6PM" className="h-8 text-xs" />
+              <Input value={String(v ?? '')} onChange={e => update('workingHours', { ...form.workingHours, [k]: e.target.value })} placeholder="9AM-6PM" className="h-8 text-xs" />
             </div>
           ))}
         </CardContent>
@@ -478,10 +478,10 @@ export default function AdminHospitalSettings() {
           <div className="space-y-2">
             <div className="flex items-center justify-between"><Label>Accreditations</Label><Button variant="outline" size="sm" onClick={addAccreditation}><Plus className="w-3 h-3 mr-1" /> Add</Button></div>
             <div className="flex flex-wrap gap-2">
-              {form.accreditations?.map((a, i) => (
+              {form.accreditations?.map((a: Unmodelled, i: Unmodelled) => (
                 <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <CheckCircle2 className="w-3 h-3" /> {a}
-                  <button onClick={() => update('accreditations', form.accreditations.filter((_, j) => j !== i))}><X className="w-3 h-3 ml-1 hover:text-destructive" /></button>
+                  <button onClick={() => update('accreditations', form.accreditations.filter((_: Unmodelled, j: Unmodelled) => j !== i))}><X className="w-3 h-3 ml-1 hover:text-destructive" /></button>
                 </span>
               ))}
             </div>
@@ -490,10 +490,10 @@ export default function AdminHospitalSettings() {
           <div className="space-y-2">
             <div className="flex items-center justify-between"><Label>Insurance Accepted</Label><Button variant="outline" size="sm" onClick={addInsurance}><Plus className="w-3 h-3 mr-1" /> Add</Button></div>
             <div className="flex flex-wrap gap-2">
-              {form.insuranceAccepted?.map((ins, i) => (
+              {form.insuranceAccepted?.map((ins: Unmodelled, i: Unmodelled) => (
                 <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                   <Shield className="w-3 h-3" /> {ins.provider || ins}
-                  <button onClick={() => update('insuranceAccepted', form.insuranceAccepted.filter((_, j) => j !== i))}><X className="w-3 h-3 ml-1 hover:text-destructive" /></button>
+                  <button onClick={() => update('insuranceAccepted', form.insuranceAccepted.filter((_: Unmodelled, j: Unmodelled) => j !== i))}><X className="w-3 h-3 ml-1 hover:text-destructive" /></button>
                 </span>
               ))}
             </div>
@@ -506,10 +506,10 @@ export default function AdminHospitalSettings() {
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between"><Label>Specialties</Label><Button variant="outline" size="sm" onClick={addSpecialty}><Plus className="w-3 h-3 mr-1" /> Add</Button></div>
           <div className="flex flex-wrap gap-2">
-            {form.specialties?.map((s, i) => (
+            {form.specialties?.map((s: Unmodelled, i: Unmodelled) => (
               <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/20">
                 <Star className="w-3 h-3" /> {s}
-                <button onClick={() => update('specialties', form.specialties.filter((_, j) => j !== i))}><X className="w-3 h-3 ml-1 hover:text-destructive" /></button>
+                <button onClick={() => update('specialties', form.specialties.filter((_: Unmodelled, j: Unmodelled) => j !== i))}><X className="w-3 h-3 ml-1 hover:text-destructive" /></button>
               </span>
             ))}
           </div>
@@ -521,7 +521,7 @@ export default function AdminHospitalSettings() {
         <CardContent className="grid grid-cols-2 gap-4">
           {Object.entries({ parking: 'Parking', acWaitingArea: 'AC Waiting Area', wheelchairAccess: 'Wheelchair Access', cardPayment: 'Card Payment', inHousePharmacy: 'In-house Pharmacy', drinkingWater: 'Drinking Water', wifi: 'Free Wi-Fi', homeVisit: 'Home Visit' }).map(([k, lbl]) => (
             <label key={k} className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.amenities?.[k] || false} onChange={e => update('amenities', { ...form.amenities, [k]: e.target.checked })} className="rounded border-border" />
+              <input type="checkbox" checked={(form as Unmodelled).amenities?.[k] || false} onChange={e => update('amenities', { ...form.amenities, [k]: e.target.checked })} className="rounded border-border" />
               {lbl}
             </label>
           ))}
@@ -534,7 +534,7 @@ export default function AdminHospitalSettings() {
           {['facebook', 'instagram', 'youtube'].map(s => (
             <div key={s} className="space-y-1">
               <Label className="capitalize">{s}</Label>
-              <Input value={form.socialLinks?.[s] || ''} onChange={e => update('socialLinks', { ...form.socialLinks, [s]: e.target.value })} placeholder={`https://${s}.com/...`} />
+              <Input value={(form as Unmodelled).socialLinks?.[s] || ''} onChange={e => update('socialLinks', { ...form.socialLinks, [s]: e.target.value })} placeholder={`https://${s}.com/...`} />
             </div>
           ))}
         </CardContent>

@@ -44,8 +44,8 @@ export default function Patients() {
     select: (data) => data?.data || data || [],
   });
 
-  const createMut = useMutation({ mutationFn: api.createPatient, onSuccess: () => { qc.invalidateQueries(['patients']); setModal(false); setForm(empty); } });
-  const deleteMut = useMutation({ mutationFn: api.deletePatient, onSuccess: () => qc.invalidateQueries(['patients']) });
+  const createMut = useMutation({ mutationFn: api.createPatient, onSuccess: () => { qc.invalidateQueries({ queryKey: ['patients'] }); setModal(false); setForm(empty); } });
+  const deleteMut = useMutation({ mutationFn: api.deletePatient, onSuccess: () => qc.invalidateQueries({ queryKey: ['patients'] }) });
 
   const set = (k: Unmodelled, v: Unmodelled) => setForm(f => ({ ...f, [k]: v }));
   const submit = (e: Unmodelled) => { e.preventDefault(); createMut.mutate({ ...form, age: Number(form.age) }); };

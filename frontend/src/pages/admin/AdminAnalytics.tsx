@@ -8,8 +8,8 @@ import type { Unmodelled } from '@/lib/apiTypes';
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function AdminAnalytics() {
-  const { data: stats, isLoading: statsLoading } = useApiQuery(['hospital_admin', 'stats'], () => api.dashboardStats());
-  const { data: users = [], isLoading: usersLoading } = useApiQuery(['hospital_admin', 'users'], () => api.getUsers(), { select: (res: Unmodelled) => res?.data || res || [] });
+  const { data: stats, isLoading: statsLoading }: Unmodelled = useApiQuery(['hospital_admin', 'stats'], () => api.dashboardStats());
+  const { data: users = [], isLoading: usersLoading }: Unmodelled = useApiQuery(['hospital_admin', 'users'], () => api.getUsers(), { select: (res: Unmodelled) => res?.data || res || [] });
 
   if (statsLoading || usersLoading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 

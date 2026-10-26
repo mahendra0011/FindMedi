@@ -148,7 +148,7 @@ export default function TodayAppointmentsSection({
         return;
       }
       setFileViewerUrl(preview.url);
-      setFileViewerRawUrl(preview.rawUrl || url);
+      setFileViewerRawUrl((preview as Unmodelled).rawUrl || url);
       setFileViewerType(preview.type);
     } catch (err: any) {
       console.error('File preview error:', err);
@@ -311,7 +311,7 @@ export default function TodayAppointmentsSection({
           {/* Sub-slots — horizontal scroll */}
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mt-3 mb-1.5">Select Slot</p>
           <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-            {subSlots.map(s => {
+            {subSlots.map((s: Unmodelled) => {
               const count = hourAppointments.filter((a: Unmodelled) => subSlotFor(a.time) === s).length;
               return (
                 <button
@@ -433,7 +433,7 @@ export default function TodayAppointmentsSection({
               if (subSlotsList.length === 0) {
                 return <span className="text-[10px] text-muted-foreground/50 px-1">No slots</span>;
               }
-              return subSlotsList.map(s => (
+              return subSlotsList.map((s: Unmodelled)  => (
                 <span key={s} className="shrink-0 px-2 py-0.5 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground">
                   {s}
                 </span>
@@ -766,7 +766,7 @@ function PatientDetailCard({
       {/* Personal details grid */}
       <div className="grid grid-cols-2 gap-2 text-sm mb-4">
         {patient?.dateOfBirth && (
-          <Detail icon={User} label="Age" value={`${Math.floor((new Date() - new Date(patient.dateOfBirth)) / 31557600000)} yrs`} />
+          <Detail icon={User} label="Age" value={`${Math.floor((+new Date() - +new Date(patient.dateOfBirth)) / 31557600000)} yrs`} />
         )}
         {patient?.phone && (
           <Detail icon={Phone} label="Phone" value={patient.phone} />
@@ -1145,7 +1145,7 @@ export function CompletedCard({ apt, subSlotFor, onRevert, onDownloadPrescriptio
       {/* Personal details grid */}
       <div className="grid grid-cols-2 gap-2 text-sm mb-4">
         {patient?.dateOfBirth && (
-          <Detail icon={User} label="Age" value={`${Math.floor((new Date() - new Date(patient.dateOfBirth)) / 31557600000)} yrs`} />
+          <Detail icon={User} label="Age" value={`${Math.floor((+new Date() - +new Date(patient.dateOfBirth)) / 31557600000)} yrs`} />
         )}
         {patient?.phone && (
           <Detail icon={Phone} label="Phone" value={patient.phone} />
@@ -1362,7 +1362,7 @@ function AbsentCard({ apt, subSlotFor }: Unmodelled) {
       {/* Personal details grid */}
       <div className="grid grid-cols-2 gap-2 text-sm mb-4">
         {patient?.dateOfBirth && (
-          <Detail icon={User} label="Age" value={`${Math.floor((new Date() - new Date(patient.dateOfBirth)) / 31557600000)} yrs`} />
+          <Detail icon={User} label="Age" value={`${Math.floor((+new Date() - +new Date(patient.dateOfBirth)) / 31557600000)} yrs`} />
         )}
         {patient?.phone && (
           <Detail icon={Phone} label="Phone" value={patient.phone} />

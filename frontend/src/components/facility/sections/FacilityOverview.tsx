@@ -5,7 +5,7 @@ import {
   Languages,
   Shield,
   HeartPulse,
-  Wheelchair,
+  Accessibility,
   CheckCircle2,
   Award,
   Sparkles,

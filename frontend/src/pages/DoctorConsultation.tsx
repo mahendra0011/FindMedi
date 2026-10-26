@@ -124,7 +124,7 @@ export default function DoctorConsultation() {
   const createRecordMut = useMutation({
     mutationFn: consultationApi.createRecord,
     onSuccess: () => {
-      qc.invalidateQueries(['consultation-tokens', 'consultation-stats']);
+      qc.invalidateQueries({ queryKey: ['consultation-tokens', 'consultation-stats'] });
       setShowConsult(false);
       setConsultForm(emptyConsultation);
     },

@@ -2,6 +2,7 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser, registerUser, logoutUser, updateUser as updateUserAction, setUser, selectCurrentUser, selectAuthLoading, selectIsAuthenticated, completeTwoFactorLogin as completeTwoFactorLoginThunk } from '@/store/slices/authSlice';
 import { mergeSettings, readStoredSettings } from '@/lib/settings';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export interface AuthUser {
   _id?: string;
@@ -49,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // AUTH-B-03: second leg of a 2FA login (ticket + TOTP / backup code -> session).
   const completeTwoFactorLogin = async (payload: { twoFactorTicket: string; token?: string; backupCode?: string }) => {
-    const result = await dispatch(completeTwoFactorLoginThunk(payload));
+    const result = await dispatch(completeTwoFactorLoginThunk(payload as Unmodelled));
     return result.payload;
   };
 

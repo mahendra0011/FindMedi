@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import { useParams } from 'react-router-dom';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /** High-risk provider types: approval needs TWO different reviewers. */
 export const HIGH_RISK_TYPES = ['ambulance', 'ivf', 'fertility', 'de-addiction', 'deaddiction', 'peer_mentor', 'peer-mentor'];
@@ -87,7 +89,7 @@ export function checklistFor(typeKey: string, requiredDocs: Array<{ key: string;
 }
 
 interface Props {
-  applicationId: string;
+  applicationId?: string;
   onDecided?: () => void;
 }
 
@@ -96,7 +98,9 @@ interface Props {
  * view, with a two-person approval banner for high-risk types (ambulance, IVF,
  * de-addiction). Decisions call the existing POST /api/admin/applications/:id/decision.
  */
-export default function KycReviewWorkspace({ applicationId, onDecided }: Props) {
+export default function KycReviewWorkspace({ applicationId: applicationIdProp, onDecided }: Props) {
+  const params = useParams();
+  const applicationId = (applicationIdProp || params.id) as Unmodelled;
   const [application, setApplication] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [config, setConfig] = useState<any>(null);

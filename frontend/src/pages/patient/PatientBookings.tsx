@@ -99,7 +99,7 @@ export default function PatientBookings() {
       const status = e?.status || e?.response?.status;
       if (status === 503 || !status) {
         // transient — keep last good data, don't overwrite with error screen
-        setLoadError(prev => prev); // no change
+        setLoadError((prev: Unmodelled) => prev); // no change
       } else {
         setLoadError('Failed to load bookings');
       }

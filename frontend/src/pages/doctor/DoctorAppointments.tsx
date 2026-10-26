@@ -83,8 +83,8 @@ export default function DoctorAppointments() {
       toast.success(`${morning.length} slots shifted by ${bulkShiftHours}h (emergency delay)`);
     } catch { toast.error('Bulk reschedule failed'); }
   };
-  const [bookedSlots, setBookedSlots] = useState<ApiRow[]>([]);
-  const [dateDisabledSlots, setDateDisabledSlots] = useState<ApiRow[]>([]);
+  const [bookedSlots, setBookedSlots] = useState<Unmodelled[]>([]);
+  const [dateDisabledSlots, setDateDisabledSlots] = useState<Unmodelled[]>([]);
   const [completeId, setCompleteId] = useState<Unmodelled>(null);
   const [reportType, setReportType] = useState('Prescription');
   const [billModal, setBillModal] = useState<Unmodelled>(null);
@@ -187,11 +187,11 @@ export default function DoctorAppointments() {
     setCompleteId(apt._id);
     setReportType(type);
     if (type === 'Prescription') {
-      setPrescriptionData({ ...initialPrescriptionData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '' });
+      setPrescriptionData({ ...initialPrescriptionData, patientName: apt.patient, doctorName: (user?.name as string), specialization: user?.specialization || '' });
     } else if (type === 'Lab Report') {
-      setLabReportData({ ...initialLabReportData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', testDate: getISTDateString(), reportDate: getISTDateString(), reportId: `LAB-${crypto.randomUUID()}` });
+      setLabReportData({ ...initialLabReportData, patientName: apt.patient, doctorName: (user?.name as string), specialization: user?.specialization || '', testDate: getISTDateString(), reportDate: getISTDateString(), reportId: `LAB-${crypto.randomUUID()}` });
     } else {
-      setDischargeData({ ...initialDischargeData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', admissionDate: apt.date || getISTDateString(), dischargeDate: getISTDateString() });
+      setDischargeData({ ...initialDischargeData, patientName: apt.patient, doctorName: (user?.name as string), specialization: user?.specialization || '', admissionDate: apt.date || getISTDateString(), dischargeDate: getISTDateString() });
     }
     setShowReportModal(true);
   }, [user?.name, user?.specialization]);
@@ -224,7 +224,7 @@ export default function DoctorAppointments() {
       const meds: Unmodelled = [...prescriptionData.medications]; meds[index][field] = value;
       setPrescriptionData({ ...prescriptionData, medications: meds });
     } else {
-      const meds = [...dischargeData.medications]; meds[index][field] = value;
+      const meds = [...dischargeData.medications]; (meds as Unmodelled)[index][field] = value;
       setDischargeData({ ...dischargeData, medications: meds });
     }
   };

@@ -4,7 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/mind/lib/utils";
 import type { Unmodelled } from '@/lib/apiTypes';
 const Accordion = AccordionPrimitive.Root;
-const AccordionItem = React.forwardRef<Unmodelled, Unmodelled>(({ className, ...props }, ref) => (<AccordionPrimitive.Item ref={ref} className={cn("border-b", className)} {...props}/>));
+const AccordionItem = React.forwardRef<Unmodelled, Unmodelled>(({ className, ...props }, ref) => (<AccordionPrimitive.Item ref={ref} className={cn("border-b", className)} {...(props as Unmodelled)}/>));
 AccordionItem.displayName = "AccordionItem";
 const AccordionTrigger = React.forwardRef<Unmodelled, Unmodelled>(({ className, children, ...props }, ref) => (<AccordionPrimitive.Header className="flex">
     <AccordionPrimitive.Trigger ref={ref} className={cn("flex flex-1 items-center justify-between py-4 font-medium transition-all hover:underline [&[data-state=open]>svg]:rotate-180", className)} {...props}>

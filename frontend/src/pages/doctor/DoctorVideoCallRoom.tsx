@@ -109,7 +109,7 @@ export default function DoctorVideoCallRoom() {
         data: {
           patient: { 
             name: appointment.patient, 
-            age: patient?.dateOfBirth ? Math.floor((new Date() - new Date(patient.dateOfBirth)) / 31557600000) : '', 
+            age: patient?.dateOfBirth ? Math.floor((+new Date() - +new Date(patient.dateOfBirth)) / 31557600000) : '', 
             gender: patient?.gender, 
             phone: patient?.phone 
           },
@@ -280,7 +280,7 @@ export default function DoctorVideoCallRoom() {
                     <User className="w-4 h-4 text-primary" /> Basic Details
                   </h3>
                   <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-sm bg-muted/20 p-4 rounded-xl border border-border/40">
-                    <div><p className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Age</p><p className="font-medium text-foreground">{patient?.dateOfBirth ? Math.floor((new Date() - new Date(patient.dateOfBirth)) / 31557600000) + ' yrs' : 'N/A'}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Age</p><p className="font-medium text-foreground">{patient?.dateOfBirth ? Math.floor((+new Date() - +new Date(patient.dateOfBirth)) / 31557600000) + ' yrs' : 'N/A'}</p></div>
                     <div><p className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Gender</p><p className="font-medium text-foreground">{patient?.gender || 'N/A'}</p></div>
                     <div><p className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Blood Group</p><p className="font-medium text-foreground">{patient?.bloodGroup || 'N/A'}</p></div>
                     <div><p className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Phone</p><p className="font-medium text-foreground">{patient?.phone || 'N/A'}</p></div>

@@ -59,7 +59,7 @@ export default function RadiologyScheduling() {
   const apptsQ = useQuery({
     queryKey: ['radiology', 'appointments', date, view, typeFilter],
     queryFn: () => radApi.getAppointments({
-      from: range.from.toISOString(), to: range.toISOString(),
+      from: range.from.toISOString(), to: (range.to as Date).toISOString(),
       ...(typeFilter !== 'All' ? { modalityType: typeFilter } : {}),
     }),
   });

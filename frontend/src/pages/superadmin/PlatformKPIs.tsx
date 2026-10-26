@@ -92,8 +92,8 @@ export default function PlatformKPIs() {
 
   // SA-4: silent live refresh on critical platform events (throttled, no spinner).
   useEffect(() => {
-    let socket;
-    let timer;
+    let socket: Unmodelled;
+    let timer: Unmodelled;
     let lastRun = 0;
     const refresh = () => {
       const now = Date.now();

@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { userFacingError } from '@/lib/errorCopy';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-const CROSS_STORE_MEDS = [
+const CROSS_STORE_MEDS: Unmodelled[] = [
 ];
 
 const SAVED_PRESCRIPTIONS_KEY = 'findmedi_saved_rx';
@@ -59,7 +59,7 @@ const STEPS = [
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { entries, stores, addItem, removeItem, clearCart } = useCart();
+  const { entries, stores, addItem, removeItem, clearCart }: Unmodelled = useCart();
   const fileInputRef: Unmodelled = useRef<Unmodelled>(null);
   const { user } = useAuth();
   const autoRetry = useAutoRetry();
@@ -85,7 +85,7 @@ export default function Checkout() {
   const [uploadedFiles, setUploadedFiles] = useState<ApiRow>({});
   const [oosFallback, setOosFallback] = useState<Unmodelled>(null);
   const [savedPrescriptions, setSavedPrescriptions] = useState(() => {
-    try { return JSON.parse((localStorage.getItem(SAVED_PRESCRIPTIONS_KEY) || localStorage.getItem(LEGACY_SAVED_PRESCRIPTIONS_KEY))) || []; } catch { return []; }
+    try { return JSON.parse(((localStorage as Unmodelled).getItem(SAVED_PRESCRIPTIONS_KEY) || localStorage.getItem(LEGACY_SAVED_PRESCRIPTIONS_KEY))) || []; } catch { return []; }
   });
   const [confirmDialog, setConfirmDialog] = useState<Unmodelled>(null);
   const [rxConfirmed, setRxConfirmed] = useState(false);
@@ -119,7 +119,7 @@ export default function Checkout() {
   });
 
   const itemTotal = entries.reduce((s: Unmodelled, e: Unmodelled) => s + e.item.price * e.qty, 0);
-  const deliveryTotal = Object.entries(subtotalByStore).reduce((s, [sid, sub]) => {
+  const deliveryTotal = Object.entries(subtotalByStore).reduce((s: Unmodelled, [sid, sub]: Unmodelled) => {
     const store = getStore(sid);
     const charge = store ? (sub >= (store.freeDeliveryAbove || Infinity) ? 0 : (store.deliveryCharges || 0)) : 0;
     return s + charge;

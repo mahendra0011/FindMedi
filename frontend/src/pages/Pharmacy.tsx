@@ -233,7 +233,7 @@ showToast('Failed to export billing', 'error');
       }
     };
     load();
-    let socket;
+    let socket: Unmodelled;
     (async () => {
       try {
         const { getSocket } = await import('@/lib/socket');
@@ -245,7 +245,7 @@ showToast('Failed to export billing', 'error');
   }, []);
 
   const loadMedicines = async () => {
-    const params = {};
+    const params: Unmodelled = {};
     if (medFilter.category) params.category = medFilter.category;
     if (medFilter.lowStock) params.lowStock = 'true';
     const m = await pharmApi.getMedicines(params);
@@ -253,7 +253,7 @@ showToast('Failed to export billing', 'error');
   };
 
   const loadPrescriptions = async () => {
-    const params = {};
+    const params: Unmodelled = {};
     if (rxSearch) params.search = rxSearch;
     const r = await pharmApi.getPrescriptions(params);
     setPrescriptions(r.prescriptions || []);
@@ -818,7 +818,7 @@ showToast('Failed to export billing', 'error');
                     ...orders.slice(0, 3).map(o => ({ text: `Order ${o.orderId} ${o.status.toLowerCase()} for ${o.patientName}`, time: o.orderDate })),
                     ...prescriptions.slice(0, 3).map(r => ({ text: `Prescription ${r.prescriptionId} ${r.status.toLowerCase()} - ${r.patientName}`, time: r.createdAt })),
                     ...returns.filter(r => r.status === 'Approved').slice(0, 2).map(r => ({ text: `Return ${r.returnId} approved - ₹${r.total} refunded`, time: r.completedAt })),
-                  ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 8).map((act, i) => (
+                  ].sort((a, b) => (+new Date(b.time)) - (+new Date(a.time))).slice(0, 8).map((act, i) => (
                     <div key={i} className="flex items-center gap-3 text-sm">
                       <div className="w-2 h-2 rounded-full bg-primary" />
                       <span className="flex-1">{act.text}</span>
@@ -870,10 +870,10 @@ showToast('Failed to export billing', 'error');
                 <div className="bg-card rounded-xl border p-5">
                   <h3 className="font-semibold mb-4 flex items-center gap-2"><Clock className="w-4 h-4 text-destructive" /> Expiring Soon</h3>
                   <div className="space-y-3">
-                    {medicines.filter(m => new Date(m.expiryDate) < new Date(Date.now() + 90 * 86400000)).sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate)).map(m => (
+                    {medicines.filter(m => new Date(m.expiryDate) < new Date(Date.now() + 90 * 86400000)).sort((a, b) => (+new Date(a.expiryDate)) - (+new Date(b.expiryDate))).map(m => (
                       <div key={m._id} className="flex items-center justify-between p-3 bg-destructive/5 rounded-lg border border-destructive/20">
                         <div><p className="text-sm font-medium">{m.name}</p><p className="text-xs text-muted-foreground">Batch: {m.batchNumber}</p></div>
-                        <div className="text-right"><p className="text-sm font-bold text-destructive">{new Date(m.expiryDate).toLocaleDateString()}</p><p className="text-xs text-muted-foreground">{Math.ceil((new Date(m.expiryDate) - new Date()) / 86400000)} days left</p></div>
+                        <div className="text-right"><p className="text-sm font-bold text-destructive">{new Date(m.expiryDate).toLocaleDateString()}</p><p className="text-xs text-muted-foreground">{Math.ceil((+new Date(m.expiryDate) - +new Date()) / 86400000)} days left</p></div>
                       </div>
                     ))}
                     {medicines.filter(m => new Date(m.expiryDate) < new Date(Date.now() + 90 * 86400000)).length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No items expiring soon</p>}
@@ -891,7 +891,7 @@ showToast('Failed to export billing', 'error');
                 {[{ key: 'name', label: 'Store Name' }, { key: 'address', label: 'Address' }, { key: 'phone', label: 'Phone' }, { key: 'email', label: 'Email' }, { key: 'licenseNo', label: 'License Number' }, { key: 'timing', label: 'Operating Hours' }, { key: 'deliveryRadius', label: 'Delivery Radius' }, { key: 'minOrderAmt', label: 'Minimum Order Amount (₹)' }, { key: 'deliveryFee', label: 'Delivery Fee (₹)' }, { key: 'gst', label: 'GST (%)' }].map(f => (
                   <div key={f.key}>
                     <label className="text-sm font-medium mb-1 block">{f.label}</label>
-                    <Input value={storeSettings[f.key]} onChange={e => setStoreSettings(s => ({ ...s, [f.key]: e.target.value }))} />
+                    <Input value={(storeSettings as Unmodelled)[f.key]} onChange={e => setStoreSettings(s => ({ ...s, [f.key]: e.target.value }))} />
                   </div>
                 ))}
                 <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
@@ -914,7 +914,7 @@ showToast('Failed to export billing', 'error');
         <Modal title={editMed ? 'Edit Medicine' : 'Add Medicine'} onClose={() => setShowModal(null)}>
           <div className="grid grid-cols-2 gap-4">
             {[{ key: 'name', label: 'Medicine Name' }, { key: 'genericName', label: 'Generic Name' }, { key: 'manufacturer', label: 'Manufacturer' }, { key: 'batchNumber', label: 'Batch Number' }, { key: 'expiryDate', label: 'Expiry Date', type: 'date' }, { key: 'purchasePrice', label: 'Purchase Price', type: 'number' }, { key: 'sellingPrice', label: 'Selling Price', type: 'number' }, { key: 'currentStock', label: 'Stock', type: 'number' }, { key: 'reorderLevel', label: 'Reorder Level', type: 'number' }, { key: 'rackLocation', label: 'Rack Location' }].map(f => (
-              <div key={f.key}><label className="text-sm font-medium mb-1 block">{f.label}</label><Input type={f.type || 'text'} value={newMed[f.key]} onChange={e => setNewMed({ ...newMed, [f.key]: e.target.value })} /></div>
+              <div key={f.key}><label className="text-sm font-medium mb-1 block">{f.label}</label><Input type={f.type || 'text'} value={(newMed as Unmodelled)[f.key]} onChange={e => setNewMed({ ...newMed, [f.key]: e.target.value })} /></div>
             ))}
             <div><label className="text-sm font-medium mb-1 block">Category</label><select value={newMed.category} onChange={e => setNewMed({ ...newMed, category: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
             <div><label className="text-sm font-medium mb-1 block">Form</label><select value={newMed.form} onChange={e => setNewMed({ ...newMed, form: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{formOptions.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
@@ -1008,7 +1008,7 @@ showToast('Failed to export billing', 'error');
         <Modal title="Add Staff Member" onClose={() => setShowModal(null)}>
           <div className="grid grid-cols-2 gap-4">
             {[{ key: 'name', label: 'Full Name' }, { key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' }, { key: 'licenseNumber', label: 'License Number' }, { key: 'experience', label: 'Experience' }].map(f => (
-              <div key={f.key}><label className="text-sm font-medium mb-1 block">{f.label}</label><Input value={newStaff[f.key]} onChange={e => setNewStaff({ ...newStaff, [f.key]: e.target.value })} /></div>
+              <div key={f.key}><label className="text-sm font-medium mb-1 block">{f.label}</label><Input value={(newStaff as Unmodelled)[f.key]} onChange={e => setNewStaff({ ...newStaff, [f.key]: e.target.value })} /></div>
             ))}
             <div><label className="text-sm font-medium mb-1 block">Role</label><select value={newStaff.role} onChange={e => setNewStaff({ ...newStaff, role: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{[{ value: 'Pharmacist', label: 'Pharmacist' }, { value: 'Senior Pharmacist', label: 'Senior Pharmacist' }, { value: 'Pharmacy Technician', label: 'Pharmacy Technician' }, { value: 'Store Manager', label: 'Store Manager' }].map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
             <div><label className="text-sm font-medium mb-1 block">Shift</label><select value={newStaff.shift} onChange={e => setNewStaff({ ...newStaff, shift: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Morning', 'Evening', 'Night', 'Rotating'].map(s => <option key={s} value={s}>{s}</option>)}</select></div>

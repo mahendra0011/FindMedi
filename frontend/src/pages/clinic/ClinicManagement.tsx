@@ -46,7 +46,7 @@ export default function ClinicManagement() {
         description: form.description,
       };
       await api.updateClinicProfile(payload);
-      setClinicProfile(prev => ({ ...prev, ...payload }));
+      setClinicProfile((prev: Unmodelled) => ({ ...prev, ...payload }));
       setShowForm(false);
       setSaved(true);
       toast.success('Clinic settings updated successfully');

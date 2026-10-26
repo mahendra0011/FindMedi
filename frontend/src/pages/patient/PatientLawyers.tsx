@@ -48,12 +48,12 @@ export default function PatientLawyers() {
       setLoading(true);
       const [activeRes, bookingsRes, casesRes, docsRes, favRes] = await Promise.all([
         api.getActiveLawyerBooking().catch(() => ({ activeBooking: null })),
-        api.getMyLawyerBookings({
+        (api as Unmodelled).getMyLawyerBookings({
           status: statusFilter !== 'all' ? statusFilter : undefined,
           category: categoryFilter !== 'all' ? categoryFilter : undefined,
         }).catch(() => ({ bookings: [] })),
         api.getMyLawyerCases().catch(() => ({ cases: [] })),
-        api.getLawyerDocumentsVault().catch(() => ({ documents: [] })),
+        (api as Unmodelled).getLawyerDocumentsVault().catch(() => ({ documents: [] })),
         api.getFavoriteLawyers().catch(() => ({ favorites: [] })),
       ]);
 
@@ -153,7 +153,7 @@ export default function PatientLawyers() {
   const handleCloseCase = async (threadId: string) => {
     if (!confirm('Are you sure you want to mark this legal case matter as closed?')) return;
     try {
-      await api.closeLawyerCaseThread(threadId);
+      await (api as Unmodelled).closeLawyerCaseThread(threadId);
       fetchData();
     } catch (err: any) {
       toast.error(err.message || 'Failed to close case');

@@ -35,12 +35,12 @@ const [assignModal, setAssignModal] = useState<any>(null);
 
   useEffect(() => {
     loadData();
-    let socket;
+    let socket: Unmodelled;
     (async () => {
       try {
         const { getSocket } = await import('@/lib/socket');
         socket = getSocket();
-        socket?.on('emergency:new', (data) => {
+        socket?.on('emergency:new', (data: Unmodelled) => {
           if (data?.severity === 'Critical') {
             const audio = new Audio('/sounds/emergency-alert.mp3');
             audio.play().catch(() => {});

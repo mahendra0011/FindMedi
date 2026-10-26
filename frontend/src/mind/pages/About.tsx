@@ -5,6 +5,7 @@ import Footer from "@/mind/components/Footer";
 import { Button } from "@/mind/components/ui/button";
 import { Badge } from "@/mind/components/ui/badge";
 import founderImg from "@/mind/assets/profile-yes2-BIKHBByD.png";
+import type { Unmodelled } from '@/lib/apiTypes';
 
 const values = [
   { icon: Lock, title: "Confidentiality First", desc: "Every session, every message, every detail — protected. Always.", color: "from-violet-500/20 to-purple-500/10", iconColor: "text-violet-400", border: "border-violet-500/20" },
@@ -103,8 +104,8 @@ const About = () => {
                       alt="Mahendra Prajapati - Founder & Full Stack Developer" 
                       className="w-full max-w-xs h-auto rounded-xl object-cover"
                       onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = "https://ui-avatars.com/api/?name=Mahendra+Prajapati&background=7c3aed&color=fff&size=400&bold=true&format=png";
+                        (e.target as Unmodelled).onerror = null;
+                        (e.target as Unmodelled).src = "https://ui-avatars.com/api/?name=Mahendra+Prajapati&background=7c3aed&color=fff&size=400&bold=true&format=png";
                       }}
                       loading="eager"
                     />

@@ -6,7 +6,7 @@ import { fetchNotifications, selectNotificationCount, addNotification } from '@/
 import { getSocket, joinRoom, disconnectSocket } from '@/lib/socket';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const NotificationContext = createContext(null);
+const NotificationContext = createContext<Unmodelled>(null);
 
 export function NotificationProvider({ children }: Unmodelled) {
   const dispatch = useDispatch();
@@ -15,12 +15,12 @@ export function NotificationProvider({ children }: Unmodelled) {
 
   const refreshCount = useCallback(async () => {
     if (!user) return;
-    dispatch(fetchNotifications());
+    (dispatch as Unmodelled)(fetchNotifications());
   }, [user, dispatch]);
 
   useEffect(() => {
     if (user) {
-      dispatch(fetchNotifications());
+      (dispatch as Unmodelled)(fetchNotifications());
     }
   }, [user, dispatch]);
 

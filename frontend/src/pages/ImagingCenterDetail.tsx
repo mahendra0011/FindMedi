@@ -46,7 +46,7 @@ const PACKAGES = [
   { id: 'ip2', name: 'Cardiac Imaging Package', price: 4999, mrp: 6999, discount: 29, includes: ['CT Heart', 'Echocardiography', 'Stress Test'], popular: false },
 ];
 
-const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 }, transition: { type: 'spring', stiffness: 200, damping: 22 } };
+const fadeUp = (i?: Unmodelled) => ({ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 }, transition: { type: 'spring', stiffness: 200, damping: 22, ...(i ? { delay: i * 0.08 } : {}) } });
 
 const SectionTitle = ({ icon: Icon, label }: Unmodelled) => (
   <h2 className="font-heading text-lg font-bold text-foreground mb-5 flex items-center gap-2">
@@ -94,7 +94,7 @@ function deriveCategory(f: Unmodelled) {
 export default function ImagingCenterDetail() {
   const { clinicId } = useParams();
   const navigate = useNavigate();
-  const { entries, addItem, updateQty } = useCart();
+  const { entries, addItem, updateQty }: Unmodelled = useCart();
 
   const [clinic, setClinic] = useState<Unmodelled>(null);
   const [allTests, setAllTests] = useState<ApiRow[]>([]);
@@ -294,14 +294,14 @@ export default function ImagingCenterDetail() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         {/* Breadcrumb */}
-        <motion.div {...fadeUp(0)} className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-5">
+        <motion.div variants={fadeUp(0)} className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-5">
           <button onClick={() => navigate('/imaging')} className="hover:text-foreground transition-colors">Imaging Centers</button>
           <span className="text-muted-foreground/40">/</span>
           <span className="text-foreground font-medium truncate">{clinic.name}</span>
         </motion.div>
 
         {/* ═══ 1. HERO HEADER ═══ */}
-        <motion.div {...fadeUp(1)} className="relative bg-card rounded-2xl border border-border/50 overflow-hidden mb-8 shadow-sm group">
+        <motion.div variants={fadeUp(1)} className="relative bg-card rounded-2xl border border-border/50 overflow-hidden mb-8 shadow-sm group">
           <div className="relative h-56 sm:h-64 overflow-hidden">
             <img src={clinic.cover} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
@@ -359,7 +359,7 @@ export default function ImagingCenterDetail() {
 </motion.div>
 
           {/* Location & Route Map */}
-          <motion.div {...fadeUp(1.5)} className="mb-6">
+          <motion.div variants={fadeUp(1.5)} className="mb-6">
             <ServiceLocationMap entityType="imaging" entity={clinic} />
           </motion.div>
 
@@ -369,7 +369,7 @@ export default function ImagingCenterDetail() {
           <div className="lg:col-span-2 space-y-6">
 
             {/* ═══ 4. SEARCH + CATEGORY TABS ═══ */}
-            <motion.div {...fadeUp(2)}>
+            <motion.div variants={fadeUp(2)}>
               <div className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm">
                 <div className="px-5 py-4 border-b border-border/30 bg-gradient-to-r from-blue-500/[0.04] to-transparent">
                   <h3 className="font-heading font-bold text-foreground flex items-center gap-2.5 text-base">
@@ -453,7 +453,7 @@ export default function ImagingCenterDetail() {
               <SectionCard icon={Sparkles} title={`Scan Packages (${clinicPackages.length})`}>
                 <div className="space-y-4">
                   {clinicPackages.map((pkg, i) => (
-                    <motion.div key={pkg.id} {...fadeUp(i)}
+                    <motion.div key={pkg.id} variants={fadeUp(i)}
                       className="relative bg-gradient-to-br from-blue-500/5 via-blue-500/[0.02] to-transparent rounded-xl border border-blue-500/15 p-5 hover:shadow-lg hover:border-blue-500/30 transition-all">
                       {pkg.popular && (
                         <span className="absolute -top-2 -right-2 px-3 py-1 rounded-full text-[10px] font-bold bg-blue-600 text-white shadow-lg shadow-blue-500/30">
@@ -598,7 +598,7 @@ export default function ImagingCenterDetail() {
               <SectionCard icon={Tag} title={`Offers & Deals (${clinic.offers.length})`}>
                 <div className="space-y-3">
                   {clinic.offers.map((offer: Unmodelled, i: Unmodelled) => (
-                    <motion.div key={i} {...fadeUp(i)}
+                    <motion.div key={i} variants={fadeUp(i)}
                       className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-blue-500/5 via-blue-500/[0.02] to-transparent border border-blue-500/10 hover:border-blue-500/20 hover:shadow-sm transition-all">
                       <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex items-center justify-center shrink-0 shadow-sm">
                         <Percent className="w-5 h-5 text-blue-600" />
@@ -677,7 +677,7 @@ export default function ImagingCenterDetail() {
                 <Separator />
                 <div className="space-y-4">
                   {displayReviews.length > 0 ? displayReviews.map((r, i) => (
-                    <motion.div key={r._id || r.id || i} {...fadeUp(i)} className="pb-4 border-b border-border/20 last:border-0 last:pb-0">
+                    <motion.div key={r._id || r.id || i} variants={fadeUp(i)} className="pb-4 border-b border-border/20 last:border-0 last:pb-0">
                       <div className="flex items-center gap-3 mb-1.5">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-500/10 flex items-center justify-center text-xs font-bold text-blue-600 shadow-sm">{(r.userName || r.user || 'A')[0]}</div>
                         <span className="text-sm font-semibold text-foreground">{r.userName || r.user || 'Anonymous'}</span>
@@ -703,7 +703,7 @@ export default function ImagingCenterDetail() {
                     { icon: ArrowLeft, title: 'Refund Policy', desc: clinic.policies.refund, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
                     { icon: Utensils, title: 'Fasting Guidelines', desc: clinic.policies.fasting, color: 'text-amber-500', bg: 'bg-amber-500/10' },
                   ].map((item, i) => (
-                    <motion.div key={i} {...fadeUp(i)}
+                    <motion.div key={i} variants={fadeUp(i)}
                       className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-5 border border-border/40 hover:border-blue-500/20 hover:shadow-sm transition-all">
                       <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mb-3', item.bg)}>
                         <item.icon className={cn('w-5 h-5', item.color)} />

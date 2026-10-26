@@ -9,6 +9,7 @@ import { useParams } from 'react-router-dom';
 import RoleDashboardShell from './RoleDashboardShell';
 import { getLisDashboardSpec } from '@/lib/lisDashboardSpec';
 import { useLiveKpis, fetchRoleLiveKpis } from './useLiveKpis';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export interface UniversalLisDashboardProps {
   roleKey?: string;
@@ -23,7 +24,7 @@ export default function UniversalLisDashboard({ roleKey: propRoleKey }: Universa
 
   return (
     <div data-testid="universal-lis-dashboard" data-role-key={activeRole}>
-      <RoleDashboardShell config={{ ...spec, kpis }} />
+      <RoleDashboardShell config={({ ...spec, kpis } as Unmodelled)} />
     </div>
   );
 }

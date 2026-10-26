@@ -23,7 +23,7 @@ export default function AdminTestCatalog() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<Unmodelled>(null);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<Unmodelled>({
     name: '', category: 'Blood Tests', categoryCode: 'TEST.BLOOD_BASICS', department: 'Pathology', price: '', mrp: '',
     reportTime: '24 hrs', prescriptionReq: false, homeCollection: false,
     homeCollectionFee: '', popular: false, nablAccredited: false, description: '', preparation: '',
@@ -44,7 +44,7 @@ export default function AdminTestCatalog() {
   const loadTests = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {};
+      const params: Unmodelled = {};
       if (deptFilter) params.department = deptFilter;
       if (catFilter) params.category = catFilter;
       if (search) params.search = search;
@@ -285,7 +285,7 @@ export default function AdminTestCatalog() {
                   { key: 'nablAccredited', label: 'NABL Accredited' },
                 ].map(toggle => (
                   <label key={toggle.key} className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border border-border/40 hover:bg-muted/30">
-                    <input type="checkbox" checked={form[toggle.key]} onChange={e => setForm({ ...form, [toggle.key]: e.target.checked })} className="rounded border-border/60" />
+                    <input type="checkbox" checked={(form as Unmodelled)[toggle.key]} onChange={e => setForm({ ...form, [toggle.key]: e.target.checked })} className="rounded border-border/60" />
                     <span className="text-sm text-foreground">{toggle.label}</span>
                   </label>
                 ))}

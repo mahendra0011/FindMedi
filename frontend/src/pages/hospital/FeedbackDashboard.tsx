@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { Unmodelled } from '@/lib/apiTypes';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,12 +69,12 @@ export default function FeedbackDashboard() {
     try {
       setLoading(true);
       const [listRes, sumRes]: any = await Promise.all([
-        api.get('/feedback', {
+        (api as Unmodelled).get('/feedback', {
           params: {
             context: contextFilter !== 'ALL' ? contextFilter : undefined,
           },
         }),
-        api.get('/feedback/summary', {
+        (api as Unmodelled).get('/feedback/summary', {
           params: {
             dept: departmentFilter !== 'ALL' ? departmentFilter : undefined,
           },

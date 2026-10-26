@@ -22,14 +22,14 @@ export default function AudioWaveVisualizer({ stream, isMuted = false, active = 
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
-    let animationFrameId;
+    let animationFrameId: Unmodelled;
     let analyser = null;
     let dataArray = null;
     let audioContext = null;
 
     if (stream && stream.getAudioTracks().length > 0) {
       try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const AudioCtx = window.AudioContext || (window as Unmodelled).webkitAudioContext;
         audioContext = new AudioCtx();
         const source = audioContext.createMediaStreamSource(stream);
         analyser = audioContext.createAnalyser();

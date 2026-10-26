@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { Unmodelled } from '@/lib/apiTypes';
 import { useNavigate, useParams } from "react-router-dom";
 import Navigation from "@/mind/components/Navigation";
 import Footer from "@/mind/components/Footer";
@@ -11,7 +12,6 @@ import { useToast } from "@/mind/components/ui/use-toast";
 import { api } from "@/mind/lib/api";
 import { ArrowLeft, ClipboardList, Loader2, Shield } from "lucide-react";
 import { sanitizeInput } from "@/mind/lib/sanitize";
-import type { Unmodelled } from '@/lib/apiTypes';
 
 const concernOptions = [
   "Stress", "Anxiety", "Depression", "Relationship issues", "Trauma",
@@ -26,7 +26,7 @@ export default function IntakeFormPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<Unmodelled>({
     fullName: "", age: "", gender: "", occupation: "", contactPhone: "",
     emergencyContact: "", concerns: [], concernsDetail: "",
     previousTherapy: "", medicalHistory: "", medications: "", goals: "",
@@ -43,10 +43,10 @@ export default function IntakeFormPage() {
   }, [packageId]);
 
   const toggleConcern = (c: Unmodelled) => {
-    setForm(prev => ({
+    setForm((prev: Unmodelled) => ({
       ...prev,
       concerns: prev.concerns.includes(c)
-        ? prev.concerns.filter(x => x !== c)
+        ? prev.concerns.filter((x: Unmodelled) => x !== c)
         : [...prev.concerns, c],
     }));
   };
@@ -133,29 +133,29 @@ export default function IntakeFormPage() {
             <CardContent className="space-y-4">
               <div>
                 <Label>Full Name *</Label>
-                <Input value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))} placeholder="Your full name" required />
+                <Input value={form.fullName} onChange={e => setForm((p: Unmodelled) => ({ ...p, fullName: e.target.value }))} placeholder="Your full name" required />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Age</Label>
-                  <Input type="number" value={form.age} onChange={e => setForm(p => ({ ...p, age: e.target.value }))} placeholder="e.g. 25" />
+                  <Input type="number" value={form.age} onChange={e => setForm((p: Unmodelled) => ({ ...p, age: e.target.value }))} placeholder="e.g. 25" />
                 </div>
                 <div>
                   <Label>Gender</Label>
-                  <Input value={form.gender} onChange={e => setForm(p => ({ ...p, gender: e.target.value }))} placeholder="e.g. Female, Male, Non-binary" />
+                  <Input value={form.gender} onChange={e => setForm((p: Unmodelled) => ({ ...p, gender: e.target.value }))} placeholder="e.g. Female, Male, Non-binary" />
                 </div>
               </div>
               <div>
                 <Label>Occupation</Label>
-                <Input value={form.occupation} onChange={e => setForm(p => ({ ...p, occupation: e.target.value }))} placeholder="e.g. Student, Software engineer" />
+                <Input value={form.occupation} onChange={e => setForm((p: Unmodelled) => ({ ...p, occupation: e.target.value }))} placeholder="e.g. Student, Software engineer" />
               </div>
               <div>
                 <Label>Contact Phone</Label>
-                <Input value={form.contactPhone} onChange={e => setForm(p => ({ ...p, contactPhone: e.target.value }))} placeholder="For emergency contact only" />
+                <Input value={form.contactPhone} onChange={e => setForm((p: Unmodelled) => ({ ...p, contactPhone: e.target.value }))} placeholder="For emergency contact only" />
               </div>
               <div>
                 <Label>Emergency Contact (optional)</Label>
-                <Input value={form.emergencyContact} onChange={e => setForm(p => ({ ...p, emergencyContact: e.target.value }))} placeholder="Name and phone of emergency contact" />
+                <Input value={form.emergencyContact} onChange={e => setForm((p: Unmodelled) => ({ ...p, emergencyContact: e.target.value }))} placeholder="Name and phone of emergency contact" />
               </div>
             </CardContent>
           </Card>
@@ -187,7 +187,7 @@ export default function IntakeFormPage() {
                 <Label>Tell us more about your concerns</Label>
                 <Textarea
                   value={form.concernsDetail}
-                  onChange={e => setForm(p => ({ ...p, concernsDetail: e.target.value }))}
+                  onChange={e => setForm((p: Unmodelled) => ({ ...p, concernsDetail: e.target.value }))}
                   placeholder="Describe what you've been experiencing, how long, and any triggers..."
                   rows={4}
                 />
@@ -202,7 +202,7 @@ export default function IntakeFormPage() {
                 <Label>Have you had therapy before?</Label>
                 <Textarea
                   value={form.previousTherapy}
-                  onChange={e => setForm(p => ({ ...p, previousTherapy: e.target.value }))}
+                  onChange={e => setForm((p: Unmodelled) => ({ ...p, previousTherapy: e.target.value }))}
                   placeholder="If yes, briefly describe your experience. If no, just say 'No'"
                   rows={2}
                 />
@@ -211,7 +211,7 @@ export default function IntakeFormPage() {
                 <Label>Medical History (relevant)</Label>
                 <Textarea
                   value={form.medicalHistory}
-                  onChange={e => setForm(p => ({ ...p, medicalHistory: e.target.value }))}
+                  onChange={e => setForm((p: Unmodelled) => ({ ...p, medicalHistory: e.target.value }))}
                   placeholder="Any relevant medical conditions, medications, or health history..."
                   rows={3}
                 />
@@ -220,7 +220,7 @@ export default function IntakeFormPage() {
                 <Label>Current Medications</Label>
                 <Textarea
                   value={form.medications}
-                  onChange={e => setForm(p => ({ ...p, medications: e.target.value }))}
+                  onChange={e => setForm((p: Unmodelled) => ({ ...p, medications: e.target.value }))}
                   placeholder="List any medications you're currently taking (optional)"
                   rows={2}
                 />
@@ -229,7 +229,7 @@ export default function IntakeFormPage() {
                 <Label>What are your goals for counselling?</Label>
                 <Textarea
                   value={form.goals}
-                  onChange={e => setForm(p => ({ ...p, goals: e.target.value }))}
+                  onChange={e => setForm((p: Unmodelled) => ({ ...p, goals: e.target.value }))}
                   placeholder="What do you hope to achieve through our sessions?"
                   rows={3}
                 />

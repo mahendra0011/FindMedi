@@ -165,7 +165,7 @@ const PsychiatristDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState<ApiRow>({});
   const [availabilityRows, setAvailabilityRows] = useState(() => parseAvailabilityRows([]));
-  const [unavailableDates, setUnavailableDates] = useState<ApiRow[]>([]);
+  const [unavailableDates, setUnavailableDates] = useState<Unmodelled[]>([]);
   const [unavailableDateDraft, setUnavailableDateDraft] = useState("");
   const [bookingEnabled, setBookingEnabled] = useState(true);
   const [meetLink, setMeetLink] = useState("");
@@ -252,7 +252,7 @@ const load = useCallback(async () => {
       try {
         const { data: list } = await api.get("/api/notifications/my");
         if (active && Array.isArray(list)) {
-          setData((current) => ({ ...current, notifications: list }));
+          setData((current: Unmodelled) => ({ ...current, notifications: list } as Unmodelled));
         }
       } catch {
         // Keep the latest dashboard notifications if a background poll fails.
@@ -300,18 +300,18 @@ const load = useCallback(async () => {
   const patients: Unmodelled = useMemo(() => data.patients || [], [data.patients]);
   const today = todayYMD();
 
-  const pending = appointments.filter((item) => item.status === "pending");
-  const activeSessions = appointments.filter((item) => ["pending", "confirmed"].includes(item.status));
-  const completedSessions = appointments.filter((item) => item.status === "completed");
-  const todaySessions = appointments.filter((item) => item.date === today && ["pending", "confirmed"].includes(item.status));
+  const pending = appointments.filter((item: Unmodelled) => item.status === "pending");
+  const activeSessions = appointments.filter((item: Unmodelled) => ["pending", "confirmed"].includes(item.status));
+  const completedSessions = appointments.filter((item: Unmodelled) => item.status === "completed");
+  const todaySessions = appointments.filter((item: Unmodelled) => item.date === today && ["pending", "confirmed"].includes(item.status));
   const upcomingAppointments = useMemo(
     () =>
       appointments
-        .filter((item) => ["pending", "confirmed"].includes(item.status))
-        .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`)),
+        .filter((item: Unmodelled) => ["pending", "confirmed"].includes(item.status))
+        .sort((a: Unmodelled, b: Unmodelled) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`)),
     [appointments]
   );
-  const selectedPatient: Unmodelled = patients.find((patient) => patient.id === selectedPatientId) || patients[0];
+  const selectedPatient: Unmodelled = patients.find((patient: Unmodelled) => patient.id === selectedPatientId) || patients[0];
 
   const allPackages: Unmodelled = useMemo(() => data.allPackages || [], [data.allPackages]);
   const packageSummary = useMemo(() => data.packageSummary || {
@@ -327,13 +327,13 @@ const load = useCallback(async () => {
   // Helper: get display label for package session badge e.g. "📦 Package Session 3/8"
   const getPackageBadgeLabel = useCallback((appointment: Unmodelled) => {
     if (!appointment?.packageId) return null;
-    const pkg: Unmodelled = allPackages.find((p) => String(p.id) === String(appointment.packageId));
+    const pkg: Unmodelled = allPackages.find((p: Unmodelled) => String(p.id) === String(appointment.packageId));
     if (!pkg) return "📦 Package Session";
     // Position among sessions of same package (sorted chronologically)
     const related: Unmodelled = appointments
-      .filter((a) => String(a.packageId) === String(appointment.packageId))
-      .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
-    const idx = related.findIndex((a) => String(a.id) === String(appointment.id));
+      .filter((a: Unmodelled) => String(a.packageId) === String(appointment.packageId))
+      .sort((a: Unmodelled, b: Unmodelled) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+    const idx = related.findIndex((a: Unmodelled) => String(a.id) === String(appointment.id));
     if (idx >= 0 && pkg.sessionsTotal) {
       return `📦 Package ${idx + 1}/${pkg.sessionsTotal}`;
     }
@@ -344,7 +344,7 @@ const load = useCallback(async () => {
     const q = packageSearch.trim().toLowerCase();
     const nowTime = Date.now();
     const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-    return allPackages.filter((pkg) => {
+    return allPackages.filter((pkg: Unmodelled) => {
       let statusMatches = true;
       if (packageStatusFilter === "active") statusMatches = pkg.status === "active";
       else if (packageStatusFilter === "completed") statusMatches = pkg.status === "completed";
@@ -363,7 +363,7 @@ const load = useCallback(async () => {
 
   const filteredSessions = useMemo(() => {
     const query = sessionSearch.trim().toLowerCase();
-    return appointments.filter((appointment) => {
+    return appointments.filter((appointment: Unmodelled) => {
       const statusOk = sessionFilter === "all" || appointment.status === sessionFilter;
       const typeOk =
         sessionTypeFilter === "all" ||
@@ -377,7 +377,7 @@ const load = useCallback(async () => {
   const selectedPatientSessions = useMemo(() => {
     if (!selectedPatient) return [];
     return appointments.filter(
-      (appointment) =>
+      (appointment: Unmodelled) =>
         appointment.studentEmail === selectedPatient.email ||
         appointment.studentName === selectedPatient.name ||
         appointment.studentId === selectedPatient.id
@@ -446,7 +446,7 @@ const load = useCallback(async () => {
         api.put("/api/users/me", {
           username: usernameDraft.trim(),
           ...profileDraft,
-          ...(Number.isFinite(cleanedBasePrice) && cleanedBasePrice > 0 ? { sessionPricing: cleanedBasePrice, supportPlanPrices: packagePricePlans.reduce((acc, plan) => ({ ...acc, [plan.key]: Number(packagePrices[plan.key]) }), {}) } : {}),
+          ...(Number.isFinite(cleanedBasePrice) && cleanedBasePrice > 0 ? { sessionPricing: cleanedBasePrice, supportPlanPrices: packagePricePlans.reduce((acc, plan) => ({ ...acc, [plan.key]: Number((packagePrices as Unmodelled)[plan.key]) }), {}) } : {}),
           privacySettings,
           notificationSettings,
           providerSettings: {
@@ -841,7 +841,7 @@ function RequestRow({ appointment, onConfirm, onDecline, onMeet, onChat }: Unmod
           <div className="text-sm text-foreground/60">{appointment.date} at {appointment.time} · {counsellingModeLabel(appointment.mode)}</div>
           {appointment.concern && <p className="mt-2 text-sm text-foreground/75">{appointment.concern}</p>}
         </div>
-        <Badge className={statusTone[appointment.status] || statusTone.pending}>{appointment.status}</Badge>
+        <Badge className={(statusTone as Unmodelled)[appointment.status] || statusTone.pending}>{appointment.status}</Badge>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         <Button size="sm" onClick={onConfirm}>
@@ -877,7 +877,7 @@ function UpcomingAppointmentCard({ appointment, packageBadge, draft, onDraft, on
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-lg font-semibold">{appointment.studentName || appointment.studentEmail || "User"}</h3>
-            <Badge className={statusTone[appointment.status] || statusTone.upcoming}>{displayStatus}</Badge>
+            <Badge className={(statusTone as Unmodelled)[appointment.status] || statusTone.upcoming}>{displayStatus}</Badge>
             {packageBadge ? (
               <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-medium">
                 {packageBadge}

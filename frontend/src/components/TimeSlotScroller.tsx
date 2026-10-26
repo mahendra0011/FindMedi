@@ -89,7 +89,7 @@ export default function TimeSlotScroller({
   // Build a map of time → appointment for quick lookup
   const appointmentMap = useMemo(() => {
     const map: Unmodelled = {};
-    appointments.forEach(apt => {
+    appointments.forEach((apt: Unmodelled) => {
       if (apt.time) {
         map[apt.time] = apt;
       }

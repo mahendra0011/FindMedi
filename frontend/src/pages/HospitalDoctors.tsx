@@ -63,8 +63,8 @@ export default function HospitalDoctors() {
   const [sortBy, setSortBy] = useState('relevance');
 
   const [consultantType, setConsultantType] = useState('');
-  const [qualificationFilter, setQualificationFilter] = useState<ApiRow[]>([]);
-  const [languageFilter, setLanguageFilter] = useState<ApiRow[]>([]);
+  const [qualificationFilter, setQualificationFilter] = useState<Unmodelled[]>([]);
+  const [languageFilter, setLanguageFilter] = useState<Unmodelled[]>([]);
   const [surgeryFilter, setSurgeryFilter] = useState('');
   const [admissionFilter, setAdmissionFilter] = useState('');
   const [insuranceFilter, setInsuranceFilter] = useState('');

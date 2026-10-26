@@ -185,7 +185,7 @@ export default function LabSampleCollection() {
                     <p className="text-xs text-muted-foreground">No active phlebotomists found — invite users with the Phlebotomist role.</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
-                      {phlebotomists.map(p => (
+                      {phlebotomists.map((p: Unmodelled)  => (
                         <button key={p} onClick={() => assignPhlebotomist(c.id, p)}
                           className="px-3 py-1.5 text-xs font-medium rounded-lg bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors">
                           {p}

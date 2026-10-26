@@ -152,7 +152,7 @@ const ResourceHub = () => {
     const [type, setType] = useState("all");
     const [category, setCategory] = useState("all");
     const [language, setLanguage] = useState("all");
-    const [tags, setTags] = useState<ApiRow[]>([]);
+    const [tags, setTags] = useState<Unmodelled[]>([]);
     const [minDur, setMinDur] = useState("");
     const [maxDur, setMaxDur] = useState("");
     const [playingAudio, setPlayingAudio] = useState<Unmodelled>(null);
@@ -384,7 +384,7 @@ const ResourceHub = () => {
                     <label className="text-xs font-medium">Quick Tags</label>
                     <ScrollArea className="h-10">
                       <div className="flex gap-2 pr-2">
-                        {availableTags.map((t) => (<Badge key={t} onClick={() => toggleTag(t)} className={`cursor-pointer whitespace-nowrap transition ${tags.includes(t) ? "bg-primary text-primary-foreground shadow-sm" : "bg-foreground/8 text-foreground/70 hover:bg-foreground/15"}`}>
+                        {availableTags.map((t: Unmodelled) => (<Badge key={t} onClick={() => toggleTag(t)} className={`cursor-pointer whitespace-nowrap transition ${tags.includes(t) ? "bg-primary text-primary-foreground shadow-sm" : "bg-foreground/8 text-foreground/70 hover:bg-foreground/15"}`}>
                             #{t}
                           </Badge>))}
                       </div>

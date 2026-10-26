@@ -24,7 +24,7 @@ export default function Doctors() {
   const { data: doctors = [], isLoading } = useQuery({
     queryKey: ['doctors', search, typeFilter],
     queryFn: () => {
-      const params = {};
+      const params: Unmodelled = {};
       if (search) params.search = search;
       if (typeFilter !== 'all') params.doctor_type = typeFilter;
       return api.getDoctors(params);
@@ -33,7 +33,7 @@ export default function Doctors() {
 
   const createMut = useMutation({ mutationFn: api.createDoctor, onSuccess: () => { qc.invalidateQueries(['doctors']); setModal(false); setForm(empty); } });
   const deleteMut = useMutation({ mutationFn: api.deleteDoctor, onSuccess: () => qc.invalidateQueries(['doctors']) });
-  const toggleMut = useMutation({ mutationFn: ({ id, available }) => api.updateDoctor(id, { available }), onSuccess: () => qc.invalidateQueries(['doctors']) });
+  const toggleMut = useMutation({ mutationFn: ({ id, available  }: Unmodelled) => api.updateDoctor(id, { available }), onSuccess: () => qc.invalidateQueries(['doctors']) });
 
   const submit = (e: Unmodelled) => { e.preventDefault(); createMut.mutate({ ...form, initials: form.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(), department: form.specialization }); };
   const set = (k: Unmodelled, v: Unmodelled) => setForm(f => ({ ...f, [k]: v }));

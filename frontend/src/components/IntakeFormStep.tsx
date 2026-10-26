@@ -15,7 +15,7 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
   const [uploadingReport, setUploadingReport] = useState(false);
   const [uploadMenu, setUploadMenu] = useState<Unmodelled>(null); // 'prescription' | 'report' | null
   
-  const [activeSection, setActiveSection] = useState('chief_complaint');
+  const [activeSection, setActiveSection] = useState<Unmodelled>('chief_complaint');
 
   const prescriptionInputRef: Unmodelled = useRef<Unmodelled>(null);
   const reportInputRef: Unmodelled = useRef<Unmodelled>(null);

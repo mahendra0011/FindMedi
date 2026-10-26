@@ -78,7 +78,7 @@ const themeOptions = [
   { id: "soft", name: "Soft White", color: "bg-zinc-100" },
 ];
 
-const emptyData = {
+const emptyData: Unmodelled = {
   stats: {
     usersByRole: {},
     usersByStatus: {},
@@ -133,7 +133,7 @@ const AdminDashboard = () => {
   });
 
   const loadPackages = useCallback(() => {
-    dispatch(fetchSupportPackages());
+    (dispatch as Unmodelled)(fetchSupportPackages());
   }, [dispatch]);
 
   const load = useCallback(async () => {
@@ -167,7 +167,7 @@ const AdminDashboard = () => {
       try {
         const { data: list } = await api.get("/api/notifications/my");
         if (active && Array.isArray(list)) {
-          setData((current) => ({ ...current, notifications: list }));
+          setData((current: Unmodelled) => ({ ...current, notifications: list }));
         }
       } catch {
         // Keep the latest admin notifications if a background poll fails.
@@ -181,8 +181,8 @@ const AdminDashboard = () => {
   }, []);
 
   const totals = useMemo(() => {
-    const userCount = data.stats.totalUsers || Object.values(data.stats.usersByRole).reduce((sum, value) => sum + value, 0);
-    const appointmentCount = data.stats.totalSessions || Object.values(data.stats.appointmentsByStatus).reduce((sum, value) => sum + value, 0);
+    const userCount = data.stats.totalUsers || Object.values(data.stats.usersByRole).reduce((sum: Unmodelled, value: Unmodelled) => sum + value, 0);
+    const appointmentCount = data.stats.totalSessions || Object.values(data.stats.appointmentsByStatus).reduce((sum: Unmodelled, value: Unmodelled) => sum + value, 0);
     return { userCount, appointmentCount };
   }, [data]);
 
@@ -221,9 +221,9 @@ const AdminDashboard = () => {
   const updateReportStatus = async (report: Unmodelled, status: Unmodelled) => {
     try {
       await api.patch(`/api/reports/counsellor/${report.id}`, { status });
-      setData((prev) => ({
+      setData((prev: Unmodelled) => ({
         ...prev,
-        reports: (prev.reports || []).map((r) => (r.id === report.id ? { ...r, status } : r)),
+        reports: (prev.reports || []).map((r: Unmodelled) => (r.id === report.id ? { ...r, status } : r)),
       }));
       toast({ title: `Report marked as ${status}` });
     } catch (error: any) {
@@ -282,10 +282,10 @@ const AdminDashboard = () => {
           : kind === "counsellors"
             ? [
                 ["Name", "Email", "Status", "Badge", "Rating", "Reviews", "Availability"],
-                ...data.counsellors.map((item) => [item.name, item.email, item.status, item.verificationBadge || "", item.rating || 0, item.reviews || 0, (item.availability || []).join("; ")]),
+                ...data.counsellors.map((item: Unmodelled) => [item.name, item.email, item.status, item.verificationBadge || "", item.rating || 0, item.reviews || 0, (item.availability || []).join("; ")]),
               ]
             : [["Name", "Email", "Role", "Status", "OTP Verified"], ...users.map((user) => [user.name, user.email, user.role, user.status || "active", user.otpVerified ? "yes" : "no"])];
-    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = rows.map((row) => row.map((cell: Unmodelled) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -310,7 +310,7 @@ const sendAnnouncement = async () => {
   };
 
   const handleAddPackage = async (pkg: Unmodelled) => {
-    const result = await dispatch(createSupportPackage(pkg));
+    const result: Unmodelled = await (dispatch as Unmodelled)(createSupportPackage(pkg));
     if (result.meta.requestStatus === "fulfilled") {
       toast({ title: "Package added", description: `${pkg.name} has been created.` });
       setShowPackageForm(false);
@@ -326,7 +326,7 @@ const sendAnnouncement = async () => {
   };
 
   const handleUpdatePackage = async (pkg: Unmodelled) => {
-    const result = await dispatch(updateSupportPackage(pkg));
+    const result: Unmodelled = await (dispatch as Unmodelled)(updateSupportPackage(pkg));
     if (result.meta.requestStatus === "fulfilled") {
       toast({ title: "Package updated", description: `${pkg.name} has been updated.` });
       setShowPackageForm(false);
@@ -338,7 +338,7 @@ const sendAnnouncement = async () => {
 
   const handleDeletePackage = async (pkgId: Unmodelled) => {
     if (!confirm("Are you sure you want to delete this package? This cannot be undone.")) return;
-    const result = await dispatch(deleteSupportPackage(pkgId));
+    const result: Unmodelled = await (dispatch as Unmodelled)(deleteSupportPackage(pkgId));
     if (result.meta.requestStatus === "fulfilled") {
       toast({ title: "Package deleted", description: "Package has been removed." });
     } else {
@@ -346,7 +346,7 @@ const sendAnnouncement = async () => {
     }
   };
 
-  const [newPackage, setNewPackage] = useState({
+  const [newPackage, setNewPackage] = useState<Unmodelled>({
     id: "",
     name: "",
     summary: "",
@@ -615,7 +615,7 @@ function Breakdown({ title, data }: Unmodelled) {
     <div>
       <h3 className="font-medium mb-2">{title}</h3>
       <div className="space-y-2">
-        {entries.map(([name, count]) => (
+        {entries.map(([name, count]: Unmodelled) => (
           <div key={name} className="flex items-center justify-between rounded-lg bg-foreground/5 px-3 py-2">
             <span className="capitalize">{name}</span>
             <span className="font-semibold">{count}</span>

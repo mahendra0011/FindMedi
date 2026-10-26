@@ -47,15 +47,15 @@ export default function Staff() {
   const [trainingData, setTrainingData] = useState({ course: '', date: '', expiryDate: '', provider: '' });
   const [newStaff, setNewStaff] = useState({ name: '', email: '', phone: '', role: 'Nurse', department: '', employeeId: '', joiningDate: '', salary: '' });
 
-  const { data } = useQuery({ queryKey: ['staff', search, deptFilter], queryFn: () => staffApi.getAll({ search, department: deptFilter }) });
-  const { data: stats } = useQuery({ queryKey: ['staff-stats'], queryFn: staffApi.getStats });
+  const { data }: Unmodelled = useQuery({ queryKey: ['staff', search, deptFilter], queryFn: () => staffApi.getAll({ search, department: deptFilter }) });
+  const { data: stats }: Unmodelled = useQuery({ queryKey: ['staff-stats'], queryFn: staffApi.getStats });
   const staff = data?.staff || [];
 
   const createMut = useMutation({ mutationFn: staffApi.create, onSuccess: () => { qc.invalidateQueries(['staff']); setShowCreate(false); } });
-  const attendanceMut = useMutation({ mutationFn: ({ id, ...b }) => staffApi.markAttendance(id, b), onSuccess: () => setShowAttendance(null) });
-  const leaveMut = useMutation({ mutationFn: ({ id, ...b }) => staffApi.applyLeave(id, b), onSuccess: () => { qc.invalidateQueries(['staff']); setShowLeave(null); } });
-  const shiftMut = useMutation({ mutationFn: ({ id, ...b }) => staffApi.assignShift(id, b), onSuccess: () => { qc.invalidateQueries(['staff']); setShowShift(null); } });
-  const trainingMut = useMutation({ mutationFn: ({ id, ...b }) => staffApi.addTraining(id, b), onSuccess: () => { qc.invalidateQueries(['staff']); setShowTraining(null); } });
+  const attendanceMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => staffApi.markAttendance(id, b), onSuccess: () => setShowAttendance(null) });
+  const leaveMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => staffApi.applyLeave(id, b), onSuccess: () => { qc.invalidateQueries(['staff']); setShowLeave(null); } });
+  const shiftMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => staffApi.assignShift(id, b), onSuccess: () => { qc.invalidateQueries(['staff']); setShowShift(null); } });
+  const trainingMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => staffApi.addTraining(id, b), onSuccess: () => { qc.invalidateQueries(['staff']); setShowTraining(null); } });
 
   return (
     <div>
@@ -281,7 +281,7 @@ export default function Staff() {
                 <div><label className="text-sm font-medium mb-1 block">Joining Date</label><Input type="date" value={newStaff.joiningDate} onChange={e => setNewStaff({ ...newStaff, joiningDate: e.target.value })} /></div>
                 <div><label className="text-sm font-medium mb-1 block">Salary (₹)</label><Input type="number" value={newStaff.salary} onChange={e => setNewStaff({ ...newStaff, salary: e.target.value })} /></div>
               </div>
-              <Button className="w-full" onClick={() => createMut.mutate(newStaff)} disabled={createMut.isPending || !newStaff.name}>Add Staff</Button>
+              <Button className="w-full" onClick={() => createMut.mutate((newStaff as Unmodelled))} disabled={createMut.isPending || !newStaff.name}>Add Staff</Button>
             </div>
           </div>
         </div>

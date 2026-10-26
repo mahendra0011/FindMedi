@@ -60,7 +60,7 @@ export default function AdminScheduleManage() {
 
   // If a doctor is selected, render the schedule editor (reuse ClinicSchedule in admin mode)
   if (selectedDoctor) {
-    return <ClinicSchedule adminMode doctorId={selectedDoctor._id} />;
+    return <ClinicSchedule {...({ adminMode: true, doctorId: selectedDoctor._id } as Unmodelled)} />;
   }
 
   // Derive unique specializations for filter dropdown

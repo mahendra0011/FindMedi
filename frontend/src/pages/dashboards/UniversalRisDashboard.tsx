@@ -9,6 +9,7 @@ import { useParams } from 'react-router-dom';
 import RoleDashboardShell from './RoleDashboardShell';
 import { getRisDashboardSpec } from '@/lib/risDashboardSpec';
 import { useLiveKpis, fetchRoleLiveKpis } from './useLiveKpis';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export interface UniversalRisDashboardProps {
   roleKey?: string;
@@ -23,7 +24,7 @@ export default function UniversalRisDashboard({ roleKey: propRoleKey }: Universa
 
   return (
     <div data-testid="universal-ris-dashboard" data-role-key={activeRole}>
-      <RoleDashboardShell config={{ ...spec, kpis }} />
+      <RoleDashboardShell config={({ ...spec, kpis } as Unmodelled)} />
     </div>
   );
 }

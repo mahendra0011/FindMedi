@@ -259,7 +259,7 @@ const MyWellness = () => {
   };
 
   const toggleNotification = (key: Unmodelled) => {
-    setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
+    setNotifications((prev) => ({ ...prev, [key]: !(prev as Unmodelled)[key] }));
   };
 
   const cycleLanguage = () => {
@@ -399,7 +399,7 @@ const MyWellness = () => {
                       const target = goal.target || 1;
                       const progress = goal.progress || 0;
                       return (
-                        <div key={goal.id || goal.title || idx} className="rounded-xl border border-glass-border/25 bg-background/35 p-4">
+                        <div key={(goal as Unmodelled).id || goal.title || idx} className="rounded-xl border border-glass-border/25 bg-background/35 p-4">
                           <div className="flex items-center gap-3">
                             <span className={`h-4 w-4 rounded-full border ${progress >= target ? "border-emerald-400 bg-emerald-400/25" : "border-foreground/50"}`} />
                             <div className={`flex-1 font-medium ${progress >= target ? "line-through text-foreground/60" : ""}`}>{goal.title}</div>

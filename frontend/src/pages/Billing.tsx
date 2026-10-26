@@ -52,7 +52,7 @@ export default function Billing() {
     },
   });
   const deleteMut = useMutation({ mutationFn: api.deleteBill, onSuccess: () => qc.invalidateQueries(['billing']) });
-  const markPaidMut = useMutation({ mutationFn: ({ id, amount }) => api.updateBill(id, { status:'Paid', paid: amount }), onSuccess: () => qc.invalidateQueries(['billing']) });
+  const markPaidMut = useMutation({ mutationFn: ({ id, amount  }: Unmodelled) => api.updateBill(id, { status:'Paid', paid: amount }), onSuccess: () => qc.invalidateQueries(['billing']) });
 
   const set = (k: Unmodelled, v: Unmodelled) => setForm(f => ({ ...f, [k]: v }));
   const submit = (e: Unmodelled) => {

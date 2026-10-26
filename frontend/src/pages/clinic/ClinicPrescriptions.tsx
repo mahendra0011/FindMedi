@@ -38,8 +38,8 @@ export default function ClinicPrescriptions() {
         return matchesId || matchesName;
       });
 
-      const billList = [];
-      const invoiceList = [];
+      const billList: Unmodelled[] = [];
+      const invoiceList: Unmodelled[] = [];
 
       myBills.forEach((b: Unmodelled) => {
         const bt = (b.billType || b.data?.type || '').toLowerCase();

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function NotificationPreferences() {
   const [loading, setLoading] = useState(false);
@@ -74,7 +75,7 @@ export default function NotificationPreferences() {
     try {
       localStorage.setItem('findmedi_notification_prefs', JSON.stringify(prefs));
       // Save to backend if route exists
-      await api.updateUserSettings?.({ notificationPrefs: prefs }).catch(() => {});
+      await (api as Unmodelled).updateUserSettings?.({ notificationPrefs: prefs }).catch(() => {});
       toast.success('Notification preferences & Discreet Mode updated successfully');
     } catch {
       toast.error('Failed to save preferences');

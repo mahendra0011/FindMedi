@@ -424,7 +424,7 @@ export function ProviderPackagesTab({
                               {counsellingModeLabel(session.mode)}
                             </Badge>
                           </div>
-                          <Badge className={statusTone[session.status] || statusTone.upcoming}>
+                          <Badge className={(statusTone as Unmodelled)[session.status] || statusTone.upcoming}>
                             {session.status}
                           </Badge>
                         </div>

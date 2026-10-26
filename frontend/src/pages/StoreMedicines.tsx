@@ -34,7 +34,7 @@ export default function StoreMedicines() {
   const [store, setStore] = useState<Unmodelled>(null);
   const [allMeds, setAllMeds] = useState<ApiRow[]>([]);
   const [_loading, setLoading] = useState(true);
-  const { addItem, updateQty, entries } = useCart();
+  const { addItem, updateQty, entries }: Unmodelled = useCart();
 
   useEffect(() => {
     const load = async () => {

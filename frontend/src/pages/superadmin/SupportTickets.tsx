@@ -18,7 +18,7 @@ function SupportTicketsTab() {
   const [reply, setReply] = useState('');
 
   useEffect(() => {
-    let socket;
+    let socket: Unmodelled;
     (async () => {
       try {
         const { getSocket } = await import('@/lib/socket');
@@ -26,7 +26,7 @@ function SupportTicketsTab() {
         const onNew = (t: Unmodelled) => { setTickets((prev) => [t, ...prev]); toast.info(`New Support Ticket #${t.ticketNumber || String(t._id).slice(-6)} received`); };
         const onMsg = (p: Unmodelled) => {
           if (selected?._id === p.ticketId) {
-            setSelected((prev) => ({ ...prev, messages: [...(prev.messages || []), p.message] }));
+            setSelected((prev: Unmodelled) => ({ ...prev, messages: [...(prev.messages || []), p.message] }));
           }
         };
         socket?.on('support_ticket_created', onNew);

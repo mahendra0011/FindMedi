@@ -112,6 +112,7 @@ const quickActions = [
  */
 import { orderTiles } from './personaTiles';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
+import { Badge } from '@/components/ui/badge';
 
 const healthTips = [
   'Stay hydrated — drink at least 8 glasses of water daily.',
@@ -191,7 +192,7 @@ export default function PatientDashboard() {
   }, []);
 
   useEffect(() => {
-    let socket;
+    let socket: Unmodelled;
     (async () => {
       try {
         const { getSocket } = await import('@/lib/socket');

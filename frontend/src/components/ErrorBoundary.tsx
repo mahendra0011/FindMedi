@@ -2,7 +2,7 @@ import { Component } from 'react';
 import { Button } from '@/components/ui/button';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-export default class ErrorBoundary extends Component {
+export default class ErrorBoundary extends Component<Unmodelled, Unmodelled> {
   constructor(props: Unmodelled) {
     super(props);
     this.state = { hasError: false, error: null, showDetails: false };

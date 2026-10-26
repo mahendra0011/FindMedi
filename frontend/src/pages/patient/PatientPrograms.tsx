@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function PatientPrograms() {
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
@@ -60,8 +61,8 @@ export default function PatientPrograms() {
   ]);
 
   const handleToggleFreeze = (id: string) => {
-    setPrograms((prev) =>
-      prev.map((p) => {
+    setPrograms((prev: Unmodelled) =>
+      prev.map((p: Unmodelled) => {
         if (p.id === id) {
           const nextState = !p.isFrozen;
           toast.success(nextState ? 'Membership frozen for 14 days.' : 'Membership resumed successfully.');

@@ -35,6 +35,7 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import LawyerUrgentIntakeModal from '@/components/LawyerUrgentIntakeModal';
 import LawyerScheduleModal from '@/components/LawyerScheduleModal';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 function renderStars(rating: number, size = 'w-4 h-4') {
@@ -51,7 +52,7 @@ function renderStars(rating: number, size = 'w-4 h-4') {
   ));
 }
 
-const fadeUp = {
+const fadeUp: Unmodelled = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
     opacity: 1,

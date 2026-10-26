@@ -53,7 +53,7 @@ export default function PharmacyOrders() {
         <h1 className="font-heading text-xl font-bold text-foreground">Orders</h1>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <Button variant="outline" size="sm" onClick={() => {
-            const csvRows = [["OrderID", "Customer", "Items", "Total", "Status"], ...rows.map(o => [o.orderId, o.customer, o.items ?? "", o.total, o.status || ""])];
+            const csvRows = [["OrderID", "Customer", "Items", "Total", "Status"], ...rows.map((o: Unmodelled) => [o.orderId, o.customer, o.items ?? "", o.total, o.status || ""])];
             const csv = csvRows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
             const blob = new Blob([csv], { type: "text/csv" });
             const a = document.createElement("a");

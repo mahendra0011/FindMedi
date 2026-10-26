@@ -18,7 +18,7 @@ export default function OrderConfirmation() {
   const storeIds  = searchParams.get('stores')?.split(',') || [];
   const hasRx     = searchParams.get('rx') === 'true';
   const flowType  = searchParams.get('type') || 'medicine';
-  const { entries, stores } = useCart();
+  const { entries, stores }: Unmodelled = useCart();
   const { user } = useAuth();
   const [snapshotStores] = useState<Unmodelled>(null);
   const [snapshotTotal] = useState(0);

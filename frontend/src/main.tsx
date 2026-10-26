@@ -11,7 +11,6 @@ if ((import.meta as any).env?.VITE_SENTRY_DSN) {
   Sentry.init({
     dsn: (import.meta as any).env.VITE_SENTRY_DSN,
     tracesSampleRate: 0.1,
-    sendDefaultPii: false,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 0,
     beforeSend(event) {

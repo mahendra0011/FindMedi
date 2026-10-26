@@ -703,7 +703,7 @@ export default function BookingModal({
       if (!groups[key]) groups[key] = [];
       groups[key].push(t);
     });
-    return Object.entries(groups).sort((a, b) => slotToMinutes(a[1][0]) - slotToMinutes(b[1][0]));
+    return Object.entries(groups).sort((x: Unmodelled, y: Unmodelled) => (slotToMinutes(x[1]?.[0]) as Unmodelled) - (slotToMinutes(y[1]?.[0]) as Unmodelled));
   }, [currentDoc?.time_slots, dateDisabledSlots]);
 
   // Range string for a slot: "9:00–9:15"

@@ -29,7 +29,7 @@ import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const CATEGORIES = ['All', 'Pathology Tests', 'Imaging Tests', 'Cardiac Tests', 'Health Packages'];
 
-const SUGGESTED_LABS = [];
+const SUGGESTED_LABS: Unmodelled[] = [];
 
 const ALL_TESTS = [
   { id:'dc1', name:'Complete Blood Count (CBC)', detailCategory:'Pathology Tests', mrp:399, price:249, discount:38, reportTime:'6 hrs', homeCollection:true, rx:false, popular:true },
@@ -84,7 +84,7 @@ const AMENITIES_LIST = [
   { key:'childFriendly', label:'Child Friendly', icon:Baby },
 ];
 
-const fadeUp = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } } };
+const fadeUp: Unmodelled = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } } };
 
 const SectionTitle = ({ icon:Icon, label }: Unmodelled) => (
   <h2 className="font-heading text-lg font-bold text-foreground mb-5 flex items-center gap-2">
@@ -109,7 +109,7 @@ export default function DiagnosticCenterDetail() {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const { clinicId } = useParams();
   const navigate = useNavigate();
-  const { entries, addItem, updateQty } = useCart();
+  const { entries, addItem, updateQty }: Unmodelled = useCart();
 
   const [facility, setFacility] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);

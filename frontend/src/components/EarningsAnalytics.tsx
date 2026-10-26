@@ -161,18 +161,18 @@ function HeatmapCell({ intensity, day, amount }: Unmodelled) {
 /* ═══════════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════════ */
-export default function EarningsAnalytics({ bills = [], payments = [], title = 'Earnings Analytics' }) {
+export default function EarningsAnalytics({ bills = [], payments = [], title = 'Earnings Analytics' }: Unmodelled) {
   const [range, setRange] = useState('6m');
   const [showAmounts, setShowAmounts] = useState(true);
   const [activeChart, setActiveChart] = useState('area'); // 'area' | 'bar' | 'composed'
 
   /* ─── Compute all stats ─────────────────────────── */
   const stats = useMemo(() => {
-    const totalBilled = bills.reduce((s, b) => s + (Number(b.amount) || 0), 0);
-    const totalEarned = bills.reduce((s, b) => s + (Number(b.paid) || 0), 0);
+    const totalBilled = bills.reduce((s: Unmodelled, b: Unmodelled) => s + (Number(b.amount) || 0), 0);
+    const totalEarned = bills.reduce((s: Unmodelled, b: Unmodelled) => s + (Number(b.paid) || 0), 0);
     
     // Categorize earnings (heuristic based on type/service string)
-    const testEarned = bills.reduce((s, b) => {
+    const testEarned = bills.reduce((s: Unmodelled, b: Unmodelled) => {
       const isTest: Unmodelled = b.type === 'Test' || b.type === 'Lab' || b.type === 'investigation' || b.service?.toLowerCase().includes('test');
       return s + (isTest ? (Number(b.paid) || 0) : 0);
     }, 0);
@@ -184,7 +184,7 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
     // Monthly trend (last 6 months)
     const now = new Date();
     const monthlyMap: Unmodelled = {};
-    bills.forEach((b) => {
+    bills.forEach((b: Unmodelled) => {
       if (!b.date) return;
       const key = String(b.date).slice(0, 7);
       if (!monthlyMap[key]) monthlyMap[key] = { earned: 0, billed: 0, count: 0 };
@@ -210,7 +210,7 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
 
     // Last 30 days daily
     const dailyMap: Unmodelled = {};
-    bills.forEach((b) => {
+    bills.forEach((b: Unmodelled) => {
       if (!b.date) return;
       dailyMap[b.date] = (dailyMap[b.date] || 0) + (Number(b.paid) || 0);
     });
@@ -238,7 +238,7 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
         amount: amt,
       });
     }
-    last30.forEach(d => { d.intensity = maxDayEarned > 0 ? d.amount / maxDayEarned : 0; });
+    last30.forEach((d: Unmodelled) => { d.intensity = maxDayEarned > 0 ? d.amount / maxDayEarned : 0; });
 
     // Today / week / month
     const todayEarned = dailyMap[now.toISOString().slice(0, 10)] || 0;
@@ -249,39 +249,39 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
 
     // Status breakdown
     const statusCounts: Unmodelled = {};
-    bills.forEach((b) => {
+    bills.forEach((b: Unmodelled) => {
       const s = b.status || 'Pending';
       statusCounts[s] = (statusCounts[s] || 0) + (Number(b.amount) || 0);
     });
     const statusData = Object.entries(statusCounts)
-      .filter(([, v]) => v > 0)
+      .filter(([, v]: Unmodelled) => v > 0)
       .map(([name, value]) => ({ name, value, color: STATUS_META[name]?.color || 'hsl(var(--muted-foreground))' }));
 
     // Payment methods
     const methodCounts: Unmodelled = {};
-    payments.forEach((p) => {
+    payments.forEach((p: Unmodelled) => {
       const m = (p.method || 'cash').toLowerCase();
       methodCounts[m] = (methodCounts[m] || 0) + (Number(p.amount) || 0);
     });
-    const totalMethodAmt = Object.values(methodCounts).reduce((s, v) => s + v, 0);
-    const methodData = Object.entries(methodCounts).map(([key, amount]) => ({
+    const totalMethodAmt: Unmodelled = Object.values(methodCounts).reduce((s: Unmodelled, v: Unmodelled) => s + v, 0);
+    const methodData = Object.entries(methodCounts).map(([key, amount]: Unmodelled) => ({
       key, amount, pct: totalMethodAmt > 0 ? Math.round((amount / totalMethodAmt) * 100) : 0,
-    })).sort((a, b) => b.amount - a.amount);
+    })).sort((a: Unmodelled, b: Unmodelled) => b.amount - a.amount);
 
     // Top services
     const serviceCounts: Unmodelled = {};
-    bills.forEach((b) => {
+    bills.forEach((b: Unmodelled) => {
       const name = b.service || 'General';
       serviceCounts[name] = (serviceCounts[name] || 0) + (Number(b.paid) || 0);
     });
     const topServices = Object.entries(serviceCounts)
       .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
+      .sort((a: Unmodelled, b: Unmodelled) => b.value - a.value)
       .slice(0, 5);
     const topServiceMax = topServices[0]?.value || 1;
 
     // Transactions + avg
-    const txCount = bills.filter((b) => Number(b.paid) > 0).length;
+    const txCount = bills.filter((b: Unmodelled) => Number(b.paid) > 0).length;
     const avgTicket = txCount > 0 ? Math.round(totalEarned / txCount) : 0;
 
     // Monthly goal
@@ -296,7 +296,7 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
 
     // Hourly distribution (for radar chart)
     const hourlyDist = Array(24).fill(0);
-    bills.forEach((b) => {
+    bills.forEach((b: Unmodelled) => {
       if (b.time) {
         const hour = parseInt(b.time.split(':')[0]) || 0;
         hourlyDist[hour] += Number(b.paid) || 0;
@@ -760,7 +760,7 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
           <TooltipProvider>
             <div className="grid grid-cols-10 gap-1.5">
               {stats.last30.map((d, i) => (
-                <HeatmapCell key={i} intensity={d.intensity} day={d.day} amount={d.amount} />
+                <HeatmapCell key={i} intensity={(d as Unmodelled).intensity} day={d.day} amount={d.amount} />
               ))}
             </div>
           </TooltipProvider>

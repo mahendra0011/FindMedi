@@ -4,18 +4,18 @@ import "./FlowingMenu.css";
 import type { Unmodelled } from '@/lib/apiTypes';
 
 function FlowingMenu({
-  items = [],
+  items = [] as Unmodelled[],
   speed = 15,
   textColor = "#fff",
   bgColor = "#120F17",
   marqueeBgColor = "#fff",
   marqueeTextColor = "#120F17",
   borderColor = "#fff",
-}) {
+}: Unmodelled) {
   return (
     <div className="menu-wrap" style={{ backgroundColor: bgColor }}>
       <nav className="menu" aria-label="MindSupport support paths">
-        {items.map((item, idx) => (
+        {items.map((item: Unmodelled, idx: Unmodelled) => (
           <MenuItem
             key={`${item.text}-${idx}`}
             {...item}

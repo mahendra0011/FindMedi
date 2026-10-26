@@ -33,7 +33,7 @@ export default function LabBookingManagement() {
     return ms && mf;
   });
 
-  const handleStatus = async (id: Unmodelled, status: Unmodelled, slot: Unmodelled) => {
+  const handleStatus = async (id: Unmodelled, status: Unmodelled, slot?: Unmodelled) => {
     const prev = bookings;
     setBookings(prev => prev.map(b => b._id === id ? { ...b, status, ...(slot ? { timeSlot: slot } : {}) } : b));
     try {

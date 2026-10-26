@@ -180,7 +180,7 @@ export default function FacilityHero({ facility, isSaved, onToggleSave, onReport
                 {facility.name}
               </h1>
               {facility.verified && (
-                <BadgeCheck className="w-6 h-6 text-primary-foreground fill-primary shrink-0" title="Verified Facility" />
+                <BadgeCheck className="w-6 h-6 text-primary-foreground fill-primary shrink-0" aria-label="Verified Facility" />
               )}
             </div>
 

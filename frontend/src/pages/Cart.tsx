@@ -12,9 +12,9 @@ import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 export default function Cart() {
   const navigate = useNavigate();
-  const { entries, stores, updateQty, removeItem, addItem, totalItems } = useCart();
+  const { entries, stores, updateQty, removeItem, addItem, totalItems }: Unmodelled = useCart();
   const [savedForLater, setSavedForLater] = useState(() => {
-    try { return JSON.parse((localStorage.getItem('findmedi_saved') || localStorage.getItem('mediCore_saved'))) || {}; } catch { return {}; }
+    try { return JSON.parse(((localStorage as Unmodelled).getItem('findmedi_saved') || localStorage.getItem('mediCore_saved'))) || {}; } catch { return {}; }
   });
   const [fetchedStores, setFetchedStores] = useState<ApiRow[]>([]);
 
@@ -84,7 +84,7 @@ export default function Cart() {
                 </div>
               </div>
               <div className="divide-y divide-border/30">
-                {savedEntries.map(entry => {
+                {savedEntries.map((entry: Unmodelled)  => {
                   const store = getStore(entry.storeId);
                   return (
                     <div key={entry.key} className="p-4 sm:p-5 flex items-center gap-4">
@@ -248,7 +248,7 @@ export default function Cart() {
                 </div>
               </div>
               <div className="divide-y divide-border/30">
-                {savedEntries.map(entry => {
+                {savedEntries.map((entry: Unmodelled) => {
                   const store = getStore(entry.storeId);
                   return (
                     <div key={entry.key} className="p-4 sm:p-5 flex items-center gap-4">

@@ -50,22 +50,22 @@ export default function BloodBank() {
   // File 22 P1-21: donor screening form.
   const [screen, setScreen] = useState({ donorName: '', phone: '', bloodGroup: 'O+', age: '', weightKg: '', hb: '', lastDonationAt: '' });
 
-  const { data: unitsData } = useQuery({ queryKey: ['blood-units', search], queryFn: () => bbApi.getUnits({ search }) });
-  const { data: reqsData } = useQuery({ queryKey: ['blood-requests', search], queryFn: () => bbApi.getRequests({ search }) });
-  const { data: stats } = useQuery({ queryKey: ['blood-stats'], queryFn: bbApi.getStats });
-  const { data: screenData } = useQuery({ queryKey: ['donor-screenings'], queryFn: bbApi.getScreenings });
+  const { data: unitsData }: Unmodelled = useQuery({ queryKey: ['blood-units', search], queryFn: () => bbApi.getUnits({ search }) });
+  const { data: reqsData }: Unmodelled = useQuery({ queryKey: ['blood-requests', search], queryFn: () => bbApi.getRequests({ search }) });
+  const { data: stats }: Unmodelled = useQuery({ queryKey: ['blood-stats'], queryFn: bbApi.getStats });
+  const { data: screenData }: Unmodelled = useQuery({ queryKey: ['donor-screenings'], queryFn: bbApi.getScreenings });
   const units = unitsData?.units || [];
   const requests = reqsData?.requests || [];
   const screenings = (screenData as any)?.screenings || [];
 
   const addUnitMut = useMutation({ mutationFn: bbApi.addUnit, onSuccess: () => { qc.invalidateQueries(['blood-units']); setShowAdd(false); } });
   const createReqMut = useMutation({ mutationFn: bbApi.createRequest, onSuccess: () => { qc.invalidateQueries(['blood-requests']); setShowAdd(false); } });
-  const crossMatchMut = useMutation({ mutationFn: ({ id, ...b }) => bbApi.crossMatch(id, b), onSuccess: () => { qc.invalidateQueries(['blood-requests']); setShowCrossMatch(null); } });
-  const issueMut = useMutation({ mutationFn: ({ id, ...b }) => bbApi.issueUnits(id, b), onSuccess: () => qc.invalidateQueries(['blood-requests', 'blood-units']) });
-  const startTransMut = useMutation({ mutationFn: ({ id, ...b }) => bbApi.startTransfusion(id, b), onSuccess: () => { qc.invalidateQueries(['blood-requests']); setShowTransfusion(null); } });
-  const completeTransMut = useMutation({ mutationFn: ({ id, ...b }) => bbApi.completeTransfusion(id, b), onSuccess: () => qc.invalidateQueries(['blood-requests']) });
-  const reactionMut = useMutation({ mutationFn: ({ id, ...b }) => bbApi.reportReaction(id, b), onSuccess: () => { qc.invalidateQueries(['blood-requests']); setShowReaction(null); } });
-  const screenMut = useMutation({ mutationFn: bbApi.createScreening, onSuccess: (r: any) => { qc.invalidateQueries(['donor-screenings']); setScreen({ donorName: '', phone: '', bloodGroup: 'O+', age: '', weightKg: '', hb: '', lastDonationAt: '' }); } });
+  const crossMatchMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => bbApi.crossMatch(id, b), onSuccess: () => { qc.invalidateQueries(['blood-requests']); setShowCrossMatch(null); } });
+  const issueMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => bbApi.issueUnits(id, b), onSuccess: () => qc.invalidateQueries(['blood-requests', 'blood-units']) });
+  const startTransMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => bbApi.startTransfusion(id, b), onSuccess: () => { qc.invalidateQueries(['blood-requests']); setShowTransfusion(null); } });
+  const completeTransMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => bbApi.completeTransfusion(id, b), onSuccess: () => qc.invalidateQueries(['blood-requests']) });
+  const reactionMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => bbApi.reportReaction(id, b), onSuccess: () => { qc.invalidateQueries(['blood-requests']); setShowReaction(null); } });
+  const screenMut = useMutation({ mutationFn: (v: Unmodelled) => bbApi.createScreening(v), onSuccess: (r: any) => { qc.invalidateQueries(['donor-screenings']); setScreen({ donorName: '', phone: '', bloodGroup: 'O+', age: '', weightKg: '', hb: '', lastDonationAt: '' }); } });
 
   const getCompatibleUnits = (bloodGroup: Unmodelled) => {
     const compatible = compatibleDonors[bloodGroup] || [];
@@ -396,7 +396,7 @@ export default function BloodBank() {
               <div><label className="text-sm font-medium mb-1 block">Donation Date</label><Input type="date" value={newUnit.donationDate} onChange={e => setNewUnit({ ...newUnit, donationDate: e.target.value })} /></div>
               <div><label className="text-sm font-medium mb-1 block">Expiry Date</label><Input type="date" value={newUnit.expiryDate} onChange={e => setNewUnit({ ...newUnit, expiryDate: e.target.value })} /></div>
             </div>
-            <Button className="w-full mt-6" onClick={() => addUnitMut.mutate(newUnit)} disabled={addUnitMut.isPending || !newUnit.donationDate || !newUnit.expiryDate}>Add Unit</Button>
+            <Button className="w-full mt-6" onClick={() => addUnitMut.mutate((newUnit as Unmodelled))} disabled={addUnitMut.isPending || !newUnit.donationDate || !newUnit.expiryDate}>Add Unit</Button>
           </div>
         </div>
       )}
@@ -414,7 +414,7 @@ export default function BloodBank() {
                 <div><label className="text-sm font-medium mb-1 block">Priority</label><select value={newReq.priority} onChange={e => setNewReq({ ...newReq, priority: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Routine', 'Urgent', 'Emergency'].map(p => <option key={p} value={p}>{p}</option>)}</select></div>
               </div>
               <div><label className="text-sm font-medium mb-1 block">Reason</label><Input value={newReq.reason} onChange={e => setNewReq({ ...newReq, reason: e.target.value })} /></div>
-              <Button className="w-full" onClick={() => createReqMut.mutate(newReq)} disabled={createReqMut.isPending || !newReq.patientName}>Create Request</Button>
+              <Button className="w-full" onClick={() => createReqMut.mutate((newReq as Unmodelled))} disabled={createReqMut.isPending || !newReq.patientName}>Create Request</Button>
             </div>
           </div>
         </div>

@@ -81,17 +81,17 @@ export default function DietKitchen() {
       ].map((m) => ({ ...m, kcal: Math.round((nutriResult.targetCaloriesKcal || 0) * m.pct) }))
     : [];
 
-  const { data } = useQuery({ queryKey: ['diet-orders', search, statusFilter], queryFn: () => dietApi.getOrders({ search, status: statusFilter }) });
-  const { data: stats } = useQuery({ queryKey: ['diet-stats'], queryFn: dietApi.getStats });
+  const { data }: Unmodelled = useQuery({ queryKey: ['diet-orders', search, statusFilter], queryFn: () => dietApi.getOrders({ search, status: statusFilter }) });
+  const { data: stats }: Unmodelled = useQuery({ queryKey: ['diet-stats'], queryFn: dietApi.getStats });
   const orders = data?.orders || [];
 
   const createMut = useMutation({ mutationFn: dietApi.createOrder, onSuccess: () => { qc.invalidateQueries(['diet-orders', 'diet-stats']); setShowCreate(false); } });
-  const deliverMut = useMutation({ mutationFn: ({ id, ...b }) => dietApi.deliverMeal(id, b), onSuccess: () => qc.invalidateQueries(['diet-orders']) });
-  const confirmMut = useMutation({ mutationFn: ({ id, ...b }) => dietApi.confirmMeal(id, b), onSuccess: () => qc.invalidateQueries(['diet-orders']) });
-  const reviewMut = useMutation({ mutationFn: ({ id, ...b }) => dietApi.review(id, b), onSuccess: () => { qc.invalidateQueries(['diet-orders']); setShowReview(false); } });
-  const feedbackMut = useMutation({ mutationFn: ({ id, ...b }) => dietApi.addFeedback(id, b), onSuccess: () => { qc.invalidateQueries(['diet-orders']); setShowFeedback(null); } });
+  const deliverMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => dietApi.deliverMeal(id, b), onSuccess: () => qc.invalidateQueries(['diet-orders']) });
+  const confirmMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => dietApi.confirmMeal(id, b), onSuccess: () => qc.invalidateQueries(['diet-orders']) });
+  const reviewMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => dietApi.review(id, b), onSuccess: () => { qc.invalidateQueries(['diet-orders']); setShowReview(false); } });
+  const feedbackMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => dietApi.addFeedback(id, b), onSuccess: () => { qc.invalidateQueries(['diet-orders']); setShowFeedback(null); } });
   const notifyMut = useMutation({ mutationFn: dietApi.notifyKitchen, onSuccess: () => qc.invalidateQueries(['diet-orders']) });
-  const billingMut = useMutation({ mutationFn: ({ id, ...b }) => dietApi.addToBilling(id, b), onSuccess: () => qc.invalidateQueries(['diet-orders']) });
+  const billingMut = useMutation({ mutationFn: ({ id, ...b  }: Unmodelled) => dietApi.addToBilling(id, b), onSuccess: () => qc.invalidateQueries(['diet-orders']) });
 
   const renderFeedbackForm = (order: Unmodelled) => (
     <div className="bg-muted/30 rounded-xl p-4">
@@ -405,7 +405,7 @@ export default function DietKitchen() {
                   className="w-full min-h-[60px] rounded-lg border border-input bg-background px-3 py-2 text-sm" placeholder="e.g. No salt, pureed food, tube feed..." />
               </div>
               <div><label className="text-sm font-medium mb-1 block">Allergies</label><Input value={newOrder.allergies} onChange={e => setNewOrder({ ...newOrder, allergies: e.target.value })} /></div>
-              <Button className="w-full" onClick={() => createMut.mutate(newOrder)} disabled={createMut.isPending || !newOrder.patientName}>
+              <Button className="w-full" onClick={() => createMut.mutate((newOrder as Unmodelled))} disabled={createMut.isPending || !newOrder.patientName}>
                 {createMut.isPending ? 'Creating...' : 'Create Diet Order'}
               </Button>
             </div>

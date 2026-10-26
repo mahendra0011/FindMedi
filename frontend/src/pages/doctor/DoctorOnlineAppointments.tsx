@@ -130,7 +130,7 @@ export default function DoctorOnlineAppointments() {
     setPrescriptionData({
       ...initialPrescriptionData,
       patientName: apt.patient,
-      doctorName: user?.name,
+      doctorName: (user?.name as string),
       specialization: user?.specialization || '',
     });
     setShowPrescriptionModal(true);

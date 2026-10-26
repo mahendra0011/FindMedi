@@ -111,7 +111,7 @@ export default function DoctorLeaveRequests() {
         <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-2xl border border-primary/20 p-5">
           <h3 className="font-heading font-semibold text-foreground mb-3">Leave Balance</h3>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
-            {Object.entries(balance).filter(([k]) => k !== 'maternity').map(([key, val]) => {
+            {Object.entries(balance).filter(([k]) => k !== 'maternity').map(([key, val]: Unmodelled) => {
               const remaining = val.total - val.used;
               const labels: Unmodelled = { sick: 'Sick Leave', casual: 'Casual Leave', earned: 'Earned Leave', personal: 'Personal Leave' };
               return (
@@ -222,7 +222,7 @@ export default function DoctorLeaveRequests() {
                 <div className="bg-muted/30 rounded-xl p-3 text-sm">
                   <span className="text-muted-foreground">Total days: </span>
                   <span className="font-medium text-foreground">
-                    {Math.max(1, Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1)}
+                    {Math.max(1, Math.ceil(((+new Date(endDate)) - (+new Date(startDate))) / (1000 * 60 * 60 * 24)) + 1)}
                   </span>
                 </div>
               )}

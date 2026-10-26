@@ -348,7 +348,7 @@ export default function AdminClinicSettings() {
           {Object.keys(DAY_LABELS).map(day => (
             <div key={day} className="space-y-1">
               <Label className="text-xs capitalize">{DAY_LABELS[day]}</Label>
-              <Input value={form.timing?.[day] || ''} onChange={e => update('timing', { ...form.timing, [day]: e.target.value })} placeholder="9AM-6PM" className="h-8 text-xs" />
+              <Input value={(form as Unmodelled).timing?.[day] || ''} onChange={e => update('timing', { ...form.timing, [day]: e.target.value })} placeholder="9AM-6PM" className="h-8 text-xs" />
             </div>
           ))}
         </CardContent>
@@ -400,7 +400,7 @@ export default function AdminClinicSettings() {
         <CardContent className="grid grid-cols-2 gap-4">
           {Object.entries({ parking: 'Parking', acWaitingArea: 'AC Waiting Area', wheelchairAccess: 'Wheelchair Access', cardPayment: 'Card Payment', inHousePharmacy: 'In-house Pharmacy', drinkingWater: 'Drinking Water', wifi: 'Free Wi-Fi', homeVisit: 'Home Visit' }).map(([k, lbl]) => (
             <label key={k} className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.amenities?.[k] || false} onChange={e => update('amenities', { ...form.amenities, [k]: e.target.checked })} className="rounded border-border" />
+              <input type="checkbox" checked={(form as Unmodelled).amenities?.[k] || false} onChange={e => update('amenities', { ...form.amenities, [k]: e.target.checked })} className="rounded border-border" />
               {lbl}
             </label>
           ))}
@@ -413,7 +413,7 @@ export default function AdminClinicSettings() {
           {['facebook', 'instagram', 'youtube'].map(s => (
             <div key={s} className="space-y-1">
               <Label className="capitalize">{s}</Label>
-              <Input value={form.socialLinks?.[s] || ''} onChange={e => update('socialLinks', { ...form.socialLinks, [s]: e.target.value })} placeholder={`https://${s}.com/...`} />
+              <Input value={(form as Unmodelled).socialLinks?.[s] || ''} onChange={e => update('socialLinks', { ...form.socialLinks, [s]: e.target.value })} placeholder={`https://${s}.com/...`} />
             </div>
           ))}
         </CardContent>

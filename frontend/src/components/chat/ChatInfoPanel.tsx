@@ -71,8 +71,8 @@ export default function ChatInfoPanel({
   const groupedMedia = useMemo(() => {
     // CHAT-M-02: server stores `mimeType` (camelCase); tolerate legacy lowercase.
     const mimeOf = (m: any) => m.mimeType || m.mimetype;
-    const images = media.filter((m) => mimeOf(m)?.startsWith('image/'));
-    const videos = media.filter((m) => mimeOf(m)?.startsWith('video/'));
+    const images = media.filter((m: Unmodelled) => mimeOf(m)?.startsWith('image/'));
+    const videos = media.filter((m: Unmodelled) => mimeOf(m)?.startsWith('video/'));
     return { images, videos };
   }, [media]);
 
@@ -277,7 +277,7 @@ export default function ChatInfoPanel({
                 <p className="text-[12px] text-muted-foreground text-center py-8">Abhi koi media share nahi hui.</p>
               )}
               <div className="grid grid-cols-3 gap-1.5">
-                {groupedMedia.images.map((m, i) => (
+                {groupedMedia.images.map((m: Unmodelled, i: Unmodelled) => (
                   <button
                     key={m.url}
                     onClick={() => onOpenMedia?.(groupedMedia.images, i)}
@@ -286,7 +286,7 @@ export default function ChatInfoPanel({
                     <img src={m.thumbnail || m.url} alt="" className="w-full h-full object-cover" loading="lazy" />
                   </button>
                 ))}
-                {groupedMedia.videos.map((m) => (
+                {groupedMedia.videos.map((m: Unmodelled) => (
                   <button
                     key={m.url}
                     onClick={() => onOpenMedia?.([m], 0)}
@@ -301,7 +301,7 @@ export default function ChatInfoPanel({
               </div>
               {groupedMedia.videos.length > 0 && (
                 <p className="text-[11px] text-muted-foreground mt-2">
-                  Total video duration: {formatDuration(groupedMedia.videos.reduce((s, v) => s + (v.duration || 0), 0))}
+                  Total video duration: {formatDuration(groupedMedia.videos.reduce((s: Unmodelled, v: Unmodelled) => s + (v.duration || 0), 0))}
                 </p>
               )}
             </>
@@ -310,7 +310,7 @@ export default function ChatInfoPanel({
           {tab === 'links' && (
             <>
               {links.length === 0 && <p className="text-[12px] text-muted-foreground text-center py-8">Koi link share nahi hua.</p>}
-              {links.map((l) => (
+              {links.map((l: Unmodelled) => (
                 <a
                   key={`${l.url}-${l.createdAt}`}
                   href={l.url}
@@ -331,7 +331,7 @@ export default function ChatInfoPanel({
           {tab === 'files' && (
             <>
               {files.length === 0 && <p className="text-[12px] text-muted-foreground text-center py-8">Koi document share nahi hua.</p>}
-              {files.map((f) => (
+              {files.map((f: Unmodelled) => (
                 <div key={f.url} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted">
                   <FileText className="w-7 h-7 text-muted-foreground flex-shrink-0" />
                   <div className="min-w-0 flex-1">
@@ -351,7 +351,7 @@ export default function ChatInfoPanel({
           {tab === 'starred' && (
             <>
               {starred.length === 0 && <p className="text-[12px] text-muted-foreground text-center py-8">Koi message star nahi kiya.</p>}
-              {starred.map((m) => (
+              {starred.map((m: Unmodelled) => (
                 <div key={m._id} className="flex items-start gap-2 p-2 rounded-lg hover:bg-muted">
                   <button onClick={() => { onJump?.(m._id); onClose?.(); }} className="flex-1 text-left min-w-0">
                     <p className="text-[12px] line-clamp-2">{m.content || `📎 ${m.type}`}</p>

@@ -59,7 +59,7 @@ function LicensesTab() {
       ) : (
         <div className="space-y-3">
           {licenses.filter(l => filter === 'All' || l.status === filter).map((l, i) => {
-            const daysLeft = Math.ceil((new Date(l.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+            const daysLeft = Math.ceil((+new Date(l.expiryDate) - +new Date()) / (1000 * 60 * 60 * 24));
             return (
               <motion.div key={l._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
                 className="bg-card rounded-xl border border-border/60 p-4 hover:shadow-md transition-all">

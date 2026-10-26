@@ -130,7 +130,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }: Unmod
       if (hour != null) enabledHours.add(hour);
     });
     const groups: Unmodelled = {};
-    [...enabledHours].sort((a, b) => a - b).forEach(h => {
+    [...enabledHours].sort((a: Unmodelled, b: Unmodelled) => a - b).forEach((h: Unmodelled)  => {
       const h12 = h % 12 === 0 ? 12 : h % 12;
       const key = `${h12}:00 ${h >= 12 ? 'PM' : 'AM'}`;
       groups[key] = getSubSlotsForHour(key).map(sub => {
@@ -269,7 +269,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }: Unmod
               {/* Step A: Hour selector dropdown */}
               <select value={selectedHour || ''} onChange={e => { setSelectedHour(e.target.value); setBookingTime(''); }} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
                 <option value="">Choose hour</option>
-                {hourGroups.map(([hourLabel, hourSlots]) => {
+                {hourGroups.map(([hourLabel, hourSlots]: Unmodelled) => {
                   const allUnavailable = hourSlots.every((s: Unmodelled) => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s));
                   return (
                     <option key={hourLabel} value={hourLabel} disabled={allUnavailable}>
@@ -284,13 +284,13 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }: Unmod
                 <div className="space-y-2">
                   <p className="text-[11px] text-muted-foreground">
                     {(() => {
-                      const hs = hourGroups.find(([h]) => h === selectedHour)?.[1] || [];
+                      const hs: Unmodelled = hourGroups.find(([h]) => h === selectedHour)?.[1] || [];
                       const unavailableCount = hs.filter((s: Unmodelled) => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s)).length;
                       return `${hs.length - unavailableCount} of ${hs.length} slots available in ${selectedHour}`;
                     })()}
                   </p>
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                    {(hourGroups.find(([h]) => h === selectedHour)?.[1] || []).map((t: Unmodelled) => {
+                    {((hourGroups.find(([h]: Unmodelled) => h === selectedHour)?.[1]) as Unmodelled || []).map((t: Unmodelled) => {
                       const disabled = isSlotDisabled(t);
                       const pendingUpdate = isSlotPendingUpdate(t);
                       const full = isSlotFull(t);

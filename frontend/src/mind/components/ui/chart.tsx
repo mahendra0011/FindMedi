@@ -4,7 +4,7 @@ import { cn } from "@/mind/lib/utils";
 import type { Unmodelled } from '@/lib/apiTypes';
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" };
-const ChartContext = React.createContext(null);
+const ChartContext = React.createContext<Unmodelled>(null);
 function useChart() {
     const context = React.useContext(ChartContext);
     if (!context) {
@@ -32,7 +32,7 @@ const cssColor = (v: unknown): string => {
     return /^[\w#(),.%\s/-]+$/.test(s) ? s : "transparent";
 };
 const ChartStyle = ({ id, config }: Unmodelled) => {
-    const colorConfig = Object.entries(config).filter(([_, config]) => config.theme || config.color);
+    const colorConfig = Object.entries(config).filter(([_, config]: Unmodelled) => config.theme || config.color);
     if (!colorConfig.length) {
         return null;
     }
@@ -42,7 +42,7 @@ const ChartStyle = ({ id, config }: Unmodelled) => {
         .map(([theme, prefix]) => `
 ${prefix} [data-chart=${cssIdent(id)}] {
 ${colorConfig
-        .map(([key, itemConfig]) => {
+        .map(([key, itemConfig]: Unmodelled) => {
         const color = itemConfig.theme?.[theme] || itemConfig.color;
         return color ? `  --color-${cssIdent(key)}: ${cssColor(color)};` : null;
     })
@@ -91,10 +91,7 @@ const ChartTooltipContent = React.forwardRef<Unmodelled, Unmodelled>(({ active, 
                             "w-1": indicator === "line",
                             "w-0 border-[1.5px] border-dashed bg-transparent": indicator === "dashed",
                             "my-0.5": nestLabel && indicator === "dashed",
-                        })} style={{
-                            "--color-bg": indicatorColor,
-                            "--color-border": indicatorColor,
-                        }}/>))}
+                        })} style={({ "--color-bg": indicatorColor, "--color-border": indicatorColor } as Unmodelled)}/>))}
                     <div className={cn("flex flex-1 justify-between leading-none", nestLabel ? "items-end" : "items-center")}>
                       <div className="grid gap-1.5">
                         {nestLabel ? tooltipLabel : null}

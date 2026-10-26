@@ -71,7 +71,6 @@ export default function WorkflowStudio() {
       id, position: { x: 120 + ns.length * 40, y: 320 },
       data: { label: `${id} [${type}]${sla ? ` ⏱${sla}m` : ''}` },
       style: { border: '2px solid hsl(var(--border))', borderRadius: 8, padding: 10, background: 'hsl(var(--card))', fontSize: 12 },
-      // @ts-expect-error xyflow passthrough
       slaMinutes: sla, nodeType: type,
     }]);
   };

@@ -51,7 +51,7 @@ export default function EmergencyWarRoom() {
   // Spec expansion-09: clinical alerts (code blue / lab panic / MTP) raise
   // the fullscreen locking modal (ClinicalLockingAlert) + tones.
   useEffect(() => {
-    let socket;
+    let socket: Unmodelled;
     (async () => {
       try {
         const { getSocket } = await import('@/lib/socket');
@@ -91,7 +91,7 @@ export default function EmergencyWarRoom() {
         };
         const onAck = (ack: Unmodelled) => {
           if (!ack?.alertId) return;
-          setLockingAlert((cur) => (cur && cur.alertId === ack.alertId ? null : cur));
+          setLockingAlert((cur: Unmodelled) => (cur && cur.alertId === ack.alertId ? null : cur));
           load(true);
         };
         socket.on('emergency_alert_critical', bump);

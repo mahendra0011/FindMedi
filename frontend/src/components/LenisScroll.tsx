@@ -26,7 +26,6 @@ export function LenisScroll({ children }: Unmodelled) {
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       smoothWheel: true,
-      smoothTouch: false,
       touchMultiplier: 2,
       infinite: false,
       prevent: (node) => Boolean(node?.closest?.(

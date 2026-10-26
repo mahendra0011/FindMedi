@@ -30,7 +30,7 @@ const INITIAL_VISIBLE = 11;
 
 export default function AllTests() {
   const navigate = useNavigate();
-  const { addItem, updateQty, entries } = useCart();
+  const { addItem, updateQty, entries }: Unmodelled = useCart();
   const [categories, setCategories] = useState(FALLBACK_TEST_CATEGORIES);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(() => {
@@ -116,7 +116,7 @@ export default function AllTests() {
       input.type = 'file';
       input.accept = 'image/*,.pdf';
       input.onchange = (e) => {
-        if (e.target.files?.[0]) {
+        if (((e.target as Unmodelled).files)?.[0]) {
           addItem(test, STORE_ID);
           toast?.success?.('Prescription uploaded, test added to booking');
         }
@@ -190,7 +190,7 @@ export default function AllTests() {
                 <p className="text-xs text-muted-foreground">Select a category to find relevant tests</p>
               </div>
             </div>
-            {TEST_CATEGORIES.length > INITIAL_VISIBLE && (
+            {categories.length > INITIAL_VISIBLE && (
               <Button variant="ghost" size="sm" onClick={() => setShowAllCategories(!showAllCategories)} className="gap-1">
                 {showAllCategories ? 'Show Less' : 'More'}
                 <ChevronDown className={cn('w-4 h-4 transition-transform', showAllCategories && 'rotate-180')} />

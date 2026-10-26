@@ -39,8 +39,8 @@ export default function DoctorPrescriptions() {
       });
 
       // Split bills vs invoices by billType / data.type
-      const billList = [];
-      const invoiceList = [];
+      const billList: Unmodelled[] = [];
+      const invoiceList: Unmodelled[] = [];
 
       myBills.forEach((b: Unmodelled) => {
         const bt = (b.billType || b.data?.type || '').toLowerCase();

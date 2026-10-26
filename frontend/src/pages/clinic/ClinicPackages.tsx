@@ -7,6 +7,7 @@ import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { StatusPill } from '@/components/clinical/StatusAtoms';
 import { EmptyState } from '@/components/clinical/SharedStates';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 /** File 22 P2-39: clinic treatment packages. */
 export default function ClinicPackages() {
@@ -38,7 +39,7 @@ export default function ClinicPackages() {
   };
 
   const remove = async (id: string) => {
-    try { await api.delete(`/clinic-packages/${id}`); toast.success('Deleted'); load(); }
+    try { await (api as Unmodelled).delete(`/clinic-packages/${id}`); toast.success('Deleted'); load(); }
     catch (err: any) { toast.error(err?.response?.data?.message || 'Delete failed'); }
   };
 

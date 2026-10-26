@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import type { Unmodelled } from '@/lib/apiTypes';
 import { motion } from 'framer-motion';
 import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import TenantQuotas from './TenantQuotas';
-import type { Unmodelled } from '@/lib/apiTypes';
 
 function SystemSettingsTab() {
   const [settings, setSettings] = useState<Unmodelled>(null);
@@ -31,10 +31,10 @@ function SystemSettingsTab() {
     try {
       const setting = settings[key];
       if (!setting) { toast.error('Setting not found'); return; }
-      let val = editValue;
+      let val: Unmodelled = editValue;
       if (setting.type === 'number') val = Number(val);
       else if (setting.type === 'boolean') val = val === 'true';
-      else if (setting.type === 'array') val = val.split(',').map(s => s.trim());
+      else if (setting.type === 'array') val = val.split(',').map((s: Unmodelled) => s.trim());
       await api.updateSystemSetting(key, { value: val });
       toast.success('Setting updated');
       setEditKey(null);
@@ -46,10 +46,10 @@ function SystemSettingsTab() {
 
   return (
     <div className="space-y-3">
-      {settings && Object.entries(settings).map(([key, config]) => (
+      {settings && Object.entries(settings).map(([key, config]: Unmodelled) => (
         <div key={key} className="bg-card rounded-xl border p-4 flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-foreground text-sm">{key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}</p>
+            <p className="font-medium text-foreground text-sm">{key.replace(/([A-Z])/g, ' $1').replace(/^./, (s: Unmodelled) => s.toUpperCase())}</p>
             <p className="text-xs text-muted-foreground">{config.description}</p>
             {editKey === key ? (
               <div className="flex items-center gap-2 mt-2">

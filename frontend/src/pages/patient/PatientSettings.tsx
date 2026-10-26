@@ -232,7 +232,7 @@ export default function PatientSettings() {
             <div className="mt-3 space-y-2">
               {NOTIF_ITEMS.map(item => (
                 <label key={item} className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                  <input type="checkbox" checked={!!notifs[item]} onChange={(e) => setNotifs({ ...notifs, [item]: e.target.checked })} className="rounded border-border" />
+                  <input type="checkbox" checked={!!(notifs as Unmodelled)[item]} onChange={(e) => setNotifs({ ...notifs, [item]: e.target.checked })} className="rounded border-border" />
                   <span>{item}</span>
                 </label>
               ))}

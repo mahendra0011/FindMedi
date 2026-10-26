@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import WorkQueueTable from './WorkQueueTable';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 export const QUICK_ACTION_ROUTES: Record<string, string> = {
   // Doctor
@@ -1325,7 +1326,7 @@ export default function RoleDashboardShell({ config }: { config: RoleDashboardCo
                           onClick={() => handleQuickAction(action)}
                           className="text-xs px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-medium transition-colors border border-primary/20 flex items-center gap-1.5"
                         >
-                          <span className="font-bold">⚡</span> {action}
+                          <span className="font-bold">⚡</span> {(action as Unmodelled)}
                         </button>
                       ))}
                     </div>

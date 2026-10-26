@@ -41,7 +41,7 @@ export default function Appointments() {
   const appointments = raw?.data || raw?.appointments || (Array.isArray(raw) ? raw : []);
 
   const createMut = useMutation({ mutationFn: api.createAppointment, onSuccess: () => { qc.invalidateQueries(['appointments']); setModal(false); setForm(empty); } });
-  const updateMut = useMutation({ mutationFn: ({ id, data }) => api.updateAppointment(id, data), onSuccess: () => qc.invalidateQueries(['appointments']) });
+  const updateMut = useMutation({ mutationFn: ({ id, data  }: Unmodelled) => api.updateAppointment(id, data), onSuccess: () => qc.invalidateQueries(['appointments']) });
   const deleteMut = useMutation({ mutationFn: api.deleteAppointment, onSuccess: () => qc.invalidateQueries(['appointments']) });
 
   const set = (k: Unmodelled, v: Unmodelled) => setForm(f => ({ ...f, [k]: v }));

@@ -24,7 +24,7 @@ function MotionProvider({ children }: Unmodelled) {
             entries.forEach((entry) => {
               if (entry.isIntersecting) {
                 entry.target.classList.add("is-visible");
-                observer.unobserve(entry.target);
+                observer?.unobserve(entry.target);
               }
             });
           },
@@ -35,14 +35,14 @@ function MotionProvider({ children }: Unmodelled) {
       document.querySelectorAll(motionSelector).forEach((element, index) => {
         if (element.closest("[data-motion-skip]")) return;
         element.classList.add("reveal-on-scroll");
-        element.style.setProperty("--motion-order", String(index % 8));
+        (element as Unmodelled).style.setProperty("--motion-order", String(index % 8));
         if (reduceMotion) {
           element.classList.add("is-visible");
           return;
         }
         if (!observed.has(element)) {
           observed.add(element);
-          observer.observe(element);
+          observer?.observe(element);
         }
       });
     };

@@ -388,8 +388,9 @@ export function MapControls({
 }
 
 interface MapMarkerProps {
-  longitude: number;
-  latitude: number;
+  longitude?: number;
+  latitude?: number;
+  coordinates?: [number, number];
   bearing?: number;
   smoothGlide?: boolean;
   children?: React.ReactNode;
@@ -405,6 +406,7 @@ interface MapMarkerProps {
 export function MapMarker({
   longitude,
   latitude,
+  coordinates,
   bearing = 0,
   smoothGlide = false,
   children,
@@ -422,7 +424,7 @@ export function MapMarker({
   const markerRef = React.useRef<maplibregl.Marker | null>(null);
   const smootherRef = React.useRef<MarkerSmoother | null>(null);
   const rootRef = React.useRef<ReturnType<typeof createRoot> | null>(null);
-  const markerPosition = normalizeLngLat([longitude, latitude], null);
+  const markerPosition = coordinates ? normalizeLngLat(coordinates, null) : normalizeLngLat([longitude, latitude], null);
 
   React.useEffect(() => {
     if (elementRef.current || typeof document === 'undefined') return;
@@ -466,7 +468,7 @@ export function MapMarker({
       if (!smootherRef.current) {
         import('../../utils/markerInterpolation').then(({ MarkerSmoother }) => {
           smootherRef.current = new MarkerSmoother(
-            { lat: latitude, lng: longitude, bearing },
+            { lat: markerPosition?.[1] ?? 0, lng: markerPosition?.[0] ?? 0, bearing },
             ([lng, lat], rot) => {
               markerRef.current?.setLngLat([lng, lat]);
               if (rot != null && elementRef.current) {
@@ -476,7 +478,7 @@ export function MapMarker({
           );
         });
       } else {
-        smootherRef.current.setNextTarget({ lat: latitude, lng: longitude, bearing }, 1200);
+        smootherRef.current.setNextTarget({ lat: markerPosition?.[1] ?? 0, lng: markerPosition?.[0] ?? 0, bearing }, 1200);
       }
     } else {
       markerRef.current.setLngLat(markerPosition);

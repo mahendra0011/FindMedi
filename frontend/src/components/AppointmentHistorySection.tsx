@@ -183,8 +183,8 @@ export default function AppointmentHistorySection({ appointments }: Unmodelled) 
       const d = a.date || '';
       map[d] = (map[d] || 0) + 1;
     });
-    let best = null;
-    Object.entries(map).forEach(([d, c]) => {
+    let best: Unmodelled = null;
+    Object.entries(map).forEach(([d, c]: Unmodelled) => {
       if (!best || c > best.count) best = { date: d, count: c };
     });
     return best;

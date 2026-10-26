@@ -58,7 +58,7 @@ function VelocityText({
     damping: damping ?? 50,
     stiffness: stiffness ?? 400
   });
-  const velocityFactor = useTransform(
+  const velocityFactor: Unmodelled = useTransform(
     smoothVelocity,
     velocityMapping?.input || [0, 1000],
     velocityMapping?.output || [0, 5],
@@ -121,7 +121,7 @@ export const ScrollVelocity = ({
   scrollerStyle
 }: Unmodelled) => (
   <section>
-    {texts.map((text, index) => (
+    {texts.map((text: Unmodelled, index: Unmodelled) => (
       <VelocityText
         key={index}
         className={className}

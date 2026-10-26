@@ -11,7 +11,7 @@ const THEMES = [
 
 const STORAGE_KEY = "mindsupport_theme";
 
-const ThemeContext = createContext(null);
+const ThemeContext = createContext<Unmodelled>(null);
 
 export function ThemeProvider({ children }: Unmodelled) {
   const [theme, setThemeState] = useState(() => {

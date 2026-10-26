@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import type { Unmodelled } from '@/lib/apiTypes';
 
 interface ExpenseItem {
   id: string;
@@ -35,7 +36,7 @@ export default function MedicalExpenseStatement() {
   useEffect(() => {
     setLoading(true);
     // Fetch payments / invoices for patient
-    api.getPaymentHistory()
+    (api as Unmodelled).getPaymentHistory()
       .then((res: any) => {
         const list = Array.isArray(res?.payments) ? res.payments : Array.isArray(res) ? res : [];
         if (list.length > 0) {

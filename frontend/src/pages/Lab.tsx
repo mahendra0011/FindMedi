@@ -43,18 +43,18 @@ export default function Lab() {
   const [showCreate, setShowCreate] = useState(false);
   const [newOrder, setNewOrder] = useState({ patientName: '', patientId: '', tests: [{ testName: '', category: 'Blood' }], clinicalNotes: '', priority: 'Routine' });
 
-  const { data: ordersData } = useQuery({ queryKey: ['lab-orders', search, statusFilter], queryFn: () => labApi.getOrders({ search, status: statusFilter }) });
-  const { data: testsData } = useQuery({ queryKey: ['lab-tests'], queryFn: labApi.getTests });
-  const { data: stats } = useQuery({ queryKey: ['lab-stats'], queryFn: labApi.getStats });
+  const { data: ordersData }: Unmodelled = useQuery({ queryKey: ['lab-orders', search, statusFilter], queryFn: () => labApi.getOrders({ search, status: statusFilter }) });
+  const { data: testsData }: Unmodelled = useQuery({ queryKey: ['lab-tests'], queryFn: labApi.getTests });
+  const { data: stats }: Unmodelled = useQuery({ queryKey: ['lab-stats'], queryFn: labApi.getStats });
 
   const orders = ordersData?.orders || [];
   const labTests = testsData?.tests || [];
 
   const createMut = useMutation({ mutationFn: labApi.createOrder, onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-orders'] }); setShowCreate(false); } });
-  const sampleMut = useMutation({ mutationFn: ({ id, ...body }) => labApi.registerSample(id, body), onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders'] }) });
-  const collectMut = useMutation({ mutationFn: ({ id, ...body }) => labApi.collectSample(id, body), onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders'] }) });
-  const resultMut = useMutation({ mutationFn: ({ id, ...body }) => labApi.enterResult(id, body), onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders'] }) });
-  const verifyMut = useMutation({ mutationFn: ({ id, ...body }) => labApi.verify(id, body), onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders'] }) });
+  const sampleMut = useMutation({ mutationFn: ({ id, ...body  }: Unmodelled) => labApi.registerSample(id, body), onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders'] }) });
+  const collectMut = useMutation({ mutationFn: ({ id, ...body  }: Unmodelled) => labApi.collectSample(id, body), onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders'] }) });
+  const resultMut = useMutation({ mutationFn: ({ id, ...body  }: Unmodelled) => labApi.enterResult(id, body), onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders'] }) });
+  const verifyMut = useMutation({ mutationFn: ({ id, ...body  }: Unmodelled) => labApi.verify(id, body), onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders'] }) });
 
   const addTest = () => setNewOrder(o => ({ ...o, tests: [...o.tests, { testName: '', category: 'Blood' }] }));
   const removeTest = (i: Unmodelled) => setNewOrder(o => ({ ...o, tests: o.tests.filter((_, idx) => idx !== i) }));
@@ -252,7 +252,7 @@ export default function Lab() {
                 <textarea value={newOrder.clinicalNotes} onChange={e => setNewOrder(o => ({ ...o, clinicalNotes: e.target.value }))}
                   className="w-full min-h-[80px] rounded-lg border border-input bg-background px-3 py-2 text-sm" placeholder="Any clinical notes..." />
               </div>
-              <Button className="w-full" onClick={() => createMut.mutate(newOrder)} disabled={createMut.isPending || !newOrder.patientName}>
+              <Button className="w-full" onClick={() => createMut.mutate((newOrder as Unmodelled))} disabled={createMut.isPending || !newOrder.patientName}>
                 {createMut.isPending ? 'Creating...' : 'Create Lab Order'}
               </Button>
             </div>

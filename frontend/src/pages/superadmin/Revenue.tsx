@@ -283,7 +283,7 @@ function TransactionLedgerTab() {
   const fetchLedger = useCallback(async (p = page) => {
     setLoading(true);
     try {
-      const params = { page: p, limit: 30 };
+      const params: Unmodelled = { page: p, limit: 30 };
       if (sourceFilter) params.source = sourceFilter;
       const data = await api.getTransactionLedger(params);
       setTransactions(data.transactions || []);
