@@ -153,6 +153,30 @@ export const SYMPTOM_TAXONOMY = [
     category: 'dialysis',
     suggestedQuery: 'Dialysis Center',
   },
+  {
+    keywords: ['peshab me jalan', 'urination pain', 'baar baar peshab', 'khoon peshab', 'kidney stone', 'gurde me pathri', 'peshab rukna', 'urology'],
+    specialty: 'Urology',
+    category: 'hospital',
+    suggestedQuery: 'Urologist',
+  },
+  {
+    keywords: ['khaansi', 'saans phool', 'asthma', 'dama', 'tb chest', 'wheezing', 'saans lene me dikkat', 'pulmonology'],
+    specialty: 'Pulmonology',
+    category: 'clinic',
+    suggestedQuery: 'Pulmonologist / Chest Physician',
+  },
+  {
+    keywords: ['kaan dukh', 'ear pain', 'sinus', 'tonsil', 'kharrate', 'snoring', 'sunne me dikkat', 'hearing loss', 'ent'],
+    specialty: 'ENT',
+    category: 'clinic',
+    suggestedQuery: 'ENT Specialist',
+  },
+  {
+    keywords: ['sar dard', 'migraine', 'aadha sir dukhna', 'chakkar', 'fit padna', 'jhatke', 'yaad na rakhna', 'memory loss', 'neurology'],
+    specialty: 'Neurology',
+    category: 'clinic',
+    suggestedQuery: 'Neurologist',
+  },
 ];
 
 /**

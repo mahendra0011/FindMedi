@@ -35,6 +35,13 @@ describe('Search Taxonomy & Multilingual Engine', () => {
     expect(res3.matchedTaxonomy).not.toBeNull();
   });
 
+  it('maps the newer colloquial entries (uro/pulmo/ent/neuro)', () => {
+    expect(expandSearchQuery('peshab me jalan ho rahi hai').matchedTaxonomy.specialty).toBe('Urology');
+    expect(expandSearchQuery('saans phool rahi hai').matchedTaxonomy.specialty).toBe('Pulmonology');
+    expect(expandSearchQuery('kaan dukh raha hai morning se').matchedTaxonomy.specialty).toBe('ENT');
+    expect(expandSearchQuery('baari baari chakkar aate hain').matchedTaxonomy.specialty).toBe('Neurology');
+  });
+
   it('handles empty or clean strings gracefully', () => {
     const res = expandSearchQuery('');
     expect(res.isEmergency).toBe(false);

@@ -4,6 +4,7 @@ import { publicSearchLimiter } from '../middleware/rateLimit.js';
 import { searchProviders, searchDrugs, searchEhr, isOpenSearchConfigured } from '../services/opensearchIndexer.js';
 import { toSearchCard } from '../utils/searchDto.js';
 import { expandSearchQuery } from '../config/searchTaxonomy.js';
+import { SPECIALTIES, isTopLevelSpecialty } from '../lib/taxonomy.js';
 import logger from '../config/logger.js';
 import mongoose from 'mongoose';
 import { assertEhrSearchAccess } from '../services/ehrSearchAccess.js';
@@ -43,6 +44,97 @@ router.get('/', publicSearchLimiter, async (req, res) => {
     logger.error(`Public search error: ${err.message}`);
     res.status(500).json({ success: false, message: err.message });
   }
+});
+
+// ─── GET /api/search/suggest?q= — light typeahead for the browse UI ─────────
+// Specialties search user spec c#4: suggestions come from the real taxonomy
+// (tiles, sub-specialties, conditions, procedures, Hinglish symptoms), not
+// generic strings. Sensitive tiles stay out of suggestions; red-flag queries
+// surface the emergency banner inline.
+// authz: public
+router.get('/suggest', publicSearchLimiter, (req, res) => {
+  const q = String(req.query.q || '').toLowerCase().trim();
+  const taxonomy = expandSearchQuery(q);
+  const taxonomyPayload = {
+    isEmergency: taxonomy.isEmergency,
+    emergencyMessage: taxonomy.emergencyMessage,
+    isSensitive: taxonomy.isSensitive,
+    crisisHotline: taxonomy.crisisHotline,
+  };
+  if (q.length < 2) {
+    return res.json({ success: true, q, results: [], taxonomy: taxonomyPayload });
+  }
+
+  // A sensitive tile hides itself and everything nested under it (child subs
+  // inherit via parent walk; INFERT's IVF chip stays discreet too).
+  const byLower = new Map(SPECIALTIES.map((s) => [s.code.toLowerCase(), s]));
+  const isHidden = (entry) => {
+    for (let hit = entry; hit; ) {
+      if (hit.sensitive) return true;
+      const parentCode = hit.code.split('.').slice(0, 2).join('.');
+      hit = hit.code === parentCode ? null : byLower.get(parentCode.toLowerCase());
+    }
+    return false;
+  };
+  // Alias strings that name the sensitive surface itself (Sleep Psychiatry…)
+  // must not leak the topic through a search for its own keyword.
+  const SENSITIVE_TEXT_RE = /psychiatr|psycholog|sexolog|deaddiction|suicid|hiv/i;
+
+  const scored = [];
+  for (const s of SPECIALTIES) {
+    if (isHidden(s)) continue;
+    const nm = s.name.toLowerCase();
+    const subToken = s.code.split('.').pop().replace(/_/g, ' ').toLowerCase();
+    const aliases = (s.aliases || []).map((a) => a.toLowerCase());
+    let score = Infinity;
+    let viaAliasMatch = null;
+    if (nm === q) score = 0;
+    else if (nm.startsWith(q)) score = 1;
+    else if (nm.includes(q)) score = 2;
+    else if (subToken.startsWith(q) && subToken.length > 3) score = 3;
+    else if ((viaAliasMatch = aliases.find((a) => a.startsWith(q)))) score = 3.5;
+    else if ((viaAliasMatch = aliases.find((a) => a.includes(q)))) score = 4;
+    // A sensitive keyword must match nothing — not even an alias mention
+    // ('Sleep Psychiatry' must not surface when the user types 'psych').
+    if (score === Infinity || SENSITIVE_TEXT_RE.test(nm) || (viaAliasMatch && SENSITIVE_TEXT_RE.test(viaAliasMatch))) continue;
+    scored.push({
+      kind: 'specialty',
+      score,
+      item: {
+        code: s.code,
+        name: s.name,
+        parent: isTopLevelSpecialty(s) ? null : s.code.split('.').slice(0, 2).join('.'),
+        nameHi: s.meta?.nameHi || null,
+      },
+    });
+  }
+
+  // Symptom / condition / procedure chips resolve to their parent tile, so the
+  // typeahead can plant a query already filtered by that specialty.
+  for (const top of SPECIALTIES.filter(isTopLevelSpecialty)) {
+    if (isHidden(top)) continue;
+    const chipBase = { specialty: { code: top.code, name: top.name, nameHi: top.meta?.nameHi || null, icon: top.meta?.icon || null } };
+    const matchChips = (list, kind, offset) => {
+      for (const raw of list || []) {
+        const lv = String(raw).toLowerCase();
+        let rel = -1;
+        if (lv === q) rel = 0;
+        else if (lv.startsWith(q)) rel = 1;
+        else if (lv.includes(q)) rel = 2;
+        if (rel < 0) continue;
+        scored.push({ kind, score: 5 + offset + rel, item: { ...chipBase, label: String(raw) } });
+      }
+    };
+    matchChips(top.meta?.symptoms, 'symptom', 0);
+    matchChips(top.meta?.conditions, 'condition', 1);
+    matchChips(top.meta?.procedures, 'procedure', 2);
+  }
+
+  scored.sort((a, b) => a.score - b.score || String(a.item.label || a.item.name).localeCompare(String(b.item.label || b.item.name)));
+  const results = scored.slice(0, 10).map(({ kind, item }) => ({ kind, ...item }));
+
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({ success: true, q, total: results.length, results, taxonomy: taxonomyPayload });
 });
 
 // ─── GET /api/search/providers?q=&vertical=&city=&lat=&lon=&radiusKm= ───────
