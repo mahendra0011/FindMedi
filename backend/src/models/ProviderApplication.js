@@ -143,17 +143,12 @@ providerApplicationSchema.index({ twoPersonApproval: 1, status: 1 });
 // Stable, printable reference for the queue - the same idea as Provider.providerId.
 providerApplicationSchema.pre('save', async function generateApplicationId() {
   if (this.applicationId) return;
-  try {
-    const App = this.constructor;
-    let candidate;
-    do {
-      candidate = `APP-${randomBytes(6).toString('hex').toUpperCase()}`;
-    } while (await App.exists({ applicationId: candidate }));
-    this.applicationId = candidate;
-    return;
-  } catch (err) {
-    throw err;
-  }
+  const App = this.constructor;
+  let candidate;
+  do {
+    candidate = `APP-${randomBytes(6).toString('hex').toUpperCase()}`;
+  } while (await App.exists({ applicationId: candidate }));
+  this.applicationId = candidate;
 });
 
 export default mongoose.models.ProviderApplication

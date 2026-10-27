@@ -1362,6 +1362,30 @@ router.get('/narcotic-register/reconcile', protect, authorize('pharmacy:read', '
               by: req.user._id,
             });
           }
+          // Queue the human follow-up as an operational task (P1), deduped on
+          // open same-day tasks so repeated reconcile sweeps never flood the
+          // ward task board. Tasking must never break the reconcile read.
+          try {
+            const { default: WorkTask } = await import('../models/WorkTask.js');
+            const openTask = await WorkTask.findOne({
+              hospitalId: req.user.hospitalId,
+              status: 'Open',
+              tags: 'narcotic-variance',
+              createdAt: { $gte: dayAgo },
+            }).select('_id').lean();
+            if (!openTask) {
+              await WorkTask.create({
+                hospitalId: req.user.hospitalId,
+                title: 'Narcotic register variance — physical recount required',
+                detail: `${varianceCount} controlled medicine(s) show variance between physical stock and expected closing in the H1/narcotic register. Recount with a witness, file an adjustment (wastage/breakage/expiry) or report suspected diversion for CA review.`,
+                entityRef: { model: 'NarcoticCount' },
+                roleQueue: 'pharmacist',
+                priority: 'P1',
+                tags: ['narcotic-variance'],
+                createdBy: req.user._id,
+              });
+            }
+          } catch { /* task creation must never break reconciliation */ }
         } catch { /* alerting must never break reconciliation */ }
       })();
     }

@@ -140,9 +140,9 @@ export const MOBILE_ROLLOUT_PLAN = [
  */
 export function checkMobilePerformanceMetric(metricName, value) {
   const targets = MOBILE_PERFORMANCE_TARGETS;
-  let passed = false;
-  let target = 0;
-  let unit = '';
+  let passed;
+  let target;
+  let unit;
 
   switch (metricName) {
     case 'coldStart':

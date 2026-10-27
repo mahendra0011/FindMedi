@@ -1346,6 +1346,7 @@ router.post('/messages/:messageId/promote-to-ehr', protect, requireConversationM
     message.expiresAt = null;
     await message.save();
 
+    const { default: logger } = await import('../config/logger.js').catch(() => ({ default: console }));
     logger.info('[CHAT-EHR] Message ' + messageId + ' promoted to EHR by user ' + req.user.id + ' for patient ' + (patientId || 'session'));
     res.json({
       success: true,

@@ -19,6 +19,10 @@ const mockMedicines = [
 let adjustmentsStore = [];
 let countsStore = [];
 let h1EntriesStore = [];
+let alertsStore = [];
+let workTasksStore = [];
+let existingAlert = null;
+let existingTask = null;
 
 const { as } = await mountApp('pharmacy', {
   '../../src/models/Medicine.js': () => ({
@@ -123,6 +127,38 @@ const { as } = await mountApp('pharmacy', {
   '../../src/middleware/audit.js': () => ({
     auditLog: async () => ({}),
   }),
+  '../../src/models/DashboardAlert.js': () => ({
+    default: {
+      findOne: () => ({
+        select: () => ({
+          lean: async () => existingAlert,
+        }),
+      }),
+      create: async (data) => {
+        const row = { _id: '64f0000000000000000000aa', createdAt: new Date(), ...data };
+        alertsStore.push(row);
+        return row;
+      },
+    },
+  }),
+  '../../src/services/socketService.js': () => ({
+    getIO: () => ({ to: () => ({ emit: () => {} }) }),
+    emitDashboardAlert: () => {},
+  }),
+  '../../src/models/WorkTask.js': () => ({
+    default: {
+      findOne: () => ({
+        select: () => ({
+          lean: async () => existingTask,
+        }),
+      }),
+      create: async (data) => {
+        const row = { _id: '64f0000000000000000000bb', createdAt: new Date(), ...data };
+        workTasksStore.push(row);
+        return row;
+      },
+    },
+  }),
 });
 
 describe('Narcotic & Schedule H1 Stock Reconciliation (T6)', () => {
@@ -139,7 +175,18 @@ describe('Narcotic & Schedule H1 Stock Reconciliation (T6)', () => {
     adjustmentsStore = [];
     countsStore = [];
     h1EntriesStore = [];
+    alertsStore = [];
+    workTasksStore = [];
+    existingAlert = null;
+    existingTask = null;
   });
+
+  const settleAsyncAlerters = async () => {
+    for (let i = 0; i < 24; i += 1) {
+      await new Promise((r) => setTimeout(r, 25));
+      if (alertsStore.length && workTasksStore.length) break;
+    }
+  };
 
   it('calculates reconciliation balances and returns zero variance when physical matches expected', async () => {
     const res = await as(pharmacist)
@@ -151,6 +198,48 @@ describe('Narcotic & Schedule H1 Stock Reconciliation (T6)', () => {
     expect(res.body.rows[0].medicineName).toBe('Alprazolam 0.5mg');
     expect(res.body.rows[0].expectedClosing).toBe(50);
     expect(res.body.rows[0].variance).toBe(0);
+  });
+
+  it('raises critical alert and P1 reconciliation task on non-zero variance', async () => {
+    countsStore = [{ countedQty: 48, at: new Date(), countedByName: 'X', witnessByName: 'Y' }];
+
+    const res = await as(pharmacist)
+      .get('/narcotic-register/reconcile')
+      .expect(200);
+
+    expect(res.body.varianceCount).toBe(2);
+    await settleAsyncAlerters();
+
+    expect(alertsStore.length).toBe(1);
+    expect(alertsStore[0].code).toBe('narcotic-variance');
+    expect(alertsStore[0].severity).toBe('critical');
+    expect(alertsStore[0].entityRef).toMatchObject({ model: 'NarcoticCount' });
+    expect(alertsStore[0].message).toMatch(/variance on 2 medicine/i);
+
+    expect(workTasksStore.length).toBe(1);
+    expect(workTasksStore[0].title).toMatch(/physical recount required/i);
+    expect(workTasksStore[0].priority).toBe('P1');
+    expect(workTasksStore[0].roleQueue).toBe('pharmacist');
+    expect(workTasksStore[0].tags).toContain('narcotic-variance');
+    expect(workTasksStore[0].entityRef).toMatchObject({ model: 'NarcoticCount' });
+  });
+
+  it('dedupes alert and task within the 24h window on repeat reconcile', async () => {
+    countsStore = [{ countedQty: 48, at: new Date(), countedByName: 'X', witnessByName: 'Y' }];
+
+    await as(pharmacist).get('/narcotic-register/reconcile').expect(200);
+    await settleAsyncAlerters();
+    expect(alertsStore.length).toBe(1);
+    expect(workTasksStore.length).toBe(1);
+
+    existingAlert = alertsStore[0];
+    existingTask = workTasksStore[0];
+
+    await as(pharmacist).get('/narcotic-register/reconcile').expect(200);
+    await settleAsyncAlerters();
+
+    expect(alertsStore.length).toBe(1);
+    expect(workTasksStore.length).toBe(1);
   });
 
   it('rejects self-witnessed adjustment with 400', async () => {

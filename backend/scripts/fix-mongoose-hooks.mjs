@@ -8,7 +8,7 @@ let updatedCount = 0;
 for (const f of files) {
   const p = path.join(dir, f);
   let content = fs.readFileSync(p, 'utf8');
-  let original = content;
+  const original = content;
 
   // Replace unguarded next(); with if (typeof next === 'function') next();
   content = content.replace(/(?<!if\s*\(\s*typeof\s+next\s*===\s*'function'\s*\)\s*)next\(\);/g, (match, offset, str) => {

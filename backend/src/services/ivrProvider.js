@@ -1,19 +1,11 @@
 import logger from '../config/logger.js';
 import { auditLog } from '../middleware/audit.js';
 
-export interface IvrCallOptions {
-  to: string;
-  templateId?: string;
-  message: string;
-  appointmentId?: string;
-  emergencyRequestId?: string;
-}
-
 /**
  * IVR Voice Provider Service (NOTIF-MISSING-01)
  * Connects to Exotel / Twilio voice gateway for automated interactive voice response calls.
  */
-export async function triggerIvrCall({ to, message, appointmentId, emergencyRequestId }: IvrCallOptions) {
+export async function triggerIvrCall({ to, message, appointmentId, emergencyRequestId }) {
   logger.info(`[IVR Provider] Triggering automated voice dispatch to ${to}`);
   const callSid = `IVR-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -33,11 +25,11 @@ export async function triggerIvrCall({ to, message, appointmentId, emergencyRequ
  * Handles incoming DTMF keypress webhook from the telephony gateway.
  * 1 = Confirm, 2 = Reschedule / Cancel, 9 = Emergency Assistance
  */
-export async function handleIvrWebhookResponse({ callSid, digits, from, appointmentId, emergencyRequestId }: any) {
+export async function handleIvrWebhookResponse({ callSid, digits, from, appointmentId, emergencyRequestId }) {
   logger.info(`[IVR Webhook] Received DTMF input "${digits}" from ${from} for call ${callSid}`);
 
-  let action = 'unknown';
-  let status = 'acknowledged';
+  let action;
+  let status;
 
   switch (String(digits).trim()) {
     case '1':
