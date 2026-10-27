@@ -10,11 +10,11 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1859,
+  "total": 1861,
   "counts": {
     "inherited": 5,
     "object": 438,
-    "public": 120,
+    "public": 122,
     "role": 1214,
     "self": 82
   },
@@ -1861,63 +1861,77 @@
     },
     {
       "file": "categories.js",
-      "line": 72,
+      "line": 80,
       "method": "GET",
       "target": "'/public'",
       "tag": "public"
     },
     {
       "file": "categories.js",
-      "line": 116,
+      "line": 124,
       "method": "GET",
       "target": "'/tree'",
       "tag": "public"
     },
     {
       "file": "categories.js",
-      "line": 125,
+      "line": 137,
       "method": "GET",
       "target": "'/specialties'",
       "tag": "public"
     },
     {
       "file": "categories.js",
-      "line": 134,
+      "line": 155,
+      "method": "GET",
+      "target": "'/specialties/:code'",
+      "tag": "public"
+    },
+    {
+      "file": "categories.js",
+      "line": 203,
+      "method": "GET",
+      "target": "'/specialties/:code/counts'",
+      "tag": "public"
+    },
+    {
+      "file": "categories.js",
+      "line": 248,
       "method": "POST",
       "target": "'/seed'",
       "tag": "role"
     },
     {
       "file": "categories.js",
-      "line": 212,
+      "line": 326,
       "method": "GET",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "categories.js",
-      "line": 226,
+      "line": 340,
       "method": "POST",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "categories.js",
-      "line": 247,
+      "line": 361,
       "method": "PUT",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "categories.js",
-      "line": 297,
+      "line": 411,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "categories.js",
-      "line": 309,
+      "line": 423,
       "method": "POST",
       "target": "'/merge'",
       "tag": "role"

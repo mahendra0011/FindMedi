@@ -1,9 +1,17 @@
 import express from 'express';
 import Category from '../models/Category.js';
+import Doctor from '../models/Doctor.js';
 import { protect, requireRole } from '../middleware/auth.js';
 import { validate, createCategorySchema, updateCategorySchema, mergeCategorySchema } from '../utils/validate.js';
 import { escapeRegex, safeSearchRegex } from '../utils/escapeRegex.js';
-import { deriveCategoryCode, CATEGORY_TYPES } from '../lib/taxonomy.js';
+import {
+  deriveCategoryCode,
+  CATEGORY_TYPES,
+  SPECIALTIES,
+  buildSpecialtyTree,
+  buildSpecialtyGroups,
+  resolveSpecialtyCode,
+} from '../lib/taxonomy.js';
 import { getCache, setCache, flushCachePattern } from '../config/redis.js';
 import { CATEGORY_TREE } from '../data/categoryTree.mjs';
 import { CANONICAL_SPECIALTIES } from '../lib/canonicalSpecialties.js';
@@ -121,13 +129,119 @@ router.get('/tree', (req, res) => {
   });
 });
 
-// authz: public - Canonical Specialties List (228 items)
+// authz: public - Canonical Specialties List (43 top-level + subs)
+// tree=1 → 13 browse-all groups; each tile carries its sub-specialty children
+// (own-code subs + alsoUnder cross-lists), meta chips and verified flags.
+const toPublicSpecialty = (s) => s; // canonical service shape (code + meta + helpers above)
+
 router.get('/specialties', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=300');
+  if (req.query.tree === '1') {
+    const groups = buildSpecialtyGroups().map((group) => ({
+      id: group.id,
+      name: group.name,
+      color: group.color,
+      tiles: group.tiles.map((tile) => ({ ...tile })),
+    }));
+    return res.json({ total: SPECIALTIES.length, groups, groupsFound: groups.length });
+  }
   res.json({
-    total: Object.keys(CANONICAL_SPECIALTIES).length,
-    specialties: CANONICAL_SPECIALTIES,
+    total: SPECIALTIES.length,
+    specialties: CANONICAL_SPECIALTIES.map(toPublicSpecialty),
   });
+});
+
+// authz: public - one specialty with subs + condition/procedure chips
+router.get('/specialties/:code', (req, res) => {
+  const resolved = resolveSpecialtyCode(req.params.code || '');
+  const hit = resolved ? SPECIALTIES.find((s) => s.code === resolved) : null;
+  if (!hit) return res.status(404).json({ message: 'Specialty not found' });
+  res.setHeader('Cache-Control', 'public, max-age=300');
+
+  const isTop = /^SPEC\.[A-Z0-9]+$/.test(hit.code);
+  let subs = [];
+  if (isTop) {
+    // Own-code subs + cross-listed subs (alsoUnder points at us): one record,
+    // rendered under both parents upstream (§4 duplicate-records rule).
+    const prefix = `${hit.code}.`;
+    subs = SPECIALTIES.filter(
+      (s) => s.code.startsWith(prefix) || (s.alsoUnder || []).includes(hit.code),
+    );
+  }
+
+  const topCode = isTop ? hit.code : hit.code.split('.').slice(0, 2).join('.');
+
+  res.json({
+    code: hit.code,
+    name: hit.name,
+    nameHi: hit.meta?.nameHi || '',
+    aliases: hit.aliases,
+    sensitive: !!hit.sensitive || !!hit.meta?.sensitive,
+    adClaimsRestricted: !!hit.adClaimsRestricted || !!hit.meta?.adClaimsRestricted,
+    claimsRestricted: !!hit.claimsRestricted,
+    meta: hit.meta,
+    alsoUnder: hit.alsoUnder || [],
+    subs: subs.map((s) => ({
+      code: s.code,
+      name: s.name,
+      aliases: s.aliases,
+      sensitive: !!s.sensitive || !!s.meta?.sensitive,
+      claimsRestricted: !!s.claimsRestricted,
+      alsoUnder: s.alsoUnder || [],
+    })),
+    conditions: hit.meta?.conditions || [],
+    procedures: hit.meta?.procedures || [],
+    symptoms: hit.meta?.symptoms || [],
+    parent: isTop ? null : topCode,
+    topCode,
+  });
+});
+
+// authz: public - distinct doctor/hospital counts for a specialty tile in context
+// Parent count = parent + all subs (own + cross-listed) UNION'd in one $in query
+// so a doctor tagged with two subs is never double-counted.
+router.get('/specialties/:code/counts', async (req, res) => {
+  try {
+    const { city, facilityId, approvedOnly = 'true' } = req.query;
+    const resolved = resolveSpecialtyCode(req.params.code || '');
+    const hit = resolved ? SPECIALTIES.find((s) => s.code === resolved) : null;
+    if (!hit) return res.status(404).json({ message: 'Specialty not found' });
+
+    const isTop = /^SPEC\.[A-Z0-9]+$/.test(hit.code);
+    const topCode = isTop ? hit.code : hit.code.split('.').slice(0, 2).join('.');
+    const codes = new Set([topCode]);
+    if (isTop) {
+      codes.add(hit.code);
+      const prefix = `${hit.code}.`;
+      for (const s of SPECIALTIES) {
+        if (s.code.startsWith(prefix) || (s.alsoUnder || []).includes(hit.code)) codes.add(s.code);
+      }
+    } else {
+      codes.add(hit.code);
+    }
+    const codesArr = [...codes];
+    const orFilter = {
+      $or: [
+        { specialtyCode: topCode },
+        { subSpecialtyCodes: { $in: codesArr } },
+      ],
+    };
+    if (city) orFilter.location = { $regex: new RegExp(`^${escapeRegex(String(city))}`, 'i') };
+    if (facilityId) orFilter.facilityId = facilityId;
+    if (approvedOnly === 'true') orFilter.approved = true;
+
+    const [doctors, hospitals] = await Promise.all([
+      Doctor.countDocuments(orFilter),
+      Doctor.distinct('hospitalId', orFilter),
+    ]);
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    res.json({
+      code: topCode,
+      requestedCode: hit.code,
+      doctors,
+      hospitals: hospitals.filter(Boolean).length,
+    });
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 // authz: role / catalog_manager - Idempotently seed/sync full CATEGORY_TREE into MongoDB

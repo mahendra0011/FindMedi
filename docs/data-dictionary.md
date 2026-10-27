@@ -14,7 +14,7 @@
 ## Summary
 
 - **346 models** across 338 files (0 skipped)
-- **7651 schema fields**, of which **804 classified as PII** in **244 collections**
+- **7657 schema fields**, of which **804 classified as PII** in **244 collections**
 - **8 collections** carry a TTL index
 - **127 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -147,7 +147,7 @@
 | `disputes` | Dispute | 36 | 1 | 4 | — | Payment and ledger entries |
 | `dndentries` | DndEntry | 8 | 2 | 3 | — | **UNMAPPED — see gaps** |
 | `doctorfees` | DoctorFee | 12 | 2 | 3 | — | **UNMAPPED — see gaps** |
-| `doctors` | Doctor | 117 | 11 | 15 | — | Provider KYC documents |
+| `doctors` | Doctor | 123 | 11 | 15 | — | Provider KYC documents |
 | `documentverifications` | DocumentVerification | 23 | 2 | 7 | — | Provider KYC documents |
 | `donorscreenings` | DonorScreening | 17 | 3 | 2 | — | **UNMAPPED — see gaps** |
 | `doselogs` | DoseLog | 18 | 1 | 4 | — | Clinical records |
@@ -4510,6 +4510,12 @@ source `Doctor.js` · timestamps: yes · virtuals: 29 · retention: Life of the 
 | `specialtyCode` | String |  |  | "" |  |  |  |
 | `dutyStatus` | String |  |  | "On duty" | On duty, On call, Off |  |  |
 | `subSpecialtyCodes` | Array<Mixed> |  |  |  |  |  |  |
+| `conditionsTreated` | Array<subdocument> |  |  |  |  |  |  |
+| `conditionsTreated.code` | String |  |  |  |  |  |  |
+| `conditionsTreated.label` | String |  |  |  |  |  |  |
+| `procedures` | Array<subdocument> |  |  |  |  |  |  |
+| `procedures.code` | String |  |  |  |  |  |  |
+| `procedures.label` | String |  |  |  |  |  |  |
 | `experience` | String |  |  | "1 year" |  |  |  |
 | `rating` | Number |  |  | 0 |  |  |  |
 | `patients` | Number |  |  | 0 |  |  |  |

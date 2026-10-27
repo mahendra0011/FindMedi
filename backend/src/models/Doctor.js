@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { generate16DigitId } from '../utils/idGenerator.js';
 import { normalizeModes } from '../lib/appointmentModes.js';
-import { resolveSpecialtyCode } from '../lib/taxonomy.js';
+import { resolveSpecialtyCode, remapSubSpecialtyCodes } from '../lib/taxonomy.js';
 
 const doctorSchema = new mongoose.Schema({
   doctorId: { type: String, unique: true, sparse: true, index: true },
@@ -14,6 +14,10 @@ const doctorSchema = new mongoose.Schema({
   // codes alongside the free-text `specialization`, which stays required so
   // old documents and old clients keep working.
   subSpecialtyCodes: [{ type: String, maxlength: 64 }],
+  // Browse-by-Specialties drill-down: symptom/condition/procedure chips the
+  // doctor explicitly treats (searchable; empty = specialty fallback).
+  conditionsTreated: [{ _id: false, code: { type: String }, label: { type: String } }],
+  procedures: [{ _id: false, code: { type: String }, label: { type: String } }],
   experience: { type: String, default: '1 year' },
   rating: { type: Number, default: 0, min: 0, max: 5 },
   patients: { type: Number, default: 0 },
@@ -174,11 +178,10 @@ doctorSchema.pre('save', async function () {
       this.specialtyCode = resolveSpecialtyCode(this.specialization) || '';
     }
     if (Array.isArray(this.subSpecialtyCodes)) {
-      this.subSpecialtyCodes = [
-        ...new Set(
-          this.subSpecialtyCodes.map((code) => String(code ?? '').trim()).filter(Boolean),
-        ),
-      ];
+      // De-duplicated remap first (legacy dup codes → canonical), then trim.
+      this.subSpecialtyCodes = remapSubSpecialtyCodes(
+        this.subSpecialtyCodes.map((code) => String(code ?? '').trim()).filter(Boolean),
+      );
     }
     if (Array.isArray(this.appointmentModes)) {
       this.appointmentModes = normalizeModes(this.appointmentModes);
