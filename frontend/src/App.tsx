@@ -176,6 +176,8 @@ const LabAnalyzerEmulatorPage = lazy(() => import('./pages/hospital/LabAnalyzerE
 const GlobalSearch = lazy(() => import('./components/GlobalSearch'));
 const HealthcarePage = lazy(() => import('./pages/HealthcarePage'));
 const HospitalDirectory = lazy(() => import('./pages/HospitalDirectory'));
+const SpecialtyGroupsPage = lazy(() => import('./pages/browse/SpecialtyGroupsPage'));
+const SpecialtyDetailPage = lazy(() => import('./pages/browse/SpecialtyDetailPage'));
 const HospitalProfile = lazy(() => import('./pages/HospitalProfile'));
 const HospitalDoctors = lazy(() => import('./pages/HospitalDoctors'));
 const HospitalDoctor = lazy(() => import('./pages/HospitalDoctor'));
@@ -943,7 +945,10 @@ const App = () => (
                   <Route path="/provider-staff-setup" element={<ProviderStaffSetup />} />
                   <Route path="/search" element={<PublicLayout><SearchPage /></PublicLayout>} />
 <Route path="/healthcare" element={<PublicLayout><HealthcarePage /></PublicLayout>} />
-<Route path="/hospitals" element={<PublicLayout><HospitalDirectory /></PublicLayout>} />
+ <Route path="/hospitals" element={<PublicLayout><HospitalDirectory /></PublicLayout>} />
+                      {/* Browse-by-specialties (spec B-1.4): 13-group tile browser + drill-down */}
+                      <Route path="/browse-specialties" element={<PublicLayout><SpecialtyGroupsPage /></PublicLayout>} />
+                      <Route path="/browse-specialties/:code" element={<PublicLayout><SpecialtyDetailPage /></PublicLayout>} />
                    <Route path="/hospitals/:id" element={<PublicLayout><HospitalProfile /></PublicLayout>} />
 <Route path="/hospitals/:hospitalId/doctors" element={<PublicLayout><HospitalDoctors /></PublicLayout>} />
                       <Route path="/clinic-doctors" element={<PublicLayout><ClinicDoctors /></PublicLayout>} />

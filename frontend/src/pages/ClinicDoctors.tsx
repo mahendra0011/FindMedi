@@ -17,6 +17,7 @@ import BookingModal from '@/components/BookingModal';
 
 import { CANONICAL_SPECIALTIES } from '@/data/specialties';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
+import { useSpecialtyTiles } from '@/hooks/useSpecialtyBrowse';
 
 const SPECIALIZATIONS = ['All', ...CANONICAL_SPECIALTIES.map(s => s.name)];
 // subcatogary.md Part B — Canonical specialties list derived from taxonomy (Psychology removed)
@@ -114,11 +115,29 @@ export default function ClinicDoctors() {
   const [emergencyFilter, setEmergencyFilter] = useState('');
 
   const { categories: specialtyCategories } = useCategories('specialty', []);
+  const specialtyTree = useSpecialtyTiles();
   const specialtyChips = useMemo(() => {
-    const presentation = new Map(ALL_SPECIALTIES.map((s) => [s.name.toLowerCase(), s]));
-    const generic = { icon: Stethoscope, color: 'from-slate-500/20 to-slate-500/5', textColor: 'text-slate-500' };
+    // Tree tiles (icon + Hindi name + sub-chips) win; canonical copy is the
+    // offline fallback so the visual language never blanks.
+    const leafSource = specialtyTree.tiles.length
+      ? specialtyTree.tiles.map((t) => {
+          const visual = getSpecialtyVisual(t.code);
+          return {
+            code: t.code,
+            name: t.name,
+            nameHi: t.meta?.nameHi || '',
+            sensitive: !!t.sensitive,
+            children: (t.children || []).slice(0, 3),
+            icon: visual.icon,
+            color: visual.color,
+            textColor: visual.textColor,
+          };
+        })
+      : ALL_SPECIALTIES;
+    const presentation = new Map(leafSource.map((s) => [s.name.toLowerCase(), s]));
+    const generic = { icon: Stethoscope, color: 'from-slate-500/20 to-slate-500/5', textColor: 'text-slate-500', nameHi: '', sensitive: false, children: [], code: '' };
     const byCanonical = new Map();
-    for (const s of ALL_SPECIALTIES) {
+    for (const s of leafSource) {
       const canonical = canonicalName(s.name, specialtyCategories);
       if (canonical && !byCanonical.has(canonical)) byCanonical.set(canonical, s);
     }
@@ -126,9 +145,9 @@ export default function ClinicDoctors() {
       name: c.name,
       ...(byCanonical.get(c.name) || presentation.get(c.name.toLowerCase()) || generic),
     }));
-    const uncovered = ALL_SPECIALTIES.filter((s) => !canonicalName(s.name, specialtyCategories));
+    const uncovered = leafSource.filter((s) => !canonicalName(s.name, specialtyCategories));
     return [...canonical, ...uncovered];
-  }, [specialtyCategories]);
+  }, [specialtyCategories, specialtyTree.tiles]);
 
 const loadDoctors = async () => {
     setLoading(true);
@@ -257,9 +276,10 @@ const loadDoctors = async () => {
             {specialtyChips.slice(0, showAdvanced ? undefined : 7).map((spec) => {
               const Icon = spec.icon;
               const isActive = specFilter === spec.name;
+              const subChips = (spec.children || []).map(c => c.name);
               return (
                 <button
-                  key={spec.name}
+                  key={spec.code || spec.name}
                   onClick={() => setSpecFilter(spec.name)}
                   className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all ${
                     isActive
@@ -270,12 +290,18 @@ const loadDoctors = async () => {
                   <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${spec.color} flex items-center justify-center`}>
                     <Icon className={`w-6 h-6 ${spec.textColor}`} />
                   </div>
-                  <span className={`text-xs font-medium text-center leading-tight ${isActive ? 'text-primary' : 'text-foreground'}`}>
-                    {spec.name === 'All' ? 'All Departments' : spec.name}
+                  <span className={`text-xs font-medium text-center leading-tight ${spec.sensitive ? 'text-muted-foreground' : isActive ? 'text-primary' : 'text-foreground'}`}>
+                    {spec.name === 'All' ? 'All Departments' : spec.name}{spec.sensitive && ' 🔒'}
                   </span>
+                  {spec.nameHi && <span className="text-[9px] text-muted-foreground">{spec.nameHi}</span>}
                   <span className="text-[10px] text-muted-foreground">
                     {allDoctors.filter(d => matchesSpecialty(d.specialization, spec.name, specialtyCategories)).length}
                   </span>
+                  {subChips.length > 0 && (
+                    <span className="text-[9px] text-muted-foreground/70 text-center leading-tight" title={subChips.join(', ')}>
+                      {subChips.join(' · ')}
+                    </span>
+                  )}
                 </button>
               );
             })}

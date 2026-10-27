@@ -104,6 +104,9 @@ router.get('/suggest', publicSearchLimiter, (req, res) => {
         code: s.code,
         name: s.name,
         parent: isTopLevelSpecialty(s) ? null : s.code.split('.').slice(0, 2).join('.'),
+        parentName: isTopLevelSpecialty(s)
+          ? null
+          : (byLower.get(s.code.split('.').slice(0, 2).join('.').toLowerCase())?.name || null),
         nameHi: s.meta?.nameHi || null,
       },
     });

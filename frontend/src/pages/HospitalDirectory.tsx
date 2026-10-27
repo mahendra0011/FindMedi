@@ -11,10 +11,13 @@ import HospitalCard from '@/components/HospitalCard';
 
 import { CANONICAL_SPECIALTIES } from '@/data/specialties';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
+import { useSpecialtyTiles } from '@/hooks/useSpecialtyBrowse';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 // subcatogary.md Part B — Canonical specialties list derived from taxonomy (Psychology removed)
-const ALL_SPECIALTIES = CANONICAL_SPECIALTIES.map((spec) => {
+// Backend tree (/categories/specialties?tree=1) owns the list now; this stays
+// as the offline fallback so the page never renders an empty grid.
+const FALLBACK_SPECIALTIES = CANONICAL_SPECIALTIES.map((spec) => {
   const visual = getSpecialtyVisual(spec.code);
   return {
     code: spec.code,
@@ -22,6 +25,7 @@ const ALL_SPECIALTIES = CANONICAL_SPECIALTIES.map((spec) => {
     icon: visual.icon,
     color: visual.color,
     textColor: visual.textColor,
+    children: [],
   };
 });
 
@@ -41,6 +45,7 @@ export default function HospitalDirectory() {
   const [loading, setLoading] = useState(true);
   const [selectedDept, setSelectedDept] = useState('');
   const [showAllSpecialties, setShowAllSpecialties] = useState(false);
+  const specialtyTree = useSpecialtyTiles();
 
   // Synchronize with global navbar city selection
   useEffect(() => {
@@ -248,7 +253,25 @@ export default function HospitalDirectory() {
     }
   };
 
-  const visibleSpecialties = showAllSpecialties ? ALL_SPECIALTIES : ALL_SPECIALTIES.slice(0, INITIAL_VISIBLE);
+  const visibleSpecialties = useMemo(() => {
+    // Tree tiles carry icons, Hindi names and sub-chips; visuals still come
+    // from the local map so gradient styling stays unchanged.
+    const fromTree = specialtyTree.tiles.map((t) => {
+      const visual = getSpecialtyVisual(t.code);
+      return {
+        code: t.code,
+        name: t.name,
+        nameHi: t.meta?.nameHi || '',
+        icon: visual.icon,
+        color: visual.color,
+        textColor: visual.textColor,
+        children: t.children || [],
+        sensitive: !!t.sensitive,
+      };
+    });
+    const list = specialtyTree.fromApi && fromTree.length ? fromTree : FALLBACK_SPECIALTIES;
+    return showAllSpecialties ? list : list.slice(0, INITIAL_VISIBLE);
+  }, [specialtyTree.tiles, specialtyTree.fromApi, showAllSpecialties]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -292,9 +315,10 @@ export default function HospitalDirectory() {
             {visibleSpecialties.map((dept) => {
               const Icon = dept.icon;
               const isActive = selectedDept === dept.name;
+              const subChips = (dept.children || []).slice(0, 3);
               return (
                 <motion.button
-                  key={dept.name}
+                  key={dept.code}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
@@ -310,15 +334,28 @@ export default function HospitalDirectory() {
                   <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${dept.color} flex items-center justify-center mb-2 mx-auto`}>
                     <Icon className={`w-4 h-4 ${dept.textColor}`} />
                   </div>
-                  <h3 className="font-semibold text-xs text-foreground leading-tight">{dept.name}</h3>
+                  <h3 className={`font-semibold text-xs leading-tight ${dept.sensitive ? 'text-muted-foreground' : 'text-foreground'}`}>
+                    {dept.name}
+                    {dept.sensitive && <span title="Available discreetly"> 🔒</span>}
+                  </h3>
+                  {dept.nameHi && <p className="text-[10px] text-muted-foreground leading-none mt-0.5">{dept.nameHi}</p>}
                   <p className="text-[10px] text-muted-foreground mt-0.5">
                     {hospitals.filter(h => h.specialties?.includes(dept.name)).length}
                   </p>
+                  {subChips.length > 0 && (
+                    <p className="text-[9px] text-muted-foreground/80 mt-1 truncate" title={subChips.map(c => c.name).join(', ')}>
+                      {subChips.map(c => c.name).join(' · ')}
+                    </p>
+                  )}
                 </motion.button>
               );
             })}
           </AnimatePresence>
         </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Tap a specialty to filter — or open the full{' '}
+          <Link to="/browse-specialties" className="text-primary underline underline-offset-2">specialty browser</Link>
+        </p>
       </div>
 
       {/* ═══════════ FILTERS BAR ═══════════ */}

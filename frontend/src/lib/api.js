@@ -741,6 +741,12 @@ export const api = {
   getCategories:          (p={})    => request('/categories?' + new URLSearchParams(p)),
   getPublicCategories:    (p={})    => request('/categories/public?' + new URLSearchParams(p)),
   getSpecialtyCounts:     ()        => request('/platform/specialty-counts'),
+  // Browse-by-specialties tree/detail/counts (spec B-1.4, backend taxonomy is
+  // the single source of truth — no local copies drift)
+  getSpecialtyTree:       ()        => request('/categories/specialties?tree=1'),
+  getSpecialtyDetail:     (code)    => request(`/categories/specialties/${encodeURIComponent(code)}`),
+  browseSpecialtyCounts:  (code,p={}) => request(`/categories/specialties/${encodeURIComponent(code)}/counts?` + new URLSearchParams(p)),
+  postSearchUnmetDemand:  (body)    => request('/search/unmet-demand', { method:'POST', body: JSON.stringify(body) }),
   createCategory:         (body)    => request('/categories', { method:'POST', body: JSON.stringify(body) }),
   updateCategory:         (id,b)    => request(`/categories/${id}`, { method:'PUT', body: JSON.stringify(b) }),
   deleteCategory:         (id)      => request(`/categories/${id}`, { method:'DELETE' }),

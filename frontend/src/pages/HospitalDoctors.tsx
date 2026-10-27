@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Star, MapPin, CalendarDays, IndianRupee, Award, Users, ArrowLeft, Stethoscope, Heart, Brain, Bone, Baby, Eye, Activity, Building2, Clock, Shield, Syringe, BedDouble, Languages, GraduationCap, CircleDot, ChevronDown, ChevronUp, ChevronRight, Ambulance, SlidersHorizontal, X, BadgeCheck, UserRound, Phone, Mail, AlertCircle, CheckCircle, CreditCard, Smartphone, Landmark, Wallet } from 'lucide-react';
@@ -15,6 +15,7 @@ import BookingModal from '@/components/BookingModal';
 
 import { CANONICAL_SPECIALTIES } from '@/data/specialties';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
+import { useSpecialtyTiles } from '@/hooks/useSpecialtyBrowse';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const DEFAULT_SPECS = ['All', ...CANONICAL_SPECIALTIES.map(s => s.name)];
@@ -54,6 +55,9 @@ export default function HospitalDoctors() {
   const [loadError, setLoadError] = useState<Unmodelled>(null);
 
   const { names: specialtyNames, categories: specialtyCategories } = useCategories('specialty', DEFAULT_SPECS.slice(1));
+  // Tree tile meta (Hindi names, sensitive flags) keyed by name for the grid.
+  const specialtyTree = useSpecialtyTiles();
+  const tileByName = useMemo(() => new Map(specialtyTree.tiles.map(t => [t.name, t])), [specialtyTree.tiles]);
 
   const [availabilityFilter, setAvailabilityFilter] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
@@ -203,6 +207,7 @@ export default function HospitalDoctors() {
               const isAll = s === 'All';
               const theme = isAll ? { icon: Stethoscope, color: 'from-primary/20 to-primary/5', textColor: 'text-primary' } : getSpecCard(s);
               const Icon = theme.icon;
+              const tile = isAll ? null : tileByName.get(s);
               const count = isAll
                 ? doctors.length
                 : doctors.filter(d => matchesSpecialty(d.specialization, s, specialtyCategories)).length;
@@ -220,9 +225,10 @@ export default function HospitalDoctors() {
                   <div className={cn('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center', theme.color)}>
                     <Icon className={cn('w-6 h-6', theme.textColor)} />
                   </div>
-                  <span className={cn('text-xs font-medium text-center leading-tight', specFilter === s ? 'text-primary' : 'text-foreground')}>
-                    {isAll ? 'All Departments' : s}
+                  <span className={cn('text-xs font-medium text-center leading-tight', specFilter === s ? 'text-primary' : tile?.sensitive ? 'text-muted-foreground' : 'text-foreground')}>
+                    {isAll ? 'All Departments' : s}{tile?.sensitive && ' 🔒'}
                   </span>
+                  {tile?.meta?.nameHi && <span className="text-[9px] text-muted-foreground">{tile.meta.nameHi}</span>}
                   <span className="text-[10px] text-muted-foreground">{count}</span>
                 </button>
               );

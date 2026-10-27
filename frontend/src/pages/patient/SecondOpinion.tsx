@@ -7,8 +7,16 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { CANONICAL_SPECIALTIES } from '@/data/specialties';
+import { useSpecialtyTiles } from '@/hooks/useSpecialtyBrowse';
 
 export default function SecondOpinion() {
+  // Specialty codes come from the live taxonomy (43 top-level tiles); the
+  // canonical copy only backs the offline fallback.
+  const { tiles } = useSpecialtyTiles();
+  const specialtyOptions = tiles.length
+    ? tiles.map(t => ({ code: t.code, name: t.name }))
+    : CANONICAL_SPECIALTIES.map(s => ({ code: s.code, name: s.name }));
+
   const [tab, setTab] = useState<'create' | 'history'>('create');
   const [records, setRecords] = useState<any[]>([]);
   const [selectedRecordIds, setSelectedRecordIds] = useState<string[]>([]);
@@ -151,8 +159,8 @@ export default function SecondOpinion() {
                   onChange={e => setSelectedSpecialty(e.target.value)}
                   className="w-full bg-background border border-border/60 rounded-xl px-3 py-2 text-sm"
                 >
-                  <option value="">All Specialties ({CANONICAL_SPECIALTIES.length})</option>
-                  {CANONICAL_SPECIALTIES.map(s => (
+                  <option value="">All Specialties ({specialtyOptions.length})</option>
+                  {specialtyOptions.map(s => (
                     <option key={s.code} value={s.code}>{s.name}</option>
                   ))}
                 </select>

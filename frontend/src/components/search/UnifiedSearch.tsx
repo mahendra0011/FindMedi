@@ -47,6 +47,9 @@ export default function UnifiedSearch({
   const [selectedCity, setSelectedCity] = useState(initialCity || 'All Cities');
   const [results, setResults] = useState<any[]>([]);
   const [taxonomy, setTaxonomy] = useState<any>(null);
+  // Taxonomy-backed typeahead chips (/search/suggest — tiles, subs,
+  // conditions, procedures, Hinglish symptoms; sensitive items stay hidden).
+  const [suggestList, setSuggestList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -79,6 +82,7 @@ export default function UnifiedSearch({
     if (!qText.trim() || qText.trim().length < 2) {
       setResults([]);
       setTaxonomy(null);
+      setSuggestList([]);
       return;
     }
     setLoading(true);
@@ -88,7 +92,11 @@ export default function UnifiedSearch({
       if (cName && cName !== 'All Cities') qParams.set('city', cName);
       qParams.set('limit', '8');
 
-      const res: any = await api.get(`/search/unified?${qParams.toString()}`).catch(() => null);
+      const [res, sug]: any[] = await Promise.all([
+        api.get(`/search/unified?${qParams.toString()}`).catch(() => null),
+        api.get(`/search/suggest?q=${encodeURIComponent(qText.trim())}`).catch(() => null),
+      ]);
+      if (sug?.success) setSuggestList(sug.results || []); else setSuggestList([]);
       if (res?.success) {
         setResults(res.results || []);
         setTaxonomy(res.taxonomy || null);
@@ -98,6 +106,7 @@ export default function UnifiedSearch({
       }
     } catch {
       setResults([]);
+      setSuggestList([]);
     } finally {
       setLoading(false);
     }
@@ -364,6 +373,44 @@ export default function UnifiedSearch({
                   Search {taxonomy.suggestedQuery} →
                 </button>
               )}
+            </div>
+          )}
+
+          {/* Taxonomy-backed specialty chips (§5.4) */}
+          {suggestList.length > 0 && (
+            <div className="py-1.5">
+              <div className="px-3 py-1.5 text-[11px] font-bold uppercase text-muted-foreground tracking-wider">
+                Specialties & symptoms
+              </div>
+              <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+                {suggestList.map((s, i) => (
+                  <button
+                    key={`${s.kind}-${s.code || s.label}-${i}`}
+                    type="button"
+                    onClick={() => {
+                      setShowDropdown(false);
+                      if (s.kind === 'specialty' && s.code) {
+                        navigate(`/browse-specialties/${s.code}`);
+                        return;
+                      }
+                      if (s.specialty?.name) {
+                        navigate(`/clinic-doctors?specialty=${encodeURIComponent(s.specialty.name)}`);
+                        return;
+                      }
+                      triggerSearch(s.label || s.name || '');
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border border-border/70 bg-card hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                  >
+                    {s.specialty?.icon && <span className="text-muted-foreground">{s.specialty.icon}</span>}
+                    <span className={s.kind === 'symptom' ? 'text-muted-foreground' : 'text-foreground font-medium'}>
+                      {s.label || s.name}{s.nameHi ? ` · ${s.nameHi}` : ''}
+                    </span>
+                    {s.parentName && (
+                      <span className="text-[10px] text-muted-foreground/70">in {s.parentName}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
