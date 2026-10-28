@@ -1,0 +1,12 @@
+# SITE-CAP 1.12 — android build outputs are never committed
+app/build/
+app/src/main/assets/public/
+app/src/main/assets/capacitor.config.json
+.gradle/
+build/
+capacitor-cordova-android-plugins/
+local.properties
+captures/
+*.keystore
+!debug.keystore
+*.jks
