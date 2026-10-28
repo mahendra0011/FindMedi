@@ -61,7 +61,7 @@ router.get('/:id', authorize('billing:read'), async (req, res) => {
   }
 });
 
-router.post('/:id/approve', authorize('billing:write'), requireStepUp('payouts:add'), async (req, res) => {
+router.post('/:id/approve', authorize('billing:write'), requireStepUp('payout:approve'), async (req, res) => {
   try {
     const row = await PayoutStatement.findOne({ _id: req.params.id, ...tenantFilter(req) });
     if (!row || row.status !== 'Draft') return res.status(404).json({ message: 'Draft payout not found' });

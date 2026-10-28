@@ -7,6 +7,7 @@ import Appointment from '../models/Appointment.js';
 import { PROVIDER_STATUS, SERVICE_MODES } from '../lib/providerTypes.js';
 import ProviderTypeConfig from '../models/ProviderTypeConfig.js';
 import { protect, requireRole } from '../middleware/auth.js';
+import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { authorizeObject } from '../middleware/authorize.js';
 import { auditLog } from '../middleware/audit.js';
 import { getCache, setCache, getLockedSlotsForDoctor } from '../config/redis.js';
@@ -350,7 +351,7 @@ const statusTransitionSchema = z.object({
 // Operator-only lifecycle gate (10.md 4.4). A listing reaches `live` through a
 // superadmin decision, never through its own profile PATCH — which is why
 // `status` is absent from updateProviderSchema.
-router.post('/:id/status', protect, requireRole(['superadmin']), requireObjectId, validate(statusTransitionSchema), async (req, res) => {
+router.post('/:id/status', protect, requireRole(['superadmin']), requireObjectId, requireStepUp('provider:ban'), validate(statusTransitionSchema), async (req, res) => {
   try {
     const provider = await Provider.findById(req.params.id);
     if (!provider) return res.status(404).json({ message: 'Provider not found' });

@@ -488,7 +488,7 @@ router.post('/grants/:id/revoke', requireTenant, requireObjectId, async (req, re
 });
 
 // ─── API keys (hashed at rest, show once) ───────────────────────────────────
-router.post('/apikeys', requireTenant, requireStepUp('iam:role-change'), async (req, res) => {
+router.post('/apikeys', requireTenant, requireStepUp('apikey:create'), async (req, res) => {
   try {
     const { name, policyId, ipBinding, expiresAt } = req.body || {};
     if (!name || String(name).trim().length < 2) return res.status(400).json({ message: 'name required' });
@@ -509,7 +509,7 @@ router.post('/apikeys', requireTenant, requireStepUp('iam:role-change'), async (
   }
 });
 
-router.post('/apikeys/:id/revoke', requireTenant, requireStepUp('iam:role-change'), requireObjectId, async (req, res) => {
+router.post('/apikeys/:id/revoke', requireTenant, requireStepUp('apikey:create'), requireObjectId, async (req, res) => {
   try {
     const k = await ApiKey.findById(req.params.id);
     if (!k) return res.status(404).json({ message: 'Not found' });

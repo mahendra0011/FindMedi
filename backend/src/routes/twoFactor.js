@@ -2,6 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import User from '../models/User.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { totpLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../utils/validate.js';
 
@@ -88,7 +89,7 @@ router.post('/verify', protect, authorize('profile:write', 'profile:write:own'),
  * POST /api/auth/2fa/disable
  * Disable 2FA (requires current password)
  */
-router.post('/disable', protect, authorize('profile:write', 'profile:write:own'), totpLimiter, validate(twoFactorDisableSchema), async (req, res) => {
+router.post('/disable', protect, authorize('profile:write', 'profile:write:own'), requireStepUp('account:2fa-disable'), totpLimiter, validate(twoFactorDisableSchema), async (req, res) => {
   try {
     const { password } = req.body;
 

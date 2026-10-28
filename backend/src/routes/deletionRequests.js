@@ -2,6 +2,7 @@ import express from 'express';
 import DeletionRequest from '../models/DeletionRequest.js';
 import User from '../models/User.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
+import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { auditLog } from '../middleware/audit.js';
 import { executeDeletion } from '../services/deletionService.js';
 import logger from '../config/logger.js';
@@ -124,7 +125,7 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 // ─── Approve ────────────────────────────────────────────────────────────────
-router.post('/:id/approve', protect, superadminOnly, async (req, res) => {
+router.post('/:id/approve', protect, superadminOnly, requireStepUp('account:delete'), async (req, res) => {
   try {
     const row = await DeletionRequest.findById(req.params.id);
     if (!row) return res.status(404).json({ message: 'Deletion request not found' });
@@ -149,7 +150,7 @@ router.post('/:id/approve', protect, superadminOnly, async (req, res) => {
 });
 
 // ─── Execute the erasure chain ──────────────────────────────────────────────
-router.post('/:id/execute', protect, superadminOnly, async (req, res) => {
+router.post('/:id/execute', protect, superadminOnly, requireStepUp('account:delete'), async (req, res) => {
   try {
     const row = await DeletionRequest.findById(req.params.id);
     if (!row) return res.status(404).json({ message: 'Deletion request not found' });

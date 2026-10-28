@@ -2,6 +2,7 @@ import express from 'express';
 import ModerationItem from '../models/ModerationItem.js';
 import Strike from '../models/Strike.js';
 import { protect, requireRole } from '../middleware/auth.js';
+import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { auditLog } from '../middleware/audit.js';
 import {
   validate, moderationActionSchema, moderationNoteSchema,
@@ -231,7 +232,7 @@ async function applyAction(item, action, by, note, { secondReviewer = false } = 
 //            second, DIFFERENT reviewer confirms with the same action body.
 // Same reviewer twice = 403: that is exactly the accident two-person review
 // exists to prevent.
-router.post('/:id/action', protect, requireObjectId, requireRole(OPS_ROLES), validate(moderationActionSchema), async (req, res) => {
+router.post('/:id/action', protect, requireObjectId, requireRole(OPS_ROLES), requireStepUp('legal:takedown'), validate(moderationActionSchema), async (req, res) => {
   try {
     const item = await ModerationItem.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Not found' });

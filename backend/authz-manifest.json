@@ -45,7 +45,7 @@
     "requireRole": 94,
     "requireSosAccess": 7,
     "requireStaff": 4,
-    "requireStepUp": 36,
+    "requireStepUp": 41,
     "requireTenant": 30,
     "resolvePartner": 6,
     "restrictTo": 11,
@@ -3471,49 +3471,49 @@
     },
     {
       "file": "deletionRequests.js",
-      "line": 27,
+      "line": 28,
       "method": "POST",
       "target": "'/'",
       "tag": "object"
     },
     {
       "file": "deletionRequests.js",
-      "line": 58,
+      "line": 59,
       "method": "POST",
       "target": "'/for-user'",
       "tag": "role"
     },
     {
       "file": "deletionRequests.js",
-      "line": 86,
+      "line": 87,
       "method": "GET",
       "target": "'/'",
       "tag": "object"
     },
     {
       "file": "deletionRequests.js",
-      "line": 110,
+      "line": 111,
       "method": "GET",
       "target": "'/:id'",
       "tag": "object"
     },
     {
       "file": "deletionRequests.js",
-      "line": 127,
+      "line": 128,
       "method": "POST",
       "target": "'/:id/approve'",
       "tag": "role"
     },
     {
       "file": "deletionRequests.js",
-      "line": 152,
+      "line": 153,
       "method": "POST",
       "target": "'/:id/execute'",
       "tag": "role"
     },
     {
       "file": "deletionRequests.js",
-      "line": 213,
+      "line": 214,
       "method": "GET",
       "target": "'/:id/certificate'",
       "tag": "object"
@@ -8049,63 +8049,63 @@
     },
     {
       "file": "moderation.js",
-      "line": 56,
+      "line": 57,
       "method": "GET",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "moderation.js",
-      "line": 94,
+      "line": 95,
       "method": "GET",
       "target": "'/strikes'",
       "tag": "role"
     },
     {
       "file": "moderation.js",
-      "line": 112,
+      "line": 113,
       "method": "GET",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "moderation.js",
-      "line": 127,
+      "line": 128,
       "method": "POST",
       "target": "'/:id/claim'",
       "tag": "role"
     },
     {
       "file": "moderation.js",
-      "line": 151,
+      "line": 152,
       "method": "POST",
       "target": "'/:id/note'",
       "tag": "role"
     },
     {
       "file": "moderation.js",
-      "line": 234,
+      "line": 235,
       "method": "POST",
       "target": "'/:id/action'",
       "tag": "role"
     },
     {
       "file": "moderation.js",
-      "line": 296,
+      "line": 297,
       "method": "POST",
       "target": "'/:id/appeal'",
       "tag": "self"
     },
     {
       "file": "moderation.js",
-      "line": 327,
+      "line": 328,
       "method": "POST",
       "target": "'/:id/appeal/resolve'",
       "tag": "role"
     },
     {
       "file": "moderation.js",
-      "line": 393,
+      "line": 394,
       "method": "POST",
       "target": "'/'",
       "tag": "role"
@@ -9848,84 +9848,84 @@
     },
     {
       "file": "providers.js",
-      "line": 62,
+      "line": 63,
       "method": "GET",
       "target": "'/'",
       "tag": "public"
     },
     {
       "file": "providers.js",
-      "line": 101,
+      "line": 102,
       "method": "GET",
       "target": "'/admin/list'",
       "tag": "role"
     },
     {
       "file": "providers.js",
-      "line": 158,
+      "line": 159,
       "method": "GET",
       "target": "'/:slug'",
       "tag": "public"
     },
     {
       "file": "providers.js",
-      "line": 181,
+      "line": 182,
       "method": "GET",
       "target": "'/:id/slots'",
       "tag": "public"
     },
     {
       "file": "providers.js",
-      "line": 282,
+      "line": 283,
       "method": "POST",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "providers.js",
-      "line": 311,
+      "line": 312,
       "method": "PATCH",
       "target": "'/:id'",
       "tag": "object"
     },
     {
       "file": "providers.js",
-      "line": 353,
+      "line": 354,
       "method": "POST",
       "target": "'/:id/status'",
       "tag": "role"
     },
     {
       "file": "providers.js",
-      "line": 377,
+      "line": 378,
       "method": "POST",
       "target": "'/:id/probation'",
       "tag": "role"
     },
     {
       "file": "providers.js",
-      "line": 401,
+      "line": 402,
       "method": "POST",
       "target": "'/:id/view-as'",
       "tag": "role"
     },
     {
       "file": "providers.js",
-      "line": 480,
+      "line": 481,
       "method": "POST",
       "target": "'/:id/claim'",
       "tag": "object"
     },
     {
       "file": "providers.js",
-      "line": 522,
+      "line": 523,
       "method": "POST",
       "target": "'/:id/claim-approve'",
       "tag": "role"
     },
     {
       "file": "providers.js",
-      "line": 556,
+      "line": 557,
       "method": "POST",
       "target": "'/:id/claim-reject'",
       "tag": "role"
@@ -12718,28 +12718,28 @@
     },
     {
       "file": "twoFactor.js",
-      "line": 25,
+      "line": 26,
       "method": "POST",
       "target": "'/setup'",
       "tag": "role"
     },
     {
       "file": "twoFactor.js",
-      "line": 53,
+      "line": 54,
       "method": "POST",
       "target": "'/verify'",
       "tag": "role"
     },
     {
       "file": "twoFactor.js",
-      "line": 91,
+      "line": 92,
       "method": "POST",
       "target": "'/disable'",
       "tag": "role"
     },
     {
       "file": "twoFactor.js",
-      "line": 120,
+      "line": 121,
       "method": "GET",
       "target": "'/status'",
       "tag": "role"
