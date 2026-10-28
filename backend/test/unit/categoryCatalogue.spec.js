@@ -20,6 +20,41 @@ const FORBIDDEN_TOKENS = [
 ];
 
 describe('FindMedi Final Category Catalogue (Pruned)', () => {
+  it('covers every §5 catalogue-gap item (regression lock: gaps cannot silently reappear)', () => {
+    const codes = new Set(CATEGORY_TREE.map((c) => c.code));
+    const names = CATEGORY_TREE.map((c) => `${c.code} ${c.name} ${(c.aliases || []).join(' ')}`).join(' | ').toLowerCase();
+    const typeKeys = new Set(PROVIDER_TYPE_CATALOG.map((t) => t.typeKey));
+
+    // Required category codes (§5 gap list, doc-section 5):
+    const requiredCodes = [
+      'HOME.SERVICE.VACCINATION', // home vaccination
+      'HOME.SERVICE.ICU_SETUP', // home ICU
+      'ELDER.PROD.FALL_DEVICES', // fall-detection devices
+      'NUT.PROD.BABY_FOOD', // baby food
+      'WCH.SERVICE.SCHOOL_HEALTH', // adolescent/school programs
+      'EVENT.COMMUNITY.SCHOOL_DRIVE', // school screening drives
+      'PROG.SERVICE.QUIT_SMOKING_ALCOHOL', // quit-smoking/alcohol programs
+      'AYUSH.PRO.ACUPUNCTURE', // acupuncture/cupping
+      'EMG.SERVICE.CPR_VOLUNTEER', // first-responder volunteers
+      'WCH.PRO.LACTATION_DOULA', // lactation/doula
+      'GOV.INFO.STATE_SCHEMES_ELIGIBILITY', // JSY/PMMVY state scheme pages
+      'GOV.INFO.IMMUNISATION_UIP', // UIP
+      'B2B.SERVICE.INSTITUTIONAL_CAMPUS', // schools/hostels B2B
+    ];
+    for (const code of requiredCodes) {
+      expect(codes.has(code)).toBe(true);
+    }
+
+    // Required provider types (onboarding side of the same gaps):
+    expect(typeKeys.has('speech_therapist')).toBe(true); // speech + OT
+
+    // Verify-only items must at least exist as discoverable categories:
+    expect(names).toContain('moderated community forum');
+    expect(names).toContain('dementia');
+    expect(names).toContain('sports academy');
+    expect(names).toContain('dengue advisory'); // outbreak/seasonal alerts
+  });
+
   it('covers all 24 sections with valid codes matching CATEGORY_CODE_RE', () => {
     expect(CATEGORY_TREE.length).toBeGreaterThanOrEqual(150);
 
