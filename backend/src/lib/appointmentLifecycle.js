@@ -24,6 +24,7 @@
  */
 import { assertTransition, canTransition } from './flowStates.js';
 import { toPaise, fromPaise } from '../utils/money.js';
+import crypto from 'node:crypto';
 
 // ==============================================================================
 // Status machine
@@ -174,5 +175,35 @@ export function computeCancellation({
     refundPercent,
     refundAmount: fromPaise(refundPaise),
     feeAmount: fromPaise(paidPaise - refundPaise),
+  };
+}
+
+// --- SITE-BOK 2.1/2.2: policy identity travels with the booking --------------
+// The tier table above IS the refund engine; what was missing is a SNAPSHOT of
+// which table decided the number: a platform bump or a provider override has to
+// change future bookings only, and a dispute on an existing booking must read
+// the exact rules that were in force when it was created. Every appointment
+// write stamps `policySnapshot` at creation; every refund re-derives the tier
+// from the SAME snapshot version and records it on the Refund row.
+
+export const BOOKING_POLICY_VERSION = 'booking-cancellation-v1';
+export const BOOKING_POLICY_CONTEXT = 'booking_cancellation';
+
+const canonicalPolicyBands = () =>
+  Object.fromEntries(Object.entries(PLATFORM_CANCELLATION_POLICY).map(([tier, band]) => [tier, { ...band }]));
+
+/** Hash of the exact policy text � bumping the version without changing the rules keeps the same hash. */
+export const policyDocumentHash = (bands = canonicalPolicyBands()) =>
+  crypto.createHash('sha256').update(JSON.stringify({ version: BOOKING_POLICY_VERSION, bands })).digest('hex');
+
+/** The snapshot embedded into a booking at creation time. Pure � pass `now`. */
+export function bookingPolicySnapshot(now = new Date()) {
+  const bands = canonicalPolicyBands();
+  return {
+    version: BOOKING_POLICY_VERSION,
+    context: BOOKING_POLICY_CONTEXT,
+    refundBands: bands,
+    documentHash: policyDocumentHash(bands),
+    acceptedAt: new Date(now),
   };
 }

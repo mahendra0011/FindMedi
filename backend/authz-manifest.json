@@ -734,49 +734,49 @@
     },
     {
       "file": "appointments.js",
-      "line": 736,
+      "line": 740,
       "method": "POST",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 876,
+      "line": 882,
       "method": "PUT",
       "target": "'/:id/checkin'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 920,
+      "line": 926,
       "method": "GET",
       "target": "'/queue/:department'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 951,
+      "line": 957,
       "method": "PUT",
       "target": "'/:id/transit'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 994,
+      "line": 1000,
       "method": "PUT",
       "target": "'/:id/intake'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 1031,
+      "line": 1037,
       "method": "PUT",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "appointments.js",
-      "line": 1357,
+      "line": 1370,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "role"

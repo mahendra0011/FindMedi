@@ -36,6 +36,7 @@ export async function issueRefund({
   reasonCode = 'patient_request',
   idempotencyKey,
   requestedBy = null,
+  policyVersion = '',
 }) {
   if (!paymentId) return { ok: false, reason: 'no-payment' };
   if (!(Number(amount) > 0)) return { ok: false, reason: 'no-amount' };
@@ -52,6 +53,7 @@ export async function issueRefund({
       reasonCode,
       idempotencyKey,
       requestedBy,
+      policyVersion,
     });
     if (!created) return { ok: true, refund, duplicate: true };
     try {

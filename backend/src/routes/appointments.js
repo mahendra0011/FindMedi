@@ -28,7 +28,7 @@ import { emitAppointmentUpdate } from '../services/socketService.js';
 import { loyaltyService } from '../services/loyaltyService.js';
 // A5 (5.md §2.1/§2.4): one status table + the cancellation tier arithmetic,
 // asserted here before any write, and the single refund issuer used after.
-import { assertAppointmentTransition, computeCancellation } from '../lib/appointmentLifecycle.js';
+import { assertAppointmentTransition, computeCancellation, bookingPolicySnapshot, BOOKING_POLICY_VERSION } from '../lib/appointmentLifecycle.js';
 import { issueRefund } from '../services/refundService.js';
 // 2.md §6: probation booking cap — a listing approved yesterday books only up
 // to its daily cap until an operator clears probation.
@@ -703,6 +703,10 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
       fees: serverFees,
       estimatedWaitTime,
       hospitalId,
+      // SITE-BOK 2.1: the cancellation/refund policy in force at booking time
+      // travels with the row. A dispute reads THIS, not whatever the platform
+      // happens to say after the next rules bump.
+      policySnapshot: bookingPolicySnapshot(new Date()),
       status: 'Confirmed',
     });
 
@@ -846,6 +850,8 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), authori
         hospitalId: hospitalId || undefined,
         serviceId: serviceId || undefined,
         providerId: providerId || undefined,
+        // SITE-BOK 2.1: policy snapshot travels with the booking (see walk-in).
+        policySnapshot: bookingPolicySnapshot(new Date()),
         status: 'Pending'
       });
       
@@ -1129,6 +1135,10 @@ router.put('/:id', protect, authorize('appointments:write', 'appointments:write:
         updates.cancellationTier = cancelPlan.tier;
         updates.cancellationFee = cancelPlan.feeAmount;
         updates.refundAmount = cancelPlan.refundAmount;
+        // SITE-BOK 2.2: this row remembers WHICH policy decided the refund —
+        // the booking's own snapshot (2.1), or the platform current version
+        // for old rows that pre-date snapshots.
+        updates.cancellationPolicyVersion = appointment.policySnapshot?.version || BOOKING_POLICY_VERSION;
       }
     }
 
@@ -1283,6 +1293,9 @@ router.put('/:id', protect, authorize('appointments:write', 'appointments:write:
           reasonCode: cancelPlan.cancelledBy === 'provider' ? 'provider_cancelled' : 'appointment_cancelled',
           requestedBy: req.user._id || req.user.id || null,
           idempotencyKey: `appt-cancel:${appointment._id}:${cancelPlan.payment._id}`,
+          // SITE-BOK 2.2: the Refund row carries the policy version whose tier
+          // table produced this percentage — the ledger reconstructs itself.
+          policyVersion: updates.cancellationPolicyVersion || appointment.policySnapshot?.version || BOOKING_POLICY_VERSION,
         });
         if (!outcome.ok) {
           logger.warn(`A5: appointment ${appointment._id} cancelled but refund not issued (${outcome.reason})`);

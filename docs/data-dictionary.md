@@ -14,7 +14,7 @@
 ## Summary
 
 - **346 models** across 338 files (0 skipped)
-- **7657 schema fields**, of which **804 classified as PII** in **244 collections**
+- **7664 schema fields**, of which **804 classified as PII** in **244 collections**
 - **8 collections** carry a TTL index
 - **127 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -58,7 +58,7 @@
 | `antenatalrecords` | AntenatalRecord | 28 | 3 | 4 | — | Clinical records |
 | `antibioticreviews` | AntibioticReview | 18 | 1 | 3 | — | Clinical records |
 | `apikeys` | ApiKey | 13 | 2 | 5 | — | **UNMAPPED — see gaps** |
-| `appointments` | Appointment | 101 | 11 | 15 | — | Clinical records |
+| `appointments` | Appointment | 107 | 11 | 15 | — | Clinical records |
 | `appointmentseries` | AppointmentSeries | 24 | 4 | 3 | — | **UNMAPPED — see gaps** |
 | `approvalpolicies` | ApprovalPolicy | 18 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `approvalrequests` | ApprovalRequest | 25 | 0 | 2 | — | No PII fields detected |
@@ -309,7 +309,7 @@
 | `referrals` | Referral | 14 | 0 | 5 | — | No PII fields detected |
 | `referralsettings` | ReferralSettings | 8 | 0 | 0 | — | No PII fields detected |
 | `refreshtokens` | RefreshToken | 13 | 3 | 5 | 0s | OTP / setup codes / tokens |
-| `refunds` | Refund | 16 | 1 | 5 | — | Payment and ledger entries |
+| `refunds` | Refund | 17 | 1 | 5 | — | Payment and ledger entries |
 | `rentals` | Rental | 39 | 1 | 8 | — | **UNMAPPED — see gaps** |
 | `reportdefinitions` | ReportDefinition | 10 | 1 | 1 | — | **UNMAPPED — see gaps** |
 | `reportruns` | ReportRun | 12 | 0 | 3 | — | No PII fields detected |
@@ -1236,6 +1236,12 @@ source `Appointment.js` · timestamps: yes · virtuals: 0 · retention: Statutor
 | `cancellationTier` | String |  |  |  | early, mid, late, no_show |  |  |
 | `cancellationFee` | Number |  |  | 0 |  |  |  |
 | `refundAmount` | Number |  |  | 0 |  |  |  |
+| `policySnapshot.version` | String |  |  | "" |  |  |  |
+| `policySnapshot.context` | String |  |  | "" |  |  |  |
+| `policySnapshot.documentHash` | String |  |  | "" |  |  |  |
+| `policySnapshot.acceptedAt` | Date |  |  | null |  |  |  |
+| `policySnapshot.refundBands` | Mixed |  |  | null |  |  |  |
+| `cancellationPolicyVersion` | String |  |  | "" |  |  |  |
 | `priority` | String |  |  | "Normal" | Normal, Urgent, Emergency |  |  |
 | `type` | String |  |  | "Consultation" | Consultation, Follow-up, Check-up, Emergency, Chat Consultation, Video Consultation, Audio Call Consultation, Audio Consultation, Home Visit Consultation |  |  |
 | `appointmentMode` | String |  |  | "offline" | chat, video, audio, voice, call, offline, in_person, home_visit, home |  |  |
@@ -11019,6 +11025,7 @@ source `Refund.js` · timestamps: yes · virtuals: 0 · retention: 8 years (stat
 | `reasonCode` | String |  |  | "patient_request" | orphan_payment_no_appointment, service_not_delivered, duplicate_payment, overcharge, patient_request, fraud, goodwill, appointment_cancelled, provider_cancelled |  |  |
 | `requestedBy` | ObjectId |  |  |  |  | User |  |
 | `approvedBy` | ObjectId |  |  |  |  | User |  |
+| `policyVersion` | String |  |  | "" |  |  |  |
 | `decidedAt` | Date |  |  |  |  |  |  |
 | `settledAt` | Date |  |  |  |  |  |  |
 | `idempotencyKey` | String | yes |  |  |  |  |  |

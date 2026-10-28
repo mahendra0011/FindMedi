@@ -223,6 +223,20 @@ export const authorizeObject = (options = {}) => {
       if (!doc) return res.status(404).json({ message: 'Not found' });
       req.scoped = doc;
       req.ownedDoc = doc; // compat: requireTenantOwnership handed handlers req.ownedDoc
+      // SITE-SEC 1.10: a superadmin pass over a PATIENT-BOUND document read is
+      // a PHI inspection and gets the same break-glass discipline as the
+      // permission gate above — no silent record browsing. Writes stay open to
+      // superadmin (operational remediation) but are always audited here, so a
+      // platform-role object mutation leaves a trail the matter cannot skip.
+      const ownerFieldsChecked = Array.isArray(ownerFields) && ownerFields.length > 0
+        ? ownerFields
+        : [ownerField];
+      if (read && ownerFieldsChecked.map(String).includes('patientId')) {
+        return breakGlassGate(req, res, next);
+      }
+      await auditLog('superadmin_object_access', req.user._id, {
+        model: Model.modelName, id: String(doc._id), read, write, path: req.originalUrl, ip: req.ip,
+      }).catch(() => {});
       return next();
     }
 

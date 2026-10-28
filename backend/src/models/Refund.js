@@ -97,6 +97,11 @@ const refundSchema = new mongoose.Schema({
   },
   requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  // SITE-BOK 2.2: WHICH policy version decided the amount. A refund row must be
+  // reconstructable without replaying the request — the caller may have passed
+  // "policy" that no longer exists by dispute time (see appointmentLifecycle
+  // BOOKING_POLICY_VERSION and the appointment's policySnapshot).
+  policyVersion: { type: String, default: '' },
   decidedAt: { type: Date },
   settledAt: { type: Date },
   idempotencyKey: { type: String, required: true },
@@ -112,6 +117,7 @@ refundSchema.index({ paymentId: 1, status: 1 });
 refundSchema.statics.requestRefund = async function requestRefund({
   paymentId, amount, originalAmount, reason,
   reasonCode = 'patient_request', idempotencyKey, requestedBy = null,
+  policyVersion = '',
 }) {
   if (!idempotencyKey) {
     const err = new Error('idempotencyKey is required for a refund (PAY-B-07)');
@@ -133,6 +139,7 @@ refundSchema.statics.requestRefund = async function requestRefund({
   try {
     const refund = await this.create({
       paymentId, amount: requested, reason, reasonCode, idempotencyKey, requestedBy,
+      policyVersion: String(policyVersion || ''),
       status: REFUND_STATUS.PROCESSING,
     });
     return { created: true, refund };

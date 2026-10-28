@@ -64,6 +64,19 @@ const appointmentSchema = new mongoose.Schema({
   cancellationTier: { type: String, enum: ['early', 'mid', 'late', 'no_show'] },
   cancellationFee: { type: Number, default: 0 },
   refundAmount: { type: Number, default: 0 },
+  // SITE-BOK 2.1: the policy the refund engine MUST honour for this booking,
+  // snapshotted at creation. A later rules bump or provider override only ever
+  // affects NEW bookings; a dispute reads the exact bands present when this
+  // row was written (policyDocumentHash ties the snapshot to the version).
+  policySnapshot: {
+    version: { type: String, default: '' },
+    context: { type: String, default: '' },
+    documentHash: { type: String, default: '' },
+    acceptedAt: { type: Date, default: null },
+    refundBands: { type: Object, default: null },
+  },
+  // 2.2: which policy version actually decided the refund on cancel.
+  cancellationPolicyVersion: { type: String, default: '' },
   priority: { type: String, enum: ['Normal', 'Urgent', 'Emergency'], default: 'Normal' },
   type: { type: String, enum: ['Consultation', 'Follow-up', 'Check-up', 'Emergency', 'Chat Consultation', 'Video Consultation', 'Audio Call Consultation', 'Audio Consultation', 'Home Visit Consultation'], default: 'Consultation' },
   appointmentMode: { type: String, enum: ['chat', 'video', 'audio', 'voice', 'call', 'offline', 'in_person', 'home_visit', 'home'], default: 'offline' },
