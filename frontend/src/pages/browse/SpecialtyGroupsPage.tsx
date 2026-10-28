@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronUp, Lock, TriangleAlert } from 'lucide-react';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
 import { useSpecialtyTiles } from '@/hooks/useSpecialtyBrowse';
@@ -8,9 +9,14 @@ import { useSpecialtyTiles } from '@/hooks/useSpecialtyBrowse';
 // Browse-by-specialties, §2/§5.1: the 13 curated groups, each tile carrying
 // its chip preview (§5.2) and honest child count. Sensitive tiles render
 // discreetly (muted styling 🔒), claims-restricted ones carry ⚠.
+// SITE-I18N 3.2: every label is a registry key and the name itself follows
+// the active language — hi renders the Hindi name as primary, en dangles it
+// as the secondary line under the English name.
 const INITIAL_GROUPS = 3;
 
 export default function SpecialtyGroupsPage() {
+  const { t, i18n } = useTranslation();
+  const isHi = (i18n.language || 'en').toLowerCase().startsWith('hi');
   const { groups, tiles, fromApi, isLoading } = useSpecialtyTiles();
   const [showAllGroups, setShowAllGroups] = useState(false);
 
@@ -20,16 +26,18 @@ export default function SpecialtyGroupsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="font-heading text-3xl font-bold text-foreground">Browse by Specialties</h1>
+        <h1 className="font-heading text-3xl font-bold text-foreground">{t('specialties.browse_title')}</h1>
         <p className="text-muted-foreground mt-1">
-          {tileCount} specialties {fromApi ? 'across 13 curated groups' : '— offline list'} · every tile opens its
-          sub-specialties, conditions and providers
+          {t('specialties.browse_subtitle', {
+            n: tileCount,
+            where: fromApi ? t('specialties.browse_subtitle_api') : t('specialties.browse_subtitle_offline'),
+          })}
         </p>
       </div>
 
       {!fromApi && (
         <p className="mb-6 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
-          Live catalogue is unreachable — showing the built-in list. Chips and counts resume automatically.
+          {t('specialties.fallback_notice')}
         </p>
       )}
       {isLoading && !groups.length && (
@@ -65,17 +73,17 @@ export default function SpecialtyGroupsPage() {
                       <Icon className={`w-4 h-4 ${visual.textColor}`} />
                     </div>
                     <h3 className={`font-semibold text-xs leading-tight ${tile.sensitive ? 'text-muted-foreground' : 'text-foreground'}`}>
-                      {tile.name}
+                      {(isHi && tile.meta?.nameHi) ? tile.meta.nameHi : tile.name}
                       {tile.sensitive && <Lock className="inline w-3 h-3 ml-1 -mt-0.5 text-muted-foreground" />}
                       {tile.claimsRestricted && <TriangleAlert className="inline w-3 h-3 ml-1 -mt-0.5 text-amber-500" />}
                     </h3>
-                    {tile.meta?.nameHi && (
+                    {!isHi && tile.meta?.nameHi && (
                       <p className="text-[10px] text-muted-foreground mt-0.5">{tile.meta.nameHi}</p>
                     )}
                     <p className="text-[10px] text-muted-foreground mt-1">
                       {(tile.children || []).length > 0
-                        ? `${(tile.children || []).length} sub-specialties`
-                        : 'Doctors, labs & centres'}
+                        ? t('specialties.n_subspecialties', { n: (tile.children || []).length })
+                        : t('specialties.doctors_labs')}
                     </p>
                     {chips.length > 0 && (
                       <p className="text-[9px] text-muted-foreground/80 mt-1 truncate group-hover:text-primary" title={chips.map((c) => c.name).join(', ')}>
@@ -96,7 +104,7 @@ export default function SpecialtyGroupsPage() {
           onClick={() => setShowAllGroups(!showAllGroups)}
           className="mt-10 w-full flex items-center justify-center gap-2 text-sm text-primary bg-primary/5 border border-primary/20 rounded-xl py-3"
         >
-          {showAllGroups ? 'Show fewer groups' : `Show all ${groups.length} groups`}
+          {showAllGroups ? t('specialties.show_fewer') : t('specialties.show_all_groups', { n: groups.length })}
           {showAllGroups ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </motion.button>
       )}
