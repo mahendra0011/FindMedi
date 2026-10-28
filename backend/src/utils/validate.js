@@ -2790,6 +2790,25 @@ export const moderationEnqueueSchema = z.object({
   subjectProviderId: objectIdSchema.optional(),
 }).strict();
 
+// SITE-LEG 3.1: public takedown intake (DMCA-style). Anyone — requester may be
+// anonymous — can file; the Legal desk works items from the SAME moderation
+// queue with the Legal & Statutory Compliance SLA. The schema bounds every
+// string so a public endpoint cannot carry a file-tripling payload into Mongo.
+export const takedownRequestSchema = z.object({
+  targetType: z.enum(MODERATION_TARGET_TYPES),
+  targetId: z.string().trim().min(1).max(200),
+  category: z.enum(['copyright', 'defamation', 'other']),
+  claimantName: z.string().trim().min(2).max(120),
+  claimantContact: z.string().trim().min(5).max(320),
+  jurisdiction: z.string().trim().max(120).optional(),
+  statement: z
+    .string()
+    .trim()
+    .min(20, 'Describe the work / right and why the content must come down')
+    .max(4000),
+  attachmentUrl: z.string().trim().url().max(500).optional(),
+}).strict();
+
 export const assetSanitiseSchema = z.object({
   performedAt: z.coerce.date().optional(),
   notes: z.string().trim().max(500).optional(),

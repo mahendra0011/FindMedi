@@ -10,11 +10,11 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1864,
+  "total": 1866,
   "counts": {
     "inherited": 5,
-    "object": 438,
-    "public": 123,
+    "object": 439,
+    "public": 124,
     "role": 1214,
     "self": 84
   },
@@ -111,7 +111,7 @@
         "routes": 1
       }
     ],
-    "unnamedHandlerGuard": 326,
+    "unnamedHandlerGuard": 327,
     "note": "AUTHZ-M-01 is OPEN. The alternatives are not necessarily wrong - several predate authorizeObject and carry domain rules it does not model - but the split was previously invisible, and a route can be guarded twice by two mechanisms whose rules were never reconciled."
   },
   "unrecognised": [],
@@ -636,10 +636,17 @@
     },
     {
       "file": "analytics.js",
-      "line": 16,
+      "line": 21,
       "method": "GET",
       "target": "'/doctor'",
       "tag": "role"
+    },
+    {
+      "file": "analytics.js",
+      "line": 112,
+      "method": "POST",
+      "target": "'/events'",
+      "tag": "object"
     },
     {
       "file": "announcements.js",
@@ -8049,66 +8056,73 @@
     },
     {
       "file": "moderation.js",
-      "line": 57,
+      "line": 59,
       "method": "GET",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "moderation.js",
-      "line": 95,
+      "line": 97,
       "method": "GET",
       "target": "'/strikes'",
       "tag": "role"
     },
     {
       "file": "moderation.js",
-      "line": 113,
+      "line": 115,
       "method": "GET",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "moderation.js",
-      "line": 128,
+      "line": 130,
       "method": "POST",
       "target": "'/:id/claim'",
       "tag": "role"
     },
     {
       "file": "moderation.js",
-      "line": 152,
+      "line": 154,
       "method": "POST",
       "target": "'/:id/note'",
       "tag": "role"
     },
     {
       "file": "moderation.js",
-      "line": 235,
+      "line": 237,
       "method": "POST",
       "target": "'/:id/action'",
       "tag": "role"
     },
     {
       "file": "moderation.js",
-      "line": 297,
+      "line": 299,
       "method": "POST",
       "target": "'/:id/appeal'",
       "tag": "self"
     },
     {
       "file": "moderation.js",
-      "line": 328,
+      "line": 330,
       "method": "POST",
       "target": "'/:id/appeal/resolve'",
       "tag": "role"
     },
     {
       "file": "moderation.js",
-      "line": 394,
+      "line": 396,
       "method": "POST",
       "target": "'/'",
       "tag": "role"
+    },
+    {
+      "file": "moderation.js",
+      "line": 424,
+      "method": "POST",
+      "target": "'/takedown'",
+      "tag": "public"
     },
     {
       "file": "mortuary.js",

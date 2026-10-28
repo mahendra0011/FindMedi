@@ -3,10 +3,12 @@ import ModerationItem from '../models/ModerationItem.js';
 import Strike from '../models/Strike.js';
 import { protect, requireRole } from '../middleware/auth.js';
 import { requireStepUp } from '../middleware/stepUpAuth.js';
+import { publicSearchLimiter as limitedRate } from '../middleware/rateLimit.js';
 import { auditLog } from '../middleware/audit.js';
 import {
   validate, moderationActionSchema, moderationNoteSchema,
   moderationAppealSchema, moderationAppealResolveSchema, moderationEnqueueSchema,
+  takedownRequestSchema,
 } from '../utils/validate.js';
 import {
   MODERATION_SEVERITIES, isOverdue, needsSecondReviewer,
@@ -408,6 +410,45 @@ router.post('/', protect, requireRole(OPS_ROLES), validate(moderationEnqueueSche
     });
     await auditLog('moderation_enqueued', actorId(req), { itemId: item._id, targetType, targetId, ip: req.ip });
     return res.status(created ? 201 : 200).json({ item, created });
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+});
+
+// ─── SITE-LEG 3.1: public takedown intake ───────────────────────────────────
+// The Legal & Statutory Compliance Desk queue entry point. Same moderation
+// pipeline, same SLA machinery — but public and self-service, because a
+// copyright claimant should not need a support login to invoke the law. The
+// claimant's contact rides the item's notes (ops tooling sees it; analytics
+// and the export scrubber never do). Anonymous uses a pseudonymous reporter.
+router.post('/takedown', limitedRate, validate(takedownRequestSchema), async (req, res) => {
+  try {
+    const { targetType, targetId, category, claimantName, claimantContact, jurisdiction, statement, attachmentUrl } = req.body;
+    const note = [
+      `TAKEDOWN (${category}) from ${claimantName}`,
+      claimantContact && jurisdiction ? `Contact: ${claimantContact} · Jurisdiction: ${jurisdiction}` : `Contact: ${claimantContact}`,
+      attachmentUrl ? `Evidence: ${attachmentUrl}` : 'No attached evidence URL',
+      statement,
+    ].filter(Boolean).join('\n');
+    const { item, created } = await ensureModerationItem({
+      targetType,
+      targetId,
+      category,
+      reason: `Takedown request by ${claimantName}`,
+      source: 'user_report',
+      reporterId: null,
+      note,
+    });
+    await auditLog('takedown_filed', null, {
+      itemId: String(item._id), targetType, targetId, category,
+      claimant: claimantName, ip: req.ip,
+    }).catch(() => {});
+    return res.status(created ? 201 : 200).json({
+      success: true,
+      item: { id: String(item._id), status: item.status, slaDueAt: item.slaDueAt },
+      created,
+      message: 'Takedown request filed — acknowledged within 24 hours.',
+    });
   } catch (err) {
     return res.status(400).json({ message: err.message });
   }
