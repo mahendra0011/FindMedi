@@ -13,10 +13,10 @@
 
 ## Summary
 
-- **346 models** across 338 files (0 skipped)
-- **7664 schema fields**, of which **804 classified as PII** in **244 collections**
-- **8 collections** carry a TTL index
-- **127 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
+- **347 models** across 339 files (0 skipped)
+- **7676 schema fields**, of which **806 classified as PII** in **245 collections**
+- **9 collections** carry a TTL index
+- **128 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
 ### PII categories
 
@@ -30,9 +30,9 @@
 | Demographic | 16 |
 | Location | 25 |
 | Image/Biometric | 4 |
-| Device/Network | 13 |
+| Device/Network | 14 |
 | Identifier | 206 |
-| Identity | 93 |
+| Identity | 94 |
 
 ## Collections
 
@@ -54,6 +54,7 @@
 | `ambulancesetupcodes` | AmbulanceSetupCode | 9 | 2 | 3 | 0s | OTP / setup codes / tokens |
 | `ambulancetrips` | AmbulanceTrip | 16 | 1 | 5 | — | **UNMAPPED — see gaps** |
 | `ambulancevehiclelogs` | AmbulanceVehicleLog | 13 | 0 | 5 | — | No PII fields detected |
+| `analyticsevents` | AnalyticsEvent | 12 | 2 | 3 | 33782400s | **UNMAPPED — see gaps** |
 | `announcements` | Announcement | 9 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `antenatalrecords` | AntenatalRecord | 28 | 3 | 4 | — | Clinical records |
 | `antibioticreviews` | AntibioticReview | 18 | 1 | 3 | — | Clinical records |
@@ -394,6 +395,7 @@ cover yet — each needs a decision, not a guess:
 - `accounts`
 - `aisafetyevents`
 - `ambulancetrips`
+- `analyticsevents`
 - `apikeys`
 - `appointmentseries`
 - `approvalpolicies`
@@ -1080,6 +1082,33 @@ Indexes:
 | `type:1` |  |
 | `at:1` |  |
 | `ambulanceId:1, at:-1` |  |
+
+### `analyticsevents` — AnalyticsEvent
+
+source `AnalyticsEvent.js` · virtuals: 0 · retention: **UNMAPPED — holds PII but no class in RETENTION.md** · PII: Device/Network, Identity
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `event_id` | String | yes |  |  |  |  |  |
+| `name` | String | yes |  |  |  |  | Identity |
+| `ts` | Date | yes |  |  |  |  |  |
+| `distinct_id` | String |  |  | "" |  |  |  |
+| `session_id` | String |  |  | "" |  |  |  |
+| `platform` | String |  |  | "" |  |  | Device/Network |
+| `app_version` | String |  |  | "" |  |  |  |
+| `locale` | String |  |  | "" |  |  |  |
+| `city_code` | String |  |  | "" |  |  |  |
+| `user_role` | String |  |  | "" |  |  |  |
+| `consent.analytics` | Boolean |  |  | true |  |  |  |
+| `props` | Mixed |  |  | [function] |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `name:1` |  |
+| `distinct_id:1` |  |
+| `ts:1` | TTL 33782400s |
 
 ### `announcements` — Announcement
 
