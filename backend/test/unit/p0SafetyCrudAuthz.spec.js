@@ -120,7 +120,9 @@ describe('P0-6 model routes carry their manage/write counterparts', () => {
     expect(authorizeLiterals(route('payoutStatements', 'POST', '/:id/pay').routeLine)).toContain('billing:write');
     expect(authorizeLiterals(route('payoutStatements', 'DELETE', '/:id').routeLine)).toContain('billing:write');
     const approve = route('payoutStatements', 'POST', '/:id/approve');
-    expect(approve.routeLine).toContain("requireStepUp('payouts:add')");
+    expect(approve.routeLine).toContain("requireStepUp('payout:approve')");
+    const pay = route('payoutStatements', 'POST', '/:id/pay');
+    expect(pay.routeLine).toContain("requireStepUp('payouts:add')");
   });
 
   it('every permission these routers require is held by a real role', () => {

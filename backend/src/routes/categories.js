@@ -188,6 +188,7 @@ router.get('/specialties/:code', (req, res) => {
       sensitive: !!s.sensitive || !!s.meta?.sensitive,
       claimsRestricted: !!s.claimsRestricted,
       alsoUnder: s.alsoUnder || [],
+      meta: s.meta,
     })),
     conditions: hit.meta?.conditions || [],
     procedures: hit.meta?.procedures || [],

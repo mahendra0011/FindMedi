@@ -17,7 +17,7 @@ import BookingModal from '@/components/BookingModal';
 
 import { CANONICAL_SPECIALTIES } from '@/data/specialties';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
-import { useSpecialtyTiles } from '@/hooks/useSpecialtyBrowse';
+import { useSpecialtyTiles, type SpecialtyNode } from '@/hooks/useSpecialtyBrowse';
 
 const SPECIALIZATIONS = ['All', ...CANONICAL_SPECIALTIES.map(s => s.name)];
 // subcatogary.md Part B — Canonical specialties list derived from taxonomy (Psychology removed)
@@ -26,6 +26,9 @@ const ALL_SPECIALTIES = CANONICAL_SPECIALTIES.map((spec) => {
   return {
     code: spec.code,
     name: spec.name,
+    nameHi: '',
+    sensitive: false,
+    children: [] as SpecialtyNode[],
     icon: visual.icon,
     color: visual.color,
     textColor: visual.textColor,
@@ -276,7 +279,7 @@ const loadDoctors = async () => {
             {specialtyChips.slice(0, showAdvanced ? undefined : 7).map((spec) => {
               const Icon = spec.icon;
               const isActive = specFilter === spec.name;
-              const subChips = (spec.children || []).map(c => c.name);
+              const subChips = (spec.children || []).map((c: { name: string }) => c.name);
               return (
                 <button
                   key={spec.code || spec.name}

@@ -1,13 +1,28 @@
 import { describe, it, expect, afterAll } from '@jest/globals';
+import { existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { renderHtmlToPdf, closeBrowser, isPdfRenderAvailable } from '../../src/lib/pdfRender.js';
 import { lintTemplate, renderTemplate } from '../../src/lib/printEngine.js';
+
+// The render tests need the Playwright Chromium binary, which CI installs only
+// in the frontend e2e job. Skip them when it is missing (fresh checkout, no
+// `npx playwright install`) instead of failing the backend suite.
+const require = createRequire(import.meta.url);
+function chromiumBinaryPresent() {
+  try {
+    const { chromium } = require('playwright');
+    return existsSync(chromium.executablePath());
+  } catch {
+    return false;
+  }
+}
 
 describe('D6 Headless-Chromium Print Render Unit Tests', () => {
   afterAll(async () => {
     await closeBrowser();
   });
 
-  const shouldSkip = process.env.PDF_RENDER_DISABLED === '1';
+  const shouldSkip = process.env.PDF_RENDER_DISABLED === '1' || !chromiumBinaryPresent();
 
   (shouldSkip ? it.skip : it)('renders valid HTML to a PDF buffer with %PDF magic header', async () => {
     const html = `

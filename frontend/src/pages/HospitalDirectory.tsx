@@ -25,6 +25,8 @@ const FALLBACK_SPECIALTIES = CANONICAL_SPECIALTIES.map((spec) => {
     icon: visual.icon,
     color: visual.color,
     textColor: visual.textColor,
+    nameHi: '',
+    sensitive: false,
     children: [],
   };
 });
@@ -253,7 +255,7 @@ export default function HospitalDirectory() {
     }
   };
 
-  const visibleSpecialties = useMemo(() => {
+  const allSpecialties = useMemo(() => {
     // Tree tiles carry icons, Hindi names and sub-chips; visuals still come
     // from the local map so gradient styling stays unchanged.
     const fromTree = specialtyTree.tiles.map((t) => {
@@ -269,9 +271,13 @@ export default function HospitalDirectory() {
         sensitive: !!t.sensitive,
       };
     });
-    const list = specialtyTree.fromApi && fromTree.length ? fromTree : FALLBACK_SPECIALTIES;
-    return showAllSpecialties ? list : list.slice(0, INITIAL_VISIBLE);
-  }, [specialtyTree.tiles, specialtyTree.fromApi, showAllSpecialties]);
+    return specialtyTree.fromApi && fromTree.length ? fromTree : FALLBACK_SPECIALTIES;
+  }, [specialtyTree.tiles, specialtyTree.fromApi]);
+
+  const visibleSpecialties = useMemo(
+    () => (showAllSpecialties ? allSpecialties : allSpecialties.slice(0, INITIAL_VISIBLE)),
+    [allSpecialties, showAllSpecialties],
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -303,7 +309,7 @@ export default function HospitalDirectory() {
             <Building2 className="w-5 h-5 text-primary" />
             Browse by Specialties
           </h2>
-          {ALL_SPECIALTIES.length > INITIAL_VISIBLE && (
+          {allSpecialties.length > INITIAL_VISIBLE && (
             <Button variant="ghost" size="sm" onClick={() => setShowAllSpecialties(!showAllSpecialties)} className="gap-1">
               {showAllSpecialties ? 'Show Less' : 'More'}
               <ChevronDown className={`w-4 h-4 transition-transform ${showAllSpecialties ? 'rotate-180' : ''}`} />

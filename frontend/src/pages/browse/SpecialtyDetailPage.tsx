@@ -62,8 +62,8 @@ export default function SpecialtyDetailPage() {
 
   const visual = getSpecialtyVisual(specialty.code);
   const Icon = visual.icon;
-  const providerCount = counts.data?.providers ?? counts.data?.doctors ?? null;
-  const facilityCount = counts.data?.facilities ?? null;
+  const providerCount = counts.data?.doctors ?? null;
+  const facilityCount = counts.data?.hospitals ?? null;
   const zero = counts.isSuccess && providerCount === 0;
 
   const providersHref = `/clinic-doctors?specialty=${encodeURIComponent(specialty.name)}`;
@@ -99,7 +99,7 @@ export default function SpecialtyDetailPage() {
           )}
           {!isHi && specialty.meta?.nameHi && <p className="text-muted-foreground">{specialty.meta.nameHi}</p>}
           {!!(specialty.aliases || []).length && (
-            <p className="text-xs text-muted-foreground mt-1 max-w-prose">{specialty.aliases.slice(0, 6).join(' · ')}</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-prose">{(specialty.aliases || []).slice(0, 6).join(' · ')}</p>
           )}
         </div>
       </div>
@@ -198,7 +198,7 @@ export default function SpecialtyDetailPage() {
         <section className="mb-8">
           <h2 className="font-heading text-lg font-bold mb-3">{t('specialties.conditions_treated')}</h2>
           <div className="flex flex-wrap gap-2">
-            {(specialty.meta.conditions).map((c: string) => (
+            {(specialty.meta?.conditions || []).map((c: string) => (
               <span key={c} className="text-xs bg-secondary text-secondary-foreground rounded-full px-3 py-1.5 border border-border/60">{c}</span>
             ))}
           </div>
@@ -209,7 +209,7 @@ export default function SpecialtyDetailPage() {
         <section className="mb-8">
           <h2 className="font-heading text-lg font-bold mb-3">{t('specialties.common_procedures')}</h2>
           <div className="flex flex-wrap gap-2">
-            {(specialty.meta.procedures).map((p: string) => (
+            {(specialty.meta?.procedures || []).map((p: string) => (
               <span key={p} className="text-xs bg-secondary text-secondary-foreground rounded-full px-3 py-1.5 border border-border/60">{p}</span>
             ))}
           </div>

@@ -722,6 +722,13 @@ jobs:
   server:
     runs-on: ubuntu-latest
 
+    # TEST-D6: Playwright's Chromium is only installed in the frontend e2e job,
+    # so the headless print-render unit tests cannot launch a browser here. The
+    # lib honors PDF_RENDER_DISABLED; the spec additionally self-skips when the
+    # binary is absent (local dev without `npx playwright install`).
+    env:
+      PDF_RENDER_DISABLED: '1'
+
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
