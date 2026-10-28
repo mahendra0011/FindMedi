@@ -1,5 +1,8 @@
 name: Uptime Monitor
 
+permissions:
+  contents: read
+
 # GitHub-native uptime checks (no third-party account needed).
 # Set repository variable UPTIME_HEALTH_URL to the deployed backend
 # /health endpoint (e.g. https://findmedi.onrender.com/health).

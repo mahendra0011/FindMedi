@@ -7,10 +7,11 @@ import TransactionLedger from '../models/TransactionLedger.js';
 import Hospital from '../models/Hospital.js';
 import { protect, superadminOnly, requireRole } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
+// SITE-SEC 1.4: commission numbers move real money on every future booking.
+import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { validate } from '../utils/validate.js';
 import { paymentLimiter } from '../middleware/rateLimit.js';
 import { idempotencyGuard } from '../middleware/idempotency.js';
-import { requireStepUp } from '../middleware/stepUpAuth.js';
 // 2.md §6: payout hold — a provider-linked config pays nothing while its
 // listing is on probation (lib/probation.js is the single reading of the flag).
 import { heldProviderForCommissionConfig } from '../lib/probation.js';
@@ -62,7 +63,7 @@ router.get('/config', protect, requireRole(['superadmin', 'finance_admin']), asy
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/config/:id', protect, paymentLimiter, superadminOnly, validate(commissionConfigSchema), async (req, res) => {
+router.put('/config/:id', protect, paymentLimiter, superadminOnly, requireStepUp('commission:change'), validate(commissionConfigSchema), async (req, res) => {
   try {
     const allowedFields = ['commissionPercent', 'commissionCap', 'payoutSchedule', 'status'];
     const update = {};
@@ -274,8 +275,10 @@ router.post('/payouts', protect, paymentLimiter, requireStepUp('payouts:add'), i
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// SA-M5: record a four-eyes approval (idempotent per admin).
-router.put('/payouts/:id/approve', protect, paymentLimiter, idempotencyGuard({ prefix: 'payout-approve', failClosed: true }), requireRole(['superadmin', 'finance_admin']), async (req, res) => {
+// SA-M5: record a four-eyes approval (idempotent per admin). SITE-SEC 1.4:
+// the approval itself needs a fresh proof — a stolen session must not be able
+// to glide through the single remaining signature of a payout.
+router.put('/payouts/:id/approve', protect, paymentLimiter, idempotencyGuard({ prefix: 'payout-approve', failClosed: true }), requireRole(['superadmin', 'finance_admin']), requireStepUp('payout:approve'), async (req, res) => {
   try {
     const payout = await Payout.findById(req.params.id);
     if (!payout) return res.status(404).json({ message: 'Payout not found' });

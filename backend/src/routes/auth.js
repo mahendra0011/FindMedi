@@ -52,6 +52,19 @@ const SENSITIVE_SCOPES = new Set([
   // stepUpAuth spec now pins used-scopes ⊆ registry.
   'phi:breakglass',
   'iam:role-change',
+  // SITE-SEC 1.4 backfill: the scopes below were added for actions that only
+  // needed step-up semantics late — money-approvals, identified exports,
+  // irreversible provider/account operations. Each one is wired at a real
+  // route (grep requireStepUp to see the exact mount).
+  'commission:change',
+  'payout:approve',
+  'legal:takedown',
+  'export:identified',
+  'provider:ban',
+  'account:2fa-disable',
+  'account:email-change',
+  'account:delete',
+  'apikey:create',
 ]);
 export { SENSITIVE_SCOPES };
 import { createAndSendOTP, verifyOTP, resendOTP } from '../services/otpService.js';
@@ -79,7 +92,10 @@ import {
   refreshTokenSchema,
   profileUpdateSchema,
   passwordSchema,
+  emailChangeRequestSchema,
+  emailChangeConfirmSchema,
 } from '../utils/validate.js';
+import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { roleRequiresTwoFactor } from '../lib/providerStaffRoles.js';
 import { CANONICAL_ROLES } from '../config/permissions.js';
 import { isPwnedPassword } from '../utils/pwnedPassword.js';
@@ -1953,6 +1969,69 @@ router.get('/me', protect, async (req, res) => {
   const user = await User.findById(req.user.id).select('-password');
   res.json(await userResponse(user));
 });
+
+// ─── SITE-SEC 1.4: email change (account takeover defence) ──────────────────
+// Request: session + current password (knowledge) + step-up grant
+// ('account:email-change'). OTP goes ONLY to the NEW address with a dedicated
+// 'email_change' type, so a login OTP can never confirm an address change.
+// POST /api/auth/email/change — possession+knowledge+step-up gated
+// authz: self
+router.post('/email/change', protect, requireStepUp('account:email-change'), validate(emailChangeRequestSchema), async (req, res) => {
+  try {
+    const { newEmail, password } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(401).json({ message: 'Not authorized' });
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) return res.status(401).json({ message: 'Incorrect password' });
+
+    if (newEmail === user.email.toLowerCase()) {
+      return res.status(400).json({ message: 'This is already your email address' });
+    }
+    const taken = await User.findOne({ email: newEmail });
+    if (taken) {
+      // Do not disclose which address exists with the real error only; still
+      // block the change loudly for the legitimate caller.
+      return res.status(409).json({ message: 'That email address cannot be used' });
+    }
+
+    const result = await createAndSendOTP({ userId: user._id, email: newEmail, type: 'email_change' });
+    if (!result.success) {
+      return res.status(result.rateLimited ? 429 : 500).json({ message: result.message });
+    }
+    await auditLog('email_change_requested', user._id, { newEmail, ip: req.ip }).catch(() => {});
+    return res.json({ success: true, message: `Verification code sent to ${newEmail}` });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Confirm: session + OTP received at the NEW address. Old address also gets the
+// standard change notice so the takeover is visible to the mailbox owner.
+// authz: self
+router.post('/email/change/confirm', protect, validate(emailChangeConfirmSchema), async (req, res) => {
+  try {
+    const { newEmail, otp } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(401).json({ message: 'Not authorized' });
+
+    const taken = await User.findOne({ email: newEmail });
+    if (taken) return res.status(409).json({ message: 'That email address cannot be used' });
+
+    const verified = await verifyOTP({ email: newEmail, otp, type: 'email_change' });
+    if (!verified.success) return res.status(400).json({ message: verified.message });
+
+    const oldEmail = user.email;
+    user.email = newEmail;
+    await user.save();
+    await auditLog('email_change_confirmed', user._id, { oldEmail, newEmail, ip: req.ip }).catch(() => {});
+    sendPasswordChangedEmail({ ...user.toObject(), email: oldEmail, name: user.name }).catch(() => {});
+    return res.json({ success: true, user: await userResponse(user) });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 
 // PUT /api/auth/change-password
 // authz: self

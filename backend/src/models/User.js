@@ -4,6 +4,7 @@ import argon2 from 'argon2';
 import crypto from 'node:crypto';
 import { generate16DigitId } from '../utils/idGenerator.js';
 import { canonicalRole } from '../config/permissions.js';
+import { encryptPhi, decryptPhi } from '../utils/phiFields.js';
 
 // P2-11: Argon2id is the default password hasher (m=19456, t=2, p=1 —
 // OWASP minimums). bcrypt-cost-12 remains readable forever so every
@@ -241,9 +242,23 @@ const userSchema = new mongoose.Schema({
     default: 'not_required',
     index: true,
   },
-  // 2FA fields
+  // 2FA fields.
+  // SITE-SEC 1.7: the TOTP secret is a bearer credential for the account, so it
+  // is encrypted at rest (same v1 envelope as PHI fields). Accessors keep every
+  // reader (step-up verify, 2FA login, disable flow) transparently on
+  // plaintext: the getter decrypts, the setter encrypts unless already
+  // ciphertext (idempotent), and legacy plaintext passes through both ways.
+  // The design comment in utils/phiFields.js prefers explicit route-layer
+  // encryption — for a write-once/read-for-verify field the accessor trade is
+  // correct and avoids touching every 2FA code path.
   twoFactorEnabled: { type: Boolean, default: false },
-  twoFactorSecret: { type: String, default: '', select: false },
+  twoFactorSecret: {
+    type: String,
+    default: '',
+    select: false,
+    set: (v) => encryptPhi('User', 'twoFactorSecret', v),
+    get: (v) => decryptPhi('User', 'twoFactorSecret', v),
+  },
   twoFactorBackupCodes: [{ type: String, select: false }], // Hashed backup codes
   twoFactorTempSecret: { type: String, default: '', select: false }, // Temp secret during setup
 

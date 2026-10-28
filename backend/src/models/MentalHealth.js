@@ -1,4 +1,20 @@
 import mongoose from 'mongoose';
+import { encryptPhi, decryptPhi } from '../utils/phiFields.js';
+
+// SITE-SEC 1.7: mental-health narrative fields are the highest-sensitivity
+// class in the system (DPDP §4 special-category data) — they get field-level
+// encryption at rest with the same v1 envelope as government IDs. AAD is
+// field-scoped (Model:path) so ciphertext cannot be transplanted between
+// fields. Behaviour: writes through hydrated docs encrypt via the setter,
+// reads through hydrated docs decrypt via the getter, and legacy plaintext
+// passes through both ways unchanged. Modelling note: raw `.lean()` reads
+// bypass the getter, so every lean() projection that returns note-bearing
+// subdocuments must select around the text fields (the crisis queue is the
+// one such read and is fixed in the routes file).
+const enc = (field) => ({
+  set: (v) => encryptPhi('MentalHealth', field, v),
+  get: (v) => decryptPhi('MentalHealth', field, v),
+});
 
 const mhSchema = new mongoose.Schema({
   referralId: { type: String, required: true, unique: true },
@@ -8,14 +24,14 @@ const mhSchema = new mongoose.Schema({
   referrerName: { type: String },
   assessment: {
     mentalStatus: { type: String },
-    personalHistory: { type: String },
-    familyHistory: { type: String },
-    socialHistory: { type: String },
+    personalHistory: { type: String, ...enc('assessment.personalHistory') },
+    familyHistory: { type: String, ...enc('assessment.familyHistory') },
+    socialHistory: { type: String, ...enc('assessment.socialHistory') },
     riskAssessment: { type: String, enum: ['Low', 'Medium', 'High', 'Immediate'] },
-    diagnosis: { type: String },
+    diagnosis: { type: String, ...enc('assessment.diagnosis') },
     diagnosisCode: { type: String },
   },
-  treatmentPlan: { type: String },
+  treatmentPlan: { type: String, ...enc('treatmentPlan') },
   treatmentType: { type: String, enum: ['Medication', 'Therapy', 'Counseling', 'Combined'] },
   // MIND-M-04: `retainUntil` is stamped at write time from the governing
     // consent's retention window. Without it on the session, "destroy the notes
@@ -24,7 +40,7 @@ const mhSchema = new mongoose.Schema({
     sessions: [{
       date: Date,
       type: String,
-      notes: String,
+      notes: { type: String, ...enc('sessions.notes') },
       conductedBy: String,
       retainUntil: Date,
       purgedAt: Date,
@@ -35,7 +51,7 @@ const mhSchema = new mongoose.Schema({
     familyMemberName: String,
     relationship: String,
     involvementType: { type: String, enum: ['Support', 'Caregiver', 'Decision Maker'] },
-    notes: String,
+    notes: { type: String, ...enc('familyInvolvement.notes') },
     contactNumber: String,
     addedBy: String,
     addedAt: { type: Date, default: Date.now },
@@ -46,7 +62,7 @@ const mhSchema = new mongoose.Schema({
     signedBy: String,
     signedAt: { type: Date, default: Date.now },
     expiryDate: { type: Date },
-    notes: String,
+    notes: { type: String, ...enc('consents.notes') },
     // MIND-M-04: what this consent actually authorises, and for how long the
     // resulting notes may be kept. `consentType` alone cannot answer either -
     // "Treatment Consent" does not say whether the record may be used for
@@ -141,7 +157,7 @@ const mhSchema = new mongoose.Schema({
     escalatedTo: { type: String, default: '' },
     actionTaken: { type: String, default: '' },
     resolvedAt: { type: Date, default: null },
-    notes: { type: String, default: '' },
+    notes: { type: String, default: '', ...enc('crisisEvents.notes') },
   }],
   // Denormalised for the unacknowledged-crisis queue, which is the query that
   // has to stay fast when someone is panicking at 3am.

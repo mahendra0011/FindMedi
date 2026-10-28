@@ -8637,7 +8637,7 @@ source `OTP.js` · timestamps: yes · virtuals: 0 · retention: 15–60 minutes 
 | `email` | String | yes |  |  |  |  | Contact |
 | `otpHash` | String | yes |  |  |  |  | Credential |
 | `hashAlgo` | String |  |  | "unknown" | rust-sha256, js-sha256-fallback, bcrypt, unknown |  |  |
-| `type` | String |  |  | "email" | email, sms, password_reset |  |  |
+| `type` | String |  |  | "email" | email, sms, password_reset, email_change |  |  |
 | `phone` | String |  |  | "" |  |  | Contact |
 | `used` | Boolean |  |  | false |  |  |  |
 | `expiresAt` | Date |  |  |  |  |  |  |

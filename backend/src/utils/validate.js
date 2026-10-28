@@ -331,6 +331,20 @@ export const changePasswordSchema = z.object({
   newPassword: passwordSchema,
 });
 
+// SITE-SEC 1.4: changing the account email is a takeover-class action. The
+// request needs the current password (knowledge proof) + a step-up grant; the
+// confirmation needs the possession proof sent to the NEW address.
+export const emailChangeRequestSchema = z.object({
+  newEmail: emailSchema,
+  password: z.string().min(1, 'Current password is required'),
+  // password is NOT strict-checked to a policy profile — no resets here
+}).strict();
+
+export const emailChangeConfirmSchema = z.object({
+  newEmail: emailSchema,
+  otp: z.string().trim().min(4).max(10, 'Invalid OTP length'),
+}).strict();
+
 export const resetPasswordSchema = z.object({
   email: emailSchema,
   otp: z.string().min(1, 'OTP is required'),

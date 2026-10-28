@@ -9,11 +9,11 @@ import logger from '../config/logger.js';
 //   PHI in bulk) get the tighter admin cap. Defaults: 10 / 3.
 // - Idle timeout: a refresh family that has seen no rotation for longer than
 //   SESSION_IDLE_TIMEOUT_MS is dead on next refresh. Default 0 = disabled
-//   (rotation + 7d expiry already bound lifetime); set e.g. 1800000 (30m)
-//   for admin workstations via env.
+//   (rotation + 7d expiry already bound lifetime); in PRODUCTION the default
+//   is 30 MINUTES — set 0 to restore the old always-live behaviour.
 // - Absolute timeout: a refresh family older than SESSION_ABSOLUTE_TIMEOUT_MS
 //   (measured from the family's FIRST token) cannot rotate anymore, forcing
-//   full re-authentication. Default 0 = disabled; e.g. 43200000 (12h).
+//   full re-authentication. Default 0 = disabled; PRODUCTION default 12h.
 //
 // All three are read live from env (no restart needed for policy tuning) and
 // are enforced at exactly two choke points: sign() (cap) and POST /refresh
@@ -25,11 +25,22 @@ const num = (v, fallback) => {
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 };
 
+// SITE-SEC 1.5: production turns the timeouts ON unless an operator sets the
+// env explicitly (including "0" to keep the old always-live behaviour). Dev
+// and test stay disabled so long debugging sessions are not cut.
+const IN_PROD = process.env.NODE_ENV === 'production';
+// Explicitly-set env wins (Number('0') === 0 keeps them off by intent).
+// eslint-disable-next-line no-nested-ternary
+const envOr = (raw, prodDefault, devDefault) =>
+  (raw === undefined || raw === '' ? (IN_PROD ? prodDefault : devDefault) : num(raw, IN_PROD ? prodDefault : devDefault));
+
 export const SESSION_POLICY = {
   get maxConcurrent() { return Math.max(1, Math.floor(num(process.env.SESSION_MAX_CONCURRENT, 10))); },
   get adminMaxConcurrent() { return Math.max(1, Math.floor(num(process.env.SESSION_ADMIN_MAX_CONCURRENT, 3))); },
-  get idleTimeoutMs() { return num(process.env.SESSION_IDLE_TIMEOUT_MS, 0); },
-  get absoluteTimeoutMs() { return num(process.env.SESSION_ABSOLUTE_TIMEOUT_MS, 0); },
+  // 30 min idle / 12 h absolute in production (doc 1.5: admin/doctor/finance);
+  // the 7-day refresh expiry still binds patient sessions tighter than this.
+  get idleTimeoutMs() { return envOr(process.env.SESSION_IDLE_TIMEOUT_MS, 30 * 60_000, 0); },
+  get absoluteTimeoutMs() { return envOr(process.env.SESSION_ABSOLUTE_TIMEOUT_MS, 12 * 60 * 60_000, 0); },
 };
 
 const ADMIN_ROLES = new Set(['superadmin', 'hospital_admin', 'doctor', 'pharmacy_owner']);

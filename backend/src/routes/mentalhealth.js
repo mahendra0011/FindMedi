@@ -793,8 +793,12 @@ router.get('/crisis/queue', protect, async (req, res) => {
     const filter = { ...openCrisisQuery() };
     if (req.user.role !== 'superadmin') filter.hospitalId = tenant;
 
+    // SITE-SEC 1.7: crisisEvents[].notes is field-encrypted at rest; a lean()
+    // read bypasses the model getter, so this hot-path projection selects the
+    // SLA/status subfields instead of the whole array (which would have
+    // delivered raw ciphertext to the caller).
     const rows = await MentalHealth.find(filter)
-      .select('referralId patientId patientName hospitalId crisisEvents lastCrisisAt')
+      .select('referralId patientId patientName hospitalId lastCrisisAt crisisEvents.flaggedAt crisisEvents.severity crisisEvents.responseDueAt crisisEvents.acknowledgedAt crisisEvents.resolvedAt')
       .sort({ lastCrisisAt: 1 })
       .limit(200)
       .lean();

@@ -12,7 +12,7 @@ import logger from '../config/logger.js';
 import { protect, requireRole } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import {
-  validate, applicationDecisionSchema, applicationActivationSchema,
+  validate, boundedShallow, applicationDecisionSchema, applicationActivationSchema,
   applicationClaimSchema, applicationAssignSchema,
 } from '../utils/validate.js';
 import { APPLICATION_STATUSES } from '../lib/providerTypes.js';
@@ -488,7 +488,7 @@ const documentVerificationSchema = z.object({
     matched: z.boolean().optional(),
     practitionerName: z.string().max(200).optional(),
     registrationValid: z.boolean().optional(),
-    details: z.record(z.any()).optional(),
+    details: z.record(z.string().max(200), boundedShallow).optional(),
   }).optional(),
   rejectionReason: z.string().max(1000).optional(),
   reviewerNotes: z.string().max(2000).optional(),

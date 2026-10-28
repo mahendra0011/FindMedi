@@ -3,7 +3,7 @@ import { z } from 'zod';
 import TwoPersonApproval from '../models/TwoPersonApproval.js';
 import { protect, requireRole } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
-import { validate } from '../utils/validate.js';
+import { validate, boundedShallow } from '../utils/validate.js';
 import { sendServerError } from '../utils/safeError.js';
 import logger from '../config/logger.js';
 
@@ -30,7 +30,7 @@ const requestApprovalSchema = z.object({
   ]),
   targetModel: z.string().trim().min(1).max(100),
   targetId: z.string().trim().min(1).max(100),
-  payload: z.record(z.any()).optional().default({}),
+  payload: z.record(z.string().max(200), boundedShallow).optional().default({}),
   requiredApprovalsCount: z.number().int().min(2).max(5).optional().default(2),
   expiresInHours: z.number().positive().max(168).optional().default(48),
 });

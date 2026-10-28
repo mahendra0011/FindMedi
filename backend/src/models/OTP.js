@@ -14,7 +14,10 @@ const otpSchema = new mongoose.Schema({
   },
   type: { 
     type: String, 
-    enum: ['email', 'sms', 'password_reset'],
+    // 'email_change' — SITE-SEC 1.4 email-change flow proves possession of the
+    // NEW address with its own OTP type so a valid login OTP can never be
+    // replayed into an account-takeover.
+    enum: ['email', 'sms', 'password_reset', 'email_change'],
     default: 'email' 
   },
   phone: { type: String, default: '' },

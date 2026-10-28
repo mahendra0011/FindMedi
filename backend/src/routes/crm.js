@@ -18,6 +18,7 @@ import Campaign from '../models/Campaign.js';
 import CrmPipelineConfig, { defaultPipelineConfig, LEAD_SOURCE_LIST } from '../models/CrmPipelineConfig.js';
 import CrmAutomationRule, { CRM_AUTOMATION_TRIGGERS_LIST } from '../models/CrmAutomationRule.js';
 import CrmPlaybook, { PLAYBOOK_CATEGORIES } from '../models/CrmPlaybook.js';
+import { boundedShallow } from '../utils/validate.js';
 import CrmProject from '../models/CrmProject.js';
 import CrmReportSchedule from '../models/CrmReportSchedule.js';
 import { ROADMAP_PHASES, DEFINITION_OF_DONE, INITIALLY_EXCLUDED_FEATURES, TOP_RISKS_REGISTER } from '../config/roadmap.js';
@@ -1200,10 +1201,10 @@ const automationRuleBody = z.object({
   name: z.string().trim().min(3).max(120),
   trigger: z.enum(CRM_AUTOMATION_TRIGGERS_LIST),
   enabled: z.boolean().optional().default(true),
-  conditions: z.record(z.string(), z.any()).optional().default({}),
+  conditions: z.record(z.string().max(200), boundedShallow).optional().default({}),
   actions: z.array(z.object({
     type: z.enum(['create_task', 'notify']),
-    params: z.record(z.string(), z.any()).optional().default({}),
+    params: z.record(z.string().max(200), boundedShallow).optional().default({}),
   })).min(1).max(5).optional(),
   cooldownMinutes: z.number().min(1).max(10080).optional().default(60),
 }).strict();
