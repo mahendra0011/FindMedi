@@ -791,8 +791,10 @@ export const SPECIALTIES = Object.freeze(
       ...s,
       aliases: Object.freeze([...s.aliases]),
       alsoUnder: Object.freeze(alsoUnder ? [...alsoUnder] : []),
-      claimsRestricted: !!s.claimsRestricted,
-      sensitive: !!s.sensitive,
+      // Flags live in either place (entry for subs, meta for legacy tops) —
+      // hoist to the root so consumers never dig into meta.
+      claimsRestricted: !!(s.claimsRestricted || meta?.adClaimsRestricted),
+      sensitive: !!(s.sensitive || meta?.sensitive),
       meta: meta
         ? Object.freeze({
             ...meta,
