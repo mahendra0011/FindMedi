@@ -18,7 +18,7 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit",
     "test:pharmacy:replica": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit --runInBand test/integration/pharmacyDispenseReplicaSet.spec.js",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit --coverage",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=1828",
     "authz:triage": "node scripts/triage-authz-gaps.mjs",
     "authz:coverage": "node scripts/check-authz-coverage.mjs",
     "authz:tenant-guard": "node scripts/check-tenant-guard-regression.mjs",

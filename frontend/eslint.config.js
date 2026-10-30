@@ -8,7 +8,12 @@ import tseslint from "typescript-eslint";
 import noUnsanitized from "eslint-plugin-no-unsanitized";
 
 export default tseslint.config(
-  { ignores: ["dist", "dist-node", "storybook-static", "test-results", "playwright-report"] },
+  {
+    // `android/` is Capacitor-generated: gradle sources plus the copied `dist`
+    // bundle under app/src/main/assets/public — linting it reports hundreds of
+    // thousands of violations in build output, not project code.
+    ignores: ["dist", "dist-node", "storybook-static", "test-results", "playwright-report", "android", "coverage"],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
