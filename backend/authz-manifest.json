@@ -1910,49 +1910,49 @@
     },
     {
       "file": "categories.js",
-      "line": 203,
+      "line": 204,
       "method": "GET",
       "target": "'/specialties/:code/counts'",
       "tag": "public"
     },
     {
       "file": "categories.js",
-      "line": 248,
+      "line": 249,
       "method": "POST",
       "target": "'/seed'",
       "tag": "role"
     },
     {
       "file": "categories.js",
-      "line": 326,
+      "line": 327,
       "method": "GET",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "categories.js",
-      "line": 340,
+      "line": 341,
       "method": "POST",
       "target": "'/'",
       "tag": "role"
     },
     {
       "file": "categories.js",
-      "line": 361,
+      "line": 362,
       "method": "PUT",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "categories.js",
-      "line": 411,
+      "line": 412,
       "method": "DELETE",
       "target": "'/:id'",
       "tag": "role"
     },
     {
       "file": "categories.js",
-      "line": 423,
+      "line": 424,
       "method": "POST",
       "target": "'/merge'",
       "tag": "role"
