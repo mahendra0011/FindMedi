@@ -9,6 +9,7 @@ import Payment from '../models/Payment.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { safeRulePattern } from '../utils/escapeRegex.js';
 import { auditLog } from '../middleware/audit.js';
+import { encryptPhi, revealPhi, phiBlindIndex } from '../utils/phiFields.js';
 import logger from '../config/logger.js';
 
 // File 16 §16.3: bank recon — accounts, XLSX/CSV statement import, auto-match
@@ -23,10 +24,16 @@ const tenant = (req) => ({ hospitalId: req.user.hospitalId });
 router.get('/accounts', authorize('billing:read'), async (req, res) => {
   try {
     const rows = await BankAccount.find({ ...tenant(req), active: true }).lean();
-    const masked = rows.map((r) => ({
-      ...r,
-      accountNo: r.accountNo ? `******${String(r.accountNo).slice(-4)}` : '',
-    }));
+    // SITE-SEC 1.7: stored ciphertext is decrypted only to derive the mask.
+    // The blind index never leaves the server.
+    const masked = rows.map((r) => {
+      const { accountNoHash: _hash, ...rest } = r;
+      const plain = revealPhi('BankAccount', 'accountNo', r.accountNo);
+      return {
+        ...rest,
+        accountNo: plain ? `******${String(plain).slice(-4)}` : '',
+      };
+    });
     return res.json({ accounts: masked });
   } catch (err) {
     logger.error(`Bank accounts error: ${err.message}`);
@@ -47,8 +54,9 @@ router.post('/accounts', authorize('billing:write'), async (req, res) => {
     const row = await BankAccount.create({
       ...tenant(req),
       bankName: String(bankName).slice(0, 100),
-      accountNo: cleanAccountNo,
-      ifsc: cleanIfsc,
+      accountNo: encryptPhi('BankAccount', 'accountNo', cleanAccountNo),
+      accountNoHash: phiBlindIndex(cleanAccountNo),
+      ifsc: encryptPhi('BankAccount', 'ifsc', cleanIfsc),
       kind: chosenKind,
       active: true,
     });

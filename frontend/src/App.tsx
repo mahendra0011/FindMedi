@@ -119,6 +119,7 @@ const CrmPlaybooks = lazy(() => import('./pages/superadmin/crm/Playbooks'));
 const CrmProjectsRoadmap = lazy(() => import('./pages/superadmin/crm/ProjectsRoadmap'));
 const CrmSettings = lazy(() => import('./pages/superadmin/crm/CrmSettings'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const LegalDocumentPage = lazy(() => import('./pages/legal/LegalDocumentPage'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const Disclaimer = lazy(() => import('./pages/Disclaimer'));
 const RefundPolicy = lazy(() => import('./pages/RefundPolicy'));
@@ -922,6 +923,8 @@ const App = () => (
                     <Route path="/join" element={<Navigate to="/join-platform" replace />} />
                     <Route path="/join/new" element={<JoinWizard />} />
                     <Route path="/terms" element={<TermsOfService />} />
+                    <Route path="/community-guidelines" element={<LegalDocumentPage context="community_guidelines" />} />
+                    <Route path="/provider-agreement" element={<LegalDocumentPage context="provider_agreement" />} />
                     <Route path="/privacy" element={<PrivacyPolicy />} />
                     <Route path="/disclaimer" element={<Disclaimer />} />
                     <Route path="/refund-policy" element={<RefundPolicy />} />

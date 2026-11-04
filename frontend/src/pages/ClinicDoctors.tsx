@@ -15,25 +15,9 @@ import { useCategories } from '@/hooks/useCategories';
 import { toast } from 'sonner';
 import BookingModal from '@/components/BookingModal';
 
-import { CANONICAL_SPECIALTIES } from '@/data/specialties';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
 import { useSpecialtyTiles, type SpecialtyNode } from '@/hooks/useSpecialtyBrowse';
 
-const SPECIALIZATIONS = ['All', ...CANONICAL_SPECIALTIES.map(s => s.name)];
-// subcatogary.md Part B — Canonical specialties list derived from taxonomy (Psychology removed)
-const ALL_SPECIALTIES = CANONICAL_SPECIALTIES.map((spec) => {
-  const visual = getSpecialtyVisual(spec.code);
-  return {
-    code: spec.code,
-    name: spec.name,
-    nameHi: '',
-    sensitive: false,
-    children: [] as SpecialtyNode[],
-    icon: visual.icon,
-    color: visual.color,
-    textColor: visual.textColor,
-  };
-});
 const QUALIFICATIONS = ['MBBS', 'MD', 'MS', 'DM', 'MCh', 'DNB'];
 const LANGUAGES = ['Hindi', 'English', 'Marathi', 'Gujarati', 'Tamil', 'Telugu', 'Kannada', 'Bengali', 'Punjabi', 'Spanish', 'French', 'Korean', 'Japanese', 'Mandarin', 'German', 'Portuguese'];
 const EXPERIENCE_RANGES = [
@@ -120,23 +104,21 @@ export default function ClinicDoctors() {
   const { categories: specialtyCategories } = useCategories('specialty', []);
   const specialtyTree = useSpecialtyTiles();
   const specialtyChips = useMemo(() => {
-    // Tree tiles (icon + Hindi name + sub-chips) win; canonical copy is the
-    // offline fallback so the visual language never blanks.
-    const leafSource = specialtyTree.tiles.length
-      ? specialtyTree.tiles.map((t) => {
-          const visual = getSpecialtyVisual(t.code);
-          return {
-            code: t.code,
-            name: t.name,
-            nameHi: t.meta?.nameHi || '',
-            sensitive: !!t.sensitive,
-            children: (t.children || []).slice(0, 3),
-            icon: visual.icon,
-            color: visual.color,
-            textColor: visual.textColor,
-          };
-        })
-      : ALL_SPECIALTIES;
+    // Tree tiles (icon + Hindi name + sub-chips) are the only source; the
+    // backend taxonomy stays authoritative.
+    const leafSource = specialtyTree.tiles.map((t) => {
+      const visual = getSpecialtyVisual(t.code);
+      return {
+        code: t.code,
+        name: t.name,
+        nameHi: t.meta?.nameHi || '',
+        sensitive: !!t.sensitive,
+        children: (t.children || []).slice(0, 3),
+        icon: visual.icon,
+        color: visual.color,
+        textColor: visual.textColor,
+      };
+    });
     const presentation = new Map(leafSource.map((s) => [s.name.toLowerCase(), s]));
     const generic = { icon: Stethoscope, color: 'from-slate-500/20 to-slate-500/5', textColor: 'text-slate-500', nameHi: '', sensitive: false, children: [], code: '' };
     const byCanonical = new Map();

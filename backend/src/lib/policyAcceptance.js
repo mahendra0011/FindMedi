@@ -15,6 +15,7 @@ export const POLICY_CONTEXTS = [
   'terms_of_service',
   'teleconsult_consent',
   'booking_cancellation',
+  'community_guidelines',
 ];
 
 /**

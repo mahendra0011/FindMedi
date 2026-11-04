@@ -13,12 +13,9 @@ import { matchesSpecialty } from '@/lib/specialtyFilter';
 import { useCategories } from '@/hooks/useCategories';
 import BookingModal from '@/components/BookingModal';
 
-import { CANONICAL_SPECIALTIES } from '@/data/specialties';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
 import { useSpecialtyTiles } from '@/hooks/useSpecialtyBrowse';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
-
-const DEFAULT_SPECS = ['All', ...CANONICAL_SPECIALTIES.map(s => s.name)];
 
 function getSpecCard(spec: Unmodelled) {
   const v = getSpecialtyVisual(spec);
@@ -54,7 +51,7 @@ export default function HospitalDoctors() {
   const [selectedDoctor, setSelectedDoctor] = useState<Unmodelled>(null);
   const [loadError, setLoadError] = useState<Unmodelled>(null);
 
-  const { names: specialtyNames, categories: specialtyCategories } = useCategories('specialty', DEFAULT_SPECS.slice(1));
+  const { names: specialtyNames, categories: specialtyCategories } = useCategories('specialty', []);
   // Tree tile meta (Hindi names, sensitive flags) keyed by name for the grid.
   const specialtyTree = useSpecialtyTiles();
   const tileByName = useMemo(() => new Map(specialtyTree.tiles.map(t => [t.name, t])), [specialtyTree.tiles]);

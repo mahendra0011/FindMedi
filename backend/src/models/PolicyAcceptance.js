@@ -22,7 +22,7 @@ const policyAcceptanceSchema = new mongoose.Schema({
   templateVersion: { type: String, required: true, maxlength: 40 },
   context: {
     type: String,
-    enum: ['provider_agreement', 'privacy_policy', 'terms_of_service', 'teleconsult_consent', 'booking_cancellation'],
+    enum: ['provider_agreement', 'privacy_policy', 'terms_of_service', 'teleconsult_consent', 'booking_cancellation', 'community_guidelines'],
     required: true,
   },
 

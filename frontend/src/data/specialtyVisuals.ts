@@ -1,4 +1,4 @@
-// subcatogary.md Part B — Visual styling and icons for specialties, keyed by canonical code and fallback to name/alias
+// subcatogary.md Part B ΓÇö Visual styling and icons for specialties, keyed by canonical code and fallback to name/alias
 import {
   Heart,
   HeartPulse,
@@ -46,7 +46,7 @@ import {
   Dna,
   type LucideIcon,
 } from 'lucide-react';
-import { resolveSpecialtyCode } from './specialties';
+import { resolveSpecialtyCode } from './specialtyAliases';
 
 export interface SpecialtyVisual {
   icon: LucideIcon;

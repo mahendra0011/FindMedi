@@ -9,27 +9,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import HospitalCard from '@/components/HospitalCard';
 
-import { CANONICAL_SPECIALTIES } from '@/data/specialties';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
 import { useSpecialtyTiles } from '@/hooks/useSpecialtyBrowse';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
-// subcatogary.md Part B — Canonical specialties list derived from taxonomy (Psychology removed)
-// Backend tree (/categories/specialties?tree=1) owns the list now; this stays
-// as the offline fallback so the page never renders an empty grid.
-const FALLBACK_SPECIALTIES = CANONICAL_SPECIALTIES.map((spec) => {
-  const visual = getSpecialtyVisual(spec.code);
-  return {
-    code: spec.code,
-    name: spec.name,
-    icon: visual.icon,
-    color: visual.color,
-    textColor: visual.textColor,
-    nameHi: '',
-    sensitive: false,
-    children: [],
-  };
-});
+// Backend tree (/categories/specialties?tree=1) is the single source of truth;
+// the page shows a loading/empty state instead of a local fallback copy.
 
 
 // Show first 14 by default (2 rows of 7)
@@ -271,8 +256,8 @@ export default function HospitalDirectory() {
         sensitive: !!t.sensitive,
       };
     });
-    return specialtyTree.fromApi && fromTree.length ? fromTree : FALLBACK_SPECIALTIES;
-  }, [specialtyTree.tiles, specialtyTree.fromApi]);
+    return fromTree;
+  }, [specialtyTree.tiles]);
 
   const visibleSpecialties = useMemo(
     () => (showAllSpecialties ? allSpecialties : allSpecialties.slice(0, INITIAL_VISIBLE)),
@@ -316,6 +301,14 @@ export default function HospitalDirectory() {
             </Button>
           )}
         </div>
+        {specialtyTree.isLoading && allSpecialties.length === 0 && (
+          <p className="text-sm text-muted-foreground py-6">Loading specialties\u2026</p>
+        )}
+        {!specialtyTree.isLoading && allSpecialties.length === 0 && (
+          <p className="text-sm text-muted-foreground py-6">
+            Specialties could not be loaded right now. Please retry in a moment.
+          </p>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <AnimatePresence>
             {visibleSpecialties.map((dept) => {

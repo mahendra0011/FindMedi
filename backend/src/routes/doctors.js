@@ -432,7 +432,7 @@ router.put('/:id', protect, validate(updateDoctorSchema), async (req, res) => {
       'refundOnMissedOrCancelled', 'appointmentModes', 'appointmentFees',
       'chat_fee', 'video_fee', 'offline_fee', 'home_visit_fee', 'emergency_fee',
       'languages', 'image', 'photo', 'gender', 'degree', 'registrationNumber',
-      'settings',
+      'settings', 'conditionsTreated', 'procedures',
     ];
     const writable = Object.create(null);
     for (const key of WRITABLE) {

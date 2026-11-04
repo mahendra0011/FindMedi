@@ -746,6 +746,12 @@ export const api = {
   getSpecialtyTree:       ()        => request('/categories/specialties?tree=1'),
   getSpecialtyDetail:     (code)    => request(`/categories/specialties/${encodeURIComponent(code)}`),
   browseSpecialtyCounts:  (code,p={}) => request(`/categories/specialties/${encodeURIComponent(code)}/counts?` + new URLSearchParams(p)),
+
+  // Spec 3.1: versioned Community Guidelines + Provider Agreement
+  getLegalDocuments:      ()        => request('/legal/documents'),
+  getLegalDocument:       (context) => request(`/legal/documents/${encodeURIComponent(context)}`),
+  acceptLegalDocument:    (body)    => request('/legal/accept', { method:'POST', body: JSON.stringify(body) }),
+  getLegalAcceptances:    ()        => request('/legal/acceptances'),
   postSearchUnmetDemand:  (body)    => request('/search/unmet-demand', { method:'POST', body: JSON.stringify(body) }),
   createCategory:         (body)    => request('/categories', { method:'POST', body: JSON.stringify(body) }),
   updateCategory:         (id,b)    => request(`/categories/${id}`, { method:'PUT', body: JSON.stringify(b) }),

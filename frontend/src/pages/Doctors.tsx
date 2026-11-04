@@ -6,10 +6,9 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { useCategories } from '@/hooks/useCategories';
 
-import { SPECIALTY_NAMES } from '@/data/specialties';
 import type { Unmodelled } from '@/lib/apiTypes';
 
-const FALLBACK_SPECIALIZATIONS = ['Cardiology', 'Neurology', 'Orthopaedics', 'Paediatrics', 'Dermatology', 'Oncology', 'General Surgery', 'Psychiatry'];
+const FALLBACK_SPECIALIZATIONS: string[] = [];
 
 const empty = { name:'', specialization:'Cardiology', experience:'', rating:4.5, phone:'', email:'', available:true, initials:'', department:'' };
 

@@ -1,5 +1,23 @@
 import mongoose from 'mongoose';
 import { generateTimestampedId } from '../utils/idGenerator.js';
+import { encryptPhi, decryptPhi } from '../utils/phiFields.js';
+
+// SITE-SEC 1.7: statutory ids + banking identifiers are encrypted at rest.
+// AAD is model:field, so the same helper used by the route layer applies.
+const enc = (field) => ({
+  set: (v) => encryptPhi('Supplier', field, v),
+  get: (v) => decryptPhi('Supplier', field, v),
+});
+
+const kycDocSchema = new mongoose.Schema({
+  docType: { type: String, enum: ['GST', 'PAN', 'DrugLicense', 'MSME', 'CancelledCheque', 'Other'], default: 'Other' },
+  docNumber: { type: String, default: '', ...enc('kycDocs.docNumber') },
+  docUrl: { type: String, default: '' },
+  // T7: expiry drives the daily sweep -> kycStatus='Expired' + 30-day alert.
+  expiry: { type: Date, default: null },
+  verifiedAt: { type: Date, default: null },
+  verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+}, { _id: false });
 
 const supplierSchema = new mongoose.Schema({
   supplierId: { type: String, required: true, unique: true },
@@ -41,10 +59,10 @@ const supplierSchema = new mongoose.Schema({
   items: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Inventory' }],
   rating: { type: Number, min: 1, max: 5 },
   // File 16 §16.6: vendor 360 — statutory + banking + score inputs.
-  pan: { type: String, default: '' },
+  pan: { type: String, default: '', ...enc('pan') },
   bankName: { type: String, default: '' },
-  bankAccount: { type: String, default: '' },
-  ifsc: { type: String, default: '' },
+  bankAccount: { type: String, default: '', ...enc('bankAccount') },
+  ifsc: { type: String, default: '', ...enc('ifsc') },
   msmeNo: { type: String, default: '' },
   documents: [{ name: { type: String, default: '' }, url: { type: String, default: '' }, uploadedAt: { type: Date, default: Date.now } }],
   onTimePct: { type: Number, default: null },
@@ -58,15 +76,7 @@ const supplierSchema = new mongoose.Schema({
     ratedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     createdAt: { type: Date, default: Date.now },
   }],
-  kycDocs: [{
-    docType: { type: String, enum: ['GST', 'PAN', 'DrugLicense', 'MSME', 'CancelledCheque', 'Other'], default: 'Other' },
-    docNumber: { type: String, default: '' },
-    docUrl: { type: String, default: '' },
-    // T7: expiry drives the daily sweep → kycStatus='Expired' + 30-day alert.
-    expiry: { type: Date, default: null },
-    verifiedAt: { type: Date, default: null },
-    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-  }],
+  kycDocs: [kycDocSchema],
   kycStatus: {
     type: String,
     enum: ['Pending', 'Verified', 'Rejected', 'Expired'],

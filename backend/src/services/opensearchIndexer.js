@@ -573,9 +573,9 @@ async function mongoProviderSearch({ q, vertical, city, size }) {
     const want = (v) => !vertical || vertical === v || vertical === 'all';
     if (want('doctor')) {
       const { default: Doctor } = await import('../models/Doctor.js');
-      const docs = await Doctor.find({ $or: [{ name: rx }, { specialization: rx }] })
-        .select('name specialization emergencySupport isEmergencyDutyActive').limit(size).lean();
-      docs.forEach((d) => results.push({ providerId: String(d._id), vertical: 'doctor', fullName: d.name, specialization: d.specialization }));
+      const docs = await Doctor.find({ $or: [{ name: rx }, { specialization: rx }, { 'conditionsTreated.label': rx }, { 'procedures.label': rx }] })
+        .select('name specialization emergencySupport isEmergencyDutyActive conditionsTreated procedures').limit(size).lean();
+      docs.forEach((d) => results.push({ providerId: String(d._id), vertical: 'doctor', fullName: d.name, specialization: d.specialization, conditionsTreated: d.conditionsTreated, procedures: d.procedures }));
     }
     if (want('lawyer') && results.length < size) {
       const { default: LawyerProfile } = await import('../models/LawyerProfile.js');
@@ -608,7 +608,7 @@ export async function searchProviders({ q, vertical, city, lat, lon, radiusKm = 
   }
   try {
     const must = [{
-      multi_match: { query: q, fields: ['fullName^2', 'specialization^3'], fuzziness: 'AUTO' },
+      multi_match: { query: q, fields: ['fullName^2', 'specialization^3', 'conditionsTreated.label^2', 'procedures.label^2'], fuzziness: 'AUTO' },
     }];
     const filter = [];
     if (vertical && vertical !== 'all') filter.push({ term: { vertical } });

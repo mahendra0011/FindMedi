@@ -13,8 +13,8 @@
 
 ## Summary
 
-- **347 models** across 339 files (0 skipped)
-- **7676 schema fields**, of which **806 classified as PII** in **245 collections**
+- **348 models** across 340 files (0 skipped)
+- **7703 schema fields**, of which **807 classified as PII** in **246 collections**
 - **9 collections** carry a TTL index
 - **128 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -31,7 +31,7 @@
 | Location | 25 |
 | Image/Biometric | 4 |
 | Device/Network | 14 |
-| Identifier | 206 |
+| Identifier | 207 |
 | Identity | 94 |
 
 ## Collections
@@ -68,7 +68,7 @@
 | `assistantbookings` | AssistantBooking | 82 | 15 | 11 | — | Clinical records |
 | `assistantprofiles` | AssistantProfile | 73 | 13 | 13 | — | Provider KYC documents |
 | `auditlogs` | AuditLog | 11 | 3 | 4 | 31536000s | Audit logs |
-| `bankaccounts` | BankAccount | 9 | 1 | 2 | — | **UNMAPPED — see gaps** |
+| `bankaccounts` | BankAccount | 10 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `banktxns` | BankTxn | 13 | 0 | 3 | — | No PII fields detected |
 | `beds` | Bed | 19 | 0 | 3 | — | No PII fields detected |
 | `bedtransfers` | BedTransfer | 13 | 1 | 3 | — | Clinical records |
@@ -309,6 +309,7 @@
 | `recordversions` | RecordVersion | 16 | 2 | 3 | — | Clinical records |
 | `referrals` | Referral | 14 | 0 | 5 | — | No PII fields detected |
 | `referralsettings` | ReferralSettings | 8 | 0 | 0 | — | No PII fields detected |
+| `refillsubscriptions` | RefillSubscription | 26 | 1 | 4 | — | Clinical records |
 | `refreshtokens` | RefreshToken | 13 | 3 | 5 | 0s | OTP / setup codes / tokens |
 | `refunds` | Refund | 17 | 1 | 5 | — | Payment and ledger entries |
 | `rentals` | Rental | 39 | 1 | 8 | — | **UNMAPPED — see gaps** |
@@ -1797,6 +1798,7 @@ source `BankAccount.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPP
 | `hospitalId` | ObjectId |  |  |  |  | Hospital |  |
 | `bankName` | String | yes |  |  |  |  |  |
 | `accountNo` | String | yes |  |  |  |  |  |
+| `accountNoHash` | String |  |  |  |  |  |  |
 | `ifsc` | String |  |  | "" |  |  | Financial |
 | `kind` | String |  |  | "current" | current, savings, escrow, od |  |  |
 | `active` | Boolean |  |  | true |  |  |  |
@@ -1809,7 +1811,8 @@ Indexes:
 | Keys | Flags |
 |---|---|
 | `hospitalId:1` |  |
-| `hospitalId:1, accountNo:1` | unique |
+| `accountNoHash:1` | sparse |
+| `hospitalId:1, accountNoHash:1` | unique, sparse |
 
 ### `banktxns` — BankTxn
 
@@ -9677,7 +9680,7 @@ source `PolicyAcceptance.js` · timestamps: yes · virtuals: 0 · retention: **U
 | `providerId` | ObjectId |  |  | null |  | Provider | Identifier |
 | `templateId` | String | yes |  |  |  |  |  |
 | `templateVersion` | String | yes |  |  |  |  |  |
-| `context` | String | yes |  |  | provider_agreement, privacy_policy, terms_of_service, teleconsult_consent, booking_cancellation |  |  |
+| `context` | String | yes |  |  | provider_agreement, privacy_policy, terms_of_service, teleconsult_consent, booking_cancellation, community_guidelines |  |  |
 | `acceptedAt` | Date |  |  | [function] |  |  |  |
 | `ip` | String |  |  | "" |  |  | Device/Network |
 | `userAgent` | String |  |  | "" |  |  | Device/Network |
@@ -11009,6 +11012,48 @@ source `ReferralSettings.js` · timestamps: yes · virtuals: 0 · retention: n/a
 | `__v` | Number |  |  |  |  |  |  |
 
 _No indexes beyond the default `_id`._
+
+### `refillsubscriptions` — RefillSubscription
+
+source `RefillSubscription.js` · timestamps: yes · virtuals: 0 · retention: Statutory period for the jurisdiction, minimum 3 years (docs/privacy/RETENTION.md) · PII: Identifier
+
+| Path | Type | Req | Unique | Default | Enum | Ref | PII |
+|---|---|---|---|---|---|---|---|
+| `userId` | ObjectId | yes |  |  |  | User | Identifier |
+| `prescriptionId` | ObjectId |  |  | null |  | Prescription |  |
+| `medicineReminderId` | ObjectId |  |  | null |  | MedicineReminder |  |
+| `medicineName` | String | yes |  |  |  |  |  |
+| `dosage` | String |  |  | "" |  |  |  |
+| `frequency` | String |  |  | "" |  |  |  |
+| `quantityPerRefill` | Number |  |  | 1 |  |  |  |
+| `intervalDays` | Number |  |  | 30 |  |  |  |
+| `reminderDaysBefore` | Number |  |  | 2 |  |  |  |
+| `deliveryAddress` | String |  |  | "" |  |  |  |
+| `autoOrder` | Boolean |  |  | false |  |  |  |
+| `status` | String |  |  | "active" | active, paused, cancelled |  |  |
+| `startAt` | Date |  |  | [function] |  |  |  |
+| `nextRefillAt` | Date |  |  |  |  |  |  |
+| `lastRefilledAt` | Date |  |  | null |  |  |  |
+| `lastReminderAt` | Date |  |  | null |  |  |  |
+| `refillCount` | Number |  |  | 0 |  |  |  |
+| `notes` | String |  |  | "" |  |  |  |
+| `history` | Array<subdocument> |  |  |  |  |  |  |
+| `history.action` | String |  |  | "created" | created, paused, resumed, cancelled, refilled, reminded |  |  |
+| `history.at` | Date |  |  | [function] |  |  |  |
+| `history.by` | ObjectId |  |  | null |  | User |  |
+| `history.note` | String |  |  | "" |  |  |  |
+| `createdAt` | Date |  |  |  |  |  |  |
+| `updatedAt` | Date |  |  |  |  |  |  |
+| `__v` | Number |  |  |  |  |  |  |
+
+Indexes:
+
+| Keys | Flags |
+|---|---|
+| `userId:1` |  |
+| `status:1` |  |
+| `nextRefillAt:1` |  |
+| `userId:1, medicineName:1, status:1` |  |
 
 ### `refreshtokens` — RefreshToken
 

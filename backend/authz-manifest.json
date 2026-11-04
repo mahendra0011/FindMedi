@@ -10,13 +10,13 @@
     "inherited": "guard comes from router-level middleware, not the route line",
     "unclassified": "protected but no authorization decision recorded - a GAP"
   },
-  "total": 1866,
+  "total": 1881,
   "counts": {
     "inherited": 5,
     "object": 439,
-    "public": 124,
-    "role": 1214,
-    "self": 84
+    "public": 126,
+    "role": 1219,
+    "self": 92
   },
   "byMechanism": {
     "adminOnly": 99,
@@ -39,10 +39,10 @@
     "platformAdminOnly": 15,
     "requireConversationMember": 19,
     "requireMetricsToken": 1,
-    "requireObjectId": 175,
+    "requireObjectId": 181,
     "requirePatientGrant": 4,
     "requireReportScope": 2,
-    "requireRole": 94,
+    "requireRole": 99,
     "requireSosAccess": 7,
     "requireStaff": 4,
     "requireStepUp": 41,
@@ -111,7 +111,7 @@
         "routes": 1
       }
     ],
-    "unnamedHandlerGuard": 327,
+    "unnamedHandlerGuard": 329,
     "note": "AUTHZ-M-01 is OPEN. The alternatives are not necessarily wrong - several predate authorizeObject and carry domain rules it does not model - but the split was previously invisible, and a route can be guarded twice by two mechanisms whose rules were never reconciled."
   },
   "unrecognised": [],
@@ -7439,6 +7439,34 @@
       "tag": "object"
     },
     {
+      "file": "legal.js",
+      "line": 23,
+      "method": "GET",
+      "target": "'/documents'",
+      "tag": "public"
+    },
+    {
+      "file": "legal.js",
+      "line": 29,
+      "method": "GET",
+      "target": "'/documents/:context'",
+      "tag": "public"
+    },
+    {
+      "file": "legal.js",
+      "line": 42,
+      "method": "POST",
+      "target": "'/accept'",
+      "tag": "self"
+    },
+    {
+      "file": "legal.js",
+      "line": 76,
+      "method": "GET",
+      "target": "'/acceptances'",
+      "tag": "self"
+    },
+    {
       "file": "licenses.js",
       "line": 26,
       "method": "GET",
@@ -10583,70 +10611,70 @@
     },
     {
       "file": "recon.js",
-      "line": 23,
+      "line": 24,
       "method": "GET",
       "target": "'/accounts'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 37,
+      "line": 44,
       "method": "POST",
       "target": "'/accounts'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 65,
+      "line": 73,
       "method": "POST",
       "target": "'/imports'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 91,
+      "line": 99,
       "method": "GET",
       "target": "'/imports/:id/txns'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 106,
+      "line": 114,
       "method": "POST",
       "target": "'/imports/:id/automatch'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 164,
+      "line": 172,
       "method": "POST",
       "target": "'/txns/:id/match'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 182,
+      "line": 190,
       "method": "GET",
       "target": "'/rules'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 192,
+      "line": 200,
       "method": "POST",
       "target": "'/rules'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 205,
+      "line": 213,
       "method": "POST",
       "target": "'/imports/:id/close'",
       "tag": "role"
     },
     {
       "file": "recon.js",
-      "line": 218,
+      "line": 226,
       "method": "GET",
       "target": "'/imports/:id/export'",
       "tag": "role"
@@ -10853,6 +10881,55 @@
       "method": "PUT",
       "target": "'/admin/settings'",
       "tag": "object"
+    },
+    {
+      "file": "refillSubscriptions.js",
+      "line": 34,
+      "method": "GET",
+      "target": "'/'",
+      "tag": "self"
+    },
+    {
+      "file": "refillSubscriptions.js",
+      "line": 47,
+      "method": "GET",
+      "target": "'/due'",
+      "tag": "role"
+    },
+    {
+      "file": "refillSubscriptions.js",
+      "line": 63,
+      "method": "POST",
+      "target": "'/'",
+      "tag": "self"
+    },
+    {
+      "file": "refillSubscriptions.js",
+      "line": 89,
+      "method": "PATCH",
+      "target": "'/:id/pause'",
+      "tag": "self"
+    },
+    {
+      "file": "refillSubscriptions.js",
+      "line": 107,
+      "method": "PATCH",
+      "target": "'/:id/resume'",
+      "tag": "self"
+    },
+    {
+      "file": "refillSubscriptions.js",
+      "line": 128,
+      "method": "PATCH",
+      "target": "'/:id/cancel'",
+      "tag": "self"
+    },
+    {
+      "file": "refillSubscriptions.js",
+      "line": 146,
+      "method": "POST",
+      "target": "'/:id/refill'",
+      "tag": "self"
     },
     {
       "file": "rentals.js",
@@ -11734,6 +11811,34 @@
       "line": 161,
       "method": "DELETE",
       "target": "'/credentials/:id'",
+      "tag": "role"
+    },
+    {
+      "file": "sampleCourier.js",
+      "line": 46,
+      "method": "POST",
+      "target": "'/'",
+      "tag": "role"
+    },
+    {
+      "file": "sampleCourier.js",
+      "line": 83,
+      "method": "GET",
+      "target": "'/'",
+      "tag": "role"
+    },
+    {
+      "file": "sampleCourier.js",
+      "line": 104,
+      "method": "PUT",
+      "target": "'/:id/assign'",
+      "tag": "role"
+    },
+    {
+      "file": "sampleCourier.js",
+      "line": 140,
+      "method": "PUT",
+      "target": "'/:id/status'",
       "tag": "role"
     },
     {

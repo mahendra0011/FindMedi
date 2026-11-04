@@ -1,11 +1,10 @@
 import { useApiQuery } from './useApiQuery';
 import { api } from '../lib/api';
-import { CANONICAL_SPECIALTIES } from '../data/specialties';
 
-// ─── Browse-by-specialties data layer ───────────────────────────────────────
-// Source of truth = backend /categories/specialties (43 tiles × 13 groups).
-// 5-minute cache; every consumer degrades gracefully to the local canonical
-// copy (names only) when the API is unreachable — the UI never blanks.
+// Browse-by-specialties data layer.
+// Source of truth = backend /categories/specialties (43 tiles x 13 groups).
+// No local canonical copy: API failure surfaces loading/error state instead of
+// rendering a list that can silently drift from the taxonomy.
 
 export const SPECIALTIES_STALE_TIME = 5 * 60 * 1000;
 
@@ -81,24 +80,6 @@ export interface SpecialtyCountsData {
   hospitals?: number;
 }
 
-/** Legacy-friendly synthetic tile shape for the CANONICAL fallback. */
-const FALLBACK_TILE = (
-  code: string,
-  name: string,
-  group?: string,
-  icon?: string,
-  nameHi?: string,
-): SpecialtyNode => ({
-  code,
-  name,
-  aliases: [],
-  alsoUnder: [],
-  sensitive: false,
-  claimsRestricted: false,
-  meta: { group: group || 'primary-emergency', nameHi, icon },
-  children: [],
-});
-
 export function useSpecialtyTree(): QueryState<SpecialtyTreeResponse> {
   return useApiQuery(
     ['categories', 'specialty-tree'],
@@ -108,24 +89,17 @@ export function useSpecialtyTree(): QueryState<SpecialtyTreeResponse> {
 }
 
 /**
- * Top-level browse tiles (43) in group order. Falls back to the local
- * canonical copy (mock names) when the tree API fails.
+ * Top-level browse tiles (43) in group order. Empty while the API is loading
+ * or unreachable; consumers render loading/empty states, never a local list.
  */
 export function useSpecialtyTiles(): SpecialtyTilesResult {
   const tree = useSpecialtyTree();
   const groups: SpecialtyGroup[] = tree.data?.groups || [];
   const fromApi = groups.length > 0;
 
-  const groupList: SpecialtyGroup[] = fromApi
-    ? groups.map((g) => ({ id: g.id, name: g.name, color: g.color, tiles: g.tiles || [] }))
-    : [
-        {
-          id: 'primary-emergency',
-          name: 'Primary & Emergency care',
-          color: 'blue',
-          tiles: CANONICAL_SPECIALTIES.map((spec) => FALLBACK_TILE(spec.code, spec.name)),
-        },
-      ];
+  const groupList: SpecialtyGroup[] = groups.map((g) => ({
+    id: g.id, name: g.name, color: g.color, tiles: g.tiles || [],
+  }));
 
   const allTiles = groupList.flatMap((g) => g.tiles);
   return { ...tree, groups: groupList, tiles: allTiles, fromApi, ready: tree.isSuccess || fromApi };

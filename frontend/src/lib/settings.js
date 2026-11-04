@@ -11,6 +11,7 @@ export const DEFAULT_USER_SETTINGS = {
   theme: 'system',
   density: 'comfortable',
   language: 'en',
+  lowBandwidth: false,
   timezone: 'Asia/Calcutta',
   defaultDashboard: 'overview',
   twoFactorEnabled: false,
@@ -45,6 +46,9 @@ export function applyUserSettings(settings = {}) {
   root.dataset.theme = next.theme;
   root.dataset.density = next.density;
   root.dataset.language = next.language;
+  root.dataset.lowBandwidth = next.lowBandwidth ? 'true' : 'false';
+  root.classList.toggle('low-bandwidth', Boolean(next.lowBandwidth));
+  document.body?.classList.toggle('low-bandwidth', Boolean(next.lowBandwidth));
   root.lang = next.language || 'en';
   root.dir = 'ltr';
 

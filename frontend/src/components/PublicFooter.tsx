@@ -71,6 +71,8 @@ export default function PublicFooter() {
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-6 gap-y-2 text-xs text-muted-foreground">
             <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy (DPDP 2023)</Link>
             <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+            <Link to="/community-guidelines" className="hover:text-primary transition-colors">Community Guidelines</Link>
+            <Link to="/provider-agreement" className="hover:text-primary transition-colors">Provider Agreement</Link>
             <Link to="/disclaimer" className="hover:text-primary transition-colors">Emergency Disclaimer (Sec 134A)</Link>
             <Link to="/refund-policy" className="hover:text-primary transition-colors">Refunds & Standby Fees</Link>
             <Link to="/grievance" className="hover:text-primary transition-colors">Grievance & DPO Office</Link>

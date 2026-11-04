@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, MapPin, Stethoscope, Award, Clock, Hash, Save, Upload, AlertCircle, CheckCircle, Camera, Pen, Building2, Sun, Image, Pill, Shield, HelpCircle, CalendarDays, CreditCard } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Stethoscope, Award, Clock, Hash, Save, Upload, AlertCircle, CheckCircle, Camera, Pen, Building2, Sun, Image, Pill, Shield, HelpCircle, CalendarDays, CreditCard, PlusCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -93,6 +93,9 @@ export default function DoctorProfile() {
   const [payoutAccount, setPayoutAccount] = useState('');
   const [payoutIfsc, setPayoutIfsc] = useState('');
 
+  const [conditionsTreated, setConditionsTreated] = useState('');
+  const [procedures, setProcedures] = useState('');
+
   const [clinicName, setClinicName] = useState('');
   const [clinicAddress, setClinicAddress] = useState('');
   const [clinicLicense, setClinicLicense] = useState('');
@@ -147,6 +150,8 @@ export default function DoctorProfile() {
           setPayoutUpi(String(pick('payoutUpi', '')));
           setPayoutAccount(String(pick('payoutAccount', '')));
           setPayoutIfsc(String(pick('payoutIfsc', '')));
+          setConditionsTreated((myDoc.conditionsTreated || []).map((c: Unmodelled) => c.label).join(', '));
+          setProcedures((myDoc.procedures || []).map((p: Unmodelled) => p.label).join(', '));
           const cp = myDoc.clinicProfile || {};
           setClinicName(cp.clinic_name || '');
           setClinicAddress(cp.clinic_address || '');
@@ -177,7 +182,10 @@ export default function DoctorProfile() {
         emergencyOnCall, refundGuarantee, videoFee: videoFee ? Number(videoFee) : 0, inPersonFee: inPersonFee ? Number(inPersonFee) : 0,
         emergencyFee: emergencyFee ? Number(emergencyFee) : 0, followUpFee, followUpWindow, bufferTime,
         vacationFrom, vacationTo, vacationReason, councilName, councilRegNo, councilYear,
-        payoutUpi, payoutAccount, payoutIfsc };
+        payoutUpi, payoutAccount, payoutIfsc,
+        conditionsTreated: conditionsTreated.split(',').map(s => s.trim()).filter(Boolean).map(label => ({ label })),
+        procedures: procedures.split(',').map(s => s.trim()).filter(Boolean).map(label => ({ label })),
+      };
       if (doctor) {
         await api.updateDoctor(doctor._id, body);
         if (doctor.doctor_type === 'clinic') {
@@ -495,6 +503,36 @@ export default function DoctorProfile() {
               </div>
             </div>
           </div>
+        </div>
+
+        <hr className="border-border/60" />
+
+        <div>
+          <h3 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Stethoscope className="w-5 h-5 text-primary" /> Conditions Treated
+          </h3>
+          <p className="text-sm text-muted-foreground mb-3">Comma-separated list (e.g. Diabetes, Hypertension, Asthma)</p>
+          <Input
+            value={conditionsTreated}
+            onChange={e => setConditionsTreated(e.target.value)}
+            placeholder="Diabetes, Hypertension, Asthma"
+            className="max-w-xl"
+          />
+        </div>
+
+        <hr className="border-border/60" />
+
+        <div>
+          <h3 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Pill className="w-5 h-5 text-primary" /> Procedures Performed
+          </h3>
+          <p className="text-sm text-muted-foreground mb-3">Comma-separated list (e.g. Angiography, Endoscopy, Joint Replacement)</p>
+          <Input
+            value={procedures}
+            onChange={e => setProcedures(e.target.value)}
+            placeholder="Angiography, Endoscopy, Joint Replacement"
+            className="max-w-xl"
+          />
         </div>
 
         <hr className="border-border/60" />

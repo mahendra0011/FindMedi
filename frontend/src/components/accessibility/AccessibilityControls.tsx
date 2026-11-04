@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Accessibility, Eye, Type, Volume2, Globe, Sun, Moon, Check, X
+  Accessibility, Eye, Type, Volume2, Globe, Sun, Moon, Check, X, WifiOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ export default function AccessibilityControls() {
   const [open, setOpen] = useState(false);
   const [elderMode, setElderMode] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
+  const [lowBandwidth, setLowBandwidth] = useState(false);
   const [language, setLanguage] = useState('en');
 
   useEffect(() => {
@@ -22,6 +23,12 @@ export default function AccessibilityControls() {
     if (settings.highContrast) {
       setHighContrast(true);
       document.documentElement.classList.add('high-contrast');
+    }
+    if (settings.lowBandwidth) {
+      setLowBandwidth(true);
+      document.documentElement.dataset.lowBandwidth = 'true';
+      document.documentElement.classList.add('low-bandwidth');
+      document.body?.classList.add('low-bandwidth');
     }
     if (settings.language) {
       setLanguage(settings.language);
@@ -51,6 +58,20 @@ export default function AccessibilityControls() {
       document.documentElement.classList.remove('high-contrast');
     }
     applyUserSettings({ highContrast: next });
+  };
+
+  const toggleLowBandwidth = () => {
+    const next = !lowBandwidth;
+    setLowBandwidth(next);
+    document.documentElement.dataset.lowBandwidth = next ? 'true' : 'false';
+    document.documentElement.classList.toggle('low-bandwidth', next);
+    document.body?.classList.toggle('low-bandwidth', next);
+    if (next) {
+      toast.success('Data Saver enabled: heavy media and animations are reduced.');
+    } else {
+      toast.info('Data Saver disabled.');
+    }
+    applyUserSettings({ lowBandwidth: next });
   };
 
   const changeLanguage = (lang: string) => {
@@ -119,6 +140,22 @@ export default function AccessibilityControls() {
                 type="checkbox"
                 checked={highContrast}
                 onChange={toggleHighContrast}
+                className="w-4 h-4 accent-primary rounded cursor-pointer"
+              />
+            </div>
+
+            {/* Low Bandwidth / Data Saver Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <span className="font-bold text-foreground flex items-center gap-1.5">
+                  <WifiOff className="w-3.5 h-3.5 text-primary" /> Data Saver
+                </span>
+                <p className="text-[11px] text-muted-foreground">Loads lighter pages on slow connections</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={lowBandwidth}
+                onChange={toggleLowBandwidth}
                 className="w-4 h-4 accent-primary rounded cursor-pointer"
               />
             </div>

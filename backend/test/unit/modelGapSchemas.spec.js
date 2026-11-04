@@ -144,7 +144,7 @@ describe('consent-adjacent and DPDP rows', () => {
       expectPath(PolicyAcceptance.schema, field);
     }
     expect(enumOf(PolicyAcceptance.schema, 'context')).toEqual(
-      ['booking_cancellation', 'privacy_policy', 'provider_agreement', 'teleconsult_consent', 'terms_of_service'],
+      ['booking_cancellation', 'community_guidelines', 'privacy_policy', 'provider_agreement', 'teleconsult_consent', 'terms_of_service'],
     );
   });
 

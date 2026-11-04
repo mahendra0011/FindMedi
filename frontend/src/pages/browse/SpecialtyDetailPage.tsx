@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Lock, TriangleAlert, UserRound, Building2, BellPlus, Loader2, ArrowLeft } from 'lucide-react';
+import { Lock, TriangleAlert, UserRound, Building2, BellPlus, Loader2, ArrowLeft, ClipboardList, FlaskConical, Pill } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
 import { useSpecialtyDetail, useBrowseSpecialtyCounts, SPECIALTIES_STALE_TIME } from '@/hooks/useSpecialtyBrowse';
 import { api } from '@/lib/api';
 
-// Browse-by-specialties drill-down (§5.2): children incl. cross-lists,
+// Browse-by-specialties drill-down (A-5.2): children incl. cross-lists,
 // condition/procedure chips and honest provider counts. Zero-state switches
-// scope city → all-India, then offers the unmet-demand keeper instead of a
+// scope city + all-India, then offers the unmet-demand keeper instead of a
 // dead end.
 // SITE-I18N 3.2: fully keyed chrome, and in hi the Hindi name becomes the
 // primary heading (the English one dangles below as the alias line).
@@ -22,6 +22,7 @@ export default function SpecialtyDetailPage() {
   const [metroCity, setMetroCity] = useState('');
   const [scope, setScope] = useState<'city' | 'all'>(metroCity ? 'city' : 'all');
   const [scopeNote, setScopeNote] = useState('');
+  const [activeTab, setActiveTab] = useState<'overview' | 'conditions' | 'procedures' | 'tests'>('overview');
 
   useEffect(() => {
     let c = '';
@@ -99,7 +100,7 @@ export default function SpecialtyDetailPage() {
           )}
           {!isHi && specialty.meta?.nameHi && <p className="text-muted-foreground">{specialty.meta.nameHi}</p>}
           {!!(specialty.aliases || []).length && (
-            <p className="text-xs text-muted-foreground mt-1 max-w-prose">{(specialty.aliases || []).slice(0, 6).join(' · ')}</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-prose">{(specialty.aliases || []).slice(0, 6).join(' A- ')}</p>
           )}
         </div>
       </div>
@@ -153,67 +154,131 @@ export default function SpecialtyDetailPage() {
       )}
       {scopeNote && <p className="mb-6 text-xs text-emerald-700">{scopeNote}</p>}
 
-      {(children || []).length > 0 && (
-        <section className="mb-10">
-          <h2 className="font-heading text-lg font-bold mb-3">{t('specialties.sub_specialties', { n: children.length })}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {children.map((sub) => {
-              const subVisual = getSpecialtyVisual(sub.code);
-              const SubIcon = subVisual?.icon;
-              return (
-                <Link
-                  key={sub.code}
-                  to={`/browse-specialties/${sub.code}`}
-                  className="rounded-xl border border-border/60 bg-card p-3 hover:border-primary/30 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    {SubIcon && (
-                      <span className={`w-8 h-8 rounded-lg bg-gradient-to-br ${subVisual.color} flex items-center justify-center`}>
-                        <SubIcon className={`w-3.5 h-3.5 ${subVisual.textColor}`} />
-                      </span>
-                    )}
-                    <div>
-                      <h3 className={`text-sm font-semibold ${sub.sensitive ? 'text-muted-foreground' : ''}`}>
-                        {(isHi && sub.meta?.nameHi) ? sub.meta.nameHi : sub.name}
-                        {sub.claimsRestricted && <TriangleAlert className="inline w-3 h-3 ml-1.5 -mt-0.5 text-amber-500" />}
-                      </h3>
-                      {!isHi && sub.meta?.nameHi && <p className="text-[11px] text-muted-foreground">{sub.meta.nameHi}</p>}
-                    </div>
-                  </div>
-                  <p className="mt-2 text-[11px] text-primary underline underline-offset-2 inline-flex items-center gap-1">
-                    <UserRound className="w-3 h-3" /> {t('specialties.find_sub_specialists', { name: sub.name })}
-                  </p>
-                </Link>
-              );
-            })}
+      <div className="border-b border-border/60 mb-6">
+        <nav className="flex gap-1" role="tablist" aria-label={t('specialties.tabs_label')}>
+          <button
+            role="tab"
+            aria-selected={activeTab === 'overview'}
+            onClick={() => setActiveTab('overview')}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === 'overview' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            {t('specialties.tab_overview')}
+          </button>
+          <button
+            role="tab"
+            aria-selected={activeTab === 'conditions'}
+            onClick={() => setActiveTab('conditions')}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === 'conditions' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <ClipboardList className="w-3.5 h-3.5 inline mr-1.5" /> {t('specialties.tab_conditions')}
+          </button>
+          <button
+            role="tab"
+            aria-selected={activeTab === 'procedures'}
+            onClick={() => setActiveTab('procedures')}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === 'procedures' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <Pill className="w-3.5 h-3.5 inline mr-1.5" /> {t('specialties.tab_procedures')}
+          </button>
+          <button
+            role="tab"
+            aria-selected={activeTab === 'tests'}
+            onClick={() => setActiveTab('tests')}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === 'tests' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <FlaskConical className="w-3.5 h-3.5 inline mr-1.5" /> {t('specialties.tab_tests_packages')}
+          </button>
+        </nav>
+      </div>
+
+      {activeTab === 'overview' && (
+        <>
+          {(children || []).length > 0 && (
+            <section className="mb-10">
+              <h2 className="font-heading text-lg font-bold mb-3">{t('specialties.sub_specialties', { n: children.length })}</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {children.map((sub) => {
+                  const subVisual = getSpecialtyVisual(sub.code);
+                  const SubIcon = subVisual?.icon;
+                  return (
+                    <Link
+                      key={sub.code}
+                      to={`/browse-specialties/${sub.code}`}
+                      className="rounded-xl border border-border/60 bg-card p-3 hover:border-primary/30 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        {SubIcon && (
+                          <span className={`w-8 h-8 rounded-lg bg-gradient-to-br ${subVisual.color} flex items-center justify-center`}>
+                            <SubIcon className={`w-3.5 h-3.5 ${subVisual.textColor}`} />
+                          </span>
+                        )}
+                        <div>
+                          <h3 className={`text-sm font-semibold ${sub.sensitive ? 'text-muted-foreground' : ''}`}>
+                            {(isHi && sub.meta?.nameHi) ? sub.meta.nameHi : sub.name}
+                            {sub.claimsRestricted && <TriangleAlert className="inline w-3 h-3 ml-1.5 -mt-0.5 text-amber-500" />}
+                          </h3>
+                          {!isHi && sub.meta?.nameHi && <p className="text-[11px] text-muted-foreground">{sub.meta.nameHi}</p>}
+                        </div>
+                      </div>
+                      <p className="mt-2 text-[11px] text-primary underline underline-offset-2 inline-flex items-center gap-1">
+                        <UserRound className="w-3 h-3" /> {t('specialties.find_sub_specialists', { name: sub.name })}
+                      </p>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+        </>
+      )}
+
+      {activeTab === 'conditions' && (
+        <section className="mb-8">
+          <h2 className="font-heading text-lg font-bold mb-3">{t('specialties.conditions_treated')}</h2>
+          {(specialty.meta?.conditions || []).length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {(specialty.meta?.conditions || []).map((c: string) => (
+                <span key={c} className="text-xs bg-secondary text-secondary-foreground rounded-full px-3 py-1.5 border border-border/60">{c}</span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">{t('specialties.no_conditions')}</p>
+          )}
+        </section>
+      )}
+
+      {activeTab === 'procedures' && (
+        <section className="mb-8">
+          <h2 className="font-heading text-lg font-bold mb-3">{t('specialties.common_procedures')}</h2>
+          {(specialty.meta?.procedures || []).length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {(specialty.meta?.procedures || []).map((p: string) => (
+                <span key={p} className="text-xs bg-secondary text-secondary-foreground rounded-full px-3 py-1.5 border border-border/60">{p}</span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">{t('specialties.no_procedures')}</p>
+          )}
+        </section>
+      )}
+
+      {activeTab === 'tests' && (
+        <section className="mb-8">
+          <h2 className="font-heading text-lg font-bold mb-3">{t('specialties.tab_tests_packages')}</h2>
+          <p className="text-muted-foreground text-sm mb-4">{t('specialties.tests_packages_desc')}</p>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild variant="outline" className="gap-2">
+              <Link to={`/lab-tests?specialty=${encodeURIComponent(specialty.name)}`}><FlaskConical className="w-4 h-4" /> {t('specialties.browse_lab_tests')}</Link>
+            </Button>
+            <Button asChild variant="outline" className="gap-2">
+              <Link to={`/health-packages?specialty=${encodeURIComponent(specialty.name)}`}><ClipboardList className="w-4 h-4" /> {t('specialties.browse_packages')}</Link>
+            </Button>
           </div>
         </section>
       )}
 
       {!counts.isLoading && scope === 'city' && metroCity && (
         <p className="text-xs text-muted-foreground flex items-center gap-1 mb-6">{t('specialties.counted_in', { city: metroCity })}</p>
-      )}
-
-      {!!(specialty.meta?.conditions || []).length && (
-        <section className="mb-8">
-          <h2 className="font-heading text-lg font-bold mb-3">{t('specialties.conditions_treated')}</h2>
-          <div className="flex flex-wrap gap-2">
-            {(specialty.meta?.conditions || []).map((c: string) => (
-              <span key={c} className="text-xs bg-secondary text-secondary-foreground rounded-full px-3 py-1.5 border border-border/60">{c}</span>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {!!(specialty.meta?.procedures || []).length && (
-        <section className="mb-8">
-          <h2 className="font-heading text-lg font-bold mb-3">{t('specialties.common_procedures')}</h2>
-          <div className="flex flex-wrap gap-2">
-            {(specialty.meta?.procedures || []).map((p: string) => (
-              <span key={p} className="text-xs bg-secondary text-secondary-foreground rounded-full px-3 py-1.5 border border-border/60">{p}</span>
-            ))}
-          </div>
-        </section>
       )}
     </div>
   );

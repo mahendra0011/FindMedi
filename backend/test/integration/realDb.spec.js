@@ -79,4 +79,62 @@ describe('SITE-TESTS 1.11: real-DB schema mechanics', () => {
       patientName: 'Dup Two',
     })).rejects.toMatchObject({ code: 11000 });
   });
+
+  // SITE-SEC 1.7: banking + KYC identifiers must not sit in plaintext at rest.
+  it('encrypts BankAccount number/IFSC at rest and dedupes via blind index', async () => {
+    const { default: BankAccount } = await import('../../src/models/BankAccount.js');
+    const phi = await import('../../src/utils/phiFields.js');
+    const hospitalId = new mongoose.Types.ObjectId();
+    await BankAccount.init();
+
+    const acct = await BankAccount.create({
+      hospitalId,
+      bankName: 'HDFC',
+      accountNo: '123456789012',
+      ifsc: 'HDFC0001234',
+      accountNoHash: phi.phiBlindIndex('123456789012'),
+    });
+
+    const raw = await mongoose.connection.collection('bankaccounts').findOne({ _id: acct._id });
+    expect(raw.accountNo).not.toContain('123456789012');
+    expect(raw.ifsc).not.toContain('HDFC0001234');
+    expect(phi.revealPhi('BankAccount', 'accountNo', raw.accountNo)).toBe('123456789012');
+
+    const read = await BankAccount.findById(acct._id);
+    expect(read.accountNo).toBe('123456789012');
+    expect(read.ifsc).toBe('HDFC0001234');
+
+    await expect(BankAccount.create({
+      hospitalId,
+      bankName: 'HDFC',
+      accountNo: '123456789012',
+      accountNoHash: phi.phiBlindIndex('123456789012'),
+    })).rejects.toMatchObject({ code: 11000 });
+  });
+
+  it('encrypts Supplier PAN/bank/KYC doc numbers at rest and decrypts on read', async () => {
+    const { default: Supplier } = await import('../../src/models/Supplier.js');
+
+    const supplier = await Supplier.create({
+      supplierId: `SUP-${Date.now()}`,
+      name: 'Acme Medicals',
+      phone: '9999999999',
+      pan: 'ABCDE1234F',
+      bankAccount: '555566667777',
+      ifsc: 'HDFC0001234',
+      kycDocs: [{ docType: 'PAN', docNumber: 'ABCDE1234F' }],
+    });
+
+    const raw = await mongoose.connection.collection('suppliers').findOne({ _id: supplier._id });
+    expect(raw.pan).not.toBe('ABCDE1234F');
+    expect(raw.bankAccount).not.toBe('555566667777');
+    expect(raw.ifsc).not.toBe('HDFC0001234');
+    expect(raw.kycDocs[0].docNumber).not.toBe('ABCDE1234F');
+
+    const read = await Supplier.findById(supplier._id);
+    expect(read.pan).toBe('ABCDE1234F');
+    expect(read.bankAccount).toBe('555566667777');
+    expect(read.ifsc).toBe('HDFC0001234');
+    expect(read.kycDocs[0].docNumber).toBe('ABCDE1234F');
+  });
 });

@@ -420,8 +420,6 @@ export const updateDoctorSchema = z.object({
     video: positiveNumber.optional(),
     offline: positiveNumber.optional(),
     home_visit: positiveNumber.optional(),
-    // SERVICE_MODES includes audio; the model stores a fee per mode and this
-    // object used to reject the only audio price a doctor could set.
     audio: positiveNumber.optional(),
   }).optional(),
   chat_fee: positiveNumber.optional(),
@@ -429,8 +427,8 @@ export const updateDoctorSchema = z.object({
   offline_fee: positiveNumber.optional(),
   home_visit_fee: positiveNumber.optional(),
   emergency_fee: positiveNumber.optional(),
-  emergencySupport: z.boolean().optional(),
-  refundOnMissedOrCancelled: z.boolean().optional(),
+  conditionsTreated: z.array(z.object({ code: z.string().max(64).optional(), label: z.string().trim().min(1).max(160) })).max(50).optional(),
+  procedures: z.array(z.object({ code: z.string().max(64).optional(), label: z.string().trim().min(1).max(160) })).max(50).optional(),
 })
   // DOC-B-01: still `.passthrough()` so the ~40 legacy flat settings keys above
   // keep working, but every server-owned field is rejected explicitly.
@@ -3042,4 +3040,49 @@ export const iamPolicySchema = z.object({
   name: z.string().trim().min(2).max(120),
   statements: z.array(iamStatementSchema).min(1).max(50),
   boundaryId: z.string().regex(/^[0-9a-f]{24}$/i).optional(),
+}).strict();
+
+// Spec 2.3: recurring refill subscriptions (self-service).
+export const createRefillSubscriptionSchema = z.object({
+  prescriptionId: z.string().regex(/^[0-9a-f]{24}$/i).optional(),
+  medicineReminderId: z.string().regex(/^[0-9a-f]{24}$/i).optional(),
+  medicineName: z.string().trim().min(1).max(200),
+  dosage: z.string().trim().max(100).optional(),
+  frequency: z.string().trim().max(100).optional(),
+  quantityPerRefill: z.number().int().min(1).max(100).optional(),
+  intervalDays: z.number().int().min(1).max(180).optional(),
+  reminderDaysBefore: z.number().int().min(0).max(14).optional(),
+  deliveryAddress: z.string().trim().max(500).optional(),
+  autoOrder: z.boolean().optional(),
+  startAt: z.string().datetime().optional(),
+  notes: z.string().trim().max(500).optional(),
+}).strict();
+
+export const refillActionSchema = z.object({
+  early: z.boolean().optional(),
+  note: z.string().trim().max(300).optional(),
+}).strict();
+
+// Spec 2.4: home sample pickup / sample courier task creation + rider updates.
+export const createSampleCourierSchema = z.object({
+  orderId: z.string().trim().max(120).optional(),
+  labBookingId: z.string().regex(/^[0-9a-f]{24}$/i).optional(),
+  labOrderId: z.string().regex(/^[0-9a-f]{24}$/i).optional(),
+  pickupName: z.string().trim().max(200).optional(),
+  pickupAddress: z.string().trim().min(5).max(500),
+  pickupLocation: z.object({ lat: z.number(), lng: z.number() }).optional(),
+  dropAddress: z.string().trim().min(5).max(500),
+  dropLocation: z.object({ lat: z.number(), lng: z.number() }).optional(),
+  patientName: z.string().trim().max(200).optional(),
+  patientPhone: z.string().trim().max(20).optional(),
+  deliveryFee: z.number().nonnegative().optional(),
+  notes: z.string().trim().max(1000).optional(),
+  estimatedTime: z.string().trim().max(100).optional(),
+}).strict();
+
+export const sampleCourierStatusSchema = z.object({
+  status: z.enum(['Picked Up', 'Out for Delivery', 'Delivered', 'Failed', 'Cancelled']),
+  otp: z.string().trim().max(10).optional(),
+  proofPhoto: z.string().trim().max(2000).optional(),
+  tracking: z.object({ lat: z.number(), lng: z.number() }).optional(),
 }).strict();

@@ -6,16 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
-import { CANONICAL_SPECIALTIES } from '@/data/specialties';
 import { useSpecialtyTiles } from '@/hooks/useSpecialtyBrowse';
 
 export default function SecondOpinion() {
-  // Specialty codes come from the live taxonomy (43 top-level tiles); the
-  // canonical copy only backs the offline fallback.
-  const { tiles } = useSpecialtyTiles();
-  const specialtyOptions = tiles.length
-    ? tiles.map(t => ({ code: t.code, name: t.name }))
-    : CANONICAL_SPECIALTIES.map(s => ({ code: s.code, name: s.name }));
+  // Specialty codes come from the live taxonomy (43 top-level tiles).
+  const { tiles, isLoading: specialtiesLoading } = useSpecialtyTiles();
+  const specialtyOptions = tiles.map(t => ({ code: t.code, name: t.name }));
 
   const [tab, setTab] = useState<'create' | 'history'>('create');
   const [records, setRecords] = useState<any[]>([]);
@@ -157,9 +153,10 @@ export default function SecondOpinion() {
                 <select
                   value={selectedSpecialty}
                   onChange={e => setSelectedSpecialty(e.target.value)}
+                  disabled={specialtiesLoading}
                   className="w-full bg-background border border-border/60 rounded-xl px-3 py-2 text-sm"
                 >
-                  <option value="">All Specialties ({specialtyOptions.length})</option>
+                  <option value="">{specialtiesLoading ? 'Loading specialties\u2026' : `All Specialties (${specialtyOptions.length})`}</option>
                   {specialtyOptions.map(s => (
                     <option key={s.code} value={s.code}>{s.name}</option>
                   ))}
