@@ -7,7 +7,7 @@ import ConsentRecord from '../models/ConsentRecord.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
-import { protect, authorize } from '../middleware/auth.js';
+import { protect, authorize, isPlatformBreakGlassRole } from '../middleware/auth.js';
 // AUTHZ-M-03 (F7): amending a medico-legal record re-proves the operator is
 // still there - the session token alone must not suffice.
 import { requireStepUp } from '../middleware/stepUpAuth.js';
@@ -513,7 +513,7 @@ const canAccessRecordDoc = (req, record) => {
   if (!record) return false;
   // File 23 §3.3/§5.3: no default superadmin reads. The authorize() PHI gate
   // attaches req.breakGlass after verifying an approved grant for the subject.
-  if (req.user.role === 'superadmin') return Boolean(req.breakGlass);
+  if (isPlatformBreakGlassRole(req.user.role)) return Boolean(req.breakGlass);
 
   if (req.user.role === 'patient') {
     return Boolean(record.patientId && record.patientId.toString() === String(req.user._id || req.user.id));

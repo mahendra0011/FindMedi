@@ -3,7 +3,7 @@ import { z } from 'zod';
 import Bed from '../models/Bed.js';
 import Admission from '../models/Admission.js';
 import Notification from '../models/Notification.js';
-import { protect, adminOnly, clinicalStaffOnly, authorize } from '../middleware/auth.js';
+import { protect, denyPlatformClinicalAccess, adminOnly, clinicalStaffOnly, authorize } from '../middleware/auth.js';
 import { validate, createAdmissionSchema } from '../utils/validate.js';
 import { generateAdmissionId, generate16DigitId } from '../utils/idGenerator.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
@@ -27,11 +27,11 @@ const ipdClinicalSchema = z.object({
 const router = express.Router();
 
 // ─── Bed Management ────────────────────────────────────────────────────────
-router.get('/beds', protect, async (req, res) => {
+router.get('/beds', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const { ward, status } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (ward && ward !== 'All') filter.ward = ward;
     if (status && status !== 'All') filter.status = status;
     const beds = await Bed.find(filter).sort({ bedNumber: 1 });
@@ -39,7 +39,7 @@ router.get('/beds', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/beds', protect, adminOnly, validate(ipdBedSchema), async (req, res) => {
+router.post('/beds', protect, denyPlatformClinicalAccess, adminOnly, validate(ipdBedSchema), async (req, res) => {
   try {
     // §13.8: validated schema is already strict — still pick explicitly so a
     // future field addition cannot smuggle hospitalId/status/tenant keys.
@@ -52,11 +52,11 @@ router.post('/beds', protect, adminOnly, validate(ipdBedSchema), async (req, res
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/beds/:id', protect, validate(ipdBedSchema), async (req, res) => {
+router.put('/beds/:id', protect, denyPlatformClinicalAccess, validate(ipdBedSchema), async (req, res) => {
   try {
     const bed = await Bed.findById(req.params.id);
     if (!bed) return res.status(404).json({ message: 'Bed not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && bed.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || bed.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     // AUTH-030: allowlisted fields only — bedNumber/occupancy/tenant linkage immutable here.
@@ -68,7 +68,7 @@ router.put('/beds/:id', protect, validate(ipdBedSchema), async (req, res) => {
 });
 
 // ─── Admission ─────────────────────────────────────────────────────────────
-router.post('/admissions', protect, adminOnly, validate(createAdmissionSchema), async (req, res) => {
+router.post('/admissions', protect, denyPlatformClinicalAccess, adminOnly, validate(createAdmissionSchema), async (req, res) => {
   try {
     // RIDE-B-17 (partial): the bed scope below was `{ hospitalId: undefined }`
     // for a tenant-less caller, which Mongoose strips — degrading to a GLOBAL
@@ -147,11 +147,11 @@ router.post('/admissions', protect, adminOnly, validate(createAdmissionSchema), 
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.get('/admissions', protect, async (req, res) => {
+router.get('/admissions', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const { status, search, patientId } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (status && status !== 'All') filter.status = status;
     if (req.user.role === 'patient') {
       filter.patientId = req.user._id;
@@ -170,11 +170,11 @@ router.get('/admissions', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/admissions/:id', protect, async (req, res) => {
+router.get('/admissions/:id', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id).populate('patientId', 'name email phone');
     if (!admission) return res.status(404).json({ message: 'Admission not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && admission.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || admission.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     res.json(admission);
@@ -182,12 +182,12 @@ router.get('/admissions/:id', protect, async (req, res) => {
 });
 
 // ─── Discharge ─────────────────────────────────────────────────────────────
-router.put('/admissions/:id/discharge', protect, adminOnly, validate(ipdDischargeSchema), async (req, res) => {
+router.put('/admissions/:id/discharge', protect, denyPlatformClinicalAccess, adminOnly, validate(ipdDischargeSchema), async (req, res) => {
   try {
     const { dischargeSummary, isInfectionCase } = req.body;
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Admission not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && admission.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || admission.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -232,11 +232,11 @@ router.put('/admissions/:id/discharge', protect, adminOnly, validate(ipdDischarg
 });
 
 // ─── Clinical Charting ─────────────────────────────────────────────────────
-router.post('/admissions/:id/vitals', protect, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
+router.post('/admissions/:id/vitals', protect, denyPlatformClinicalAccess, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && admission.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || admission.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     admission.vitals.push({ ...req.body, recordedBy: req.user.name });
@@ -245,11 +245,11 @@ router.post('/admissions/:id/vitals', protect, clinicalStaffOnly, validate(ipdCl
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/admissions/:id/mar', protect, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
+router.post('/admissions/:id/mar', protect, denyPlatformClinicalAccess, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && admission.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || admission.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     admission.mar.push({ ...req.body, administeredBy: req.user.name });
@@ -258,11 +258,11 @@ router.post('/admissions/:id/mar', protect, clinicalStaffOnly, validate(ipdClini
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/admissions/:id/io', protect, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
+router.post('/admissions/:id/io', protect, denyPlatformClinicalAccess, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && admission.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || admission.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     admission.ioChart.push({ ...req.body, recordedBy: req.user.name });
@@ -271,11 +271,11 @@ router.post('/admissions/:id/io', protect, clinicalStaffOnly, validate(ipdClinic
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/admissions/:id/nursing-notes', protect, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
+router.post('/admissions/:id/nursing-notes', protect, denyPlatformClinicalAccess, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && admission.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || admission.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     admission.nursingNotes.push({ ...req.body, nurseName: req.user.name });
@@ -294,11 +294,11 @@ const clinicianOnly = (req, res, next) => {
   return next();
 };
 
-router.post('/admissions/:id/doctor-notes', protect, clinicianOnly, validate(ipdClinicalSchema), async (req, res) => {
+router.post('/admissions/:id/doctor-notes', protect, denyPlatformClinicalAccess, clinicianOnly, validate(ipdClinicalSchema), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && admission.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || admission.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     admission.doctorNotes.push({ ...req.body, doctorName: req.user.name });
@@ -307,11 +307,11 @@ router.post('/admissions/:id/doctor-notes', protect, clinicianOnly, validate(ipd
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/admissions/:id/wound-care', protect, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
+router.post('/admissions/:id/wound-care', protect, denyPlatformClinicalAccess, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && admission.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || admission.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     admission.woundCare.push({ ...req.body, performedBy: req.user.name });
@@ -321,7 +321,7 @@ router.post('/admissions/:id/wound-care', protect, clinicalStaffOnly, validate(i
 });
 
 // ─── Deposits (F2/IPD advance ledger) ───────────────────────────────────────
-router.get('/admissions/:id/deposits', protect, authorize('billing:read'), async (req, res) => {
+router.get('/admissions/:id/deposits', protect, denyPlatformClinicalAccess, authorize('billing:read'), async (req, res) => {
   try {
     const { default: IpdDeposit } = await import('../models/IpdDeposit.js');
     const rows = await IpdDeposit.find({ admissionId: req.params.id }).sort({ createdAt: 1 }).lean();
@@ -330,7 +330,7 @@ router.get('/admissions/:id/deposits', protect, authorize('billing:read'), async
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/admissions/:id/deposits', protect, adminOnly, async (req, res) => {
+router.post('/admissions/:id/deposits', protect, denyPlatformClinicalAccess, adminOnly, async (req, res) => {
   try {
     const { type, amount, mode, remarks, receiptNo } = req.body || {};
     if (!['Receive', 'Adjust', 'Refund'].includes(type) || !(Number(amount) > 0)) {
@@ -338,7 +338,7 @@ router.post('/admissions/:id/deposits', protect, adminOnly, async (req, res) => 
     }
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Admission not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && admission.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || admission.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const { default: IpdDeposit } = await import('../models/IpdDeposit.js');
@@ -353,13 +353,13 @@ router.post('/admissions/:id/deposits', protect, adminOnly, async (req, res) => 
 });
 
 // ─── Bed transfer (F8) ──────────────────────────────────────────────────────
-router.post('/admissions/:id/transfer', protect, adminOnly, async (req, res) => {
+router.post('/admissions/:id/transfer', protect, denyPlatformClinicalAccess, adminOnly, async (req, res) => {
   try {
     const { toBedId, reason } = req.body || {};
     if (!toBedId) return res.status(400).json({ message: 'toBedId required' });
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Admission not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && admission.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || admission.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const toBed = await Bed.findById(toBedId);
@@ -390,11 +390,11 @@ router.post('/admissions/:id/transfer', protect, adminOnly, async (req, res) => 
 });
 
 // ─── Running bill (pending charges + deposit balance) ───────────────────────
-router.get('/admissions/:id/running-bill', protect, authorize('billing:read'), async (req, res) => {
+router.get('/admissions/:id/running-bill', protect, denyPlatformClinicalAccess, authorize('billing:read'), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Admission not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && admission.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || admission.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const [{ default: ChargeItem }, { default: IpdDeposit }] = await Promise.all([
@@ -413,13 +413,13 @@ router.get('/admissions/:id/running-bill', protect, authorize('billing:read'), a
 // ─── Discharge workflow (F1/F3/F4 state machine) ────────────────────────────
 const dischargeTenantCheck = async (req, admission) => {
   if (!admission) return 'Admission not found';
-  if (req.user.hospitalId && req.user.role !== 'superadmin' && admission.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+  if (req.user.role !== 'superadmin' && (!req.user.hospitalId || admission.hospitalId?.toString() !== req.user.hospitalId.toString())) {
     return 'Access denied';
   }
   return null;
 };
 
-router.post('/admissions/:id/discharge/initiate', protect, clinicianOnly, async (req, res) => {
+router.post('/admissions/:id/discharge/initiate', protect, denyPlatformClinicalAccess, clinicianOnly, async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     const denied = await dischargeTenantCheck(req, admission);
@@ -445,7 +445,7 @@ router.post('/admissions/:id/discharge/initiate', protect, clinicianOnly, async 
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/admissions/:id/discharge/approve', protect, clinicianOnly, async (req, res) => {
+router.put('/admissions/:id/discharge/approve', protect, denyPlatformClinicalAccess, clinicianOnly, async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     const denied = await dischargeTenantCheck(req, admission);
@@ -463,7 +463,7 @@ router.put('/admissions/:id/discharge/approve', protect, clinicianOnly, async (r
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/admissions/:id/discharge/clear/:stage', protect, async (req, res) => {
+router.put('/admissions/:id/discharge/clear/:stage', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const { stage } = req.params;
     const map = { nursing: 'NursingClear', pharmacy: 'PharmacyClear', billing: 'BillingClear' };
@@ -484,7 +484,7 @@ router.put('/admissions/:id/discharge/clear/:stage', protect, async (req, res) =
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/admissions/:id/discharge/finalize', protect, adminOnly, async (req, res) => {
+router.post('/admissions/:id/discharge/finalize', protect, denyPlatformClinicalAccess, adminOnly, async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     const denied = await dischargeTenantCheck(req, admission);
@@ -577,7 +577,7 @@ router.post('/admissions/:id/discharge/finalize', protect, adminOnly, async (req
 });
 
 // ─── Interim bill (bill-on-demand, admission stays open) ────────────────────
-router.post('/admissions/:id/bills/interim', protect, authorize('billing:write'), async (req, res) => {
+router.post('/admissions/:id/bills/interim', protect, denyPlatformClinicalAccess, authorize('billing:write'), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     const denied = await dischargeTenantCheck(req, admission);
@@ -609,7 +609,7 @@ router.post('/admissions/:id/bills/interim', protect, authorize('billing:write')
 });
 
 // ─── Discharge summary PDF (from the structured workflow summary) ──────────
-router.get('/admissions/:id/discharge/summary-pdf', protect, authorize('billing:read'), async (req, res) => {
+router.get('/admissions/:id/discharge/summary-pdf', protect, denyPlatformClinicalAccess, authorize('billing:read'), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     const denied = await dischargeTenantCheck(req, admission);
@@ -639,7 +639,7 @@ router.get('/admissions/:id/discharge/summary-pdf', protect, authorize('billing:
 });
 
 // ─── Ward rounds ────────────────────────────────────────────────────────────
-router.post('/admissions/:id/rounds', protect, clinicianOnly, async (req, res) => {
+router.post('/admissions/:id/rounds', protect, denyPlatformClinicalAccess, clinicianOnly, async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     const denied = await dischargeTenantCheck(req, admission);
@@ -655,7 +655,7 @@ router.post('/admissions/:id/rounds', protect, clinicianOnly, async (req, res) =
 });
 
 // ─── Shift handover (SBAR) ──────────────────────────────────────────────────
-router.post('/handovers', protect, clinicalStaffOnly, async (req, res) => {
+router.post('/handovers', protect, denyPlatformClinicalAccess, clinicalStaffOnly, async (req, res) => {
   try {
     const { wardId, shift, toNurse, sbar } = req.body || {};
     if (!['Morning', 'Evening', 'Night'].includes(shift)) {
@@ -672,7 +672,7 @@ router.post('/handovers', protect, clinicalStaffOnly, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/handovers/:id/ack', protect, clinicalStaffOnly, async (req, res) => {
+router.post('/handovers/:id/ack', protect, denyPlatformClinicalAccess, clinicalStaffOnly, async (req, res) => {
   try {
     const { default: ShiftHandover } = await import('../models/ShiftHandover.js');
     const h = await ShiftHandover.findById(req.params.id);
@@ -685,7 +685,7 @@ router.post('/handovers/:id/ack', protect, clinicalStaffOnly, async (req, res) =
 });
 
 // ─── Consent forms ──────────────────────────────────────────────────────────
-router.post('/admissions/:id/consents', protect, clinicianOnly, async (req, res) => {
+router.post('/admissions/:id/consents', protect, denyPlatformClinicalAccess, clinicianOnly, async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     const denied = await dischargeTenantCheck(req, admission);
@@ -705,7 +705,7 @@ router.post('/admissions/:id/consents', protect, clinicianOnly, async (req, res)
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/consents/:id/revoke', protect, clinicianOnly, async (req, res) => {
+router.post('/consents/:id/revoke', protect, denyPlatformClinicalAccess, clinicianOnly, async (req, res) => {
   try {
     const { default: ConsentForm } = await import('../models/ConsentForm.js');
     const c = await ConsentForm.findById(req.params.id);
@@ -717,7 +717,7 @@ router.post('/consents/:id/revoke', protect, clinicianOnly, async (req, res) => 
 });
 
 // ─── Bed-charge accrual trigger (daily job; manual run for catch-up) ───────
-router.post('/jobs/accrue-bed-charges', protect, adminOnly, async (req, res) => {
+router.post('/jobs/accrue-bed-charges', protect, denyPlatformClinicalAccess, adminOnly, async (req, res) => {
   try {
     const { runBedChargeAccrualOnce } = await import('../jobs/bedChargeAccrual.job.js');
     const result = await runBedChargeAccrualOnce({
@@ -729,11 +729,12 @@ router.post('/jobs/accrue-bed-charges', protect, adminOnly, async (req, res) => 
 });
 
 // ─── Stats ─────────────────────────────────────────────────────────────────
-router.get('/stats', protect, async (req, res) => {
+router.get('/stats', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const bedFilter = {};
     const admissionFilter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') {
+    if (req.user.role !== 'superadmin') {
+      if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' });
       bedFilter.hospitalId = req.user.hospitalId;
       admissionFilter.hospitalId = req.user.hospitalId;
     }

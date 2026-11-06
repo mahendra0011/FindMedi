@@ -277,7 +277,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -847,7 +846,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -1355,7 +1353,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -1892,7 +1889,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -2425,7 +2421,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -2958,7 +2953,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -3482,7 +3476,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -4005,7 +3998,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -4520,7 +4512,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -5027,7 +5018,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -5541,7 +5531,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -6054,7 +6043,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -6563,7 +6551,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -9769,6 +9756,377 @@
     "isActive": true
   },
   {
+    "typeKey": "occupational_therapist",
+    "kind": "practitioner",
+    "group": "clinical",
+    "tier": "T2",
+    "label": "Occupational Therapist",
+    "icon": "Hand",
+    "description": "Occupational therapist, RCI registered, for ADL and sensory rehab.",
+    "steps": [
+      {
+        "key": "account",
+        "label": "Account",
+        "fields": [
+          "referral_code"
+        ]
+      },
+      {
+        "key": "identity",
+        "label": "Profile & registration",
+        "fields": [
+          "display_name",
+          "owner_name",
+          "registration_number",
+          "qualification",
+          "years_experience",
+          "languages",
+          "focus",
+          "age_group"
+        ]
+      },
+      {
+        "key": "location",
+        "label": "Practice location",
+        "fields": [
+          "address",
+          "landmark",
+          "geo"
+        ]
+      },
+      {
+        "key": "services",
+        "label": "Services & fee",
+        "fields": [
+          "services",
+          "base_fee",
+          "modes",
+          "schemes_accepted"
+        ]
+      },
+      {
+        "key": "documents",
+        "label": "Documents",
+        "fields": []
+      },
+      {
+        "key": "payout",
+        "label": "Payout / bank",
+        "fields": [
+          "account_holder",
+          "bank_name",
+          "ifsc",
+          "account_number",
+          "upi"
+        ]
+      },
+      {
+        "key": "availability",
+        "label": "Availability",
+        "fields": [
+          "slots_per_day",
+          "max_per_slot",
+          "advance_booking_days"
+        ]
+      },
+      {
+        "key": "agreement",
+        "label": "Policies & agreement",
+        "fields": [
+          "cancellation_policy_accepted",
+          "commission_accepted",
+          "data_processing_accepted"
+        ]
+      },
+      {
+        "key": "review",
+        "label": "Review & submit",
+        "fields": [
+          "declaration"
+        ]
+      }
+    ],
+    "fields": [
+      {
+        "key": "referral_code",
+        "label": "Referral code",
+        "type": "text",
+        "help": "Optional. From someone who already uses FindMedi."
+      },
+      {
+        "key": "display_name",
+        "label": "Display name",
+        "type": "text",
+        "required": true,
+        "help": "What patients see on your listing."
+      },
+      {
+        "key": "owner_name",
+        "label": "Owner / partner name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "registration_number",
+        "label": "Registration number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "qualification",
+        "label": "Qualifications",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "years_experience",
+        "label": "Years of experience",
+        "type": "number"
+      },
+      {
+        "key": "languages",
+        "label": "Languages spoken",
+        "type": "multiselect",
+        "options": [
+          "Hindi",
+          "English",
+          "Marathi",
+          "Gujarati",
+          "Bengali",
+          "Tamil",
+          "Telugu",
+          "Kannada",
+          "Malayalam",
+          "Punjabi",
+          "Odia",
+          "Assamese",
+          "Urdu",
+          "Sindhi",
+          "Konkani",
+          "Nepali"
+        ]
+      },
+      {
+        "key": "focus",
+        "label": "Focus areas",
+        "type": "multiselect",
+        "options": [
+          "occupational",
+          "sensory",
+          "motor",
+          "cognitive",
+          "feeding",
+          "gero_reach"
+        ]
+      },
+      {
+        "key": "age_group",
+        "label": "Age group served",
+        "type": "select",
+        "options": [
+          "paediatric",
+          "adult",
+          "both"
+        ]
+      },
+      {
+        "key": "address",
+        "label": "Address",
+        "type": "address",
+        "required": true
+      },
+      {
+        "key": "landmark",
+        "label": "Landmark",
+        "type": "text"
+      },
+      {
+        "key": "geo",
+        "label": "Map pin",
+        "type": "geo",
+        "required": true,
+        "help": "Pin should match the address above."
+      },
+      {
+        "key": "services",
+        "label": "Services offered",
+        "type": "multiselect",
+        "required": true,
+        "options": [
+          "Consultation",
+          "Follow-up",
+          "Procedure",
+          "Health check-up",
+          "Lab test",
+          "Sample collection",
+          "Imaging",
+          "Physiotherapy session",
+          "Counselling session",
+          "Home visit",
+          "Video consult",
+          "Vaccination",
+          "Dental procedure",
+          "Diet plan",
+          "Yoga class",
+          "Gym session",
+          "Personal training",
+          "Massage / therapy",
+          "Rental",
+          "Delivery",
+          "Training / course",
+          "Camp / screening"
+        ]
+      },
+      {
+        "key": "base_fee",
+        "label": "Standard fee (INR)",
+        "type": "number"
+      },
+      {
+        "key": "modes",
+        "label": "Service modes",
+        "type": "multiselect",
+        "options": [
+          "in_person",
+          "home_visit",
+          "video",
+          "audio",
+          "chat",
+          "delivery"
+        ]
+      },
+      {
+        "key": "schemes_accepted",
+        "label": "Schemes / insurance accepted",
+        "type": "multiselect",
+        "options": [
+          "pmjay",
+          "cghs",
+          "esi",
+          "echs",
+          "state_scheme",
+          "insurance_cashless",
+          "tpa_empanelled",
+          "corporate_tie_up"
+        ]
+      },
+      {
+        "key": "account_holder",
+        "label": "Account holder name",
+        "type": "text",
+        "required": true,
+        "help": "Must match the PAN name."
+      },
+      {
+        "key": "bank_name",
+        "label": "Bank name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "ifsc",
+        "label": "IFSC",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "account_number",
+        "label": "Account number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "upi",
+        "label": "UPI ID",
+        "type": "text"
+      },
+      {
+        "key": "slots_per_day",
+        "label": "Slots per day",
+        "type": "number"
+      },
+      {
+        "key": "max_per_slot",
+        "label": "Max bookings per slot",
+        "type": "number"
+      },
+      {
+        "key": "advance_booking_days",
+        "label": "Advance booking window (days)",
+        "type": "number"
+      },
+      {
+        "key": "cancellation_policy_accepted",
+        "label": "Cancellation & refund policy accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "commission_accepted",
+        "label": "Commission terms accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "data_processing_accepted",
+        "label": "Data processing agreement accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "declaration",
+        "label": "I confirm the information above is true and current",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "requiredDocs": [
+      {
+        "key": "rci_reg",
+        "label": "RCI registration",
+        "mandatory": true,
+        "expiryRequired": true,
+        "maxMb": 10
+      },
+      {
+        "key": "degree",
+        "label": "Occupational therapy degree / diploma",
+        "mandatory": true,
+        "expiryRequired": false,
+        "maxMb": 10
+      },
+      {
+        "key": "owner_id",
+        "label": "Government photo ID",
+        "mandatory": true,
+        "expiryRequired": false,
+        "maxMb": 10
+      }
+    ],
+    "optionalDocs": [
+      {
+        "key": "training_cert",
+        "label": "Additional certification",
+        "mandatory": false,
+        "expiryRequired": false,
+        "maxMb": 10
+      }
+    ],
+    "agreementTemplateId": "tmpl_clinical",
+    "approvalPolicy": {
+      "level": "single",
+      "slaHours": 24,
+      "twoPerson": false
+    },
+    "commissionDefaults": {
+      "percent": 10,
+      "fixed": 0,
+      "currency": "INR"
+    },
+    "version": 1,
+    "isActive": true
+  },
+  {
     "typeKey": "speech_therapist",
     "kind": "practitioner",
     "group": "clinical",
@@ -10768,7 +11126,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -11295,7 +11652,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -11840,7 +12196,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -12354,7 +12709,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -14415,7 +14769,8 @@
           "surgical",
           "mobility",
           "consumables",
-          "rehab"
+          "rehab",
+          "fall_detection"
         ]
       },
       {
@@ -14777,7 +15132,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -15671,7 +16025,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },
@@ -15894,6 +16247,1268 @@
         "label": "Service registration",
         "mandatory": false,
         "expiryRequired": false,
+        "maxMb": 10
+      }
+    ],
+    "agreementTemplateId": "tmpl_home_service",
+    "approvalPolicy": {
+      "level": "dual",
+      "slaHours": 48,
+      "twoPerson": false
+    },
+    "commissionDefaults": {
+      "percent": 12,
+      "fixed": 0,
+      "currency": "INR"
+    },
+    "version": 1,
+    "isActive": true
+  },
+  {
+    "typeKey": "home_vaccination",
+    "kind": "practitioner",
+    "group": "home_service",
+    "tier": "T1",
+    "label": "Home Vaccination",
+    "icon": "Syringe",
+    "description": "Doorstep adult and pediatric vaccination with cold-chain handling.",
+    "steps": [
+      {
+        "key": "account",
+        "label": "Account",
+        "fields": [
+          "referral_code"
+        ]
+      },
+      {
+        "key": "identity",
+        "label": "Profile & registration",
+        "fields": [
+          "display_name",
+          "owner_name",
+          "registration_number",
+          "qualification",
+          "years_experience",
+          "languages",
+          "vaccines_offered",
+          "cold_storage",
+          "home_visit_radius_km"
+        ]
+      },
+      {
+        "key": "location",
+        "label": "Practice location",
+        "fields": [
+          "address",
+          "landmark",
+          "geo"
+        ]
+      },
+      {
+        "key": "services",
+        "label": "Services & fee",
+        "fields": [
+          "services",
+          "base_fee",
+          "modes",
+          "schemes_accepted"
+        ]
+      },
+      {
+        "key": "documents",
+        "label": "Documents",
+        "fields": []
+      },
+      {
+        "key": "payout",
+        "label": "Payout / bank",
+        "fields": [
+          "account_holder",
+          "bank_name",
+          "ifsc",
+          "account_number",
+          "upi"
+        ]
+      },
+      {
+        "key": "availability",
+        "label": "Availability",
+        "fields": [
+          "slots_per_day",
+          "max_per_slot",
+          "advance_booking_days"
+        ]
+      },
+      {
+        "key": "agreement",
+        "label": "Policies & agreement",
+        "fields": [
+          "cancellation_policy_accepted",
+          "commission_accepted",
+          "data_processing_accepted"
+        ]
+      },
+      {
+        "key": "review",
+        "label": "Review & submit",
+        "fields": [
+          "declaration"
+        ]
+      }
+    ],
+    "fields": [
+      {
+        "key": "referral_code",
+        "label": "Referral code",
+        "type": "text",
+        "help": "Optional. From someone who already uses FindMedi."
+      },
+      {
+        "key": "display_name",
+        "label": "Display name",
+        "type": "text",
+        "required": true,
+        "help": "What patients see on your listing."
+      },
+      {
+        "key": "owner_name",
+        "label": "Owner / partner name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "registration_number",
+        "label": "Registration number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "qualification",
+        "label": "Qualifications",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "years_experience",
+        "label": "Years of experience",
+        "type": "number"
+      },
+      {
+        "key": "languages",
+        "label": "Languages spoken",
+        "type": "multiselect",
+        "options": [
+          "Hindi",
+          "English",
+          "Marathi",
+          "Gujarati",
+          "Bengali",
+          "Tamil",
+          "Telugu",
+          "Kannada",
+          "Malayalam",
+          "Punjabi",
+          "Odia",
+          "Assamese",
+          "Urdu",
+          "Sindhi",
+          "Konkani",
+          "Nepali"
+        ]
+      },
+      {
+        "key": "vaccines_offered",
+        "label": "Vaccines offered",
+        "type": "multiselect",
+        "options": [
+          "influenza",
+          "hpv",
+          "hepatitis",
+          "travel",
+          "pediatric",
+          "covid"
+        ]
+      },
+      {
+        "key": "cold_storage",
+        "label": "Cold storage available",
+        "type": "boolean"
+      },
+      {
+        "key": "home_visit_radius_km",
+        "label": "Home visit radius (km)",
+        "type": "number"
+      },
+      {
+        "key": "address",
+        "label": "Address",
+        "type": "address",
+        "required": true
+      },
+      {
+        "key": "landmark",
+        "label": "Landmark",
+        "type": "text"
+      },
+      {
+        "key": "geo",
+        "label": "Map pin",
+        "type": "geo",
+        "required": true,
+        "help": "Pin should match the address above."
+      },
+      {
+        "key": "services",
+        "label": "Services offered",
+        "type": "multiselect",
+        "required": true,
+        "options": [
+          "Consultation",
+          "Follow-up",
+          "Procedure",
+          "Health check-up",
+          "Lab test",
+          "Sample collection",
+          "Imaging",
+          "Physiotherapy session",
+          "Counselling session",
+          "Home visit",
+          "Video consult",
+          "Vaccination",
+          "Dental procedure",
+          "Diet plan",
+          "Yoga class",
+          "Gym session",
+          "Personal training",
+          "Massage / therapy",
+          "Rental",
+          "Delivery",
+          "Training / course",
+          "Camp / screening"
+        ]
+      },
+      {
+        "key": "base_fee",
+        "label": "Standard fee (INR)",
+        "type": "number"
+      },
+      {
+        "key": "modes",
+        "label": "Service modes",
+        "type": "multiselect",
+        "options": [
+          "in_person",
+          "home_visit",
+          "video",
+          "audio",
+          "chat",
+          "delivery"
+        ]
+      },
+      {
+        "key": "schemes_accepted",
+        "label": "Schemes / insurance accepted",
+        "type": "multiselect",
+        "options": [
+          "pmjay",
+          "cghs",
+          "esi",
+          "echs",
+          "state_scheme",
+          "insurance_cashless",
+          "tpa_empanelled",
+          "corporate_tie_up"
+        ]
+      },
+      {
+        "key": "account_holder",
+        "label": "Account holder name",
+        "type": "text",
+        "required": true,
+        "help": "Must match the PAN name."
+      },
+      {
+        "key": "bank_name",
+        "label": "Bank name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "ifsc",
+        "label": "IFSC",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "account_number",
+        "label": "Account number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "upi",
+        "label": "UPI ID",
+        "type": "text"
+      },
+      {
+        "key": "slots_per_day",
+        "label": "Slots per day",
+        "type": "number"
+      },
+      {
+        "key": "max_per_slot",
+        "label": "Max bookings per slot",
+        "type": "number"
+      },
+      {
+        "key": "advance_booking_days",
+        "label": "Advance booking window (days)",
+        "type": "number"
+      },
+      {
+        "key": "cancellation_policy_accepted",
+        "label": "Cancellation & refund policy accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "commission_accepted",
+        "label": "Commission terms accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "data_processing_accepted",
+        "label": "Data processing agreement accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "declaration",
+        "label": "I confirm the information above is true and current",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "requiredDocs": [
+      {
+        "key": "nursing_council_reg",
+        "label": "Nursing council registration",
+        "mandatory": true,
+        "expiryRequired": true,
+        "maxMb": 10
+      },
+      {
+        "key": "police_verification",
+        "label": "Police verification",
+        "mandatory": true,
+        "expiryRequired": true,
+        "maxMb": 10
+      },
+      {
+        "key": "owner_id",
+        "label": "Government photo ID",
+        "mandatory": true,
+        "expiryRequired": false,
+        "maxMb": 10
+      }
+    ],
+    "optionalDocs": [
+      {
+        "key": "training_cert",
+        "label": "Cold-chain / vaccine storage training",
+        "mandatory": false,
+        "expiryRequired": false,
+        "maxMb": 10
+      }
+    ],
+    "agreementTemplateId": "tmpl_home_service",
+    "approvalPolicy": {
+      "level": "dual",
+      "slaHours": 48,
+      "twoPerson": false
+    },
+    "commissionDefaults": {
+      "percent": 12,
+      "fixed": 0,
+      "currency": "INR"
+    },
+    "version": 1,
+    "isActive": true
+  },
+  {
+    "typeKey": "home_icu",
+    "kind": "facility",
+    "group": "home_service",
+    "tier": "T1",
+    "label": "Home ICU Setup",
+    "icon": "House",
+    "description": "Home ICU equipment plus trained nursing bundle for critical care at home.",
+    "steps": [
+      {
+        "key": "account",
+        "label": "Account",
+        "fields": [
+          "referral_code"
+        ]
+      },
+      {
+        "key": "business",
+        "label": "Business & identity",
+        "fields": [
+          "legal_name",
+          "display_name",
+          "owner_name",
+          "registration_type",
+          "sub_type",
+          "ownership",
+          "system_of_medicine",
+          "gstin",
+          "pan"
+        ]
+      },
+      {
+        "key": "location",
+        "label": "Location",
+        "fields": [
+          "address",
+          "landmark",
+          "geo"
+        ]
+      },
+      {
+        "key": "practitioners",
+        "label": "Practitioners & staff",
+        "fields": [
+          "practitioner_roster"
+        ]
+      },
+      {
+        "key": "services",
+        "label": "Services & pricing",
+        "fields": [
+          "services",
+          "base_fee",
+          "modes",
+          "schemes_accepted",
+          "icu_bed_count",
+          "equipment_bundle",
+          "nurses_count",
+          "available_24x7"
+        ]
+      },
+      {
+        "key": "documents",
+        "label": "Documents",
+        "fields": []
+      },
+      {
+        "key": "payout",
+        "label": "Payout / bank",
+        "fields": [
+          "account_holder",
+          "bank_name",
+          "ifsc",
+          "account_number",
+          "upi"
+        ]
+      },
+      {
+        "key": "availability",
+        "label": "Availability & capacity",
+        "fields": [
+          "slots_per_day",
+          "max_per_slot",
+          "advance_booking_days"
+        ]
+      },
+      {
+        "key": "agreement",
+        "label": "Policies & agreement",
+        "fields": [
+          "cancellation_policy_accepted",
+          "commission_accepted",
+          "data_processing_accepted"
+        ]
+      },
+      {
+        "key": "review",
+        "label": "Review & submit",
+        "fields": [
+          "declaration"
+        ]
+      }
+    ],
+    "fields": [
+      {
+        "key": "referral_code",
+        "label": "Referral code",
+        "type": "text",
+        "help": "Optional. From someone who already uses FindMedi."
+      },
+      {
+        "key": "legal_name",
+        "label": "Legal name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "display_name",
+        "label": "Display name",
+        "type": "text",
+        "required": true,
+        "help": "What patients see on your listing."
+      },
+      {
+        "key": "owner_name",
+        "label": "Owner / partner name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "registration_type",
+        "label": "Registration type",
+        "type": "select",
+        "required": true,
+        "options": [
+          "proprietorship",
+          "partnership",
+          "private_limited",
+          "trust",
+          "society",
+          "huf",
+          "llp",
+          "individual"
+        ]
+      },
+      {
+        "key": "sub_type",
+        "label": "Facility sub-type",
+        "type": "select",
+        "options": [
+          "multi_specialty",
+          "super_specialty",
+          "single_specialty",
+          "nursing_home",
+          "maternity_hospital",
+          "day_care_surgery",
+          "government_hospital",
+          "district_hospital",
+          "medical_college",
+          "phc",
+          "chc",
+          "uphc",
+          "sub_centre",
+          "arogya_mandir",
+          "mohalla_community_clinic",
+          "trauma_centre",
+          "rehabilitation_hospital",
+          "psychiatric_hospital",
+          "tb_chest_hospital",
+          "infectious_disease_hospital",
+          "cancer_centre",
+          "railway_esi_cghs_defence",
+          "single_doctor_clinic",
+          "polyclinic",
+          "specialty_clinic",
+          "dental_clinic",
+          "eye_clinic",
+          "ayush_clinic",
+          "physiotherapy_clinic",
+          "fertility_clinic",
+          "urgent_care_clinic",
+          "corporate_clinic",
+          "campus_clinic",
+          "telemedicine_clinic",
+          "pathology_lab",
+          "imaging_centre",
+          "diagnostic_centre",
+          "collection_centre",
+          "home_collection_lab",
+          "mobile_diagnostic_van",
+          "cardiac_diagnostic_centre",
+          "sleep_lab",
+          "genetic_molecular_lab",
+          "blood_bank",
+          "retail_pharmacy",
+          "hospital_pharmacy",
+          "jan_aushadhi_kendra",
+          "generic_store",
+          "pharmacy_24x7",
+          "online_pharmacy",
+          "ayurvedic_homeopathic_store",
+          "surgical_ortho_store",
+          "chain_pharmacy",
+          "wholesale_pharmacy",
+          "wellness_centre",
+          "fitness_centre",
+          "elder_care_home",
+          "assisted_living",
+          "hospice_palliative",
+          "de_addiction_centre",
+          "child_development_centre",
+          "rehabilitation_centre",
+          "geriatric_daycare",
+          "sports_academy_turf",
+          "dialysis_centre",
+          "optical_shop",
+          "panchakarma_centre",
+          "naturopathy_hospital",
+          "audiology_hearing_aid_centre",
+          "cardiac_cath_lab",
+          "diabetes_clinic",
+          "skin_hair_clinic",
+          "pain_clinic",
+          "wound_care_clinic",
+          "diabetic_foot_clinic",
+          "urology_centre",
+          "lithotripsy_centre",
+          "plastic_cosmetic_surgery",
+          "sexual_health_clinic",
+          "travel_medicine_clinic",
+          "transplant_centre",
+          "trichology_clinic",
+          "laser_aesthetics_clinic",
+          "dental_diagnostic",
+          "community_health_centre",
+          "teaching_hospital",
+          "ortho_spine_clinic",
+          "ent_clinic",
+          "paediatric_clinic",
+          "women_clinic",
+          "sleep_clinic",
+          "travel_vaccination_clinic",
+          "eye_diagnostic",
+          "audiology_lab",
+          "yoga_studio",
+          "hearing_aid_centre"
+        ]
+      },
+      {
+        "key": "ownership",
+        "label": "Ownership structure",
+        "type": "select",
+        "options": [
+          "government",
+          "private",
+          "trust_charitable",
+          "corporate_chain",
+          "cooperative",
+          "ppp",
+          "military_railway_esi"
+        ]
+      },
+      {
+        "key": "system_of_medicine",
+        "label": "System of medicine",
+        "type": "select",
+        "options": [
+          "allopathy",
+          "ayurveda",
+          "homeopathy",
+          "unani",
+          "siddha",
+          "yoga_naturopathy",
+          "integrative"
+        ]
+      },
+      {
+        "key": "gstin",
+        "label": "GSTIN",
+        "type": "text",
+        "help": "Optional unless you are registered for GST."
+      },
+      {
+        "key": "pan",
+        "label": "PAN",
+        "type": "text",
+        "required": true,
+        "help": "Format checked; matched against the payout account holder name."
+      },
+      {
+        "key": "address",
+        "label": "Address",
+        "type": "address",
+        "required": true
+      },
+      {
+        "key": "landmark",
+        "label": "Landmark",
+        "type": "text"
+      },
+      {
+        "key": "geo",
+        "label": "Map pin",
+        "type": "geo",
+        "required": true,
+        "help": "Pin should match the address above."
+      },
+      {
+        "key": "practitioner_roster",
+        "label": "Practitioners on team",
+        "type": "textarea",
+        "help": "One per line: name, registration number. Each is verified separately."
+      },
+      {
+        "key": "services",
+        "label": "Services offered",
+        "type": "multiselect",
+        "required": true,
+        "options": [
+          "Consultation",
+          "Follow-up",
+          "Procedure",
+          "Health check-up",
+          "Lab test",
+          "Sample collection",
+          "Imaging",
+          "Physiotherapy session",
+          "Counselling session",
+          "Home visit",
+          "Video consult",
+          "Vaccination",
+          "Dental procedure",
+          "Diet plan",
+          "Yoga class",
+          "Gym session",
+          "Personal training",
+          "Massage / therapy",
+          "Rental",
+          "Delivery",
+          "Training / course",
+          "Camp / screening"
+        ]
+      },
+      {
+        "key": "base_fee",
+        "label": "Standard fee (INR)",
+        "type": "number"
+      },
+      {
+        "key": "modes",
+        "label": "Service modes",
+        "type": "multiselect",
+        "options": [
+          "in_person",
+          "home_visit",
+          "video",
+          "audio",
+          "chat",
+          "delivery"
+        ]
+      },
+      {
+        "key": "schemes_accepted",
+        "label": "Schemes / insurance accepted",
+        "type": "multiselect",
+        "options": [
+          "pmjay",
+          "cghs",
+          "esi",
+          "echs",
+          "state_scheme",
+          "insurance_cashless",
+          "tpa_empanelled",
+          "corporate_tie_up"
+        ]
+      },
+      {
+        "key": "icu_bed_count",
+        "label": "Home ICU beds",
+        "type": "number"
+      },
+      {
+        "key": "equipment_bundle",
+        "label": "Equipment bundle",
+        "type": "multiselect",
+        "options": [
+          "ventilator",
+          "oxygen",
+          "monitor",
+          "suction",
+          "infusion"
+        ]
+      },
+      {
+        "key": "nurses_count",
+        "label": "Nurses on roll",
+        "type": "number"
+      },
+      {
+        "key": "available_24x7",
+        "label": "24x7 availability",
+        "type": "boolean"
+      },
+      {
+        "key": "account_holder",
+        "label": "Account holder name",
+        "type": "text",
+        "required": true,
+        "help": "Must match the PAN name."
+      },
+      {
+        "key": "bank_name",
+        "label": "Bank name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "ifsc",
+        "label": "IFSC",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "account_number",
+        "label": "Account number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "upi",
+        "label": "UPI ID",
+        "type": "text"
+      },
+      {
+        "key": "slots_per_day",
+        "label": "Slots per day",
+        "type": "number"
+      },
+      {
+        "key": "max_per_slot",
+        "label": "Max bookings per slot",
+        "type": "number"
+      },
+      {
+        "key": "advance_booking_days",
+        "label": "Advance booking window (days)",
+        "type": "number"
+      },
+      {
+        "key": "cancellation_policy_accepted",
+        "label": "Cancellation & refund policy accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "commission_accepted",
+        "label": "Commission terms accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "data_processing_accepted",
+        "label": "Data processing agreement accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "declaration",
+        "label": "I confirm the information above is true and current",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "requiredDocs": [
+      {
+        "key": "registration_certificate",
+        "label": "Healthcare establishment registration",
+        "mandatory": true,
+        "expiryRequired": false,
+        "maxMb": 10
+      },
+      {
+        "key": "nursing_council_reg",
+        "label": "Nursing council registrations (team)",
+        "mandatory": true,
+        "expiryRequired": true,
+        "maxMb": 10
+      },
+      {
+        "key": "police_verification",
+        "label": "Police verification process",
+        "mandatory": true,
+        "expiryRequired": true,
+        "maxMb": 10
+      }
+    ],
+    "optionalDocs": [
+      {
+        "key": "insurance_certificate",
+        "label": "Professional liability insurance",
+        "mandatory": false,
+        "expiryRequired": false,
+        "maxMb": 10
+      },
+      {
+        "key": "gst",
+        "label": "GST registration",
+        "mandatory": false,
+        "expiryRequired": false,
+        "maxMb": 10
+      }
+    ],
+    "agreementTemplateId": "tmpl_home_service",
+    "approvalPolicy": {
+      "level": "dual",
+      "slaHours": 48,
+      "twoPerson": false
+    },
+    "commissionDefaults": {
+      "percent": 12,
+      "fixed": 0,
+      "currency": "INR"
+    },
+    "version": 1,
+    "isActive": true
+  },
+  {
+    "typeKey": "home_doctor",
+    "kind": "practitioner",
+    "group": "home_service",
+    "tier": "T1",
+    "label": "Home Doctor Visit",
+    "icon": "Stethoscope",
+    "description": "Doctor home visit — scheduled OPD at the patient’s home.",
+    "steps": [
+      {
+        "key": "account",
+        "label": "Account",
+        "fields": [
+          "referral_code"
+        ]
+      },
+      {
+        "key": "identity",
+        "label": "Profile & registration",
+        "fields": [
+          "display_name",
+          "owner_name",
+          "registration_number",
+          "qualification",
+          "years_experience",
+          "languages",
+          "home_visit_radius_km",
+          "home_visit_modes"
+        ]
+      },
+      {
+        "key": "location",
+        "label": "Practice location",
+        "fields": [
+          "address",
+          "landmark",
+          "geo"
+        ]
+      },
+      {
+        "key": "services",
+        "label": "Services & fee",
+        "fields": [
+          "services",
+          "base_fee",
+          "modes",
+          "schemes_accepted"
+        ]
+      },
+      {
+        "key": "documents",
+        "label": "Documents",
+        "fields": []
+      },
+      {
+        "key": "payout",
+        "label": "Payout / bank",
+        "fields": [
+          "account_holder",
+          "bank_name",
+          "ifsc",
+          "account_number",
+          "upi"
+        ]
+      },
+      {
+        "key": "availability",
+        "label": "Availability",
+        "fields": [
+          "slots_per_day",
+          "max_per_slot",
+          "advance_booking_days"
+        ]
+      },
+      {
+        "key": "agreement",
+        "label": "Policies & agreement",
+        "fields": [
+          "cancellation_policy_accepted",
+          "commission_accepted",
+          "data_processing_accepted"
+        ]
+      },
+      {
+        "key": "review",
+        "label": "Review & submit",
+        "fields": [
+          "declaration"
+        ]
+      }
+    ],
+    "fields": [
+      {
+        "key": "referral_code",
+        "label": "Referral code",
+        "type": "text",
+        "help": "Optional. From someone who already uses FindMedi."
+      },
+      {
+        "key": "display_name",
+        "label": "Display name",
+        "type": "text",
+        "required": true,
+        "help": "What patients see on your listing."
+      },
+      {
+        "key": "owner_name",
+        "label": "Owner / partner name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "registration_number",
+        "label": "Registration number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "qualification",
+        "label": "Qualifications",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "years_experience",
+        "label": "Years of experience",
+        "type": "number"
+      },
+      {
+        "key": "languages",
+        "label": "Languages spoken",
+        "type": "multiselect",
+        "options": [
+          "Hindi",
+          "English",
+          "Marathi",
+          "Gujarati",
+          "Bengali",
+          "Tamil",
+          "Telugu",
+          "Kannada",
+          "Malayalam",
+          "Punjabi",
+          "Odia",
+          "Assamese",
+          "Urdu",
+          "Sindhi",
+          "Konkani",
+          "Nepali"
+        ]
+      },
+      {
+        "key": "home_visit_radius_km",
+        "label": "Home visit radius (km)",
+        "type": "number"
+      },
+      {
+        "key": "home_visit_modes",
+        "label": "Visit modes",
+        "type": "multiselect",
+        "options": [
+          "examination",
+          "dressing",
+          "injection",
+          "follow_up"
+        ]
+      },
+      {
+        "key": "address",
+        "label": "Address",
+        "type": "address",
+        "required": true
+      },
+      {
+        "key": "landmark",
+        "label": "Landmark",
+        "type": "text"
+      },
+      {
+        "key": "geo",
+        "label": "Map pin",
+        "type": "geo",
+        "required": true,
+        "help": "Pin should match the address above."
+      },
+      {
+        "key": "services",
+        "label": "Services offered",
+        "type": "multiselect",
+        "required": true,
+        "options": [
+          "Consultation",
+          "Follow-up",
+          "Procedure",
+          "Health check-up",
+          "Lab test",
+          "Sample collection",
+          "Imaging",
+          "Physiotherapy session",
+          "Counselling session",
+          "Home visit",
+          "Video consult",
+          "Vaccination",
+          "Dental procedure",
+          "Diet plan",
+          "Yoga class",
+          "Gym session",
+          "Personal training",
+          "Massage / therapy",
+          "Rental",
+          "Delivery",
+          "Training / course",
+          "Camp / screening"
+        ]
+      },
+      {
+        "key": "base_fee",
+        "label": "Standard fee (INR)",
+        "type": "number"
+      },
+      {
+        "key": "modes",
+        "label": "Service modes",
+        "type": "multiselect",
+        "options": [
+          "in_person",
+          "home_visit",
+          "video",
+          "audio",
+          "chat",
+          "delivery"
+        ]
+      },
+      {
+        "key": "schemes_accepted",
+        "label": "Schemes / insurance accepted",
+        "type": "multiselect",
+        "options": [
+          "pmjay",
+          "cghs",
+          "esi",
+          "echs",
+          "state_scheme",
+          "insurance_cashless",
+          "tpa_empanelled",
+          "corporate_tie_up"
+        ]
+      },
+      {
+        "key": "account_holder",
+        "label": "Account holder name",
+        "type": "text",
+        "required": true,
+        "help": "Must match the PAN name."
+      },
+      {
+        "key": "bank_name",
+        "label": "Bank name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "ifsc",
+        "label": "IFSC",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "account_number",
+        "label": "Account number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "upi",
+        "label": "UPI ID",
+        "type": "text"
+      },
+      {
+        "key": "slots_per_day",
+        "label": "Slots per day",
+        "type": "number"
+      },
+      {
+        "key": "max_per_slot",
+        "label": "Max bookings per slot",
+        "type": "number"
+      },
+      {
+        "key": "advance_booking_days",
+        "label": "Advance booking window (days)",
+        "type": "number"
+      },
+      {
+        "key": "cancellation_policy_accepted",
+        "label": "Cancellation & refund policy accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "commission_accepted",
+        "label": "Commission terms accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "data_processing_accepted",
+        "label": "Data processing agreement accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "declaration",
+        "label": "I confirm the information above is true and current",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "requiredDocs": [
+      {
+        "key": "medical_council_reg",
+        "label": "Medical council registration",
+        "mandatory": true,
+        "expiryRequired": true,
+        "maxMb": 10
+      },
+      {
+        "key": "degree",
+        "label": "Degree / diploma",
+        "mandatory": true,
+        "expiryRequired": false,
+        "maxMb": 10
+      },
+      {
+        "key": "owner_id",
+        "label": "Government photo ID",
+        "mandatory": true,
+        "expiryRequired": false,
+        "maxMb": 10
+      }
+    ],
+    "optionalDocs": [
+      {
+        "key": "police_verification",
+        "label": "Police verification",
+        "mandatory": false,
+        "expiryRequired": true,
         "maxMb": 10
       }
     ],
@@ -18041,6 +19656,1171 @@
     "isActive": true
   },
   {
+    "typeKey": "first_responder",
+    "kind": "practitioner",
+    "group": "community",
+    "tier": "T3",
+    "label": "First Responder / CPR Volunteer",
+    "icon": "Siren",
+    "description": "Trained first-responder volunteer linked to SOS dispatch.",
+    "steps": [
+      {
+        "key": "account",
+        "label": "Account",
+        "fields": [
+          "referral_code"
+        ]
+      },
+      {
+        "key": "identity",
+        "label": "Profile & registration",
+        "fields": [
+          "display_name",
+          "owner_name",
+          "registration_number",
+          "qualification",
+          "years_experience",
+          "languages",
+          "volunteer_dispatch_radius",
+          "aed_trained"
+        ]
+      },
+      {
+        "key": "location",
+        "label": "Practice location",
+        "fields": [
+          "address",
+          "landmark",
+          "geo"
+        ]
+      },
+      {
+        "key": "services",
+        "label": "Services & fee",
+        "fields": [
+          "services",
+          "base_fee",
+          "modes",
+          "schemes_accepted"
+        ]
+      },
+      {
+        "key": "documents",
+        "label": "Documents",
+        "fields": []
+      },
+      {
+        "key": "payout",
+        "label": "Payout / bank",
+        "fields": [
+          "account_holder",
+          "bank_name",
+          "ifsc",
+          "account_number",
+          "upi"
+        ]
+      },
+      {
+        "key": "availability",
+        "label": "Availability",
+        "fields": [
+          "slots_per_day",
+          "max_per_slot",
+          "advance_booking_days"
+        ]
+      },
+      {
+        "key": "agreement",
+        "label": "Policies & agreement",
+        "fields": [
+          "cancellation_policy_accepted",
+          "commission_accepted",
+          "data_processing_accepted"
+        ]
+      },
+      {
+        "key": "review",
+        "label": "Review & submit",
+        "fields": [
+          "declaration"
+        ]
+      }
+    ],
+    "fields": [
+      {
+        "key": "referral_code",
+        "label": "Referral code",
+        "type": "text",
+        "help": "Optional. From someone who already uses FindMedi."
+      },
+      {
+        "key": "display_name",
+        "label": "Display name",
+        "type": "text",
+        "required": true,
+        "help": "What patients see on your listing."
+      },
+      {
+        "key": "owner_name",
+        "label": "Owner / partner name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "registration_number",
+        "label": "Registration number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "qualification",
+        "label": "Qualifications",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "years_experience",
+        "label": "Years of experience",
+        "type": "number"
+      },
+      {
+        "key": "languages",
+        "label": "Languages spoken",
+        "type": "multiselect",
+        "options": [
+          "Hindi",
+          "English",
+          "Marathi",
+          "Gujarati",
+          "Bengali",
+          "Tamil",
+          "Telugu",
+          "Kannada",
+          "Malayalam",
+          "Punjabi",
+          "Odia",
+          "Assamese",
+          "Urdu",
+          "Sindhi",
+          "Konkani",
+          "Nepali"
+        ]
+      },
+      {
+        "key": "volunteer_dispatch_radius",
+        "label": "Dispatch radius (km)",
+        "type": "number"
+      },
+      {
+        "key": "aed_trained",
+        "label": "AED trained",
+        "type": "boolean"
+      },
+      {
+        "key": "address",
+        "label": "Address",
+        "type": "address",
+        "required": true
+      },
+      {
+        "key": "landmark",
+        "label": "Landmark",
+        "type": "text"
+      },
+      {
+        "key": "geo",
+        "label": "Map pin",
+        "type": "geo",
+        "required": true,
+        "help": "Pin should match the address above."
+      },
+      {
+        "key": "services",
+        "label": "Services offered",
+        "type": "multiselect",
+        "required": true,
+        "options": [
+          "Consultation",
+          "Follow-up",
+          "Procedure",
+          "Health check-up",
+          "Lab test",
+          "Sample collection",
+          "Imaging",
+          "Physiotherapy session",
+          "Counselling session",
+          "Home visit",
+          "Video consult",
+          "Vaccination",
+          "Dental procedure",
+          "Diet plan",
+          "Yoga class",
+          "Gym session",
+          "Personal training",
+          "Massage / therapy",
+          "Rental",
+          "Delivery",
+          "Training / course",
+          "Camp / screening"
+        ]
+      },
+      {
+        "key": "base_fee",
+        "label": "Standard fee (INR)",
+        "type": "number"
+      },
+      {
+        "key": "modes",
+        "label": "Service modes",
+        "type": "multiselect",
+        "options": [
+          "in_person",
+          "home_visit",
+          "video",
+          "audio",
+          "chat",
+          "delivery"
+        ]
+      },
+      {
+        "key": "schemes_accepted",
+        "label": "Schemes / insurance accepted",
+        "type": "multiselect",
+        "options": [
+          "pmjay",
+          "cghs",
+          "esi",
+          "echs",
+          "state_scheme",
+          "insurance_cashless",
+          "tpa_empanelled",
+          "corporate_tie_up"
+        ]
+      },
+      {
+        "key": "account_holder",
+        "label": "Account holder name",
+        "type": "text",
+        "required": true,
+        "help": "Must match the PAN name."
+      },
+      {
+        "key": "bank_name",
+        "label": "Bank name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "ifsc",
+        "label": "IFSC",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "account_number",
+        "label": "Account number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "upi",
+        "label": "UPI ID",
+        "type": "text"
+      },
+      {
+        "key": "slots_per_day",
+        "label": "Slots per day",
+        "type": "number"
+      },
+      {
+        "key": "max_per_slot",
+        "label": "Max bookings per slot",
+        "type": "number"
+      },
+      {
+        "key": "advance_booking_days",
+        "label": "Advance booking window (days)",
+        "type": "number"
+      },
+      {
+        "key": "cancellation_policy_accepted",
+        "label": "Cancellation & refund policy accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "commission_accepted",
+        "label": "Commission terms accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "data_processing_accepted",
+        "label": "Data processing agreement accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "declaration",
+        "label": "I confirm the information above is true and current",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "requiredDocs": [
+      {
+        "key": "owner_id",
+        "label": "Government photo ID",
+        "mandatory": true,
+        "expiryRequired": false,
+        "maxMb": 10
+      },
+      {
+        "key": "emt_cert",
+        "label": "BLS / first-aid certification",
+        "mandatory": true,
+        "expiryRequired": false,
+        "maxMb": 10
+      }
+    ],
+    "optionalDocs": [
+      {
+        "key": "police_verification",
+        "label": "Police verification",
+        "mandatory": false,
+        "expiryRequired": true,
+        "maxMb": 10
+      },
+      {
+        "key": "training_cert",
+        "label": "AED training",
+        "mandatory": false,
+        "expiryRequired": false,
+        "maxMb": 10
+      }
+    ],
+    "agreementTemplateId": "tmpl_community",
+    "approvalPolicy": {
+      "level": "single",
+      "slaHours": 24,
+      "twoPerson": false
+    },
+    "commissionDefaults": {
+      "percent": 5,
+      "fixed": 0,
+      "currency": "INR"
+    },
+    "version": 1,
+    "isActive": true
+  },
+  {
+    "typeKey": "school_health_program",
+    "kind": "organizer",
+    "group": "community",
+    "tier": "T3",
+    "label": "School Health Program",
+    "icon": "GraduationCap",
+    "description": "Adolescent and school health programs with guardian consent.",
+    "steps": [
+      {
+        "key": "account",
+        "label": "Account",
+        "fields": [
+          "referral_code"
+        ]
+      },
+      {
+        "key": "business",
+        "label": "Organisation & identity",
+        "fields": [
+          "legal_name",
+          "display_name",
+          "owner_name",
+          "registration_type",
+          "gstin",
+          "pan"
+        ]
+      },
+      {
+        "key": "location",
+        "label": "Base location",
+        "fields": [
+          "address",
+          "landmark",
+          "geo"
+        ]
+      },
+      {
+        "key": "events",
+        "label": "Events & partners",
+        "fields": [
+          "event_types",
+          "past_events_count",
+          "target_age_group",
+          "program_topics",
+          "guardian_consent"
+        ]
+      },
+      {
+        "key": "documents",
+        "label": "Documents",
+        "fields": []
+      },
+      {
+        "key": "payout",
+        "label": "Payout / bank",
+        "fields": [
+          "account_holder",
+          "bank_name",
+          "ifsc",
+          "account_number",
+          "upi"
+        ]
+      },
+      {
+        "key": "agreement",
+        "label": "Policies & agreement",
+        "fields": [
+          "cancellation_policy_accepted",
+          "commission_accepted",
+          "data_processing_accepted"
+        ]
+      },
+      {
+        "key": "review",
+        "label": "Review & submit",
+        "fields": [
+          "declaration"
+        ]
+      }
+    ],
+    "fields": [
+      {
+        "key": "referral_code",
+        "label": "Referral code",
+        "type": "text",
+        "help": "Optional. From someone who already uses FindMedi."
+      },
+      {
+        "key": "legal_name",
+        "label": "Legal name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "display_name",
+        "label": "Display name",
+        "type": "text",
+        "required": true,
+        "help": "What patients see on your listing."
+      },
+      {
+        "key": "owner_name",
+        "label": "Owner / partner name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "registration_type",
+        "label": "Registration type",
+        "type": "select",
+        "required": true,
+        "options": [
+          "proprietorship",
+          "partnership",
+          "private_limited",
+          "trust",
+          "society",
+          "huf",
+          "llp",
+          "individual"
+        ]
+      },
+      {
+        "key": "gstin",
+        "label": "GSTIN",
+        "type": "text",
+        "help": "Optional unless you are registered for GST."
+      },
+      {
+        "key": "pan",
+        "label": "PAN",
+        "type": "text",
+        "required": true,
+        "help": "Format checked; matched against the payout account holder name."
+      },
+      {
+        "key": "address",
+        "label": "Address",
+        "type": "address",
+        "required": true
+      },
+      {
+        "key": "landmark",
+        "label": "Landmark",
+        "type": "text"
+      },
+      {
+        "key": "geo",
+        "label": "Map pin",
+        "type": "geo",
+        "required": true,
+        "help": "Pin should match the address above."
+      },
+      {
+        "key": "event_types",
+        "label": "Event types",
+        "type": "multiselect",
+        "options": [
+          "camp",
+          "screening",
+          "workshop",
+          "webinar",
+          "training",
+          "blood_donation",
+          "vaccination_drive"
+        ]
+      },
+      {
+        "key": "past_events_count",
+        "label": "Events organised in the last year",
+        "type": "number"
+      },
+      {
+        "key": "target_age_group",
+        "label": "Target age group",
+        "type": "multiselect",
+        "options": [
+          "primary",
+          "secondary",
+          "adolescent",
+          "teacher_staff"
+        ]
+      },
+      {
+        "key": "program_topics",
+        "label": "Program topics",
+        "type": "multiselect",
+        "options": [
+          "nutrition",
+          "mental_health",
+          "hygiene",
+          "sports",
+          "vaccination"
+        ]
+      },
+      {
+        "key": "guardian_consent",
+        "label": "Guardian consent workflow",
+        "type": "boolean"
+      },
+      {
+        "key": "account_holder",
+        "label": "Account holder name",
+        "type": "text",
+        "required": true,
+        "help": "Must match the PAN name."
+      },
+      {
+        "key": "bank_name",
+        "label": "Bank name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "ifsc",
+        "label": "IFSC",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "account_number",
+        "label": "Account number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "upi",
+        "label": "UPI ID",
+        "type": "text"
+      },
+      {
+        "key": "cancellation_policy_accepted",
+        "label": "Cancellation & refund policy accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "commission_accepted",
+        "label": "Commission terms accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "data_processing_accepted",
+        "label": "Data processing agreement accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "declaration",
+        "label": "I confirm the information above is true and current",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "requiredDocs": [
+      {
+        "key": "registration_certificate",
+        "label": "Organization registration",
+        "mandatory": true,
+        "expiryRequired": false,
+        "maxMb": 10
+      }
+    ],
+    "optionalDocs": [
+      {
+        "key": "partner_loa",
+        "label": "School / trust MoU",
+        "mandatory": false,
+        "expiryRequired": false,
+        "maxMb": 10
+      },
+      {
+        "key": "insurance_certificate",
+        "label": "Program liability insurance",
+        "mandatory": false,
+        "expiryRequired": false,
+        "maxMb": 10
+      }
+    ],
+    "agreementTemplateId": "tmpl_community",
+    "approvalPolicy": {
+      "level": "single",
+      "slaHours": 24,
+      "twoPerson": false
+    },
+    "commissionDefaults": {
+      "percent": 5,
+      "fixed": 0,
+      "currency": "INR"
+    },
+    "version": 1,
+    "isActive": true
+  },
+  {
+    "typeKey": "institution_health_contract",
+    "kind": "facility",
+    "group": "professional",
+    "tier": "T1",
+    "label": "Institution Health Contract (School / College / Hostel)",
+    "icon": "Building2",
+    "description": "B2B health contracts for schools, colleges and hostels with aggregate-only reporting.",
+    "steps": [
+      {
+        "key": "account",
+        "label": "Account",
+        "fields": [
+          "referral_code"
+        ]
+      },
+      {
+        "key": "business",
+        "label": "Business & identity",
+        "fields": [
+          "legal_name",
+          "display_name",
+          "owner_name",
+          "registration_type",
+          "sub_type",
+          "ownership",
+          "system_of_medicine",
+          "gstin",
+          "pan"
+        ]
+      },
+      {
+        "key": "location",
+        "label": "Location",
+        "fields": [
+          "address",
+          "landmark",
+          "geo"
+        ]
+      },
+      {
+        "key": "practitioners",
+        "label": "Practitioners & staff",
+        "fields": [
+          "practitioner_roster"
+        ]
+      },
+      {
+        "key": "services",
+        "label": "Services & pricing",
+        "fields": [
+          "services",
+          "base_fee",
+          "modes",
+          "schemes_accepted",
+          "institution_type",
+          "service_scope",
+          "aggregate_reporting"
+        ]
+      },
+      {
+        "key": "documents",
+        "label": "Documents",
+        "fields": []
+      },
+      {
+        "key": "payout",
+        "label": "Payout / bank",
+        "fields": [
+          "account_holder",
+          "bank_name",
+          "ifsc",
+          "account_number",
+          "upi"
+        ]
+      },
+      {
+        "key": "availability",
+        "label": "Availability & capacity",
+        "fields": [
+          "slots_per_day",
+          "max_per_slot",
+          "advance_booking_days"
+        ]
+      },
+      {
+        "key": "agreement",
+        "label": "Policies & agreement",
+        "fields": [
+          "cancellation_policy_accepted",
+          "commission_accepted",
+          "data_processing_accepted"
+        ]
+      },
+      {
+        "key": "review",
+        "label": "Review & submit",
+        "fields": [
+          "declaration"
+        ]
+      }
+    ],
+    "fields": [
+      {
+        "key": "referral_code",
+        "label": "Referral code",
+        "type": "text",
+        "help": "Optional. From someone who already uses FindMedi."
+      },
+      {
+        "key": "legal_name",
+        "label": "Legal name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "display_name",
+        "label": "Display name",
+        "type": "text",
+        "required": true,
+        "help": "What patients see on your listing."
+      },
+      {
+        "key": "owner_name",
+        "label": "Owner / partner name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "registration_type",
+        "label": "Registration type",
+        "type": "select",
+        "required": true,
+        "options": [
+          "proprietorship",
+          "partnership",
+          "private_limited",
+          "trust",
+          "society",
+          "huf",
+          "llp",
+          "individual"
+        ]
+      },
+      {
+        "key": "sub_type",
+        "label": "Facility sub-type",
+        "type": "select",
+        "options": [
+          "multi_specialty",
+          "super_specialty",
+          "single_specialty",
+          "nursing_home",
+          "maternity_hospital",
+          "day_care_surgery",
+          "government_hospital",
+          "district_hospital",
+          "medical_college",
+          "phc",
+          "chc",
+          "uphc",
+          "sub_centre",
+          "arogya_mandir",
+          "mohalla_community_clinic",
+          "trauma_centre",
+          "rehabilitation_hospital",
+          "psychiatric_hospital",
+          "tb_chest_hospital",
+          "infectious_disease_hospital",
+          "cancer_centre",
+          "railway_esi_cghs_defence",
+          "single_doctor_clinic",
+          "polyclinic",
+          "specialty_clinic",
+          "dental_clinic",
+          "eye_clinic",
+          "ayush_clinic",
+          "physiotherapy_clinic",
+          "fertility_clinic",
+          "urgent_care_clinic",
+          "corporate_clinic",
+          "campus_clinic",
+          "telemedicine_clinic",
+          "pathology_lab",
+          "imaging_centre",
+          "diagnostic_centre",
+          "collection_centre",
+          "home_collection_lab",
+          "mobile_diagnostic_van",
+          "cardiac_diagnostic_centre",
+          "sleep_lab",
+          "genetic_molecular_lab",
+          "blood_bank",
+          "retail_pharmacy",
+          "hospital_pharmacy",
+          "jan_aushadhi_kendra",
+          "generic_store",
+          "pharmacy_24x7",
+          "online_pharmacy",
+          "ayurvedic_homeopathic_store",
+          "surgical_ortho_store",
+          "chain_pharmacy",
+          "wholesale_pharmacy",
+          "wellness_centre",
+          "fitness_centre",
+          "elder_care_home",
+          "assisted_living",
+          "hospice_palliative",
+          "de_addiction_centre",
+          "child_development_centre",
+          "rehabilitation_centre",
+          "geriatric_daycare",
+          "sports_academy_turf",
+          "dialysis_centre",
+          "optical_shop",
+          "panchakarma_centre",
+          "naturopathy_hospital",
+          "audiology_hearing_aid_centre",
+          "cardiac_cath_lab",
+          "diabetes_clinic",
+          "skin_hair_clinic",
+          "pain_clinic",
+          "wound_care_clinic",
+          "diabetic_foot_clinic",
+          "urology_centre",
+          "lithotripsy_centre",
+          "plastic_cosmetic_surgery",
+          "sexual_health_clinic",
+          "travel_medicine_clinic",
+          "transplant_centre",
+          "trichology_clinic",
+          "laser_aesthetics_clinic",
+          "dental_diagnostic",
+          "community_health_centre",
+          "teaching_hospital",
+          "ortho_spine_clinic",
+          "ent_clinic",
+          "paediatric_clinic",
+          "women_clinic",
+          "sleep_clinic",
+          "travel_vaccination_clinic",
+          "eye_diagnostic",
+          "audiology_lab",
+          "yoga_studio",
+          "hearing_aid_centre"
+        ]
+      },
+      {
+        "key": "ownership",
+        "label": "Ownership structure",
+        "type": "select",
+        "options": [
+          "government",
+          "private",
+          "trust_charitable",
+          "corporate_chain",
+          "cooperative",
+          "ppp",
+          "military_railway_esi"
+        ]
+      },
+      {
+        "key": "system_of_medicine",
+        "label": "System of medicine",
+        "type": "select",
+        "options": [
+          "allopathy",
+          "ayurveda",
+          "homeopathy",
+          "unani",
+          "siddha",
+          "yoga_naturopathy",
+          "integrative"
+        ]
+      },
+      {
+        "key": "gstin",
+        "label": "GSTIN",
+        "type": "text",
+        "help": "Optional unless you are registered for GST."
+      },
+      {
+        "key": "pan",
+        "label": "PAN",
+        "type": "text",
+        "required": true,
+        "help": "Format checked; matched against the payout account holder name."
+      },
+      {
+        "key": "address",
+        "label": "Address",
+        "type": "address",
+        "required": true
+      },
+      {
+        "key": "landmark",
+        "label": "Landmark",
+        "type": "text"
+      },
+      {
+        "key": "geo",
+        "label": "Map pin",
+        "type": "geo",
+        "required": true,
+        "help": "Pin should match the address above."
+      },
+      {
+        "key": "practitioner_roster",
+        "label": "Practitioners on team",
+        "type": "textarea",
+        "help": "One per line: name, registration number. Each is verified separately."
+      },
+      {
+        "key": "services",
+        "label": "Services offered",
+        "type": "multiselect",
+        "required": true,
+        "options": [
+          "Consultation",
+          "Follow-up",
+          "Procedure",
+          "Health check-up",
+          "Lab test",
+          "Sample collection",
+          "Imaging",
+          "Physiotherapy session",
+          "Counselling session",
+          "Home visit",
+          "Video consult",
+          "Vaccination",
+          "Dental procedure",
+          "Diet plan",
+          "Yoga class",
+          "Gym session",
+          "Personal training",
+          "Massage / therapy",
+          "Rental",
+          "Delivery",
+          "Training / course",
+          "Camp / screening"
+        ]
+      },
+      {
+        "key": "base_fee",
+        "label": "Standard fee (INR)",
+        "type": "number"
+      },
+      {
+        "key": "modes",
+        "label": "Service modes",
+        "type": "multiselect",
+        "options": [
+          "in_person",
+          "home_visit",
+          "video",
+          "audio",
+          "chat",
+          "delivery"
+        ]
+      },
+      {
+        "key": "schemes_accepted",
+        "label": "Schemes / insurance accepted",
+        "type": "multiselect",
+        "options": [
+          "pmjay",
+          "cghs",
+          "esi",
+          "echs",
+          "state_scheme",
+          "insurance_cashless",
+          "tpa_empanelled",
+          "corporate_tie_up"
+        ]
+      },
+      {
+        "key": "institution_type",
+        "label": "Institution type",
+        "type": "multiselect",
+        "options": [
+          "school",
+          "college",
+          "hostel",
+          "university"
+        ]
+      },
+      {
+        "key": "service_scope",
+        "label": "Service scope",
+        "type": "multiselect",
+        "options": [
+          "dispensary",
+          "screening",
+          "vaccination",
+          "referral",
+          "emergency_transport"
+        ]
+      },
+      {
+        "key": "aggregate_reporting",
+        "label": "Aggregate-only reporting",
+        "type": "boolean"
+      },
+      {
+        "key": "account_holder",
+        "label": "Account holder name",
+        "type": "text",
+        "required": true,
+        "help": "Must match the PAN name."
+      },
+      {
+        "key": "bank_name",
+        "label": "Bank name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "ifsc",
+        "label": "IFSC",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "account_number",
+        "label": "Account number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "upi",
+        "label": "UPI ID",
+        "type": "text"
+      },
+      {
+        "key": "slots_per_day",
+        "label": "Slots per day",
+        "type": "number"
+      },
+      {
+        "key": "max_per_slot",
+        "label": "Max bookings per slot",
+        "type": "number"
+      },
+      {
+        "key": "advance_booking_days",
+        "label": "Advance booking window (days)",
+        "type": "number"
+      },
+      {
+        "key": "cancellation_policy_accepted",
+        "label": "Cancellation & refund policy accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "commission_accepted",
+        "label": "Commission terms accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "data_processing_accepted",
+        "label": "Data processing agreement accepted",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "key": "declaration",
+        "label": "I confirm the information above is true and current",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "requiredDocs": [
+      {
+        "key": "registration_certificate",
+        "label": "Institution registration",
+        "mandatory": true,
+        "expiryRequired": false,
+        "maxMb": 10
+      },
+      {
+        "key": "partner_loa",
+        "label": "Signed MoU with the institution",
+        "mandatory": true,
+        "expiryRequired": false,
+        "maxMb": 10
+      }
+    ],
+    "optionalDocs": [
+      {
+        "key": "insurance_certificate",
+        "label": "Program liability insurance",
+        "mandatory": false,
+        "expiryRequired": false,
+        "maxMb": 10
+      }
+    ],
+    "agreementTemplateId": "tmpl_professional",
+    "approvalPolicy": {
+      "level": "dual",
+      "slaHours": 48,
+      "twoPerson": false
+    },
+    "commissionDefaults": {
+      "percent": 10,
+      "fixed": 0,
+      "currency": "INR"
+    },
+    "version": 1,
+    "isActive": true
+  },
+  {
     "typeKey": "training_provider",
     "kind": "organizer",
     "group": "community",
@@ -18982,7 +21762,6 @@
           "unani",
           "siddha",
           "yoga_naturopathy",
-          "sowa_rigpa",
           "integrative"
         ]
       },

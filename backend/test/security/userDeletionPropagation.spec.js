@@ -51,10 +51,14 @@ jest.unstable_mockModule('../../src/middleware/auth.js', () => ({
       : res.status(403).json({ message: 'Not authorized' }),
   superadminOnly: (req, res, next) =>
     currentUser?.role === 'superadmin' ? next() : res.status(403).json({ message: 'Not authorized' }),
+  authorize: () => (req, res, next) => next(),
 }));
 
 const auditLog = jest.fn(async () => {});
-jest.unstable_mockModule('../../src/middleware/audit.js', () => ({ auditLog: (...a) => auditLog(...a) }));
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+  auditLog: (...a) => auditLog(...a),
+  auditLogRequired: (...a) => auditLog(...a),
+}));
 
 const order = [];
 const userFindById = jest.fn();

@@ -129,7 +129,7 @@ router.get('/mine', protect, async (req, res) => {
 router.get('/', protect, authorize('staff:manage'), async (req, res) => {
   try {
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.query.status) filter.status = String(req.query.status);
     if (req.query.context) filter.context = String(req.query.context);
     const rows = await Feedback.find(filter).sort({ createdAt: -1 }).limit(200).lean();
@@ -145,7 +145,7 @@ router.get('/', protect, authorize('staff:manage'), async (req, res) => {
 router.get('/summary', protect, authorize('staff:manage'), async (req, res) => {
   try {
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.query.dept) filter.department = String(req.query.dept);
     if (req.query.from || req.query.to) {
       filter.createdAt = {};
@@ -197,7 +197,7 @@ router.put('/:id/respond', protect, authorize('staff:manage'), async (req, res) 
   try {
     const row = await Feedback.findById(req.params.id);
     if (!row) return res.status(404).json({ message: 'Feedback not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && row.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || row.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     row.response = { by: req.user._id, at: new Date(), note: req.body.note };

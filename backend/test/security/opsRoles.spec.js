@@ -74,8 +74,9 @@ describe('8.md 1 · the ops roles are first-class rows in the canonical matrix',
     expect(ROLE_PERMISSIONS[role].length).toBeGreaterThan(0);
   });
 
-  it('keeps superadmin the only wildcard - no ops role inherits god mode', () => {
-    expect(ROLE_PERMISSIONS.superadmin).toContain('*');
+  it('keeps every platform role explicit - no wildcard grants', () => {
+    expect(ROLE_PERMISSIONS.superadmin).not.toContain('*');
+    expect(ROLE_PERMISSIONS.super_admin).not.toContain('*');
     for (const role of OPS_ROLES) {
       expect(ROLE_PERMISSIONS[role]).not.toContain('*');
     }

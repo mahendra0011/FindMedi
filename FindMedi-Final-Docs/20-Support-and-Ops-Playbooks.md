@@ -1,0 +1,207 @@
+# 20 — Support & Operations Playbooks (SOPs, Escalation, Staffing)
+
+> **Repo se jo mila (✅):** `SupportTicket`, `Dispute`, `GrievanceRedressal`, `PatientRights`, superadmin pages (KYC, licences, approvals, moderation, disputes), `docs/incident-response.md`, audit log, announcements.
+> **Goal:** marketplace daily kaise chalega — support, field ops, verification, disputes, safety, finance, incidents. Pehle 1 city ke liye lean team, phir scale.
+> Numbers (SLA, staffing) = **starting suggestions**; apne volume ke hisaab se adjust karo.
+
+---
+
+## 1. Operating model
+
+```
+Tier 0  Self-serve (FAQ, in-app help, chatbot (safe), status tracker)
+Tier 1  Support agents (multilingual) — tickets, chat, calls
+Tier 2  Specialists — payments/refunds, clinical-ops, provider success, trust & safety
+Tier 3  Leads/engineering/legal/clinical advisor — escalations, incidents
+```
+
+### 1.1 Teams & responsibilities
+| Team | Core duties |
+|---|---|
+| **Support (patients)** | Booking/order issues, refunds, how-to, grievance intake |
+| **Provider success** | Onboarding help, profile quality, training, retention, disputes from provider side |
+| **Field ops / verification** | On-ground verification, document checks, photo/address validation, camp logistics |
+| **KYC/compliance reviewers** | Application queue, licence/registry checks, re-verification |
+| **Trust & Safety / moderation** | Reviews/UGC, fraud, safety incidents, crisis escalation |
+| **Finance ops** | Payouts, refunds, reconciliation, TDS/GST support, chargebacks |
+| **Clinical advisor (part-time)** | Content review, clinical-safety escalations, policy input |
+| **Incident commander (rotating)** | Sev-1/2 incident coordination |
+| **Community/Events ops** | Camp/event approvals, organiser support |
+
+## 2. Support channels & SLAs (starter)
+
+| Channel | Hours | First response | Resolution target |
+|---|---|---|---|
+| In-app chat | 8am–10pm (IST) 7 days | ≤ 2 min (bot) / ≤ 10 min (agent) | Sev-3: ≤ 24h |
+| Phone/callback | 9am–9pm | ≤ 2 min / callback ≤ 30 min | — |
+| WhatsApp (opt-in) | Business hours | ≤ 15 min | ≤ 24h |
+| Email/tickets | 24x7 intake | ≤ 4h | ≤ 48h |
+| **Safety/SOS issues** | 24x7 | **Immediate** (≤ 5 min) | Per incident SOP |
+| Provider support | Business hours + priority line | ≤ 1h | ≤ 24h |
+- **Languages:** Hindi + English from day 1; add regional (by city) — agents with native fluency; translation tools only as aid, not for sensitive cases.
+- **Priority queue:** safety > payments stuck > active bookings (next 24h) > refunds > general > feedback.
+- **CSAT** after resolution; QA sampling (5% tickets); coaching.
+
+## 3. Ticket taxonomy & routing
+
+| Category | Examples | Route | SLA |
+|---|---|---|---|
+| **Safety/Emergency** | SOS issue, home-visit misconduct, ambulance delay | T&S + incident lead | Immediate |
+| **Booking** | Can't book, reschedule, provider late/no-show | Support T1 → provider success | 4h |
+| **Payments/Refunds** | Payment failed/debited, refund missing | Finance ops | 24–48h |
+| **Orders (Rx/products)** | Wrong/missing items, delay, Rx rejection | Support + pharmacy partner | 4–12h |
+| **Records/Privacy** | Access request, consent, deletion/export (DSR), wrong record | Privacy/DPO queue | Per DPDP SLA |
+| **Quality/Complaint** | Poor service, overcharge | Dispute lane | 3 days |
+| **Provider onboarding** | KYC status, docs rejected | KYC/provider success | 24h |
+| **Technical** | App crash, login/OTP issues | Support → engineering (bug template) | 24h |
+| **Content/Legal** | Takedown, defamation, IP | Legal/compliance | 24h ack |
+| **Feedback/Feature** | Suggestions | Product inbox | weekly |
+Tools: ticketing (✅ `SupportTicket` + external helpdesk later), macros, tags, SLA timers, escalation rules, internal notes, **masked PII by default** (reveal with reason, audited).
+
+## 4. Core SOPs
+
+### SOP-1 Booking issue (provider no-show / late / cancellation)
+1. Verify booking status & provider response (logs).
+2. If provider no-show: **auto-refund 100%** + wallet credit (policy), offer 2 alternate providers/slots (priority rebook).
+3. Record strike against provider (no-show), notify provider success.
+4. If medical urgency indicated → escalate to emergency guidance (112/108) and nearest ER suggestion.
+5. Close with CSAT; tag root cause.
+
+### SOP-2 Payment debited but booking failed
+1. Check gateway status via dashboard/API; match order id.
+2. If payment captured & booking not confirmed: run reconcile job → auto-confirm if slot valid, else **auto-refund** (SLA 3–7 days; share reference).
+3. Communicate within 1h; update ticket; escalate to Finance if >24h.
+4. Log incident for pattern analysis (webhook failures).
+
+### SOP-3 Refund request (general)
+Check policy snapshot at booking → apply refund matrix (file 13 §4) → override only with reason + approval (step-up for > ₹threshold) → process → notify → audit.
+
+### SOP-4 Pharmacy order issues
+Wrong/missing/damaged/expired: collect photo evidence → verify with store → replace/refund → **expired/wrong-drug = Sev-2** (notify pharmacy, check batch, recall if needed); Rx rejection: explain reason, guide to upload valid Rx / book consult.
+
+### SOP-5 Home-visit / safety incident (priority)
+1. Immediate call to patient/family (and provider) — **safety first**.
+2. If imminent danger → advise 112; coordinate local help; share live location with consent.
+3. Suspend provider **pending investigation** (auto), preserve evidence (logs, GPS, chat, call metadata).
+4. Incident lead + T&S review within 24h; police/legal if required; support patient (counselling info, free rebooking).
+5. Outcome: ban/denylist, regulatory report if applicable, post-incident review, policy update.
+
+### SOP-6 Crisis (mental-health) escalation
+Triggers: self-harm/violence keywords in chat/groups/support. Steps: human review ≤ 5 min (24x7 on-call) → empathetic contact script (non-judgemental), share **Tele-MANAS 14416 / 112**, ask if safe now, offer to connect to counsellor/psychiatrist, notify emergency contact **only per consent/policy and law**; document; follow-up check within 24h. **No auto-ban/punish**; trained staff only; wellbeing support for agents.
+
+### SOP-7 Provider complaint / dispute
+Open dispute → freeze payout portion (if applicable) → request evidence from both (48h) → decide per policy (refund/credit/penalty/none) → communicate with reasons → appeal window (7 days) → close. Pattern detection → strike system.
+
+### SOP-8 Provider onboarding & verification
+Queue by priority → checklist per type (file 01/08) → registry checks (council portals, drug licence validity, AERB/PCPNDT, FSSAI/CDSCO) → address verification (call/video/field visit for high-risk) → decision → welcome/training → probation (caps/payout hold) → 30-day review. **High-risk types = two-person approval.**
+
+### SOP-9 Document expiry & re-verification
+60/30/7-day reminders → provider action → reviewer re-check → grace period → auto-hide bookings (existing honoured) → suspend if lapsed; notify patients of affected bookings.
+
+### SOP-10 Fraud & abuse (fake reviews, coupon/referral abuse, slot hoarding)
+Detect (rules/ML) → shadow-flag → manual review → action (remove/limit/ban) → recover funds → rule tuning; escalate organised rings to leadership/legal.
+
+### SOP-11 Content/UGC moderation
+Queue triage by severity → apply guidelines → action (approve/edit-request/remove/warn) → notify → appeal; **claims policy** checks (no cure claims) → sensitive/child-safety immediate takedown + report process; moderator wellbeing (blur sensitive images).
+
+### SOP-12 Data-subject request (DPDP)
+Verify identity (OTP + secondary) → classify (access/correct/erase/export/consent withdrawal) → collect from systems (records, orders, analytics pseudonymous map) → apply legal retention exceptions → fulfil within SLA → confirm in writing → audit. Erasure includes vendor propagation (Sentry/PostHog/Brevo/etc.) and backup expiry notes.
+
+### SOP-13 Data breach / security incident
+Detect → contain (revoke sessions/keys) → assess scope (PHI?) → notify leadership/DPO/legal → regulatory & user notifications per law (CERT-In 6h reporting, DPDP) → remediate → post-mortem (`docs/incident-response.md` ✅ extend with auth/ransomware/vendor scenarios).
+
+### SOP-14 Camps / events operations
+Organiser verification → partner facility proof & licences → medical staffing/emergency plan → consent forms ready → capacity & check-in setup (QR) → day-of support line → result delivery to records → feedback & outcome report → settlement. Cancellation: notify all + refunds.
+
+### SOP-15 Payouts & reconciliation (Finance)
+Daily: gateway ↔ ledger reconciliation; weekly: payout run (cycle per plan), holds for disputes/probation; monthly: GST/TDS reports, commission statements; exceptions queue (mismatch, bank failure) → fix within SLA; **dual approval** for payouts above threshold; audit trail.
+
+### SOP-16 Provider offboarding / suspension
+Reasons (breach, expiry, fraud, request) → notify with reason & appeal → handle pending bookings (reassign/cancel+refund) → payout settle (minus penalties) → data retention & patient record continuity → delist from search/cache.
+
+### SOP-17 Platform outage / degraded mode
+Status page update ≤ 15 min → enable degraded mode (cached SOS numbers, queue bookings) → support macros ready → compensation policy (credits) → post-mortem with customer comms.
+
+## 5. Escalation matrix
+
+| Severity | Definition | Who | Response |
+|---|---|---|---|
+| **Sev-1** | Patient safety risk, data breach, payments/SOS outage, legal threat | Incident commander + CTO + Founder + Legal/DPO | Immediate, war-room, updates every 30 min |
+| **Sev-2** | Major flow broken (booking/Rx), regulatory complaint, widespread fraud | Eng lead + Ops lead | ≤ 1h, updates hourly |
+| **Sev-3** | Single-user/provider issue, minor bug | Support/Tier-2 | ≤ 1 business day |
+| **Sev-4** | Cosmetic/feedback | Product | Backlog |
+Contacts directory (24x7 numbers, backups), clinical advisor on-call (for medical-safety questions), legal counsel, payment gateway & SMS provider escalation contacts, regulator/police liaison.
+
+## 6. Quality & coaching
+CSAT, FCR (first-contact resolution), AHT, reopen rate, SLA compliance, QA scorecards (accuracy, empathy, policy, privacy handling), weekly calibration, knowledge-base updates from top issues, macros review, **privacy training** (never ask OTP/password; verify before disclosing), de-escalation & sensitive-topics training (mental health, bereavement), anti-bias.
+
+## 7. Knowledge base & macros
+Structure: Getting started · Booking & payments · Refunds · Orders & prescriptions · Home visits · Memberships · Events · Records & privacy · Safety · For providers (join, docs, payouts, calendar) · Troubleshooting. Multilingual, short, screenshots, versioned; macros for common cases with variables; "what we will never ask you" notice.
+
+## 8. Staffing model (starter for 1 city pilot — adjust)
+
+| Role | Pilot | Growth trigger |
+|---|---|---|
+| Support agents (Hindi/English) | 2–4 (shifts) | +1 per X tickets/day |
+| Provider success manager | 1–2 | +1 per N active providers |
+| KYC/verification reviewers | 1–2 | +1 when queue SLA > target |
+| Field verification/ops executives | 2–3 (city) | per city |
+| Trust & safety/moderator | 1 (+on-call) | with UGC volume |
+| Finance ops | 1 (part-time → full) | with GMV |
+| Support lead/ops manager | 1 | — |
+| Clinical advisor | part-time | — |
+Use **workforce planning:** tickets per 1k bookings × bookings forecast ÷ agent capacity (e.g., ~X tickets/agent/day) + shrinkage 25–30%.
+
+## 9. Tools stack (suggestions)
+Helpdesk (Freshdesk/Zendesk/Zoho/open-source) integrated with `SupportTicket` · telephony/IVR + call recording consent · WhatsApp Business API · status page (Statuspage/Upptime) · incident tooling (PagerDuty/Opsgenie/Grafana OnCall) · knowledge base · QA tools · internal ops console ✅ (file 08) · BI dashboards · password manager · secure screen-share. **Access control:** RBAC, masked PII, reveal-with-reason, session timeouts, audit logs, no PHI in chat tools/screenshots shared externally.
+
+## 10. Provider success playbook
+- **Day 0–7:** welcome call, profile completion help, first-booking test, training video/WhatsApp group.
+- **Day 8–30:** monitor first bookings, no-show/cancel coaching, review requests, pricing tips.
+- **Monthly:** performance review (bookings, rating, response time), upsell Premium (analytics/featured), feedback loop to product.
+- **At-risk signals:** no bookings 14 days, high cancel rate, low rating, expiring docs, payout complaints → outreach.
+- **Community:** provider WhatsApp/Telegram groups (moderated), webinars (privacy do's/don'ts, claims policy), recognition (top-rated badges).
+
+## 11. Field ops playbook (city launch)
+1. **Mapping:** list target providers by category/area (govt directories, associations, field survey).
+2. **Pitch kit:** one-pager (benefits, fees), demo, testimonials, onboarding checklist, Hindi leaflet.
+3. **On-site onboarding:** docs capture (camera), photos, address verification, device setup, profile creation assist.
+4. **Verification visit** for high-risk types; mystery-shop for quality.
+5. **Launch events:** RWAs/corporates/NGO camps; pharmacist/lab networks.
+6. **Weekly review:** supply density map, fill rates, complaints → adjust.
+7. **Safety:** field staff protocols, ID badges, location check-in.
+
+## 12. Compliance in ops
+Grievance Officer workflow ✅ (acknowledge/resolve timelines — verify current rules), takedown requests logging, law-enforcement requests (legal approval, dual sign-off, minimal disclosure), record retention, privacy training, audit trails, change logs, vendor management, annual policy review.
+
+## 13. Metrics & dashboards
+| Area | Metrics |
+|---|---|
+| Support | First response time, resolution time, CSAT, backlog age, contact rate per 1k bookings, top issues |
+| Marketplace quality | Complaint rate, no-show %, refund %, repeat rate, provider rating distribution |
+| Onboarding | Application TAT, rejection reasons, resubmission rate, time-to-first-booking |
+| Safety | Incidents/1k bookings, SOS response time, crisis escalations handled < SLA |
+| Finance | Payout TAT, reconciliation mismatches, chargebacks, refund TAT |
+| Moderation | Queue age, action accuracy (second-review), appeals overturned % |
+| Privacy | DSR within SLA %, breach drills done |
+Weekly ops review; monthly leadership review; quarterly SOP audit.
+
+## 14. Templates (short)
+
+**Acknowledgement (ticket):** "Hi [Name], we've received your request [#ID]. We're looking into it and will update you within [SLA]. If this is an emergency, please call 112/108."
+**Provider no-show apology:** "We're sorry [Name] couldn't make your appointment. We've refunded ₹[amount] to [source] and added ₹[credit] credit. Here are alternatives available today: …"
+**Refund update:** "Your refund of ₹[amount] has been initiated (ref [#]); it should reach [source] in [3–7] business days."
+**Crisis outreach (trained staff script):** "I'm [Name] from FindMedi. I saw your message and I'm concerned about you. Are you safe right now? If you're in immediate danger please call 112. You can also talk to Tele-MANAS at 14416 any time. I can help connect you to a counsellor…" (use only by trained staff; adapt; avoid promises).
+**Privacy verification:** "To protect your account, please confirm [two non-sensitive details]. We will never ask for your OTP, password, or card PIN."
+
+## 15. Launch readiness checklist (ops)
+- [ ] Helpdesk + SLA timers + macros + routing configured; KB v1 (hi/en)
+- [ ] Support team trained (privacy, safety, crisis, refunds, Rx basics)
+- [ ] Incident roster/on-call + escalation contacts + clinical advisor reachable
+- [ ] SOPs 1–17 reviewed; dry-run drills (safety incident, payment mismatch, outage)
+- [ ] KYC checklists & two-person lane live; field team equipped
+- [ ] Finance: payout/reconciliation process + dual approval
+- [ ] Moderation queues + policies published
+- [ ] Grievance Officer + DPO contact live; DSR workflow tested
+- [ ] Status page + comms templates ready
+- [ ] Dashboards for support/quality/onboarding/safety/finance

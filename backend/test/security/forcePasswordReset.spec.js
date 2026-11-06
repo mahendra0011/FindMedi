@@ -230,6 +230,55 @@ describe('optionalProtect: anonymous-but-flagged sessions degrade quietly', () =
   });
 });
 
+describe('protect: tenant staff require a linked organization', () => {
+  it('blocks hospital staff with no hospital or facility link before route handlers run', async () => {
+    stubFindById(makeUser({
+      role: 'hospital_admin', mustResetPassword: false, twoFactorEnabled: true,
+      hospitalId: null, facilityId: null,
+    }));
+    const req = reqFor(tokenFor(), '/api/patients');
+    const res = resMock();
+    const next = jest.fn();
+
+    await protect(req, res, next);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.body.code).toBe('TENANT_SCOPE_REQUIRED');
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('allows a tenant staff account with a hospital link to continue', async () => {
+    stubFindById(makeUser({
+      role: 'hospital_admin', mustResetPassword: false, twoFactorEnabled: true,
+      hospitalId: 'h1', facilityId: null,
+    }));
+    const req = reqFor(tokenFor(), '/api/patients');
+    const res = resMock();
+    const next = jest.fn();
+
+    await protect(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(req.user.hospitalId).toBe('h1');
+  });
+
+  it('blocks an unscoped platform operator on a legacy tenant-data endpoint', async () => {
+    stubFindById(makeUser({
+      role: 'security_admin', mustResetPassword: false, twoFactorEnabled: true,
+      hospitalId: null, facilityId: null,
+    }));
+    const req = reqFor(tokenFor(), '/api/security/gate-passes');
+    const res = resMock();
+    const next = jest.fn();
+
+    await protect(req, res, next);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.body.code).toBe('TENANT_SCOPE_REQUIRED');
+    expect(next).not.toHaveBeenCalled();
+  });
+});
+
 describe('wiring: the login-time dead-end is gone, the flag is on every response', () => {
   const stripComments = (src) =>
     src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
@@ -249,7 +298,8 @@ describe('wiring: the login-time dead-end is gone, the flag is on every response
 
   it('the middleware exports exactly the four-path allowlist', () => {
     const mw = fs.readFileSync(new URL('../../src/middleware/auth.js', import.meta.url), 'utf8');
-    const list = mw.slice(mw.indexOf('PASSWORD_RESET_EXEMPT_PATHS = ['), mw.indexOf('];'));
+    const start = mw.indexOf('PASSWORD_RESET_EXEMPT_PATHS = [');
+    const list = mw.slice(start, mw.indexOf('];', start));
     for (const p of EXEMPT_PATHS) expect(list).toContain(`'${p}'`);
     expect(list.match(/'\/api\//g)).toHaveLength(EXEMPT_PATHS.length);
   });

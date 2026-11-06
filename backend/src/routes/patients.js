@@ -34,7 +34,11 @@ const maskTail4 = (v) => {
   return s.length > 4 ? `•••${s.slice(-4)}` : '•••';
 };
 const maskPatient = (p) => ({
-  ...(typeof p.toObject === 'function' ? p.toObject() : p),
+  // Allowlist fields. A spread here could expose newly-added clinical/model
+  // fields to every platform operator through the masked directory.
+  _id: p._id,
+  status: p.status,
+  createdAt: p.createdAt,
   name: maskName(p.name),
   phone: maskPhone(p.phone),
   email: maskEmail(p.email),
@@ -151,10 +155,15 @@ router.get('/', protect, async (req, res) => {  try {
 // File 22 P1-12: duplicate detection (same phone, or same name+dob/phone
 // prefix) + merge tool + ABHA linkage. Declared BEFORE /:id so the literal
 // paths are not swallowed as ids.
+// authz: role
 router.get('/duplicates', protect, async (req, res) => {
   try {
     const access = canReadPatientList(req);
-    if (!access.ok) return res.status(403).json({ message: 'Not authorized to list patients' });
+    // Duplicate detection requires identity comparison. It is a tenant clinic
+    // workflow and cannot be made safe by returning a platform-wide masked list.
+    if (!access.ok || access.masked || access.ownOnly || !access.scope) {
+      return res.status(403).json({ message: 'Tenant-scoped staff access required' });
+    }
     const base = {};
     if (access.scope) base.hospitalId = access.scope;
     const rows = await Patient.find({ ...base, mergedInto: null }).select('_id name phone dateOfBirth uhid').limit(2000).lean();
@@ -166,7 +175,12 @@ router.get('/duplicates', protect, async (req, res) => {
       byPhone[ph].push(p);
     }
     const groups = Object.values(byPhone).filter((g) => g.length > 1)
-      .map((g) => ({ key: `phone:${String(g[0].phone).slice(-10)}`, patients: g }));
+      .map((g) => ({ key: 'duplicate-phone', patients: g.map((p) => ({
+        _id: p._id,
+        name: maskName(p.name),
+        phone: maskPhone(p.phone),
+        uhid: maskTail4(p.uhid),
+      })) }));
     return res.json({ groups });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -274,7 +288,7 @@ router.post('/', protect, validate(createPatientSchema), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, requirePatientGrant, requireObjectId, validate(updatePatientSchema), async (req, res) => {
+router.put('/:id', protect, requireObjectId, validate(updatePatientSchema), async (req, res) => {
   try {
     const p = await Patient.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Patient not found' });
@@ -290,7 +304,7 @@ router.put('/:id', protect, requirePatientGrant, requireObjectId, validate(updat
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/:id', protect, requirePatientGrant, requireObjectId, async (req, res) => {
+router.delete('/:id', protect, requireObjectId, async (req, res) => {
   try {
     const p = await Patient.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Patient not found' });

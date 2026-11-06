@@ -6,11 +6,17 @@
  *  - import without hospitalId is 403 for patients, doctors AND billing with
  *    zero writes
  *  - scoped imports land only inside the caller's hospital (doctors + billing)
- *  - getReportExportScope unit pins: superadmin global, scoped admin, null for
+ *  - getReportExportScope unit pins: scoped admin only, null for superadmin,
  *    tenant-less admin and non-admin roles
  */
 import { jest } from '@jest/globals';
 import { mountApp } from '../helpers/appHarness.js';
+jest.unstable_mockModule('../../src/middleware/stepUpAuth.js', () => ({
+  requireStepUp: () => (_req, _res, next) => next(),
+}));
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+  auditLogRequired: jest.fn().mockResolvedValue(undefined),
+}));
 import { getReportExportScope, REPORT_EXPORT_ROW_CAP } from '../../src/routes/reports.js';
 
 // 45s file-wide: every test re-imports the full route tree through
@@ -74,13 +80,13 @@ describe('ADM-B-01 export cap on every type (seeded HTTP)', () => {
     expect(state.find).toHaveBeenCalledWith({ hospitalId: 'hospital-1' });
   });
 
-  it('caps even the global superadmin export', async () => {
+  it('denies platform-wide superadmin exports', async () => {
     const state = exportModels({ rows: [] });
     const { as } = await mountFresh(state);
     const res = await as({ id: 'root', role: 'superadmin' }).get('/api/reports/export/patients?format=csv');
-    expect(res.status).toBe(200);
-    expect(capturedLimits).toEqual([5000]);
-    expect(state.find).toHaveBeenCalledWith({});
+    expect(res.status).toBe(403);
+    expect(capturedLimits).toHaveLength(0);
+    expect(state.find).not.toHaveBeenCalled();
   });
 
   it('rejects an unknown export type without querying', async () => {
@@ -143,7 +149,7 @@ describe('ADM-M-01 import scope on every writable type (seeded HTTP)', () => {
 
 describe('ADM-B-01 getReportExportScope unit pins', () => {
   it('returns global scope for superadmin, tenant scope for linked admin, null otherwise', () => {
-    expect(getReportExportScope({ role: 'superadmin' })).toEqual({});
+    expect(getReportExportScope({ role: 'superadmin' })).toBeNull();
     expect(getReportExportScope({ role: 'hospital_admin', hospitalId: 'h1' })).toEqual({ hospitalId: 'h1' });
     expect(getReportExportScope({ role: 'hospital_admin' })).toBeNull();
     expect(getReportExportScope({ role: 'doctor', hospitalId: 'h1' })).toBeNull();

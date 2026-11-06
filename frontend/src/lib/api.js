@@ -733,6 +733,12 @@ export const api = {
   getSupportTickets:            (p={})  => request('/support-tickets?' + new URLSearchParams(p)),
   createSupportTicket:    (body)    => request('/support-tickets', { method:'POST', body: JSON.stringify(body) }),
   getMyTickets:           (p={})    => request('/support-tickets/my-tickets?' + new URLSearchParams(p)),
+  getSupportTicket:        (id)      => request(`/support-tickets/${id}`),
+  requestSupportAssist:    (id)      => request(`/support-tickets/${id}/assist/request`, { method:'POST', body: '{}' }),
+  revokeSupportAssist:     (id)      => request(`/support-tickets/${id}/assist/revoke`, { method:'POST', body: '{}' }),
+  renewSupportAssist:      (id)      => request(`/support-tickets/${id}/assist/renew`, { method:'POST', body: '{}' }),
+  verifySupportAssist:     (id,b)    => request(`/support-tickets/${id}/assist/verify`, { method:'POST', body: JSON.stringify(b) }),
+  getSupportAssistContact: (id)      => request(`/support-tickets/${id}/assist/contact`),
   updateTicketStatus:     (id,b)    => request(`/support-tickets/${id}/status`, { method:'PUT', body: JSON.stringify(b) }),
   assignTicket:           (id,b)    => request(`/support-tickets/${id}/assign`, { method:'PUT', body: JSON.stringify(b) }),
   addTicketMessage:       (id,b)    => request(`/support-tickets/${id}/messages`, { method:'POST', body: JSON.stringify(b) }),
@@ -768,6 +774,8 @@ export const api = {
   requestBreakGlass:      (body)    => request('/admin/break-glass', { method:'POST', body: JSON.stringify(body) }),
   decideBreakGlass:       (id,b)    => request(`/admin/break-glass/${id}/decision`, { method:'POST', body: JSON.stringify(b) }),
   revokeBreakGlass:       (id)      => request(`/admin/break-glass/${id}/revoke`, { method:'POST' }),
+  getBreakGlassReviewQueue: ()      => request('/admin/break-glass/review/queue'),
+  reviewBreakGlass:       (id,b)    => request(`/admin/break-glass/${id}/review`, { method:'POST', body: JSON.stringify(b) }),
 
   // File 25 IAM (Access Control Center)
   getIamCatalog:            ()        => request('/iam/catalog'),
@@ -1261,6 +1269,28 @@ export const api = {
   getMedicineAdherence:      (p={})    => request('/medicine-reminders/adherence' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
   getAlarmSounds:            ()        => request('/medicine-reminders/alarm-sounds'),
   getPrescriptions:          (p={})    => request('/pharmacy/prescriptions' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
+
+  // Refill subscriptions (Spec 2.3) — patient self-service + staff due sweep
+  getEvents:                 (p={})    => request('/events' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
+  getRefillSubscriptions:    (p={})    => request('/refill-subscriptions' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
+  createRefillSubscription:  (body)    => request('/refill-subscriptions', { method: 'POST', body: JSON.stringify(body) }),
+  pauseRefillSubscription:   (id)      => request(`/refill-subscriptions/${id}/pause`, { method: 'PATCH', body: JSON.stringify({}) }),
+  resumeRefillSubscription:  (id)      => request(`/refill-subscriptions/${id}/resume`, { method: 'PATCH', body: JSON.stringify({}) }),
+  cancelRefillSubscription:  (id)      => request(`/refill-subscriptions/${id}/cancel`, { method: 'PATCH', body: JSON.stringify({}) }),
+  refillNow:                 (id, body)=> request(`/refill-subscriptions/${id}/refill`, { method: 'POST', body: JSON.stringify(body || {}) }),
+  getDueRefills:             (p={})    => request('/refill-subscriptions/due' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
+
+  // Community forums (T2 peer support)
+  getCommunityPosts:         (p={})    => request('/community' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
+  getFirstResponders:        ()        => request('/emergency/first-responders'),
+  createCommunityPost:       (body)    => request('/community', { method: 'POST', body: JSON.stringify(body) }),
+  commentCommunityPost:      (id, body)=> request(`/community/${id}/comments`, { method: 'POST', body: JSON.stringify(body) }),
+
+  // Sample courier (Spec 2.4) — lab sample pickup tasks
+  getSampleCourierTasks:     (p={})    => request('/sample-courier' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
+  createSampleCourierTask:   (body)    => request('/sample-courier', { method: 'POST', body: JSON.stringify(body) }),
+  assignSampleCourierTask:   (id, body)=> request(`/sample-courier/${id}/assign`, { method: 'PUT', body: JSON.stringify(body) }),
+  updateSampleCourierStatus: (id, body)=> request(`/sample-courier/${id}/status`, { method: 'PUT', body: JSON.stringify(body) }),
 
   // ── Vitals Self-Tracking ──
   getVitals:                 (p={})    => request('/vitals' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),

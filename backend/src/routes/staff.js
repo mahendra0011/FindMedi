@@ -112,7 +112,7 @@ router.get('/', protect, authorize('staff:manage'), async (req, res) => {
 router.get('/:id', protect, authorize('staff:manage'), requireObjectId, async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const staff = await Staff.findOne(filter);
     if (!staff) return res.status(404).json({ message: 'Staff not found' });
     res.json(staff);
@@ -132,7 +132,7 @@ const isLastOwner = async (staffDoc) => {
 router.put('/:id', protect, authorize('staff:manage'), adminOnly, requireObjectId, validate(updateStaffSchema), requireStepUp('users:role-change'), async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const current = await Staff.findOne(filter);
     if (!current) return res.status(404).json({ message: 'Not found' });
     if (req.body.role && req.body.role !== 'hospital_admin' && (await isLastOwner(current))) {
@@ -156,7 +156,7 @@ router.put('/:id', protect, authorize('staff:manage'), adminOnly, requireObjectI
 router.delete('/:id', protect, authorize('staff:manage'), adminOnly, requireObjectId, async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const doomed = await Staff.findOne(filter);
     if (!doomed) return res.status(404).json({ message: 'Staff not found' });
     if (await isLastOwner(doomed)) {
@@ -447,7 +447,7 @@ router.get('/payslips', protect, authorize('staff:manage'), async (req, res) => 
   try {
     const { default: Payslip } = await import('../models/Payslip.js');
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.query.month) filter.month = req.query.month;
     if (req.query.staffId) filter.staffId = req.query.staffId;
     const rows = await Payslip.find(filter).sort({ month: -1 }).limit(300).lean();
@@ -537,7 +537,7 @@ router.get('/payslips/:id/pdf', protect, authorize('staff:manage'), async (req, 
     const { default: PDFDocument } = await import('pdfkit');
     const { default: Payslip } = await import('../models/Payslip.js');
     const filter = { _id: req.params.id };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const slip = await Payslip.findOne(filter).lean();
     if (!slip) return res.status(404).json({ message: 'Payslip not found' });
     if (slip.status === 'Draft') return res.status(409).json({ message: 'Release the payslip before printing' });
@@ -598,7 +598,7 @@ router.get('/loans', protect, authorize('staff:manage'), async (req, res) => {
   try {
     const { default: LoanAdvance } = await import('../models/LoanAdvance.js');
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.query.staffId) filter.staffId = req.query.staffId;
     if (req.query.status) filter.status = req.query.status;
     const rows = await LoanAdvance.find(filter).sort({ createdAt: -1 }).limit(300).lean();

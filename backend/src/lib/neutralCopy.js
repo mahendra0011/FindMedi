@@ -29,4 +29,6 @@ export const NEUTRAL_COPY = {
   assistant: { title: 'Assistant update', body: 'You have a new assistant message in FindMedi.' },
   lawyer: { title: 'Legal update', body: 'You have a new legal update in FindMedi.' },
   system: { title: 'FindMedi', body: 'You have a new notification in FindMedi.' },
+  security_alert: { title: 'Account security alert', body: 'A security event needs your attention. Open FindMedi.' },
+  privacy_request: { title: 'Privacy request update', body: 'There is an update about your privacy request.' },
 };

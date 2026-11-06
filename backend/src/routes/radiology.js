@@ -238,7 +238,7 @@ router.get('/orders', protect, async (req, res) => {
   try {
     const { status, modality, search } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.user.role === 'doctor') filter.doctorId = req.user.doctorProfileId;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     if (status && status !== 'All') filter.status = status;
@@ -260,7 +260,7 @@ router.get('/orders/:id', protect, async (req, res) => {
   try {
     const order = await Radiology.findById(req.params.id).populate('patientId', 'name email phone').populate('doctorId', 'name email');
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     // radiology:read:own — a patient reaches only their own studies.
@@ -280,7 +280,7 @@ router.put('/orders/:id/cancel', protect, authorize('radiology:cancel'), validat
   try {
     const order = await Radiology.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     if (['Reported', 'Report Finalized', 'Report Released', 'Delivered'].includes(order.status)) {
@@ -324,7 +324,7 @@ router.put('/orders/:id/status', protect, authorize('radiology:write'), validate
   try {
     const order = await Radiology.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const { status: nextStatus, reason } = req.body;
@@ -357,7 +357,7 @@ router.put('/orders/:id/modify', protect, authorize('radiology:write'), validate
   try {
     const order = await Radiology.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     if (['In Progress', ...RAD_REPORTING_STATUSES, 'Cancelled'].includes(order.status)) {
@@ -391,7 +391,7 @@ router.put('/orders/:id/schedule', protect, validate(radScheduleSchema), async (
     const { scheduledAt } = req.body;
     const existing = await Radiology.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && existing.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || existing.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     existing.status = 'Scheduled';
@@ -406,7 +406,7 @@ router.put('/orders/:id/start', protect, async (req, res) => {
   try {
     const existing = await Radiology.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && existing.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || existing.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     existing.status = 'In Progress';
@@ -423,7 +423,7 @@ router.put('/orders/:id/complete', protect, validate(radCompleteSchema), async (
     const { imageUrls } = req.body;
     const existing = await Radiology.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && existing.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || existing.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     existing.status = 'Completed';
@@ -448,7 +448,7 @@ router.put('/orders/:id/screening', protect, authorize('radiology:read', 'radiol
     } = req.body;
     const order = await Radiology.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     order.safetyScreening = {
@@ -483,7 +483,7 @@ router.put('/orders/:id/report', protect, authorize('radiology:write', 'radiolog
     const { findings, impression, recommendation, reportUrl, amendmentReason, criticalFinding } = req.body;
     const order = await Radiology.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -619,7 +619,7 @@ router.put('/orders/:id/critical/close', protect, authorize('radiology:write'), 
 router.get('/critical', protect, authorize('radiology:read'), async (req, res) => {
   try {
     const filter = { 'criticalFinding.isCritical': true };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const cutoff = new Date(Date.now() - 30 * 60 * 1000);
     const rows = await Radiology.find(filter)
       .populate('patientId', 'name phone')
@@ -640,7 +640,7 @@ router.get('/critical', protect, authorize('radiology:read'), async (req, res) =
 router.get('/preparation', protect, authorize('radiology:read'), async (req, res) => {
   try {
     const filter = { status: { $in: ['Preparation Pending', 'Patient Arrived', 'On Hold'] } };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     const orders = await Radiology.find(filter)
       .populate('patientId', 'name phone')
@@ -655,7 +655,7 @@ router.put('/orders/:id/preparation', protect, authorize('radiology:write'), val
   try {
     const order = await Radiology.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const b = req.body;
@@ -704,7 +704,7 @@ router.put('/orders/:id/contrast', protect, authorize('radiology:write'), valida
   try {
     const order = await Radiology.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const b = req.body;
@@ -729,7 +729,7 @@ router.put('/orders/:id/contrast', protect, authorize('radiology:write'), valida
 router.get('/modalities', protect, async (req, res) => {
   try {
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const modalities = await ImagingModality.find(filter).sort({ modalityType: 1, name: 1 });
     res.json({ modalities });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -738,7 +738,7 @@ router.get('/modalities', protect, async (req, res) => {
 router.get('/modalities/:id', protect, authorize('radiology:read'), async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const item = await ImagingModality.findOne(filter)
       .populate('assignedStaff', 'name email role')
       .populate('assignedEquipment', 'name type serialNumber');
@@ -770,7 +770,7 @@ router.post('/modalities', protect, authorize('radiology:write'), validate(radMo
 router.put('/modalities/:id', protect, authorize('radiology:write'), validate(radModalityUpdateSchema), async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const item = await ImagingModality.findOne(filter);
     if (!item) return res.status(404).json({ message: 'Modality not found' });
     if (item.status === 'Inactive') {
@@ -804,7 +804,7 @@ router.put('/modalities/:id', protect, authorize('radiology:write'), validate(ra
 router.delete('/modalities/:id', protect, authorize('radiology:write'), async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const item = await ImagingModality.findOne(filter);
     if (!item) return res.status(404).json({ message: 'Modality not found' });
     if (item.status !== 'Inactive') {
@@ -827,7 +827,7 @@ const RAD_APPT_ACTIVE = ['Booked', 'Confirmed', 'Arrived'];
 router.get('/appointments', protect, authorize('radiology:read'), async (req, res) => {
   try {
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     if (req.query.from || req.query.to) {
       filter.scheduledStart = {};
@@ -914,7 +914,7 @@ router.post('/appointments', protect, authorize('radiology:write'), validate(rad
 router.put('/appointments/:id', protect, authorize('radiology:write'), validate(radAppointmentUpdateSchema), async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const appointment = await ImagingAppointment.findOne(filter);
     if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
     const b = req.body;
@@ -970,7 +970,7 @@ router.put('/appointments/:id', protect, authorize('radiology:write'), validate(
 router.put('/appointments/:id/checkin', protect, authorize('radiology:write'), async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const appointment = await ImagingAppointment.findOne(filter);
     if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
     if (['Cancelled', 'No Show', 'Completed'].includes(appointment.status)) {
@@ -1002,14 +1002,14 @@ router.get('/schedule/availability', protect, authorize('radiology:read'), async
     const dayStart = new Date(day); dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(day); dayEnd.setHours(23, 59, 59, 999);
     const machineFilter = { status: { $ne: 'Inactive' } };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') machineFilter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); machineFilter.hospitalId = req.user.hospitalId; }
     if (modalityType && modalityType !== 'All') machineFilter.modalityType = modalityType;
     if (machineId) machineFilter._id = machineId;
     const machines = await ImagingModality.find(machineFilter)
       .select('name code modalityType roomNumber slotDurationMinutes operatingHours workingHours status')
       .sort({ name: 1 });
     const apptFilter = { scheduledStart: { $gte: dayStart, $lte: dayEnd }, status: { $in: RAD_APPT_ACTIVE } };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') apptFilter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); apptFilter.hospitalId = req.user.hospitalId; }
     if (machineId) apptFilter.machineId = machineId;
     else if (modalityType && modalityType !== 'All') apptFilter.modalityType = modalityType;
     const appts = await ImagingAppointment.find(apptFilter)
@@ -1044,7 +1044,7 @@ router.put('/orders/:id/deliver', protect, async (req, res) => {
   try {
     const order = await Radiology.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     order.status = 'Delivered';
@@ -1067,7 +1067,7 @@ router.put('/orders/:id/deliver', protect, async (req, res) => {
 router.get('/stats', protect, async (req, res) => {
   try {
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.user.role === 'doctor') filter.doctorId = req.user.doctorProfileId;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     const total = await Radiology.countDocuments(filter);
@@ -1252,7 +1252,7 @@ router.post('/dicom/link', protect, authorize('radiology:write'), validate(radDi
     const { orderId, studyUid, seriesCount } = req.body;
     const order = await Radiology.findById(orderId);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     order.studyUid = studyUid;
@@ -1278,7 +1278,7 @@ router.post('/dicom/retry', protect, authorize('radiology:write'), validate(radD
   try {
     const order = await Radiology.findById(req.body.orderId);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     if (!order.studyUid && !order.dicomStudy?.studyUid) {

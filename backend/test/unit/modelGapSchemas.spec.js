@@ -24,6 +24,7 @@ import NotificationTemplate from '../../src/models/NotificationTemplate.js';
 import FamilyMember from '../../src/models/FamilyMember.js';
 import Dispute from '../../src/models/Dispute.js';
 import SupportTicket from '../../src/models/SupportTicket.js';
+import SupportAssistSession from '../../src/models/SupportAssistSession.js';
 import PharmacyOrder from '../../src/models/PharmacyOrder.js';
 import PlatformContent from '../../src/models/PlatformContent.js';
 import NotificationPreference from '../../src/models/NotificationPreference.js';
@@ -97,6 +98,21 @@ describe('Flow-D meal subscription is its own row, not DietOrder', () => {
   });
 });
 
+describe('SupportAssistSession retention', () => {
+  it('expires consent codes and reveal metadata after 30 days', () => {
+    const ttl = SupportAssistSession.schema.indexes().find(([keys]) => keys.requestedAt === 1);
+    expect(ttl?.[1]?.expireAfterSeconds).toBe(30 * 24 * 60 * 60);
+  });
+});
+
+describe('AuditLog retention', () => {
+  it('matches the seven-year privacy retention schedule', async () => {
+    const { default: AuditLog } = await import('../../src/models/AuditLog.js');
+    const ttl = AuditLog.schema.indexes().find(([keys]) => keys.timestamp === 1);
+    expect(ttl?.[1]?.expireAfterSeconds).toBe(7 * 365 * 24 * 60 * 60);
+  });
+});
+
 describe('Product catalogue (10.md §2.7)', () => {
   it('has the kind list, variant rows, regulatory numbers and rentable block', () => {
     expect(enumOf(Product.schema, 'kind')).toEqual(
@@ -123,7 +139,7 @@ describe('Product catalogue (10.md §2.7)', () => {
 describe('Practitioner profile (10.md §2.5) keeps Doctor honest', () => {
   it('models non-Doctor role types, per-mode fees and encrypted registration', () => {
     expect(enumOf(PractitionerProfile.schema, 'roleType')).toEqual(
-      ['acupuncturist', 'audiologist', 'ayush_practitioner', 'counsellor', 'dentist', 'dietitian', 'doctor', 'doula', 'lab_technician', 'lactation_consultant', 'lawyer', 'meditation_teacher', 'nurse', 'occupational_therapist', 'optometrist', 'paramedic_emt', 'peer_mentor', 'pharmacist', 'phlebotomist', 'physio', 'prosthetist_orthotist', 'psychologist', 'psychotherapist', 'radiographer', 'sonographer', 'speech_therapist', 'trainer', 'yoga_teacher'],
+      ['acupuncturist', 'audiologist', 'ayush_practitioner', 'counsellor', 'dentist', 'dietitian', 'doctor', 'doula', 'first_responder', 'lab_technician', 'lactation_consultant', 'lawyer', 'meditation_teacher', 'nurse', 'occupational_therapist', 'optometrist', 'paramedic_emt', 'peer_mentor', 'pharmacist', 'phlebotomist', 'physio', 'prosthetist_orthotist', 'psychologist', 'psychotherapist', 'radiographer', 'sonographer', 'speech_therapist', 'trainer', 'yoga_teacher'],
     );
     expect(enumOf(PractitionerProfile.schema, 'modes.mode')).toEqual(
       ['audio', 'chat', 'home_visit', 'in_person', 'video'],

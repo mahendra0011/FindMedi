@@ -13,7 +13,7 @@ router.get('/', authorize('records:read', 'appointments:read'), async (req, res)
   try {
     const { patientId, status, limit: lim } = req.query || {};
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (patientId) filter.patientId = patientId;
     if (status) filter.status = status;
     const rows = await Encounter.find(filter)
@@ -27,7 +27,7 @@ router.get('/', authorize('records:read', 'appointments:read'), async (req, res)
 router.get('/:id', authorize('records:read', 'appointments:read'), async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const enc = await Encounter.findOne(filter).lean();
     if (!enc) return res.status(404).json({ message: 'Encounter not found' });
     res.json({ encounter: enc });
@@ -48,7 +48,7 @@ router.put('/:id/close', authorize('records:write', 'appointments:write'), async
 router.put('/:id/reopen', authorize('records:write'), async (req, res) => {
   try {
     const filter = { _id: req.params.id, status: 'Closed' };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const enc = await Encounter.findOneAndUpdate(
       filter,
       { $set: { status: 'Open', closedAt: null } },

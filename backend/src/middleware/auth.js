@@ -12,6 +12,7 @@ import Record from '../models/Record.js';
 import { auditLog } from './audit.js';
 import { readAuthCookie } from '../lib/cookiePolicy.js';
 import { tenantQuotaGuard } from '../services/tenantQuotaService.js';
+import { isTenantStaff } from '../utils/tenantScope.js';
 import {
   hashChain,
   logAuditHashChain,
@@ -30,7 +31,27 @@ import {
   checkIpAllowList,
 } from '../lib/security.js';
 
-export { authorize } from './authorize.js';
+import { authorize, isPlatformBreakGlassRole } from './authorize.js';
+export { authorize, isPlatformBreakGlassRole };
+
+// Routes still carrying legacy conditional hospital filters. Until those
+// predicates are migrated to applyTenantScope(), platform operators on these
+// tenant data endpoints must have an explicit hospital context.
+const LEGACY_TENANT_ROUTE_PREFIXES = [
+  '/api/bloodbank', '/api/clinical', '/api/diet', '/api/doctor',
+  '/api/emergency', '/api/encounters', '/api/feedback', '/api/health-id',
+  '/api/inventory', '/api/ipd', '/api/lab', '/api/linen', '/api/maternity',
+  '/api/nursing', '/api/orders', '/api/print', '/api/radiology',
+  '/api/security', '/api/staff', '/api/tokens',
+  '/api/housekeeping', '/api/insurance', '/api/leave-requests', '/api/ot',
+  '/api/payments', '/api/pharmacy', '/api/physio', '/api/reports',
+  '/api/schedule-change-requests', '/api/triage',
+];
+
+const requiresLegacyTenantContext = (req) => {
+  const path = String(req.originalUrl || req.path || '').split('?')[0];
+  return LEGACY_TENANT_ROUTE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+};
 
 // AUTH-F-06: the ONLY routes a mustResetPassword session may reach. Exact
 // paths (minus query/trailing slash), never prefixes - `/api/auth/
@@ -203,6 +224,20 @@ req.user = {
   };
   req.authUser = user;
 
+  // AUTHZ-B-07: legacy route filters often add a tenant predicate only when a
+  // hospitalId exists. Tenant staff without any tenant and platform operators
+  // reaching a legacy tenant-data endpoint without hospital scope must stop
+  // here; otherwise the omitted predicate can become a platform-wide query.
+  const missingTenant = !req.user.hospitalId && !req.user.facilityId;
+  const legacyScopedEndpoint = requiresLegacyTenantContext(req);
+  if (
+    missingTenant
+    && req.user.role !== 'superadmin'
+    && (isTenantStaff(req.user) || (legacyScopedEndpoint && isPlatformBreakGlassRole(req.user.role)))
+  ) {
+    return res.status(403).json({ message: 'No hospital/facility linked to this account', code: 'TENANT_SCOPE_REQUIRED' });
+  }
+
   const idleLock = checkIdleLock(user);
   if (idleLock.locked) {
     return res.status(403).json({
@@ -224,6 +259,23 @@ req.user = {
   return tenantQuotaGuard(req, res, next);
 };
 
+// Clinical service routers use this after `protect` while legacy handlers are
+// being migrated to subject-scoped grants and PHI-safe DTOs. Platform operators
+// must not inherit care-team access merely because an older handler names
+// `superadmin` as a tenant-bypass exception.
+export const denyPlatformClinicalAccess = (req, res, next) => {
+  const roles = new Set([
+    'superadmin', 'platform_admin', 'support_l1', 'support_l2', 'support_agent',
+    'dpo', 'security_admin', 'clinical_safety', 'analyst', 'auditor',
+    'compliance_officer', 'content_editor', 'finance_admin', 'catalog_manager',
+    'moderator', 'kyc_reviewer', 'city_manager', 'medical_reviewer',
+  ]);
+  if (roles.has(req.user?.role)) {
+    return res.status(403).json({ message: 'Clinical service data requires a care-team relationship or an approved scoped access flow' });
+  }
+  return next();
+};
+
 export const auditAction = async (req, action) => {
   await auditLog(action, req.user?.id, { ip: req.ip, userAgent: req.get('user-agent') });
 };
@@ -231,7 +283,7 @@ export const auditAction = async (req, action) => {
 // Tenant-admin gate. Kept separate from `superadminOnly` (ADM-B-03): tenant
 // admins may act inside their own hospital, never on platform-wide config.
 export const adminOnly = (req, res, next) => {
-  if (req.user?.role !== 'hospital_admin' && req.user?.role !== 'superadmin') {
+  if (req.user?.role !== 'hospital_admin') {
     return res.status(403).json({ message: 'Admin access required' });
   }
   next();
@@ -272,7 +324,9 @@ export const clinicalStaffOnly = (req, res, next) => {
 };
 
 export const scopeToHospital = (req, res, next) => {
-  if (req.user?.role === 'superadmin') return next();
+  if (req.user?.role === 'superadmin') {
+    return res.status(403).json({ message: 'Explicit tenant scope required' });
+  }
   if (!req.user?.hospitalId) {
     return res.status(403).json({ message: 'No hospital linked to this account' });
   }
@@ -281,7 +335,9 @@ export const scopeToHospital = (req, res, next) => {
 };
 
 export const scopeToFacility = (req, res, next) => {
-  if (req.user?.role === 'superadmin') return next();
+  if (req.user?.role === 'superadmin') {
+    return res.status(403).json({ message: 'Explicit facility scope required' });
+  }
   if (!req.user?.facilityId && !req.user?.hospitalId) {
     return res.status(403).json({ message: 'No facility linked to this account' });
   }
@@ -291,7 +347,6 @@ export const scopeToFacility = (req, res, next) => {
 };
 
 export const sameFacility = (req, res, next) => {
-  if (req.user?.role === 'superadmin') return next();
   const targetId = req.body?.facilityId || req.query?.facilityId || req.params?.facilityId;
   const userFacilityId = (req.user.facilityId || req.user.hospitalId)?.toString();
   if (!userFacilityId) {
@@ -311,10 +366,10 @@ export const canAccessRecord = async (req, res, next) => {
     }
 
     const user = req.user;
-    if (user.role === 'superadmin') {
-      return next();
+    if (req.breakGlass && isPlatformBreakGlassRole(user.role)) return next();
+    if (isPlatformBreakGlassRole(user.role)) {
+      return res.status(403).json({ message: 'Break-glass access required' });
     }
-
     if (user.role === 'hospital_admin') {
       // AUTH-B-09: fail CLOSED. A hospital admin with no linked hospital (or a
       // record with no hospitalId) must NOT be able to read it — the old
@@ -359,10 +414,10 @@ export const canAccessPatient = async (req, res, next) => {
     }
 
     const user = req.user;
-    if (user.role === 'superadmin') {
-      return next();
+    if (req.breakGlass && isPlatformBreakGlassRole(user.role)) return next();
+    if (isPlatformBreakGlassRole(user.role)) {
+      return res.status(403).json({ message: 'Break-glass access required' });
     }
-
     if (user.role === 'hospital_admin') {
       // AUTH-B-09: fail closed (see canAccessRecord).
       if (!user.hospitalId || !patient.hospitalId) {

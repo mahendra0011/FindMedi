@@ -2,7 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import NursingChart from '../models/NursingChart.js';
 import Admission from '../models/Admission.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, denyPlatformClinicalAccess, adminOnly } from '../middleware/auth.js';
 import { validate, vitalsShape, boundedShallow } from '../utils/validate.js';
 
 const nursingVitalsSchema = z.object({ patientId: z.string().min(1).max(100), patientName: z.string().trim().max(200).optional(), admissionId: z.string().trim().max(100).optional(), vitals: vitalsShape });
@@ -13,11 +13,11 @@ const nursingWoundSchema = z.object({ patientId: z.string().min(1).max(100), pat
 const router = express.Router();
 
 // Get nursing charts for patient/admission
-router.get('/', protect, async (req, res) => {
+router.get('/', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const { patientId, admissionId, chartType, shift, date } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (patientId) filter.patientId = patientId;
     if (admissionId) filter.admissionId = admissionId;
     if (chartType && chartType !== 'All') filter.chartType = chartType;
@@ -34,7 +34,7 @@ router.get('/', protect, async (req, res) => {
 });
 
 // Create vitals chart entry
-router.post('/vitals', protect, adminOnly, validate(nursingVitalsSchema), async (req, res) => {
+router.post('/vitals', protect, denyPlatformClinicalAccess, adminOnly, validate(nursingVitalsSchema), async (req, res) => {
   try {
     const { patientId, patientName, admissionId, vitals } = req.body;
     if (!patientId || !vitals) return res.status(400).json({ message: 'Patient and vitals required' });
@@ -48,7 +48,7 @@ router.post('/vitals', protect, adminOnly, validate(nursingVitalsSchema), async 
 });
 
 // Create MAR entry
-router.post('/mar', protect, adminOnly, validate(nursingMarSchema), async (req, res) => {
+router.post('/mar', protect, denyPlatformClinicalAccess, adminOnly, validate(nursingMarSchema), async (req, res) => {
   try {
     const { patientId, patientName, admissionId, medicationAdmin } = req.body;
     if (!patientId || !medicationAdmin) return res.status(400).json({ message: 'Patient and medication data required' });
@@ -62,7 +62,7 @@ router.post('/mar', protect, adminOnly, validate(nursingMarSchema), async (req, 
 });
 
 // Create Input/Output chart entry
-router.post('/io', protect, adminOnly, validate(nursingIOSchema), async (req, res) => {
+router.post('/io', protect, denyPlatformClinicalAccess, adminOnly, validate(nursingIOSchema), async (req, res) => {
   try {
     const { patientId, patientName, admissionId, vitals } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
@@ -76,7 +76,7 @@ router.post('/io', protect, adminOnly, validate(nursingIOSchema), async (req, re
 });
 
 // Create wound dressing entry
-router.post('/wound-dressing', protect, adminOnly, validate(nursingWoundSchema), async (req, res) => {
+router.post('/wound-dressing', protect, denyPlatformClinicalAccess, adminOnly, validate(nursingWoundSchema), async (req, res) => {
   try {
     const { patientId, patientName, admissionId, woundDressing } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
@@ -90,12 +90,12 @@ router.post('/wound-dressing', protect, adminOnly, validate(nursingWoundSchema),
 });
 
 // Get daily shift charts
-router.get('/shift/:admissionId/:date', protect, async (req, res) => {
+router.get('/shift/:admissionId/:date', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const { admissionId, date } = req.params;
     const dateObj = new Date(date);
     const filters = { admissionId };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filters.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filters.hospitalId = req.user.hospitalId; }
     const charts = await NursingChart.find({
       ...filters,
       date: { $gte: new Date(dateObj.setHours(0,0,0,0)), $lte: new Date(dateObj.setHours(23,59,59,999)) }
@@ -105,10 +105,10 @@ router.get('/shift/:admissionId/:date', protect, async (req, res) => {
 });
 
 // Stats
-router.get('/stats', protect, async (req, res) => {
+router.get('/stats', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const hFilter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); hFilter.hospitalId = req.user.hospitalId; }
     const vitalsCount = await NursingChart.countDocuments({ chartType: 'Vitals', ...hFilter });
     const marCount = await NursingChart.countDocuments({ chartType: 'MAR', ...hFilter });
     const ioCount = await NursingChart.countDocuments({ chartType: 'InputOutput', ...hFilter });
@@ -121,7 +121,7 @@ router.get('/stats', protect, async (req, res) => {
 // sample or blood unit and gets back the entity + patient in one round trip.
 // Read-only by design: scanning never mutates state, the actual administration
 // or issue goes through the dedicated endpoints.
-router.post('/scan', protect, async (req, res) => {
+router.post('/scan', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const { kind, code } = req.body || {};
     if (!['mar', 'sample', 'blood'].includes(kind)) {
@@ -130,7 +130,7 @@ router.post('/scan', protect, async (req, res) => {
     const codeStr = String(code || '').trim();
     if (!codeStr) return res.status(400).json({ message: 'code required' });
     const hFilter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); hFilter.hospitalId = req.user.hospitalId; }
 
     if (kind === 'sample') {
       const { default: LabOrder } = await import('../models/LabOrder.js');

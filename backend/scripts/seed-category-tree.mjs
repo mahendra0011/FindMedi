@@ -26,7 +26,9 @@ configureMongoDns();
 const isApply = process.argv.includes('--apply');
 const isDryRun = process.argv.includes('--dry-run') || !isApply;
 
-// Forbidden items from the pruned catalogue's "Jo hata diya gaya" section
+// Forbidden items from the pruned catalogue's "Jo hata diya gaya" section.
+// Matched on word boundaries so specialty codes like SPEC.NUCMED / SPEC.OCCMED
+// do not false-positive on the "cme" token.
 const FORBIDDEN_TOKENS = [
   'veterinary', 'pet care', 'tattoo', 'piercing', 'salon', 'pest control',
   'ro purifier', 'purifier service', 'air ambulance', 'medical tourism',
@@ -34,6 +36,10 @@ const FORBIDDEN_TOKENS = [
   'insurance comparison', 'insurance advisor', 'cme', 'claims fraud',
   'cord blood bank', 'sowa rigpa', 'reiki', 'energy healing',
 ];
+
+const FORBIDDEN_RES = FORBIDDEN_TOKENS.map(
+  (token) => new RegExp(`\\b${token.trim().split(/\s+/).join('\\s+')}\\b`, 'i')
+);
 
 console.log(`\n======================================================`);
 console.log(` FindMedi Category Tree Seeder (${isApply ? 'APPLY' : 'DRY RUN'})`);
@@ -73,11 +79,11 @@ for (const [index, item] of CATEGORY_TREE.entries()) {
     errors.push(`${rowId}: tier "${item.tier}" is not in CATEGORY_TIERS`);
   }
 
-  // Check forbidden tokens in name, aliases, code
-  const searchable = `${item.code} ${item.name} ${(item.aliases || []).join(' ')}`.toLowerCase();
-  for (const forbidden of FORBIDDEN_TOKENS) {
-    if (searchable.includes(forbidden)) {
-      errors.push(`${rowId}: contains dropped/forbidden term "${forbidden}"`);
+  // Check forbidden tokens in name, aliases, code (word-boundary match)
+  const searchable = `${item.code} ${item.name} ${(item.aliases || []).join(' ')}`;
+  for (const forbiddenRe of FORBIDDEN_RES) {
+    if (forbiddenRe.test(searchable)) {
+      errors.push(`${rowId}: contains dropped/forbidden term "${forbiddenRe.source}"`);
     }
   }
 }

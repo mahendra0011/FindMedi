@@ -29,7 +29,7 @@ const requireObjectId = (req, res, next) => (OBJECT_ID.test(String(req.params.id
 router.get('/kitchen/sheet', protect, async (req, res) => {
   try {
     const filter = { status: 'Active' };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const rows = await DietOrder.aggregate([
       { $match: filter },
       { $group: { _id: { ward: '$ward', dietType: '$dietType' }, count: { $sum: 1 } } },
@@ -67,7 +67,7 @@ router.get('/orders', protect, async (req, res) => {
   try {
     const { status, search } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (status && status !== 'All') filter.status = status;
     if (search) {
       filter.$or = [
@@ -84,7 +84,7 @@ router.put('/orders/:id/deliver-meal', protect, requireObjectId, validate(dietDe
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const { mealType, items } = req.body;
@@ -111,7 +111,7 @@ router.put('/orders/:id/confirm-meal', protect, requireObjectId, validate(dietCo
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const { mealIndex, feedback, feedbackNote } = req.body;
@@ -132,7 +132,7 @@ router.put('/orders/:id/review', protect, requireObjectId, async (req, res) => {
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     order.reviewedByDietitian = true;
@@ -155,7 +155,7 @@ router.put('/orders/:id/notify', protect, requireObjectId, async (req, res) => {
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     order.kitchenNotifiedAt = new Date();
@@ -170,7 +170,7 @@ router.put('/orders/:id/feedback', protect, requireObjectId, async (req, res) =>
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     order.patientFeedback = req.body.feedback;
@@ -186,7 +186,7 @@ router.post('/orders/:id/create-billing', protect, adminOnly, requireObjectId, v
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
@@ -223,7 +223,7 @@ router.post('/orders/:id/create-billing', protect, adminOnly, requireObjectId, v
 router.get('/stats', protect, async (req, res) => {
   try {
     const hFilter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); hFilter.hospitalId = req.user.hospitalId; }
     const active = await DietOrder.countDocuments({ status: 'Active', ...hFilter });
     const todayMeals = await DietOrder.countDocuments({ ...hFilter, 'meals.date': { $gte: new Date().setHours(0,0,0,0) } });
     const total = await DietOrder.countDocuments(hFilter);

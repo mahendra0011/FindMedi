@@ -34,15 +34,18 @@ router.get('/', protect, async (req, res) => {
   try {
     const { status, severity } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
-    
+    if (req.user.role === 'patient') {
+      filter.patientId = req.user._id;
+    } else if (req.user.role !== 'superadmin') {
+      if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' });
+      filter.hospitalId = req.user.hospitalId;
+    }
+
     if (req.user.role === 'doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') {
       filter.$or = [
         { assignedDoctor: req.user.doctorProfileId || req.user._id },
         { status: 'Pending' }
       ];
-    } else if (req.user.role === 'patient') {
-      filter.patientId = req.user._id;
     }
     
     if (status && status !== 'All') filter.status = status;
@@ -156,7 +159,7 @@ router.put('/:id/assign', protect, adminOnly, async (req, res) => {
     
     const existing = await Emergency.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Emergency case not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && existing.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || existing.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const emergency = await Emergency.findByIdAndUpdate(
@@ -183,7 +186,7 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
     
     const emergency = await Emergency.findById(req.params.id);
     if (!emergency) return res.status(404).json({ message: 'Emergency case not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && emergency.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || emergency.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
@@ -217,7 +220,7 @@ router.post('/:id/notes', protect, adminOnly, async (req, res) => {
     
     const emergency = await Emergency.findById(req.params.id);
     if (!emergency) return res.status(404).json({ message: 'Emergency case not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && emergency.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || emergency.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
@@ -235,7 +238,7 @@ router.post('/:id/notes', protect, adminOnly, async (req, res) => {
 router.get('/stats', protect, async (req, res) => {
   try {
     const matchFilter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') matchFilter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); matchFilter.hospitalId = req.user.hospitalId; }
     const stats = await Emergency.aggregate([
       { $match: matchFilter },
       { $group: { _id: '$status', count: { $sum: 1 } } }
@@ -264,7 +267,7 @@ router.post('/:id/transfer-to-ipd', protect, adminOnly, async (req, res) => {
     
     const emergency = await Emergency.findById(req.params.id);
     if (!emergency) return res.status(404).json({ message: 'Emergency case not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && emergency.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || emergency.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
@@ -335,7 +338,7 @@ router.post('/beds/transfer/:id', protect, async (req, res) => {
     const toBed = await Bed.findById(toBedId);
     
     if (!fromBed || !toBed) return res.status(404).json({ message: 'Bed not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && (fromBed.hospitalId?.toString() !== req.user.hospitalId.toString() || toBed.hospitalId?.toString() !== req.user.hospitalId.toString())) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || (fromBed.hospitalId?.toString() !== req.user.hospitalId.toString() || toBed.hospitalId?.toString() !== req.user.hospitalId.toString()))) {
       return res.status(403).json({ message: 'Access denied' });
     }
     // RIDE-B-20: fail CLOSED for a tenant-less caller (the old `if (hospitalId && …)`
@@ -395,7 +398,7 @@ router.post('/:id/mlc', protect, adminOnly, async (req, res) => {
   try {
     const emergency = await Emergency.findById(req.params.id);
     if (!emergency) return res.status(404).json({ message: 'Emergency case not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && emergency.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || emergency.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const { default: MlcCase } = await import('../models/MlcCase.js');
@@ -412,6 +415,32 @@ router.post('/:id/mlc', protect, adminOnly, async (req, res) => {
     });
     await auditLog('er_mlc_registered', req.user._id, { emergencyId: emergency._id, mlcId: row._id, ip: req.ip });
     return res.status(201).json({ id: String(row._id), mlcNo });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// First-responder dispatch directory (T2): approved PractitionerProfile
+// rows with roleType first_responder — the SOS flow calls this before falling
+// back to 112/108. Directory read only; verification lives on the profile.
+// authz: self
+router.get('/first-responders', protect, async (req, res) => {
+  try {
+    const { default: PractitionerProfile } = await import('../models/PractitionerProfile.js');
+    const rows = await PractitionerProfile.find({ roleType: 'first_responder', status: 'active' })
+      .populate('userId', 'name phone')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+    const responders = rows.map((r) => ({
+      id: String(r._id),
+      name: r.userId?.name || 'First responder',
+      phone: r.userId?.phone || '',
+      experienceYears: r.experienceYears || 0,
+      languages: r.languages || [],
+      status: r.status || 'active',
+    }));
+    return res.json({ responders });
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }

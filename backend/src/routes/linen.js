@@ -57,7 +57,7 @@ router.post('/requests', protect, validate(requestSchema), async (req, res) => {
 router.get('/requests', protect, authorize('records:read', 'beds:read'), async (req, res) => {
   try {
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.query.status) filter.status = String(req.query.status);
     if (req.query.ward) filter.ward = String(req.query.ward);
     const rows = await LinenRequest.find(filter).sort({ createdAt: -1 }).limit(200).lean();
@@ -75,7 +75,7 @@ router.put('/requests/:id/status', protect, validate(statusSchema), async (req, 
   try {
     const row = await LinenRequest.findById(req.params.id);
     if (!row) return res.status(404).json({ message: 'Request not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && row.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || row.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     if (!FORWARD[row.status]?.includes(req.body.status)) {
@@ -94,7 +94,7 @@ router.put('/requests/:id/status', protect, validate(statusSchema), async (req, 
 router.get('/stats', protect, authorize('records:read', 'beds:read'), async (req, res) => {
   try {
     const hFilter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); hFilter.hospitalId = req.user.hospitalId; }
     const [byStatus, isolation] = await Promise.all([
       LinenRequest.aggregate([
         { $match: hFilter },

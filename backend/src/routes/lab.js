@@ -16,7 +16,7 @@ import Notification from '../models/Notification.js';
 import { createNotification } from '../services/notificationService.js';
 import PharmacyDelivery from '../models/PharmacyDelivery.js';
 import DeliveryPartner from '../models/DeliveryPartner.js';
-import { protect, adminOnly, requireRole, authorize } from '../middleware/auth.js';
+import { protect, denyPlatformClinicalAccess, adminOnly, requireRole, authorize } from '../middleware/auth.js';
 import { authorizeObject, rolesWithPermission } from '../middleware/authorize.js';
 import {
   validate, createLabOrderSchema, sampleTypeSchema,
@@ -161,7 +161,7 @@ const labPackageSchema = z.object({
 const router = express.Router();
 
 // ─── Doctor: Create Lab Order ──────────────────────────────────────────────
-router.post('/orders', protect, authorize('lab:book', 'lab:book:own'), validate(createLabOrderSchema), async (req, res) => {
+router.post('/orders', protect, denyPlatformClinicalAccess, authorize('lab:book', 'lab:book:own'), validate(createLabOrderSchema), async (req, res) => {
   try {
     const { patientId: bodyPatientId, patientName, tests, clinicalNotes, priority, encounterId } = req.body;
     if (!tests?.length) {
@@ -299,7 +299,7 @@ async function resolveLabOrderSubject(req, bodyPatientId, res) {
 // patient's orders and results by id filter. The tenant predicate is now applied
 // through the shared fail-closed helper, and a caller with no facility gets
 // nothing rather than everything.
-router.get('/orders', protect, authorize('lab:read', 'lab:read:own'), async (req, res) => {
+router.get('/orders', protect, denyPlatformClinicalAccess, authorize('lab:read', 'lab:read:own'), async (req, res) => {
   try {
     const { status, priority, patientId, doctorId, search } = req.query;
     const filter = {};
@@ -313,7 +313,7 @@ router.get('/orders', protect, authorize('lab:read', 'lab:read:own'), async (req
     } else if (doctorId) {
       filter.doctorId = doctorId;
     }
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
 
     // PHARM-B-05: fail CLOSED on the tenant predicate. The two guards above are
@@ -352,11 +352,11 @@ router.get('/orders', protect, authorize('lab:read', 'lab:read:own'), async (req
 // AUTHZ-M-01 migration: requireTenantOwnership -> authorizeObject (central
 // tenant+ownership layer; authorize('lab:read',...) stays as the binding role
 // decision, actorRoles computed from the same matrix so it cannot drift).
-router.get('/orders/:id', protect, authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('lab:read', 'lab:read:own'), read: true }), authorize('lab:read', 'lab:read:own'), async (req, res) => {
+router.get('/orders/:id', protect, denyPlatformClinicalAccess, authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('lab:read', 'lab:read:own'), read: true }), authorize('lab:read', 'lab:read:own'), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id).populate('patientId', 'name email phone').populate('doctorId', 'name email');
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     res.json(order);
@@ -364,11 +364,11 @@ router.get('/orders/:id', protect, authorizeObject({ model: LabOrder, ownerField
 });
 
 // ─── Lab Receptionist: Register Sample ─────────────────────────────────────
-router.put('/orders/:id/register-sample', protect, requireRole(LAB_STAFF_ROLES), authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: [...LAB_STAFF_ROLES], write: true }), validate(labRegisterSampleSchema), async (req, res) => {
+router.put('/orders/:id/register-sample', protect, denyPlatformClinicalAccess, requireRole(LAB_STAFF_ROLES), authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: [...LAB_STAFF_ROLES], write: true }), validate(labRegisterSampleSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const { testIndex, sampleType } = req.body;
@@ -386,11 +386,11 @@ router.put('/orders/:id/register-sample', protect, requireRole(LAB_STAFF_ROLES),
 });
 
 // ─── Phlebotomist: Collect Sample ──────────────────────────────────────────
-router.put('/orders/:id/collect-sample', protect, requireRole(LAB_STAFF_ROLES), authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: [...LAB_STAFF_ROLES], write: true }), validate(labCollectSampleSchema), async (req, res) => {
+router.put('/orders/:id/collect-sample', protect, denyPlatformClinicalAccess, requireRole(LAB_STAFF_ROLES), authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: [...LAB_STAFF_ROLES], write: true }), validate(labCollectSampleSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const { testIndex, rejectionReason } = req.body;
@@ -409,7 +409,7 @@ router.put('/orders/:id/collect-sample', protect, requireRole(LAB_STAFF_ROLES), 
 // LAB-001: result entry is a clinical action, so it is gated on a laboratory
 // role rather than adminOnly (which reserved it for non-clinical administrators).
 // Tenant ownership is fail-closed via authorizeObject (central layer).
-router.put('/orders/:id/enter-result', protect, authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('lab:enter_result'), write: true }), authorize('lab:enter_result'), validate(labEnterResultSchema), async (req, res) => {
+router.put('/orders/:id/enter-result', protect, denyPlatformClinicalAccess, authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('lab:enter_result'), write: true }), authorize('lab:enter_result'), validate(labEnterResultSchema), async (req, res) => {
   try {
     const order = req.ownedDoc;
     const { testIndex, resultValue, normalRange, unit } = req.body;
@@ -487,7 +487,7 @@ router.put('/orders/:id/enter-result', protect, authorizeObject({ model: LabOrde
 // LAB-001: verification is the control that makes a report trustworthy, so it is
 // gated on a laboratory role and enforces separation of duties — the person who
 // verified a result must not be the person who entered it.
-router.put('/orders/:id/verify', protect, authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('lab:verify'), write: true }), authorize('lab:verify'), validate(labVerifySchema), async (req, res) => {
+router.put('/orders/:id/verify', protect, denyPlatformClinicalAccess, authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('lab:verify'), write: true }), authorize('lab:verify'), validate(labVerifySchema), async (req, res) => {
   try {
     const order = req.ownedDoc;
     const { testIndex, approved, notes } = req.body;
@@ -561,11 +561,11 @@ router.put('/orders/:id/verify', protect, authorizeObject({ model: LabOrder, own
 // PATHOLOGY/LAB §3: the reason is an 11-value controlled vocabulary (lab.js
 // schema above) — free text let every site spell the same defect differently,
 // which made rejection analytics useless. `Other` keeps an escape hatch.
-router.put('/orders/:id/tests/:index/reject', protect, authorize('lab:enter_result'), validate(labRejectSampleSchema), async (req, res) => {
+router.put('/orders/:id/tests/:index/reject', protect, denyPlatformClinicalAccess, authorize('lab:enter_result'), validate(labRejectSampleSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const test = order.tests[Number(req.params.index)];
@@ -584,11 +584,11 @@ router.put('/orders/:id/tests/:index/reject', protect, authorize('lab:enter_resu
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/orders/:id/tests/:index/recollect', protect, authorize('lab:enter_result'), async (req, res) => {
+router.put('/orders/:id/tests/:index/recollect', protect, denyPlatformClinicalAccess, authorize('lab:enter_result'), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const test = order.tests[Number(req.params.index)];
@@ -605,11 +605,11 @@ router.put('/orders/:id/tests/:index/recollect', protect, authorize('lab:enter_r
 // File 22 P1-11: outsourced test hand-off (sent → received).
 // PATHOLOGY/LAB §7: courier tracking + reference-lab handoff details ride the
 // extended `outsourced` subdoc, and the lifecycle status starts at Dispatched.
-router.put('/orders/:id/tests/:index/outsource', protect, authorize('lab:manage', 'lab:assign'), async (req, res) => {
+router.put('/orders/:id/tests/:index/outsource', protect, denyPlatformClinicalAccess, authorize('lab:manage', 'lab:assign'), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const test = order.tests[Number(req.params.index)];
@@ -640,7 +640,7 @@ router.put('/orders/:id/tests/:index/outsource', protect, authorize('lab:manage'
 });
 
 // §7: forward-only status chain for an outsourced test (never rewinds).
-router.put('/orders/:id/tests/:index/outsource/status', protect, authorize('lab:manage', 'lab:assign'), validate(labOutsourceStatusSchema), async (req, res) => {
+router.put('/orders/:id/tests/:index/outsource/status', protect, denyPlatformClinicalAccess, authorize('lab:manage', 'lab:assign'), validate(labOutsourceStatusSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -667,7 +667,7 @@ router.put('/orders/:id/tests/:index/outsource/status', protect, authorize('lab:
 });
 
 // §7: reference-lab result landing (external report refs + result value).
-router.put('/orders/:id/tests/:index/outsource/result', protect, authorize('lab:enter_result', 'lab:manage'), validate(labOutsourceResultSchema), async (req, res) => {
+router.put('/orders/:id/tests/:index/outsource/result', protect, denyPlatformClinicalAccess, authorize('lab:enter_result', 'lab:manage'), validate(labOutsourceResultSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -700,7 +700,7 @@ router.put('/orders/:id/tests/:index/outsource/result', protect, authorize('lab:
 });
 
 // §7: every test currently sitting with a reference lab (tenant-scoped).
-router.get('/outsourced', protect, authorize('lab:read'), async (req, res) => {
+router.get('/outsourced', protect, denyPlatformClinicalAccess, authorize('lab:read'), async (req, res) => {
   try {
     const filter = { 'tests.outsourced.lab': { $ne: '' } };
     labScope(req, filter);
@@ -721,11 +721,11 @@ router.get('/outsourced', protect, authorize('lab:read'), async (req, res) => {
 });
 
 // File 22 P1-11: critical-result call-back log (who was told, when).
-router.post('/orders/:id/callback', protect, authorize('lab:verify'), async (req, res) => {
+router.post('/orders/:id/callback', protect, denyPlatformClinicalAccess, authorize('lab:verify'), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const { testName, calledTo, notes } = req.body || {};
@@ -741,7 +741,7 @@ router.post('/orders/:id/callback', protect, authorize('lab:verify'), async (req
 });
 
 // File 22 P1-11: TAT dashboard (STAT 2h / Urgent 6h / Routine 24h).
-router.get('/tat', protect, authorize('lab:read'), async (req, res) => {
+router.get('/tat', protect, denyPlatformClinicalAccess, authorize('lab:read'), async (req, res) => {
   try {
     const hf = req.user.hospitalId && req.user.role !== 'superadmin' ? { hospitalId: req.user.hospitalId } : {};
     const SLA_H = { STAT: 2, Urgent: 6, Routine: 24 };
@@ -773,7 +773,7 @@ router.get('/tat', protect, authorize('lab:read'), async (req, res) => {
 });
 
 // File 22 P1-11: QC runs + Levey-Jennings chart data (last 30 + violations).
-router.post('/qc', protect, authorize('lab:enter_result'), async (req, res) => {
+router.post('/qc', protect, denyPlatformClinicalAccess, authorize('lab:enter_result'), async (req, res) => {
   try {
     const { default: QcRun } = await import('../models/QcRun.js');
     const { analyzer, testName, controlLevel, mean, sd, value } = req.body || {};
@@ -789,13 +789,13 @@ router.post('/qc', protect, authorize('lab:enter_result'), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.get('/qc/chart', protect, authorize('lab:read'), async (req, res) => {
+router.get('/qc/chart', protect, denyPlatformClinicalAccess, authorize('lab:read'), async (req, res) => {
   try {
     const { default: QcRun, westgardFlags } = await import('../models/QcRun.js');
     const { analyzer, testName } = req.query;
     if (!testName) return res.status(400).json({ message: 'testName required' });
     const filter = { testName };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (analyzer) filter.analyzer = analyzer;
     const rows = await QcRun.find(filter).sort({ at: -1 }).limit(30).lean();
     const asc = [...rows].reverse();
@@ -900,7 +900,7 @@ function buildHl7Packet(profile, sampleId) {
 
 // Inline role allowlist inside the handler runs before any parse/write; no route-line guard.
 // authz: role
-router.post('/ingest/emulate', protect, async (req, res) => {
+router.post('/ingest/emulate', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     if (!['lab_technician', 'lab_owner', 'hospital_admin', 'superadmin', 'pathologist'].includes(req.user?.role)) {
       return res.status(403).json({ message: 'Lab access required' });
@@ -932,11 +932,11 @@ router.post('/ingest/emulate', protect, async (req, res) => {
 });
 
 // ─── Mark Report Delivered ─────────────────────────────────────────────────
-router.put('/orders/:id/deliver-report', protect, authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('lab:manage'), write: true }), authorize('lab:manage'), validate(labDeliverReportSchema), async (req, res) => {
+router.put('/orders/:id/deliver-report', protect, denyPlatformClinicalAccess, authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('lab:manage'), write: true }), authorize('lab:manage'), validate(labDeliverReportSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const { testIndex, reportUrl } = req.body;
@@ -965,7 +965,7 @@ router.put('/orders/:id/deliver-report', protect, authorizeObject({ model: LabOr
 // The model derives status from test statuses on save(); these routes are the
 // places a status is set DELIBERATELY (the pre-save hook leaves the extended
 // chain alone — see EXPLICIT_STATUSES in models/LabOrder.js).
-router.put('/orders/:id/status', protect, authorize('lab:manage', 'lab:receive'), validate(labOrderStatusSchema), async (req, res) => {
+router.put('/orders/:id/status', protect, denyPlatformClinicalAccess, authorize('lab:manage', 'lab:receive'), validate(labOrderStatusSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -982,7 +982,7 @@ router.put('/orders/:id/status', protect, authorize('lab:manage', 'lab:receive')
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/orders/:id/cancel', protect, authorize('lab:cancel', 'lab:manage'), validate(labOrderCancelSchema), async (req, res) => {
+router.put('/orders/:id/cancel', protect, denyPlatformClinicalAccess, authorize('lab:cancel', 'lab:manage'), validate(labOrderCancelSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -1002,7 +1002,7 @@ router.put('/orders/:id/cancel', protect, authorize('lab:cancel', 'lab:manage'),
 
 // §12: release step. Every test verified → the order is Finalized, and the
 // first snapshot is recorded so a later amendment can be diffed against it.
-router.put('/orders/:id/finalize', protect, authorize('lab:finalize', 'lab:manage'), async (req, res) => {
+router.put('/orders/:id/finalize', protect, denyPlatformClinicalAccess, authorize('lab:finalize', 'lab:manage'), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -1028,7 +1028,7 @@ router.put('/orders/:id/finalize', protect, authorize('lab:finalize', 'lab:manag
 
 // §3: add a test to an existing order — same order-number lineage (one
 // orderId/accession for the whole collection set, the new line starts Ordered).
-router.post('/orders/:id/tests', protect, authorize('lab:order', 'lab:manage'), validate(labAddTestSchema), async (req, res) => {
+router.post('/orders/:id/tests', protect, denyPlatformClinicalAccess, authorize('lab:order', 'lab:manage'), validate(labAddTestSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -1072,7 +1072,7 @@ router.post('/orders/:id/tests', protect, authorize('lab:order', 'lab:manage'), 
 
 // ─── §2: sample receiving + section worklists ──────────────────────────────
 // Intake list: orders whose samples have not landed at the bench yet.
-router.get('/receiving', protect, authorize('lab:read', 'lab:receive'), async (req, res) => {
+router.get('/receiving', protect, denyPlatformClinicalAccess, authorize('lab:read', 'lab:receive'), async (req, res) => {
   try {
     const filter = {
       status: { $in: ['Ordered', 'Collection Pending', 'Out for Collection', 'Collected', 'Sample Pending'] },
@@ -1099,7 +1099,7 @@ router.get('/receiving', protect, authorize('lab:read', 'lab:receive'), async (r
 });
 
 // §2: per-section load (the pathology dashboard's section tiles).
-router.get('/sections', protect, authorize('lab:read'), async (req, res) => {
+router.get('/sections', protect, denyPlatformClinicalAccess, authorize('lab:read'), async (req, res) => {
   try {
     const filter = {};
     labScope(req, filter);
@@ -1122,7 +1122,7 @@ router.get('/sections', protect, authorize('lab:read'), async (req, res) => {
 });
 
 // §2: bench worklist — one row per test line, filterable by section/status.
-router.get('/worklist', protect, authorize('lab:read'), async (req, res) => {
+router.get('/worklist', protect, denyPlatformClinicalAccess, authorize('lab:read'), async (req, res) => {
   try {
     const { section, status } = req.query;
     if (section && !LAB_SECTIONS.includes(String(section))) return res.status(400).json({ message: 'Unknown section' });
@@ -1152,7 +1152,7 @@ router.get('/worklist', protect, authorize('lab:read'), async (req, res) => {
 });
 
 // §2: intake. Marks the selected lines received; the order lands on `Received`.
-router.post('/orders/:id/receive', protect, authorize('lab:receive', 'lab:manage'), validate(labReceiveSchema), async (req, res) => {
+router.post('/orders/:id/receive', protect, denyPlatformClinicalAccess, authorize('lab:receive', 'lab:manage'), validate(labReceiveSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -1192,7 +1192,7 @@ router.post('/orders/:id/receive', protect, authorize('lab:receive', 'lab:manage
 });
 
 // §2: single-line intake verdict (accept after reject/recollect, or plain QC).
-router.put('/orders/:id/tests/:index/accept', protect, authorize('lab:receive', 'lab:manage'), async (req, res) => {
+router.put('/orders/:id/tests/:index/accept', protect, denyPlatformClinicalAccess, authorize('lab:receive', 'lab:manage'), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -1223,7 +1223,7 @@ function orderReportSnapshot(order) {
   }));
 }
 
-router.get('/orders/:id/report/versions', protect, authorize('lab:read'), async (req, res) => {
+router.get('/orders/:id/report/versions', protect, denyPlatformClinicalAccess, authorize('lab:read'), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -1235,7 +1235,7 @@ router.get('/orders/:id/report/versions', protect, authorize('lab:read'), async 
 // Amended report: the released snapshot is kept, reportVersion increments, and
 // (when a line is corrected) that line goes back to Result Pending so the fix
 // passes the same verify gate the original did — never a silent overwrite.
-router.post('/orders/:id/correct-report', protect, authorize('lab:correct', 'lab:manage'), validate(labCorrectReportSchema), async (req, res) => {
+router.post('/orders/:id/correct-report', protect, denyPlatformClinicalAccess, authorize('lab:correct', 'lab:manage'), validate(labCorrectReportSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -1275,7 +1275,7 @@ router.post('/orders/:id/correct-report', protect, authorize('lab:correct', 'lab
 });
 
 // ─── Get Lab Stats ─────────────────────────────────────────────────────────
-router.get('/stats', protect, async (req, res) => {
+router.get('/stats', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const filter = {};
     if (req.user.role === 'doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') filter.doctorId = req.user.doctorProfileId;
@@ -1335,7 +1335,7 @@ router.get('/stats', protect, async (req, res) => {
 // lab/clinical staff, and tagged so the decision is on the record rather than
 // inferred from a guard name.
 // authz: role
-router.get('/outbreak', protect, requireRole(REPORT_DISPATCH_ROLES), async (req, res) => {
+router.get('/outbreak', protect, denyPlatformClinicalAccess, requireRole(REPORT_DISPATCH_ROLES), async (req, res) => {
   try {
     const test = String(req.query.test || 'dengue');
     const days = Math.min(90, Math.max(1, Number(req.query.days) || 30));
@@ -1399,10 +1399,11 @@ router.get('/tests', publicSearchLimiter, async (req, res) => {
 // ─── Lab Bookings ──────────────────────────────────────────────────────────
 // Phlebotomists (home-collection dispatch roster) — replaces the hardcoded
 // collector list the sample-collection UI used to ship with.
-router.get('/phlebotomists', protect, requireRole([...LAB_STAFF_ROLES, 'phlebotomist']), async (req, res) => {
+router.get('/phlebotomists', protect, denyPlatformClinicalAccess, requireRole([...LAB_STAFF_ROLES, 'phlebotomist']), async (req, res) => {
   try {
     const filter = { role: 'phlebotomist', status: 'active' };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') {
+    if (req.user.role !== 'superadmin') {
+      if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' });
       filter.$or = [{ hospitalId: req.user.hospitalId }, { hospitalId: { $exists: false } }];
     }
     const list = await User.find(filter).select('name email phone role').sort({ name: 1 }).limit(200).lean();
@@ -1410,7 +1411,7 @@ router.get('/phlebotomists', protect, requireRole([...LAB_STAFF_ROLES, 'phleboto
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/bookings', protect, async (req, res) => {
+router.get('/bookings', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const { status, date, search } = req.query;
     const filter = {};
@@ -1508,7 +1509,7 @@ async function ingestHl7(req, res) {
   } catch (err) { res.status(500).json({ message: err.message }); }
 }
 
-router.post('/bookings', protect, validate(labBookingSchema), async (req, res) => {
+router.post('/bookings', protect, denyPlatformClinicalAccess, validate(labBookingSchema), async (req, res) => {
   try {
     const { testIds, tests, prescriptionUrl } = req.body;
     const requestedTests = testIds || (tests || []).map(t => t._id || t.id || t.name).filter(Boolean);
@@ -1546,11 +1547,11 @@ router.post('/bookings', protect, validate(labBookingSchema), async (req, res) =
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/bookings/:id', protect, requireRole([...LAB_STAFF_ROLES, 'phlebotomist']), validate(labBookingSchema), async (req, res) => {
+router.put('/bookings/:id', protect, denyPlatformClinicalAccess, requireRole([...LAB_STAFF_ROLES, 'phlebotomist']), validate(labBookingSchema), async (req, res) => {
   try {
     const booking = await LabBooking.findById(req.params.id);
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && booking.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || booking.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     // AUTH-030: allowlisted fields only — payment/report flows have dedicated
@@ -1586,7 +1587,7 @@ router.put('/bookings/:id', protect, requireRole([...LAB_STAFF_ROLES, 'phlebotom
 // Submitted, with an explicit fail path. Guard is permission-based (lab:visit)
 // so the phlebotomist role (whose pinned permission set cannot change) reaches
 // it through lab:book, and the §9 home_collection_staff role through lab:visit.
-router.put('/bookings/:id/visit', protect, authorize('lab:visit', 'lab:book', 'lab:manage'), validate(labVisitSchema), async (req, res) => {
+router.put('/bookings/:id/visit', protect, denyPlatformClinicalAccess, authorize('lab:visit', 'lab:book', 'lab:manage'), validate(labVisitSchema), async (req, res) => {
   try {
     const booking = await LabBooking.findById(req.params.id);
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
@@ -1632,11 +1633,11 @@ router.put('/bookings/:id/visit', protect, authorize('lab:visit', 'lab:book', 'l
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/bookings/:id', protect, requireRole(LAB_STAFF_ROLES), async (req, res) => {
+router.delete('/bookings/:id', protect, denyPlatformClinicalAccess, requireRole(LAB_STAFF_ROLES), async (req, res) => {
   try {
     const booking = await LabBooking.findById(req.params.id);
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && booking.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || booking.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
 await LabBooking.findByIdAndDelete(req.params.id);
@@ -1770,11 +1771,11 @@ async function createReportDeliveryTask({ req, res, booking, order }) {
 }
 
 // Send a booking's report by courier (delivery partner).
-router.post('/bookings/:id/dispatch-report', protect, requireRole(REPORT_DISPATCH_ROLES), validate(labDispatchReportSchema), async (req, res) => {
+router.post('/bookings/:id/dispatch-report', protect, denyPlatformClinicalAccess, requireRole(REPORT_DISPATCH_ROLES), validate(labDispatchReportSchema), async (req, res) => {
   try {
     const booking = await LabBooking.findById(req.params.id);
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && booking.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || booking.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const { task, partner } = await createReportDeliveryTask({ req, res, booking });
@@ -1783,7 +1784,7 @@ router.post('/bookings/:id/dispatch-report', protect, requireRole(REPORT_DISPATC
 });
 
 // Latest courier task for a booking (Reports tab me live status dikhane ke liye).
-router.get('/bookings/:id/dispatch-report', protect, async (req, res) => {
+router.get('/bookings/:id/dispatch-report', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     // AUTHZ: this GET had no ownership check. The sibling POST
     // `/orders/:id/dispatch-report` immediately below carries
@@ -1812,11 +1813,11 @@ router.get('/bookings/:id/dispatch-report', protect, async (req, res) => {
 });
 
 // Doctor-ordered lab order ka report courier se bhejo.
-router.post('/orders/:id/dispatch-report', protect, authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: [...REPORT_DISPATCH_ROLES], write: true }), requireRole(REPORT_DISPATCH_ROLES), validate(labDispatchReportSchema), async (req, res) => {
+router.post('/orders/:id/dispatch-report', protect, denyPlatformClinicalAccess, authorizeObject({ model: LabOrder, ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: [...REPORT_DISPATCH_ROLES], write: true }), requireRole(REPORT_DISPATCH_ROLES), validate(labDispatchReportSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const { task, partner } = await createReportDeliveryTask({ req, res, order });
@@ -1825,11 +1826,11 @@ router.post('/orders/:id/dispatch-report', protect, authorizeObject({ model: Lab
 });
 
 // Lab ke saare courier report tasks (dispatch board / status tracking).
-router.get('/report-deliveries', protect, async (req, res) => {
+router.get('/report-deliveries', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const { status, limit = 50 } = req.query;
     const filter = { serviceType: 'lab_report' };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') {
       filter.facilityId = req.user.facilityId || req.user.hospitalId;
     }
@@ -1843,17 +1844,17 @@ router.get('/report-deliveries', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/equipment', protect, async (req, res) => {
+router.get('/equipment', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     const equipment = await Equipment.find(filter).sort({ name: 1 });
     res.json({ equipment });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/equipment', protect, validate(labEquipmentSchema), async (req, res) => {
+router.post('/equipment', protect, denyPlatformClinicalAccess, validate(labEquipmentSchema), async (req, res) => {
   try {
     const { pickBody } = await import('../utils/pick.js');
     const allowedEquip = ['name', 'type', 'model', 'serialNumber', 'manufacturer', 'installationDate', 'lastMaintenanceDate', 'nextMaintenanceDate', 'maintenanceInterval', 'status', 'location', 'notes'];
@@ -1863,11 +1864,11 @@ router.post('/equipment', protect, validate(labEquipmentSchema), async (req, res
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/equipment/:id', protect, adminOnly, validate(labEquipmentSchema), async (req, res) => {
+router.put('/equipment/:id', protect, denyPlatformClinicalAccess, adminOnly, validate(labEquipmentSchema), async (req, res) => {
   try {
     const item = await Equipment.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Equipment not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || item.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     // AUTH-030: allowlisted fields only — status managed via workflow, tenant linkage immutable.
@@ -1879,11 +1880,11 @@ router.put('/equipment/:id', protect, adminOnly, validate(labEquipmentSchema), a
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/equipment/:id', protect, adminOnly, async (req, res) => {
+router.delete('/equipment/:id', protect, denyPlatformClinicalAccess, adminOnly, async (req, res) => {
   try {
     const item = await Equipment.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Equipment not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || item.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
 await Equipment.findByIdAndDelete(req.params.id);
@@ -1905,17 +1906,17 @@ router.get('/packages/public', async (req, res) => {
 });
 
 // ─── Health Packages (authenticated, scoped to user's facility) ───────────
-router.get('/packages', protect, async (req, res) => {
+router.get('/packages', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     const packages = await HealthPackage.find(filter).sort({ createdAt: -1 });
     res.json({ packages });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/packages', protect, validate(labPackageSchema), async (req, res) => {
+router.post('/packages', protect, denyPlatformClinicalAccess, validate(labPackageSchema), async (req, res) => {
   try {
     const { pickBody } = await import('../utils/pick.js');
     const allowedPkg = ['name', 'description', 'category', 'tests', 'testNames', 'originalPrice', 'packagePrice', 'discount', 'popular', 'homeCollectionAvailable', 'reportTime', 'isActive'];
@@ -1925,11 +1926,11 @@ router.post('/packages', protect, validate(labPackageSchema), async (req, res) =
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/packages/:id', protect, adminOnly, validate(labPackageSchema), async (req, res) => {
+router.put('/packages/:id', protect, denyPlatformClinicalAccess, adminOnly, validate(labPackageSchema), async (req, res) => {
   try {
     const pkg = await HealthPackage.findById(req.params.id);
     if (!pkg) return res.status(404).json({ message: 'Package not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && pkg.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || pkg.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     // AUTH-030: allowlisted fields only — tenant linkage immutable.
@@ -1941,11 +1942,11 @@ Object.assign(pkg, pickBody(req.body, ['name', 'description', 'category', 'tests
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/packages/:id', protect, adminOnly, async (req, res) => {
+router.delete('/packages/:id', protect, denyPlatformClinicalAccess, adminOnly, async (req, res) => {
   try {
     const pkg = await HealthPackage.findById(req.params.id);
     if (!pkg) return res.status(404).json({ message: 'Package not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && pkg.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || pkg.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
 await HealthPackage.findByIdAndDelete(req.params.id);
@@ -1961,7 +1962,7 @@ await HealthPackage.findByIdAndDelete(req.params.id);
 // every export writes an audit row.
 const LAB_EXPORT_ROW_CAP = 5000;
 
-router.get('/export', protect, adminOnly, async (req, res) => {
+router.get('/export', protect, denyPlatformClinicalAccess, adminOnly, async (req, res) => {
   try {
     const { format = 'json', dateFrom, dateTo, status } = req.query;
     const filter = {};
@@ -2019,7 +2020,7 @@ router.get('/export', protect, adminOnly, async (req, res) => {
 // =========================================================================
 // LIS AUTO-ANALYZER INGEST ENGINE (ASTM E1381/E1394 & HL7 v2.5 ORU^R01)
 // =========================================================================
-router.post('/analyzer-upload', protect, requireRole(...LAB_STAFF_ROLES), async (req, res) => {
+router.post('/analyzer-upload', protect, denyPlatformClinicalAccess, requireRole(...LAB_STAFF_ROLES), async (req, res) => {
   try {
     const { rawPayload, protocol = 'auto', deviceModel, orderId } = req.body;
     if (!rawPayload || typeof rawPayload !== 'string') {

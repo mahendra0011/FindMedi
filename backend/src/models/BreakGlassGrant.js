@@ -49,6 +49,16 @@ const breakGlassGrantSchema = new mongoose.Schema({
   expiresAt: { type: Date, default: null, index: true },
   revokedAt: { type: Date, default: null },
   patientNotifiedAt: { type: Date, default: null },
+  patientNotificationAttempts: { type: Number, default: 0, min: 0 },
+  patientNotificationNextAt: { type: Date, default: null, index: true },
+  patientNotificationError: { type: String, maxlength: 300, default: '' },
+  operatorAlertedAt: { type: Date, default: null, index: true },
+  operatorAlertAttempts: { type: Number, default: 0, min: 0 },
+  operatorAlertNextAt: { type: Date, default: null, index: true },
+  operatorAlertError: { type: String, maxlength: 300, default: '' },
+  dpoReviewedAt: { type: Date, default: null, index: true },
+  dpoReviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  dpoReviewNote: { type: String, maxlength: 1000, default: '' },
 
   // Every read under this grant (route + object), for DPO review.
   accessLog: [{

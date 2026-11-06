@@ -2446,7 +2446,7 @@ const productVariantSchema = z.object({
   expiry: z.coerce.date().optional(),
 }).strict();
 
-export const createProductSchema = z.object({
+const _createProductSchemaBase = z.object({
   vendorId: objectIdSchema,
   kind: z.enum(['medicine', 'supplement', 'food', 'skincare', 'device', 'optical', 'consumable']),
   categoryCodes: z.array(z.string().trim().max(64)).max(20).optional(),
@@ -2471,9 +2471,31 @@ export const createProductSchema = z.object({
   status: z.enum(['draft', 'active', 'archived']).optional(),
 }).strict();
 
-export const updateProductSchema = createProductSchema
+const productImsChecks = (data, ctx) => {
+  // IMS Act, 26. FSSAI 5: infant food (&lt; 24 months) may not carry marketing
+  // claims, and a food product without an FSSAI number cannot go live.
+  const isBabyFood = (data.categoryCodes || []).includes('NUT.PROD.BABY_FOOD');
+  if (isBabyFood && (data.claims?.length || 0) > 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['claims'],
+      message: 'Baby food / infant nutrition must not carry marketing claims (IMS Act)',
+    });
+  }
+  if ((data.kind === 'food' || isBabyFood) && data.status === 'active' && !data.fssaiNo?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['fssaiNo'],
+      message: 'FSSAI number is required for food products',
+    });
+  }
+};
+
+export const createProductSchema = _createProductSchemaBase.superRefine(productImsChecks);
+export const updateProductSchema = _createProductSchemaBase
   .omit({ vendorId: true })
-  .partial();
+  .partial()
+  .superRefine(productImsChecks);
 
 // --- 10.md 2.3 - join application (2.md join flow, 8.md approval queue) ---
 //
@@ -2833,6 +2855,8 @@ export const createVaccinationScheduleSchema = z.object({
   scheduleType: z.enum(VACCINATION_SCHEDULE_TYPES).optional(),
   source: z.enum(VACCINATION_SOURCES).optional(),
   familyMemberId: objectIdSchema.optional(),
+  homeVisit: z.boolean().optional(),
+  providerId: objectIdSchema.optional(),
   doses: z.array(z.object({
     number: z.number().int().min(1),
     dueAt: z.coerce.date(),
@@ -2866,6 +2890,8 @@ export const dsrDecisionSchema = z.object({
   action: z.enum(DSR_DECISION_ACTIONS),
   note: z.string().trim().max(2000).optional(),
   exportRef: z.string().trim().max(500).optional(),
+    exportPurpose: z.string().trim().min(20).max(500).optional(),
+    exportExpiresAt: z.string().datetime().optional(),
   method: z.enum(DSR_VERIFICATION_METHODS).optional(),
 }).strict();
 

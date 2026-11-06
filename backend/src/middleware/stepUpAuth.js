@@ -109,7 +109,7 @@ export const issueStepUpFor = async (userId, code, scope, ttlSeconds = DEFAULT_T
  * Express middleware.
  *   router.post('/payouts', protect, requireStepUp('payouts:add'), handler)
  */
-export const requireStepUp = (scope, { ttlSeconds = DEFAULT_TTL_SECONDS } = {}) =>
+export const requireStepUp = (scope, { ttlSeconds = DEFAULT_TTL_SECONDS, requireEnrolled = false } = {}) =>
   async (req, res, next) => {
     try {
       if (!req.user) return res.status(401).json({ message: 'Not authorized' });
@@ -129,6 +129,13 @@ export const requireStepUp = (scope, { ttlSeconds = DEFAULT_TTL_SECONDS } = {}) 
       if (!user) return res.status(401).json({ message: 'Not authorized' });
 
       if (!user.twoFactorEnabled) {
+        if (requireEnrolled) {
+          return res.status(403).json({
+            message: 'Two-factor authentication must be enabled before this action',
+            requiresTwoFactorEnrollment: true,
+            error: 'TWO_FACTOR_REQUIRED',
+          });
+        }
         // Property 1: no second factor on the account means no step-up is
         // possible, and refusing would lock those users out of their own account.
         req.stepUp = { scope, skipped: 'two-factor-not-enabled' };

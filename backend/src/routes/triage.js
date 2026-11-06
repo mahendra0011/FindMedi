@@ -3,7 +3,7 @@ import { z } from 'zod';
 import Triage from '../models/Triage.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, denyPlatformClinicalAccess, adminOnly } from '../middleware/auth.js';
 import { validate, createTriageSchema, triageVitalsSchema } from '../utils/validate.js';
 import { generateEmergencyId, generateMLCNumber } from '../utils/idGenerator.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
@@ -51,7 +51,7 @@ const triageNoteSchema = z.object({ text: z.string().min(1) });
 
 const router = express.Router();
 
-router.post('/', protect, adminOnly, validate(createTriageSchema), async (req, res) => {
+router.post('/', protect, denyPlatformClinicalAccess, adminOnly, validate(createTriageSchema), async (req, res) => {
   try {
     const { patientName, age, gender, phone, arrivalMode, broughtBy, chiefComplaint, triageLevel, triageNotes, vitals, isMLCO, patientId } = req.body;
     if (!patientName || !chiefComplaint || !triageLevel) {
@@ -77,11 +77,11 @@ router.post('/', protect, adminOnly, validate(createTriageSchema), async (req, r
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.get('/', protect, async (req, res) => {
+router.get('/', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const { status, triageLevel, search } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (status && status !== 'All') filter.status = status;
     if (triageLevel && triageLevel !== 'All') filter.triageLevel = triageLevel;
     if (search) {
@@ -97,22 +97,22 @@ router.get('/', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const entry = await Triage.findById(req.params.id).populate('triagedBy', 'name').populate('assignedDoctor', 'name');
     if (!entry) return res.status(404).json({ message: 'Entry not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && entry.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || entry.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     res.json(entry);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, adminOnly, validate(triageUpdateSchema), async (req, res) => {
+router.put('/:id', protect, denyPlatformClinicalAccess, adminOnly, validate(triageUpdateSchema), async (req, res) => {
   try {
     const entry = await Triage.findById(req.params.id);
     if (!entry) return res.status(404).json({ message: 'Entry not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && entry.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || entry.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     // AUTH-030: allowlisted fields only — assign/mlc/notes have dedicated
@@ -125,12 +125,12 @@ router.put('/:id', protect, adminOnly, validate(triageUpdateSchema), async (req,
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/assign', protect, adminOnly, validate(triageAssignSchema), async (req, res) => {
+router.put('/:id/assign', protect, denyPlatformClinicalAccess, adminOnly, validate(triageAssignSchema), async (req, res) => {
   try {
     const { doctorId, doctorName } = req.body;
     const entry = await Triage.findById(req.params.id);
     if (!entry) return res.status(404).json({ message: 'Entry not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && entry.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || entry.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     entry.assignedDoctor = doctorId;
@@ -141,11 +141,11 @@ router.put('/:id/assign', protect, adminOnly, validate(triageAssignSchema), asyn
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/mlc', protect, adminOnly, validate(triageMlcSchema), async (req, res) => {
+router.put('/:id/mlc', protect, denyPlatformClinicalAccess, adminOnly, validate(triageMlcSchema), async (req, res) => {
   try {
     const entry = await Triage.findById(req.params.id);
     if (!entry) return res.status(404).json({ message: 'Entry not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && entry.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || entry.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const mlcNumber = entry.mlcNumber || generateMLCNumber();
@@ -158,11 +158,11 @@ router.put('/:id/mlc', protect, adminOnly, validate(triageMlcSchema), async (req
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/:id/notes', protect, adminOnly, validate(triageNoteSchema), async (req, res) => {
+router.post('/:id/notes', protect, denyPlatformClinicalAccess, adminOnly, validate(triageNoteSchema), async (req, res) => {
   try {
     const entry = await Triage.findById(req.params.id);
     if (!entry) return res.status(404).json({ message: 'Entry not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && entry.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || entry.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     entry.treatmentNotes.push({ text: req.body.text, doctorName: req.user.name, timestamp: new Date() });
@@ -171,10 +171,10 @@ router.post('/:id/notes', protect, adminOnly, validate(triageNoteSchema), async 
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.get('/stats/main', protect, async (req, res) => {
+router.get('/stats/main', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const hFilter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); hFilter.hospitalId = req.user.hospitalId; }
     const total = await Triage.countDocuments(hFilter);
     const immediate = await Triage.countDocuments({ ...hFilter, triageLevel: 'P1-Immediate', status: { $ne: 'Discharged' } });
     const urgent = await Triage.countDocuments({ ...hFilter, triageLevel: 'P2-Urgent', status: { $ne: 'Discharged' } });

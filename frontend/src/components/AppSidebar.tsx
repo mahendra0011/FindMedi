@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags,   Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot, Video, MessageCircle, MessageSquare, Phone, CheckCircle2, Car, UserCheck, Scale, Briefcase, QrCode, BookOpen, NotebookPen, Target, Smile, BellRing, Inbox, Siren, Receipt, BrainCircuit, ShieldAlert, Ticket, BedDouble, Scissors, HeartPulse, ScanLine, UtensilsCrossed, Layers
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags,   Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot, Video,   MessageCircle, MessageSquare, Phone, CheckCircle2, Car, UserCheck, Scale, Briefcase, QrCode, BookOpen, NotebookPen, Target, Smile, BellRing, Inbox, Siren, Receipt, BrainCircuit, ShieldAlert, Ticket, BedDouble, Scissors, HeartPulse, ScanLine, UtensilsCrossed, Layers, GraduationCap
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -31,6 +31,7 @@ const navConfig = {
     { icon: BarChart3,       labelKey: 'nav.saStats',          path: '/superadmin/stats', section: 'Overview & Analytics' },
     { icon: DollarSign,      labelKey: 'nav.saRevenue',        path: '/superadmin/revenue', section: 'Overview & Analytics' },
     { icon: History,         labelKey: 'nav.saAudit',          path: '/superadmin/audit', section: 'Overview & Analytics' },
+    { icon: ShieldAlert,     labelKey: 'Access Review',         path: '/superadmin/access-review', section: 'Overview & Analytics' },
     { icon: Building2,       labelKey: 'nav.saFacilities',     path: '/superadmin/facilities', section: 'Facility & Provider Network' },
     { icon: Clock,           labelKey: 'nav.saPending',        path: '/superadmin/pending', section: 'Facility & Provider Network' },
     { icon: Truck,           labelKey: 'nav.deliveryPartners',  path: '/superadmin/delivery-partners', section: 'Facility & Provider Network' },
@@ -439,6 +440,9 @@ const navConfig = {
     { icon: TestTube,        labelKey: 'nav.myTestBookings',        path: '/patient/bookings'           },
     { icon: ShoppingCart,    labelKey: 'nav.myMedicineOrders',      path: '/patient/medicine-orders'    },
     { icon: Pill,            labelKey: 'nav.myPrescriptions',       path: '/patient/prescriptions'      },
+    { icon: Pill,            labelKey: 'My Refills',                path: '/patient/refills'            },
+    { icon: GraduationCap,   labelKey: 'Courses',                   path: '/courses'                    },
+    { icon: Users,           labelKey: 'Community',                 path: '/community'                  },
     { icon: Download,        labelKey: 'nav.myReports',             path: '/patient/reports'            },
     { icon: Upload,          labelKey: 'nav.upload',                 path: '/upload'                     },
     { icon: Bookmark,        labelKey: 'nav.favorites',              path: '/patient/favorites'          },
@@ -599,6 +603,7 @@ const navConfig = {
     { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
     { icon: Syringe, labelKey: 'nav.lab', path: '/lab' },
     { icon: TestTube, labelKey: 'Sample Tracking', path: '/lab/tracking' },
+    { icon: Truck, labelKey: 'Sample Courier', path: '/lab/sample-courier' },
     { icon: Hospital, labelKey: 'nav.ipd', path: '/ipd' },
     { icon: Activity, labelKey: 'nav.triage', path: '/triage' },
     { icon: Heart, labelKey: 'nav.nursing', path: '/nursing' },
@@ -1354,6 +1359,8 @@ const navConfig = {
     { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/dashboard' },
     { icon: ShieldCheck, labelKey: 'Security Desk & Gate Passes', path: '/hospital/security' },
     { icon: ShieldAlert, labelKey: 'nav.saSecurity', path: '/superadmin/security' },
+    { icon: ShieldCheck, labelKey: 'Access Review', path: '/superadmin/access-review' },
+    { icon: ShieldCheck, labelKey: 'Vendor DPA Register', path: '/superadmin/vendor-dpas' },
     { icon: Car, labelKey: 'Parking Management', path: '/hospital/parking' },
     { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
     { icon: Bell, labelKey: 'nav.notifications', path: '/notifications' },
@@ -1363,6 +1370,8 @@ const navConfig = {
     { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/dashboard' },
     { icon: History, labelKey: 'nav.auditLogs', path: '/audit-logs' },
     { icon: ShieldAlert, labelKey: 'Break-Glass Audits', path: '/superadmin/break-glass' },
+    { icon: ShieldCheck, labelKey: 'Access Review', path: '/superadmin/access-review' },
+    { icon: ShieldCheck, labelKey: 'Vendor DPA Register', path: '/superadmin/vendor-dpas' },
     { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
     { icon: Bell, labelKey: 'nav.notifications', path: '/notifications' },
     { icon: Settings, labelKey: 'nav.settings', path: '/settings' },
@@ -1402,7 +1411,6 @@ const navConfig = {
     { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/dashboard' },
     { icon: Headset, labelKey: 'nav.saTickets', path: '/superadmin/tickets' },
     { icon: AlertTriangle, labelKey: 'nav.saDisputes', path: '/superadmin/disputes' },
-    { icon: ShieldAlert, labelKey: 'Break-Glass Support', path: '/superadmin/break-glass' },
     { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
     { icon: Bell, labelKey: 'nav.notifications', path: '/notifications' },
     { icon: Settings, labelKey: 'nav.settings', path: '/settings' },

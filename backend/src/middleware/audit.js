@@ -32,7 +32,7 @@ export function scrubAuditDetails(value, depth = 0) {
  * outage rejects immediately instead of stalling the caller for mongoose' 10 s
  * buffering timeout. Failures are counted (`audit:write_failures`) and logged.
  */
-export const auditLog = async (action, userId, details) => {
+export const auditLog = async (action, userId, details, { required = false } = {}) => {
   try {
     // DP-B-03 (partial): `details` is Mixed with no schema, so a caller can
     // persist (and mirror into OpenSearch) anything — including tokens, OTPs
@@ -97,5 +97,12 @@ export const auditLog = async (action, userId, details) => {
       }
     } catch {}
     logger.error(`Audit log failed: ${error.message}`);
+    if (required) throw error;
   }
 };
+
+// Privacy-sensitive reads fail closed if their authoritative audit row cannot
+// be committed. Most legacy audit calls retain their historical best-effort
+// behavior until their route-specific durability policy is migrated.
+export const auditLogRequired = (action, userId, details) =>
+  auditLog(action, userId, details, { required: true });

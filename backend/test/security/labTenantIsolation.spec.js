@@ -6,6 +6,7 @@ import request from 'supertest';
 const mockAuditLog = jest.fn().mockResolvedValue(true);
 jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
   auditLog: mockAuditLog,
+  auditLogRequired: mockAuditLog,
 }));
 jest.unstable_mockModule('../../src/config/logger.js', () => ({
   default: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
@@ -20,6 +21,7 @@ jest.unstable_mockModule('../../src/middleware/auth.js', () => ({
   authorize: () => (req, res, next) => next(),
   requireRole: () => (req, res, next) => next(),
   optionalAuth: (req, res, next) => next(),
+  denyPlatformClinicalAccess: (req, res, next) => next(),
 }));
 
 let labOrdersStore = [];

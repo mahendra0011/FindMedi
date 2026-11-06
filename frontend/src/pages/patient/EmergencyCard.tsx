@@ -2,6 +2,7 @@
  * R1 — Emergency card (shared by PatientDashboardV2, Timeline, PrivacyCentre).
  * Discreet mode (prop-drilled) masks identity/PHI-ish details.
  */
+import React from 'react';
 import { Link } from 'react-router-dom';
 
 export function mask(value: string, discreet: boolean): string {
@@ -66,6 +67,37 @@ export default function EmergencyCard({
           Tele-MANAS 14416
         </a>
       </div>
+      {!compact && <FirstResponders />}
     </section>
+  );
+}
+
+function FirstResponders() {
+  const [responders, setResponders] = React.useState<import('@/lib/apiTypes').Unmodelled[]>([]);
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { api } = await import('@/lib/api');
+        const res = await api.getFirstResponders();
+        if (alive) setResponders(res.responders || []);
+      } catch {
+        /* offline — directory stays empty */
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+  if (responders.length === 0) return null;
+  return (
+    <div className="mt-3">
+      <p className="text-xs font-semibold mb-1">Trained first responders near you</p>
+      <div className="flex flex-wrap gap-2">
+        {responders.slice(0, 3).map((r) => (
+          <a key={String(r.id)} href={String(r.phone || '') ? `tel:${String(r.phone)}` : undefined} className="rounded-lg border px-3 py-1.5 text-xs">
+            {String(r.name)} · {Number(r.experienceYears || 0)} yrs
+          </a>
+        ))}
+      </div>
+    </div>
   );
 }

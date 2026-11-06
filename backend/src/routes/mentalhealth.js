@@ -11,6 +11,7 @@ import { getISTDateString } from '../utils/dateUtils.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 import { auditLog } from '../middleware/audit.js';
 import { authorizeObject } from '../middleware/authorize.js';
+import { requireBreakGlass } from '../middleware/requireBreakGlass.js';
 import { sendServerError } from '../utils/safeError.js';
 import logger from '../config/logger.js';
 import {
@@ -112,6 +113,18 @@ const mhCrisisAckSchema = z.object({
 });
 
 const router = express.Router();
+const PLATFORM_MH_ROLES = new Set([
+  'superadmin', 'super_admin', 'platform_admin', 'support_l1', 'support_l2', 'support_agent',
+  'dpo', 'security_admin', 'clinical_safety', 'analyst', 'auditor', 'compliance_officer',
+  'finance_admin', 'catalog_manager', 'moderator', 'kyc_reviewer', 'city_manager',
+]);
+const requireMentalHealthBreakGlass = (req, res, next) => (
+  PLATFORM_MH_ROLES.has(req.user?.role)
+    ? (req.method === 'GET'
+      ? requireBreakGlass('mental_health')(req, res, next)
+      : res.status(403).json({ message: 'Platform break-glass grants are read-only' }))
+    : next()
+);
 
 router.post('/referrals', protect, validate(createMentalHealthReferralSchema), validate(mhPurposeSchema), async (req, res) => {
   try {
@@ -212,7 +225,7 @@ router.get('/referrals/stats', protect, async (req, res) => {
     ]);
     // k-anonymity: suppress small cells so individuals can't be inferred.
     const safe = byStatus.map((s) => ({ status: s._id, count: s.count >= 10 ? s.count : 0 }));
-    return res.json({ total, byStatus: safe });
+    return res.json({ total: total >= 10 ? total : 0, byStatus: safe });
   } catch (err) { sendServerError(res, err, 'Could not load referral stats'); }
 });
 
@@ -220,19 +233,7 @@ router.get('/referrals', protect, async (req, res) => {
   try {
     const { status, search } = req.query;
     let filter;
-    if (req.user.role === 'superadmin') {
-      const { default: BreakGlassGrant } = await import('../models/BreakGlassGrant.js');
-      const grant = await BreakGlassGrant.findOne({
-        requesterId: req.user._id || req.user.id,
-        status: 'approved',
-        expiresAt: { $gt: new Date() },
-      });
-      if (!grant) {
-        return res.status(403).json({ message: 'Break-glass approval required', code: 'BREAK_GLASS_REQUIRED' });
-      }
-      req.breakGlass = grant;
-      filter = {};
-    } else if (req.user.role === 'patient') {
+    if (req.user.role === 'patient') {
       filter = { patientId: req.user._id };
     } else if (MENTAL_HEALTH_CLINICAL_ROLES.includes(req.user.role)) {
       const tenantId = req.user.hospitalId || req.user.facilityId;
@@ -259,7 +260,7 @@ router.get('/referrals', protect, async (req, res) => {
   } catch (err) { sendServerError(res, err, 'Could not load referrals'); }
 });
 
-router.put('/referrals/:id/assessment', protect, validate(mhAssessmentSchema), async (req, res) => {
+router.put('/referrals/:id/assessment', protect, requireMentalHealthBreakGlass, validate(mhAssessmentSchema), async (req, res) => {
   try {
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
@@ -269,7 +270,7 @@ router.put('/referrals/:id/assessment', protect, validate(mhAssessmentSchema), a
       // hospitalId, or a row created before tenancy was recorded, was readable
       // and writable by ANY authenticated account. This is the highest-sensitivity
       // PHI class in the product, so it gets the strictest rule.
-      const access = assertMentalHealthAccess(req.user, r);
+      const access = assertMentalHealthAccess(req.user, r, { breakGlassGrant: req.breakGlass });
       if (!access.ok) return denyMentalHealth(res, access);
     r.assessment = req.body;
     r.treatmentPlan = req.body.treatmentPlan;
@@ -316,7 +317,7 @@ router.put('/referrals/:id/assessment', protect, validate(mhAssessmentSchema), a
   } catch (err) { sendServerError(res, err, 'Could not save the assessment'); }
 });
 
-router.post('/referrals/:id/session', protect, validate(mhSessionSchema), async (req, res) => {
+router.post('/referrals/:id/session', protect, requireMentalHealthBreakGlass, validate(mhSessionSchema), async (req, res) => {
   try {
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
@@ -326,7 +327,7 @@ router.post('/referrals/:id/session', protect, validate(mhSessionSchema), async 
       // hospitalId, or a row created before tenancy was recorded, was readable
       // and writable by ANY authenticated account. This is the highest-sensitivity
       // PHI class in the product, so it gets the strictest rule.
-      const access = assertMentalHealthAccess(req.user, r);
+      const access = assertMentalHealthAccess(req.user, r, { breakGlassGrant: req.breakGlass });
       if (!access.ok) return denyMentalHealth(res, access);
 
     // MIND-M-04: a therapy session is a use of the patient's record, so it needs
@@ -359,7 +360,7 @@ router.post('/referrals/:id/session', protect, validate(mhSessionSchema), async 
 });
 
 // ─── Medication Management ───────────────────────────────────────────────────
-router.put('/referrals/:id/medication', protect, adminOnly, validate(mhMedicationSchema), async (req, res) => {
+router.put('/referrals/:id/medication', protect, requireMentalHealthBreakGlass, adminOnly, validate(mhMedicationSchema), async (req, res) => {
   try {
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
@@ -369,7 +370,7 @@ router.put('/referrals/:id/medication', protect, adminOnly, validate(mhMedicatio
       // hospitalId, or a row created before tenancy was recorded, was readable
       // and writable by ANY authenticated account. This is the highest-sensitivity
       // PHI class in the product, so it gets the strictest rule.
-      const access = assertMentalHealthAccess(req.user, r);
+      const access = assertMentalHealthAccess(req.user, r, { breakGlassGrant: req.breakGlass });
       if (!access.ok) return denyMentalHealth(res, access);
     const med = req.body;
     med.prescribedBy = req.user.name;
@@ -381,7 +382,7 @@ router.put('/referrals/:id/medication', protect, adminOnly, validate(mhMedicatio
 });
 
 // Family Involvement Tracking
-router.post('/referrals/:id/family', protect, validate(mhFamilySchema), async (req, res) => {
+router.post('/referrals/:id/family', protect, requireMentalHealthBreakGlass, validate(mhFamilySchema), async (req, res) => {
   try {
     const { familyMemberName, relationship, involvementType, notes, contactNumber } = req.body;
     const r = await MentalHealth.findById(req.params.id);
@@ -392,7 +393,7 @@ router.post('/referrals/:id/family', protect, validate(mhFamilySchema), async (r
       // hospitalId, or a row created before tenancy was recorded, was readable
       // and writable by ANY authenticated account. This is the highest-sensitivity
       // PHI class in the product, so it gets the strictest rule.
-      const access = assertMentalHealthAccess(req.user, r);
+      const access = assertMentalHealthAccess(req.user, r, { breakGlassGrant: req.breakGlass });
       if (!access.ok) return denyMentalHealth(res, access);
     
     r.familyInvolvement.push({
@@ -411,7 +412,7 @@ router.post('/referrals/:id/family', protect, validate(mhFamilySchema), async (r
 });
 
 // Consent Document Upload
-router.post('/referrals/:id/consent', protect, validate(mhConsentSchema), async (req, res) => {
+router.post('/referrals/:id/consent', protect, requireMentalHealthBreakGlass, validate(mhConsentSchema), async (req, res) => {
   try {
     const { consentType, documentUrl, expiryDate, notes, purposes, retentionDays } = req.body;
     const r = await MentalHealth.findById(req.params.id);
@@ -422,7 +423,7 @@ router.post('/referrals/:id/consent', protect, validate(mhConsentSchema), async 
       // hospitalId, or a row created before tenancy was recorded, was readable
       // and writable by ANY authenticated account. This is the highest-sensitivity
       // PHI class in the product, so it gets the strictest rule.
-      const access = assertMentalHealthAccess(req.user, r);
+      const access = assertMentalHealthAccess(req.user, r, { breakGlassGrant: req.breakGlass });
       if (!access.ok) return denyMentalHealth(res, access);
     
     r.consents.push({
@@ -492,12 +493,12 @@ router.get('/screening/instruments', protect, authorize('records:read', 'records
  * definition, checked before anything else, and routed to the existing crisis
  * queue that MIND already uses.
  */
-router.post('/referrals/:id/screening', protect, async (req, res) => {
+router.post('/referrals/:id/screening', protect, requireMentalHealthBreakGlass, async (req, res) => {
   try {
     const { instrument, responses } = req.body || {};
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Referral not found' });
-    const access = assertMentalHealthAccess(req.user, r);
+    const access = assertMentalHealthAccess(req.user, r, { breakGlassGrant: req.breakGlass });
     if (!access.ok) return denyMentalHealth(res, access);
 
     const result = score(instrument, responses || {});
@@ -575,11 +576,11 @@ router.post('/referrals/:id/screening', protect, async (req, res) => {
 });
 
 /** MIND-M-01: trend across administrations, with clinical-meaningfulness. */
-router.get('/referrals/:id/screening/trend', protect, async (req, res) => {
+router.get('/referrals/:id/screening/trend', protect, requireMentalHealthBreakGlass, async (req, res) => {
   try {
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Referral not found' });
-    const access = assertMentalHealthAccess(req.user, r);
+    const access = assertMentalHealthAccess(req.user, r, { breakGlassGrant: req.breakGlass });
     if (!access.ok) return denyMentalHealth(res, access);
 
     const instrument = req.query.instrument;
@@ -600,11 +601,11 @@ router.get('/referrals/:id/screening/trend', protect, async (req, res) => {
  * Answers the question a DPDP data-principal request actually asks ("what did
  * you consent to, and has it lapsed?") rather than dumping raw consent rows.
  */
-router.get('/referrals/:id/consent-status', protect, async (req, res) => {
+router.get('/referrals/:id/consent-status', protect, requireMentalHealthBreakGlass, async (req, res) => {
   try {
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
-    const access = assertMentalHealthAccess(req.user, r);
+    const access = assertMentalHealthAccess(req.user, r, { breakGlassGrant: req.breakGlass });
     if (!access.ok) return denyMentalHealth(res, access);
 
     const now = new Date();
@@ -633,11 +634,11 @@ router.get('/referrals/:id/consent-status', protect, async (req, res) => {
  * explicitly changed, so a renewal does not silently narrow or widen what the
  * patient agreed to.
  */
-router.post('/referrals/:id/consent/:consentId/renew', protect, async (req, res) => {
+router.post('/referrals/:id/consent/:consentId/renew', protect, requireMentalHealthBreakGlass, async (req, res) => {
   try {
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
-    const access = assertMentalHealthAccess(req.user, r);
+    const access = assertMentalHealthAccess(req.user, r, { breakGlassGrant: req.breakGlass });
     if (!access.ok) return denyMentalHealth(res, access);
 
     const index = (r.consents || []).findIndex((c) => String(c._id) === String(req.params.consentId));
@@ -681,7 +682,7 @@ router.post('/referrals/:id/consent/:consentId/renew', protect, async (req, res)
  * scheduled job that forgets its flag would be unrecoverable. The encounter is
  * kept (date, type, clinician) and only the notes go.
  */
-router.post('/referrals/:id/retention-sweep', protect, adminOnly, async (req, res) => {
+router.post('/referrals/:id/retention-sweep', protect, requireMentalHealthBreakGlass, adminOnly, async (req, res) => {
   try {
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
@@ -705,11 +706,11 @@ router.post('/referrals/:id/retention-sweep', protect, adminOnly, async (req, re
 });
 
 // Create billing for mental health session
-router.post('/referrals/:id/create-billing', protect, adminOnly, validate(mhBillingSchema), async (req, res) => {
+router.post('/referrals/:id/create-billing', protect, requireMentalHealthBreakGlass, adminOnly, validate(mhBillingSchema), async (req, res) => {
   try {
     const referral = await MentalHealth.findById(req.params.id);
     if (!referral) return res.status(404).json({ message: 'Referral not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && referral.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || referral.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
@@ -785,13 +786,13 @@ router.get('/crisis/queue', protect, async (req, res) => {
     // Fail closed on tenancy: a caller with no tenant sees nothing rather than
     // everything.
     const tenant = req.user.hospitalId || req.user.facilityId;
-    if (!tenant && req.user.role !== 'superadmin') {
+    if (!tenant) {
       logger.warn('MIND-B-02: crisis queue requested by a caller with no tenant');
       return res.status(403).json({ message: 'Access denied' });
     }
 
     const filter = { ...openCrisisQuery() };
-    if (req.user.role !== 'superadmin') filter.hospitalId = tenant;
+    filter.hospitalId = tenant;
 
     // SITE-SEC 1.7: crisisEvents[].notes is field-encrypted at rest; a lean()
     // read bypasses the model getter, so this hot-path projection selects the
@@ -814,11 +815,10 @@ router.get('/crisis/queue', protect, async (req, res) => {
         const due = c.responseDueAt ? new Date(c.responseDueAt).getTime() : now;
         queue.push({
           referralId: r.referralId,
-          patientId: r.patientId,
-          patientName: r.patientName,
+          // Incident responders see operational metadata. Patient identity and
+          // narrative risk details stay in the treating relationship / grant.
           hospitalId: r.hospitalId,
           severity: c.severity,
-          risk: c.risk,
           flaggedAt: c.flaggedAt,
           responseDueAt: c.responseDueAt,
           minutesRemaining: Math.round((due - now) / 60000),

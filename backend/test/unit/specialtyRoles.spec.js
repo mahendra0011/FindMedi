@@ -125,7 +125,7 @@ describe('7.md 3 specialty roles', () => {
     const PractitionerProfile = await importModel('../../src/models/PractitionerProfile.js', 'PractitionerProfile');
     expect(new Set(enumValues(PractitionerProfile, 'roleType'))).toEqual(new Set([
       'acupuncturist', 'audiologist', 'ayush_practitioner', 'counsellor', 'dentist',
-      'dietitian', 'doctor', 'doula', 'lab_technician', 'lactation_consultant',
+      'dietitian', 'doctor', 'doula', 'first_responder', 'lab_technician', 'lactation_consultant',
       'lawyer', 'meditation_teacher', 'nurse', 'occupational_therapist', 'optometrist',
       'paramedic_emt', 'peer_mentor', 'pharmacist', 'phlebotomist', 'physio',
       'prosthetist_orthotist', 'psychologist', 'psychotherapist', 'radiographer',

@@ -13,7 +13,9 @@ prevent.
 | Clinical records (appointments, prescriptions, labs, EHR) | Statutory period for the jurisdiction, minimum 3 years | Soft delete, then hard delete on schedule | `delete_record` audit row |
 | Mental-health records | Same as clinical records, **plus** the consent validity period | `revoke_consent` removes downstream read access immediately; the record itself follows the clinical schedule | Audited |
 | ABDM consent records | Consent validity, then 1 year | TTL/consent expiry; revocation is immediate and audited | `consent_revoke` audit row |
-| Audit logs | **7 years** (longer than the data they describe) | Scheduled archive — never inline with the records they evidence | Archived with checksum |
+| Audit logs | **7 years** (longer than the data they describe) | Mongo TTL after 7 years; scheduled archive with checksum before expiry | Archived with checksum |
+| Vendor contracts and DPAs | Contract term + 7 years after expiry/termination; legal hold overrides | DPO reviewed register; purge requires a scheduled, audited retention workflow | Audited |
+| Support privacy access sessions | 30 days | Mongo TTL index from request time | Not audited after expiry; access and consent actions are separately audited |
 | Payment and ledger entries | 8 years (statutory accounting) | Hard delete after archive | `delete_ledger_entry` audit row |
 | Refund records | 8 years | As above | Audited |
 | Notifications | 90 days | TTL index | Not audited (low value) |
@@ -44,7 +46,7 @@ prevent.
 ## Known gaps
 
 - **Unmapped PII collections are explicitly tracked.** The generated
-  [`data-dictionary.md`](../data-dictionary.md) currently lists 27 collections
+  [`data-dictionary.md`](../data-dictionary.md) currently lists 129 collections
   whose retention class still needs a policy decision. They are pinned in
   `backend/scripts/retention-gap-baseline.json`; `npm run retention:gaps` fails
   if a code change introduces a new unclassified PII collection or if a tracked
@@ -78,7 +80,7 @@ prevent.
 | Setup codes 15 min; OTP 15–60 min | `backend/src/models/AmbulanceSetupCode.js:31` (TTL `expireAfterSeconds: 0` on `expiresAt`); `backend/src/models/OTP.js:32` (TTL 3600s); `backend/src/models/RefreshToken.js:44` (TTL on `expiresAt`) | Mongo TTL; login-event TTL `backend/src/models/LoginEvent.js:40` (180d) |
 | Clinical soft-delete → audited hard-delete | `backend/src/routes/records.js:456-461` (soft delete first, then `auditLog('delete_record', …, { soft: true })`) | `delete_record` audit row; DPIA §10 |
 | Consent records: revoke is immediate + audited | `backend/src/routes/records.js:576,592-602` (`consent_revoked` audit on both revoke paths); mental-health consent expiry enforced `backend/src/routes/mentalhealth.js:257-264` | `mentalHealthConsent.spec.js` |
-| Audit logs outlive their subject | `backend/src/models/AuditLog.js:47` (TTL 365d — check against the 7-year policy target; shortening needs a DPIA change per Rule 4) | Retention-gap gate `backend/test/unit/retentionGate.spec.js` |
+| Audit logs outlive their subject | `backend/src/models/AuditLog.js` (seven-year Mongo TTL; asynchronous expiry) | `modelGapSchemas.spec.js` asserts TTL; separate archive/checksum and legal-hold-aware expiry remain unimplemented |
 | Chat offline queue is NOT retention storage | `frontend/src/lib/chatPrefs.js:93-119` (device-local queue, flushed on reconnect) + resume cursors `frontend/src/lib/chatResume.js:43-56`; queue items are pending sends, not an archive — server retention class applies after durable write | `docs/chat-reconnect-contract.md`; Vitest `chatResume.test.js` |
 
 ## Control-to-code mapping (DL-M-09 / DOC-M-01)

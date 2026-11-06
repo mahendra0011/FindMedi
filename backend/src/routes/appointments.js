@@ -11,6 +11,7 @@ import User from '../models/User.js';
 import Hospital from '../models/Hospital.js';
 import Patient from '../models/Patient.js';
 import { protect, scopeToHospital, requireRole, authorize } from '../middleware/auth.js';
+import { requireBreakGlass } from '../middleware/requireBreakGlass.js';
 import { validate, createAppointmentSchema, updateAppointmentSchema, walkInSchema } from '../utils/validate.js';
 import logger from '../config/logger.js';
 import { auditLog } from '../middleware/audit.js';
@@ -81,7 +82,7 @@ const createNotification = async (userId, title, message, type = 'appointment') 
 
 router.get('/', protect, authorize('appointments:read', 'appointments:read:own'), async (req, res) => {
   try {
-    const { page, limit, status, date, search, hospitalId } = req.query;
+    const { page, limit, status, date, search } = req.query;
     const filter = {};
     
     if (status && status !== 'All') filter.status = status;
@@ -97,9 +98,9 @@ router.get('/', protect, authorize('appointments:read', 'appointments:read:own')
       scopeFilter.doctorId = req.user.doctorProfileId;
       if (req.user.hospitalId) scopeFilter.hospitalId = req.user.hospitalId;
     } else if (req.user.role === 'superadmin') {
-      // APPT-B-07: handled BEFORE the default-deny branch (it used to fall into the
-      // else and always get an empty list).
-      if (hospitalId) scopeFilter.hospitalId = hospitalId;
+      // Owner does not get a patient directory through appointment search.
+      // Aggregate/finance tooling has dedicated metadata endpoints.
+      return res.status(403).json({ message: 'Platform-wide appointment listing is disabled' });
     } else if (req.user.role === 'hospital_admin') {
       // APPT-B-07: a hospital admin with no linked hospital must get NOTHING, not
       // every appointment on the platform.
@@ -159,18 +160,6 @@ router.get('/', protect, authorize('appointments:read', 'appointments:read:own')
 
     // File 23 §3.3: platform-wide list is metadata-only without a grant —
     // strip clinical notes + populated patient PII for platform roles.
-    if (req.user.role === 'superadmin' && !req.breakGlass && Array.isArray(result.data)) {
-      const STRIP = new Set(['reason', 'symptoms', 'notes', 'clinicalNotes', 'diagnosis']);
-      result.data = result.data.map((row) => {
-        const o = typeof row.toObject === 'function' ? row.toObject() : { ...row };
-        for (const k of STRIP) delete o[k];
-        if (o.patientId && typeof o.patientId === 'object') {
-          o.patientId = { _id: o.patientId._id || o.patientId.id };
-        }
-        return o;
-      });
-    }
-
     res.json(result);
   } catch (err) { sendServerError(res, err, 'Request failed'); }
 });
@@ -296,7 +285,7 @@ router.get('/my-appointments', protect, async (req, res) => {
       }
       filter.hospitalId = req.user.hospitalId;
     } else if (req.user.role === 'superadmin') {
-      // superadmin: platform-wide (optionally narrowed by ?status).
+      return res.status(403).json({ message: 'Platform-wide appointment listing is disabled' });
     } else {
       // APPT-B-07: default-deny - any other role gets an empty result instead of
       // an unfiltered Appointment.find({}).
@@ -433,7 +422,17 @@ router.get('/history-with-payments', protect, async (req, res) => {
   }
 });
 
-router.get('/:id', protect, async (req, res) => {
+const PLATFORM_SUPPORT_ROLES = new Set([
+  'superadmin', 'platform_admin', 'support_l1', 'support_l2', 'dpo',
+  'security_admin', 'clinical_safety', 'analyst', 'auditor',
+]);
+const requireBookingBreakGlass = (req, res, next) => (
+  PLATFORM_SUPPORT_ROLES.has(req.user?.role)
+    ? requireBreakGlass('booking')(req, res, next)
+    : next()
+);
+
+router.get('/:id', protect, requireBookingBreakGlass, async (req, res) => {
   try {
     const a = await Appointment.findById(req.params.id)
       .populate('patientId', 'name email phone gender address dateOfBirth bloodGroup')
@@ -453,7 +452,7 @@ router.get('/:id', protect, async (req, res) => {
     // An allowlist is the only shape that fails closed: the reader must positively
     // prove a relationship to the record, and anything unproven is a 404 (which
     // also keeps the id from being probed for existence).
-    const verdict = canReadAppointment(req.user, a);
+    const verdict = canReadAppointment(req.user, a, req.breakGlass);
     if (!verdict.ok) {
       logger.warn(
         `APPT-B-01: appointment read denied user=${req.user.id} role=${req.user.role} appointment=${req.params.id} reason=${verdict.reason}`
@@ -475,9 +474,14 @@ router.get('/:id', protect, async (req, res) => {
  *   same-tenant staff     — caller AND appointment both have a hospitalId and
  *                           they match; if EITHER lacks one this is a DENY, not a pass
  */
-export function canReadAppointment(user, appointment) {
+export function canReadAppointment(user, appointment, breakGlassGrant = null) {
   if (!user || !appointment) return { ok: false, reason: 'missing' };
-  if (user.role === 'superadmin') return { ok: true, via: 'superadmin' };
+  if (breakGlassGrant) return { ok: true, via: 'approved-break-glass' };
+  if (user.role === 'superadmin' || user.role === 'platform_admin' || user.role === 'support_l1'
+    || user.role === 'support_l2' || user.role === 'dpo' || user.role === 'security_admin'
+    || user.role === 'clinical_safety' || user.role === 'analyst' || user.role === 'auditor') {
+    return { ok: false, reason: 'platform-role-needs-scoped-support-view' };
+  }
 
   const idOf = (v) => String(typeof v === 'object' ? (v?._id ?? v?.id ?? v) : v);
   const me = String(user._id ?? user.id ?? '');
@@ -925,18 +929,16 @@ const APPOINTMENT_QUEUE_ROLES = [
 
 router.get('/queue/:department', protect, requireRole(APPOINTMENT_QUEUE_ROLES), async (req, res) => {
   try {
+    if (req.user.role === 'superadmin') {
+      return res.status(403).json({ message: 'Platform-wide appointment queue is disabled' });
+    }
     const filter = {
       department: req.params.department,
       status: { $in: ['In Queue', 'Called'] },
     };
-    if (req.user.role !== 'superadmin') {
-      const tenantId = req.user.hospitalId || req.user.facilityId;
-      if (!tenantId) return res.status(403).json({ message: 'Facility scope required' });
-      filter.hospitalId = tenantId;
-    } else if (req.query.hospitalId) {
-      // Only a platform superadmin may narrow the global queue by tenant.
-      filter.hospitalId = req.query.hospitalId;
-    }
+    const tenantId = req.user.hospitalId || req.user.facilityId;
+    if (!tenantId) return res.status(403).json({ message: 'Facility scope required' });
+    filter.hospitalId = tenantId;
     const { data, total, totalPages, page: p, limit: l } = await paginatedResults(
       Appointment,
       filter,
@@ -1127,6 +1129,10 @@ router.put('/:id', protect, authorize('appointments:write', 'appointments:write:
         now: new Date(),
         cancelledBy,
         paidAmount: payment ? Number(payment.amount) || 0 : 0,
+        // SITE-BOK 2.1: the booking's snapshot — not today's rules — decides
+        // the tier percent for this cancellation.
+        policySnapshot: appointment.policySnapshot,
+        payment,
       });
       cancelPlan.payment = payment || null;
       if (oldStatus !== 'Cancelled') {
@@ -1135,6 +1141,10 @@ router.put('/:id', protect, authorize('appointments:write', 'appointments:write:
         updates.cancellationTier = cancelPlan.tier;
         updates.cancellationFee = cancelPlan.feeAmount;
         updates.refundAmount = cancelPlan.refundAmount;
+        updates.refundWalletAmount = cancelPlan.refundWalletAmount;
+        updates.refundGatewayAmount = cancelPlan.refundGatewayAmount;
+        updates.providerCompensationAmount = cancelPlan.providerCompensationAmount;
+        updates.providerPenaltyAmount = cancelPlan.providerPenaltyAmount;
         // SITE-BOK 2.2: this row remembers WHICH policy decided the refund —
         // the booking's own snapshot (2.1), or the platform current version
         // for old rows that pre-date snapshots.
@@ -1296,6 +1306,10 @@ router.put('/:id', protect, authorize('appointments:write', 'appointments:write:
           // SITE-BOK 2.2: the Refund row carries the policy version whose tier
           // table produced this percentage — the ledger reconstructs itself.
           policyVersion: updates.cancellationPolicyVersion || appointment.policySnapshot?.version || BOOKING_POLICY_VERSION,
+          walletAmount: cancelPlan.refundWalletAmount,
+          gatewayAmount: cancelPlan.refundGatewayAmount,
+          providerCompensationAmount: cancelPlan.providerCompensationAmount,
+          providerPenaltyAmount: cancelPlan.providerPenaltyAmount,
         });
         if (!outcome.ok) {
           logger.warn(`A5: appointment ${appointment._id} cancelled but refund not issued (${outcome.reason})`);

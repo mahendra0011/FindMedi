@@ -19,6 +19,12 @@ const FORBIDDEN_TOKENS = [
   'insurance comparison', 'insurance advisor', 'cord blood bank',
 ];
 
+// Word-boundary matching so specialty codes like SPEC.NUCMED / SPEC.OCCMED do
+// not false-positive on substring checks (e.g. "cme" inside "nucmed").
+const FORBIDDEN_RES = FORBIDDEN_TOKENS.map(
+  (token) => new RegExp(`\\b${token.trim().split(/\s+/).join('\\s+')}\\b`, 'i')
+);
+
 describe('FindMedi Final Category Catalogue (Pruned)', () => {
   it('covers every §5 catalogue-gap item (regression lock: gaps cannot silently reappear)', () => {
     const codes = new Set(CATEGORY_TREE.map((c) => c.code));
@@ -164,11 +170,11 @@ describe('FindMedi Final Category Catalogue (Pruned)', () => {
     expect(filtered[0].specialtyCode).toBe('SPEC.GENMED');
   });
 
-  it('contains strictly 46 approved provider types in providerTypeCatalog', () => {
+  it('contains strictly 53 approved provider types in providerTypeCatalog', () => {
     const typeKeys = PROVIDER_TYPE_CATALOG.map((p) => p.typeKey);
-    expect(typeKeys.length).toBe(46);
+    expect(typeKeys.length).toBe(53);
     const prunedKeys = [
-      'occupational_therapist', 'prosthetist_orthotist', 'lactation_consultant',
+      'prosthetist_orthotist', 'lactation_consultant',
       'doula', 'audiologist', 'acupuncturist',
     ];
     for (const key of prunedKeys) {

@@ -30,6 +30,12 @@ const dataSubjectRequestSchema = new mongoose.Schema({
   // the export bundle's private ref once fulfilled.
   details: { type: String, maxlength: 4000, default: '' },
   exportRef: { type: String, maxlength: 500, default: '' },
+  exportPurpose: { type: String, maxlength: 500, default: '' },
+  exportExpiresAt: { type: Date, default: null },
+  fulfillmentApprovals: [{
+    approverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    approvedAt: { type: Date, default: Date.now },
+  }],
   resolutionNote: { type: String, maxlength: 2000, default: '' },
 
   // Identity check before disclosing anything — 21.md 14's privacy

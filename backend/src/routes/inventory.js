@@ -58,7 +58,7 @@ router.get('/items', protect, async (req, res) => {
   try {
     const { category, lowStock, search } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (category && category !== 'All') filter.category = category;
     if (lowStock === 'true') {
       filter.$expr = { $lte: ['$currentStock', '$minStockLevel'] };
@@ -79,7 +79,7 @@ router.put('/items/:id', protect, requireObjectId, validate(updateInventoryItemS
   try {
     const item = await Inventory.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || item.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     // AUTH-030: allowlisted fields only — stock/history via stock endpoint, tenant immutable.
@@ -98,7 +98,7 @@ router.put('/items/:id/stock', protect, authorize('inventory:manage'), validate(
     const { quantity, type, reference, notes } = req.body;
     const item = await Inventory.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || item.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     // File 22 P0-1: large manual adjustments need a consumed approval —
@@ -148,7 +148,7 @@ router.get('/items/:id', protect, async (req, res) => {
   try {
     const item = await Inventory.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || item.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     res.json(item);
@@ -159,7 +159,7 @@ router.post('/items/:id/barcode', protect, validate(barcodeSchema), async (req, 
   try {
     const item = await Inventory.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || item.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const barcode = req.body.barcode;
@@ -181,7 +181,7 @@ router.get('/barcode/:code', protect, async (req, res) => {
     const code = String(req.params.code || '').trim();
     if (!code) return res.status(404).json({ message: 'Item not found' });
     const scope = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') scope.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); scope.hospitalId = req.user.hospitalId; }
     let item = await Inventory.findOne({ ...scope, barcode: { $in: [code, code.toUpperCase()] } }).lean();
     if (!item) {
       item = await Inventory.findOne({ ...scope, barcode: new RegExp(`^${escapeRegex(code)}$`, 'i') }).lean();
@@ -194,7 +194,7 @@ router.get('/barcode/:code', protect, async (req, res) => {
 router.get('/stats', protect, async (req, res) => {
   try {
     const hFilter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); hFilter.hospitalId = req.user.hospitalId; }
     const total = await Inventory.countDocuments({ isActive: true, ...hFilter });
     const lowStock = await Inventory.countDocuments({
       isActive: true, ...hFilter,
@@ -237,7 +237,7 @@ router.get('/suppliers', protect, async (req, res) => {
   try {
     const { active, search, category } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (active !== 'false') filter.isActive = true;
     if (category && category !== 'All') filter.category = category;
     if (search) filter.$or = [{ name: new RegExp(escapeRegex(capSearch(search)), 'i') }, { contactPerson: new RegExp(escapeRegex(capSearch(search)), 'i') }];
@@ -250,7 +250,7 @@ router.put('/suppliers/:id', protect, requireObjectId, validate(updateSupplierSc
   try {
     const supplier = await Supplier.findById(req.params.id);
     if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && supplier.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || supplier.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     // AUTH-030: allowlisted fields only — supplierId/tenant linkage immutable.
@@ -279,7 +279,7 @@ router.post('/suppliers/:id/onboarding', protect, authorize('inventory:manage'),
   try {
     const supplier = await Supplier.findById(req.params.id);
     if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && supplier.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || supplier.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     supplier.onboardingStatus = req.body.decision;
@@ -298,7 +298,7 @@ router.get('/suppliers/:id', protect, async (req, res) => {
   try {
     const supplier = await Supplier.findById(req.params.id);
     if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && supplier.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || supplier.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     res.json(supplier);
@@ -400,7 +400,7 @@ router.get('/purchase-orders', protect, async (req, res) => {
   try {
     const { status, search } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (status && status !== 'All') filter.status = status;
     if (search) {
       filter.$or = [
@@ -422,7 +422,7 @@ router.get('/purchase-orders/:id', protect, async (req, res) => {
       .populate('supplierId', 'name contactPerson email')
       .populate('createdBy', 'name email');
     if (!po) return res.status(404).json({ message: 'Purchase order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && po.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || po.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     res.json(po);
@@ -434,7 +434,7 @@ router.put('/purchase-orders/:id/status', protect, authorize('inventory:manage')
     const { status, approvedBy } = req.body;
     const po = await PurchaseOrder.findById(req.params.id);
     if (!po) return res.status(404).json({ message: 'Purchase order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && po.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || po.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     // File 25 §8 SoD: creator cannot approve their own purchase order.
@@ -482,7 +482,7 @@ router.put('/purchase-orders/:id/receive', protect, authorize('inventory:manage'
     const { receivedNotes } = req.body;
     const po = await PurchaseOrder.findById(req.params.id);
     if (!po) return res.status(404).json({ message: 'Purchase order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && po.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || po.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
@@ -517,7 +517,7 @@ router.delete('/purchase-orders/:id', protect, async (req, res) => {
   try {
     const po = await PurchaseOrder.findById(req.params.id);
     if (!po) return res.status(404).json({ message: 'Purchase order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && po.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || po.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     await PurchaseOrder.findByIdAndDelete(req.params.id);

@@ -5,7 +5,7 @@ import User from '../models/User.js';
 import { protect, authorize } from '../middleware/auth.js';
 // AUTHZ-M-03 (F7): the audit trail itself is a sensitive export.
 import { requireStepUp } from '../middleware/stepUpAuth.js';
-import { auditLog } from '../middleware/audit.js';
+import { auditLogRequired } from '../middleware/audit.js';
 // AUD-B-01: a `$regex` built from user input is a ReDoS vector.
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 import { paginatedResults } from '../utils/pagination.js';
@@ -129,17 +129,10 @@ router.get('/', protect, authorize('audit:read'), auditSearchLimiter, async (req
 //   - SELF-AUDITED: exporting the audit trail is itself an admin action.
 const EXPORT_MAX_ROWS = 10000;
 
-router.get('/export', protect, authorize('audit:read'), auditSearchLimiter, requireStepUp('export:full'), async (req, res) => {
+router.get('/export', protect, authorize('audit:read'), auditSearchLimiter, requireStepUp('export:full', { requireEnrolled: true }), async (req, res) => {
   try {
     const filter = await buildAuditFilter(req);
     const logs = await AuditLog.find(filter).sort({ timestamp: -1 }).limit(EXPORT_MAX_ROWS).lean();
-
-    const userIds = [...new Set(logs.map(l => l.userId?.toString()).filter(Boolean))];
-    const users = userIds.length
-      ? await User.find({ _id: { $in: userIds } }).select('name email').lean()
-      : [];
-    const userMap = {};
-    users.forEach(u => { userMap[u._id.toString()] = u; });
 
     // CSV cell rules: quote everything, double inner quotes, flatten newlines
     // (a literal newline inside a cell breaks naive splitters), and defuse
@@ -151,26 +144,19 @@ router.get('/export', protect, authorize('audit:read'), auditSearchLimiter, requ
       s = s.replace(/\r?\n/g, ' ');
       return `"${s.replace(/"/g, '""')}"`;
     };
-    const header = ['timestamp', 'action', 'actorName', 'actorEmail', 'userId', 'target', 'ip', 'userAgent', 'details'];
+    const header = ['timestamp', 'action', 'actorId', 'ip'];
     const rows = logs.map(l => {
-      const target = TARGET_DETAIL_KEYS.map(k => l.details?.[k]).find(Boolean) || '';
-      const actor = l.userId ? userMap[l.userId.toString()] : null;
       return [
         l.timestamp ? new Date(l.timestamp).toISOString() : '',
         l.action,
-        actor?.name || '',
-        actor?.email || '',
         l.userId ? String(l.userId) : '',
-        target ? String(target) : '',
         l.ip || '',
-        l.userAgent || '',
-        l.details ? JSON.stringify(l.details) : '',
       ].map(csvCell).join(',');
     });
     // BOM: without it Excel reads UTF-8 as ANSI and mangles every non-ASCII name.
     const csv = '\uFEFF' + [header.map(csvCell).join(','), ...rows].join('\r\n') + '\r\n';
 
-    await auditLog('audit_exported', req.user._id, {
+    await auditLogRequired('audit_exported', req.user._id, {
       rows: logs.length,
       truncated: logs.length >= EXPORT_MAX_ROWS,
       filter: {

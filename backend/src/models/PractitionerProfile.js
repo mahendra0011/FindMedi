@@ -29,6 +29,7 @@ const practitionerProfileSchema = new mongoose.Schema({
       'lactation_consultant', 'doula', 'audiologist', 'psychologist', 'optometrist',
       'acupuncturist', 'radiographer', 'sonographer', 'lab_technician',
       'pharmacist', 'paramedic_emt', 'psychotherapist', 'meditation_teacher', 'peer_mentor',
+      'first_responder',
     ],
     required: true,
     index: true,

@@ -6,7 +6,8 @@
  * be rewritten from application code even by accident.
  *
  * Retention stays the TTL index - immutable means append-only, not eternal
- * (the 1-year window is the documented retention, see data dictionary).
+ * (the 7-year window is the documented retention, see RETENTION.md and the
+ * data dictionary).
  */
 import { describe, it, expect } from '@jest/globals';
 import AuditLog from '../../src/models/AuditLog.js';
@@ -23,10 +24,10 @@ describe('ADM-M-02 AuditLog is append-only at the schema level', () => {
     expect(AuditLog.schema.path('action').options.required).toBe(true);
   });
 
-  it('keeps the 1-year TTL - immutable is append-only, not eternal', () => {
+  it('keeps the 7-year TTL - immutable is append-only, not eternal', () => {
     const ttl = AuditLog.schema.indexes().find(([fields]) => fields.timestamp === 1);
     expect(ttl).toBeDefined();
-    expect(ttl[1].expireAfterSeconds).toBe(365 * 24 * 60 * 60);
+    expect(ttl[1].expireAfterSeconds).toBe(7 * 365 * 24 * 60 * 60);
   });
 
   it('fails fast when Mongo is down instead of buffering 10s (AUTH-B-05 unchanged)', () => {

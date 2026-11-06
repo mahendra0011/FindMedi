@@ -1,17 +1,19 @@
-import { roleHasPermission, canonicalRole, rolesEquivalent, CANONICAL_ROLES } from '../config/permissions.js';
+import { roleHasPermission, canonicalRole, rolesEquivalent, CANONICAL_ROLES, OPS_ROLES } from '../config/permissions.js';
 import logger from '../config/logger.js';
 import BreakGlassGrant from '../models/BreakGlassGrant.js';
-import { auditLog } from './audit.js';
+import { auditLogRequired } from './audit.js';
 
 // File 23 §5.1: PHI-class permissions. Platform roles (below) hold NO default
 // access to these — every pass needs an approved BreakGlassGrant for the
 // exact subject. Clinical/facility roles (doctor, nurse, dental_clinic_admin,
 // …) are EXCLUDED: they work tenant-scoped through object-level handlers.
-const PHI_PERMISSIONS = new Set(['records:read', 'records:write', 'patients:read', 'patients:write']);
-const BREAK_GLASS_ROLES = new Set([
-  'superadmin', 'platform_admin', 'support_l1', 'support_l2', 'dpo',
-  'security_admin', 'clinical_safety', 'analyst', 'auditor',
+const PHI_PERMISSIONS = new Set([
+  'records:read', 'records:write', 'patients:read', 'patients:write',
+  'appointments:read', 'chat:read', 'prescriptions:read', 'mentalhealth:read',
 ]);
+const PHI_WRITE_PERMISSIONS = new Set(['records:write', 'patients:write']);
+const BREAK_GLASS_ROLES = new Set(['superadmin', 'super_admin', ...OPS_ROLES]);
+export const isPlatformBreakGlassRole = (role) => BREAK_GLASS_ROLES.has(canonicalRole(role));
 
 const breakGlassSubjectOf = (req) => {
   const raw = req.params?.id || req.params?.patientId || req.params?.recordId
@@ -23,21 +25,24 @@ const breakGlassSubjectOf = (req) => {
 // Usage: router.put('/:id', protect, authorize('records:write'), handler)
 // Multiple permissions are any-of: authorize('billing:write', 'billing:write:own')
 // lets staff act on anyone's record while a patient may act on their own.
-// Superadmin bypasses; role→permission matrix lives in config/permissions.js.
+// Owner permissions are explicit in config/permissions.js.
 export const authorize = (...permissions) => {
   const required = permissions.flat().filter(Boolean);
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ message: 'Not authorized' });
     }
-    if (req.user.role === 'superadmin') {
-      // Owner keeps non-PHI platform powers; clinical reads need a grant.
-      if (!required.some((p) => PHI_PERMISSIONS.has(p))) return next();
-      return breakGlassGate(req, res, next);
+    if (isPlatformBreakGlassRole(req.user.role)
+      && required.some((p) => PHI_WRITE_PERMISSIONS.has(p))) {
+      return res.status(403).json({ message: 'Platform roles have read-only clinical access' });
+    }
+    if (isPlatformBreakGlassRole(req.user.role)
+      && required.length > 0 && required.every((p) => PHI_PERMISSIONS.has(p))) {
+      return breakGlassGate(req, res, next, required);
     }
     if (required.some((p) => roleHasPermission(req.user.role, p))) {
-      if (required.some((p) => PHI_PERMISSIONS.has(p)) && BREAK_GLASS_ROLES.has(canonicalRole(req.user.role))) {
-        return breakGlassGate(req, res, next);
+      if (required.some((p) => PHI_PERMISSIONS.has(p)) && isPlatformBreakGlassRole(req.user.role)) {
+        return breakGlassGate(req, res, next, required);
       }
       return next();
     }
@@ -59,7 +64,7 @@ export const authorize = (...permissions) => {
 // with an APPROVED, unexpired grant for the exact subject; every pass is
 // audited as `phi_access`. List routes (no subject id) are denied —
 // aggregates live on dedicated stats endpoints instead.
-async function breakGlassGate(req, res, next) {
+async function breakGlassGate(req, res, next, required = []) {
   try {
     const subjectId = breakGlassSubjectOf(req);
     if (!subjectId) {
@@ -68,26 +73,34 @@ async function breakGlassGate(req, res, next) {
     const grant = await BreakGlassGrant.findOne({
       requesterId: req.user._id || req.user.id,
       'subject.id': subjectId,
+      'subject.type': breakGlassSubjectType(required),
       status: 'approved',
       expiresAt: { $gt: new Date() },
     });
     if (!grant) {
-      await auditLog('breakglass_denied', req.user?._id, {
+      await auditLogRequired('breakglass_denied', req.user?._id, {
         route: req.originalUrl, subjectId, ip: req.ip,
-      }).catch(() => {});
+      });
       return res.status(403).json({ message: 'Break-glass approval required', code: 'BREAK_GLASS_REQUIRED' });
     }
     grant.accessLog.push({ ts: new Date(), route: req.originalUrl, objectId: subjectId });
-    await grant.save().catch(() => {});
-    await auditLog('phi_access', req.user?._id, {
+    await grant.save();
+    await auditLogRequired('phi_access', req.user?._id, {
       grantId: String(grant._id), route: req.originalUrl, subjectId,
       reasonCode: grant.reasonCode, ticketId: grant.ticketId, ip: req.ip,
-    }).catch(() => {});
+    });
     req.breakGlass = grant;
     return next();
   } catch (err) {
     return next(err);
   }
+}
+
+function breakGlassSubjectType(required) {
+  if (required.includes('mentalhealth:read')) return 'mental_health';
+  if (required.includes('appointments:read')) return 'booking';
+  if (required.includes('records:read') || required.includes('records:write')) return 'record';
+  return 'patient';
 }
 
 // AUTHZ-M-01 migration helper: every canonical role holding ANY of the given
@@ -109,7 +122,7 @@ export const PLATFORM_ADMIN_ROLES = ['superadmin'];
 
 export const platformAdminOnly = (req, res, next) => {
   if (!req.user) return res.status(401).json({ message: 'Not authorized' });
-  if (PLATFORM_ADMIN_ROLES.includes(req.user.role)) return next();
+  if (PLATFORM_ADMIN_ROLES.includes(req.user.role) && roleHasPermission(req.user.role, 'platform:manage')) return next();
   logger.warn(
     `PLATFORM-ADMIN deny: role=${canonicalRole(req.user.role)} user=${req.user.id} path=${req.originalUrl}`
   );
@@ -118,7 +131,6 @@ export const platformAdminOnly = (req, res, next) => {
 
 // AUTHZ-003: fail-closed facility scoping — targetId must be present AND match.
 export const sameFacilityStrict = (req, res, next) => {
-  if (req.user?.role === 'superadmin') return next();
   const targetId = req.body?.facilityId || req.query?.facilityId || req.params?.facilityId;
   const userFacilityId = (req.user.facilityId || req.user.hospitalId)?.toString();
   if (!userFacilityId) {
@@ -217,27 +229,16 @@ export const authorizeObject = (options = {}) => {
 
   return async (req, res, next) => {
     if (!req.user) return res.status(401).json({ message: 'Not authorized' });
-    if (req.user.role === 'superadmin') {
-      const Model = typeof model === 'function' ? await model() : model;
-      const doc = await Model.findById(idFrom(req));
-      if (!doc) return res.status(404).json({ message: 'Not found' });
-      req.scoped = doc;
-      req.ownedDoc = doc; // compat: requireTenantOwnership handed handlers req.ownedDoc
-      // SITE-SEC 1.10: a superadmin pass over a PATIENT-BOUND document read is
-      // a PHI inspection and gets the same break-glass discipline as the
-      // permission gate above — no silent record browsing. Writes stay open to
-      // superadmin (operational remediation) but are always audited here, so a
-      // platform-role object mutation leaves a trail the matter cannot skip.
+    if (isPlatformBreakGlassRole(req.user.role)) {
       const ownerFieldsChecked = Array.isArray(ownerFields) && ownerFields.length > 0
         ? ownerFields
         : [ownerField];
-      if (read && ownerFieldsChecked.map(String).includes('patientId')) {
+      if (read && !write && ownerFieldsChecked.map(String).includes('patientId')) {
         return breakGlassGate(req, res, next);
       }
-      await auditLog('superadmin_object_access', req.user._id, {
-        model: Model.modelName, id: String(doc._id), read, write, path: req.originalUrl, ip: req.ip,
-      }).catch(() => {});
-      return next();
+      // Non-PHI object access must also be explicitly routed through a named
+      // permission. This generic object helper cannot infer that permission.
+      return deny(res, req, 'owner-needs-explicit-object-permission');
     }
 
     let Model;

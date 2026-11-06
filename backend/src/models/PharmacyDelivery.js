@@ -42,6 +42,8 @@ const pharmacyDeliverySchema = new mongoose.Schema({
   // Patient/customer details — lab tasks me orderRef na hone par bhi UI ko chahiye.
   patientName: { type: String },
   patientPhone: { type: String },
+  // Lab samples need chilled transport; riders see the flag at assign time.
+  coldChain: { type: Boolean, default: false },
 
   // Rider payout for this specific task (lab tasks me LabBooking.reportDeliveryFee se aata hai).
   deliveryFee: { type: Number, default: 0 },

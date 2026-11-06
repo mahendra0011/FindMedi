@@ -64,6 +64,12 @@ const appointmentSchema = new mongoose.Schema({
   cancellationTier: { type: String, enum: ['early', 'mid', 'late', 'no_show'] },
   cancellationFee: { type: Number, default: 0 },
   refundAmount: { type: Number, default: 0 },
+  // A5: refund split and provider-side cancellation consequences, computed by
+  // lib/appointmentLifecycle.js at cancel time so the ledger is reproducible.
+  refundWalletAmount: { type: Number, default: 0 },
+  refundGatewayAmount: { type: Number, default: 0 },
+  providerCompensationAmount: { type: Number, default: 0 },
+  providerPenaltyAmount: { type: Number, default: 0 },
   // SITE-BOK 2.1: the policy the refund engine MUST honour for this booking,
   // snapshotted at creation. A later rules bump or provider override only ever
   // affects NEW bookings; a dispute reads the exact bands present when this
@@ -74,6 +80,7 @@ const appointmentSchema = new mongoose.Schema({
     documentHash: { type: String, default: '' },
     acceptedAt: { type: Date, default: null },
     refundBands: { type: Object, default: null },
+    providerCancel: { type: Object, default: null },
   },
   // 2.2: which policy version actually decided the refund on cancel.
   cancellationPolicyVersion: { type: String, default: '' },

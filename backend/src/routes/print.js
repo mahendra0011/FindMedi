@@ -28,7 +28,7 @@ router.get('/templates', async (req, res) => {
   try {
     const { docType } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (docType) filter.docType = docType;
     const rows = await PrintTemplate.find(filter).sort({ docType: 1, version: -1 }).limit(200).lean();
     return res.json({ templates: rows, registry: VARIABLE_REGISTRY });

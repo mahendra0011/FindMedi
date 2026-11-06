@@ -25,6 +25,7 @@ import { getConfig } from '../utils/configLoader.js';
 import { generatePrescriptionPDF, generateLabReportPDF, generateDischargeSummaryPDF } from '../services/pdfService.js';
 import { generateReportId, generateInvoiceId } from '../utils/idGenerator.js';
 import { attachmentFromPdf } from '../services/notificationService.js';
+import { auditLogRequired } from '../middleware/audit.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -40,7 +41,6 @@ const router = express.Router();
 
 export const REPORT_EXPORT_ROW_CAP = 5000;
 export function getReportExportScope(user) {
-  if (user?.role === 'superadmin') return {};
   if (user?.role !== 'hospital_admin' || !user?.hospitalId) return null;
   return { hospitalId: user.hospitalId };
 }
@@ -579,7 +579,9 @@ case 'OT Statistics':
 // collapsed to `{}`, i.e. a PLATFORM-WIDE report. Tenant scope is now mandatory
 // and a user with no tenant is refused.
 const requireReportScope = (req, res, next) => {
-  if (req.user.role === 'superadmin') return next();
+  if (['superadmin', 'platform_admin', 'support_l1', 'support_l2', 'dpo', 'security_admin', 'clinical_safety', 'analyst', 'auditor'].includes(req.user.role)) {
+    return res.status(403).json({ message: 'Platform roles cannot access tenant clinical reports' });
+  }
   if (!req.user.hospitalId && !req.user.facilityId) {
     return res.status(403).json({ message: 'Reports are limited to hospital/facility accounts' });
   }
@@ -673,7 +675,7 @@ router.get('/', protect, authorize('reports:read'), requireReportScope, async (r
     const filter = {};
     // RPT-B-02: fail CLOSED. `if (req.user.hospitalId && role !== superadmin)`
     // listed every report on the platform for any account without a hospital.
-    if (req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId || req.user.facilityId;
+    filter.hospitalId = req.user.hospitalId || req.user.facilityId;
     if (reportType && reportType !== 'All') filter.reportType = reportType;
     if (category && category !== 'All') filter.category = category;
     if (dateFrom || dateTo) {
@@ -690,18 +692,12 @@ router.get('/', protect, authorize('reports:read'), requireReportScope, async (r
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/:id', protect, authorize('reports:read'), async (req, res) => {
+router.get('/:id', protect, authorize('reports:read'), requireReportScope, async (req, res) => {
   try {
-    const report = await Report.findById(req.params.id).populate('generatedBy', 'name');
+    const scope = req.user.hospitalId || req.user.facilityId;
+    const report = await Report.findOne({ _id: req.params.id, hospitalId: scope }).populate('generatedBy', 'name');
     if (!report) return res.status(404).json({ message: 'Report not found' });
-    // RPT-B-02: fail closed — a report with no tenant (legacy rows) is
-    // superadmin-only, and a tenant user must match exactly.
-    if (req.user.role !== 'superadmin') {
-      const scope = req.user.hospitalId || req.user.facilityId;
-      if (!scope || !report.hospitalId || report.hospitalId.toString() !== String(scope)) {
-        return res.status(403).json({ message: 'Access denied' });
-      }
-    }
+    // Scope in the query itself to avoid fetching an out-of-tenant report first.
     res.json(report);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -720,7 +716,7 @@ router.get('/types/list', protect, async (req, res) => {
 
 // AUTHZ-M-03 (F7): the whole patient table walks out through this route - a
 // fresh 2FA proof is required, not just the session token.
-router.get('/export/:type', protect, adminOnly, requireStepUp('export:full'), async (req, res) => {
+router.get('/export/:type', protect, adminOnly, requireStepUp('export:full', { requireEnrolled: true }), async (req, res) => {
   try {
     const { type } = req.params;
     const format = req.query.format || 'excel';
@@ -750,12 +746,14 @@ router.get('/export/:type', protect, adminOnly, requireStepUp('export:full'), as
     }
 
     if (format === 'csv') {
+      await auditLogRequired('tenant_report_exported', req.user._id, { type, rows: records.length, format, hospitalId: req.user.hospitalId, ip: req.ip, userAgent: req.get('user-agent') });
       const csv = exportToCSV(records, Object.keys(records[0] || {}));
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="${type}.csv"`);
       return res.send(csv);
     }
 
+    await auditLogRequired('tenant_report_exported', req.user._id, { type, rows: records.length, format: 'excel', hospitalId: req.user.hospitalId, ip: req.ip, userAgent: req.get('user-agent') });
     const buffer = await exportToExcel(records);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${type}.xlsx"`);

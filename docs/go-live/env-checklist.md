@@ -55,6 +55,12 @@
 
 ## 5. Statutory & Specialized Integrations (E1, E2)
 
+### 5.0 Super-admin privacy boundary (File 23)
+- Deploy the dedicated `admin.findmedi.in` edge hostname with a valid TLS certificate and DNS record. `infra/nginx/snippets/admin-allowlist.conf` is deny-all by default; add only managed VPN/office CIDRs before allowing operator access.
+- Ensure the reverse proxy overwrites `X-Forwarded-Host` with the validated host. When the backend directly serves the admin hostname, set `ADMIN_HOSTS` to explicit trusted hostnames only.
+- Keep production session defaults at 30 minutes idle, 12 hours absolute, and 3 concurrent privileged sessions unless a reviewed policy requires tighter values. Confirm platform-admin MFA enrollment and break-glass approver coverage before go-live.
+- Break-glass and patient notices are persisted as in-app critical alerts with bounded retries; configure and verify a separate external paging/email channel if human acknowledgement or off-hours response is required.
+
 ### 5.1 GST E-Invoicing (NIC IRP)
 - `EINVOICE_MODE=live`
 - `EINVOICE_GSTIN`: Hospital GSTIN (15 characters)

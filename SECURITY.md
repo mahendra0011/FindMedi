@@ -183,6 +183,10 @@ FindMedi implements an AWS IAM-equivalent fine-grained authorization layer withi
 - `sendServerError` returns a correlation id to the user and keeps the raw error
   server-side, so a 5xx never leaks schema or connection details.
 
+### Super-admin privacy scope (2026-11-06)
+- Platform Owner is explicitly permissioned and has no default clinical PHI grants; platform operator roles require subject-scoped, active break-glass for supported PHI reads, and the grants are read-only.
+- The current implementation is partial. The route-by-route status, checks and unverified deployment controls are recorded in `docs/superadmin-privacy-implementation-status.md`; this file is not a claim that the full admin privacy checklist or production deployment has been verified.
+
 ---
 
 ## 5. Known gaps — stated honestly

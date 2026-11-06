@@ -3,7 +3,7 @@ import { z } from 'zod';
 import OperationTheatre from '../models/OperationTheatre.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, denyPlatformClinicalAccess, adminOnly } from '../middleware/auth.js';
 import { validate, createSurgerySchema, vitalsShape, checklistMapShape } from '../utils/validate.js';
 import { generateTimestampedId } from '../utils/idGenerator.js';
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
@@ -15,10 +15,11 @@ const otPreOpVitalsSchema = z.object({ bp: z.string().optional(), hr: z.string()
 const otInstrumentsSchema = z.object({ instrumentsBefore: z.number().optional(), spongesBefore: z.number().optional() });
 
 const router = express.Router();
+router.use(protect, denyPlatformClinicalAccess);
 
 const generateOTId = async () => generateTimestampedId('OT');
 
-router.post('/surgeries', protect, adminOnly, validate(createSurgerySchema), async (req, res) => {
+router.post('/surgeries', adminOnly, validate(createSurgerySchema), async (req, res) => {
   try {
     const { patientId, patientName, surgeryName, surgeryType, anaesthesiaType, assistants, otNumber, scheduledDate } = req.body;
     if (!patientId || !surgeryName) return res.status(400).json({ message: 'Patient and surgery required' });
@@ -46,11 +47,11 @@ router.post('/surgeries', protect, adminOnly, validate(createSurgerySchema), asy
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.get('/surgeries', protect, async (req, res) => {
+router.get('/surgeries', async (req, res) => {
   try {
     const { status, search } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (status && status !== 'All') filter.status = status;
     if (search) {
       filter.$or = [
@@ -65,23 +66,23 @@ router.get('/surgeries', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/surgeries/:id', protect, async (req, res) => {
+router.get('/surgeries/:id', async (req, res) => {
   try {
     const surgery = await OperationTheatre.findById(req.params.id)
       .populate('patientId', 'name email phone').populate('doctorId', 'name');
     if (!surgery) return res.status(404).json({ message: 'Surgery not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && surgery.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || surgery.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     res.json(surgery);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/surgeries/:id/start', protect, async (req, res) => {
+router.put('/surgeries/:id/start', async (req, res) => {
   try {
     const surgery = await OperationTheatre.findById(req.params.id);
     if (!surgery) return res.status(404).json({ message: 'Surgery not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && surgery.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || surgery.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     surgery.status = 'In Progress';
@@ -91,12 +92,12 @@ router.put('/surgeries/:id/start', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/surgeries/:id/complete', protect, validate(otCompleteSchema), async (req, res) => {
+router.put('/surgeries/:id/complete', validate(otCompleteSchema), async (req, res) => {
   try {
     const { findings, procedure, complications, postOpInstructions, instrumentsAfter, spongesAfter } = req.body;
     const surgery = await OperationTheatre.findById(req.params.id);
     if (!surgery) return res.status(404).json({ message: 'Surgery not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && surgery.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || surgery.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     surgery.status = 'Recovery';
@@ -118,12 +119,12 @@ router.put('/surgeries/:id/complete', protect, validate(otCompleteSchema), async
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/surgeries/:id/recovery', protect, validate(otRecoverySchema), async (req, res) => {
+router.put('/surgeries/:id/recovery', validate(otRecoverySchema), async (req, res) => {
   try {
     const { recoveryNotes, vitals } = req.body;
     const surgery = await OperationTheatre.findById(req.params.id);
     if (!surgery) return res.status(404).json({ message: 'Surgery not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && surgery.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || surgery.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     surgery.status = 'Completed';
@@ -134,7 +135,7 @@ router.put('/surgeries/:id/recovery', protect, validate(otRecoverySchema), async
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/surgeries/:id/checklist', protect, validate(otChecklistSchema), async (req, res) => {
+router.put('/surgeries/:id/checklist', validate(otChecklistSchema), async (req, res) => {
   try {
     const { checklist } = req.body;
     const requiredFields = ['consentSigned', 'bloodGroupConfirmed', 'anaesthesiaFitness', 'npoStatus', 'allergiesChecked', 'siteMarked', 'investigationsReviewed'];
@@ -144,7 +145,7 @@ router.put('/surgeries/:id/checklist', protect, validate(otChecklistSchema), asy
     }
     const surgery = await OperationTheatre.findById(req.params.id);
     if (!surgery) return res.status(404).json({ message: 'Surgery not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && surgery.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || surgery.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     surgery.preOpChecklist = checklist;
@@ -154,12 +155,12 @@ router.put('/surgeries/:id/checklist', protect, validate(otChecklistSchema), asy
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/surgeries/:id/pre-op-vitals', protect, validate(otPreOpVitalsSchema), async (req, res) => {
+router.post('/surgeries/:id/pre-op-vitals', validate(otPreOpVitalsSchema), async (req, res) => {
   try {
     const { bp, hr, temp, spO2, weight, notes } = req.body;
     const surgery = await OperationTheatre.findById(req.params.id);
     if (!surgery) return res.status(404).json({ message: 'Surgery not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && surgery.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || surgery.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
@@ -175,12 +176,12 @@ router.post('/surgeries/:id/pre-op-vitals', protect, validate(otPreOpVitalsSchem
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/surgeries/:id/instruments', protect, validate(otInstrumentsSchema), async (req, res) => {
+router.post('/surgeries/:id/instruments', validate(otInstrumentsSchema), async (req, res) => {
   try {
     const { instrumentsBefore, spongesBefore } = req.body;
     const surgery = await OperationTheatre.findById(req.params.id);
     if (!surgery) return res.status(404).json({ message: 'Surgery not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && surgery.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || surgery.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
@@ -194,7 +195,7 @@ router.post('/surgeries/:id/instruments', protect, validate(otInstrumentsSchema)
 
 // File 09 §9.2/04.6: PAC + WHO surgical safety checklist + op note.
 // Implants/consumables auto-post Pending ChargeItems to the encounter.
-router.put('/surgeries/:id/pac', protect, async (req, res) => {
+router.put('/surgeries/:id/pac', async (req, res) => {
   try {
     const { asaGrade, npoConfirmed, fitness, notes } = req.body || {};
     const s = await OperationTheatre.findById(req.params.id);
@@ -209,7 +210,7 @@ router.put('/surgeries/:id/pac', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/surgeries/:id/who-checklist', protect, async (req, res) => {
+router.put('/surgeries/:id/who-checklist', async (req, res) => {
   try {
     const { signIn, timeOut, signOut } = req.body || {};
     const s = await OperationTheatre.findById(req.params.id);
@@ -223,7 +224,7 @@ router.put('/surgeries/:id/who-checklist', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/surgeries/:id/op-note', protect, async (req, res) => {
+router.put('/surgeries/:id/op-note', async (req, res) => {
   try {
     const { findings, procedure, anaesthesiaRecord, implants, consumables, teamFees } = req.body || {};
     const s = await OperationTheatre.findById(req.params.id);
@@ -268,10 +269,10 @@ router.put('/surgeries/:id/op-note', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.get('/stats', protect, async (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
     const hFilter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); hFilter.hospitalId = req.user.hospitalId; }
     const total = await OperationTheatre.countDocuments(hFilter);
     const scheduled = await OperationTheatre.countDocuments({ ...hFilter, status: 'Scheduled' });
     const inProgress = await OperationTheatre.countDocuments({ ...hFilter, status: { $in: ['In Progress', 'Pre-Op'] } });

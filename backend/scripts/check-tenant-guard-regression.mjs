@@ -35,7 +35,8 @@ function walk(dir, out = []) {
 
 const counts = {};
 for (const file of walk(srcDir)) {
-  const hits = readFileSync(file, 'utf8').split('\n').filter((l) => PATTERN.test(l) && !l.trim().startsWith('//'));
+  const source = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const hits = source.split('\n').filter((l) => PATTERN.test(l) && !l.trim().startsWith('//'));
   if (hits.length) counts[relative(join(here, '..'), file).replace(/\\/g, '/')] = hits.length;
 }
 

@@ -55,7 +55,7 @@ router.get('/', protect, async (req, res) => {
       const doctor = await Doctor.findOne({ email: req.user.email });
       if (doctor) filter.doctorId = doctor._id;
     }
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const requests = await ScheduleChangeRequest.find(filter)
       .populate('doctorId', 'name email specialization')
       .sort({ createdAt: -1 });
@@ -152,7 +152,7 @@ router.put('/:id/cancel', protect, async (req, res) => {
 router.get('/pending', protect, async (req, res) => {
   try {
     const filter = { status: 'Pending' };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const requests = await ScheduleChangeRequest.find(filter)
       .populate('doctorId', 'name email specialization slotDuration workingHours breakTime bookingWindow weekly_schedule leaves dateDisabledSlots bufferPerHour')
       .sort({ createdAt: 1 });

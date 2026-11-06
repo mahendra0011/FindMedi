@@ -22,9 +22,9 @@ describe('LanguageSwitcher', () => {
 
   it('switching to Hindi persists and changes the language', async () => {
     render(<LanguageSwitcher />);
-    fireEvent.click(screen.getByRole('button', { name: 'हिं' }));
+    fireEvent.click(screen.getByRole('button', { name: 'हिन्दी' }));
     expect(window.localStorage.getItem('findmedi_lang')).toBe('hi');
-    expect(screen.getByRole('button', { name: 'हिं' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'हिन्दी' })).toHaveAttribute('aria-pressed', 'true');
     // restore default for other suites
     await i18n.changeLanguage('en');
     window.localStorage.removeItem('findmedi_lang');

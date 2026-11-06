@@ -21,6 +21,14 @@ const OFFICER = { _id: 'off-1', id: 'off-1', role: 'compliance_officer' };
 
 const auditLog = jestApi.fn();
 const countDocuments = jestApi.fn();
+const applyUpdate = (row, update) => {
+  if (!row) return null;
+  Object.assign(row, update.$set || {});
+  for (const [path, value] of Object.entries(update.$push || {})) row[path] = [...(row[path] || []), value];
+  for (const [path, value] of Object.entries(update.$unset || {})) { void value; delete row[path]; }
+  for (const [path, condition] of Object.entries(update.$pull || {})) row[path] = (row[path] || []).filter((item) => String(item.approverId) !== String(condition.approverId));
+  return row;
+};
 
 let listRows = [];
 let currentRow = null;
@@ -30,11 +38,20 @@ jestApi.unstable_mockModule('../../src/models/DataSubjectRequest.js', () => ({
   default: {
     find: (filter) => { lastFilter = filter; return query(listRows); },
     findById: () => query(currentRow),
+    findOneAndUpdate: (_filter, update) => Promise.resolve(applyUpdate(currentRow, update)),
+    updateOne: (_filter, update) => Promise.resolve(applyUpdate(currentRow, update)),
     countDocuments: (...args) => countDocuments(...args),
   },
 }));
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => auditLog(...args),
+}));
+jestApi.unstable_mockModule('../../src/middleware/stepUpAuth.js', () => ({
+  requireStepUp: () => (_req, _res, next) => next(),
+}));
+jestApi.unstable_mockModule('../../src/services/notificationService.js', () => ({
+  createNotification: jestApi.fn().mockResolvedValue({ notification: { _id: 'notice-1' } }),
 }));
 
 const { as } = await mountApp('adminDsr', {});
@@ -50,6 +67,7 @@ const makeRow = (status = 'submitted', over = {}) => ({
   exportRef: '',
   resolutionNote: '',
   verification: { method: '', at: null, by: null },
+  fulfillmentApprovals: [],
   save: jestApi.fn().mockResolvedValue(undefined),
   ...over,
 });
@@ -144,25 +162,41 @@ describe('POST /admin/dsr/:id/decision', () => {
     expect(currentRow.verification.by).toBe('off-1');
   });
 
-  it('requires exportRef to fulfil an EXPORT request', async () => {
+  it('requires an identity-verified request before export approval', async () => {
     currentRow = makeRow('verified', { type: 'export' });
     const res = await as(OFFICER).post(`/${ROW_ID}/decision`).send({ action: 'fulfill' });
-    expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/exportRef/);
-    expect(currentRow.save).not.toHaveBeenCalled();
+    expect(res.status).toBe(409);
+    expect(res.body.message).toMatch(/Verify the data principal/);
   });
 
-  it('fulfils an export once exportRef is supplied', async () => {
-    currentRow = makeRow('verified', { type: 'export' });
-    const res = await as(OFFICER).post(`/${ROW_ID}/decision`)
-      .send({ action: 'fulfill', exportRef: 'bundle://42' });
-    expect(res.status).toBe(200);
-    expect(res.body.status).toBe('fulfilled');
-    expect(currentRow.exportRef).toBe('bundle://42');
-    expect(currentRow.fulfilledAt).toBeInstanceOf(Date);
-    expect(auditLog).toHaveBeenCalledWith('dsr_fulfill', 'off-1', expect.objectContaining({
-      from: 'verified', to: 'fulfilled',
-    }));
+  it('requires an opaque ref and a specific purpose for an identified export', async () => {
+    currentRow = makeRow('verified', { type: 'export', verification: { method: 'email_otp', at: new Date(), by: 'off-1' } });
+    const res = await as(OFFICER).post(`/${ROW_ID}/decision`).send({
+      action: 'fulfill', exportRef: 'https://public.example/export',
+      exportPurpose: 'Deliver the verified account archive to the requester',
+      exportExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/opaque export artifact/);
+  });
+
+  it('requires two different operators to fulfill an identified export', async () => {
+    currentRow = makeRow('verified', { type: 'export', verification: { method: 'email_otp', at: new Date(), by: 'off-1' } });
+    const payload = {
+      action: 'fulfill', exportRef: 'dsr-job-opaque-42',
+      exportPurpose: 'Deliver the verified account archive to the requesting data principal',
+      exportExpiresAt: new Date(Date.now() + 60 * 60_000).toISOString(),
+    };
+    const res = await as(OFFICER).post(`/${ROW_ID}/decision`).send(payload);
+    expect(res.status).toBe(503);
+    expect(res.body.message).toMatch(/artifact store/);
+    expect(currentRow.fulfillmentApprovals).toHaveLength(0);
+    expect(currentRow.fulfilledAt).toBeUndefined();
+  });
+
+  it('restricts the privacy queue to DPO and compliance roles', async () => {
+    const res = await as({ ...OFFICER, role: 'superadmin' }).get('/');
+    expect(res.status).toBe(403);
   });
 
   it('does not require exportRef for a non-export fulfilment', async () => {

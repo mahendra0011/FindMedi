@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { randomBytes } from 'crypto';
 import { generateOTP } from '../utils/otp.js';
 import User from '../models/User.js';
-import { protect, authorize } from '../middleware/auth.js';
+import { protect, denyPlatformClinicalAccess, authorize } from '../middleware/auth.js';
 import logger from '../config/logger.js';
 import { rateLimit } from 'express-rate-limit';
 import { totpLimiter } from '../middleware/rateLimit.js';
@@ -31,7 +31,7 @@ const publicScanLimiter = rateLimit({
 });
 
 // ─── Generate / Rotate QR Token (Patient, Auth required) ───
-router.post('/generate', protect, authorize('profile:write', 'profile:write:own'), async (req, res) => {
+router.post('/generate', protect, denyPlatformClinicalAccess, authorize('profile:write', 'profile:write:own'), async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
 
@@ -80,7 +80,7 @@ router.post('/generate', protect, authorize('profile:write', 'profile:write:own'
 // and does not. Both fields are now a closed enum / a strict boolean (schema
 // shared with routes/patient.js in lib/healthIdCard.js).
 
-router.put('/settings', protect, authorize('profile:write', 'profile:write:own'), validate(healthIdSettingsSchema), async (req, res) => {
+router.put('/settings', protect, denyPlatformClinicalAccess, authorize('profile:write', 'profile:write:own'), validate(healthIdSettingsSchema), async (req, res) => {
   try {
     const { isEnabled, shareLevel } = req.body;
     const user = await User.findById(req.user._id);
@@ -126,7 +126,7 @@ router.put('/settings', protect, authorize('profile:write', 'profile:write:own')
 const RECEIPT_LIMIT_DEFAULT = 50;
 const RECEIPT_LIMIT_MAX = 100;
 
-router.get('/scans', protect, authorize('profile:read:own'), async (req, res) => {
+router.get('/scans', protect, denyPlatformClinicalAccess, authorize('profile:read:own'), async (req, res) => {
   try {
     const requested = Number.parseInt(String(req.query.limit ?? ''), 10);
     const limit = Number.isFinite(requested)
@@ -164,7 +164,7 @@ const ABHA_OTP_MAX_ATTEMPTS = 5;
 const hashAbhaOtp = (otp, txnId, userId) =>
   crypto.createHmac('sha256', process.env.JWT_SECRET).update(`${txnId}:${userId}:${otp}`).digest('hex');
 
-router.post('/abha/generate-otp', protect, authorize('profile:write:own'), totpLimiter, async (req, res) => {
+router.post('/abha/generate-otp', protect, denyPlatformClinicalAccess, authorize('profile:write:own'), totpLimiter, async (req, res) => {
   try {
     const { aadhaarOrMobile } = req.body;
     if (!aadhaarOrMobile || String(aadhaarOrMobile).length < 10) {
@@ -214,7 +214,7 @@ router.post('/abha/generate-otp', protect, authorize('profile:write:own'), totpL
 });
 
 // ─── ABDM M1: Verify OTP and Mint/Link ABHA (Patient, Auth required) ───
-router.post('/abha/verify-otp', protect, authorize('profile:write:own'), totpLimiter, async (req, res) => {
+router.post('/abha/verify-otp', protect, denyPlatformClinicalAccess, authorize('profile:write:own'), totpLimiter, async (req, res) => {
   try {
     const { otp, txnId } = req.body;
     if (!otp) {
@@ -405,7 +405,7 @@ router.get('/:qrToken', publicScanLimiter, async (req, res) => {
 // File 22 P2-28: ABDM-style consent lifecycle (HIP request → grant/deny →
 // consent-gated HIU fetch). Gateway exchange needs live ABDM credentials;
 // the lifecycle + gating below is fully local and is what every fetch obeys.
-router.post('/consents', protect, authorize('staff:manage'), async (req, res) => {
+router.post('/consents', protect, denyPlatformClinicalAccess, authorize('staff:manage'), async (req, res) => {
   try {
     const { default: AbdmConsent } = await import('../models/AbdmConsent.js');
     const { patientId, abhaAddress, hipId, hiuId, purpose, dateFrom, dateTo, dataEraseAt } = req.body || {};
@@ -429,12 +429,12 @@ router.post('/consents', protect, authorize('staff:manage'), async (req, res) =>
   }
 });
 
-router.get('/consents', protect, async (req, res) => {
+router.get('/consents', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const { default: AbdmConsent } = await import('../models/AbdmConsent.js');
     const filter = {};
     if (req.user.role === 'patient') filter.patientId = req.user._id;
-    else if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    else if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.query.status) filter.status = req.query.status;
     const rows = await AbdmConsent.find(filter).sort({ createdAt: -1 }).limit(200).lean();
     return res.json({ consents: rows });
@@ -445,7 +445,7 @@ router.get('/consents', protect, async (req, res) => {
 });
 
 // Patient (or their account) grants/denies/revokes their own consent.
-router.post('/consents/:id/decision', protect, async (req, res) => {
+router.post('/consents/:id/decision', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const { default: AbdmConsent } = await import('../models/AbdmConsent.js');
     const { decision } = req.body || {};
@@ -473,7 +473,7 @@ router.post('/consents/:id/decision', protect, async (req, res) => {
 
 // Consent-gated HIU fetch: records + lab orders inside the date window,
 // denied/expired/out-of-window consent yields nothing (never an error leak).
-router.get('/consents/:id/fetch', protect, async (req, res) => {
+router.get('/consents/:id/fetch', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const { default: AbdmConsent } = await import('../models/AbdmConsent.js');
     const row = await AbdmConsent.findById(req.params.id).lean();

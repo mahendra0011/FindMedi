@@ -5,7 +5,7 @@ import { z } from 'zod';
 import Insurance from '../models/Insurance.js';
 import Hospital from '../models/Hospital.js';
 import Notification from '../models/Notification.js';
-import { protect, adminOnly, authorize } from '../middleware/auth.js';
+import { protect, denyPlatformClinicalAccess, adminOnly, authorize } from '../middleware/auth.js';
 import { authorizeObject } from '../middleware/authorize.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
@@ -119,7 +119,7 @@ const claimStatusIs = (value) => ({ $or: [{ claimStatus: value }, { status: valu
 const CLAIM_TERMINAL = ['Settled', 'Rejected'];
 
 // ─── Create Insurance Claim ────────────────────────────────────────────────
-router.post('/', protect, authorize('insurance:write', 'insurance:write:own'), paymentLimiter, validate(createInsuranceSchema), async (req, res) => {
+router.post('/', protect, denyPlatformClinicalAccess, authorize('insurance:write', 'insurance:write:own'), paymentLimiter, validate(createInsuranceSchema), async (req, res) => {
   try {
     // LAW-006: patient can only create claim for themselves
     const patientId = req.user.role === 'patient' ? req.user._id : req.body.patientId;
@@ -156,11 +156,10 @@ router.post('/', protect, authorize('insurance:write', 'insurance:write:own'), p
 });
 
 // ─── List Claims ──────────────────────────────────────────────────────────
-router.get('/', protect, authorize('insurance:read', 'insurance:read:own'), async (req, res) => {
+router.get('/', protect, denyPlatformClinicalAccess, authorize('insurance:read', 'insurance:read:own'), async (req, res) => {
   try {
     const { status, search, patientId } = req.query;
     const filter = { deletedAt: { $exists: false } };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (req.user.role === 'patient') {
       filter.patientId = req.user._id;
     } else if (patientId) {
@@ -197,7 +196,7 @@ router.get('/', protect, authorize('insurance:read', 'insurance:read:own'), asyn
 // `insurance:read` could read another patient's claim — and the 403 also proved
 // the id existed. `authorizeObject` now owns the decision: owner, same tenant, or
 // an explicitly listed actor role, and 404 for everything else.
-router.get('/:id', protect, authorize('insurance:read', 'insurance:read:own'), authorizeObject({
+router.get('/:id', protect, denyPlatformClinicalAccess, authorize('insurance:read', 'insurance:read:own'), authorizeObject({
   model: Insurance,
   ownerField: 'patientId',
   tenantFields: ['hospitalId', 'facilityId'],
@@ -215,7 +214,7 @@ router.get('/:id', protect, authorize('insurance:read', 'insurance:read:own'), a
 // AUTHZ-B-02: this route had NO ownership check at all — `authorize()` alone let
 // any holder of `insurance:write:own` (i.e. every patient) rewrite any other
 // patient's claim by id. The allowlist stopped field tampering, not object access.
-router.put('/:id', protect, authorize('insurance:write', 'insurance:write:own'), paymentLimiter, validate(updateInsuranceSchema), authorizeObject({
+router.put('/:id', protect, denyPlatformClinicalAccess, authorize('insurance:write', 'insurance:write:own'), paymentLimiter, validate(updateInsuranceSchema), authorizeObject({
   model: Insurance,
   ownerField: 'patientId',
   tenantFields: ['hospitalId', 'facilityId'],
@@ -242,7 +241,7 @@ router.put('/:id', protect, authorize('insurance:write', 'insurance:write:own'),
 // Cashless only: the insurer pays the empanelled hospital directly, so the
 // hospital must be empanelled and an amount must exist to authorise. Reimburse-
 // ment claims never enter this machine (preAuthStatus stays 'Not Required').
-router.post('/:id/pre-auth', protect, authorize('insurance:write'), paymentLimiter, adminOnly, validate(preAuthRequestSchema), async (req, res) => {
+router.post('/:id/pre-auth', protect, denyPlatformClinicalAccess, authorize('insurance:write'), paymentLimiter, adminOnly, validate(preAuthRequestSchema), async (req, res) => {
   try {
     const claim = await Insurance.findById(req.params.id);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
@@ -304,7 +303,7 @@ router.post('/:id/pre-auth', protect, authorize('insurance:write'), paymentLimit
 // The OLD route accepted any `preAuthStatus` string from the body with no
 // pending check, no denial reason and no attempt history — an admin could jump
 // straight to 'Approved', and a rejection left no trace of why.
-router.put('/:id/pre-auth', protect, authorize('insurance:write'), paymentLimiter, adminOnly, validate(preAuthDecisionSchema), async (req, res) => {
+router.put('/:id/pre-auth', protect, denyPlatformClinicalAccess, authorize('insurance:write'), paymentLimiter, adminOnly, validate(preAuthDecisionSchema), async (req, res) => {
   try {
     const { decision, decisionAmount, denialReason, preAuthExpiry } = req.body;
     const claim = await Insurance.findById(req.params.id);
@@ -370,7 +369,7 @@ router.put('/:id/pre-auth', protect, authorize('insurance:write'), paymentLimite
 });
 
 // ─── Pre-Authorization: resubmission after a denial (INS-M-02) ─────────────
-router.post('/:id/pre-auth/resubmit', protect, authorize('insurance:write'), paymentLimiter, adminOnly, validate(preAuthRequestSchema), async (req, res) => {
+router.post('/:id/pre-auth/resubmit', protect, denyPlatformClinicalAccess, authorize('insurance:write'), paymentLimiter, adminOnly, validate(preAuthRequestSchema), async (req, res) => {
   try {
     const claim = await Insurance.findById(req.params.id);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
@@ -426,7 +425,7 @@ router.post('/:id/pre-auth/resubmit', protect, authorize('insurance:write'), pay
 });
 
 // ─── File Claim ────────────────────────────────────────────────────────────
-router.put('/:id/file-claim', protect, authorize('insurance:write'), paymentLimiter, adminOnly, validate(fileClaimSchema), async (req, res) => {
+router.put('/:id/file-claim', protect, denyPlatformClinicalAccess, authorize('insurance:write'), paymentLimiter, adminOnly, validate(fileClaimSchema), async (req, res) => {
   try {
     const existing = await Insurance.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Claim not found' });
@@ -467,7 +466,7 @@ router.put('/:id/file-claim', protect, authorize('insurance:write'), paymentLimi
 });
 
 // ─── Settle Claim ──────────────────────────────────────────────────────────
-router.put('/:id/settle', protect, authorize('insurance:write'), paymentLimiter, idempotencyGuard({ prefix: 'claim-settle', failClosed: true }), adminOnly, validate(settleClaimSchema), async (req, res) => {
+router.put('/:id/settle', protect, denyPlatformClinicalAccess, authorize('insurance:write'), paymentLimiter, idempotencyGuard({ prefix: 'claim-settle', failClosed: true }), adminOnly, validate(settleClaimSchema), async (req, res) => {
   try {
     // INS-B-04: the settlement amount is DERIVED, never accepted.
     //
@@ -535,7 +534,7 @@ router.put('/:id/settle', protect, authorize('insurance:write'), paymentLimiter,
 });
 
 // ─── Stats ─────────────────────────────────────────────────────────────────
-router.get('/stats/main', protect, authorize('insurance:read'), async (req, res) => {
+router.get('/stats/main', protect, denyPlatformClinicalAccess, authorize('insurance:read'), async (req, res) => {
   try {
     // INS-B-03: every count and the aggregate ran with NO filter at all, so
     // `insurance:read` (which an accountant holds) saw platform-wide claim counts

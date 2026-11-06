@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { HelpCircle, Send, MessageSquare, AlertCircle, TicketCheck, Clock, CheckCircle2 } from 'lucide-react';
+import { HelpCircle, Send, MessageSquare, AlertCircle, TicketCheck, Clock, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -16,6 +16,7 @@ export default function PatientSupport() {
   const [loading, setLoading] = useState(false);
   const [tickets, setTickets] = useState<ApiRow[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [assistCodes, setAssistCodes] = useState<Record<string, { code: string; expiresAt: string }>>({});
 
   const loadTickets = async () => {
     setTicketsLoading(true);
@@ -24,6 +25,25 @@ export default function PatientSupport() {
       setTickets(data.tickets || []);
     } catch { /* ignore */ }
     setTicketsLoading(false);
+  };
+
+  const requestAssistCode = async (ticketId: string) => {
+    try {
+      const data = await api.requestSupportAssist(ticketId);
+      setAssistCodes((current) => ({ ...current, [ticketId]: { code: data.code, expiresAt: data.expiresAt } }));
+      toast.success('Consent code ready. Share it only with your assigned support operator.');
+    } catch (error: Unmodelled) {
+      toast.error(error?.response?.data?.message || 'Could not create a consent code');
+    }
+  };
+
+  const revokeAssist = async (ticketId: string, renew = false) => {
+    try {
+      if (renew) await api.renewSupportAssist(ticketId);
+      else await api.revokeSupportAssist(ticketId);
+      setAssistCodes((current) => { const next = { ...current }; delete next[ticketId]; return next; });
+      toast.success(renew ? 'Previous consent revoked; you can request a new code.' : 'Support access revoked');
+    } catch { toast.error('Could not revoke support access'); }
   };
 
   useEffect(() => { loadTickets(); }, []);
@@ -100,6 +120,17 @@ export default function PatientSupport() {
                         <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium flex items-center gap-1 ${ticketStatusColors[t.status]}`}>
                           <StatusIcon className="w-2.5 h-2.5" /> {t.status}
                         </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <Button type="button" size="sm" variant="outline" onClick={() => requestAssistCode(t._id)}>
+                          <ShieldCheck className="w-4 h-4 mr-1" /> Share contact with support
+                        </Button>
+                        {assistCodes[t._id] && <>
+                          <span className="font-mono font-bold tracking-widest">{assistCodes[t._id].code}</span>
+                          <span className="text-xs text-muted-foreground">until {new Date(assistCodes[t._id].expiresAt).toLocaleTimeString()}</span>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => revokeAssist(t._id)}>Revoke</Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => revokeAssist(t._id, true)}>Renew consent</Button>
+                        </>}
                       </div>
                     </div>
                   );

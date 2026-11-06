@@ -24,7 +24,7 @@ import { latLngToCell } from 'h3-js';
 import { calculateDistanceKm } from '../lib/geoUtils.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
-import { protect, adminOnly, authorize } from '../middleware/auth.js';
+import { protect, denyPlatformClinicalAccess, adminOnly, authorize } from '../middleware/auth.js';
 import { authorizeObject, rolesWithPermission } from '../middleware/authorize.js';
 import { callerMayActOnDoc } from '../middleware/tenantOwnership.js';
 // AUTHZ-M-01 migration: lazy model resolvers keep the existing dynamic-import
@@ -240,7 +240,7 @@ router.get('/medicines/store/:storeId', publicSearchLimiter, async (req, res) =>
 // Section D1: Generic substitution finder
 // Returns available medicines with identical genericName/composition and strength,
 // in stock, non-expired, ordered by lowest sellingPrice to show savings.
-router.get('/medicines/:id/substitutes', protect, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
+router.get('/medicines/:id/substitutes', protect, denyPlatformClinicalAccess, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
   try {
     const med = await Medicine.findById(req.params.id);
     if (!med) return res.status(404).json({ message: 'Medicine not found' });
@@ -407,7 +407,7 @@ router.get('/search-medicine', publicSearchLimiter, async (req, res) => {
 });
 
 // ─── Medicine CRUD ─────────────────────────────────────────────────────────
-router.get('/medicines', protect, async (req, res) => {
+router.get('/medicines', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const { search, category, lowStock } = req.query;
     const filter = {};
@@ -439,7 +439,7 @@ router.get('/medicines', protect, async (req, res) => {
 });
 
 // Export medicine alerts (low stock / expiring)
-router.get('/medicines/export-alerts', protect, async (req, res) => {
+router.get('/medicines/export-alerts', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const filter = { isActive: true };
     // AUTHZ-B-07: tenant-scoped, fail closed.
@@ -460,7 +460,7 @@ router.get('/medicines/export-alerts', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/medicines', protect, authorize('pharmacy:manage'), validate(createMedicineSchema), async (req, res) => {
+router.post('/medicines', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), validate(createMedicineSchema), async (req, res) => {
   try {
     const medicine = await Medicine.create({ ...req.body, currentStock: Number(req.body.currentStock || 0), isActive: req.body.isActive !== false && Number(req.body.currentStock || 0) > 0, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     await auditLog('create_medicine', req.user._id, { recordId: medicine._id, ip: req.ip, userAgent: req.get('user-agent') });
@@ -472,11 +472,11 @@ router.post('/medicines', protect, authorize('pharmacy:manage'), validate(create
   } catch (err) { res.status(err.status || 400).json({ message: err.message, code: err.code }); }
 });
 
-router.put('/medicines/:id', protect, authorizeObject({ model: lazyModel('../models/Medicine.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), validate(medicineUpdateSchema), async (req, res) => {
+router.put('/medicines/:id', protect, denyPlatformClinicalAccess, authorizeObject({ model: lazyModel('../models/Medicine.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), validate(medicineUpdateSchema), async (req, res) => {
   try {
     const medicine = await Medicine.findById(req.params.id);
     if (!medicine) return res.status(404).json({ message: 'Medicine not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && medicine.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || medicine.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     // AUTH-030: allowlisted fields only — stock has dedicated endpoint, tenant linkage immutable.
@@ -492,11 +492,11 @@ router.put('/medicines/:id', protect, authorizeObject({ model: lazyModel('../mod
   } catch (err) { res.status(err.status || 400).json({ message: err.message, code: err.code }); }
 });
 
-router.delete('/medicines/:id', protect, authorizeObject({ model: lazyModel('../models/Medicine.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), async (req, res) => {
+router.delete('/medicines/:id', protect, denyPlatformClinicalAccess, authorizeObject({ model: lazyModel('../models/Medicine.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), async (req, res) => {
   try {
     const medicine = await Medicine.findById(req.params.id);
     if (!medicine) return res.status(404).json({ message: 'Medicine not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && medicine.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || medicine.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     // Keep the catalogue record so in-flight order reservations can still be
@@ -509,12 +509,12 @@ router.delete('/medicines/:id', protect, authorizeObject({ model: lazyModel('../
 });
 
 // ─── Stock Management ──────────────────────────────────────────────────────
-router.put('/medicines/:id/stock', protect, authorizeObject({ model: lazyModel('../models/Medicine.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), validate(pharmacyStockSchema), async (req, res) => {
+router.put('/medicines/:id/stock', protect, denyPlatformClinicalAccess, authorizeObject({ model: lazyModel('../models/Medicine.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), validate(pharmacyStockSchema), async (req, res) => {
   try {
     const { quantity, type } = req.body; // type: 'add' | 'deduct'
     const medicine = await Medicine.findById(req.params.id).select('_id hospitalId facilityId currentStock');
     if (!medicine) return res.status(404).json({ message: 'Medicine not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && medicine.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || medicine.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const stockUpdate = type === 'add'
@@ -531,7 +531,7 @@ router.put('/medicines/:id/stock', protect, authorizeObject({ model: lazyModel('
 
 // ─── Prescription CRUD ─────────────────────────────────────────────────────
 const PRESCRIBER_ROLES = ['doctor', 'clinic_doctor', 'counsellor', 'psychiatrist'];
-router.post('/prescriptions', protect, authorize('prescriptions:write'), (req, res, next) => {
+router.post('/prescriptions', protect, denyPlatformClinicalAccess, authorize('prescriptions:write'), (req, res, next) => {
   // PHARM-B-10: prescribing is a clinical act - a patient/rider/assistant token
   // must not be able to mint a prescription attributed to itself as the doctor.
   if (!PRESCRIBER_ROLES.includes(req.user.role)) {
@@ -687,7 +687,7 @@ const prescriptionId = generatePrescriptionId();
 // Only the prescribing clinician (or same-tenant doctor) may convert their
 // prescription into linked lab/pharmacy orders. Both carry prescriptionId +
 // encounterId and post Pending ChargeItems (final bill rolls them up).
-router.post('/prescriptions/:id/send-to-lab', protect, authorize('prescriptions:write'), async (req, res) => {
+router.post('/prescriptions/:id/send-to-lab', protect, denyPlatformClinicalAccess, authorize('prescriptions:write'), async (req, res) => {
   try {
     const prescription = await Prescription.findById(req.params.id);
     if (!prescription) return res.status(404).json({ message: 'Prescription not found' });
@@ -723,7 +723,7 @@ router.post('/prescriptions/:id/send-to-lab', protect, authorize('prescriptions:
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/prescriptions/:id/send-to-pharmacy', protect, authorize('prescriptions:write'), async (req, res) => {
+router.post('/prescriptions/:id/send-to-pharmacy', protect, denyPlatformClinicalAccess, authorize('prescriptions:write'), async (req, res) => {
   try {
     const prescription = await Prescription.findById(req.params.id);
     if (!prescription) return res.status(404).json({ message: 'Prescription not found' });
@@ -801,7 +801,7 @@ router.get('/prescriptions/verify/:token', async (req, res) => {
   }
 });
 
-router.get('/prescriptions', protect, async (req, res) => {
+router.get('/prescriptions', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
      const { status, patientId, doctorId, search, verificationStatus } = req.query;
      const filter = {};
@@ -862,7 +862,7 @@ router.get('/prescriptions', protect, async (req, res) => {
 //
 // Ownership is now explicit and fail-closed via `authorizeObject`, which also
 // answers 404 (not 403) so the id cannot be probed for existence.
-router.get('/prescriptions/:id', protect, authorize('pharmacy:read', 'pharmacy:read:own'), authorizeObject({
+router.get('/prescriptions/:id', protect, denyPlatformClinicalAccess, authorize('pharmacy:read', 'pharmacy:read:own'), authorizeObject({
   model: Prescription,
   ownerField: 'patientId',
   tenantFields: ['hospitalId', 'facilityId'],
@@ -886,7 +886,7 @@ router.get('/prescriptions/:id', protect, authorize('pharmacy:read', 'pharmacy:r
 // leaves the building, so the gate is explicit and fail-closed.
 const DISPENSING_ROLES = ['pharmacist', 'pharmacy_owner'];
 
-router.put('/prescriptions/:id/dispense', protect, authorize('pharmacy:dispense'), validate(pharmacyDispenseSchema), async (req, res) => {
+router.put('/prescriptions/:id/dispense', protect, denyPlatformClinicalAccess, authorize('pharmacy:dispense'), validate(pharmacyDispenseSchema), async (req, res) => {
   try {
     const { medicineIndex } = req.body;
     if (medicineIndex === undefined) return res.status(400).json({ message: 'Medicine index required' });
@@ -1096,10 +1096,10 @@ router.put('/prescriptions/:id/dispense', protect, authorize('pharmacy:dispense'
 // the dispense route above. The gaps probe joins dispensed controlled lines
 // back against entries so a fail-soft register hiccup is visible, not silent.
 // authz: role
-router.get('/h1-register', protect, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
+router.get('/h1-register', protect, denyPlatformClinicalAccess, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
   try {
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.query.rxSchedule) filter.rxSchedule = String(req.query.rxSchedule).toLowerCase();
     if (req.query.from || req.query.to) {
       filter.dispensedAt = {};
@@ -1113,7 +1113,7 @@ router.get('/h1-register', protect, authorize('pharmacy:read', 'pharmacy:manage'
 });
 
 // authz: role
-router.get('/h1-register/gaps', protect, authorize('pharmacy:manage'), async (req, res) => {
+router.get('/h1-register/gaps', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), async (req, res) => {
   try {
     const tenant = (req.user.hospitalId && req.user.role !== 'superadmin')
       ? { hospitalId: req.user.hospitalId } : {};
@@ -1163,10 +1163,10 @@ const H1_CSV_HEADER = [
   'MedicineName', 'RxSchedule', 'Quantity', 'DispensedByName',
 ].map(csvCellH1).join(',') + '\r\n';
 
-router.get('/h1-register/export', protect, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
+router.get('/h1-register/export', protect, denyPlatformClinicalAccess, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
   try {
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.query.rxSchedule) filter.rxSchedule = String(req.query.rxSchedule).toLowerCase();
     if (req.query.from || req.query.to) {
       filter.dispensedAt = {};
@@ -1219,10 +1219,10 @@ router.get('/h1-register/export', protect, authorize('pharmacy:read', 'pharmacy:
 
 // Statutory inspector PDF export for Schedule H1 / NDPS register
 // authz: role
-router.get('/h1-register/pdf', protect, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
+router.get('/h1-register/pdf', protect, denyPlatformClinicalAccess, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
   try {
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.query.rxSchedule) filter.rxSchedule = String(req.query.rxSchedule).toLowerCase();
     if (req.query.from || req.query.to) {
       filter.dispensedAt = {};
@@ -1261,7 +1261,7 @@ router.get('/h1-register/pdf', protect, authorize('pharmacy:read', 'pharmacy:man
 // Closing(expected) = Opening + Purchases(GRN) - Dispensed(H1) - Adjustments
 // Compare against physical count and compute variance
 // authz: role
-router.get('/narcotic-register/reconcile', protect, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
+router.get('/narcotic-register/reconcile', protect, denyPlatformClinicalAccess, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
   try {
     const tenant = (req.user.hospitalId && req.user.role !== 'superadmin')
       ? { hospitalId: req.user.hospitalId } : {};
@@ -1414,7 +1414,7 @@ const narcoticAdjustmentSchema = z.object({
 });
 
 // authz: role
-router.post('/narcotic-register/adjustments', protect, authorize('pharmacy:manage'), validate(narcoticAdjustmentSchema), async (req, res) => {
+router.post('/narcotic-register/adjustments', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), validate(narcoticAdjustmentSchema), async (req, res) => {
   try {
     if (String(req.body.witnessBy) === String(req.user._id)) {
       return res.status(400).json({ message: 'Witness must be a different authorized user (dual sign-off required)' });
@@ -1469,7 +1469,7 @@ router.post('/narcotic-register/adjustments', protect, authorize('pharmacy:manag
 
 // List narcotic adjustments
 // authz: role
-router.get('/narcotic-register/adjustments', protect, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
+router.get('/narcotic-register/adjustments', protect, denyPlatformClinicalAccess, authorize('pharmacy:read', 'pharmacy:manage'), async (req, res) => {
   try {
     const tenant = (req.user.hospitalId && req.user.role !== 'superadmin')
       ? { hospitalId: req.user.hospitalId } : {};
@@ -1492,7 +1492,7 @@ const narcoticCountSchema = z.object({
 });
 
 // authz: role
-router.post('/narcotic-register/counts', protect, authorize('pharmacy:manage'), validate(narcoticCountSchema), async (req, res) => {
+router.post('/narcotic-register/counts', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), validate(narcoticCountSchema), async (req, res) => {
   try {
     if (String(req.body.witnessBy) === String(req.user._id)) {
       return res.status(400).json({ message: 'Witness must be a different authorized user (dual sign-off required)' });
@@ -1536,14 +1536,14 @@ const prescriptionVerifySchema = z.object({
   notes: z.string().optional(),
 });
 
-router.put('/prescriptions/:id/verify', protect, adminOnly, authorize('pharmacy:manage'), validate(prescriptionVerifySchema), async (req, res) => {
+router.put('/prescriptions/:id/verify', protect, denyPlatformClinicalAccess, adminOnly, authorize('pharmacy:manage'), validate(prescriptionVerifySchema), async (req, res) => {
   try {
     const { action, notes } = req.body;
     const prescription = await Prescription.findById(req.params.id)
       .populate('patientId', 'name email phone allergies')
       .populate('doctorId', 'name email');
     if (!prescription) return res.status(404).json({ message: 'Prescription not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && prescription.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || prescription.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -1585,7 +1585,7 @@ router.put('/prescriptions/:id/verify', protect, adminOnly, authorize('pharmacy:
 // `protect` alone let a patient (or any tenant-less account) reach them — and
 // `applyTenantScope(..., allowSharedRowsForNonStaff:false)` reduces such a caller
 // to "shared rows only", which is not "denied". So the role gate is explicit.
-router.get('/stats', protect, authorize('pharmacy:read', 'inventory:manage', 'reports:read'), async (req, res) => {
+router.get('/stats', protect, denyPlatformClinicalAccess, authorize('pharmacy:read', 'inventory:manage', 'reports:read'), async (req, res) => {
   try {
     const medFilter = {};
     // AUTHZ-B-07: pharmacy stats are tenant numbers - fail closed.
@@ -1614,7 +1614,7 @@ router.get('/stats', protect, authorize('pharmacy:read', 'inventory:manage', 're
 // addresses). It was `protect`-only, so any logged-in account could pull the
 // pharmacy billing table. Now: an explicit billing permission, the tenant filter,
 // a hard row cap, and an audit row so the export itself is reviewable.
-router.get('/billing/export', protect, authorize('billing:read', 'reports:read'), async (req, res) => {
+router.get('/billing/export', protect, denyPlatformClinicalAccess, authorize('billing:read', 'reports:read'), async (req, res) => {
   try {
     const filter = {};
     // AUTHZ-B-07: billing export is tenant-scoped, fail closed + capped.
@@ -1637,7 +1637,7 @@ router.get('/billing/export', protect, authorize('billing:read', 'reports:read')
 });
 
 // ─── Orders ────────────────────────────────────────────────────────────────
-router.get('/orders', protect, authorize('pharmacy:manage', 'pharmacy:read', 'pharmacy:read:own'), async (req, res) => {
+router.get('/orders', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage', 'pharmacy:read', 'pharmacy:read:own'), async (req, res) => {
   try {
     const { status, search, orderId } = req.query;
     const filter = {};
@@ -1668,7 +1668,7 @@ router.get('/orders', protect, authorize('pharmacy:manage', 'pharmacy:read', 'ph
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/orders', protect, authorize('pharmacy:read', 'pharmacy:read:own'), validate(pharmacyOrderSchema), async (req, res) => {
+router.post('/orders', protect, denyPlatformClinicalAccess, authorize('pharmacy:read', 'pharmacy:read:own'), validate(pharmacyOrderSchema), async (req, res) => {
   try {
     const isPatient = req.user.role === 'patient';
     if (!isPatient) return res.status(403).json({ message: 'Only patients can create pharmacy checkouts' });
@@ -1815,7 +1815,7 @@ router.post('/orders', protect, authorize('pharmacy:read', 'pharmacy:read:own'),
 // patient (facilityId null) was rejected by ownership before the
 // `pharmacy:order:own` grant could ever fire. The order is now
 // protect -> authorize -> ownership.
-router.put('/orders/:id', protect, authorize('pharmacy:manage', 'pharmacy:order:own'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage', 'pharmacy:order:own'), write: true }), validate(pharmacyOrderUpdateSchema), async (req, res) => {
+router.put('/orders/:id', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage', 'pharmacy:order:own'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage', 'pharmacy:order:own'), write: true }), validate(pharmacyOrderUpdateSchema), async (req, res) => {
   try {
     const order = await PharmacyOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -1831,7 +1831,7 @@ router.put('/orders/:id', protect, authorize('pharmacy:manage', 'pharmacy:order:
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/orders/:id/status', protect, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), validate(pharmacyOrderStatusSchema), async (req, res) => {
+router.put('/orders/:id/status', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), validate(pharmacyOrderStatusSchema), async (req, res) => {
   try {
     const order = await PharmacyOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -1861,7 +1861,7 @@ router.put('/orders/:id/status', protect, authorize('pharmacy:manage'), authoriz
   } catch (err) { return res.status(400).json({ message: err.message }); }
 });
 
-router.post('/orders/:id/cancel', protect, authorize('pharmacy:manage', 'pharmacy:order:own'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage', 'pharmacy:order:own'), write: true }), async (req, res) => {
+router.post('/orders/:id/cancel', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage', 'pharmacy:order:own'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage', 'pharmacy:order:own'), write: true }), async (req, res) => {
   try {
     const existing = await PharmacyOrder.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Order not found' });
@@ -1885,7 +1885,7 @@ router.post('/orders/:id/cancel', protect, authorize('pharmacy:manage', 'pharmac
   } catch (err) { return res.status(400).json({ message: err.message }); }
 });
 
-router.post('/orders/:id/collect-cod', protect, authorize('pharmacy:manage'), idempotencyGuard({ prefix: 'pharmacy-cod', failClosed: true }), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
+router.post('/orders/:id/collect-cod', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), idempotencyGuard({ prefix: 'pharmacy-cod', failClosed: true }), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
   try {
     const eligibleOrder = await PharmacyOrder.findById(req.params.id).lean();
     if (!eligibleOrder) return res.status(404).json({ message: 'Order not found' });
@@ -1961,11 +1961,11 @@ router.post('/orders/:id/collect-cod', protect, authorize('pharmacy:manage'), id
   } catch (err) { return res.status(err.status || 500).json({ message: err.message, code: err.code }); }
 });
 
-router.delete('/orders/:id', protect, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
+router.delete('/orders/:id', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
   return res.status(409).json({ message: 'Pharmacy orders are retained for billing and audit. Cancel an eligible unpaid order instead.', code: 'ORDER_DELETE_DISABLED' });
 });
 
-router.post('/orders/:id/forward', protect, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
+router.post('/orders/:id/forward', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
   try {
     const original = await PharmacyOrder.findById(req.params.id);
     if (!original) return res.status(404).json({ message: 'Order not found' });
@@ -1973,7 +1973,7 @@ router.post('/orders/:id/forward', protect, authorize('pharmacy:manage'), author
   } catch (err) { return res.status(400).json({ message: err.message }); }
 });
 
-router.put('/orders/:id/reject', protect, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
+router.put('/orders/:id/reject', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
   try {
     const order = await PharmacyOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -1998,7 +1998,7 @@ const substitutionProposeSchema = z.object({
   suggestedName: z.string().trim().min(1).max(300),
   reason: z.string().trim().max(300).optional(),
 });
-router.post('/orders/:id/substitutions', protect, authorize('pharmacy:manage', 'pharmacy:dispense'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), validate(substitutionProposeSchema), async (req, res) => {
+router.post('/orders/:id/substitutions', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage', 'pharmacy:dispense'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), validate(substitutionProposeSchema), async (req, res) => {
   try {
     const order = await PharmacyOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -2028,7 +2028,7 @@ router.post('/orders/:id/substitutions', protect, authorize('pharmacy:manage', '
 const substitutionConsentSchema = z.object({
   consent: z.enum(['accepted', 'declined']),
 });
-router.put('/orders/:id/substitutions/:subIndex', protect, authorize('pharmacy:manage', 'pharmacy:order:own'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage', 'pharmacy:order:own'), write: true }), validate(substitutionConsentSchema), async (req, res) => {
+router.put('/orders/:id/substitutions/:subIndex', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage', 'pharmacy:order:own'), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage', 'pharmacy:order:own'), write: true }), validate(substitutionConsentSchema), async (req, res) => {
   try {
     const order = await PharmacyOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -2044,7 +2044,7 @@ router.put('/orders/:id/substitutions/:subIndex', protect, authorize('pharmacy:m
 });
 
 // ─── Deliveries ────────────────────────────────────────────────────────────
-router.get('/deliveries', protect, async (req, res) => {
+router.get('/deliveries', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const filter = {};
     // AUTHZ-B-07: fail closed. The old pair of if (req.user.hospitalId && ...) lines
@@ -2057,7 +2057,7 @@ router.get('/deliveries', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/deliveries', protect, authorize('pharmacy:manage'), validate(pharmacyDeliverySchema), async (req, res) => {
+router.post('/deliveries', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), validate(pharmacyDeliverySchema), async (req, res) => {
   try {
     // A delivery is BORN 'Pending Assignment': status/OTP proof ride the PUT
     // timeline (PHARM-M-04 transitions), never the create body — otherwise a
@@ -2069,7 +2069,7 @@ router.post('/deliveries', protect, authorize('pharmacy:manage'), validate(pharm
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/deliveries/:id', protect, authorizeObject({ model: lazyModel('../models/PharmacyDelivery.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), validate(pharmacyDeliverySchema), async (req, res) => {
+router.put('/deliveries/:id', protect, denyPlatformClinicalAccess, authorizeObject({ model: lazyModel('../models/PharmacyDelivery.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), validate(pharmacyDeliverySchema), async (req, res) => {
     try {
       const delivery = await PharmacyDelivery.findById(req.params.id);
       if (!delivery) return res.status(404).json({ message: 'Delivery not found' });
@@ -2112,7 +2112,7 @@ router.put('/deliveries/:id', protect, authorizeObject({ model: lazyModel('../mo
   });
 
 // ─── Offers ────────────────────────────────────────────────────────────────
-router.get('/offers', protect, async (req, res) => {
+router.get('/offers', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const filter = {};
     // AUTHZ-B-07: fail closed. The old pair of if (req.user.hospitalId && ...) lines
@@ -2125,7 +2125,7 @@ router.get('/offers', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/offers', protect, authorize('pharmacy:manage'), validate(pharmacyOfferSchema), async (req, res) => {
+router.post('/offers', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), validate(pharmacyOfferSchema), async (req, res) => {
   try {
     const offer = await PharmacyOffer.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     await auditLog('create_pharmacy_offer', req.user._id, { recordId: offer._id, ip: req.ip, userAgent: req.get('user-agent') });
@@ -2133,7 +2133,7 @@ router.post('/offers', protect, authorize('pharmacy:manage'), validate(pharmacyO
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/offers/:id', protect, authorizeObject({ model: lazyModel('../models/PharmacyOffer.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), validate(pharmacyOfferSchema), async (req, res) => {
+router.put('/offers/:id', protect, denyPlatformClinicalAccess, authorizeObject({ model: lazyModel('../models/PharmacyOffer.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), validate(pharmacyOfferSchema), async (req, res) => {
   try {
     const offer = await PharmacyOffer.findById(req.params.id);
     if (!offer) return res.status(404).json({ message: 'Offer not found' });
@@ -2146,13 +2146,13 @@ router.put('/offers/:id', protect, authorizeObject({ model: lazyModel('../models
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/offers/:id', protect, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOffer.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), async (req, res) => {
+router.delete('/offers/:id', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), authorizeObject({ model: lazyModel('../models/PharmacyOffer.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), async (req, res) => {
    try { await PharmacyOffer.findByIdAndDelete(req.params.id); await auditLog('delete_pharmacy_offer', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') }); res.json({ message: 'Deleted' }); }
    catch (err) { res.status(500).json({ message: err.message }); }
  });
 
 // ─── Returns ───────────────────────────────────────────────────────────────
-router.get('/returns', protect, async (req, res) => {
+router.get('/returns', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const filter = {};
     // AUTHZ-B-07: fail closed. The old pair of if (req.user.hospitalId && ...) lines
@@ -2165,7 +2165,7 @@ router.get('/returns', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/returns', protect, authorize('pharmacy:manage'), validate(pharmacyReturnSchema), async (req, res) => {
+router.post('/returns', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), validate(pharmacyReturnSchema), async (req, res) => {
   try {
     const oid = String(req.body.orderId || '').trim();
     if (!oid) return res.status(400).json({ message: 'orderId is required' });
@@ -2210,7 +2210,7 @@ router.post('/returns', protect, authorize('pharmacy:manage'), validate(pharmacy
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/returns/:id', protect, authorizeObject({ model: lazyModel('../models/PharmacyReturn.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), validate(pharmacyReturnSchema), async (req, res) => {
+router.put('/returns/:id', protect, denyPlatformClinicalAccess, authorizeObject({ model: lazyModel('../models/PharmacyReturn.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), write: true }), authorize('pharmacy:manage'), validate(pharmacyReturnSchema), async (req, res) => {
   try {
     const ret = await PharmacyReturn.findById(req.params.id);
     if (!ret) return res.status(404).json({ message: 'Return not found' });
@@ -2228,7 +2228,7 @@ router.put('/returns/:id', protect, authorizeObject({ model: lazyModel('../model
 });
 
 // ─── Staff ─────────────────────────────────────────────────────────────────
-router.get('/staff', protect, async (req, res) => {
+router.get('/staff', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const filter = {};
     // AUTHZ-B-07: fail closed. The old pair of if (req.user.hospitalId && ...) lines
@@ -2241,7 +2241,7 @@ router.get('/staff', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/staff', protect, authorize('pharmacy:manage'), validate(pharmacyStaffSchema), async (req, res) => {
+router.post('/staff', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), validate(pharmacyStaffSchema), async (req, res) => {
   try {
     // PHARM-LAB-BUG-02: explicit allowlisted fields only — mass assignment prevented
     const { pickBody } = await import('../utils/pick.js');
@@ -2252,7 +2252,7 @@ router.post('/staff', protect, authorize('pharmacy:manage'), validate(pharmacySt
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/staff/:id', protect, validate(pharmacyStaffSchema), async (req, res) => {
+router.put('/staff/:id', protect, denyPlatformClinicalAccess, validate(pharmacyStaffSchema), async (req, res) => {
   try {
     const member = await PharmacyStaff.findById(req.params.id);
     if (!member) return res.status(404).json({ message: 'Staff not found' });
@@ -2265,7 +2265,7 @@ router.put('/staff/:id', protect, validate(pharmacyStaffSchema), async (req, res
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/staff/:id', protect, authorize('pharmacy:manage'), async (req, res) => {
+router.delete('/staff/:id', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), async (req, res) => {
   try {
     await PharmacyStaff.findByIdAndDelete(req.params.id);
     await auditLog('delete_pharmacy_staff', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
@@ -2277,7 +2277,7 @@ router.delete('/staff/:id', protect, authorize('pharmacy:manage'), async (req, r
 
 // ─── Coupon Validation ─────────────────────────────────────────────────────
 // authz: self
-router.post('/coupons/validate', protect, async (req, res) => {
+router.post('/coupons/validate', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const { code } = req.body;
     if (!code) return res.status(400).json({ message: 'Coupon code required' });
@@ -2293,7 +2293,7 @@ router.post('/coupons/validate', protect, async (req, res) => {
 });
 
 // ─── Prescription Verification ───────────────────────────────────────────────
-router.post('/orders/verify-prescriptions', protect, authorize('pharmacy:manage', 'pharmacy:dispense'), async (req, res) => {
+router.post('/orders/verify-prescriptions', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage', 'pharmacy:dispense'), async (req, res) => {
   try {
     const { entries, file } = req.body;
     if (!Array.isArray(entries) || entries.length === 0) {
@@ -2391,11 +2391,11 @@ router.post('/orders/verify-prescriptions', protect, authorize('pharmacy:manage'
 // order refunded for an arbitrary value. Permission is now required and the refund
 // amount used to be recorded as if it were paid back. Until a provider refund
 // adapter is connected, this endpoint now refuses captured-order refunds.
-router.post('/orders/:id/refund', protect, authorize('pharmacy:manage'), idempotencyGuard({ prefix: 'pharm-refund', failClosed: true }), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
+router.post('/orders/:id/refund', protect, denyPlatformClinicalAccess, authorize('pharmacy:manage'), idempotencyGuard({ prefix: 'pharm-refund', failClosed: true }), authorizeObject({ model: lazyModel('../models/PharmacyOrder.js'), ownerField: 'patientId', tenantFields: ['hospitalId', 'facilityId'], actorRoles: rolesWithPermission('pharmacy:manage'), requireTenant: true, write: true }), async (req, res) => {
   try {
     const order = await PharmacyOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     // This legacy route has no provider refund adapter. Do not mutate order flags

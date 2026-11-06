@@ -33,7 +33,6 @@ const requireObjectId = (req, res, next) => (
 );
 const tenantOf = (req) => req.user.hospitalId || req.user.facilityId || null;
 const requireTenant = (req, res, next) => {
-  if (req.user.role === 'superadmin') return next();
   if (!tenantOf(req)) return res.status(403).json({ message: 'Tenant scope required' });
   return next();
 };
@@ -203,9 +202,7 @@ router.post('/assignments', requireTenant, requireStepUp('iam:role-change'), asy
       return res.status(400).json({ message: 'roleId or policyId required' });
     }
     if (touchesCritical(statements)) {
-      if (!approvedBy || !OBJECT_ID.test(String(approvedBy)) || String(approvedBy) === String(actorId(req))) {
-        return res.status(403).json({ message: 'Admin-critical grants need a different approver' });
-      }
+      return res.status(403).json({ message: 'Admin-critical grants must use the two-person access request approval flow' });
     }
     const a = await IamAssignment.create({
       tenantId: tenantOf(req) || undefined, principalType, principalId,
@@ -351,6 +348,11 @@ router.post('/requests', requireTenant, async (req, res) => {
     const q = req.body?.requested || {};
     const reason = String(req.body?.reason || '').slice(0, 1000);
     if (!['role', 'policy', 'actions'].includes(q.kind)) return res.status(400).json({ message: 'requested.kind must be role|policy|actions' });
+    if (q.kind === 'role' && !OBJECT_ID.test(String(q.roleId || ''))) return res.status(400).json({ message: 'A valid roleId is required' });
+    if (q.kind === 'policy' && !OBJECT_ID.test(String(q.policyId || ''))) return res.status(400).json({ message: 'A valid policyId is required' });
+    if (q.kind === 'actions' && (!Array.isArray(q.actions) || !q.actions.length || q.actions.length > 50 || q.actions.some((a) => typeof a !== 'string' || a.length > 120))) {
+      return res.status(400).json({ message: 'actions must contain 1 to 50 permission strings' });
+    }
     if (!reason) return res.status(400).json({ message: 'reason required' });
     const r = await AccessRequest.create({
       tenantId: tenantOf(req), requesterId: actorId(req),
@@ -372,25 +374,48 @@ router.post('/requests/:id/decision', requireTenant, requireStepUp('iam:role-cha
   try {
     const r = await AccessRequest.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
+    if (String(r.tenantId) !== String(tenantOf(req))) return res.status(404).json({ message: 'Not found' });
     if (r.status !== 'pending') return res.status(409).json({ message: `Request is ${r.status}` });
     if (String(r.requesterId) === String(actorId(req))) {
       return res.status(403).json({ message: 'Self-approval is not allowed' });
     }
     const { action } = req.body || {};
     if (!['approve', 'deny'].includes(action)) return res.status(400).json({ message: 'action must be approve|deny' });
+    const q = r.requested || {};
+    let statements = q.actions || [];
+    if (q.roleId) {
+      const role = await IamRole.findById(q.roleId).populate('policyIds', 'statements');
+      if (!role || String(role.tenantId || '') !== String(r.tenantId)) return res.status(404).json({ message: 'Requested role not found in this tenant' });
+      statements = (role.policyIds || []).flatMap((p) => p.statements || []);
+    } else if (q.policyId) {
+      const policy = await IamPolicy.findById(q.policyId);
+      if (!policy || String(policy.tenantId || '') !== String(r.tenantId)) return res.status(404).json({ message: 'Requested policy not found in this tenant' });
+      statements = policy.statements || [];
+    }
+    const critical = q.kind === 'actions' ? ADMIN_CRITICAL.some((prefix) => statements.some((actionName) => String(actionName).startsWith(prefix))) : touchesCritical(statements);
+    const me = String(actorId(req));
+    const priorApprovers = (r.approverIds || []).map(String);
+    if (action === 'approve' && priorApprovers.includes(me)) {
+      return res.status(403).json({ message: 'A different approver must review this request' });
+    }
+    if (critical && action === 'approve' && priorApprovers.length < 1) {
+      r.approverIds = [...priorApprovers, me];
+      await r.save();
+      await auditLog('iam_critical_first_approval', actorId(req), { requestId: r._id, ip: req.ip });
+      return res.json({ id: String(r._id), status: 'pending', approvals: 1, need: 2 });
+    }
     r.status = action === 'approve' ? 'approved' : 'denied';
     r.decidedAt = new Date();
     r.decidedBy = actorId(req);
-    r.approverIds = [actorId(req)];
+    r.approverIds = action === 'approve' ? [...priorApprovers, me] : [me];
     await r.save();
     let assignmentId = null;
     if (action === 'approve') {
-      const q = r.requested || {};
       const a = await IamAssignment.create({
         tenantId: r.tenantId, principalType: 'user', principalId: r.requesterId,
         roleId: q.roleId || null, policyId: q.policyId || null,
         scope: q.scope || {}, expiresAt: q.expiresAt || null,
-        grantedBy: actorId(req), approvedBy: actorId(req), reason: r.reason,
+        grantedBy: r.requesterId, approvedBy: actorId(req), approverIds: r.approverIds, reason: r.reason,
       });
       assignmentId = String(a._id);
       await bumpTv(r.requesterId);
@@ -526,7 +551,7 @@ router.post('/apikeys/:id/revoke', requireTenant, requireStepUp('apikey:create')
 // ─── Access reviews (§10) ──────────────────────────────────────────────────
 router.get('/reviews', requireTenant, async (req, res) => {
   try {
-    const filter = req.user.role === 'superadmin' && !tenantOf(req) ? {} : { tenantId: tenantOf(req) };
+    const filter = { tenantId: tenantOf(req) };
     const rows = await AccessReview.find(filter)
       .populate('reviewerId', 'name email role')
       .populate({
@@ -551,7 +576,7 @@ router.post('/reviews', requireTenant, requireStepUp('iam:role-change'), async (
     const { cycle } = req.body || {};
     const tenantId = tenantOf(req);
     const activeAssignments = await IamAssignment.find({
-      ...(tenantId ? { tenantId } : {}),
+      tenantId,
       status: 'active',
     }).select('_id');
 
@@ -581,7 +606,7 @@ router.post('/reviews', requireTenant, requireStepUp('iam:role-change'), async (
 
 router.patch('/reviews/:id', requireTenant, requireStepUp('iam:role-change'), requireObjectId, async (req, res) => {
   try {
-    const review = await AccessReview.findById(req.params.id);
+    const review = await AccessReview.findOne({ _id: req.params.id, tenantId: tenantOf(req) });
     if (!review) return res.status(404).json({ message: 'Review not found' });
     const { decisions, complete } = req.body || {};
 
@@ -593,7 +618,7 @@ router.patch('/reviews/:id', requireTenant, requireStepUp('iam:role-change'), re
           if (d.note) item.note = String(d.note).slice(0, 500);
 
           if (d.decision === 'revoke') {
-            const asgn = await IamAssignment.findById(item.assignmentId);
+            const asgn = await IamAssignment.findOne({ _id: item.assignmentId, tenantId: tenantOf(req) });
             if (asgn && asgn.status === 'active') {
               asgn.status = 'revoked';
               await asgn.save();

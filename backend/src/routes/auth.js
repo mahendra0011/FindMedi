@@ -65,6 +65,7 @@ const SENSITIVE_SCOPES = new Set([
   'account:email-change',
   'account:delete',
   'apikey:create',
+  'support:assist-reveal',
 ]);
 export { SENSITIVE_SCOPES };
 import { createAndSendOTP, verifyOTP, resendOTP } from '../services/otpService.js';

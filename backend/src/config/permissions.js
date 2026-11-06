@@ -193,8 +193,8 @@ export const CANONICAL_ROLES = [
  * Ops roles hold platform-wide reach (approvals, payouts, audit), so 2FA is a
  * property of the ROLE, not of an env var an operator has to remember to set:
  * the code-level default below is unioned with `TWO_FACTOR_REQUIRED_ROLES` in
- * middleware/auth.js. superadmin/hospital_admin stay env-driven — flipping them
- * on by default would 403 every existing session that has not enrolled.
+ * middleware/auth.js. Platform Owner accounts are mandatory too; enrollment
+ * endpoints remain reachable so an unenrolled account can complete setup.
  */
 export const MANDATORY_TWO_FACTOR_ROLES = [
   'kyc_reviewer', 'moderator', 'support_agent', 'finance_admin',
@@ -202,6 +202,7 @@ export const MANDATORY_TWO_FACTOR_ROLES = [
   // File 23 §6: every platform-wide admin role — 2FA is a property of the role.
   'platform_admin', 'support_l1', 'support_l2', 'dpo',
   'security_admin', 'clinical_safety', 'analyst', 'auditor',
+  'superadmin', 'super_admin',
 ];
 
 /** The whole ops-console cast, for gates and tests that want all of them. */
@@ -222,8 +223,26 @@ export function assertRoleMatrixComplete(ROLE_PERMISSIONS) {
 }
 
 export const ROLE_PERMISSIONS = {
-  superadmin: ['*'],
-  super_admin: ['*'],
+  // File 23: Owner is powerful over platform operations, never implicitly over
+  // patient/clinical data. Keep this explicit so new permission strings do not
+  // silently become Owner capabilities.
+  superadmin: [
+    'platform:manage', 'billing:manage', 'tenants:manage',
+    'breakglass:read', 'breakglass:write', 'breakglass:approve',
+    'audit:read', 'users:manage', 'applications:read', 'applications:decide',
+    'documents:read', 'moderation:read', 'moderation:write', 'support:read',
+    'support:write', 'support:manage', 'commission:read', 'payouts:read',
+    'payouts:approve', 'categories:read', 'categories:write', 'cities:read',
+    'cities:write', 'service-cities:read', 'service-cities:write', 'content:read',
+    'content:write', 'licenses:read', 'licenses:write', 'dsr:read', 'dsr:approve',
+    'reports:read', 'crm:read', 'crm:write', 'notifications:read',
+    'notifications:send', 'admin:read', 'admin:manage', 'security:read',
+    'security:manage', 'export:read', 'export:write', 'legal:read', 'legal:write',
+  ],
+  super_admin: [
+    'platform:manage', 'billing:manage', 'tenants:manage',
+    'breakglass:read', 'breakglass:write', 'breakglass:approve', 'audit:read',
+  ],
   // ── Ops console (8.md 1, 7.md 4) ───────────────────────────────────────────
   // Least privilege per role: each set is the smallest one that lets that role
   // do ITS job. `support:manage`, payout CREATION/PAYMENT, commission-config
@@ -590,7 +609,6 @@ export const ROLE_PERMISSIONS = {
   support_l2: [
     'support:read', 'support:write', 'support:manage',
     'chat:read', 'chat:write', 'notifications:read',
-    'breakglass:read', 'breakglass:write',
   ],
   // DPO: privacy queue + break-glass review. No clinical reads by default.
   dpo: [

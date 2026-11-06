@@ -188,6 +188,25 @@ app.use(helmet({
   referrerPolicy: { policy: 'no-referrer' },
 }));
 
+// File 23 §6: admin shell can be deployed on its own hostname. This narrowly
+// scoped policy applies only when the reverse proxy forwards that hostname in
+// X-Forwarded-Host; it is stricter than the mixed patient SPA policy above.
+const ADMIN_HOSTS = new Set(String(process.env.ADMIN_HOSTS || 'admin.findmedi.in')
+  .split(',').map((host) => host.trim().toLowerCase()).filter(Boolean));
+app.use((req, res, next) => {
+  const forwarded = String(req.get('x-forwarded-host') || req.get('host') || '').split(',')[0].trim().toLowerCase().split(':')[0];
+  if (!ADMIN_HOSTS.has(forwarded)) return next();
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'", "script-src 'self'", "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:", "font-src 'self' data:", "connect-src 'self'",
+    "frame-src 'none'", "frame-ancestors 'none'", "object-src 'none'",
+    "base-uri 'self'", "form-action 'self'", "upgrade-insecure-requests",
+  ].join('; '));
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Cache-Control', 'no-store');
+  return next();
+});
+
 // HTTP request logging (structured JSON via Pino)
 // §6.2: log method + path only — never query strings (tokens/PHI) or bodies.
 app.use(pinoHttp({
@@ -649,6 +668,7 @@ import patientPortalRoutes from './routes/patient.js';
 import patientVaccinationRoutes from './routes/vaccinations.js';
 import patientDsrRoutes from './routes/dsr.js';
 import adminDsrRoutes from './routes/adminDsr.js';
+import vendorDpaRoutes from './routes/vendorDpa.js';
 import breakGlassRoutes from './routes/breakGlass.js';
 import twoPersonApprovalRoutes from './routes/twoPersonApprovals.js';
 import crmRoutes from './routes/crm.js';
@@ -783,6 +803,7 @@ import serviceCityRoutes from './routes/serviceCities.js';
 import medicineReminderRoutes from './routes/medicineReminders.js';
 import refillSubscriptionRoutes from './routes/refillSubscriptions.js';
 import sampleCourierRoutes from './routes/sampleCourier.js';
+import communityRoutes from './routes/community.js';
 import legalRoutes from './routes/legal.js';
 import vitalsRoutes from './routes/vitals.js';
 import carePlanRoutes from './routes/carePlans.js';
@@ -938,6 +959,7 @@ app.use('/api/patient/rentals', rentalRoutes);
 // queue behind dsr:read/dsr:approve (compliance_officer), separate from the
 // self-service half above so neither surface inherits the other's gate.
 app.use('/api/admin/dsr', adminDsrRoutes);
+app.use('/api/admin/vendor-dpas', vendorDpaRoutes);
 // File 23 §4.2: break-glass queue (request/decide/revoke) behind
 // breakglass:read/write/approve — DPO, clinical safety, support L2.
 app.use('/api/admin/break-glass', breakGlassRoutes);
@@ -1146,6 +1168,7 @@ app.use('/api/service-cities', serviceCityRoutes);
 app.use('/api/medicine-reminders', medicineReminderRoutes);
 app.use('/api/refill-subscriptions', refillSubscriptionRoutes);
 app.use('/api/sample-courier', sampleCourierRoutes);
+app.use('/api/community', communityRoutes);
 app.use('/api/legal', legalRoutes);
 app.use('/api/vitals', vitalsRoutes);
 app.use('/api/vitals-reminders', (req, res, next) => {
@@ -1442,6 +1465,16 @@ if (process.env.NODE_ENV !== 'test') {
       } catch (e) {
         logger.warn('opensearch ensureIndices failed: ' + e.message);
       }
+      // File 23: retry failed break-glass patient alerts and keep the PHI access
+      // review queue actionable after transient notification-store failures.
+      setInterval(async () => {
+        try {
+          const { retryBreakGlassPatientNotifications } = await import('./routes/breakGlass.js');
+          await retryBreakGlassPatientNotifications();
+        } catch (e) {
+          logger.error('break-glass notification retry failed: ' + e.message);
+        }
+      }, 60 * 1000).unref?.();
       // Doc 02 §4.3: stale GPS → auto offline (unless on duty), every 60s
       setInterval(async () => {
         try {

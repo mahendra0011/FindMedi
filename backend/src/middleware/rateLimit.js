@@ -178,6 +178,29 @@ export const auditSearchLimiter = createGrlRateLimiter({
   failClosed: true,
 });
 
+// Support-assist consent codes contain six digits. Bound requests across
+// sessions as well as the per-session attempt counter in the assist model.
+export const supportAssistCodeLimiter = createGrlRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  keyPrefix: 'rl:support-assist-code',
+  failClosed: true,
+});
+
+export const supportAssistVerifyLimiter = createGrlRateLimiter({
+  windowMs: 60 * 1000,
+  max: 10,
+  keyPrefix: 'rl:support-assist-verify',
+  failClosed: true,
+});
+
+export const supportAssistRevealLimiter = createGrlRateLimiter({
+  windowMs: 60 * 1000,
+  max: 10,
+  keyPrefix: 'rl:support-assist-reveal',
+  failClosed: true,
+});
+
 /**
  * P2-14: chat file uploads. The body is up to ~34MB of base64 and each POST
  * runs MIME + magic-byte + AV-scan work, so an authenticated flood here is a

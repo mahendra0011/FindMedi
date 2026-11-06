@@ -89,6 +89,10 @@ export async function mountApp(name, models = {}, options = {}) {
     (req.user && ['superadmin', 'hospital_admin', 'doctor', 'nurse'].includes(req.user.role))
       ? next()
       : res.status(403).json({ message: 'Clinical staff access required' });
+  authStub.denyPlatformClinicalAccess = (req, res, next) =>
+    (req.user && ['superadmin', 'super_admin', 'platform_admin', 'support_l1', 'support_l2', 'support_agent', 'dpo', 'security_admin', 'clinical_safety', 'analyst', 'auditor', 'compliance_officer', 'content_editor', 'finance_admin', 'catalog_manager', 'moderator', 'kyc_reviewer', 'city_manager', 'medical_reviewer'].includes(req.user.role))
+      ? res.status(403).json({ message: 'Clinical service data requires a care-team relationship or an approved scoped access flow' })
+      : next();
   authStub.superadminOnly = (req, res, next) =>
     (req.user?.role === 'superadmin')
       ? next()
@@ -150,6 +154,9 @@ export async function mountApp(name, models = {}, options = {}) {
     publicSearchLimiter: (_req, _res, next) => next(),
     reviewWriteLimiter: (_req, _res, next) => next(),
     auditSearchLimiter: (_req, _res, next) => next(),
+    supportAssistCodeLimiter: (_req, _res, next) => next(),
+    supportAssistVerifyLimiter: (_req, _res, next) => next(),
+    supportAssistRevealLimiter: (_req, _res, next) => next(),
     chatUploadLimiter: (_req, _res, next) => next(),
   }));
   for (const [specifier, factory] of Object.entries(models)) {

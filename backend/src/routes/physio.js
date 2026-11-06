@@ -3,7 +3,7 @@ import { z } from 'zod';
 import Physiotherapy from '../models/Physiotherapy.js';
 import Billing from '../models/Billing.js';
 import Notification from '../models/Notification.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, denyPlatformClinicalAccess, adminOnly } from '../middleware/auth.js';
 import { validate, createPhysioReferralSchema, boundedShallow } from '../utils/validate.js';
 
 // P1-6: pain levels are 0–10 numbers (or short text); narrative fields are
@@ -43,8 +43,9 @@ const physioCompleteSchema = z.object({
 });
 
 const router = express.Router();
+router.use(protect, denyPlatformClinicalAccess);
 
-router.post('/referrals', protect, adminOnly, validate(createPhysioReferralSchema), async (req, res) => {
+router.post('/referrals', adminOnly, validate(createPhysioReferralSchema), async (req, res) => {
   try {
     const { patientId, patientName, diagnosis, treatmentPlan } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
@@ -57,11 +58,11 @@ router.post('/referrals', protect, adminOnly, validate(createPhysioReferralSchem
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.get('/referrals', protect, async (req, res) => {
+router.get('/referrals', async (req, res) => {
   try {
     const { status, search } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (status && status !== 'All') filter.status = status;
     if (search) filter.$or = [{ referralId: new RegExp(escapeRegex(capSearch(search)), 'i') }, { patientName: new RegExp(escapeRegex(capSearch(search)), 'i') }];
     const data = await Physiotherapy.find(filter).sort({ createdAt: -1 });
@@ -69,11 +70,11 @@ router.get('/referrals', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/referrals/:id/assess', protect, adminOnly, validate(physioAssessSchema), async (req, res) => {
+router.put('/referrals/:id/assess', adminOnly, validate(physioAssessSchema), async (req, res) => {
   try {
     const r = await Physiotherapy.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && r.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || r.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     r.initialAssessment = req.body;
@@ -84,11 +85,11 @@ router.put('/referrals/:id/assess', protect, adminOnly, validate(physioAssessSch
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/referrals/:id/session', protect, adminOnly, validate(physioSessionSchema), async (req, res) => {
+router.post('/referrals/:id/session', adminOnly, validate(physioSessionSchema), async (req, res) => {
   try {
     const r = await Physiotherapy.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && r.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || r.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const s = req.body;
@@ -102,12 +103,12 @@ router.post('/referrals/:id/session', protect, adminOnly, validate(physioSession
 });
 
 // Mid-review endpoint
-router.put('/referrals/:id/mid-review', protect, adminOnly, validate(physioMidReviewSchema), async (req, res) => {
+router.put('/referrals/:id/mid-review', adminOnly, validate(physioMidReviewSchema), async (req, res) => {
   try {
     const { notes, response, progress } = req.body;
     const r = await Physiotherapy.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && r.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || r.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
@@ -122,11 +123,11 @@ router.put('/referrals/:id/mid-review', protect, adminOnly, validate(physioMidRe
 });
 
 // Create billing for physiotherapy session
-router.post('/referrals/:id/create-billing', protect, adminOnly, validate(physioBillingSchema), async (req, res) => {
+router.post('/referrals/:id/create-billing', adminOnly, validate(physioBillingSchema), async (req, res) => {
   try {
     const referral = await Physiotherapy.findById(req.params.id);
     if (!referral) return res.status(404).json({ message: 'Referral not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && referral.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || referral.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
@@ -160,11 +161,11 @@ router.post('/referrals/:id/create-billing', protect, adminOnly, validate(physio
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/referrals/:id/complete', protect, adminOnly, validate(physioCompleteSchema), async (req, res) => {
+router.put('/referrals/:id/complete', adminOnly, validate(physioCompleteSchema), async (req, res) => {
   try {
     const r = await Physiotherapy.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && r.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || r.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     r.status = 'Completed';
@@ -175,20 +176,20 @@ router.put('/referrals/:id/complete', protect, adminOnly, validate(physioComplet
 });
 
 // Get single referral
-router.get('/referrals/:id', protect, async (req, res) => {
+router.get('/referrals/:id', async (req, res) => {
   try {
     const referral = await Physiotherapy.findById(req.params.id).populate('patientId', 'name email phone');
     if (!referral) return res.status(404).json({ message: 'Referral not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && referral.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || referral.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     res.json(referral);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/stats', protect, async (req, res) => {
+router.get('/stats', async (req, res) => {
   const hFilter = {};
-  if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+  if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); hFilter.hospitalId = req.user.hospitalId; }
   const active = await Physiotherapy.countDocuments({ ...hFilter, status: { $in: ['Referred','In Progress','Mid Review'] } });
   const completed = await Physiotherapy.countDocuments({ ...hFilter, status: 'Completed' });
   const total = await Physiotherapy.countDocuments(hFilter);

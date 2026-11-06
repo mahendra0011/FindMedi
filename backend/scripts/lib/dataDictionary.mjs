@@ -130,6 +130,8 @@ export const RETENTION_RULES = [
   // was honoured — same reason DeletionRequest sits here: the proof must
   // outlive the data it describes.
   [/^(AuditLog|LoginEvent|NotificationAudit|DeletionRequest|DataSubjectRequest|TwoPersonApproval)$/, 'Audit logs', '7 years (longer than the data they describe)'],
+  [/^VendorDpa$/, 'Vendor contracts and DPAs', 'Contract term + 7 years after expiry/termination; legal hold overrides'],
+  [/^SupportAssistSession$/, 'Support privacy access sessions', '30 days (Mongo TTL index)'],
     [/^(TransactionLedger|Payment|DemoPayment|Refund|Payout|CommissionConfig|Billing|LoyaltyLedger|LoyaltyEarnRule|RewardCatalogItem|RewardRedemption|WalletGuard|Dispute|Insurance|PlatformCouponRedemption|PlatformCouponUserUsage|IpdDeposit|CreditNote|DebitNote|Expense|LedgerEntry)$/, 'Payment and ledger entries', '8 years (statutory accounting)'],
   [/^(Notification|NotificationDelivery)$/, 'Notifications', '90 days'],
   [/^(OTP|RefreshToken|AmbulanceSetupCode|Token)$/, 'OTP / setup codes / tokens', '15–60 minutes (TTL index) — tokens until logout or expiry'],

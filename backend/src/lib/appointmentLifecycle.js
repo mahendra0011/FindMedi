@@ -154,9 +154,87 @@ export function resolveRefundPercent({ tier, cancelledBy = 'patient', policy = {
   return Math.min(band.maxRefundPercent, Math.max(band.minRefundPercent, wanted));
 }
 
+/** Provider-side cancellation defaults. A provider policy may override these. */
+export const DEFAULT_PROVIDER_CANCEL_POLICY = Object.freeze({
+  providerCompensationPercent: 0,
+  providerPenaltyPercent: 0,
+});
+
+const clampPercent = (value, fallback = 0) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(100, Math.max(0, n));
+};
+
+/** Provider cancellation compensation/penalty, clamped to 0..100. */
+export function resolveProviderCancelPolicy(policy = {}) {
+  const cfg = policy?.providerCancel || policy || {};
+  return {
+    providerCompensationPercent: clampPercent(
+      cfg.providerCompensationPercent ?? DEFAULT_PROVIDER_CANCEL_POLICY.providerCompensationPercent,
+    ),
+    providerPenaltyPercent: clampPercent(
+      cfg.providerPenaltyPercent ?? DEFAULT_PROVIDER_CANCEL_POLICY.providerPenaltyPercent,
+    ),
+  };
+}
+
+/**
+ * Turn an appointment's stored policy snapshot into the flat policy shape
+ * resolveRefundPercent expects. Reading the snapshot (not today's policy) is
+ * what makes a later platform/provider rule change non-retroactive.
+ */
+export function policyFromSnapshot(snapshot) {
+  const bands = snapshot?.refundBands;
+  if (!bands || typeof bands !== 'object') return null;
+  const policy = {};
+  for (const [tier, band] of Object.entries(bands)) {
+    const pct = Number(band?.defaultRefundPercent);
+    if (Number.isFinite(pct)) policy[`${tier}RefundPercent`] = pct;
+  }
+  return Object.keys(policy).length ? policy : null;
+}
+
+/**
+ * Split a refund across the original funding sources. Combined wallet+gateway
+ * payments are refunded in the same proportion they were paid; a single-source
+ * payment goes back where it came from. Rounded in paise, with the remainder on
+ * the gateway side so the two parts always equal the refund exactly.
+ */
+export function allocateRefund({
+  refundAmount = 0,
+  paidAmount = 0,
+  method = 'gateway',
+  walletPaid,
+  gatewayPaid,
+} = {}) {
+  const refundPaise = Math.round(toPaise(refundAmount));
+  const paidPaise = Math.round(toPaise(paidAmount));
+  const hasWallet = walletPaid !== undefined && walletPaid !== null;
+  const hasGateway = gatewayPaid !== undefined && gatewayPaid !== null;
+  let walletPaise = hasWallet ? Math.round(toPaise(walletPaid)) : 0;
+  let gatewayPaise = hasGateway ? Math.round(toPaise(gatewayPaid)) : 0;
+  if (!hasWallet && !hasGateway) {
+    if (method === 'wallet') walletPaise = paidPaise;
+    else gatewayPaise = paidPaise;
+  }
+  walletPaise = Math.max(0, walletPaise);
+  gatewayPaise = Math.max(0, gatewayPaise);
+  const fundedPaise = walletPaise + gatewayPaise;
+  if (refundPaise <= 0 || fundedPaise <= 0) {
+    return { walletAmount: 0, gatewayAmount: 0 };
+  }
+  const walletRefundPaise = Math.round((refundPaise * walletPaise) / fundedPaise);
+  return {
+    walletAmount: fromPaise(walletRefundPaise),
+    gatewayAmount: fromPaise(refundPaise - walletRefundPaise),
+  };
+}
+
 /**
  * The whole decision in one value: what the patient gets back, what the
- * provider keeps. Paise in, paise out.
+ * provider keeps, how the refund is split, and (for provider cancellations)
+ * the policy compensation/penalty. Paise in, paise out.
  */
 export function computeCancellation({
   startAt,
@@ -164,17 +242,43 @@ export function computeCancellation({
   cancelledBy = 'patient',
   paidAmount = 0,
   policy = {},
+  policySnapshot = null,
+  payment = null,
 } = {}) {
   const tier = cancellationTier(startAt, now);
-  const refundPercent = resolveRefundPercent({ tier, cancelledBy, policy });
-  const paidPaise = toPaise(paidAmount);
+  // A booking's snapshot wins over today's platform/provider rules.
+  const effectivePolicy = policyFromSnapshot(policySnapshot) || policy;
+  const refundPercent = resolveRefundPercent({ tier, cancelledBy, policy: effectivePolicy });
+  const paidPaise = Math.round(toPaise(paidAmount));
   const refundPaise = Math.round((paidPaise * refundPercent) / 100);
+  const refundAmount = fromPaise(refundPaise);
+  const split = allocateRefund({
+    refundAmount,
+    paidAmount,
+    method: payment?.method || 'gateway',
+    walletPaid: payment?.walletAmount,
+    gatewayPaid: payment?.gatewayAmount,
+  });
+  const providerPolicy = resolveProviderCancelPolicy(
+    policySnapshot?.providerCancel ? { providerCancel: policySnapshot.providerCancel } : policy,
+  );
+  const appliesToProvider = cancelledBy === 'provider';
+  const compensationPaise = appliesToProvider
+    ? Math.round((paidPaise * providerPolicy.providerCompensationPercent) / 100)
+    : 0;
+  const penaltyPaise = appliesToProvider
+    ? Math.round((paidPaise * providerPolicy.providerPenaltyPercent) / 100)
+    : 0;
   return {
     tier,
-    cancelledBy: cancelledBy === 'provider' ? 'provider' : 'patient',
+    cancelledBy: appliesToProvider ? 'provider' : 'patient',
     refundPercent,
-    refundAmount: fromPaise(refundPaise),
+    refundAmount,
     feeAmount: fromPaise(paidPaise - refundPaise),
+    refundWalletAmount: split.walletAmount,
+    refundGatewayAmount: split.gatewayAmount,
+    providerCompensationAmount: fromPaise(compensationPaise),
+    providerPenaltyAmount: fromPaise(penaltyPaise),
   };
 }
 
@@ -186,24 +290,26 @@ export function computeCancellation({
 // write stamps `policySnapshot` at creation; every refund re-derives the tier
 // from the SAME snapshot version and records it on the Refund row.
 
-export const BOOKING_POLICY_VERSION = 'booking-cancellation-v1';
+export const BOOKING_POLICY_VERSION = 'booking-cancellation-v2';
 export const BOOKING_POLICY_CONTEXT = 'booking_cancellation';
 
 const canonicalPolicyBands = () =>
   Object.fromEntries(Object.entries(PLATFORM_CANCELLATION_POLICY).map(([tier, band]) => [tier, { ...band }]));
 
-/** Hash of the exact policy text � bumping the version without changing the rules keeps the same hash. */
-export const policyDocumentHash = (bands = canonicalPolicyBands()) =>
-  crypto.createHash('sha256').update(JSON.stringify({ version: BOOKING_POLICY_VERSION, bands })).digest('hex');
+/** Hash of the exact policy text — bumping the version without changing the rules keeps the same hash. */
+export const policyDocumentHash = (bands = canonicalPolicyBands(), providerCancel = DEFAULT_PROVIDER_CANCEL_POLICY) =>
+  crypto.createHash('sha256').update(JSON.stringify({ version: BOOKING_POLICY_VERSION, bands, providerCancel })).digest('hex');
 
-/** The snapshot embedded into a booking at creation time. Pure � pass `now`. */
+/** The snapshot embedded into a booking at creation time. Pure — pass `now`. */
 export function bookingPolicySnapshot(now = new Date()) {
   const bands = canonicalPolicyBands();
+  const providerCancel = { ...DEFAULT_PROVIDER_CANCEL_POLICY };
   return {
     version: BOOKING_POLICY_VERSION,
     context: BOOKING_POLICY_CONTEXT,
     refundBands: bands,
-    documentHash: policyDocumentHash(bands),
+    providerCancel,
+    documentHash: policyDocumentHash(bands, providerCancel),
     acceptedAt: new Date(now),
   };
 }

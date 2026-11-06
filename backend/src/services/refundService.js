@@ -37,6 +37,10 @@ export async function issueRefund({
   idempotencyKey,
   requestedBy = null,
   policyVersion = '',
+  walletAmount = 0,
+  gatewayAmount = 0,
+  providerCompensationAmount = 0,
+  providerPenaltyAmount = 0,
 }) {
   if (!paymentId) return { ok: false, reason: 'no-payment' };
   if (!(Number(amount) > 0)) return { ok: false, reason: 'no-amount' };
@@ -54,6 +58,10 @@ export async function issueRefund({
       idempotencyKey,
       requestedBy,
       policyVersion,
+      walletAmount,
+      gatewayAmount,
+      providerCompensationAmount,
+      providerPenaltyAmount,
     });
     if (!created) return { ok: true, refund, duplicate: true };
     try {

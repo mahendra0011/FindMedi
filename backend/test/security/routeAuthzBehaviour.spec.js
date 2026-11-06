@@ -29,11 +29,12 @@ import { readFileSync } from 'node:fs';
 
 const annFind = jest.fn();
 const emgUserFind = jest.fn();
+const emgFind = jest.fn();
 const emgCreate = jest.fn(async (d) => ({ _id: 'e1', ...d }));
 
 jest.unstable_mockModule('../../src/models/Announcement.js', () => ({ default: { find: annFind } }));
 jest.unstable_mockModule('../../src/models/User.js', () => ({ default: { find: emgUserFind } }));
-jest.unstable_mockModule('../../src/models/Emergency.js', () => ({ default: { create: emgCreate } }));
+jest.unstable_mockModule('../../src/models/Emergency.js', () => ({ default: { create: emgCreate, find: emgFind } }));
 
 const annMod = await import('../../src/routes/announcements.js');
 const emgMod = await import('../../src/routes/emergency.js');
@@ -69,6 +70,7 @@ const res = () => ({
 beforeEach(() => {
   annFind.mockReset();
   emgUserFind.mockReset();
+  emgFind.mockReset();
   emgCreate.mockClear();
 });
 
@@ -144,6 +146,20 @@ describe('AUTHZ - emergency POST / notification fan-out is tenant-scoped', () =>
     const { out } = call({ _id: 'u1', role: 'patient', hospitalId: 'h7' });
     await out;
     expect(emgCreate).toHaveBeenCalledWith(expect.objectContaining({ hospitalId: 'h7' }));
+  });
+});
+
+describe('AUTHZ - emergency patient list remains subject-scoped without a facility', () => {
+  it('filters a tenant-less patient to their own emergency rows', async () => {
+    emgFind.mockReturnValue(query([]));
+    const r = res();
+    const out = handler(emgMod.default, '/', 'get')({
+      user: { _id: 'patient-1', role: 'patient', hospitalId: undefined }, query: {},
+    }, r);
+    await out;
+    expect(r.statusCode).toBe(200);
+    expect(emgFind).toHaveBeenCalledWith(expect.objectContaining({ patientId: 'patient-1' }));
+    expect(emgFind.mock.calls[0][0].hospitalId).toBeUndefined();
   });
 });
 

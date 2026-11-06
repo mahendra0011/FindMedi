@@ -95,7 +95,7 @@ router.put('/gate-passes/:id/use', protect, restrictTo('security', 'security_adm
 router.get('/gate-passes', protect, authorize('audit:read', 'records:read'), async (req, res) => {
   try {
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.query.status && GATE_PASS_STATUS.includes(String(req.query.status))) filter.status = String(req.query.status);
     if (req.query.type) filter.type = String(req.query.type);
     const rows = await GatePass.find(filter).sort({ createdAt: -1 }).limit(200).lean();
@@ -170,7 +170,7 @@ router.put('/rounds/:id/close', protect, restrictTo('security', 'security_admin'
 router.get('/rounds', protect, authorize('audit:read', 'records:read'), async (req, res) => {
   try {
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.query.status) filter.status = String(req.query.status);
     const rows = await SecurityRound.find(filter).sort({ startedAt: -1 }).limit(100).lean();
     return res.json({ total: rows.length, rounds: rows });

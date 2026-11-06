@@ -47,7 +47,8 @@ const auditLogSchema = new mongoose.Schema({
 // 10 s stall when it is DOWN (the failure is counted by the audit middleware).
 }, { timestamps: true, bufferCommands: false });
 
-// TTL index - auto delete logs older than 1 year
-auditLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 365 * 24 * 60 * 60 });
+// RETENTION.md requires seven years; keep the database TTL aligned with the
+// policy (MongoDB applies TTL deletion asynchronously).
+auditLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 7 * 365 * 24 * 60 * 60 });
 
 export default mongoose.model('AuditLog', auditLogSchema);

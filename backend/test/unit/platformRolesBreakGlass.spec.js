@@ -45,6 +45,8 @@ describe('file 23 scoped platform roles', () => {
     for (const role of SCOPED_ROLES) {
       expect(MANDATORY_TWO_FACTOR_ROLES).toContain(role);
     }
+    expect(MANDATORY_TWO_FACTOR_ROLES).toContain('superadmin');
+    expect(MANDATORY_TWO_FACTOR_ROLES).toContain('super_admin');
   });
 
   it('gives scoped roles NO clinical PHI permissions', () => {
@@ -56,7 +58,7 @@ describe('file 23 scoped platform roles', () => {
   });
 
   it('holds break-glass request/decide on the right roles only', () => {
-    expect(roleHasPermission('support_l2', 'breakglass:write')).toBe(true);
+    expect(roleHasPermission('support_l2', 'breakglass:write')).toBe(false);
     expect(roleHasPermission('clinical_safety', 'breakglass:write')).toBe(true);
     expect(roleHasPermission('dpo', 'breakglass:approve')).toBe(true);
     expect(roleHasPermission('dpo', 'breakglass:read')).toBe(true);

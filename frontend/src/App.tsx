@@ -104,6 +104,8 @@ const SAAiSafety = lazy(() => import('./pages/superadmin/AiSafety'));
 const SAAiReviewQueue = lazy(() => import('./pages/superadmin/AiReviewQueue'));
 const SASecurity = lazy(() => import('./pages/superadmin/Security'));
 const SADsrQueue = lazy(() => import('./pages/superadmin/SADsrQueue'));
+const SAAccessReview = lazy(() => import('./pages/superadmin/AccessReview'));
+const SAVendorDpaRegister = lazy(() => import('./pages/superadmin/VendorDpaRegister'));
 // File 24: Ops CRM & Team Management
 const CrmCommandCenter = lazy(() => import('./pages/superadmin/crm/CrmCommandCenter'));
 const SupplyPipeline = lazy(() => import('./pages/superadmin/crm/SupplyPipeline'));
@@ -272,6 +274,11 @@ const PatientReports = lazy(() => import('./pages/patient/PatientReports'));
 const PatientServices = lazy(() => import('./pages/patient/PatientServices'));
 const PatientBookings = lazy(() => import('./pages/patient/PatientBookings'));
 const PatientPrescriptions = lazy(() => import('./pages/patient/PatientPrescriptions'));
+const PatientRefillSubscriptions = lazy(() => import('./pages/patient/PatientRefillSubscriptions'));
+const CoursesPage = lazy(() => import('./pages/courses/CoursesPage'));
+const CommunityPage = lazy(() => import('./pages/community/CommunityPage'));
+const HelplineDirectory = lazy(() => import('./pages/info/HelplineDirectory'));
+const GovtSchemesPage = lazy(() => import('./pages/info/GovtSchemesPage'));
 const PatientMedicineOrders = lazy(() => import('./pages/patient/PatientMedicineOrders'));
 const PatientSupport = lazy(() => import('./pages/patient/PatientSupport'));
 const PatientFavorites = lazy(() => import('./pages/patient/PatientFavorites'));
@@ -486,6 +493,8 @@ const LabReceivingDashboard = lazy(() => import('./pages/labcenter/LabReceivingD
 const LabSectionWorkbench = lazy(() => import('./pages/labcenter/LabSectionWorkbench'));
 const LabQualityQc = lazy(() => import('./pages/labcenter/LabQualityQc'));
 const LabSampleTracking = lazy(() => import('./pages/labcenter/LabSampleTracking'));
+const SampleCourierDesk = lazy(() => import('./pages/labcenter/SampleCourierDesk'));
+const PharmacyRefillDesk = lazy(() => import('./pages/pharmacy/PharmacyRefillDesk'));
 const LabOutsourceDesk = lazy(() => import('./pages/labcenter/LabOutsourceDesk'));
 
 // ── Radiology Modules ──
@@ -1156,6 +1165,8 @@ const App = () => (
                     <Route path="/superadmin/categories" element={<RoleRoute allowedRoles={['superadmin', 'catalog_manager']}><SACategories /></RoleRoute>} />
                     <Route path="/superadmin/catalog" element={<RoleRoute allowedRoles={['superadmin', 'catalog_manager']}><SAGlobalCatalog /></RoleRoute>} />
                     <Route path="/superadmin/audit" element={<RoleRoute allowedRoles={['superadmin', 'compliance_officer']}><SAAuditLogs /></RoleRoute>} />
+                    <Route path="/superadmin/access-review" element={<RoleRoute allowedRoles={['superadmin', 'super_admin', 'dpo', 'security_admin', 'auditor', 'compliance_officer']}><SAAccessReview /></RoleRoute>} />
+                    <Route path="/superadmin/vendor-dpas" element={<RoleRoute allowedRoles={['superadmin', 'super_admin', 'dpo', 'compliance_officer', 'security_admin']}><SAVendorDpaRegister /></RoleRoute>} />
                     <Route path="/audit-logs" element={<ProtectedRoute><SAAuditLogs /></ProtectedRoute>} />
                     <Route path="/superadmin/broadcast" element={<RoleRoute allowedRoles={['superadmin']}><SABroadcast /></RoleRoute>} />
                     <Route path="/superadmin/tickets" element={<RoleRoute allowedRoles={['superadmin', 'support_agent', 'support_l1', 'support_l2']}><SASupportTickets /></RoleRoute>} />
@@ -1163,7 +1174,7 @@ const App = () => (
                     <Route path="/superadmin/team" element={<RoleRoute allowedRoles={['superadmin']}><SASuperAdminTeam /></RoleRoute>} />
                     <Route path="/superadmin/forms" element={<RoleRoute allowedRoles={['superadmin', 'content_editor']}><FormBuilder /></RoleRoute>} />
                     <Route path="/superadmin/print" element={<RoleRoute allowedRoles={['superadmin', 'content_editor']}><PrintStudio /></RoleRoute>} />
-                    <Route path="/superadmin/break-glass" element={<RoleRoute allowedRoles={['superadmin', 'dpo', 'clinical_safety', 'support_l2', 'security_admin']}><SABreakGlassQueue /></RoleRoute>} />
+                    <Route path="/superadmin/break-glass" element={<RoleRoute allowedRoles={['superadmin', 'super_admin', 'dpo', 'clinical_safety', 'security_admin']}><SABreakGlassQueue /></RoleRoute>} />
                     <Route path="/superadmin/promotions" element={<RoleRoute allowedRoles={['superadmin']}><SAPromotions /></RoleRoute>} />
                     <Route path="/superadmin/loyalty" element={<RoleRoute allowedRoles={['superadmin']}><SALoyaltyRewards /></RoleRoute>} />
                     <Route path="/superadmin/referrals" element={<RoleRoute allowedRoles={['superadmin']}><SAReferralSettings /></RoleRoute>} />
@@ -1241,6 +1252,8 @@ const App = () => (
                     <Route path="/lab/collection" element={<RoleRoute allowedRoles={['phlebotomist', 'home_collection_staff', 'lab_owner', 'lab_manager']}><PhlebotomistDashboard /></RoleRoute>} />
                     <Route path="/lab/qc" element={<RoleRoute allowedRoles={['lab_owner', 'lab_supervisor', 'quality_officer', 'hospital_admin', 'lab_admin', 'lab_manager', 'lab_quality_mgr']}><LabQualityQc /></RoleRoute>} />
                     <Route path="/lab/tracking" element={<RoleRoute allowedRoles={['lab_receptionist', 'lab_technician', 'lab_owner', 'lab_receiving', 'lab_admin', 'lab_manager']}><LabSampleTracking /></RoleRoute>} />
+                    <Route path="/lab/sample-courier" element={<RoleRoute allowedRoles={['lab_receptionist', 'lab_technician', 'lab_owner', 'lab_receiving', 'lab_admin', 'lab_manager', 'hospital_admin', 'pharmacy_owner', 'delivery_boy', 'superadmin']}><SampleCourierDesk /></RoleRoute>} />
+                    <Route path="/pharmacy/refills" element={<RoleRoute allowedRoles={['pharmacy_owner', 'pharmacist', 'hospital_admin', 'superadmin']}><PharmacyRefillDesk /></RoleRoute>} />
                     <Route path="/lab/outsource" element={<RoleRoute allowedRoles={['lab_owner', 'lab_supervisor', 'lab_admin', 'lab_manager']}><LabOutsourceDesk /></RoleRoute>} />
                     <Route path="/lab/analytics" element={<RoleRoute allowedRoles={['lab_owner', 'hospital_admin', 'accountant', 'lab_admin', 'lab_manager']}><LabReportsAnalytics /></RoleRoute>} />
 
@@ -1339,6 +1352,11 @@ const App = () => (
                     <Route path="/patient/refunds" element={<RoleRoute allowedRoles={['patient']}><PatientRefunds /></RoleRoute>} />
                     <Route path="/patient/settings" element={<RoleRoute allowedRoles={['patient']}><PatientSettings /></RoleRoute>} />
                     <Route path="/patient/prescriptions" element={<RoleRoute allowedRoles={['patient']}><PatientPrescriptions /></RoleRoute>} />
+                    <Route path="/patient/refills" element={<RoleRoute allowedRoles={['patient']}><PatientRefillSubscriptions /></RoleRoute>} />
+                    <Route path="/courses" element={<RoleRoute allowedRoles={['patient', 'doctor', 'hospital_admin', 'superadmin']}><CoursesPage /></RoleRoute>} />
+                    <Route path="/community" element={<RoleRoute allowedRoles={['patient', 'doctor', 'hospital_admin', 'superadmin']}><CommunityPage /></RoleRoute>} />
+                    <Route path="/helplines" element={<HelplineDirectory />} />
+                    <Route path="/government-schemes" element={<GovtSchemesPage />} />
                     <Route path="/patient/medicine-reminders" element={<RoleRoute allowedRoles={['patient']}><PatientMedicineReminders /></RoleRoute>} />
                     <Route path="/patient/vitals" element={<RoleRoute allowedRoles={['patient']}><PatientVitals /></RoleRoute>} />
                     <Route path="/patient/care-plans" element={<RoleRoute allowedRoles={['patient']}><PatientCarePlan /></RoleRoute>} />

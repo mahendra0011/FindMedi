@@ -40,7 +40,7 @@ router.get('/', protect, async (req, res) => {
         };
       }
     }
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const leaves = await LeaveRequest.find(filter).sort({ createdAt: -1 });
     res.json({ leaves, balance });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -115,7 +115,7 @@ router.put('/:id/status', protect, adminOnly, requireObjectId, validate(updateLe
 router.get('/pending', protect, async (req, res) => {
   try {
     const filter = { status: 'Pending' };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const leaves = await LeaveRequest.find(filter).populate('doctorId', 'name email specialization').sort({ createdAt: 1 });
     res.json({ leaves });
   } catch (err) { res.status(500).json({ message: err.message }); }

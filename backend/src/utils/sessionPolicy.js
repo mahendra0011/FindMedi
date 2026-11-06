@@ -43,7 +43,11 @@ export const SESSION_POLICY = {
   get absoluteTimeoutMs() { return envOr(process.env.SESSION_ABSOLUTE_TIMEOUT_MS, 12 * 60 * 60_000, 0); },
 };
 
-const ADMIN_ROLES = new Set(['superadmin', 'hospital_admin', 'doctor', 'pharmacy_owner']);
+const ADMIN_ROLES = new Set([
+  'superadmin', 'super_admin', 'owner', 'platform_owner', 'hospital_admin',
+  'support_l2', 'security_admin', 'privacy_admin', 'dpo', 'compliance_officer',
+  'doctor', 'pharmacy_owner',
+]);
 
 export const sessionCapsFor = (role) => ({
   maxConcurrent: ADMIN_ROLES.has(String(role || '').toLowerCase())

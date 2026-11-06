@@ -53,6 +53,13 @@ const productSchema = new mongoose.Schema({
   storage: { type: String, enum: ['ambient', 'cold_chain'], default: 'ambient' },
   warrantyMonths: { type: Number, min: 0, default: 0 },
 
+  // Fall-detection devices: family alert integration. A device must not be
+  // listable as a fall-detection product without a consenting alert path.
+  familyAlert: {
+    enabled: { type: Boolean, default: false },
+    alertPhones: [{ type: String, trim: true, maxlength: 20 }],
+    consentGiven: { type: Boolean, default: false },
+  },
   // FLOW-G shares the catalogue: an equipment row is rentable at a day rate
   // plus a deposit, computed by lib/flowStates.js computeRentalTotals().
   rentable: {

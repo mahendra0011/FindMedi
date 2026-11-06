@@ -26,6 +26,7 @@ interface DsrRow {
   extensionReason?: string;
   resolutionNote?: string;
   exportRef?: string;
+  fulfillmentApprovals?: Array<{ approverId: string; approvedAt: string }>;
   details?: Record<string, any>;
   verification?: {
     method: string;
@@ -62,7 +63,6 @@ export default function SADsrQueue() {
   const [actionType, setActionType] = useState<'review' | 'verify' | 'fulfill' | 'reject' | 'extend' | null>(null);
   const [actionNote, setActionNote] = useState('');
   const [verifyMethod, setVerifyMethod] = useState('aadhaar_otp');
-  const [exportUrl, setExportUrl] = useState('');
   const [extendReason, setExtendReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -85,28 +85,8 @@ export default function SADsrQueue() {
       toast.error('Failed to load DSR compliance queue', {
         description: err?.response?.data?.message || err?.message || 'Check network / role permissions',
       });
-      // Fallback mock items for offline or initial review
-      setRequests([
-        {
-          id: '65239a110000000000000001',
-          type: 'erasure',
-          status: 'submitted',
-          requestedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-          dueAt: new Date(Date.now() + 27 * 86400000).toISOString(),
-          overdue: false,
-          details: { reason: 'User requested complete deletion under DPDP Act 2023 Sec 12' },
-        },
-        {
-          id: '65239a110000000000000002',
-          type: 'export',
-          status: 'in_review',
-          requestedAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-          dueAt: new Date(Date.now() + 25 * 86400000).toISOString(),
-          overdue: false,
-          details: { format: 'JSON/FHIR medical history and invoices' },
-        },
-      ]);
-      setTotal(2);
+      setRequests([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -118,6 +98,10 @@ export default function SADsrQueue() {
 
   const handleDecision = async () => {
     if (!selectedReq || !actionType) return;
+    if (actionType === 'fulfill' && selectedReq.type === 'export') {
+      toast.error('Identified export delivery is unavailable until the protected DPO artifact workflow is deployed');
+      return;
+    }
     setSubmitting(true);
 
     try {
@@ -135,16 +119,7 @@ export default function SADsrQueue() {
         const payload: any = { action: actionType };
         if (actionNote.trim()) payload.note = actionNote.trim();
         if (actionType === 'verify') payload.method = verifyMethod;
-        if (actionType === 'fulfill' && selectedReq.type === 'export') {
-          if (!exportUrl.trim()) {
-            toast.error('Export download URL / reference is required');
-            setSubmitting(false);
-            return;
-          }
-          payload.exportRef = exportUrl.trim();
-        }
-
-        await api.post(`/admin/dsr/${selectedReq.id}/decision`, payload);
+        const result: any = await api.post(`/admin/dsr/${selectedReq.id}/decision`, payload);
         toast.success(`Request status updated: ${actionType}`);
       }
 
@@ -153,7 +128,6 @@ export default function SADsrQueue() {
       setSelectedReq(null);
       setActionNote('');
       setExtendReason('');
-      setExportUrl('');
       fetchDsrQueue();
     } catch (err: any) {
       toast.error('Action failed', {
@@ -348,6 +322,11 @@ export default function SADsrQueue() {
                           Verified via {req.verification.method} on {new Date(req.verification.at).toLocaleDateString()}
                         </span>
                       )}
+                  {req.type === 'export' && !!req.fulfillmentApprovals?.length && (
+                    <span className="text-amber-700 dark:text-amber-400">
+                      Identified export approvals: {req.fulfillmentApprovals.length}/2
+                    </span>
+                  )}
                     </div>
 
                     {req.details && (
@@ -478,10 +457,10 @@ export default function SADsrQueue() {
                     <SelectValue placeholder="Select method" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="aadhaar_otp">Aadhaar OTP / DigiLocker</SelectItem>
                     <SelectItem value="email_otp">Primary Registered Email OTP</SelectItem>
-                    <SelectItem value="mobile_otp">Primary Registered Mobile OTP</SelectItem>
-                    <SelectItem value="government_id_scan">Government ID Document Match</SelectItem>
+                    <SelectItem value="sms_otp">Primary Registered Mobile OTP</SelectItem>
+                    <SelectItem value="in_person">In-person identity check</SelectItem>
+                    <SelectItem value="manual">Manual verification record</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground">
@@ -491,18 +470,9 @@ export default function SADsrQueue() {
             )}
 
             {actionType === 'fulfill' && selectedReq?.type === 'export' && (
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-foreground">Export Data Reference / Secure URL</label>
-                <Input
-                  value={exportUrl}
-                  onChange={(e) => setExportUrl(e.target.value)}
-                  placeholder="https://storage.findmedi.in/exports/dsr-..."
-                  className="text-xs"
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Encrypted archive link sent directly to verified citizen email.
-                </p>
-              </div>
+              <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+                Identified export fulfillment is disabled until private artifact storage, de-identification/watermark checks, secure delivery, and expiry purge are deployed.
+              </p>
             )}
 
             {actionType === 'extend' && (

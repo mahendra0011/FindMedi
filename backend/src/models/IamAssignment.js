@@ -22,6 +22,7 @@ const iamAssignmentSchema = new mongoose.Schema({
   expiresAt: { type: Date, default: null, index: true },
   grantedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  approverIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   reason: { type: String, maxlength: 500, default: '' },
   status: { type: String, enum: ['active', 'revoked', 'expired'], default: 'active', index: true },
 }, { timestamps: true });

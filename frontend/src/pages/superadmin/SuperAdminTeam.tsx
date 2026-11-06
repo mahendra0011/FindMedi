@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Shield, Users, UserRound, ShieldCheck, ShieldOff, Trash2, Mail, Clock,
+  Shield, Users, UserRound, ShieldCheck, ShieldOff, Mail, Clock,
   Search, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -54,15 +54,6 @@ export default function SuperAdminTeam() {
       toast.success(`User ${name} status toggled`);
       load();
     } catch { toast.error('Failed to update user'); }
-  };
-
-  const handleDelete = async (id: Unmodelled, name: Unmodelled) => {
-    if (!window.confirm(`Are you sure you want to permanently delete ${name}?`)) return;
-    try {
-      await api.deleteUser(id);
-      toast.success(`${name} deleted`);
-      load();
-    } catch { toast.error('Failed to delete user'); }
   };
 
   const filtered = admins.filter(a =>
@@ -130,7 +121,9 @@ export default function SuperAdminTeam() {
                     <Clock className="w-3 h-3" />
                     <span>Role: {admin.role}</span>
                     <span className="mx-1">·</span>
-                    <span>{admin.isVerified ? 'Verified' : 'Not verified'}</span>
+                    <span>{admin.twoFactorEnabled ? 'MFA enabled' : 'MFA required'}</span>
+                    <span className="mx-1">·</span>
+                    <span>{admin.lastActive ? `Active ${new Date(admin.lastActive).toLocaleDateString()}` : 'No activity recorded'}</span>
                   </div>
                 </div>
 
@@ -139,12 +132,6 @@ export default function SuperAdminTeam() {
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${admin.status === 'blocked' ? 'text-success hover:bg-success/5' : 'text-destructive hover:bg-destructive/5'}`}>
                     {admin.status === 'blocked' ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
                     {admin.status === 'blocked' ? 'Unblock' : 'Block'}
-                  </button>
-                  <div className="w-px bg-border" />
-                  <button onClick={() => handleDelete(admin.id, admin.name)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-destructive hover:bg-destructive/5 transition-colors">
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Delete
                   </button>
                 </div>
               </CardContent>

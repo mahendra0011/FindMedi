@@ -4,6 +4,7 @@ import { protect } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { validate, createDsrSchema } from '../utils/validate.js';
 import logger from '../config/logger.js';
+import { createNotification } from '../services/notificationService.js';
 
 // A4 / rolesmd 6.md §2.15 (privacy centre: "data export/delete — DPDP rights";
 // only the DELETE half exists as DeletionRequest) + 10.md §4.4 (the admin queue
@@ -69,6 +70,12 @@ router.post('/', validate(createDsrSchema), async (req, res) => {
     });
     await auditLog('dsr_submitted', actorId(req), {
       requestId: created._id, type: created.type, dueAt: created.dueAt, ip: req.ip,
+    });
+    await createNotification({
+      userId, type: 'privacy_request', priority: 'critical',
+      title: 'Privacy request received',
+      message: 'We received your privacy request. You can track its status in your account.',
+      dedupKey: `dsr:${String(created._id)}:submitted`,
     });
     return res.status(201).json(derive(created));
   } catch (err) {

@@ -9,7 +9,7 @@
  *                                  IN the chain, never how it decides.
  *
  * What nobody tested: the actual decision paths of the real middleware -
- * 401 vs 403, the superadmin bypass, any-of semantics, the platform-admin vs
+ * 401 vs 403, explicit Owner permissions, any-of semantics, the platform-admin vs
  * tenant-admin split (AUTHZ-B-04), facility fail-closed (AUTHZ-B-01), the
  * role-alias canonicalisation, and the SHAPE of the 403 body (AUTHZ-B-03:
  * no permission matrix in the response).
@@ -39,9 +39,17 @@ describe('P2-16 authorize() deny/allow matrix', () => {
     expect(r.statusCode).toBe(401);
   });
 
-  it('bypasses for superadmin', () => {
+  it('does not grant Owner implicit access to arbitrary or PHI permissions', () => {
     const r = run(authorize('insurance:write'), reqAs({ id: 'sa', role: 'superadmin' }));
-    expect(r.nextCalled).toBe(true);
+    expect(r.nextCalled).toBe(false);
+    expect(r.statusCode).toBe(403);
+    const phi = run(authorize('records:read'), reqAs({ id: 'sa', role: 'superadmin' }));
+    expect(phi.nextCalled).toBe(false);
+    expect(phi.statusCode).toBe(403);
+  });
+
+  it('allows Owner only explicitly granted platform permissions', () => {
+    expect(run(authorize('platform:manage'), reqAs({ id: 'sa', role: 'superadmin' })).nextCalled).toBe(true);
   });
 
   it('allows the role that holds the permission, denies roles that do not', () => {
@@ -94,8 +102,10 @@ describe('P2-16 platformAdminOnly (AUTHZ-B-04)', () => {
 });
 
 describe('P2-16 sameFacilityStrict (AUTHZ-B-01)', () => {
-  it('superadmin bypasses facility scoping', () => {
-    expect(run(sameFacilityStrict, reqAs({ id: 'sa', role: 'superadmin' })).nextCalled).toBe(true);
+  it('keeps platform Owner global facility operations explicit', () => {
+    const denied = run(sameFacilityStrict, reqAs({ id: 'sa', role: 'superadmin' }));
+    expect(denied.nextCalled).toBe(false);
+    expect(denied.statusCode).toBe(403);
   });
 
   it('denies an account with no linked facility', () => {

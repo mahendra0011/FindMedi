@@ -22,7 +22,7 @@ import logger from '../config/logger.js';
 
 /** Clinical roles that may read a psychiatric record inside their own tenant. */
 export const MENTAL_HEALTH_CLINICAL_ROLES = Object.freeze([
-  'doctor', 'hospital_admin', 'admin', 'superadmin', 'clinic_doctor',
+  'doctor', 'hospital_admin', 'admin', 'clinic_doctor',
   'therapist', 'psychiatrist', 'counsellor', 'counselor', 'psychologist',
   'mental_health_provider',
 ]);
@@ -34,7 +34,7 @@ export const MENTAL_HEALTH_BOUNDED_ROLES = Object.freeze([
 
 /** Roles permitted to acknowledge a crisis event (safety-critical writes). */
 export const MENTAL_HEALTH_CRISIS_ACK_ROLES = Object.freeze([
-  'superadmin', 'admin', 'hospital_admin', 'doctor', 'clinic_doctor',
+  'admin', 'hospital_admin', 'doctor', 'clinic_doctor', 'clinical_safety',
   'therapist', 'psychiatrist', 'psychologist', 'counsellor', 'counselor',
 ]);
 
@@ -92,7 +92,21 @@ export const openCrisisQuery = () => ({
  */
 export function assertMentalHealthAccess(user, referral, opts = {}) {
   if (!user || !referral) return { ok: false, code: 'not_found', reason: 'not_found' };
-  if (user.role === 'superadmin') return { ok: true, reason: 'superadmin' };
+  if (['superadmin', 'super_admin', 'platform_admin', 'support_l1', 'support_l2', 'support_agent',
+    'dpo', 'security_admin', 'clinical_safety', 'analyst', 'auditor', 'compliance_officer',
+    'finance_admin', 'catalog_manager', 'moderator', 'kyc_reviewer', 'city_manager'].includes(user.role)) {
+    const grantSubject = opts.breakGlassGrant?.subject;
+    const grantMatches = grantSubject?.type === 'patient'
+      ? String(grantSubject.id) === String(referral.patientId)
+      : grantSubject?.type === 'mental_health'
+        && [String(referral._id || ''), String(referral.patientId || '')].includes(String(grantSubject.id));
+    if (opts.breakGlassGrant && grantMatches
+      && opts.breakGlassGrant.status === 'approved'
+      && new Date(opts.breakGlassGrant.expiresAt).getTime() > Date.now()) {
+      return { ok: true, reason: 'approved_break_glass' };
+    }
+    return { ok: false, code: 'forbidden', reason: 'platform_role_requires_break_glass' };
+  }
 
   // 1. The patient themselves — always allowed, tenant or not.
   if (sameId(user._id, referral.patientId) || sameId(user.patientId, referral.patientId)) {

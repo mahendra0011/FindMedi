@@ -29,7 +29,7 @@ const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
  */
 export const TRANSACTIONAL_TYPES = new Set([
   'sos', 'emergency', 'lab', 'prescription', 'appointment', 'billing',
-  'payment', 'records', 'token', 'reminder', 'radiology',
+  'payment', 'records', 'token', 'reminder', 'radiology', 'security_alert', 'privacy_request',
 ]);
 
 export const isTransactional = (type) => TRANSACTIONAL_TYPES.has(type);

@@ -101,7 +101,10 @@ jest.unstable_mockModule('../../src/models/OperationTheatre.js', () => ({
   },
 }));
 
-jest.unstable_mockModule('../../src/middleware/audit.js', () => ({ auditLog: jest.fn(async () => {}) }));
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+  auditLog: jest.fn(async () => {}),
+  auditLogRequired: jest.fn(async () => {}),
+}));
 jest.unstable_mockModule('../../src/services/notificationService.js', () => ({ createNotification: jest.fn(async () => ({})) }));
 jest.unstable_mockModule('../../src/services/socketService.js', () => ({
   getIO: jest.fn(() => null), emitDeliveryStatus: jest.fn(), emitAppointmentUpdate: jest.fn(async () => {}),
@@ -177,6 +180,11 @@ describe('OT op-note charges reach the admission account idempotently', () => {
     implants: [{ name: 'Titanium plate', price: 5000 }],
     consumables: [{ name: 'Suture kit', qty: 2, price: 100 }],
   };
+
+  test('platform superadmin is denied access to patient-linked OT routes by default', async () => {
+    const res = await asOt({ _id: 'owner-1', id: 'owner-1', role: 'superadmin' }).get('/surgeries');
+    expect(res.status).toBe(403);
+  });
 
   test('implants/consumables post with encounterId + admissionId', async () => {
     const res = await asOt(SURGEON).put('/surgeries/ot-1/op-note').send(opNote);

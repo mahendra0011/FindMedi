@@ -195,7 +195,7 @@ router.get('/workspace/:encounterId', doctorOnly, async (req, res) => {
     ]);
     const enc = await Encounter.findById(req.params.encounterId).lean();
     if (!enc) return res.status(404).json({ message: 'Encounter not found' });
-    if (req.user.hospitalId && String(enc.hospitalId || '') !== String(req.user.hospitalId)) {
+    if (!req.user.hospitalId || String(enc.hospitalId || '') !== String(req.user.hospitalId)) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const [patient, timeline, orders, rxs, charges, prior] = await Promise.all([
@@ -222,7 +222,7 @@ router.post('/workspace/:encounterId/notes', doctorOnly, async (req, res) => {
     ]);
     const enc = await Encounter.findById(req.params.encounterId);
     if (!enc) return res.status(404).json({ message: 'Encounter not found' });
-    if (req.user.hospitalId && String(enc.hospitalId || '') !== String(req.user.hospitalId)) {
+    if (!req.user.hospitalId || String(enc.hospitalId || '') !== String(req.user.hospitalId)) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const { soap, diagnosis, diagnosisIcd } = req.body || {};
@@ -252,7 +252,7 @@ router.post('/workspace/:encounterId/sign', doctorOnly, async (req, res) => {
     const { auditLog } = await import('../middleware/audit.js');
     const enc = await Encounter.findById(req.params.encounterId);
     if (!enc) return res.status(404).json({ message: 'Encounter not found' });
-    if (req.user.hospitalId && String(enc.hospitalId || '') !== String(req.user.hospitalId)) {
+    if (!req.user.hospitalId || String(enc.hospitalId || '') !== String(req.user.hospitalId)) {
       return res.status(403).json({ message: 'Access denied' });
     }
     if (enc.status !== 'Open') return res.status(409).json({ message: `Encounter is ${enc.status}` });

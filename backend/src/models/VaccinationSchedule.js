@@ -33,6 +33,11 @@ const vaccinationScheduleSchema = new mongoose.Schema({
 
   status: { type: String, enum: ['scheduled', 'completed', 'cancelled'], default: 'scheduled', index: true },
   completedAt: { type: Date, default: null },
+  // Home vaccination (HOME.SERVICE.VACCINATION): a booked home-visit dose
+  // carries the provider that gives it, so the schedule links to the
+  // home-service booking instead of a centre name only.
+  homeVisit: { type: Boolean, default: false },
+  providerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Provider', default: null, index: true },
   // Where the schedule came from (UIP vs provider-entered) so a bad import can
   // be distinguished from a clinic's plan.
   source: { type: String, enum: ['uip', 'provider', 'manual', 'import'], default: 'manual' },

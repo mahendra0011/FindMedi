@@ -75,6 +75,7 @@ describe('runIamReviewCampaigns', () => {
     // Reviewer lookup scoped to the tenant's own admins.
     const reviewerFilter = findOneMock.mock.calls[0][0];
     expect(reviewerFilter.$or).toEqual([{ hospitalId: 't1' }, { facilityId: 't1' }]);
+    expect(reviewerFilter.role).toBe('hospital_admin');
   });
 
   it('is idempotent: skips tenants that already have this quarter campaign', async () => {

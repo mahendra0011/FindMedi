@@ -169,7 +169,7 @@ router.post('/icu/flowsheet', async (req, res) => {
     if (!admissionId || !hourSlot) return res.status(400).json({ message: 'admissionId + hourSlot required' });
     const adm = await Admission.findById(admissionId).select('patientId hospitalId').lean();
     if (!adm) return res.status(404).json({ message: 'Admission not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && String(adm.hospitalId || '') !== String(req.user.hospitalId)) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || String(adm.hospitalId || '') !== String(req.user.hospitalId))) {
       return res.status(403).json({ message: 'Access denied' });
     }
     const row = await IcuFlowsheet.findOneAndUpdate(

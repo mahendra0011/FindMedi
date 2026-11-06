@@ -28,7 +28,7 @@ describe('providerTypeCatalog', () => {
     ];
     const missing = required.filter((key) => !TYPE_KEYS.includes(key));
     expect(missing).toEqual([]);
-    expect(TYPE_KEYS.length).toBe(46);
+    expect(TYPE_KEYS.length).toBe(53);
   });
 
   it('keeps the legacy typeKeys the old JoinPlatform already used', () => {
@@ -105,6 +105,6 @@ describe('providerTypeCatalog', () => {
       'clinical', 'commerce', 'community', 'home_service', 'professional', 'transport', 'wellness',
     ]);
     for (const group of groups) expect(group.count).toBe(group.types.length);
-    expect(groups.find((group) => group.group === 'clinical').count).toBe(23);
+    expect(groups.find((group) => group.group === 'clinical').count).toBe(24);
   });
 });

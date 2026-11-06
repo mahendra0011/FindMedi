@@ -25,6 +25,9 @@ import {
   cancellationTier,
   resolveRefundPercent,
   computeCancellation,
+  allocateRefund,
+  policyFromSnapshot,
+  resolveProviderCancelPolicy,
 } from '../../src/lib/appointmentLifecycle.js';
 import { slotStartAt } from '../../src/utils/dateUtils.js';
 import { appointmentInstant } from '../../src/jobs/appointmentReminder.job.js';
@@ -206,6 +209,98 @@ describe('computeCancellation — money out', () => {
     });
     expect(d.refundAmount + d.feeAmount).toBe(999.99);
     expect(Number.isInteger(Math.round(d.refundAmount * 100))).toBe(true);
+  });
+});
+
+describe('refund funding split and provider cancellation consequences', () => {
+  const start = new Date('2026-06-20T10:00:00Z');
+
+  it('honours the booking snapshot instead of the current platform band', () => {
+    const policySnapshot = {
+      version: 'booking-cancellation-v1',
+      refundBands: { mid: { defaultRefundPercent: 80, minRefundPercent: 0, maxRefundPercent: 100 } },
+    };
+    expect(policyFromSnapshot(policySnapshot)).toEqual({ midRefundPercent: 80 });
+    const d = computeCancellation({
+      startAt: start,
+      now: new Date(start.getTime() - 10 * H),
+      cancelledBy: 'patient',
+      paidAmount: 500,
+      policy: { midRefundPercent: 10 },
+      policySnapshot,
+    });
+    expect(d.refundPercent).toBe(80);
+    expect(d.refundAmount).toBe(400);
+    expect(d.feeAmount).toBe(100);
+  });
+
+  it('refunds a wallet payment back to wallet and a gateway payment to gateway', () => {
+    const wallet = computeCancellation({
+      startAt: start,
+      now: new Date(start.getTime() - 10 * H),
+      paidAmount: 500,
+      payment: { method: 'wallet' },
+    });
+    expect(wallet.refundAmount).toBe(250);
+    expect(wallet.refundWalletAmount).toBe(250);
+    expect(wallet.refundGatewayAmount).toBe(0);
+
+    const gateway = computeCancellation({
+      startAt: start,
+      now: new Date(start.getTime() - 10 * H),
+      paidAmount: 500,
+      payment: { method: 'upi' },
+    });
+    expect(gateway.refundWalletAmount).toBe(0);
+    expect(gateway.refundGatewayAmount).toBe(250);
+  });
+
+  it('keeps the original wallet/gateway ratio for combined payments', () => {
+    const d = computeCancellation({
+      startAt: start,
+      now: new Date(start.getTime() - 10 * H),
+      paidAmount: 500,
+      payment: { walletAmount: 100, gatewayAmount: 400 },
+    });
+    expect(d.refundAmount).toBe(250);
+    expect(d.refundWalletAmount).toBe(50);
+    expect(d.refundGatewayAmount).toBe(200);
+  });
+
+  it('applies policy compensation/penalty only when the provider cancels', () => {
+    const policy = { providerCompensationPercent: 10, providerPenaltyPercent: 20 };
+    const provider = computeCancellation({
+      startAt: start,
+      now: new Date(start.getTime() - 1 * H),
+      cancelledBy: 'provider',
+      paidAmount: 500,
+      policy,
+    });
+    expect(provider.refundAmount).toBe(500);
+    expect(provider.providerCompensationAmount).toBe(50);
+    expect(provider.providerPenaltyAmount).toBe(100);
+
+    const patient = computeCancellation({
+      startAt: start,
+      now: new Date(start.getTime() - 1 * H),
+      cancelledBy: 'patient',
+      paidAmount: 500,
+      policy,
+    });
+    expect(patient.providerCompensationAmount).toBe(0);
+    expect(patient.providerPenaltyAmount).toBe(0);
+  });
+
+  it('clamps provider compensation/penalty to 0..100', () => {
+    expect(resolveProviderCancelPolicy({ providerCompensationPercent: -5, providerPenaltyPercent: 150 }))
+      .toEqual({ providerCompensationPercent: 0, providerPenaltyPercent: 100 });
+  });
+
+  it('allocates by source in integer paise without losing a paisa', () => {
+    expect(allocateRefund({ refundAmount: 0.01, paidAmount: 1, walletPaid: 1, gatewayPaid: 2 }))
+      .toEqual({ walletAmount: 0, gatewayAmount: 0.01 });
+    const split = allocateRefund({ refundAmount: 100, paidAmount: 300, walletPaid: 1, gatewayPaid: 2 });
+    expect(split.walletAmount + split.gatewayAmount).toBe(100);
   });
 });
 

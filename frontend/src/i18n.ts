@@ -242,15 +242,26 @@ export const defaultResources = {
       },
     },
   },
+  // Regional languages (incremental: missing keys fall back to English).
+  // Native-script taglines/search/book strings are translated; the rest of
+  // each locale intentionally falls back until translators fill it in.
+  mr: { translation: { common: { appName: 'FindMedi', tagline: 'तुमच्या जवळ काळजी', search: 'शोधा', bookNow: 'आता बुक करा' } } },
+  bn: { translation: { common: { appName: 'FindMedi', tagline: 'আপনার কাছাকাছি যত্ন', search: 'খুঁজুন', bookNow: 'এখন বুক করুন' } } },
+  as: { translation: { common: { appName: 'FindMedi', tagline: 'আপোনাৰ ওচৰত যত্ন', search: 'সন্ধান কৰক', bookNow: 'এতিয়াই বুক কৰক' } } },
+  or: { translation: { common: { appName: 'FindMedi', tagline: 'ଆପଣଙ୍କ ପାଖରେ ଯତ୍ନ', search: 'ଖୋଜନ୍ତୁ', bookNow: 'ଏବେ ବୁକ୍ କରନ୍ତୁ' } } },
+  ta: { translation: { common: { appName: 'FindMedi', tagline: 'உங்களுக்கு அருகில் பராமரிப்பு', search: 'தேடு', bookNow: 'இப்போது புக் செய்' } } },
+  te: { translation: { common: { appName: 'FindMedi', tagline: 'మీకు దగ్గరలో సంరక్షణ', search: 'వెతకండి', bookNow: 'ఇప్పుడు బుక్ చేయండి' } } },
 };
 
+const SUPPORTED_LANGS = ['en', 'hi', 'mr', 'bn', 'as', 'or', 'ta', 'te'] as const;
 const savedLang = typeof window !== 'undefined' ? localStorage.getItem('findmedi_lang') || 'en' : 'en';
+const initialLang = SUPPORTED_LANGS.includes(savedLang as never) ? savedLang : 'en';
 
 i18n
   .use(initReactI18next)
   .init({
     resources: defaultResources,
-    lng: savedLang,
+    lng: initialLang,
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false, // react already handles escaping

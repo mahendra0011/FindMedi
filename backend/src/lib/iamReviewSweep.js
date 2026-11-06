@@ -4,8 +4,8 @@
  * The route (POST /iam/reviews) creates a campaign on demand; this sweep is
  * the scheduler half so certification actually happens without someone
  * remembering. Idempotent by (tenantId, cycle): one campaign per tenant per
- * calendar quarter, ever. Reviewer = the tenant's own hospital_admin, falling
- * back to any superadmin so a campaign is never left reviewer-less.
+ * calendar quarter, ever. Reviewer = the tenant's own hospital_admin. A
+ * platform superadmin is never used as a cross-tenant fallback reviewer.
  *
  * Exported for BOTH the nightly scheduler and unit tests.
  */
@@ -37,7 +37,7 @@ export async function runIamReviewCampaigns(now = new Date()) {
         // eslint-disable-next-line no-await-in-loop
         const reviewer = await User.findOne({
           $or: [{ hospitalId: tenantId }, { facilityId: tenantId }],
-          role: { $in: ['hospital_admin', 'superadmin'] },
+          role: 'hospital_admin',
         });
         if (!reviewer) { skipped += 1; continue; }
         // eslint-disable-next-line no-await-in-loop

@@ -45,7 +45,7 @@ router.get('/', orderRoleOnly, async (req, res) => {
   try {
     const { encounterId, admissionId, status, kind } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (encounterId) filter.encounterId = encounterId;
     if (admissionId) filter.admissionId = admissionId;
     if (status) filter.status = status;
@@ -85,7 +85,7 @@ router.get('/review-inbox', orderRoleOnly, async (req, res) => {
       status: { $in: ['Completed', 'Verified', 'Report Delivered'] },
       reviewedAt: null,
     };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const rows = await LabOrder.find(filter).sort({ updatedAt: -1 }).limit(100).lean();
     return res.json({ count: rows.length, orders: rows });
   } catch (err) {
@@ -99,8 +99,8 @@ router.put('/review-lab/:id', orderRoleOnly, async (req, res) => {
   try {
     const o = await LabOrder.findById(req.params.id);
     if (!o) return res.status(404).json({ message: 'Not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin'
-      && o.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin'
+      && (!req.user.hospitalId || o.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     o.reviewedBy = actorId(req);
@@ -119,7 +119,7 @@ router.get('/my-rounds', orderRoleOnly, async (req, res) => {
   try {
     const me = String(req.user._id);
     const filter = { status: 'Admitted' };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const rows = await Admission.find(filter).lean();
     const byMe = rows.filter((a) => String(a.admittedBy || '') === me);
     return res.json({ rounds: byMe });

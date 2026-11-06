@@ -53,7 +53,7 @@ router.get('/antenatal', clinicalOnly, async (req, res) => {
   try {
     const { patientId, status } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (patientId) filter.patientId = patientId;
     if (status) filter.status = status;
     const rows = await AntenatalRecord.find(filter).sort({ updatedAt: -1 }).limit(200).lean();
@@ -110,7 +110,7 @@ router.post('/labour/:id/deliver', clinicalOnly, async (req, res) => {
 router.get('/births/:id/certificate', clinicalOnly, async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const row = await BirthRecord.findOne(filter);
     if (!row) return res.status(404).json({ message: 'Birth record not found' });
     let motherName = '';
@@ -177,7 +177,7 @@ router.get('/births/:id/certificate', clinicalOnly, async (req, res) => {
 router.get('/crs-export', clinicalOnly, async (req, res) => {
   try {
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     if (req.query.from || req.query.to) {
       filter.timeOfBirth = {};
       if (req.query.from) filter.timeOfBirth.$gte = new Date(req.query.from);

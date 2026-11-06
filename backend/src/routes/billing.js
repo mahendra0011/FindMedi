@@ -34,6 +34,16 @@ import { toPaise, fromPaise } from '../services/ledgerService.js';
 import { paymentReplayConflict } from '../services/paymentReplayService.js';
 
 const router = express.Router();
+const PLATFORM_OPERATOR_ROLES = new Set([
+  'superadmin', 'super_admin', 'platform_admin', 'support_l1', 'support_l2', 'dpo',
+  'security_admin', 'clinical_safety', 'analyst', 'auditor', 'support_agent',
+  'compliance_officer', 'finance_admin', 'catalog_manager', 'moderator', 'kyc_reviewer', 'city_manager',
+]);
+const denyPlatformPatientBilling = (req, res) => (
+  PLATFORM_OPERATOR_ROLES.has(req.user?.role)
+    ? res.status(403).json({ message: 'Platform roles cannot access patient-linked billing records' })
+    : null
+);
 
 /**
  * PAY-B-11: who may read a payment document (invoice / bill PDF).
@@ -44,7 +54,6 @@ const router = express.Router();
  */
 const canViewPaymentDoc = (user, payment) => {
   if (!payment) return false;
-  if (user.role === 'superadmin') return true;
   if (payment.patient_id && String(payment.patient_id) === String(user._id || user.id)) return true;
   if (user.role === 'hospital_admin') {
     return Boolean(user.hospitalId && payment.hospitalId
@@ -61,7 +70,6 @@ const canViewPaymentDoc = (user, payment) => {
 // accountant, lab staff, ...) could read any other tenant-less bill/payment.
 // It now fails closed.
 function canViewBill(bill, user) {
-  if (user.role === 'superadmin') return true;
   if (bill.patientId && String(bill.patientId) === String(user._id || user.id)) return true;
   const userScope = user.hospitalId || user.facilityId;
   const billScope = bill.hospitalId || bill.facilityId;
@@ -70,7 +78,6 @@ function canViewBill(bill, user) {
 }
 
 function canViewPayment(payment, user) {
-  if (user.role === 'superadmin') return true;
   if (payment.patient_id && String(payment.patient_id) === String(user._id || user.id)) return true;
   const userScope = user.hospitalId || user.facilityId;
   const payScope = payment.hospitalId;
@@ -229,7 +236,9 @@ router.get('/', protect, authorize('billing:read'), async (req, res, next) => {
     if (req.user.role === 'patient') {
       filter.patientId = req.user._id;
     } else if (req.user.role === 'superadmin') {
-      if (patientId || patient_id) filter.patientId = patientId || patient_id;
+      return res.status(403).json({ message: 'Patient-linked bill listing is disabled for platform roles' });
+    } else if (['platform_admin', 'support_l1', 'support_l2', 'dpo', 'security_admin', 'clinical_safety', 'analyst', 'auditor', 'support_agent', 'compliance_officer', 'finance_admin', 'catalog_manager', 'moderator', 'kyc_reviewer', 'city_manager'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Platform roles cannot browse tenant patient bills' });
     } else if (['doctor', 'clinic_doctor', 'counsellor', 'psychiatrist'].includes(req.user.role)) {
       // DLB-24: a doctor is scoped to THEIR OWN bills. `patientId` used to be
       // accepted from any staff role and short-circuited the doctor/hospital
@@ -401,7 +410,10 @@ router.get('/doctor-fees', protect, authorize('billing:read'), async (req, res, 
   try {
     const { default: DoctorFee } = await import('../models/DoctorFee.js');
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role === 'superadmin' || !req.user.hospitalId) {
+      return res.status(403).json({ message: 'Tenant scope required' });
+    }
+    filter.hospitalId = req.user.hospitalId;
     if (req.query.doctorId) filter.doctorId = req.query.doctorId;
     const rows = await DoctorFee.find({ ...filter, active: true }).sort({ effectiveFrom: -1 }).limit(200).lean();
     return res.json({ fees: rows });
@@ -428,6 +440,8 @@ router.post('/doctor-fees', protect, authorize('billing:write'), async (req, res
 // GET /api/billing/:id/tax-invoice — GST breakup JSON
 router.get('/:id/tax-invoice', protect, authorize('billing:read'), async (req, res, next) => {
   try {
+    const platformDenied = denyPlatformPatientBilling(req, res);
+    if (platformDenied) return platformDenied;
     const bill = mongoose.Types.ObjectId.isValid(req.params.id)
       ? await Billing.findById(req.params.id)
       : await Billing.findOne({ invoiceId: req.params.id });
@@ -462,6 +476,8 @@ router.get('/:id/tax-invoice', protect, authorize('billing:read'), async (req, r
 // POST /api/billing/:id/debit-note — issue debit note against a settled bill
 router.post('/:id/debit-note', protect, authorize('billing:write'), async (req, res, next) => {
   try {
+    const platformDenied = denyPlatformPatientBilling(req, res);
+    if (platformDenied) return platformDenied;
     const bill = mongoose.Types.ObjectId.isValid(req.params.id)
       ? await Billing.findById(req.params.id)
       : await Billing.findOne({ invoiceId: req.params.id });
@@ -492,6 +508,8 @@ router.post('/:id/debit-note', protect, authorize('billing:write'), async (req, 
 // GET /api/billing/:id/debit-notes — list debit notes for a bill
 router.get('/:id/debit-notes', protect, authorize('billing:read'), async (req, res, next) => {
   try {
+    const platformDenied = denyPlatformPatientBilling(req, res);
+    if (platformDenied) return platformDenied;
     const bill = mongoose.Types.ObjectId.isValid(req.params.id)
       ? await Billing.findById(req.params.id)
       : await Billing.findOne({ invoiceId: req.params.id });
@@ -508,6 +526,8 @@ router.get('/:id/debit-notes', protect, authorize('billing:read'), async (req, r
 // GET /api/billing/:id
 router.get('/:id', protect, authorize('billing:read'), async (req, res, next) => {
   try {
+    const platformDenied = denyPlatformPatientBilling(req, res);
+    if (platformDenied) return platformDenied;
     const bill = mongoose.Types.ObjectId.isValid(req.params.id)
       ? await Billing.findById(req.params.id)
       : await Billing.findOne({ invoiceId: req.params.id });
@@ -1471,6 +1491,8 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
 // GET /api/transactions/:id/invoice — download invoice PDF
 router.get('/:id/invoice', protect, authorize('billing:read'), async (req, res, next) => {
   try {
+    const platformDenied = denyPlatformPatientBilling(req, res);
+    if (platformDenied) return platformDenied;
     const idParam = req.params.id;
     const payment = mongoose.Types.ObjectId.isValid(idParam)
       ? await Payment.findById(idParam)
@@ -1508,6 +1530,8 @@ router.get('/:id/invoice', protect, authorize('billing:read'), async (req, res, 
 // GET /api/transactions/:id/bill — download bill PDF (type-specific Tax Invoice format)
 router.get('/:id/bill', protect, authorize('billing:read'), async (req, res, next) => {
   try {
+    const platformDenied = denyPlatformPatientBilling(req, res);
+    if (platformDenied) return platformDenied;
     const idParam = req.params.id;
     const payment = mongoose.Types.ObjectId.isValid(idParam)
       ? await Payment.findById(idParam)
@@ -1545,6 +1569,8 @@ router.get('/:id/bill', protect, authorize('billing:read'), async (req, res, nex
 // GET /api/transactions/verify/:id — universal transaction lookup by any valid ID
 router.get('/verify/:id', protect, async (req, res, next) => {
   try {
+    const platformDenied = denyPlatformPatientBilling(req, res);
+    if (platformDenied) return platformDenied;
     const idParam = req.params.id;
     let payment = null;
     let reference = null;

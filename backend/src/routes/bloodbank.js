@@ -25,9 +25,17 @@ router.get('/units', protect, async (req, res) => {
   try {
     const { bloodGroup, status } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role === 'patient') {
+      filter.status = 'Available';
+    } else if (req.user.role !== 'superadmin') {
+      if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' });
+      filter.hospitalId = req.user.hospitalId;
+    }
     if (bloodGroup && bloodGroup !== 'All') filter.bloodGroup = bloodGroup;
-    if (status && status !== 'All') filter.status = status;
+    if (status && status !== 'All') {
+      if (req.user.role === 'patient' && status !== 'Available') return res.status(403).json({ message: 'Patient blood inventory is limited to available units' });
+      filter.status = status;
+    }
     const units = await BloodUnit.find(filter).sort({ createdAt: -1 });
     res.json({ units });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -46,7 +54,8 @@ router.post('/units', protect, adminOnly, validate(createBloodUnitSchema), async
 
 router.post('/requests', protect, validate(createBloodRequestSchema), async (req, res) => {
   try {
-    const { patientId, patientName, bloodGroup, unitsRequired, reason, priority } = req.body;
+    const { patientId: submittedPatientId, patientName, bloodGroup, unitsRequired, reason, priority } = req.body;
+    const patientId = req.user.role === 'patient' ? req.user._id : submittedPatientId;
     if (!patientId || !bloodGroup) return res.status(400).json({ message: 'Patient and blood group required' });
     const requestId = genReqId();
     const request = await BloodRequest.create({ requestId, patientId, patientName, doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name, bloodGroup, unitsRequired: unitsRequired || 1, reason, priority: priority || 'Routine', hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id });
@@ -58,7 +67,12 @@ router.get('/requests', protect, async (req, res) => {
   try {
     const { status, search } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role === 'patient') {
+      filter.patientId = req.user._id;
+    } else if (req.user.role !== 'superadmin') {
+      if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' });
+      filter.hospitalId = req.user.hospitalId;
+    }
     if (status && status !== 'All') filter.status = status;
     if (search) filter.$or = [{ requestId: new RegExp(escapeRegex(capSearch(search)), 'i') }, { patientName: new RegExp(escapeRegex(capSearch(search)), 'i') }, { bloodGroup: new RegExp(escapeRegex(capSearch(search)), 'i') }];
     const requests = await BloodRequest.find(filter).populate('patientId','name').sort({ createdAt: -1 });
@@ -71,7 +85,7 @@ router.put('/requests/:id/issue', protect, adminOnly, requireObjectId, validate(
     const { unitIds } = req.body;
     const request = await BloodRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: 'Request not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && request.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || request.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     request.status = 'Issued';
@@ -98,7 +112,7 @@ router.put('/requests/:id/transfuse', protect, adminOnly, requireObjectId, valid
   try {
     const request = await BloodRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: 'Request not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && request.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || request.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     request.status = 'Completed';
@@ -115,7 +129,7 @@ router.put('/requests/:id/start-transfusion', protect, adminOnly, requireObjectI
   try {
     const request = await BloodRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: 'Request not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && request.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || request.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     request.status = 'Transfusing';
@@ -136,7 +150,7 @@ router.put('/requests/:id/reaction', protect, adminOnly, requireObjectId, valida
   try {
     const request = await BloodRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: 'Request not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && request.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || request.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     request.reaction = true;
@@ -157,7 +171,7 @@ router.put('/requests/:id/crossmatch', protect, adminOnly, requireObjectId, vali
   try {
     const request = await BloodRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: 'Request not found' });
-    if (req.user.hospitalId && req.user.role !== 'superadmin' && request.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || request.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
@@ -203,7 +217,7 @@ router.put('/requests/:id/crossmatch', protect, adminOnly, requireObjectId, vali
 router.get('/stats', protect, async (req, res) => {
   try {
     const hFilter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); hFilter.hospitalId = req.user.hospitalId; }
     const total = await BloodUnit.countDocuments(hFilter);
     const available = await BloodUnit.countDocuments({ status: 'Available', ...hFilter });
     const expired = await BloodUnit.countDocuments({ status: 'Expired', ...hFilter });
@@ -339,7 +353,7 @@ router.get('/screenings', protect, async (req, res) => {
   try {
     const { default: DonorScreening } = await import('../models/DonorScreening.js');
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const rows = await DonorScreening.find(filter).sort({ createdAt: -1 }).limit(300).lean();
     return res.json({ screenings: rows });
   } catch (err) {

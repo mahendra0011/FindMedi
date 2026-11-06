@@ -135,6 +135,16 @@ describe('STEP-UP · a user without 2FA is not locked out of their own account',
     expect(captured).toBe(true);
     expect(r.stepUp).toMatchObject({ skipped: 'two-factor-not-enabled' });
   });
+
+  it('can require enrolled 2FA for break-glass even when other actions allow compatibility bypass', async () => {
+    userFindById.mockReturnValue(lean({ _id: 'u1', twoFactorEnabled: false }));
+    const r = res();
+    let nexted = false;
+    await requireStepUp('phi:breakglass', { requireEnrolled: true })(req({ _id: 'u1' }), r, () => { nexted = true; });
+    expect(nexted).toBe(false);
+    expect(r.statusCode).toBe(403);
+    expect(r.body.error).toBe('TWO_FACTOR_REQUIRED');
+  });
 });
 
 describe('STEP-UP · issuing a grant requires a correct code', () => {
