@@ -49,7 +49,9 @@ jestApi.unstable_mockModule('../../src/models/FamilyMember.js', () => ({
   default: { findOne: (filter) => { calls.familyLookup = filter; return query(data.familyRow ?? null); } },
 }));
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 const USER_STUB = () => {

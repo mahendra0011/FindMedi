@@ -11,6 +11,7 @@ import {
   buildSpecialtyTree,
   buildSpecialtyGroups,
   resolveSpecialtyCode,
+  SPEC_CODE_ALIASES,
 } from '../lib/taxonomy.js';
 import { getCache, setCache, flushCachePattern } from '../config/redis.js';
 import { CATEGORY_TREE } from '../data/categoryTree.mjs';
@@ -20,8 +21,8 @@ const router = express.Router();
 
 const PUBLIC_CACHE_PREFIX = 'categories_public';
 const PUBLIC_CACHE_TTL = 300;
-const PUBLIC_FIELDS = 'code name nameHi aliases type parent path level tier icon displayOrder adClaimsRestricted kind isSensitive soon';
-const WRITABLE_FIELDS = ['name', 'nameHi', 'type', 'aliases', 'description', 'parent', 'icon', 'isActive', 'displayOrder', 'tier', 'regulatedBy', 'adClaimsRestricted', 'externalCodes', 'kind', 'isSensitive', 'soon'];
+const PUBLIC_FIELDS = 'code name nameHi aliases type parent path level tier icon displayOrder adClaimsRestricted kind isSensitive soon alsoUnder meta';
+const WRITABLE_FIELDS = ['name', 'nameHi', 'type', 'aliases', 'description', 'parent', 'icon', 'isActive', 'displayOrder', 'tier', 'regulatedBy', 'adClaimsRestricted', 'externalCodes', 'kind', 'isSensitive', 'soon', 'alsoUnder', 'meta'];
 
 const invalidatePublicCache = () => flushCachePattern(`${PUBLIC_CACHE_PREFIX}:*`);
 
@@ -120,7 +121,7 @@ router.get('/public', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// authz: public - Category Hierarchy Tree (224 nodes)
+// authz: public - full Category Hierarchy Tree
 router.get('/tree', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=300');
   res.json({
@@ -149,6 +150,60 @@ router.get('/specialties', (req, res) => {
     total: SPECIALTIES.length,
     specialties: CANONICAL_SPECIALTIES.map(toPublicSpecialty),
   });
+});
+
+// Distinct provider and facility counts for every browse tile in one request.
+// Cross-listed codes contribute to every parent while each provider is counted
+// only once per parent.
+router.get('/specialties/counts', async (req, res) => {
+  try {
+    const filters = [];
+    if (req.query.approvedOnly !== 'false') filters.push({ approved: true });
+    if (req.query.city) {
+      const cityRegex = new RegExp(`^${escapeRegex(String(req.query.city))}`, 'i');
+      filters.push({ $or: [{ city: cityRegex }, { location: cityRegex }] });
+    }
+    if (req.query.facilityId) filters.push({ $or: [{ facilityId: req.query.facilityId }, { hospitalId: req.query.facilityId }] });
+    const filter = filters.length > 1 ? { $and: filters } : (filters[0] || {});
+
+    const doctors = await Doctor.find(filter)
+      .select('_id specialtyCode specialization subSpecialtyCodes facilityId hospitalId')
+      .lean();
+    const rootCodes = SPECIALTIES.filter((s) => /^SPEC\.[A-Z0-9]+$/.test(s.code)).map((s) => s.code);
+    const counts = Object.fromEntries(rootCodes.map((code) => [code, { doctors: 0, facilities: 0 }]));
+    const doctorSets = new Map(rootCodes.map((code) => [code, new Set()]));
+    const facilitySets = new Map(rootCodes.map((code) => [code, new Set()]));
+
+    for (const doctor of doctors) {
+      const specialtyCodes = new Set([
+        resolveSpecialtyCode(doctor.specialtyCode),
+        resolveSpecialtyCode(doctor.specialization),
+        ...[...(doctor.subSpecialtyCodes || [])].map(resolveSpecialtyCode),
+      ].filter(Boolean));
+      const matchingRoots = new Set();
+      for (const code of specialtyCodes) {
+        const entry = SPECIALTIES.find((item) => item.code === code);
+        if (!entry) continue;
+        const root = /^SPEC\.[A-Z0-9]+$/.test(code) ? code : code.split('.').slice(0, 2).join('.');
+        if (doctorSets.has(root)) matchingRoots.add(root);
+        for (const parent of entry.alsoUnder || []) if (doctorSets.has(parent)) matchingRoots.add(parent);
+      }
+      const id = String(doctor._id);
+      const facilityIds = [doctor.hospitalId, doctor.facilityId].filter(Boolean).map(String);
+      for (const root of matchingRoots) {
+        doctorSets.get(root).add(id);
+        for (const facilityId of facilityIds) facilitySets.get(root).add(facilityId);
+      }
+    }
+    for (const code of rootCodes) {
+      counts[code] = { doctors: doctorSets.get(code).size, facilities: facilitySets.get(code).size };
+    }
+
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    res.json({ counts });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // authz: public - one specialty with subs + condition/procedure chips
@@ -210,9 +265,8 @@ router.get('/specialties/:code/counts', async (req, res) => {
 
     const isTop = /^SPEC\.[A-Z0-9]+$/.test(hit.code);
     const topCode = isTop ? hit.code : hit.code.split('.').slice(0, 2).join('.');
-    const codes = new Set([topCode]);
+    const codes = new Set();
     if (isTop) {
-      codes.add(hit.code);
       const prefix = `${hit.code}.`;
       for (const s of SPECIALTIES) {
         if (s.code.startsWith(prefix) || (s.alsoUnder || []).includes(hit.code)) codes.add(s.code);
@@ -220,27 +274,42 @@ router.get('/specialties/:code/counts', async (req, res) => {
     } else {
       codes.add(hit.code);
     }
-    const codesArr = [...codes];
-    const orFilter = {
+    if (isTop) codes.add(topCode);
+    const canonicalCodes = new Set(codes);
+    const storedCodes = [...new Set([
+      ...canonicalCodes,
+      ...Object.entries(SPEC_CODE_ALIASES)
+        .filter(([, canonical]) => canonicalCodes.has(canonical))
+        .map(([legacy]) => legacy),
+    ])];
+    const codeFilter = {
       $or: [
-        { specialtyCode: topCode },
-        { subSpecialtyCodes: { $in: codesArr } },
+        { specialtyCode: { $in: storedCodes } },
+        { subSpecialtyCodes: { $in: storedCodes } },
       ],
     };
-    if (city) orFilter.location = { $regex: new RegExp(`^${escapeRegex(String(city))}`, 'i') };
-    if (facilityId) orFilter.facilityId = facilityId;
-    if (approvedOnly === 'true') orFilter.approved = true;
+    const filters = [codeFilter];
+    if (city) {
+      const cityRegex = new RegExp(`^${escapeRegex(String(city))}`, 'i');
+      filters.push({ $or: [{ city: cityRegex }, { location: cityRegex }] });
+    }
+    if (facilityId) filters.push({ $or: [{ facilityId }, { hospitalId: facilityId }] });
+    if (approvedOnly === 'true') filters.push({ approved: true });
+    const query = filters.length === 1 ? filters[0] : { $and: filters };
 
-    const [doctors, hospitals] = await Promise.all([
-      Doctor.countDocuments(orFilter),
-      Doctor.distinct('hospitalId', orFilter),
+    const [doctors, hospitalIds, clinicIds] = await Promise.all([
+      Doctor.countDocuments(query),
+      Doctor.distinct('hospitalId', query),
+      Doctor.distinct('facilityId', query),
     ]);
+    const facilityCount = new Set([...hospitalIds, ...clinicIds].filter(Boolean).map(String)).size;
     res.setHeader('Cache-Control', 'public, max-age=60');
     res.json({
       code: topCode,
       requestedCode: hit.code,
       doctors,
-      hospitals: hospitals.filter(Boolean).length,
+      hospitals: facilityCount,
+      facilities: facilityCount,
     });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -248,64 +317,61 @@ router.get('/specialties/:code/counts', async (req, res) => {
 // authz: role / catalog_manager - Idempotently seed/sync full CATEGORY_TREE into MongoDB
 router.post('/seed', protect, requireRole(['superadmin', 'catalog_manager']), async (req, res) => {
   try {
-    const parentCodeToId = new Map();
+    const itemByCode = new Map(CATEGORY_TREE.map((item) => [item.code, item]));
+    const depthByCode = new Map();
+    const getDepth = (item, visiting = new Set()) => {
+      if (depthByCode.has(item.code)) return depthByCode.get(item.code);
+      if (!item.parent) {
+        depthByCode.set(item.code, 0);
+        return 0;
+      }
+      if (visiting.has(item.code)) throw new Error(`Category parent cycle at ${item.code}`);
+      const parent = itemByCode.get(item.parent);
+      if (!parent) throw new Error(`Missing category parent ${item.parent} for ${item.code}`);
+      visiting.add(item.code);
+      const depth = getDepth(parent, visiting) + 1;
+      visiting.delete(item.code);
+      depthByCode.set(item.code, depth);
+      return depth;
+    };
+    const orderedItems = [...CATEGORY_TREE].sort((a, b) => getDepth(a) - getDepth(b));
+    const seededByCode = new Map();
     let roots = 0;
     let leaves = 0;
 
-    for (const item of CATEGORY_TREE) {
-      if (!item.parent) {
-        const doc = await Category.findOneAndUpdate(
-          { code: item.code },
-          {
-            $set: {
-              name: item.name,
-              nameHi: item.nameHi || '',
-              type: item.type,
-              aliases: item.aliases || [],
-              tier: item.tier || 'T1',
-              regulatedBy: item.regulatedBy || [],
-              kind: item.kind || '',
-              isSensitive: !!item.isSensitive,
-              adClaimsRestricted: !!item.adClaimsRestricted,
-              path: item.code,
-              level: 0,
-              isActive: true,
-            },
-          },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
-        );
-        parentCodeToId.set(item.code, doc._id);
-        roots++;
+    for (const item of orderedItems) {
+      const parentInfo = item.parent ? seededByCode.get(item.parent) : null;
+      if (item.parent && !parentInfo) {
+        throw new Error(`Category parent was not seeded before child ${item.code}`);
       }
-    }
-
-    for (const item of CATEGORY_TREE) {
-      if (item.parent) {
-        const parentId = parentCodeToId.get(item.parent) || null;
-        const doc = await Category.findOneAndUpdate(
-          { code: item.code },
-          {
-            $set: {
-              name: item.name,
-              nameHi: item.nameHi || '',
-              type: item.type,
-              aliases: item.aliases || [],
-              parent: parentId,
-              tier: item.tier || 'T1',
-              regulatedBy: item.regulatedBy || [],
-              kind: item.kind || '',
-              isSensitive: !!item.isSensitive,
-              adClaimsRestricted: !!item.adClaimsRestricted,
-              path: `${item.parent}/${item.code}`,
-              level: 1,
-              isActive: true,
-            },
+      const level = depthByCode.get(item.code);
+      const doc = await Category.findOneAndUpdate(
+        { code: item.code },
+        {
+          $set: {
+            name: item.name,
+            nameHi: item.nameHi || '',
+            type: item.type,
+            aliases: item.aliases || [],
+            alsoUnder: item.alsoUnder || [],
+            meta: item.meta || {},
+            icon: item.icon || '',
+            parent: parentInfo?._id || null,
+            tier: item.tier || 'T1',
+            regulatedBy: item.regulatedBy || [],
+            kind: item.kind || '',
+            isSensitive: !!item.isSensitive,
+            adClaimsRestricted: !!item.adClaimsRestricted,
+            path: parentInfo ? `${parentInfo.path}/${item.code}` : item.code,
+            level,
+            isActive: true,
           },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
-        );
-        if (doc) parentCodeToId.set(item.code, doc._id);
-        leaves++;
-      }
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      seededByCode.set(item.code, { _id: doc._id, path: doc.path });
+      if (level === 0) roots++;
+      else leaves++;
     }
 
     await invalidatePublicCache();

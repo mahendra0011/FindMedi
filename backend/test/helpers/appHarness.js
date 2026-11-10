@@ -157,6 +157,7 @@ export async function mountApp(name, models = {}, options = {}) {
     supportAssistCodeLimiter: (_req, _res, next) => next(),
     supportAssistVerifyLimiter: (_req, _res, next) => next(),
     supportAssistRevealLimiter: (_req, _res, next) => next(),
+    communityReportLimiter: (_req, _res, next) => next(),
     chatUploadLimiter: (_req, _res, next) => next(),
   }));
   for (const [specifier, factory] of Object.entries(models)) {
@@ -177,10 +178,10 @@ export async function mountApp(name, models = {}, options = {}) {
   // Only `request.agent(app)` carries headers, and an agent is stateful across
   // requests, which would leak one test's identity into the next.
   const { default: request } = await import('supertest');
-  const as = (user) => {
+  const as = (user, extraHeaders = {}) => {
     const headers = user
-      ? { 'x-test-user': Buffer.from(JSON.stringify(user)).toString('base64') }
-      : {};
+      ? { 'x-test-user': Buffer.from(JSON.stringify(user)).toString('base64'), ...extraHeaders }
+      : { ...extraHeaders };
     const wrap = (verb) => (path) => request(app)[verb](path).set(headers);
     return {
       get: wrap('get'),

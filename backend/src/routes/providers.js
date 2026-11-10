@@ -74,7 +74,7 @@ router.get('/', async (req, res) => {
     const search = safeSearchRegex(q);
     if (search) filter.$or = [{ name: search }, { tagline: search }];
 
-    const limit = all === '1' ? 200 : toPositiveInt(req.query.limit, 20, 100);
+    const limit = all === '1' ? 200 : toPositiveInt(req.query.limit, 20, 50);
     const page = toPositiveInt(req.query.page, 1, 10000);
 
     const [providers, total] = await Promise.all([

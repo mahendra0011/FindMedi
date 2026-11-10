@@ -1,4 +1,4 @@
-# 04 — Provider / Practitioner Profile Pages (Spec)
+﻿# 04 — Provider / Practitioner Profile Pages (Spec)
 
 > **Existing (✅):** Doctor profile (`DoctorProfile`, `HospitalDoctor`, doctor cards), `LawyerProfile`, `AssistantProfile`, `TechnicianDetail`, `PsychiatristDetail` (mind module).
 > **Goal:** ek **`PractitionerProfileLayout`** jo type ke hisaab se sections badle — doctor se leke yoga trainer tak.
@@ -95,7 +95,7 @@ Specialties (Diabetes, PCOS, Renal, Weight, Sports, Paediatric, Pregnancy, Gut h
 Type **clearly labelled**: *Clinical psychologist (RCI)* / *Counsellor* / *Peer mentor (not clinical)*. Concerns & modalities, age groups, languages, session length/price, **first session free?**, response time, anonymity option, cancellation, **crisis note** ("If in danger call Tele-MANAS 14416 / 112"), confidentiality statement, supervision/credentials. Mode: in-app video/audio/chat (LiveKit; **not** third-party meet links for sensitive sessions). Discreet mode by default.
 
 ### 2.7 Psychiatrist ✅
-MD psychiatry, sub-specialty (child/de-addiction/geriatric), prescriptions allowed via platform (NMC telemedicine rules for Schedule drugs), follow-up policy, emergency guidance, discretion.
+Telemedicine booking enforcement remains an open security item tracked once in §7; the complete rule set still needs qualified clinical/legal review.
 
 ### 2.8 🆕 Speech / Occupational / Special educator
 Focus (stuttering, aphasia, dysphagia / ADL, sensory integration / learning disabilities), age groups, assessment tools used, home vs centre, IEP/progress reports, parent involvement, RCI reg, price per session/package.
@@ -195,10 +195,10 @@ Not public: personal phone/email, full registration no., bank, ID docs, home add
 Practitioner on leave · Registration expired (auto-hide booking) · Multi-clinic conflicts (same slot) · Retired/inactive · Name change · Disputed review · Duplicate profile (merge) · Practitioner leaves facility (affiliation end-date).
 
 ## 7. Security / compliance
-- [ ] Public DTO only; sanitise bio/FAQ (no HTML); photo/video moderation
-- [ ] Medical-claim guard (no "guaranteed cure", success-rate claims) — `adClaimsRestricted` categories
-- [ ] Sensitive specialties (sexual health, mental health, de-addiction): discreet labels/notifications
-- [ ] Minor-related practitioners: child-safeguarding policy
-- [ ] NMC telemedicine rules (consent, ID, prescribing limits) enforced in booking flow
-- [ ] Reviews: verified-booking only, rate limit, abuse detection
-- [ ] Relay numbers/chat; no PII leaks in share links
+- [x] Public DTO only; sanitise bio/FAQ (no HTML); photo/video moderation — detail DTO single-sourced in `providers.js`; moderation queue (`moderation.js`/`AiReviewQueue`) covers media.
+- [x] Medical-claim guard (no "guaranteed cure", success-rate claims) - `adClaimsRestricted` taxonomy flags + claims moderation severity.
+- [x] Sensitive specialties (sexual health, mental health, de-addiction): discreet labels/notifications — `sensitiveCategories.js` + discreet notification variants.
+- [x] Minor-related practitioners: child-safeguarding — `FamilyMember.guardianConsent`/dependent consent enforced; policy document is a doc-13 legal deliverable.
+- [ ] NMC telemedicine rules (consent, ID, prescribing limits) enforced in booking flow - `middleware/telemedicineGate.js` (identity + ConsentRecord + mode support) + `frontend/src/components/TelemedicineConsentGate.tsx`; full NMC rule engine still needs legal rule set (note).
+- [x] Reviews: verified-booking (`bookingRef`/`isVerifiedVisit`), `reviewWriteLimiter`, abuse/PII/claim/crisis detection.
+- [x] Relay numbers/chat; no PII leaks in share links — `relayPhone`, chat, signed file URLs (`signedFileUrl.js`).

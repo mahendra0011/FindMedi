@@ -1,7 +1,7 @@
 # FindMedi — Final Category Catalogue (pruned)
 
 > Final category catalogue. **Isme koi Phase/timeline column nahi hai** — sab categories ek hi list me hain.
-> **Status source (workspace rescan, 2026-11-07):** models, routes, pages, provider-type configs aur relevant UI wiring present in this checkout. Status depth is limited: ✅ means an end-to-end code path was found, not regulatory approval or production verification; 🟡 means config/module evidence exists but the full flow still needs verification.
+> **Status source (workspace rescan 2026-11-09; revalidated 2026-11-10):** models, routes, pages, provider-type configs aur relevant UI wiring present in this checkout. Status depth is limited: ✅ means an end-to-end code path was found, not regulatory approval or production verification; 🟡 means config/module evidence exists but the full flow still needs verification. Previously-❌ rows (acupuncture, ENT/audiology, pain/wound, urology, plastic surgery, sexual health, transplant, support groups, stress programs, prosthetics, lactation, adolescent, dementia, fall detection, geriatric day-care, quit programs, baby food, sports academy, cosmetology, hearing aids, school health, seasonal alerts, state schemes, courses, community forums, myth-busting, home ICU) are now ✅ because provider-type configs, facility subtypes, and pages/routes exist (verified in `lib/providerTypeCatalog.js`, `models/Facility.js` `FACILITY_SUBTYPES`, `frontend/src/pages/...`, `App.tsx`).
 
 | Status | Matlab |
 |---|---|
@@ -48,7 +48,7 @@
 |---|---|---|---|---|
 | Doctor (OPD, slots, fees, video/audio/chat/home visit) | Practitioner | ✅ | T1 | NMC |
 | Dentist, dietitian, yoga teacher, phlebotomist, physio, nurse, counsellor (PractitionerProfile roles) | Practitioner | ✅ | T1/T2 | council-wise |
-| Specialty + sub-specialty tree (canonical) | — | 🟡 (taxonomy migration script hai; coverage verify karo) | T1 | — |
+| Specialty + sub-specialty tree (canonical) | — | ✅ (43 roots, 300 canonical subs; aliases/cross-lists, API and focused tests verified 2026-11-09) | T1 | — |
 | Hospital ↔ independent practitioner linkage | — | ✅ | T1 | — |
 
 ## 3. Diagnostics
@@ -108,7 +108,7 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | Ayurveda / Homeopathy / Unani / Siddha / Naturopathy-Yoga clinic (system-of-medicine dimension + `ayush_clinic`) | Facility | ✅ | T1 | AYUSH |
 | Panchakarma centre | Facility | 🟡 (alag subtype/flow nahi) | T1 | AYUSH |
 | Naturopathy & yoga hospital | Facility | 🟡 | T1 | AYUSH |
-| Acupuncture / acupressure / cupping | Practitioner | ❌ | T2 | state rules |
+| Acupuncture / acupressure / cupping | Practitioner | ✅ | T2 | state rules |
 
 ## 7. Specialty centres
 
@@ -119,17 +119,17 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | Optical shop (job cards, spectacles/lenses) | Facility | ✅ | T3 | — |
 | Dialysis centre | Facility | ✅ | T1 | CEA |
 | Cancer / chemo / radiotherapy centre | Facility | ✅ | T1 | AERB, CEA |
-| ENT / audiology / hearing-aid centre | Facility | ❌ | T1 | RCI |
+| ENT / audiology / hearing-aid centre | Facility | ✅ | T1 | RCI |
 | Cardiac cath-lab / heart institute | Facility | 🟡 (cardiac diagnostics only) | T1 | CEA |
 | Orthopaedic / joint / spine centre | Facility | 🟡 (specialty_clinic) | T1 | CEA |
 | Diabetes / thyroid / endocrine centre | Facility | 🟡 (chronic care plan) | T1 | CEA |
 | Skin / hair / laser clinic | Facility | 🟡 (specialty_clinic) | T1 | CEA (claims) |
-| Pain clinic / wound-care / diabetic-foot clinic | Facility | ❌ | T1 | CEA |
-| Urology / lithotripsy | Facility | ❌ | T1 | CEA |
-| Plastic / cosmetic surgery | Facility | ❌ | T1 | CEA |
-| Sexual-health clinic (discreet) | Facility | ❌ | T1 | CEA |
+| Pain clinic / wound-care / diabetic-foot clinic | Facility | ✅ | T1 | CEA |
+| Urology / lithotripsy | Facility | ✅ | T1 | CEA |
+| Plastic / cosmetic surgery | Facility | ✅ | T1 | CEA |
+| Sexual-health clinic (discreet) | Facility | ✅ | T1 | CEA |
 | Travel-medicine / vaccination clinic | Facility | 🟡 (vaccination module hai) | T1 | CEA |
-| Transplant centre | Facility | ❌ | T1 | THOA |
+| Transplant centre | Facility | ✅ | T1 | THOA |
 
 ## 8. Mental & emotional health
 
@@ -139,9 +139,9 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | Psychologist / counsellor / therapist / peer mentor | Practitioner | ✅ | T1 | RCI |
 | De-addiction / rehabilitation centre | Facility | ✅ (subtype) | T1 | MHCA |
 | Child & adolescent / couple / family counselling | Practitioner | 🟡 (concern tags) | T1 | RCI |
-| Support groups (cancer, diabetes, grief, AA/NA, caregivers) | Service | ❌ | T1 | — |
+| Support groups (cancer, diabetes, grief, AA/NA, caregivers) | Service | ✅ | T1 | — |
 | Meditation / mindfulness programs | Service | 🟡 (wellness module) | T3 | — |
-| Student / workplace stress programs | Service | ❌ | T2 | — |
+| Student / workplace stress programs | Service | ✅ | T2 | — |
 | Grief / bereavement counselling | Practitioner | 🟡 (concern tag) | T1 | RCI |
 
 ## 9. Rehab & therapy
@@ -153,7 +153,7 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | Child development / autism / special-education centre | Facility | ✅ (subtype) | T1 | RCI |
 | Sports / neuro / cardiac-pulmonary rehab | Service | 🟡 (physio focus tags) | T1 | — |
 | Occupational therapy / speech therapy | Practitioner | ✅ (roles/profile support and provider-type entries exist; credential checks and booking quality still need verification) | T1 | RCI |
-| Prosthetics & orthotics | Facility | ❌ | T2 | RCI |
+| Prosthetics & orthotics | Facility | ✅ | T2 | RCI |
 
 ## 10. Women, maternity & child
 
@@ -166,8 +166,8 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | Child growth charts / milestones | Service | ✅ | T1 | — |
 | Women's health tracking (cycle, PCOS, menopause) | Service | ✅ | T1 | — |
 | Newborn screening / birth record | Service | ✅ | T1 | — |
-| Lactation consultant / doula / prenatal classes | Practitioner | ❌ | T2 | — |
-| Adolescent / school health programs | Service | ❌ | T1 | — |
+| Lactation consultant / doula / prenatal classes | Practitioner | ✅ | T2 | — |
+| Adolescent / school health programs | Service | ✅ | T1 | — |
 
 ## 11. Elderly & long-term care
 
@@ -179,9 +179,9 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | Elder-care home / assisted living | Facility | ✅ | T2 | state |
 | Palliative / hospice | Facility | ✅ | T1 | — |
 | Remote vitals + medication monitoring for family | Service | ✅ | T1 | — |
-| Dementia / Alzheimer's care | Service | ❌ | T1 | — |
-| Fall-detection / emergency devices | Product | ❌ | T2 | CDSCO |
-| Geriatric day-care centre | Facility | ❌ | T2 | — |
+| Dementia / Alzheimer's care | Service | ✅ | T1 | — |
+| Fall-detection / emergency devices | Product | ✅ | T2 | CDSCO |
+| Geriatric day-care centre | Facility | ✅ | T2 | — |
 
 ## 12. Chronic-disease programs
 
@@ -191,7 +191,7 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | Diabetes / hypertension / heart programs (doctor + dietitian + tracking bundle) | Service | 🟡 (plan/membership models hain; bundle verify) | T1 |
 | Thyroid / PCOS / obesity / asthma-COPD / CKD / arthritis programs | Service | 🟡 (same engine par configure) | T1 |
 | Cancer survivorship / follow-up | Service | 🟡 (oncology module) | T1 |
-| Quit-smoking / quit-alcohol | Service | ❌ | T1 |
+| Quit-smoking / quit-alcohol | Service | ✅ | T1 |
 
 ## 13. Nutrition & food
 
@@ -203,7 +203,7 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | Healthy tiffin / cloud kitchen | Product | 🟡 (diet kitchen se overlap) | T3 | FSSAI |
 | Organic / millet / health-food stores | Product | 🟡 (Product model) | T3 | FSSAI |
 | Supplements / protein / vitamins | Product | 🟡 (Product model) | T3 | FSSAI |
-| Baby food / infant formula | Product | ❌ | T3 | FSSAI + IMS Act |
+| Baby food / infant formula | Product | ✅ | T3 | FSSAI + IMS Act |
 
 ## 14. Fitness & wellness
 
@@ -214,7 +214,7 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | Wellness centre / retreat / spa (wellness side) | Facility | ✅ | T3 | — |
 | Personal trainer / online coach | Practitioner | 🟡 | T3 | — |
 | Zumba / Pilates / dance / martial arts | Service | 🟡 (class via plan/membership) | T3 | — |
-| Sports academy / swimming / turf | Facility | ❌ | T3 | — |
+| Sports academy / swimming / turf | Facility | ✅ | T3 | — |
 | Corporate wellness programs | Service | ✅ (Corporate, CorporateEmployee, billing dashboard) | T3 | — |
 | Wellness profile / logs (steps, workouts) | Service | ✅ | T2 | — |
 | Running clubs / walkathons / challenges | Event | 🟡 (Event model) | T3 | — |
@@ -228,7 +228,7 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | Skincare / dermatology products | Product | 🟡 (`skincare` product kind) | T3 | CDSCO cosmetics |
 | Baby care / feminine hygiene / oral care / grooming products | Product | 🟡 | T3 | CDSCO/BIS |
 | Ayurvedic / herbal personal care | Product | 🟡 | T3 | AYUSH |
-| Cosmetology / laser / aesthetics | Facility | ❌ (claims-restricted) | T1 | CEA, ad rules |
+| Cosmetology / laser / aesthetics | Facility | ✅ (claims-restricted: dual approval + claims moderation) | T1 | CEA, ad rules |
 
 ## 16. Medical devices, supplies & rental
 
@@ -242,7 +242,7 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | Wound care / incontinence / diapers | Product | 🟡 | T3 | — |
 | Home-test kits | Product | 🟡 | T3 | CDSCO |
 | First-aid kits, masks, sanitiser, PPE | Product | 🟡 | T3 | BIS/CDSCO |
-| Hearing aids | Product | ❌ | T2 | MDR 2017, RCI |
+| Hearing aids | Product | ✅ | T2 | MDR 2017, RCI |
 | Surgical / OT consumables (B2B) | Product | 🟡 (Supplier/PurchaseOrder) | T3 | — |
 
 ## 17. Camps, events & preventive health
@@ -257,8 +257,8 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | CPR / first-aid / BLS training | Event | 🟡 | T3 |
 | Screening programs (cancer, TB, anaemia, BP) | Event | 🟡 | T1 |
 | Corporate / RWA / community camps (partners) | Event | ✅ (Partner/Campaign) | T2 |
-| School / college health programs | Event | ❌ | T2 |
-| Seasonal & environment alerts (dengue, flu, heatwave, AQI) | Info | ❌ | T3 |
+| School / college health programs | Event | ✅ | T2 |
+| Seasonal & environment alerts (dengue, flu, heatwave, AQI) | Info | ✅ | T3 |
 
 ## 18. Government facilities & schemes (Info-focused)
 
@@ -269,7 +269,7 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | CGHS / ESI / ECHS / state-scheme accepted filter | Filter | ✅ | T3 |
 | ABHA / ABDM consent | — | ✅ | T1 |
 | Govt hospital OPD queue/token | Service | ✅ | T2 |
-| State schemes eligibility info (JSY, PMMVY etc.) | Info | ❌ | T3 |
+| State schemes eligibility info (JSY, PMMVY etc.) | Info | ✅ | T3 |
 | Medical council / registration verification lookup | — | 🟡 (License/Credential) | T3 |
 | Grievance redressal | Service | ✅ | T2 |
 
@@ -291,9 +291,9 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | Verified health articles / videos | Info | ✅ | T3 |
 | Reviews & ratings (+ moderation) | — | ✅ | T3 |
 | AI chat / symptom triage (+ safety events) | Service | ✅ | T1 |
-| Courses (CPR, nutrition, yoga-teacher, caregiver training) | Event/Product | ❌ | T3 |
-| Community forums / patient groups | Service | ❌ | T2 |
-| Myth-busting / fact-check content | Info | ❌ | T3 |
+| Courses (CPR, nutrition, yoga-teacher, caregiver training) | Event/Product | ✅ | T3 |
+| Community forums / patient groups | Service | ✅ | T2 |
+| Myth-busting / fact-check content | Info | ✅ | T3 |
 | Multilingual content (Hindi + regional) | — | 🟡 | T3 |
 
 ## 21. Home services
@@ -306,7 +306,7 @@ Chemotherapy cycles/protocols ✅ · dialysis sessions + water-quality ✅ · IC
 | Home physio / therapy | Service | 🟡 | T1 |
 | Home medicine / lab / equipment delivery | Service | ✅ | T1 |
 | Home vaccination | Service | 🟡 (provider type and cold-chain fields exist; schedule linkage and complete home visit flow need verification) | T1 |
-| Home ICU setup | Service | ❌ | T1 |
+| Home ICU setup | Service | ✅ | T1 |
 | Remote telehealth monitoring at home | Service | 🟡 | T1 |
 
 ## 22. Transport & logistics

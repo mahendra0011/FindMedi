@@ -21,6 +21,7 @@ const auditStub = () => ({
 const { as: asBreach } = await mountApp('breach', {
   '../../src/models/Breach.js': () => ({    default: {
       find: () => query(breaches),
+      findOne: ({ _id }) => query(breaches.find((row) => String(row._id) === String(_id)) || null),
       findByIdAndUpdate: async (id, update) => {
         const r = breaches.find((b) => String(b._id) === String(id));
         if (!r) return null;
@@ -30,7 +31,7 @@ const { as: asBreach } = await mountApp('breach', {
       create: async (d) => {
         const r = {
           _id: 'br1', status: 'Open', detectedAt: new Date(), notifiedAt: null,
-          deadlineAt: new Date(Date.now() + 72 * 3600 * 1000), ...d,
+          deadlineAt: new Date(Date.now() + 72 * 3600 * 1000), save: async function () { return this; }, ...d,
         };
         breaches.push(r);
         return r;
@@ -62,6 +63,7 @@ describe('P2-31 breach register', () => {
     const r = await asBreach(sec).post('/').send({ title: 'Export anomaly', nature: 'confidentiality' });
     expect(r.status).toBe(201);
     expect(new Date(r.body.deadlineAt).getTime() - Date.now()).toBeGreaterThan(70 * 3600 * 1000);
+    expect((await asBreach(sec).patch('/br1').send({ status: 'Assessing' })).status).toBe(200);
     const no = await asBreach(sec).patch('/br1').send({ status: 'Notified' });
     expect(no.status).toBe(400);
     const ok = await asBreach(sec).patch('/br1').send({ status: 'Notified', notifiedTo: 'dpo@hospital.in' });

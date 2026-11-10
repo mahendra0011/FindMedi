@@ -37,6 +37,9 @@ export interface SpecialtyGroup {
   name: string;
   color: string;
   tiles: SpecialtyNode[];
+  /** Accept legacy/mock API group and label fields while normalizing the DTO. */
+  group?: string;
+  label?: string;
 }
 
 interface SpecialtyTreeResponse {
@@ -78,6 +81,22 @@ export interface SpecialtyCountsData {
   requestedCode?: string;
   doctors?: number;
   hospitals?: number;
+  facilities?: number;
+}
+
+export type SpecialtyCountsByCode = Record<string, { doctors: number; facilities: number }>;
+
+export interface SpecialtySuggestion {
+  kind: 'specialty' | 'symptom' | 'condition' | 'procedure' | 'doctor';
+  code?: string;
+  id?: string;
+  name?: string;
+  label?: string;
+  nameHi?: string | null;
+  parentName?: string | null;
+  specialty?: { code: string; name: string; nameHi?: string | null };
+  specialization?: string;
+  city?: string;
 }
 
 export function useSpecialtyTree(): QueryState<SpecialtyTreeResponse> {
@@ -98,7 +117,10 @@ export function useSpecialtyTiles(): SpecialtyTilesResult {
   const fromApi = groups.length > 0;
 
   const groupList: SpecialtyGroup[] = groups.map((g) => ({
-    id: g.id, name: g.name, color: g.color, tiles: g.tiles || [],
+    id: g.id || g.group || g.label || 'specialty-group',
+    name: g.name || g.label || g.group || 'Specialties',
+    color: g.color,
+    tiles: g.tiles || [],
   }));
 
   const allTiles = groupList.flatMap((g) => g.tiles);
@@ -143,6 +165,25 @@ export function useBrowseSpecialtyCounts(
     () => api.browseSpecialtyCounts(code, params),
     { enabled: Boolean(code), staleTime: 60_000, ...options },
   ) as QueryState<SpecialtyCountsData>;
+}
+
+/** One cached request for all tile counts, optionally scoped to city/facility. */
+export function useSpecialtyCountsByCode(params: Record<string, string> = {}): QueryState<{ counts: SpecialtyCountsByCode }> {
+  return useApiQuery(
+    ['categories', 'specialty-counts-all', params],
+    () => api.getSpecialtyCountsByCode(params),
+    { staleTime: 60_000 },
+  ) as QueryState<{ counts: SpecialtyCountsByCode }>;
+}
+
+/** Taxonomy and approved-provider typeahead for the specialty browser. */
+export function useSpecialtySuggestions(query: string): QueryState<{ results: SpecialtySuggestion[] }> {
+  const q = query.trim();
+  return useApiQuery(
+    ['search', 'specialty-suggest', q.toLowerCase()],
+    () => api.get(`/search/suggest?q=${encodeURIComponent(q)}`),
+    { enabled: q.length >= 2, staleTime: 30_000 },
+  ) as QueryState<{ results: SpecialtySuggestion[] }>;
 }
 
 export const resolveInTileList = (tiles: SpecialtyNode[], value: string): SpecialtyNode | null =>

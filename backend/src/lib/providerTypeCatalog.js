@@ -1132,6 +1132,168 @@ const CATALOG = [
     ],
     extraStepFields: { business: ['tpa_name'], services: ['insurers', 'cashless_networks'] },
   },
+  // ── 2.md 4.9 Specialty & niche clinics (T1) — catalogue entries previously
+  //    missing an onboarding surface. Each reuses the clinical approval path.
+  {
+    typeKey: 'acupuncture_clinic', kind: 'facility', group: 'clinical', tier: 'T1',
+    label: 'Acupuncture / Acupressure / Cupping Clinic', icon: 'Sparkles', template: 'facility',
+    description: 'TCM-style acupuncture, acupressure and cupping therapy centre.',
+    requiredDocs: [rq('clinical_establishment_reg', 'Clinic registration'), rq('medical_council_reg', 'Lead practitioner registration'), rq('bmw_authorization', 'Biomedical waste authorisation')],
+    optionalDocs: [opt('fire_noc', 'Fire NOC')],
+    approval: APPROVAL.clinical,
+    extraFields: [field('modalities', 'Modalities', 'multiselect', { options: ['acupuncture', 'acupressure', 'cupping', 'moxibustion'] }), field('consult_fee', 'Consultation fee (INR)', 'number')],
+    extraStepFields: { services: ['modalities', 'consult_fee'] },
+  },
+  {
+    typeKey: 'pain_clinic', kind: 'facility', group: 'clinical', tier: 'T1',
+    label: 'Pain / Wound-Care / Diabetic-Foot Clinic', icon: 'Bandage', template: 'facility',
+    description: 'Chronic pain, wound care and diabetic foot management clinic.',
+    requiredDocs: [rq('clinical_establishment_reg', 'Clinic registration'), rq('medical_council_reg', 'Lead doctor registration'), rq('bmw_authorization', 'Biomedical waste authorisation')],
+    optionalDocs: [opt('fire_noc', 'Fire NOC')],
+    approval: APPROVAL.clinical,
+    extraFields: [field('services_offered', 'Services', 'multiselect', { options: ['pain_management', 'wound_care', 'diabetic_foot', 'nerve_block', 'physiotherapy'] }), field('consult_fee', 'Consultation fee (INR)', 'number')],
+    extraStepFields: { services: ['services_offered', 'consult_fee'] },
+  },
+  {
+    typeKey: 'cosmetic_surgery_centre', kind: 'facility', group: 'clinical', tier: 'T1',
+    label: 'Plastic / Cosmetic Surgery Centre', icon: 'Sparkles', template: 'facility',
+    description: 'Plastic, reconstructive and cosmetic surgery centre.',
+    requiredDocs: [rq('clinical_establishment_reg', 'Establishment registration'), rq('medical_council_reg', 'Surgeon registration'), rq('fire_noc', 'Fire NOC'), rq('bmw_authorization', 'Biomedical waste authorisation')],
+    optionalDocs: [opt('nabh', 'NABH accreditation')],
+    approval: APPROVAL.clinical,
+    extraFields: [field('procedures', 'Procedures', 'multiselect', { options: ['rhinoplasty', 'liposuction', 'breast', 'hair_transplant', 'reconstructive', 'burn_care'] }), field('ot_count', 'Operation theatres', 'number')],
+    extraStepFields: { services: ['procedures', 'ot_count'] },
+  },
+  {
+    typeKey: 'sexual_health_clinic', kind: 'facility', group: 'clinical', tier: 'T1',
+    label: 'Sexual-Health Clinic (Discreet)', icon: 'Lock', template: 'facility',
+    description: 'Discreet sexual-health and STD consultation clinic.',
+    requiredDocs: [rq('clinical_establishment_reg', 'Clinic registration'), rq('medical_council_reg', 'Lead doctor registration')],
+    optionalDocs: [opt('bmw_authorization', 'Biomedical waste authorisation')],
+    approval: APPROVAL.clinical,
+    extraFields: [field('discreet_booking', 'Discreet booking enabled', 'boolean'), field('std_panels', 'STD panels offered', 'multiselect', { options: ['hiv', 'syphilis', 'gonorrhoea', 'chlamydia', 'hpv'] })],
+    extraStepFields: { services: ['discreet_booking', 'std_panels'] },
+  },
+  {
+    typeKey: 'transplant_centre', kind: 'facility', group: 'clinical', tier: 'T1',
+    label: 'Transplant Centre', icon: 'Heart', template: 'facility',
+    description: 'Organ / tissue transplant centre (THOA compliant).',
+    requiredDocs: [rq('clinical_establishment_reg', 'Establishment registration'), rq('medical_council_reg', 'Transplant surgeon registration'), rq('fire_noc', 'Fire NOC'), rq('bmw_authorization', 'Biomedical waste authorisation')],
+    optionalDocs: [opt('nabh', 'NABH accreditation'), opt('partner_loa', 'THOA authorisation')],
+    approval: APPROVAL.clinical,
+    extraFields: [field('organs', 'Organs transplanted', 'multiselect', { options: ['kidney', 'liver', 'heart', 'lung', 'pancreas', 'cornea', 'bone_marrow'] }), field('bed_icu', 'ICU beds', 'number')],
+    extraStepFields: { services: ['organs', 'bed_icu'] },
+  },
+  {
+    typeKey: 'prosthetics_orthotics_centre', kind: 'facility', group: 'clinical', tier: 'T2',
+    label: 'Prosthetics & Orthotics Centre', icon: 'Bone', template: 'facility',
+    description: 'Artificial limbs, calipers, custom splints and braces.',
+    requiredDocs: [rq('clinical_establishment_reg', 'Establishment registration'), rq('allied_health_reg', 'Prosthetist / orthotist registration')],
+    optionalDocs: [opt('fire_noc', 'Fire NOC')],
+    approval: APPROVAL.single,
+    extraFields: [field('custom_fabrication', 'Custom fabrication on site', 'boolean')],
+    extraStepFields: { services: ['custom_fabrication'] },
+  },
+  {
+    typeKey: 'lactation_doula_centre', kind: 'facility', group: 'clinical', tier: 'T2',
+    label: 'Lactation Consultant / Doula / Prenatal Classes', icon: 'Baby', template: 'facility',
+    description: 'Lactation consulting, doula support and prenatal classes.',
+    requiredDocs: [rq('registration_certificate', 'Practitioner registration'), rq('owner_id', 'Government photo ID')],
+    optionalDocs: [opt('allied_health_reg', 'Allied health registration')],
+    approval: APPROVAL.single,
+    extraFields: [field('home_visit', 'Home visits offered', 'boolean')],
+    extraStepFields: { services: ['home_visit'] },
+  },
+  {
+    typeKey: 'dementia_care_centre', kind: 'facility', group: 'clinical', tier: 'T1',
+    label: 'Dementia / Alzheimer Care Centre', icon: 'Brain', template: 'facility',
+    description: 'Memory care and dementia support centre.',
+    requiredDocs: [rq('clinical_establishment_reg', 'Establishment registration'), rq('medical_council_reg', 'Lead doctor registration'), rq('bmw_authorization', 'Biomedical waste authorisation')],
+    optionalDocs: [opt('fire_noc', 'Fire NOC')],
+    approval: APPROVAL.clinical,
+    extraFields: [field('beds', 'Beds', 'number'), field('memory_care', 'Memory care unit', 'boolean'), field('day_care', 'Day care', 'boolean')],
+    extraStepFields: { services: ['beds', 'memory_care', 'day_care'] },
+  },
+  {
+    typeKey: 'geriatric_day_care', kind: 'facility', group: 'clinical', tier: 'T2',
+    label: 'Geriatric Day-Care Centre', icon: 'HandHeart', template: 'facility',
+    description: 'Day care for seniors with activities and medical supervision.',
+    requiredDocs: [rq('clinical_establishment_reg', 'Establishment registration')],
+    optionalDocs: [opt('fire_noc', 'Fire NOC')],
+    approval: APPROVAL.single,
+    extraFields: [field('capacity', 'Daily capacity', 'number')],
+    extraStepFields: { services: ['capacity'] },
+  },
+  {
+    typeKey: 'deaddiction_centre', kind: 'facility', group: 'clinical', tier: 'T1',
+    label: 'Quit-Smoking / Quit-Alcohol Centre', icon: 'Shield', template: 'facility',
+    description: 'De-addiction and cessation support centre.',
+    requiredDocs: [rq('clinical_establishment_reg', 'Establishment registration'), rq('medical_council_reg', 'Lead doctor registration'), rq('bmw_authorization', 'Biomedical waste authorisation')],
+    optionalDocs: [opt('registration_certificate', 'MHCA licence')],
+    approval: APPROVAL.clinical,
+    extraFields: [field('programs', 'Programs', 'multiselect', { options: ['smoking', 'alcohol', 'opioid', 'behavioural'] }), field('inpatient', 'Inpatient facility', 'boolean')],
+    extraStepFields: { services: ['programs', 'inpatient'] },
+  },
+  {
+    typeKey: 'hearing_aid_centre', kind: 'facility', group: 'clinical', tier: 'T2',
+    label: 'Hearing Aid / Audiology Centre', icon: 'Ear', template: 'facility',
+    description: 'Audiology, hearing tests and hearing-aid fitting centre.',
+    requiredDocs: [rq('clinical_establishment_reg', 'Establishment registration'), rq('rci_reg', 'RCI audiologist registration')],
+    optionalDocs: [opt('fire_noc', 'Fire NOC')],
+    approval: APPROVAL.single,
+    extraFields: [field('brands', 'Brands dispensed', 'text')],
+    extraStepFields: { services: ['brands'] },
+  },
+  {
+    typeKey: 'ent_centre', kind: 'facility', group: 'clinical', tier: 'T1',
+    label: 'ENT Centre', icon: 'Stethoscope', template: 'facility',
+    description: 'Ear, nose and throat specialty centre.',
+    requiredDocs: [rq('clinical_establishment_reg', 'Establishment registration'), rq('medical_council_reg', 'ENT surgeon registration')],
+    optionalDocs: [opt('fire_noc', 'Fire NOC')],
+    approval: APPROVAL.clinical,
+    extraFields: [field('consult_fee', 'Consultation fee (INR)', 'number')],
+    extraStepFields: { services: ['consult_fee'] },
+  },
+  {
+    typeKey: 'urology_centre', kind: 'facility', group: 'clinical', tier: 'T1',
+    label: 'Urology / Lithotripsy Centre', icon: 'Droplets', template: 'facility',
+    description: 'Urology and lithotripsy centre.',
+    requiredDocs: [rq('clinical_establishment_reg', 'Establishment registration'), rq('medical_council_reg', 'Urologist registration'), rq('aerb', 'AERB (if lithotripsy X-ray)')],
+    optionalDocs: [opt('fire_noc', 'Fire NOC')],
+    approval: APPROVAL.clinical,
+    extraFields: [field('lithotripsy', 'Lithotripsy unit', 'boolean')],
+    extraStepFields: { services: ['lithotripsy'] },
+  },
+  {
+    typeKey: 'transplant_unit', kind: 'facility', group: 'clinical', tier: 'T1',
+    label: 'Transplant Unit', icon: 'Heart', template: 'facility',
+    description: 'Organ transplant unit (also listed under transplant centre).',
+    requiredDocs: [rq('clinical_establishment_reg', 'Establishment registration'), rq('medical_council_reg', 'Transplant surgeon registration')],
+    optionalDocs: [opt('partner_loa', 'THOA authorisation')],
+    approval: APPROVAL.clinical,
+    extraFields: [field('organs', 'Organs', 'multiselect', { options: ['kidney', 'liver', 'heart', 'lung', 'cornea', 'bone_marrow'] })],
+    extraStepFields: { services: ['organs'] },
+  },
+  {
+    typeKey: 'fall_detection_provider', kind: 'vendor', group: 'commerce', tier: 'T3',
+    label: 'Fall-Detection / Emergency Device Provider', icon: 'AlertTriangle', template: 'vendor',
+    description: 'Fall-detection wearables and emergency alert devices.',
+    requiredDocs: [rq('gst', 'GST registration'), rq('cdsco_licence', 'Device certification')],
+    optionalDocs: [opt('registration_certificate', 'CDSCO registration')],
+    approval: APPROVAL.single,
+    extraFields: [field('devices', 'Devices', 'multiselect', { options: ['fall_detector', 'sos_button', 'gps_tracker', 'smart_watch'] })],
+    extraStepFields: { catalogue: ['devices'] },
+  },
+  {
+    typeKey: 'baby_food_vendor', kind: 'vendor', group: 'commerce', tier: 'T3',
+    label: 'Baby Food / Infant Formula Vendor', icon: 'Baby', template: 'vendor',
+    description: 'Baby food and infant formula retailer.',
+    requiredDocs: [rq('fssai', 'FSSAI licence'), rq('gst', 'GST registration')],
+    optionalDocs: [opt('drug_licence', 'Drug licence (if formula medical)')],
+    approval: APPROVAL.single,
+    extraFields: [field('brands', 'Brands', 'text')],
+    extraStepFields: { catalogue: ['brands'] },
+  },
 ];
 
 // Public shape: a flat list of config rows ready to upsert. Building validates
@@ -1141,7 +1303,90 @@ export function buildProviderTypeConfigs() {
   return CATALOG.map(build);
 }
 
-export const PROVIDER_TYPE_CATALOG = buildProviderTypeConfigs();
+const BASE_PROVIDER_CONFIGS = buildProviderTypeConfigs();
+
+// 01-JoinPlatform-Onboarding.md §2 lists several standalone applicant types
+// that used to be grouped into one generic card (notably govt facilities,
+// pharmacy variants, diagnostic centres and allied practitioners). Keep the
+// common wizard shape, but give each applicant type its own config/typeKey.
+const CATALOG_EXPANSIONS = [
+  ['physiotherapy_clinic', 'Physiotherapy Clinic', 'clinical', 'T2', 'clinic', 'Physiotherapy clinic for in-person and home rehabilitation.'],
+  ['eye_clinic', 'Eye Clinic', 'clinical', 'T1', 'clinic', 'Ophthalmology clinic for eye examinations and treatment.'],
+  ['pathology_lab', 'Pathology Lab', 'clinical', 'T1', 'diagnostic', 'Pathology laboratory for clinical sample testing and reports.'],
+  ['collection_centre', 'Diagnostic Collection Centre / Franchise', 'clinical', 'T1', 'home_sample_collection', 'Diagnostic sample collection centre operating under a registered laboratory.'],
+  ['mobile_diagnostic_van', 'Mobile Diagnostic Van', 'clinical', 'T1', 'home_sample_collection', 'Mobile diagnostic and sample-collection service with a documented vehicle.'],
+  ['cardiac_diagnostic_centre', 'Cardiac Diagnostic Centre', 'clinical', 'T1', 'diagnostic', 'ECG, Echo, TMT and Holter diagnostics centre.'],
+  ['sleep_lab', 'Sleep Lab', 'clinical', 'T1', 'diagnostic', 'Sleep diagnostics laboratory for sleep studies and CPAP titration.'],
+  ['genetic_molecular_lab', 'Genetic / Molecular Lab', 'clinical', 'T1', 'diagnostic', 'Molecular and genetic diagnostic laboratory.'],
+  ['hospital_pharmacy', 'Hospital Pharmacy', 'commerce', 'T3', 'pharmacy', 'Licensed pharmacy serving an affiliated hospital.'],
+  ['jan_aushadhi_kendra', 'Jan Aushadhi Kendra', 'commerce', 'T3', 'pharmacy', 'Pradhan Mantri Bhartiya Janaushadhi Pariyojana medicine outlet.'],
+  ['generic_medicine_store', 'Generic Medicine Store', 'commerce', 'T3', 'pharmacy', 'Retail outlet focused on quality-assured generic medicines.'],
+  ['24x7_pharmacy', '24x7 Pharmacy', 'commerce', 'T3', 'pharmacy', 'Round-the-clock licensed retail pharmacy.'],
+  ['online_pharmacy', 'Online Pharmacy', 'commerce', 'T3', 'pharmacy', 'Licensed online pharmacy with prescription and delivery controls.'],
+  ['ayush_medicine_store', 'AYUSH Medicine Store', 'commerce', 'T3', 'pharmacy', 'Licensed Ayurveda, Homeopathy, Unani or Siddha medicine store.'],
+  ['surgical_orthopaedic_store', 'Surgical & Orthopaedic Store', 'commerce', 'T3', 'equipment_rental', 'Retailer of surgical supplies, orthopaedic supports and mobility aids.'],
+  ['wholesale_pharmacy', 'Wholesale Pharmacy / Distributor', 'commerce', 'T3', 'pharmacy', 'Licensed wholesale medicine distributor for verified businesses.'],
+  ['phc', 'Primary Health Centre (PHC)', 'clinical', 'T1', 'hospital', 'Government PHC information listing; claim and update official details.'],
+  ['chc', 'Community Health Centre (CHC)', 'clinical', 'T1', 'hospital', 'Government CHC information listing; claim and update official details.'],
+  ['uphc', 'Urban Primary Health Centre (UPHC)', 'clinical', 'T1', 'hospital', 'Government UPHC information listing; claim and update official details.'],
+  ['sub_centre', 'Government Health Sub-centre', 'clinical', 'T1', 'hospital', 'Government health sub-centre information listing; claim and update official details.'],
+  ['arogya_mandir', 'Ayushman Arogya Mandir', 'clinical', 'T1', 'hospital', 'Info-first government facility claim listing; no booking or payout flow.'],
+  ['audiologist', 'Audiologist', 'clinical', 'T2', 'speech_therapist', 'Independent audiologist offering hearing assessment and rehabilitation.'],
+  ['optometrist', 'Optometrist', 'clinical', 'T2', 'eye_hospital', 'Independent optometrist offering vision assessment and optical services.'],
+  ['lab_technician', 'Medical Laboratory Technician', 'clinical', 'T2', 'phlebotomist', 'Verified medical laboratory technician offering sample and lab services.'],
+  ['radiographer', 'Radiographer', 'clinical', 'T2', 'phlebotomist', 'Registered radiographer offering imaging services through a facility.'],
+  ['sonographer', 'Sonographer', 'clinical', 'T1', 'phlebotomist', 'Registered sonographer; PCPNDT documentation is required where applicable.'],
+  ['pharmacist', 'Independent Pharmacist', 'clinical', 'T2', 'doctor', 'Registered pharmacist joining as an individual professional.'],
+  ['child_development_centre', 'Child Development / Special Education Centre', 'clinical', 'T1', 'rehab_centre', 'Child development and special education centre with verified professionals.'],
+  ['psychologist', 'Psychologist', 'clinical', 'T2', 'counsellor', 'Independent psychologist offering assessment and therapy services.'],
+  ['elder_care_home', 'Elder-care Home / Assisted Living', 'home_service', 'T2', 'rehab_centre', 'Residential elder-care and assisted-living service.'],
+  ['hospice_palliative', 'Hospice / Palliative Care', 'clinical', 'T1', 'rehab_centre', 'Palliative and hospice care service requiring specialist review.'],
+  ['optical_shop', 'Optical Shop', 'commerce', 'T3', 'eye_hospital', 'Optical retailer offering frames, lenses and optometry services.'],
+  ['diet_kitchen', 'Diet Kitchen / Therapeutic Tiffin', 'commerce', 'T3', 'health_food_store', 'FSSAI-licensed kitchen providing therapeutic and nutrition-led meals.'],
+  ['corporate_wellness_provider', 'Corporate Wellness Provider', 'community', 'T3', 'event_organizer', 'Provider of workplace wellness programs and health initiatives.'],
+];
+
+const cloneProviderConfig = ([typeKey, label, group, tier, baseType, description]) => {
+  const base = BASE_PROVIDER_CONFIGS.find((config) => config.typeKey === baseType);
+  if (!base) throw new Error(`Missing base provider config: ${baseType}`);
+  const config = structuredClone(base);
+  config.typeKey = typeKey;
+  config.label = label;
+  config.group = group;
+  config.tier = tier;
+  config.description = description;
+  config.isActive = true;
+  config.version = 1;
+
+  // Government listings are informational claims, with no bank or booking
+  // fields. The owner can submit authority details and facility information.
+  if (['phc', 'chc', 'uphc', 'sub_centre', 'arogya_mandir'].includes(typeKey)) {
+    config.steps = config.steps
+      .filter((step) => !['payout', 'availability'].includes(step.key))
+      .map((step) => ({
+        ...step,
+        fields: step.fields.filter((key) => ![
+          'gstin', 'pan', 'registration_type', 'account_holder', 'bank_name', 'ifsc',
+          'account_number', 'upi', 'slots_per_day', 'max_per_slot', 'advance_booking_days',
+          'commission_accepted', 'cancellation_policy_accepted',
+        ].includes(key)),
+      }));
+    const used = new Set(config.steps.flatMap((step) => step.fields));
+    config.fields = config.fields.filter((fieldConfig) => used.has(fieldConfig.key));
+    config.requiredDocs = [{ key: 'registration_certificate', label: 'Official designation / claim-authority letter', mandatory: true, expiryRequired: false, maxMb: 10 }];
+    config.optionalDocs = [{ key: 'owner_id', label: 'Government photo ID', mandatory: false, expiryRequired: false, maxMb: 10 }];
+  }
+
+  if (['hospice_palliative', 'child_development_centre', 'sonographer'].includes(typeKey)) {
+    config.approvalPolicy = { ...config.approvalPolicy, level: 'dual', twoPerson: true };
+  }
+  return config;
+};
+
+export const PROVIDER_TYPE_CATALOG = [
+  ...BASE_PROVIDER_CONFIGS,
+  ...CATALOG_EXPANSIONS.map(cloneProviderConfig),
+];
 
 // 2.md 2 - the chooser groups, derived from the catalogue so the frontend tabs
 // can never drift from what is actually on offer.

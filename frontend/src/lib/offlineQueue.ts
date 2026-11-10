@@ -16,19 +16,19 @@ const openDb = (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
   req.onerror = () => reject(req.error);
 });
 
-const tx = async (mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest | void): Promise<any> => {
+const tx = async <T = undefined>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest | void): Promise<T> => {
   const db = await openDb();
   return new Promise((resolve, reject) => {
     const t = db.transaction(STORE, mode);
     const store = t.objectStore(STORE);
-    let out: any;
+    let out: T | undefined;
     try {
       const r = fn(store);
       if (r && 'onsuccess' in r) {
-        (r as IDBRequest).onsuccess = () => { out = (r as IDBRequest).result; };
+        (r as IDBRequest<T>).onsuccess = () => { out = (r as IDBRequest<T>).result; };
       }
-    } catch (e: any) { reject(e); return; }
-    t.oncomplete = () => { db.close(); resolve(out); };
+    } catch (error: unknown) { reject(error); return; }
+    t.oncomplete = () => { db.close(); resolve(out as T); };
     t.onerror = () => { db.close(); reject(t.error); };
   });
 };
@@ -37,13 +37,13 @@ export interface QueuedWrite {
   key: string;
   url: string;
   method: string;
-  body: any;
+  body: unknown;
   idempotencyKey: string;
   createdAt: number;
   attempts: number;
 }
 
-export const queueWrite = async (url: string, method: string, body: any): Promise<QueuedWrite> => {
+export const queueWrite = async (url: string, method: string, body: unknown): Promise<QueuedWrite> => {
   const row: QueuedWrite = {
     key: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     url, method, body,
@@ -57,8 +57,9 @@ export const queueWrite = async (url: string, method: string, body: any): Promis
   // First offline write of the session marks offline-mode entry (once per
   // page load; analytics must never break queueing).
   try {
-    if (typeof navigator !== 'undefined' && navigator.onLine === false && !(globalThis as any).__fmOfflineTracked) {
-      (globalThis as any).__fmOfflineTracked = true;
+    const tracker = globalThis as typeof globalThis & { __fmOfflineTracked?: boolean };
+    if (typeof navigator !== 'undefined' && navigator.onLine === false && !tracker.__fmOfflineTracked) {
+      tracker.__fmOfflineTracked = true;
       const { track } = await import('./track');
       track('offline_mode_entered', { network_type: 'offline' });
     }
@@ -74,16 +75,18 @@ export const dropWrite = async (key: string): Promise<void> => {
 };
 
 /** Draft autosave (namespaced key, e.g. `form:<templateKey>`). */
-export const saveDraft = async (ns: string, value: any): Promise<void> => {
+export const saveDraft = async (ns: string, value: unknown): Promise<void> => {
   try {
     localStorage.setItem(`fm-draft:${ns}`, JSON.stringify({ at: Date.now(), value }));
   } catch { /* storage full/blocked — draft stays in memory only */ }
 };
 
-export const loadDraft = (ns: string): any => {
+export const loadDraft = (ns: string): unknown => {
   try {
     const raw = localStorage.getItem(`fm-draft:${ns}`);
-    return raw ? JSON.parse(raw).value : null;
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && 'value' in parsed ? parsed.value : null;
   } catch { return null; }
 };
 
@@ -115,3 +118,78 @@ export const onReconnect = (cb: () => void): (() => void) => {
   window.addEventListener('online', cb);
   return () => window.removeEventListener('online', cb);
 };
+
+// ---- Field-PWA offline queue (doc 24) ----
+// Disclosed check-in policy: every queued check-in stores a `disclosed: true`
+// flag confirming the rep disclosed the visit purpose before recording it.
+
+const FIELD_DB = 'findmedi-field';
+const FIELD_STORE = 'queue';
+
+function openFieldDb(): Promise<IDBDatabase | null> {
+  return new Promise((resolve) => {
+    if (typeof indexedDB === 'undefined') return resolve(null);
+    const req = indexedDB.open(FIELD_DB, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(FIELD_STORE)) db.createObjectStore(FIELD_STORE, { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
+}
+
+export type FieldQueuedAction = { type: string; payload: unknown; disclosed: boolean; createdAt: number };
+
+export async function enqueueFieldAction(action: FieldQueuedAction): Promise<void> {
+  const db = await openFieldDb();
+  if (db) {
+    const tx = db.transaction(FIELD_STORE, 'readwrite');
+    tx.objectStore(FIELD_STORE).add({ ...action, createdAt: action.createdAt || Date.now() });
+    return new Promise((res) => { tx.oncomplete = () => res(); tx.onerror = () => res(); });
+  }
+  const key = 'fm_field_queue';
+  const raw = localStorage.getItem(key);
+  const arr = raw ? JSON.parse(raw) : [];
+  arr.push({ ...action, createdAt: action.createdAt || Date.now(), id: Date.now() });
+  localStorage.setItem(key, JSON.stringify(arr));
+}
+
+export async function drainFieldQueue(handler: (a: FieldQueuedAction) => Promise<void>): Promise<number> {
+  const db = await openFieldDb();
+  let count = 0;
+  if (db) {
+    const tx = db.transaction(FIELD_STORE, 'readwrite');
+    const store = tx.objectStore(FIELD_STORE);
+    const req = store.getAll();
+    await new Promise<void>((res) => {
+      req.onsuccess = async () => {
+        const items = (req.result || []) as (FieldQueuedAction & { id: number })[];
+        for (const it of items) {
+          try { await handler(it); store.delete(it.id); count++; } catch { /* keep for retry */ }
+        }
+        res();
+      };
+      req.onerror = () => res();
+      tx.oncomplete = () => res();
+      tx.onerror = () => res();
+    });
+    return count;
+  }
+  const key = 'fm_field_queue';
+  const raw = localStorage.getItem(key);
+  const arr: (FieldQueuedAction & { id?: number })[] = raw ? JSON.parse(raw) : [];
+  const remaining: (FieldQueuedAction & { id?: number })[] = [];
+  for (const it of arr) {
+    try { await handler(it); count++; } catch { remaining.push(it); }
+  }
+  localStorage.setItem(key, JSON.stringify(remaining));
+  return count;
+}
+
+export function startFieldAutoSync(handler: (a: FieldQueuedAction) => Promise<void>) {
+  const replay = () => { if (navigator.onLine) drainFieldQueue(handler).catch(() => {}); };
+  window.addEventListener('online', replay);
+  if (navigator.onLine) setTimeout(replay, 2000);
+  return () => window.removeEventListener('online', replay);
+}

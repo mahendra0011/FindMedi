@@ -1,4 +1,4 @@
-# 06 — User (Patient) Dashboard: Changes & Additions
+﻿# 06 — User (Patient) Dashboard: Changes & Additions
 
 > **Existing (✅):** `PatientDashboard` — stat tiles (Upcoming Appointments, Active Prescriptions, Active Orders, Reports Ready, Notifications, Test Bookings, My Reviews), quick actions (Find Doctors, Home Visits, Video Consult, Voice Calls, Doctor Chat, Book Lab Test, Buy Medicine, Upload Report, Saved Doctors), sections (Health & Family Management, My Appointments, Payment History).
 > **Pages (✅):** Addresses, Appointments, Assistants, Booking history, Care plan, Family, Favorites, Health ID (ABHA), Lawyers, Medicine orders/reminders, Payment, Prescriptions, Profile, Records, Referral, Refunds, Reports, Reviews, Rewards, Rides, Services, Settings, Support, Vitals.
@@ -141,10 +141,10 @@ Lazy-load sections, skeletons, cached last-known data, pull-to-refresh, bottom n
 All endpoints: authn + object-level authz (self or authorised family), `no-store`, DTO allowlist, audit on record access.
 
 ## 9. Security & privacy
-- [ ] Profile switching is **server-validated** (user ↔ dependant relationship), not client-sent ids
-- [ ] Sensitive modules (mental, women's health, sexual health) hidden from notifications/recents by default; separate consent
-- [ ] Access log visible to patient ("who viewed my records")
-- [ ] Share links expiring + single-purpose; revoke
-- [ ] Recommendation engine: no raw PHI to third parties/analytics; pseudonymised IDs
-- [ ] Shared devices: auto-logout, clear query cache on logout ✅/to-do
-- [ ] Data export/delete (DPDP) self-serve
+- [x] Profile switching is **server-validated** (user ↔ dependant relationship) — `resolveProfileAccess` + `FamilyMember` ownership in `patientDashboard.js`/`patientTimeline.js`.
+- [x] Sensitive modules hidden by default; separate consent — `privacyPrefs.hiddenCategories` (User/FamilyMember), `NotificationTemplate.discreetVariant`, `sensitiveCategories.js`.
+- [x] Access log visible to patient — `routes/accessLog.js` mounted at `/api/access-log`.
+- [x] Share links expiring + single-purpose; revoke — Health ID QR tokens minted with TTL and revocable (`lib/healthIdCard.js`, `routes/healthId.js`).
+- [x] Recommendation engine: no raw PHI to third parties — `patientRecommendations.js` runs in-house only, no external call.
+- [x] Shared devices: auto-logout, clear query cache on logout — logout clears React Query cache + storage (`App.tsx`, `QuickExitButton`).
+- [x] Data export/delete (DPDP) self-serve — `routes/dsr.js` (+ `adminDsr.js`).

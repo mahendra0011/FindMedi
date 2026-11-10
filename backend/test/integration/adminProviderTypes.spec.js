@@ -24,7 +24,9 @@ jestApi.unstable_mockModule('../../src/models/ProviderTypeConfig.js', () => ({
 }));
 
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 const { as } = await mountApp('adminProviderTypes', {});

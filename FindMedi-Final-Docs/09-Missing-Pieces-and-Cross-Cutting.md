@@ -175,21 +175,21 @@ Medical advisor/clinical lead · compliance/legal counsel · trust & safety lead
 
 ## 20. Quick "did we miss…?" checklist
 
-- [ ] Unified search + synonyms + voice
-- [ ] City-wise category launch controls
-- [ ] Type-wise onboarding config + KYC checklists
-- [ ] Public DTO/card contract + SEO pages
-- [ ] Booking state machines + refunds + idempotency
-- [ ] Rx rules (Schedule H/H1/X) in pharmacy flow
-- [ ] Discreet mode for sensitive categories
-- [ ] Notification templates (DLT) + preference centre
-- [ ] Reviews integrity + moderation queues
-- [ ] Consent ledger + DSR workflow + children's data
-- [ ] Incident/crisis escalation + SOS reliability
-- [ ] Legal pages + provider agreements + grievance officer
-- [ ] Payments real adapter + GST/TDS + payouts
-- [ ] Accessibility + regional languages
-- [ ] Offline/low-bandwidth modes
-- [ ] Analytics without PHI
-- [ ] Pentest + restore drill before high-risk categories
-- [ ] Support & ops staffing + SLAs
+- [x] Unified search + synonyms + voice — `routes/search.js` (taxonomy/conditions/Hinglish), `UnifiedSearch.tsx` SpeechRecognition.
+- [x] City-wise category launch controls — `ProviderTypeConfig.enabledCities` + `ServiceCity` scoping.
+- [x] Type-wise onboarding config + KYC checklists — `ProviderTypeConfig` + `adminApplications` checklists.
+- [x] Public DTO/card contract + SEO pages — explicit `CARD_FIELDS`, sitemap/robots routes.
+- [x] Booking state machines + refunds + idempotency — appointment/order state machines, refund models, `idempotency.js`.
+- [x] Rx rules (Schedule H/H1/X) in pharmacy flow — `Medicine.rxSchedule`, `H1RegisterEntry`, Rx verification.
+- [x] Discreet mode for sensitive categories — `sensitiveCategories.js` + `discreetVariant` notifications.
+- [x] Notification templates (DLT) + preference centre — `dltTemplates.js`, `NotificationPreference` + `/notifications/preferences`.
+- [x] Reviews integrity + moderation queues — verified-visit reviews, content analysis, `ModerationItem` SLA queue.
+- [x] Consent ledger + DSR workflow + children's data — `ConsentRecord`, `routes/dsr.js`, guardian consent on `FamilyMember`.
+- [x] Incident/crisis escalation + SOS reliability — crisis screen + `SOSConfirmModal`/emergency routes + ticket escalation job.
+- [ ] Legal pages + provider agreements + grievance officer - `frontend/src/pages/GrievanceRedressal.tsx` (route `/grievance`, 143 lines, IT Rules 2021 & DPDP Act 2023 redressal + DPO office) + Terms/Privacy/Refund/Cookie + `provider_agreement` acceptance; grievance-officer contact details are content/legal (note).
+- [x] Payments real adapter + GST/TDS + payouts — gateway adapters + HMAC webhooks, `gstRate` fields, payout reconciliation job.
+- [x] Accessibility + regional languages — `AccessibilityControls`, axe CI gate, `react-i18next` + Indic fonts.
+- [x] Offline/low-bandwidth modes — service worker + low-bandwidth mode.
+- [x] Analytics without PHI — `analyticsEvents.js` PHI-free event dictionary.
+- [ ] Pentest + restore drill before high-risk categories — operational security activity; no evidence of an executed pentest/restore drill in repo (open).
+- [ ] Support & ops staffing + SLAs — SLA machinery (`slaDueAt`, escalation job) exists; staffing/roster is a human ops deliverable (open).

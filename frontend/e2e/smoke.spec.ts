@@ -18,7 +18,7 @@ test.describe('smoke: public entry points', () => {
     await page.goto('/#/login');
     await expect(page.getByPlaceholder(/enter your email/i)).toBeVisible();
     await expect(page.locator('input[type="password"]').first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /log in|sign in/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^sign in$/i })).toBeVisible();
   });
 });
 

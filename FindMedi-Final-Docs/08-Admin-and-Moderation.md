@@ -113,14 +113,14 @@ Doc expiry spikes · SLA breaches · fraud spikes · safety incidents (SOS) · p
 - Add to authz manifest + tests; every action emits audit event.
 
 ## 16. Checklist
-- [ ] Type-wise KYC checklists configured
-- [ ] Two-person approval for high-risk types
-- [ ] Moderation queues + SLAs + crisis escalation
-- [ ] Claim/ad policy filters live (adClaimsRestricted)
-- [ ] DPDP data-subject request workflow
-- [ ] Dual-approval + break-glass for sensitive ops
-- [ ] Reviewer PHI masking + audit
-- [ ] Policy acceptance records versioned
+- [x] Type-wise KYC checklists configured — `ProviderTypeConfig` `requiredDocs`/`optionalDocs` + per-type decision checklist.
+- [x] Two-person approval for high-risk types — `high_risk: { twoPersonApproval: true }` + `awaitingSecondApprover` in `adminApplications.js`.
+- [x] Moderation queues + SLAs + crisis escalation — `ModerationItem.slaDueAt`, escalation branch in `routes/moderation.js`.
+- [x] Claim/ad policy filters live — `adClaimsRestricted` taxonomy flags + claims moderation severity.
+- [x] DPDP data-subject request workflow — `routes/dsr.js` + `routes/adminDsr.js`.
+- [x] Dual-approval + break-glass for sensitive ops — `BreakGlassGrant`/`requireBreakGlass.js` + maker-checker flows.
+- [x] Reviewer PHI masking + audit — masked bank/phone fields in admin/support responses + audit log.
+- [x] Policy acceptance records versioned — `PolicyAcceptance.templateVersion`, append-only rows.
 
 ## 17. Catalogue alignment (pruned categories)
 

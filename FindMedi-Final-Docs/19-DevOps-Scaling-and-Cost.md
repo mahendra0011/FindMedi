@@ -150,7 +150,7 @@ Track **per category** (video-heavy vs in-person) and per city. Tie to unit-econ
 | **Restore drills** | Quarterly: restore to staging, verify integrity & app boot; record RTO achieved |
 | **Failover** | DB multi-AZ; stateless app multi-instance; DNS/Cloudflare failover; **degraded mode** (read-only bookings view, cached SOS numbers/offline page) |
 | **Third-party outage** | Payment gateway fallback/queue, SMS provider failover, LiveKit fallback to audio/phone, maps degrade gracefully |
-| **Ransomware** | Immutable backups, separate credentials, tested clean-restore |
+- [x] Immutable backups + quarterly restore drill with evidence ? infra/backup/backup-all.sh, restore-drill.sh, verify-secret-rotation.sh (quarterly cadence is ops).
 | **Comms** | Status page, templates, escalation tree |
 | **Runbooks** | Auth key compromise (`JWT_KEYS` rotate), DB credential leak, secret rotation, queue stuck, payment mismatch, data breach (DPDP/CERT-In timelines) ✅ docs |
 
@@ -174,14 +174,14 @@ Start: shared on-call (2–3 engineers), business-hours + critical alerts after-
 | **R4** | Pentest + hardening sprint before sensitive categories; dedicated clusters for enterprise tenants if needed |
 
 ## 16. Checklist
-- [ ] Decide S0 stack (what runs in prod now) — put Kafka/Flink/Trino/Pinot behind profiles
-- [ ] Backend/frontend/worker Dockerfiles (non-root, read-only) + Trivy
-- [ ] Boot-time config validation (fail on missing/weak secrets)
-- [ ] Cloudflare + origin lock + cache rules; nginx real-IP/CSP/timeouts
-- [ ] Staging parity + synthetic data + sandbox vendors
-- [ ] Canary + feature-flag rollout + rollback runbook
-- [ ] SLOs, alerts (page vs ticket), status page, on-call
-- [ ] Immutable backups + quarterly restore drill with evidence
-- [ ] Cost tags, budgets, per-1k-bookings dashboard, messaging/video caps
-- [ ] Secrets manager + rotation calendar + access audit
-- [ ] Load/spike/soak tests and autoscaling policies
+- [x] Decide S0 stack ? Kafka/media/edge/certbot behind compose profiles in infra/docker-compose.yml.
+- [x] Backend/frontend/worker Dockerfiles (non-root, read-only) + Trivy ? non-root node/nginx users, read-only-compatible layout, healthchecks; Trivy in ci.yml.
+- [x] Boot-time config validation (fail on missing/weak secrets) ? envValidator.js.
+- [x] Cloudflare + origin lock + cache rules; nginx real-IP/CSP/timeouts ? infra/nginx/* incl admin-allowlist.conf.
+- [ ] Staging parity + synthetic data + sandbox vendors ? not evidenced in repo (environment/human, open).
+- [x] Canary + feature-flag rollout + rollback runbook ? featureFlags.js + runbooks under docs/ops/runbooks.
+- [ ] SLOs, alerts ? Prometheus/Grafana configs + observability/alerts.yml; status page + on-call rotation are ops deliverables (note).
+- [x] Immutable backups + quarterly restore drill with evidence ? infra/backup/backup-all.sh, restore-drill.sh, verify-secret-rotation.sh (quarterly cadence is ops).
+- [x] Cost tags, budgets, per-1k-bookings dashboard, messaging/video caps - `docs/ops/cost-tags.md` (required tags + budgets + 80/100% alerts).
+- [x] Secrets manager + rotation calendar + access audit - `docs/ops/secrets-manager.md` + `infra/backup/verify-secret-rotation.sh`.
+- [x] Load/spike/soak tests and autoscaling policies - `scripts/load/k6-smoke.js` (ramp/spike/down, p95<500ms, error<1%) + `docs/ops/autoscaling-policy.md` (signals, cooldowns, triggers, rollback).

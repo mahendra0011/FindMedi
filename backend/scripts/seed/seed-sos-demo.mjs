@@ -1,26 +1,28 @@
 /**
  * Doc 01 §10.1 — SOS demo seed around Bhopal [77.4126, 23.2599]
- * Usage: node scripts/seed-sos-demo.mjs
+ * Usage: node scripts/seed/seed-sos-demo.mjs
  */
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { configureMongoDns, connectMongooseWithRetry } from '../../src/config/mongoDns.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
+configureMongoDns();
 
-const { default: Hospital } = await import('../src/models/Hospital.js');
-const { default: Ambulance } = await import('../src/models/Ambulance.js');
-const { default: User } = await import('../src/models/User.js');
-const { default: Vehicle } = await import('../src/models/Vehicle.js');
-const { default: RiderProfile } = await import('../src/models/RiderProfile.js');
+const { default: Hospital } = await import('../../src/models/Hospital.js');
+const { default: Ambulance } = await import('../../src/models/Ambulance.js');
+const { default: User } = await import('../../src/models/User.js');
+const { default: Vehicle } = await import('../../src/models/Vehicle.js');
+const { default: RiderProfile } = await import('../../src/models/RiderProfile.js');
 
 const BHOPAL = [77.4126, 23.2599];
 const kmToDeg = (km) => km / 111.32;
 const offset = (lng, lat, dKmEast, dKmNorth) => [lng + kmToDeg(dKmEast), lat + kmToDeg(dKmNorth)];
 
-await mongoose.connect(process.env.MONGO_URI);
+await connectMongooseWithRetry(mongoose, process.env.MONGO_URI);
 
 const hosp = await Hospital.findOneAndUpdate(
   { email: 'sos-demo-hospital@findmedi.test' },

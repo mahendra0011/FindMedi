@@ -1,4 +1,7 @@
 import mongoose from 'mongoose';
+import { configureMongoDns } from '../src/config/mongoDns.js';
+
+configureMongoDns();
 
 /**
  * File 13 §13.6: dry-run first migration for the Bed unique-index change.

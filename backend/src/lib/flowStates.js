@@ -115,7 +115,7 @@ export const effectiveQuoteStatus = (quote, now = new Date()) =>
 // ==============================================================================
 
 export const EVENT_TYPES = Object.freeze([
-  'camp', 'workshop', 'webinar', 'vaccination', 'blood_drive', 'training', 'retreat',
+  'camp', 'workshop', 'webinar', 'vaccination', 'blood_drive', 'training', 'retreat', 'wellbeing',
 ]);
 
 /**

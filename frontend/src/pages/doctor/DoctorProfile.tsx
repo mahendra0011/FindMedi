@@ -9,6 +9,7 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import type { Unmodelled } from '@/lib/apiTypes';
+import { useSpecialtyTiles, type SpecialtyNode } from '@/hooks/useSpecialtyBrowse';
 
 function MyAutoConfirmToggle() {
   const [value, setValue] = useState(true);
@@ -61,7 +62,9 @@ function MyAutoConfirmToggle() {
 
 export default function DoctorProfile() {
   const { user } = useAuth();
+  const specialtyTree = useSpecialtyTiles();
   const [doctor, setDoctor] = useState<Unmodelled>(null);
+  const [subSpecialtyCodes, setSubSpecialtyCodes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -95,6 +98,9 @@ export default function DoctorProfile() {
 
   const [conditionsTreated, setConditionsTreated] = useState('');
   const [procedures, setProcedures] = useState('');
+  const selectedSpecialty = specialtyTree.tiles.find((item) => item.code === doctor?.specialtyCode)
+    || specialtyTree.tiles.find((item) => item.name.toLowerCase() === String(doctor?.specialization || '').toLowerCase());
+  const subSpecialties = (selectedSpecialty?.children || []) as SpecialtyNode[];
 
   const [clinicName, setClinicName] = useState('');
   const [clinicAddress, setClinicAddress] = useState('');
@@ -122,6 +128,7 @@ export default function DoctorProfile() {
         const myDoc = doctors.find((d: Unmodelled) => d.email === user?.email) || doctors.find((d: Unmodelled) => d.name?.includes(user?.name)) || null;
         if (myDoc) {
           setDoctor(myDoc);
+          setSubSpecialtyCodes(Array.isArray(myDoc.subSpecialtyCodes) ? myDoc.subSpecialtyCodes : []);
           setBio(myDoc.bio || '');
           setQualification(myDoc.qualifications || '');
           setExperience(myDoc.experience || '');
@@ -183,6 +190,7 @@ export default function DoctorProfile() {
         emergencyFee: emergencyFee ? Number(emergencyFee) : 0, followUpFee, followUpWindow, bufferTime,
         vacationFrom, vacationTo, vacationReason, councilName, councilRegNo, councilYear,
         payoutUpi, payoutAccount, payoutIfsc,
+        subSpecialtyCodes,
         conditionsTreated: conditionsTreated.split(',').map(s => s.trim()).filter(Boolean).map(label => ({ label })),
         procedures: procedures.split(',').map(s => s.trim()).filter(Boolean).map(label => ({ label })),
       };
@@ -333,6 +341,36 @@ export default function DoctorProfile() {
             <div><label className="text-sm font-medium mb-1 block">Payout Account</label><Input value={payoutAccount} onChange={e => setPayoutAccount(e.target.value)} /></div>
             <div><label className="text-sm font-medium mb-1 block">Payout IFSC</label><Input value={payoutIfsc} onChange={e => setPayoutIfsc(e.target.value)} /></div>
           </div>
+        </div>
+
+        <hr className="border-border/60" />
+
+        <div>
+          <h3 className="font-heading text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
+            <Stethoscope className="w-5 h-5 text-primary" /> Sub-specialties
+          </h3>
+          <p className="text-sm text-muted-foreground mb-3">
+            Main specialty: {selectedSpecialty?.name || doctor?.specialization || 'Not available'} · Sirf wahi select karein jisme aapki verified qualification/experience ho.
+          </p>
+          {subSpecialties.length ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-w-4xl">
+              {subSpecialties.map((item) => (
+                <label key={item.code} className="flex items-center gap-2 rounded-lg border border-border/60 p-2.5 text-sm cursor-pointer hover:bg-muted/40">
+                  <input
+                    type="checkbox"
+                    checked={subSpecialtyCodes.includes(item.code)}
+                    onChange={(event) => setSubSpecialtyCodes((current) => event.target.checked
+                      ? [...new Set([...current, item.code])]
+                      : current.filter((code) => code !== item.code))}
+                    className="accent-primary"
+                  />
+                  <span>{item.name}</span>
+                </label>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Is specialty ke sub-specialties taxonomy mein abhi available nahi hain.</p>
+          )}
         </div>
 
         <hr className="border-border/60" />

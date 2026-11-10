@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => ({
     server: {
         host: "::",
         port: 5173,
+        proxy: {
+            '/api': { target: 'http://localhost:5001', changeOrigin: true },
+        },
         hmr: {
             overlay: false,
         },

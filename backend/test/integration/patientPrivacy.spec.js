@@ -37,7 +37,9 @@ let auditRows = [];
 let consentRows = [];
 
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 jestApi.unstable_mockModule('../../src/models/AuditLog.js', () => ({
   default: {

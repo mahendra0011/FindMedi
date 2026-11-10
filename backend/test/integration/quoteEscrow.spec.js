@@ -36,7 +36,9 @@ jestApi.unstable_mockModule('../../src/models/Payment.js', () => ({
   default: { findById: (...a) => paymentFindById(...a) },
 }));
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 const { as } = await mountApp('quotes');

@@ -60,7 +60,7 @@ export const FACILITY_OWNERSHIP = [
 // specialty (B1.4), so "Ayurveda clinic" is not smuggled into specialities.
 export const SYSTEMS_OF_MEDICINE = [
   'allopathy', 'ayurveda', 'homeopathy', 'unani', 'siddha',
-  'yoga_naturopathy', 'integrative',
+  'yoga_naturopathy', 'sowa_rigpa', 'integrative',
   '', // not specified yet
 ];
 

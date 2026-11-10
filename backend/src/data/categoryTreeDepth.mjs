@@ -355,6 +355,100 @@ export const DEPTH_CATEGORY_NODES = Object.freeze([
   { code: 'LEGAL.PRO.PRACTICE.DATA_PRIVACY', name: 'Health Data Privacy (DPDP)', nameHi: 'स्वास्थ्य डेटा गोपनीयता', aliases: ['DPDP Act Health Cases', 'Medical Records Privacy'], parent: 'LEGAL.PRO.PRACTICE', type: 'legal_practice_area', tier: 'T2', kind: 'Practitioner' },
   { code: 'LEGAL.PRO.PRACTICE.REGISTRATION', name: 'Medical Registration & Licensing', nameHi: 'चिकित्सा पंजीकरण / लाइसेंस', aliases: ['NMC Registration Help', 'Clinic Licence'], parent: 'LEGAL.PRO.PRACTICE', type: 'legal_practice_area', tier: 'T2', kind: 'Practitioner' },
   { code: 'LEGAL.PRO.PRACTICE.PHARMACY_LICENCE', name: 'Pharmacy Licensing', nameHi: 'फार्मेसी लाइसेंस', aliases: ['Drug Licence Help'], parent: 'LEGAL.PRO.PRACTICE', type: 'legal_practice_area', tier: 'T2', kind: 'Practitioner' },
+
+  // ─── §14 NUT — clinical/hospital diet textures ──────────────────────────────
+  { code: 'NUT.DIET.REGULAR', name: 'Regular / General Diet', nameHi: 'सामान्य आहार', aliases: ['Full Diet', 'Normal Diet'], parent: 'NUT.DIET', type: 'diet', tier: 'T2', kind: 'Filter' },
+  { code: 'NUT.DIET.LOW_SODIUM', name: 'Low-sodium Diet', nameHi: 'कम नमक आहार', aliases: ['Salt-restricted Diet', 'Low Na Diet'], parent: 'NUT.DIET', type: 'diet', tier: 'T2', kind: 'Filter' },
+  { code: 'NUT.DIET.LOW_RESIDUE', name: 'Low-residue Diet', nameHi: 'कम अवशेष आहार', aliases: ['Low Fibre Diet', 'Low Fiber Diet'], parent: 'NUT.DIET', type: 'diet', tier: 'T2', kind: 'Filter' },
+  { code: 'NUT.DIET.BLAND', name: 'Bland Diet', nameHi: 'मृदु आहार', aliases: ['Gastritis Diet', 'Bland Food'], parent: 'NUT.DIET', type: 'diet', tier: 'T2', kind: 'Filter' },
+  { code: 'NUT.DIET.CLEAR_LIQUID', name: 'Clear Liquid Diet', nameHi: 'स्पष्ट द्रव आहार', aliases: ['Clear Fluid Diet', 'Pre-colonoscopy Diet'], parent: 'NUT.DIET', type: 'diet', tier: 'T2', kind: 'Filter' },
+  { code: 'NUT.DIET.FULL_LIQUID', name: 'Full Liquid Diet', nameHi: 'पूर्ण द्रव आहार', aliases: ['Fluid Diet', 'Liquid Diet'], parent: 'NUT.DIET', type: 'diet', tier: 'T2', kind: 'Filter' },
+  { code: 'NUT.DIET.SOFT', name: 'Soft Diet', nameHi: 'मृदु भोजन', aliases: ['Soft Food Diet', 'Post-dental Soft Diet'], parent: 'NUT.DIET', type: 'diet', tier: 'T2', kind: 'Filter' },
+  { code: 'NUT.DIET.PUREED', name: 'Pureed / Dysphagia Diet', nameHi: 'प्यूरी / निगलने आहार', aliases: ['Mashed Diet', 'Swallowing-safe Diet'], parent: 'NUT.DIET', type: 'diet', tier: 'T2', kind: 'Filter' },
+  { code: 'NUT.DIET.TUBE_ENTERAL', name: 'Tube / Enteral Feeding', nameHi: 'ट्यूब / एंटेरल फीडिंग', aliases: ['Ryles Tube Feed', 'NG Feed Formula'], parent: 'NUT.DIET', type: 'diet', tier: 'T2', kind: 'Filter' },
+  { code: 'NUT.DIET.NEUTROPENIC', name: 'Neutropenic Diet', nameHi: 'न्यूट्रोपीनिक आहार', aliases: ['Low-microbial Diet', 'Chemo-safe Food'], parent: 'NUT.DIET', type: 'diet', tier: 'T2', kind: 'Filter' },
+  { code: 'NUT.DIET.WEIGHT_LOSS', name: 'Weight-loss Diet', nameHi: 'वज़न घटाने आहार', aliases: ['Calorie Deficit Diet', 'Slimming Diet'], parent: 'NUT.DIET', type: 'diet', tier: 'T2', adClaimsRestricted: true, kind: 'Filter' },
+  { code: 'NUT.DIET.POST_SURGERY', name: 'Post-surgery Diet', nameHi: 'शल्यक्रिया पश्चात आहार', aliases: ['Recovery Diet', 'Post-op Feeding'], parent: 'NUT.DIET', type: 'diet', tier: 'T2', kind: 'Filter' },
+  { code: 'NUT.DIET.NPO', name: 'NPO (Nil by Mouth)', nameHi: 'कुछ भी मुंह से नहीं', aliases: ['Fasting Order', 'Nil Per Oral'], parent: 'NUT.DIET', type: 'diet', tier: 'T2', kind: 'Filter' },
+
+  // ─── §14 NUT — preference, meal slots, focus, supplements, services ────────
+  { code: 'NUT.DIET.HALAL', name: 'Halal Diet', nameHi: 'हलाल आहार', aliases: ['Halal Food', 'Halal-certified'], parent: 'NUT.DIET', type: 'diet', tier: 'T2', kind: 'Filter' },
+  { code: 'NUT.MEAL.EARLY_MORNING', name: 'Early-morning Meal', nameHi: 'भोर का भोजन', aliases: ['Pre-breakfast Meal', 'Brahmi-muhurat Meal'], parent: 'NUT.MEAL', type: 'product_line', tier: 'T2', kind: 'Product' },
+  { code: 'NUT.MEAL.MID_MORNING', name: 'Mid-morning Snack', nameHi: 'दोपहर से पहले', aliases: ['Mid-morning Meal'], parent: 'NUT.MEAL', type: 'product_line', tier: 'T2', kind: 'Product' },
+  { code: 'NUT.MEAL.EVENING_SNACK', name: 'Evening Snack', nameHi: 'शाम का स्नैक', aliases: ['Evening Chaat', 'Tea-time Snack'], parent: 'NUT.MEAL', type: 'product_line', tier: 'T2', kind: 'Product' },
+  { code: 'NUT.MEAL.BEDTIME', name: 'Bedtime Meal', nameHi: 'सोने से पहले', aliases: ['Night Meal', 'Pre-sleep Snack'], parent: 'NUT.MEAL', type: 'product_line', tier: 'T2', kind: 'Product' },
+  { code: 'NUT.MEAL.SUPPLEMENT_SLOT', name: 'Supplement Shake / Meal-replacer', nameHi: 'सप्लीमेंट भोजन', aliases: ['Meal Replacement', 'Nutrition Drink'], parent: 'NUT.MEAL', type: 'product_line', tier: 'T2', adClaimsRestricted: true, kind: 'Product' },
+  { code: 'NUT.PRO.FOCUS.PCOS', name: 'PCOS Nutrition', nameHi: 'पीसीओएस पोषण', aliases: ['Hormonal Health Dietitian'], parent: 'NUT.PRO.FOCUS', type: 'provider_type', tier: 'T2', kind: 'Practitioner' },
+  { code: 'NUT.PRO.FOCUS.GUT', name: 'Gut Health Nutrition', nameHi: 'आंत स्वास्थ्य पोषण', aliases: ['GI Nutrition', 'Microbiome Diet'], parent: 'NUT.PRO.FOCUS', type: 'provider_type', tier: 'T2', kind: 'Practitioner' },
+  { code: 'NUT.PROD.SUPP.IMMUNITY', name: 'Immunity Supplements', nameHi: 'इम्युनिटी सप्लीमेंट', aliases: ['Immune Booster', 'Vitamin C Zinc'], parent: 'NUT.PROD.SUPPLEMENTS', type: 'product_line', tier: 'T2', adClaimsRestricted: true, kind: 'Product' },
+  { code: 'NUT.SERVICE.CALORIE_CONTROLLED', name: 'Calorie-controlled Meal Service', nameHi: 'कैलोरी-नियंत्रित भोजन', aliases: ['Macro-counted Meals'], parent: 'NUT.SERVICE', type: 'service', tier: 'T2', kind: 'Service' },
+  { code: 'NUT.SERVICE.DIABETIC_MEALS', name: 'Diabetic Meal Delivery', nameHi: 'मधुमेह भोजन डिलीवरी', aliases: ['Sugar-friendly Tiffin'], parent: 'NUT.SERVICE', type: 'service', tier: 'T2', kind: 'Service' },
+  { code: 'NUT.SERVICE.MEAL_SUBSCRIPTION', name: 'Meal Subscription Plan', nameHi: 'मील सब्सक्रिप्शन', aliases: ['Weekly Meal Subscription', 'Monthly Tiffin Plan'], parent: 'NUT.SERVICE', type: 'service', tier: 'T2', kind: 'Service' },
+
+  // ─── §15 FIT — yoga styles, wellness centres, tracking ─────────────────────
+  { code: 'FIT.FAC.YOGA.POWER', name: 'Power Yoga', nameHi: 'पावर योग', aliases: ['Dynamic Yoga', 'Power Vinyasa'], parent: 'FIT.FAC.YOGA', type: 'facility_type', tier: 'T2', kind: 'Facility' },
+  { code: 'FIT.FAC.YOGA.SENIOR', name: 'Senior Yoga', nameHi: 'वृद्धा योग', aliases: ['Gentle Yoga for Elders', 'Chair Yoga'], parent: 'FIT.FAC.YOGA', type: 'facility_type', tier: 'T2', kind: 'Facility' },
+  { code: 'FIT.FAC.YOGA.KIDS', name: 'Kids Yoga', nameHi: 'बाल योग', aliases: ['Children Yoga Class', 'School Yoga'], parent: 'FIT.FAC.YOGA', type: 'facility_type', tier: 'T2', kind: 'Facility' },
+  { code: 'FIT.FAC.YOGA.CORPORATE', name: 'Corporate Yoga', nameHi: 'कॉर्पोरेट योग', aliases: ['Office Yoga Session', 'Workplace Yoga'], parent: 'FIT.FAC.YOGA', type: 'facility_type', tier: 'T2', kind: 'Facility' },
+  { code: 'FIT.FAC.YOGA.RETREATS', name: 'Yoga Retreats & Camps', nameHi: 'योग शिविर', aliases: ['Yoga Camp', 'Wellness Retreat Yoga'], parent: 'FIT.FAC.YOGA', type: 'facility_type', tier: 'T2', kind: 'Facility' },
+  { code: 'FIT.FAC.WELLNESS', name: 'Wellness Centres', nameHi: 'वेलनेस केंद्र', aliases: ['Wellness Studio'], parent: null, type: 'facility_type', tier: 'T3', kind: 'Facility' },
+  { code: 'FIT.FAC.WELLNESS.NATUROPATHY', name: 'Naturopathy Centre', nameHi: 'नेचरोपैथी केंद्र', aliases: ['Nature Cure Centre'], parent: 'FIT.FAC.WELLNESS', type: 'facility_type', tier: 'T2', kind: 'Facility' },
+  { code: 'FIT.FAC.WELLNESS.AYURVEDIC', name: 'Ayurvedic Wellness Centre', nameHi: 'आयुर्वेदिक वेलनेस केंद्र', aliases: ['Ayurveda Wellness'], parent: 'FIT.FAC.WELLNESS', type: 'facility_type', tier: 'T2', kind: 'Facility' },
+  { code: 'FIT.FAC.WELLNESS.DETOX', name: 'Detox Centre', nameHi: 'डिटॉक्स केंद्र', aliases: ['Detox Program Centre'], parent: 'FIT.FAC.WELLNESS', type: 'facility_type', tier: 'T3', adClaimsRestricted: true, kind: 'Facility' },
+  { code: 'FIT.FAC.WELLNESS.SPA_MASSAGE', name: 'Spa / Massage (non-clinical)', nameHi: 'स्पा / मालिश', aliases: ['Wellness Massage', 'Day Spa'], parent: 'FIT.FAC.WELLNESS', type: 'facility_type', tier: 'T3', kind: 'Facility' },
+  { code: 'FIT.FAC.WELLNESS.SLEEP_PROGRAM', name: 'Sleep Wellness Program', nameHi: 'निद्रा स्वास्थ्य कार्यक्रम', aliases: ['Sleep Improvement Program'], parent: 'FIT.FAC.WELLNESS', type: 'program', tier: 'T2', kind: 'Service' },
+  { code: 'FIT.FAC.WELLNESS.STRESS_RELIEF', name: 'Stress-relief Program', nameHi: 'तनाव मुक्ति कार्यक्रम', aliases: ['Relaxation Program'], parent: 'FIT.FAC.WELLNESS', type: 'program', tier: 'T2', kind: 'Service' },
+  { code: 'FIT.SERVICE.TRACKING', name: 'Fitness Tracking', nameHi: 'फिटनेस ट्रैकिंग', aliases: ['Activity Tracking', 'Fitness Streaks'], parent: null, type: 'wellness', tier: 'T3', kind: 'Service' },
+  { code: 'FIT.SERVICE.TRACKING.STEPS', name: 'Step Counter', nameHi: 'स्टेप काउंटर', aliases: ['Daily Steps', 'Walking Tracker'], parent: 'FIT.SERVICE.TRACKING', type: 'wellness', tier: 'T3', kind: 'Service' },
+  { code: 'FIT.SERVICE.TRACKING.WORKOUTS', name: 'Workout Log', nameHi: 'वर्कआउट रिकॉर्ड', aliases: ['Exercise Log', 'Gym Log'], parent: 'FIT.SERVICE.TRACKING', type: 'wellness', tier: 'T3', kind: 'Service' },
+  { code: 'FIT.SERVICE.TRACKING.CHALLENGES', name: 'Fitness Challenges', nameHi: 'फिटनेस चुनौती', aliases: ['Step Challenge', 'Fitness Contest'], parent: 'FIT.SERVICE.TRACKING', type: 'event_type', tier: 'T3', kind: 'Service' },
+  { code: 'FIT.SERVICE.TRACKING.STREAKS', name: 'Streaks & Rewards', nameHi: 'स्ट्रीक एवं पुरस्कार', aliases: ['Consistency Rewards', 'Loyalty Streaks'], parent: 'FIT.SERVICE.TRACKING', type: 'wellness', tier: 'T3', kind: 'Service' },
+
+  // ─── §8 CENTRE — eye clinical leaves ────────────────────────────────────────
+  { code: 'CENTRE.LEAF.CATARACT', name: 'Cataract Surgery', nameHi: 'मोतियाबिंद शल्यक्रिया', aliases: ['Phaco Surgery', 'Cataract Operation'], parent: 'CENTRE.FAC.EYE', type: 'service', tier: 'T1', kind: 'Service' },
+  { code: 'CENTRE.LEAF.LASIK', name: 'LASIK / Refractive Surgery', nameHi: 'लेसिक शल्यक्रिया', aliases: ['Refractive Surgery', 'Specs Removal'], parent: 'CENTRE.FAC.EYE', type: 'service', tier: 'T2', adClaimsRestricted: true, kind: 'Service' },
+  { code: 'CENTRE.LEAF.CORNEA', name: 'Cornea Clinic', nameHi: 'कॉर्निया क्लिनिक', aliases: ['Corneal Transplant', 'Keratoplasty'], parent: 'CENTRE.FAC.EYE', type: 'service', tier: 'T1', kind: 'Service' },
+  { code: 'CENTRE.LEAF.GLAUCOMA', name: 'Glaucoma Clinic', nameHi: 'ग्लूकोमा क्लिनिक', aliases: ['Eye Pressure Care'], parent: 'CENTRE.FAC.EYE', type: 'service', tier: 'T1', kind: 'Service' },
+  { code: 'CENTRE.LEAF.SQUINT', name: 'Squint Clinic', nameHi: 'भेंगापन क्लिनिक', aliases: ['Strabismus Care'], parent: 'CENTRE.FAC.EYE', type: 'service', tier: 'T2', kind: 'Service' },
+  { code: 'CENTRE.LEAF.PAED_EYE', name: 'Paediatric Eye Clinic', nameHi: 'बाल नेत्र क्लिनिक', aliases: ['Child Eye Care'], parent: 'CENTRE.FAC.EYE', type: 'service', tier: 'T2', kind: 'Service' },
+
+  // ─── §18 EVENT — specialty camps, walks, awareness days ────────────────────
+  { code: 'EVENT.COMMUNITY.SPECIALTY_CAMP', name: 'Specialty Camp', nameHi: 'विशेषज्ञ शिविर', aliases: ['Super-specialty Camp'], parent: 'EVENT.COMMUNITY', type: 'event_type', tier: 'T2', kind: 'Event' },
+  { code: 'EVENT.COMMUNITY.SPECIALTY_CAMP.EYE', name: 'Eye Camp (specialty)', nameHi: 'नेत्र शिविर', aliases: ['Cataract Camp'], parent: 'EVENT.COMMUNITY.SPECIALTY_CAMP', type: 'event_type', tier: 'T2', kind: 'Event' },
+  { code: 'EVENT.COMMUNITY.SPECIALTY_CAMP.DENTAL', name: 'Dental Camp', nameHi: 'दंत शिविर', aliases: ['Dental Checkup Camp'], parent: 'EVENT.COMMUNITY.SPECIALTY_CAMP', type: 'event_type', tier: 'T2', kind: 'Event' },
+  { code: 'EVENT.COMMUNITY.SPECIALTY_CAMP.DIABETES', name: 'Diabetes Camp', nameHi: 'मधुमेह शिविर', aliases: ['Sugar Screening Camp'], parent: 'EVENT.COMMUNITY.SPECIALTY_CAMP', type: 'event_type', tier: 'T2', kind: 'Event' },
+  { code: 'EVENT.COMMUNITY.SPECIALTY_CAMP.CARDIAC', name: 'Cardiac Camp', nameHi: 'हृदय शिविर', aliases: ['BP / ECG Camp'], parent: 'EVENT.COMMUNITY.SPECIALTY_CAMP', type: 'event_type', tier: 'T2', kind: 'Event' },
+  { code: 'EVENT.COMMUNITY.SPECIALTY_CAMP.ORTHO', name: 'Ortho Camp', nameHi: 'अस्थि शिविर', aliases: ['Joint Checkup Camp'], parent: 'EVENT.COMMUNITY.SPECIALTY_CAMP', type: 'event_type', tier: 'T2', kind: 'Event' },
+  { code: 'EVENT.COMMUNITY.SPECIALTY_CAMP.WOMEN', name: 'Women Health Camp', nameHi: 'महिला स्वास्थ्य शिविर', aliases: ['Gynae Camp'], parent: 'EVENT.COMMUNITY.SPECIALTY_CAMP', type: 'event_type', tier: 'T2', kind: 'Event' },
+  { code: 'EVENT.COMMUNITY.RUN_WALK', name: 'Walkathon / Fun Run', nameHi: 'वॉकथॉन', aliases: ['Health Run', 'Awareness Walk'], parent: 'EVENT.COMMUNITY', type: 'event_type', tier: 'T2', kind: 'Event' },
+  { code: 'EVENT.COMMUNITY.CORPORATE_DAY', name: 'Corporate Wellness Day', nameHi: 'कॉर्पोरेट वेलनेस दिवस', aliases: ['Office Health Day'], parent: 'EVENT.COMMUNITY', type: 'event_type', tier: 'T2', kind: 'Event' },
+  { code: 'EVENT.COMMUNITY.AWARENESS_DAY.HEART', name: 'World Heart Day', nameHi: 'विश्व हृदय दिवस', aliases: ['Heart Awareness Day'], parent: 'EVENT.COMMUNITY.AWARENESS_DAY', type: 'event_type', tier: 'T2', kind: 'Event' },
+  { code: 'EVENT.COMMUNITY.AWARENESS_DAY.DIABETES', name: 'World Diabetes Day', nameHi: 'विश्व मधुमेह दिवस', aliases: ['Diabetes Awareness Day'], parent: 'EVENT.COMMUNITY.AWARENESS_DAY', type: 'event_type', tier: 'T2', kind: 'Event' },
+  { code: 'EVENT.COMMUNITY.AWARENESS_DAY.TB', name: 'World TB Day', nameHi: 'विश्व क्षय रोग दिवस', aliases: ['TB Awareness Day'], parent: 'EVENT.COMMUNITY.AWARENESS_DAY', type: 'event_type', tier: 'T1', isSensitive: true, kind: 'Event' },
+  { code: 'EVENT.COMMUNITY.AWARENESS_DAY.CANCER', name: 'World Cancer Day', nameHi: 'विश्व कैंसर दिवस', aliases: ['Cancer Awareness Day'], parent: 'EVENT.COMMUNITY.AWARENESS_DAY', type: 'event_type', tier: 'T2', kind: 'Event' },
+  { code: 'EVENT.COMMUNITY.AWARENESS_DAY.MH', name: 'World Mental Health Day', nameHi: 'विश्व मानसिक स्वास्थ्य दिवस', aliases: ['MH Awareness Day'], parent: 'EVENT.COMMUNITY.AWARENESS_DAY', type: 'event_type', tier: 'T1', isSensitive: true, kind: 'Event' },
+
+  // ─── §20 FIN claim types & LEGAL practice areas (doc remainder) ─────────────
+  { code: 'FIN.SERVICE.CLAIM.DAYCARE', name: 'Day-care Procedure Claim', nameHi: 'डे-केयर प्रक्रिया क्लेम', aliases: ['Daycare Cover Help'], parent: 'FIN.SERVICE.CLAIM', type: 'service', tier: 'T2', kind: 'Service' },
+  { code: 'FIN.SERVICE.CLAIM.OPD', name: 'OPD Claim Support', nameHi: 'ओपीडी क्लेम सहायता', aliases: ['Outpatient Claim Help'], parent: 'FIN.SERVICE.CLAIM', type: 'service', tier: 'T2', kind: 'Service' },
+  { code: 'FIN.SERVICE.CLAIM.PRE_POST_HOSP', name: 'Pre / Post-hospitalisation Claim', nameHi: 'भर्ती पूर्व / पश्चात क्लेम', aliases: ['Pre-post Expenses Filing'], parent: 'FIN.SERVICE.CLAIM', type: 'service', tier: 'T2', kind: 'Service' },
+  { code: 'FIN.SERVICE.CLAIM.AMBULANCE_COVER', name: 'Ambulance Cover Claim', nameHi: 'एम्बुलेंस कवर क्लेम', aliases: ['Ambulance Expense Claim'], parent: 'FIN.SERVICE.CLAIM', type: 'service', tier: 'T2', kind: 'Service' },
+  { code: 'FIN.SERVICE.CLAIM.AYUSH', name: 'AYUSH Treatment Claim', nameHi: 'आयुष उपचार क्लेम', aliases: ['AYUSH Cover Claim Help'], parent: 'FIN.SERVICE.CLAIM', type: 'service', tier: 'T2', kind: 'Service' },
+  { code: 'LEGAL.PRO.PRACTICE.CRIMINAL', name: 'Criminal (Medical Negligence)', nameHi: 'आपराधिक (चिकित्सा लापरवाही)', aliases: ['Criminal Negligence Cases', '304A Matters'], parent: 'LEGAL.PRO.PRACTICE', type: 'legal_practice_area', tier: 'T2', kind: 'Practitioner' },
+  { code: 'LEGAL.PRO.PRACTICE.CEA_LICENSING', name: 'Clinical Establishments Act', nameHi: 'क्लिनिकल स्थापना अधिनियम', aliases: ['CEA Registration', 'Hospital Compliance'], parent: 'LEGAL.PRO.PRACTICE', type: 'legal_practice_area', tier: 'T2', kind: 'Practitioner' },
+  { code: 'LEGAL.PRO.PRACTICE.ORGAN_DONATION', name: 'Organ-donation Legalities', nameHi: 'अंगदान कानून', aliases: ['THOA Compliance', 'Transplant Legal Clearance'], parent: 'LEGAL.PRO.PRACTICE', type: 'legal_practice_area', tier: 'T2', kind: 'Practitioner' },
+  { code: 'LEGAL.PRO.PRACTICE.LABOUR', name: 'Labour & Medical Staff Matters', nameHi: 'श्रम / चिकित्सा कर्मी विवाद', aliases: ['Healthcare Employment Disputes'], parent: 'LEGAL.PRO.PRACTICE', type: 'legal_practice_area', tier: 'T2', kind: 'Practitioner' },
+  { code: 'LEGAL.PRO.PRACTICE.POCSO', name: 'Child-protection (POCSO)', nameHi: 'बाल संरक्षण (पॉक्सो)', aliases: ['POCSO Act Cases'], parent: 'LEGAL.PRO.PRACTICE', type: 'legal_practice_area', tier: 'T1', isSensitive: true, kind: 'Practitioner' },
+  { code: 'LEGAL.PRO.PRACTICE.DV_ACT', name: "Women's Protection (DV Act)", nameHi: 'महिला संरक्षण (डीवी अधिनियम)', aliases: ['Domestic Violence Act Cases'], parent: 'LEGAL.PRO.PRACTICE', type: 'legal_practice_area', tier: 'T1', isSensitive: true, kind: 'Practitioner' },
+
+  // ─── §22 HOME services (doc remainder) ──────────────────────────────────────
+  { code: 'HOME.SERVICE.DIETITIAN', name: 'Home Dietitian Visit', nameHi: 'घर आहार विशेषज्ञ', aliases: ['Home Nutrition Visit'], parent: 'HOME.SERVICE', type: 'service', tier: 'T2', kind: 'Service' },
+  { code: 'HOME.SERVICE.YOGA_TRAINER', name: 'Home Yoga / Fitness Trainer', nameHi: 'घर योग / फिटनेस ट्रेनर', aliases: ['Home Personal Training'], parent: 'HOME.SERVICE', type: 'service', tier: 'T2', kind: 'Service' },
+  { code: 'HOME.SERVICE.EQUIPMENT_SETUP', name: 'Home Oxygen / Equipment Setup', nameHi: 'घर ऑक्सीजन / उपकरण सेटअप', aliases: ['Home ICU Equipment Install', 'Home ICU Setup'], parent: 'HOME.SERVICE', type: 'service', tier: 'T1', kind: 'Service' },
+  { code: 'HOME.SERVICE.PALLIATIVE', name: 'Home Palliative Care', nameHi: 'घर उपशामक देखभाल', aliases: ['Hospice at Home'], parent: 'HOME.SERVICE', type: 'service', tier: 'T1', isSensitive: true, kind: 'Service' },
+
+  // ─── §25 Organ / eye / body-donation pledge (sensitive) ─────────────────────
+  { code: 'GOV.INFO.ORGAN_DONATION', name: 'Organ / Eye / Body-donation Pledge', nameHi: 'अंगदान / नेत्रदान प्रतिज्ञा', aliases: ['NOTTO Pledge', 'Eye Donation Pledge'], parent: 'GOV.INFO', type: 'scheme', tier: 'T1', isSensitive: true, kind: 'Info' },
 ]);
 
 export default DEPTH_CATEGORY_NODES;

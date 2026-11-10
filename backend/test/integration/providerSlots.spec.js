@@ -57,7 +57,9 @@ jestApi.unstable_mockModule('../../src/config/redis.js', () => ({
   isRedisReady: () => false,
 }));
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: jestApi.fn(async () => {}),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 const { as } = await mountApp('providers', {});

@@ -33,6 +33,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { setAuthTokens } from '@/lib/axios';
+import canonicalLoginRoles from '@/data/canonicalLoginRoles.json';
 
 declare global {
   interface Window {
@@ -104,7 +105,12 @@ const ROLE_META: Record<string, { label: string; desc: string; icon: any; color:
 
 // Used as the pre-fetch list (so the grid is never empty) and as the fallback
 // if /auth/login-roles is unreachable.
-const FALLBACK_ROLE_KEYS = Object.keys(ROLE_META);
+// Show the complete demo role catalogue even when the server endpoint only
+// returns roles with active accounts. Active/legacy role keys are merged below.
+const FALLBACK_ROLE_KEYS = Array.from(new Set([
+  ...Object.keys(ROLE_META),
+  ...(canonicalLoginRoles as string[]),
+]));
 
 const humanise = (key: string) =>
   key.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -245,7 +251,10 @@ export default function Login() {
     return () => { alive = false; };
   }, []);
 
-  const roleTiles = buildRoles(roleKeys ?? FALLBACK_ROLE_KEYS);
+  const roleTiles = buildRoles(Array.from(new Set([
+    ...FALLBACK_ROLE_KEYS,
+    ...(roleKeys ?? []),
+  ])));
 
   // Wait for /auth/me hydration before redirecting. Otherwise a stale user in
   // memory during session validation can bounce between /login and /dashboard.
@@ -449,7 +458,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen w-full min-w-0 bg-background flex overflow-x-clip">
       {/* Left Panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-sidebar items-center justify-center p-12 relative overflow-hidden">
         <div
@@ -476,12 +485,12 @@ export default function Login() {
       </div>
 
       {/* Right Panel */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
+      <div className="min-w-0 flex-1 flex items-center justify-center p-4 sm:p-8">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
+          className="w-full min-w-0 max-w-md"
         >
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="w-12 h-12 flex items-center justify-center rounded-xl overflow-hidden shadow-sm">
@@ -508,14 +517,18 @@ export default function Login() {
           </div>
 
           {/* Role Selection */}
-          <div className="grid grid-cols-4 gap-2 mb-6">
+          <div
+            aria-label="Demo role cards"
+            className="mb-6 max-h-[min(42vh,22rem)] overflow-y-auto overscroll-contain rounded-xl border border-border/60 p-2 [scrollbar-gutter:stable]"
+          >
+            <div className="grid grid-cols-2 gap-2 xs:grid-cols-3 sm:grid-cols-4">
             {roleTiles.map(({ key, label, desc, icon: Icon, color, bg }) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => pickRole(key)}
                 aria-pressed={role === key}
-                className={`p-2 rounded-lg border text-center transition-all ${
+                className={`min-w-0 p-2 rounded-lg border text-center transition-all ${
                   role === key
                     ? 'border-primary bg-accent shadow-sm'
                     : 'border-border hover:border-primary/30 hover:bg-muted/50'
@@ -530,6 +543,12 @@ export default function Login() {
                 <p className="text-[8px] text-muted-foreground mt-0.5 leading-tight">{desc}</p>
               </button>
             ))}
+            </div>
+            {roleTiles.length > 8 && (
+              <p className="sticky bottom-0 mt-2 rounded-lg bg-background/95 px-2 py-1.5 text-center text-[11px] text-muted-foreground shadow-sm">
+                Scroll to see all {roleTiles.length} demo roles
+              </p>
+            )}
           </div>
 
           <form onSubmit={handleLogin} className="space-y-3">

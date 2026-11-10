@@ -1,4 +1,4 @@
-# 22 — Pitch / Investor Deck Outline (+ Q&A prep)
+﻿# 22 — Pitch / Investor Deck Outline (+ Q&A prep)
 
 > ⚠️ **Honesty note:** Is outline me **koi market size, competitor, traction ya financial numbers maine nahi daale** — mere paas verified data nahi hai, aur investors ke saamne galat/inflated numbers sabse bada risk hota hai. Jahan `[ ]` hai wahan **aapka real data** aayega (pilot metrics, sourced market reports). Har external number ka **source cite** karo.
 > Use cases: angel/seed investors, grants/incubators, hospital/insurer/corporate partnerships, accelerator applications. Deck 10–14 slides + appendix.
@@ -131,12 +131,12 @@ Bootstrapping with revenue-based milestones · angel networks · health-tech acc
 Visual consistency with brand/design system (file 11) · one idea per slide · big numbers, real screenshots · avoid jargon & buzzwords · cite sources in footnotes · practice 5-min and 10-min versions · prepare "demo fails" backup video · leave-behind PDF (no sensitive data) · track investor feedback; iterate.
 
 ## 8. Checklist
-- [ ] Collect pilot metrics + cohort charts; per-category unit economics
-- [ ] Bottom-up market sizing with sources
-- [ ] Competitor research in beachhead city
-- [ ] Security/compliance status slide that is **accurate** (include pentest timeline)
-- [ ] Legal review of business model (fee-splitting, advertising, e-pharmacy, IRDAI)
-- [ ] Team/advisors slide; hiring plan
-- [ ] Fundraising ask: amount, runway, milestones, use of funds
-- [ ] Data room prepared; references ready (providers, partners)
-- [ ] Demo script + backup video; Q&A rehearsal
+- [ ] Collect pilot metrics + cohort charts; per-category unit economics — data collection (open).
+- [ ] Bottom-up market sizing with sources — research (open).
+- [ ] Competitor research in beachhead city — research (open).
+- [ ] Security/compliance status slide accurate (incl. pentest timeline) — human deliverable (open).
+- [ ] Legal review of business model — legal (open).
+- [ ] Team/advisors slide; hiring plan — people (open).
+- [ ] Fundraising ask: amount, runway, milestones, use of funds — finance (open).
+- [ ] Data room prepared; references ready — ops (open).
+- [ ] Demo script + backup video; Q&A rehearsal — ops (open).

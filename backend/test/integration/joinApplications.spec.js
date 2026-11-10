@@ -120,7 +120,9 @@ jestApi.unstable_mockModule('../../src/models/ProviderTypeConfig.js', () => ({
 }));
 
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 // Content checks and the ClamAV call are exercised by upload.js's own suite;

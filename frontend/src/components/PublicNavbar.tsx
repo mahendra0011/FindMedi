@@ -444,6 +444,7 @@ export default function PublicNavbar() {
             size="icon"
             className="xl:hidden"
             onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
@@ -758,6 +759,9 @@ export default function PublicNavbar() {
             >
               About
             </Link>
+            <div className="px-3 pt-3 sm:hidden">
+              <LanguageSwitcher />
+            </div>
             {!user && (
               <Button variant="ghost" size="sm" onClick={() => { navigate('/login'); setMobileOpen(false); }} className="w-full justify-start">
                 Sign In

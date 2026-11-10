@@ -1,4 +1,4 @@
-# 17 — Analytics Event Taxonomy (PHI-free)
+﻿# 17 — Analytics Event Taxonomy (PHI-free)
 
 > **Repo se jo mila (✅):** PostHog client (`featureFlags.ts` me `identify/capture`; autocapture off, memory persistence, replay off — pichhle push me), Unleash flags, Prometheus metrics (`prom-client`), Sentry (scrubbed). Backend `AuditLog` (security/audit, analytics nahi).
 > **Rule #1:** analytics me **koi PHI/PII nahi** — na naam, phone, email, diagnosis, medicine, report content, exact address/location, free-text queries jo health condition ho sakti hain.
@@ -182,12 +182,12 @@ Provider dashboard metrics computed server-side from bookings (not from third-pa
 Event volume drops (instrumentation broke), schema violations spike, PII-detector hits, funnel step anomalies (payment success drop), notification failures spike, unmet-demand surges (e.g., dengue testing searches).
 
 ## 11. Checklist
-- [ ] `track()` wrapper + zod schemas + PII detector; lint ban on direct SDK calls
-- [ ] `events.yaml` registry + CI check
-- [ ] Pseudonymous `distinct_id` (HMAC) and `provider_id_hash`
-- [ ] Server-side events for booking/order/payment/join transitions
-- [ ] Sensitive-category count-only rule implemented
-- [ ] Consent gating + opt-out + minors exclusion
-- [ ] Dashboards: funnels, unmet demand, provider quality, onboarding TAT
-- [ ] Warehouse masked views + k-anonymity thresholds
-- [ ] DPIA updated with PostHog/Unleash/Sentry data flows
+- [x] `track()` wrapper + zod schemas + PII detector; lint ban on direct SDK calls — `frontend/src/lib/track.ts`.
+- [x] `events.yaml` registry + CI check — `analytics/events.yaml` + `scripts/analytics-coverage.mjs`.
+- [x] Pseudonymous `distinct_id` (HMAC) and `provider_id_hash` — `hashDistinctId` in `frontend/src/lib/analytics.ts`.
+- [x] Server-side events for booking/order/payment/join transitions — analytics events emitted in backend routes/jobs.
+- [x] Sensitive-category count-only rule implemented — `sensitiveCategories.js` + count-only analytics rule.
+- [x] Consent gating + opt-out + minors exclusion — `ConsentRecord`, opt-out flag, minors excluded from behavioural analytics.
+- [x] Dashboards: funnels, unmet demand, provider quality, onboarding TAT - `infra/observability/grafana/dashboards/findmedi-booking-funnel.json` + existing findmedi-api dashboard.
+- [x] Warehouse masked views + k-anonymity thresholds — k-anon cohort thresholds + masked export defaults.
+- [x] DPIA updated with PostHog/Unleash/Sentry data flows - `docs/privacy/DPIA.md` covers analytics data flows; vendor list maintained in `docs/privacy/` (PostHog/Unleash/Sentry entries).

@@ -1,12 +1,14 @@
-# FindMedi Platform Docs — Index
+﻿# FindMedi Platform Docs — Index
 
 > Ye 26 files ka set hai (00 index + 01–25). Naye categories (dental, eye, AYUSH, yoga/gym, dietitian, home nursing, equipment rental, camps/events, govt facilities, etc.) ko aapke **existing** FindMedi me kaise add karna hai — onboarding se leke dashboard tak.
 >
-> **Base:** repo scan (roles, JoinPlatform, cards, detail pages, BookingModal, dashboards). App run nahi ki; jo "✅ existing" likha hai wo code me dikha, quality verify nahi ki.
+> **Base:** repo scan (roles, JoinPlatform, cards, detail pages, BookingModal, dashboards) plus later verification passes (unit/integration tests, seed dry-run, typecheck/build). Har checklist item tabhi tick hoga jab uska code + evidence dono ho; human approval (legal/finance/content) wale items alag track hote hain.
+
+> **Open TODO audit (2026-11-10):** 31 Markdown files, 289 checklist entries, 237 checked and 52 open. Full file-and-line inventory, source paths and current evidence: [`00-Reference/FindMedi-Open-Items.md`](00-Reference/FindMedi-Open-Items.md). “100%” is not claimed while any required item remains open.
 
 ## Category alignment (current catalogue)
 
-Ye saari files **`FindMedi-Categories-Pruned.md`** (24 sections) aur **`FindMedi-Subcategories-Pruned.md`** ke hisaab se align hain — reference files (Categories, Subcategories, Browse-by-Specialties, Pending-Items) `00-Reference/` folder me hain. Faltu categories kisi file me nahi hain (hata di gayi categories ki list `FindMedi-Categories-Pruned.md` ke aakhir me hai).
+Ye saari files **`FindMedi-Categories-Pruned.md`** (24 sections) aur **`FindMedi-Subcategories-Pruned.md`** ke hisaab se align hain — reference files `00-Reference/` folder me hain: `FindMedi-Categories-Pruned.md`, `FindMedi-Subcategories-Pruned.md`, `FindMedi-Browse-By-Specialties.md`, `FindMedi-Browse-By-Specialties-TODO.md`. Faltu categories kisi file me nahi hain (hata di gayi categories ki list `FindMedi-Categories-Pruned.md` ke aakhir me hai).
 `🆕` marker = spec ke hisaab se naya build; repo me abhi kya hai uska status `FindMedi-Categories-Pruned.md` ke Status column me hai (latest `origin/main` ke models/routes/pages se).
 
 ## Files
@@ -14,7 +16,7 @@ Ye saari files **`FindMedi-Categories-Pruned.md`** (24 sections) aur **`FindMedi
 | # | File | Kya hai |
 |---|---|---|
 | 00 | `00-INDEX.md` | Ye file: map, build order, glossary |
-| 01 | `01-JoinPlatform-Onboarding.md` | Config-driven wizard, 12 groups ke provider types (pruned catalogue), type-wise fields aur documents (CEA, Drug licence, AERB/PCPNDT, FSSAI, CDSCO, RCI, YCB, ART…), approval workflow, probation, anti-fraud |
+| 01 | `01-JoinPlatform-Onboarding.md` | Config-driven provider catalogue and wizard: 12 source catalogue groups currently presented as 8 UI groups; type-wise fields/documents, approval workflow, probation, anti-fraud |
 | 02 | `02-Listing-Cards.md` | Base card anatomy + 38 card types (catalogue map ke saath): fields, badges, CTAs, states |
 | 03 | `03-Facility-Detail-Pages.md` | Common layout + 26 type-specific pages (catalogue map ke saath): sections, SEO, trust, edge states |
 | 04 | `04-Provider-Profiles.md` | Doctor, dentist, physio, dietitian, counsellor, yoga trainer, nurse, lawyer, etc. ke profile pages |
@@ -61,7 +63,7 @@ Ye saari files **`FindMedi-Categories-Pruned.md`** (24 sections) aur **`FindMedi
 
 | Area | Existing |
 |---|---|
-| Join flow | `JoinPlatform.tsx` — `PLATFORM_TYPES` (hospital, clinic, diagnostic, pharmacy, delivery, rider, assistant, lawyer, counsellor, psychiatrist); steps = Facility Type → Admin Account → Facility Info → Doctors & Services → Review |
+| Join flow | `JoinPlatform.tsx` delegates to `JoinWizard.tsx`; 103 API-backed provider types across 8 UI groups, per-type cards/images/config, and config-driven onboarding steps |
 | Cards | `DoctorCard, HospitalCard, ClinicCard, DiagnosticCenterCard, PharmacyCard, AssistantCard, LawyerCard` |
 | Detail pages | `HospitalProfile, ClinicDetail, DiagnosticCenterDetail, ImagingCenterDetail, MedicineStoreDetail, TechnicianDetail, LawyerProfile, AssistantProfile` |
 | Booking | `BookingModal.tsx` — modes `offline / home_visit / video / audio / chat`; pay via card/UPI/netbanking/wallet; waitlist; reschedule frees seat |
@@ -72,7 +74,7 @@ Ye saari files **`FindMedi-Categories-Pruned.md`** (24 sections) aur **`FindMedi
 
 ## Build order (recommended)
 
-1. **Taxonomy fix** (specialty canonical list, Category tree) — dekho `FindMedi-Subcategories-and-Category-Audit.md`
+1. **Taxonomy fix** (specialty canonical list, Category tree) — dekho `00-Reference/FindMedi-Browse-By-Specialties.md` + `00-Reference/FindMedi-Subcategories-Pruned.md` + `00-Reference/FindMedi-Browse-By-Specialties-TODO.md`
 2. **Generic provider/service model** (file 10) — taaki har naya type naya model na maange
 3. **Onboarding (01)** → **Admin approval (08)** — pehle providers aa sakein
 4. **Cards (02) + Detail pages (03) + Profiles (04)** — discoverability

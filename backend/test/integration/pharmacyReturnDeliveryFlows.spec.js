@@ -47,11 +47,16 @@ jestApi.unstable_mockModule('../../src/models/Medicine.js', () => ({
   default: { countDocuments: (...args) => medicineCount(...args) },
 }));
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 const { as } = await mountApp('pharmacy', {});
-const staff = as({ id: 'u-1', _id: 'u-1', role: 'superadmin' });
+const staff = as({
+  id: 'u-1', _id: 'u-1', role: 'pharmacy_owner',
+  hospitalId: 'h1', facilityId: 'f1',
+});
 
 const deliveryId = '507f1f77bcf86cd799439001';
 const orderIdHex = '507f1f77bcf86cd799439002';

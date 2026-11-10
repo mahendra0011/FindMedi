@@ -87,7 +87,10 @@ jest.unstable_mockModule('../../src/models/Notification.js', () => ({
   default: { insertMany: async () => [], create: async () => ({}) },
 }));
 
-jest.unstable_mockModule('../../src/middleware/audit.js', () => ({ auditLog: jest.fn(async () => {}) }));
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+ auditLog: jest.fn(async () => {}),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
+}));
 jest.unstable_mockModule('../../src/services/notificationService.js', () => ({ createNotification: jest.fn(async () => ({})) }));
 jest.unstable_mockModule('../../src/services/socketService.js', () => ({
   getIO: jest.fn(() => null), emitDeliveryStatus: jest.fn(), emitAppointmentUpdate: jest.fn(async () => {}),

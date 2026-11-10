@@ -25,10 +25,17 @@ describe('providerTypeCatalog', () => {
       'delivery', 'rider', 'patient_transport',
       'event_organizer', 'ngo', 'support_group_host', 'training_provider',
       'lawyer', 'insurance_tpa_desk',
+      'physiotherapy_clinic', 'eye_clinic', 'pathology_lab', 'collection_centre',
+      'mobile_diagnostic_van', 'cardiac_diagnostic_centre', 'sleep_lab', 'genetic_molecular_lab',
+      'hospital_pharmacy', 'jan_aushadhi_kendra', 'generic_medicine_store', '24x7_pharmacy',
+      'online_pharmacy', 'ayush_medicine_store', 'surgical_orthopaedic_store', 'wholesale_pharmacy',
+      'phc', 'chc', 'uphc', 'sub_centre', 'arogya_mandir', 'audiologist', 'optometrist',
+      'lab_technician', 'radiographer', 'sonographer', 'pharmacist', 'child_development_centre',
+      'psychologist', 'elder_care_home', 'hospice_palliative', 'optical_shop', 'diet_kitchen', 'corporate_wellness_provider',
     ];
     const missing = required.filter((key) => !TYPE_KEYS.includes(key));
     expect(missing).toEqual([]);
-    expect(TYPE_KEYS.length).toBe(53);
+    expect(TYPE_KEYS.length).toBe(103);
   });
 
   it('keeps the legacy typeKeys the old JoinPlatform already used', () => {
@@ -82,10 +89,13 @@ describe('providerTypeCatalog', () => {
     }
   });
 
-  it('marks the 2.md 6 high-risk types for two-person approval only', () => {
+  it('marks every high-risk provider type for two-person approval only', () => {
     const twoPerson = PROVIDER_TYPE_CATALOG.filter((config) => config.approvalPolicy?.twoPerson)
       .map((config) => config.typeKey).sort();
-    expect(twoPerson).toEqual(['ambulance_operator', 'maternity_ivf', 'rehab_centre', 'support_group_host']);
+    expect(twoPerson).toEqual([
+      'ambulance_operator', 'child_development_centre', 'elder_care_home', 'hospice_palliative',
+      'maternity_ivf', 'rehab_centre', 'sonographer', 'support_group_host',
+    ]);
     for (const config of PROVIDER_TYPE_CATALOG) {
       expect(APPROVAL_LEVELS).toContain(config.approvalPolicy.level);
       expect(config.approvalPolicy.slaHours).toBeGreaterThanOrEqual(0);
@@ -105,6 +115,6 @@ describe('providerTypeCatalog', () => {
       'clinical', 'commerce', 'community', 'home_service', 'professional', 'transport', 'wellness',
     ]);
     for (const group of groups) expect(group.count).toBe(group.types.length);
-    expect(groups.find((group) => group.group === 'clinical').count).toBe(24);
+    expect(groups.find((group) => group.group === 'clinical').count).toBe(60);
   });
 });

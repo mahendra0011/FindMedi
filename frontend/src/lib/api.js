@@ -746,11 +746,13 @@ export const api = {
 
   getCategories:          (p={})    => request('/categories?' + new URLSearchParams(p)),
   getPublicCategories:    (p={})    => request('/categories/public?' + new URLSearchParams(p)),
+  getSeasonalAlerts:      ()        => request('/info/seasonal-alerts'),
   getSpecialtyCounts:     ()        => request('/platform/specialty-counts'),
   // Browse-by-specialties tree/detail/counts (spec B-1.4, backend taxonomy is
   // the single source of truth — no local copies drift)
   getSpecialtyTree:       ()        => request('/categories/specialties?tree=1'),
   getSpecialtyDetail:     (code)    => request(`/categories/specialties/${encodeURIComponent(code)}`),
+  getSpecialtyCountsByCode: (p={})   => request('/categories/specialties/counts?' + new URLSearchParams(p)),
   browseSpecialtyCounts:  (code,p={}) => request(`/categories/specialties/${encodeURIComponent(code)}/counts?` + new URLSearchParams(p)),
 
   // Spec 3.1: versioned Community Guidelines + Provider Agreement
@@ -1282,6 +1284,9 @@ export const api = {
 
   // Community forums (T2 peer support)
   getCommunityPosts:         (p={})    => request('/community' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
+  reportCommunityPost:       (id, body)=> request(`/community/${id}/reports`, { method: 'POST', body: JSON.stringify(body) }),
+  getCommunityReports:       ()        => request('/community/moderation/reports'),
+  reviewCommunityReport:     (postId, reportId, action) => request(`/community/moderation/reports/${postId}/${reportId}`, { method: 'PATCH', body: JSON.stringify({ action }) }),
   getFirstResponders:        ()        => request('/emergency/first-responders'),
   createCommunityPost:       (body)    => request('/community', { method: 'POST', body: JSON.stringify(body) }),
   commentCommunityPost:      (id, body)=> request(`/community/${id}/comments`, { method: 'POST', body: JSON.stringify(body) }),

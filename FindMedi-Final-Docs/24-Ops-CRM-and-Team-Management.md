@@ -364,15 +364,15 @@ Use a spreadsheet/Notion/Zoho-type CRM for 30–60 days: fixed stages from §4.2
 | Key-person risk | Playbooks, shared ownership, handover automation |
 
 ## 16. Checklist
-- [ ] Decide hybrid scope (build vs buy per module); sign DPAs for any external tool
-- [ ] Define pipeline stages, SLAs, lost reasons, scoring (§4.2, §7)
-- [ ] Models: Lead, Account overlay, Partner, Activity, Task, Visit, Territory, Objective/KR, Campaign, TeamMember (separate from hospital `Staff`)
-- [ ] Platform event sync (applications, bookings aggregates, doc expiry, tickets)
-- [ ] Command Center v1 (aggregate, k-anonymous) + city launch gates
-- [ ] CRM roles/permissions (territory/ownership-based, masked contacts, export controls)
-- [ ] Automation rules (SLA, activation, at-risk, doc expiry) with logs + pause
-- [ ] Field PWA (offline queue, check-ins with disclosed policy)
-- [ ] Team module: scorecards, onboarding, training (privacy/claims/crisis), 1:1s
-- [ ] OKRs linked to live metrics; weekly review cadence
-- [ ] Privacy: no-PHI policy, consent for WhatsApp/SMS/calls, retention, DSR for contacts, audit
-- [ ] Start with spreadsheet/Notion process in parallel; migrate once stable
+- [ ] Decide hybrid scope (build vs buy per module); sign DPAs for any external tool — business/vendor decision (open).
+- [x] Define pipeline stages, SLAs, lost reasons, scoring — `CrmPipelineConfig` + stages in `routes/crm.js`.
+- [x] Models: Lead, Account overlay, Partner, Activity, Task, Visit, Territory, Objective/KR, Campaign, TeamMember (separate from hospital `Staff`) — `Lead`, `CrmAccount`, `Partner`, `Activity`, `Task`/`Visit`, `Territory`, `Objective`, `Campaign`, `TeamMember` exist.
+- [x] Platform event sync (applications, bookings aggregates, doc expiry, tickets) — CRM command-center reads aggregates + event sync.
+- [x] Command Center v1 (aggregate, k-anonymous) + city launch gates — `CrmCommandCenter` + city launch controls.
+- [x] CRM roles/permissions (territory/ownership-based, masked contacts, export controls) — `crm:read`/`crm:write`, masked phone in CRM responses, export caps.
+- [x] Automation rules (SLA, activation, at-risk, doc expiry) with logs + pause — `CrmAutomationRule` + `runCrmAutomation` + audit.
+- [x] Field PWA (offline queue, check-ins with disclosed policy) - `frontend/src/lib/offlineQueue.ts` `enqueueFieldAction`/`drainFieldQueue`/`startFieldAutoSync` with IndexedDB + localStorage fallback and `disclosed` flag on every queued check-in.
+- [x] Team module: scorecards, onboarding, training (privacy/claims/crisis), 1:1s — `TeamManagement.tsx` + team models.
+- [x] OKRs linked to live metrics; weekly review cadence — `GoalsOkrs.tsx` + `Objective` model.
+- [x] Privacy: no-PHI policy, consent for WhatsApp/SMS/calls, retention, DSR for contacts, audit — DSR routes + retention docs.
+- [ ] Start with spreadsheet/Notion process in parallel; migrate once stable — process decision (open).

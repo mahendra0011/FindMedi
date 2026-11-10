@@ -1,6 +1,6 @@
-# 15 — Mobile App Strategy
+﻿# 15 — Mobile App Strategy
 
-> **Current state (repo scan):** React 18 + Vite web app; `sw.js` service worker exists but **no `manifest.webmanifest`**; no Capacitor/React Native dependency found; `socket.io-client`, `livekit-client`, `maplibre-gl` present (all work on mobile web). Native-ish needs: push, background location (riders/ambulance), camera/doc scan, offline queue, biometric lock.
+> **Current state (revalidated 2026-11-10):** React 18 + Vite app with PWA manifest/service worker, Capacitor config + Android shell, web push, chunked/compressed uploads, offline queue, and secure-storage/biometric settings UI. Native Android screenshot guard code is added but not compiled/device-tested; SMS Retriever, Play Integrity client bridge and background-location spike remain open.
 > **Reality:** India me majority users **Android, mid/low-end phones, 3G/4G, limited storage** → web-first + selective native.
 
 ---
@@ -128,12 +128,15 @@ Device lab: low-end Android (2–3 GB), mid, iPhone SE/recent; Android 9–15; n
 Install → signup → first booking conversion · push opt-in rate · push CTR · crash-free sessions (≥ 99.5%) · ANR rate · app-start time · offline-sync success · permission grant rates · uninstall rate · app rating · support tickets per 1k users.
 
 ## 15. Checklist
-- [ ] `manifest.webmanifest` + SW caching rules (no PHI)
-- [ ] Web push + preferences + discreet templates
-- [ ] SMS Retriever / OTP autofill; camera compress/chunk upload
-- [ ] Decide Capacitor vs RN for Partner/Field; spike on background location
-- [ ] Secure storage + biometric + `FLAG_SECURE` on sensitive screens
-- [ ] Play Integrity / App Attest for field/rider
-- [ ] Store listings, Data Safety/Privacy labels, review demo accounts
-- [ ] Min-version & force-update mechanism
-- [ ] Mobile CI/CD + crash reporting + device-lab test plan
+- [x] `manifest.webmanifest` + SW caching rules — `frontend/public/manifest.webmanifest`, `sw.js`.
+- [x] Web push + preferences + discreet templates — `lib/webPush.ts`, `NotificationPreference`, `discreetVariant`.
+- [x] Camera upload resilience: chunked upload `frontend/src/lib/chunkedUpload.ts` + image compression `frontend/src/lib/imageCompression.ts`.
+- [ ] Native SMS Retriever / OTP autofill bridge and real-device verification (implementation not present).
+- [x] Capacitor wrapper configured — `frontend/capacitor.config.ts` and `frontend/android/`.
+- [ ] Background-location spike for rider/ambulance apps — no native location service or device-test evidence yet.
+- [x] Secure-storage and biometric settings UI — `biometric.js`, `SecuritySection.tsx`.
+- [ ] Android `FLAG_SECURE` route guard/native plugin added (`SensitiveScreenPlugin`, `SensitiveScreenGuard`, 17 route-matcher tests in the full suite); Android Gradle compile could not run because Java/JAVA_HOME is unavailable in this environment, and screenshot-prevention still needs physical-device evidence.
+- [ ] Play Integrity / App Attest for field/rider - `backend/src/routes/attestation.js` `POST /api/attestation/verify` (fail-closed 503 when unconfigured, stable verdict contract); native client bridge + real-device tests remain open (note).
+- [ ] Store listings, Data Safety/Privacy labels, review demo accounts — store submission is a human deliverable (open).
+- [x] Min-version & force-update mechanism - `/api/config/version` (env-backed) + `frontend/src/components/ForceUpdateGate.tsx` blocking gate.
+- [x] Mobile CI/CD + crash reporting + device-lab test plan - `docs/mobile/ci-cd-plan.md` (GitHub Actions build, Sentry crash reporting with PII scrubbing, device-lab matrix).

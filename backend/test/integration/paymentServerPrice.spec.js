@@ -22,7 +22,9 @@ jestApi.unstable_mockModule('../../src/middleware/stepUpAuth.js', () => ({
   requireStepUp: () => (_req, _res, next) => next(),
 }));
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: jestApi.fn(async () => {}),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 jestApi.unstable_mockModule('../../src/lib/pgDualWrite.js', () => ({
   mirrorPayment: jestApi.fn(),

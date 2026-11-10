@@ -126,6 +126,7 @@ const { as } = await mountApp('pharmacy', {
   }),
   '../../src/middleware/audit.js': () => ({
     auditLog: async () => ({}),
+    auditLogRequired: async () => ({}),
   }),
   '../../src/models/DashboardAlert.js': () => ({
     default: {

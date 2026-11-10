@@ -33,6 +33,7 @@ import { useAuth } from '@/context/AuthContext';
 import BillCheckout from '@/components/BillCheckout';
 import ReviewDialog from '@/components/ReviewDialog';
 import { userFacingError } from '@/lib/errorCopy';
+import { matchesSpecialty } from '@/lib/specialtyFilter';
 
 // ─── Animation Variants ────────────────────────────────────────────────────
 const stagger: Unmodelled = {
@@ -338,7 +339,7 @@ export default function HospitalProfile() {
   const filteredDoctors = (doctors || []).filter(d => {
     const q = docSearch.toLowerCase();
     if (q && !d.name?.toLowerCase().includes(q) && !d.specialization?.toLowerCase().includes(q)) return false;
-    if (docSpecFilter !== 'All' && d.specialization !== docSpecFilter) return false;
+    if (docSpecFilter !== 'All' && !matchesSpecialty(d.specialization, docSpecFilter, [])) return false;
     if (availabilityFilter === 'available' && !d.available) return false;
     if (availabilityFilter === 'today' && !(d.available && d.next_available_slot?.toLowerCase().includes('today'))) return false;
     if (availabilityFilter === 'tomorrow' && !(d.available && d.next_available_slot?.toLowerCase().includes('tomorrow'))) return false;
@@ -594,7 +595,8 @@ export default function HospitalProfile() {
                   All ({doctors.length})
                 </button>
                 {(hospital?.specialties || []).map((s: Unmodelled) => {
-                  const count = doctors.filter(d => d.specialization === s).length;
+                  const count = doctors.filter(d => matchesSpecialty(d.specialization, s, [])).length;
+                  if (count === 0) return null;
                   return (
                     <button key={s} onClick={() => setDocSpecFilter(s)}
                       className={cn('px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all', docSpecFilter === s ? 'border-primary bg-primary/5 text-primary' : 'border-border/60 bg-card text-muted-foreground hover:text-foreground')}>

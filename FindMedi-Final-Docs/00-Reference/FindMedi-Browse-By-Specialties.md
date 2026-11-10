@@ -1,7 +1,7 @@
-# FindMedi — "Browse by Specialties": Category + Subcategory (complete)
+﻿# FindMedi — "Browse by Specialties": Category + Subcategory (complete)
 
 > Aapki image wali grid ("Browse by Specialties") ka poora check + final specialty tree: har tile ke sub-specialties, conditions, procedures, icons, UI/drill-down aur data model.
-> **Source:** latest `origin/main` (`68cbcd35`, 2026-10-18) — `backend/src/lib/taxonomy.js`, `lib/canonicalSpecialties.js`, `routes/categories.js`, `models/Doctor.js`, `frontend/src/pages/{HospitalDirectory,ClinicDoctors,HospitalDoctors,HospitalProfile}.tsx`, `data/specialties`, `data/specialtyVisuals`. Static review hai — app run nahi ki.
+> **Source:** current workspace review (2026-11-09) — backend taxonomy/category routes and frontend specialty browse/filter pages. Frontend production build and focused specialty tests passed; full app/browser flow was not exercised.
 >
 > | Mark | Matlab |
 > |---|---|
@@ -18,28 +18,30 @@
 | Cheez | Current state |
 |---|---|
 | Top-level specialties (tiles) | **43** (`SPEC.GENMED` … `SPEC.GENETICS`) — aapki image me 35 tiles (Infertility tak) dikh rahe hain, neeche 8 aur: Nuclear Medicine, PMR, Occupational, Palliative, Sleep, Allergy & Immunology, Infectious Disease, Clinical Genetics |
-| Sub-specialty entries | **185** (dotted codes, jaise `SPEC.CARDIO.INTERVENTIONAL`) — total taxonomy **228** (43 + 185) |
-| Jahan "Browse by Specialties" dikhta hai | `HospitalDirectory`, `ClinicDoctors`, `HospitalDoctors`, `HospitalProfile` — sab jagah **wahi flat top-level list** (pehle kuch tiles, "More" se baaki) |
-| Sub-specialty UI me | Sirf `PractitionerProfilePage` / `PractitionerHeader` me. **Browse grid me koi drill-down nahi** — isi liye "har jagah common hi dikh raha hai" |
-| Tile ka number (1, 0…) | Us page ke context me doctors ka count; zyada tar tiles par `0` dikhta hai (khali jaisa look) |
-| Frontend list | `@/data/specialties` frontend me alag copy hai → backend `taxonomy.js` se drift ka risk |
-| API | `GET /categories/specialties` flat list deta hai (228 items) |
-| Doctor model | `specialtyCode` + `subSpecialtyCodes[]` ✅ (conditions/procedures treated ka field nahi) |
+| Sub-specialty entries | **300** (dotted codes, jaise `SPEC.CARDIO.INTERVENTIONAL`) - total taxonomy **343** (43 + 300) |
+| Jahan "Browse by Specialties" dikhta hai | `HospitalDirectory`, `ClinicDoctors`, `HospitalDoctors`, `HospitalProfile` — facility pages scoped lists; browse-all page has 13 grouped tiles |
+| Sub-specialty UI me | Browse grid previews child chips; specialty detail page drills down to subs, conditions, procedures, doctors, tests and packages |
+| Tile ka number (1, 0…) | Browse-all tiles city-aware distinct doctor/facility counts dikhate hain; zero state se specialty detail ka request option milta hai |
+| Frontend list | Browse grid React Query se `GET /categories/specialties?tree=1` leta hai; visuals/legacy alias map UI-only presentation helpers hain |
+| API | `GET /categories/specialties` flat list deta hai; `?tree=1` grouped tree (43 roots, 300 subs) deta hai; bulk and per-code count routes available hain |
+| Doctor model | `specialtyCode` + `subSpecialtyCodes[]` + `conditionsTreated[]` + `procedures[]` |
 
-### Problems jo fix karni hain
-1. **Sub-specialties tiles me nahi dikhti** — grid sirf top-level.
-2. **Duplicates (same cheez 2 codes):** `SPEC.PAED.NEONATO`↔`SPEC.NEONATO`, `SPEC.PAED.CARDIOLOGY`↔`SPEC.CARDIO.PAED`, `SPEC.PAED.SURGERY`↔`SPEC.PAEDSURG`, `SPEC.CTVS.VASCULAR`↔`SPEC.VASC`, `SPEC.OBGY.INFERT_IVF`↔`SPEC.INFERT`, `SPEC.GASTRO.HEPATOLOGY`↔`SPEC.HEPAT`, `SPEC.PULMO.SLEEP`/`SPEC.PSYCH.SLEEP`↔`SPEC.SLEEP`, `SPEC.ORTHO.SPORTS`↔`SPEC.SPORTS`, `SPEC.URO.ANDROLOGY`/`SEXUAL_HEALTH`↔`SPEC.SEXO`, `SPEC.GASTRO.BARIATRIC`↔`SPEC.GENSURG.BARIATRIC`↔`SPEC.ENDO.OBESITY`, `SPEC.ENDO.PCOS`↔OBGY PCOS → inhe **cross-list** karo (ek canonical, baaki alias/secondary parent).
-3. **Prefix inconsistency:** Paediatric Surgery ke subs `SPEC.PSURG.*` hain jabki parent `SPEC.PAEDSURG` — `SPEC.PAEDSURG.*` karo (alias rakho).
-4. **Top-level tiles jinke koi sub-specialty nahi:** SPEC.VASC, SPEC.PAEDSURG, SPEC.NEONATO, SPEC.HEPAT, SPEC.INFERT, SPEC.NUCMED, SPEC.OCCMED, SPEC.PALLI, SPEC.SLEEP — inke liye neeche ➕ subs hain; baaki tiles me bhi ➕ marks sirf wahi hain jo repo me nahi mile.
-5. **Doctor ko conditions/procedures tag nahi** — search "dard-seene me" jaise symptom → specialty/doctor match nahi hota.
-6. **Zero-count tiles** user ko confuse karte hain.
-7. **Ek source of truth chahiye:** frontend copy hatao, `GET /categories/specialties` se lo.
+In §3, labels like “Repo abhi (0 subs)” preserve the earlier source snapshot for comparison; they are historical baseline counts. The complete current child list is §3 plus §4.1.
+
+### Implementation status
+1. Browse tiles show child previews, grouped navigation and specialty drill-down.
+2. Duplicate entries resolve to canonical codes; `alsoUnder` shows a single record under secondary parents.
+3. `SPEC.PSURG.*` legacy codes resolve to canonical `SPEC.PAEDSURG.*` child codes.
+4. All 43 root tiles have children in the taxonomy tree; the supplement under §4 records child links omitted from the original per-specialty lists.
+5. Doctor condition/procedure tags and symptom-to-specialty search are available.
+6. Browse tiles show provider counts and available-only filtering when counts load.
+7. The browse tree is served from `GET /categories/specialties?tree=1`.
 
 ---
 
 ## 2. Final tiles — 43 (grouped for "Browse all")
 
-Home / directory par pehle **top demand (city ke hisaab se)** 8–12 tiles, "Browse all" par 13 groups:
+Home par API tree se city ke **doctor-count ke hisaab se ranked up to 8 tiles** (zero-count tiles muted + Request; ye supply/availability ranking hai, patient-demand analytics nahi), “Browse all” par 13 groups:
 
 | Group | Tiles (icon: lucide) |
 |---|---|
@@ -57,7 +59,7 @@ Home / directory par pehle **top demand (city ke hisaab se)** 8–12 tiles, "Bro
 | **Diagnostics & Lab medicine** | Radiology (`Scan`) · Pathology (`Microscope`) · Nuclear Medicine (`Atom`) · Clinical Genetics (`Dna`) |
 | **Men's health & Work health** | Sexology & Andrology 🔒 (`ShieldPlus`) · Occupational Medicine (`HardHat`) |
 
-> Image me jo icons hain wo `data/specialtyVisuals` se aate hain; neeche ke icon names sirf suggestion hain (kai tiles me abhi same generic "pulse" icon repeat hota hai — Vascular, Gastro, Hepato, Nephro, Uro, Pulmo, Oncology, Haematology jaise tiles ko alag icon do).
+> Browse visuals are sourced through `data/specialtyVisuals`; all 43 documented root icon suggestions have a corresponding unique icon in the current visual map.
 
 ---
 
@@ -109,7 +111,7 @@ Home / directory par pehle **top demand (city ke hisaab se)** 8–12 tiles, "Bro
 
 ### 3.8 Paediatric Surgery — `SPEC.PAEDSURG`
 **Repo abhi (0 subs):** — (koi sub nahi)
-**Subs:** Neonatal Surgery ✅ `SPEC.PSURG.NEONATAL` · Paediatric Urologic Surgery ✅ `SPEC.PSURG.UROLOGY` · Paediatric Surgical Oncology ✅ `SPEC.PSURG.ONCOLOGY` (prefix `PAEDSURG` karo) · ➕ `…LAPAROSCOPY` Paediatric Laparoscopy · ➕ `…CONGENITAL` Congenital Anomalies
+**Subs:** Neonatal Surgery ✅ `SPEC.PAEDSURG.NEONATAL` (legacy alias: `SPEC.PSURG.NEONATAL`) · Paediatric Urologic Surgery ✅ `SPEC.PAEDSURG.UROLOGY` (legacy alias: `SPEC.PSURG.UROLOGY`) · Paediatric Surgical Oncology ✅ `SPEC.PAEDSURG.ONCOLOGY` (legacy alias: `SPEC.PSURG.ONCOLOGY`) · Paediatric Laparoscopy ✅ `SPEC.PAEDSURG.LAPAROSCOPY` · Congenital Anomalies Surgery ✅ `SPEC.PAEDSURG.CONGENITAL`
 **Conditions:** hernia in child, undescended testis, appendicitis, congenital anomalies, phimosis
 **Procedures:** hernia repair, orchidopexy, circumcision, pyloromyotomy
 
@@ -327,8 +329,44 @@ Home / directory par pehle **top demand (city ke hisaab se)** 8–12 tiles, "Bro
 ## 4. Cross-listing rules (duplicate records nahi)
 
 - Ek sub-specialty ka **ek canonical code**; baaki parents me **secondary parent link** (`alsoUnder: []`) se dikhe — UI par dono jagah chip, data me ek record.
-- Canonical choices: `SPEC.NEONATO`, `SPEC.CARDIO.PAED`, `SPEC.PAEDSURG`, `SPEC.VASC`, `SPEC.INFERT`, `SPEC.HEPAT`, `SPEC.SLEEP`, `SPEC.SPORTS`, `SPEC.SEXO` — purane duplicate codes (`SPEC.PAED.NEONATO`, `SPEC.PAED.CARDIOLOGY`, `SPEC.PAED.SURGERY`, `SPEC.CTVS.VASCULAR`, `SPEC.OBGY.INFERT_IVF`, `SPEC.GASTRO.HEPATOLOGY`, `SPEC.PULMO.SLEEP`, `SPEC.PSYCH.SLEEP`, `SPEC.ORTHO.SPORTS`, `SPEC.URO.ANDROLOGY`, `SPEC.URO.SEXUAL_HEALTH`) **aliases** me map ho jayein, doctors ka `subSpecialtyCodes` auto-migrate.
+- Canonical choices: `SPEC.NEONATO`, `SPEC.CARDIO.PAED`, `SPEC.PAEDSURG`, `SPEC.VASC`, `SPEC.INFERT`, `SPEC.HEPAT`, `SPEC.SLEEP`, `SPEC.SPORTS`, `SPEC.SEXO` — old duplicate/prefix codes remain resolvable aliases. Doctor saves and profile updates remap codes; `backend/scripts/migrate-doctor-subspecialties.mjs` is available for an explicit one-time migration of stored rows; dry-run connected to the configured database and found 0 rows needing changes (script defaults to read-only and requires `--apply` for writes).
 - Doctor count parent par = parent + saare subs ka **distinct** doctors (double count nahi).
+
+### 4.1 Additional children present in the current tree
+
+The original §3 lists missed these children returned by the current tree endpoint. Each code remains one canonical record; parents in the last column are additional display locations only.
+
+| Canonical child | Also shown under |
+|---|---|
+| `SPEC.ENDO.DIABETES` — Diabetology & Metabolic Disorders | `SPEC.GENMED` |
+| `SPEC.ENDO.PCOS` — PCOS & Reproductive Endocrinology | `SPEC.OBGY` |
+| `SPEC.DENTAL.PAEDO` — Paediatric & Preventive Dentistry | `SPEC.PAED` |
+| `SPEC.DERM.PAED` — Paediatric Dermatology | `SPEC.PAED` |
+| `SPEC.ENT.PAED` — Paediatric ENT | `SPEC.PAED` |
+| `SPEC.ONCO.PAED` — Paediatric Oncology | `SPEC.PAED` |
+| `SPEC.OPHTH.PAED` — Paediatric Ophthalmology | `SPEC.PAED` |
+| `SPEC.ORTHO.PAED` — Paediatric Orthopaedics | `SPEC.PAED` |
+| `SPEC.PAED.HAEM_ONC` — Paediatric Haemato-oncology | `SPEC.ONCO`, `SPEC.HAEM` |
+| `SPEC.SEXO` — Sexology & Andrology | `SPEC.DERM`, `SPEC.URO` |
+| `SPEC.SLEEP` — Sleep Medicine | `SPEC.PULMO`, `SPEC.ENT`, `SPEC.PSYCH`, `SPEC.NEURO` |
+| `SPEC.PMR.PAIN` — Pain Rehabilitation Medicine | `SPEC.ANAES`, `SPEC.NEURO` |
+| `SPEC.ANAES.PAIN` — Interventional Pain Medicine | `SPEC.PMR` |
+| `SPEC.INFECT.HIV` — HIV Medicine & PrEP | `SPEC.PSYCH` |
+| `SPEC.ONCO.GI` — Gastrointestinal Oncology | `SPEC.GASTRO` |
+| `SPEC.OBGY.ONCO` — Gynaecological Oncology | `SPEC.ONCO` |
+| `SPEC.ONCO.HAEMATO` — Haemato-oncology | `SPEC.HAEM` |
+| `SPEC.GENSURG.BARIATRIC` — Bariatric & Metabolic Surgery | `SPEC.GASTRO`, `SPEC.ENDO` |
+| `SPEC.PMR.SPORTS` — Sports Rehabilitation | `SPEC.SPORTS` |
+| `SPEC.SPORTS` — Sports Medicine | `SPEC.ORTHO`, `SPEC.PMR` |
+| `SPEC.DERM.VENEREOLOGY` — Venereology & STI Medicine | `SPEC.SEXO` |
+| `SPEC.GERI.PALLIATIVE` — Geriatric Palliative Care | `SPEC.PALLI` |
+| `SPEC.ANAES.PALLIATIVE` — Palliative Anaesthesia & Sedation | `SPEC.PALLI` |
+| `SPEC.PAED.ALLERGY` — Paediatric Allergy & Asthma | `SPEC.ALLERGY` |
+| `SPEC.PULMO.OCC_LUNG` — Occupational Lung Disease | `SPEC.OCCMED` |
+| `SPEC.PULMO.TB_CHEST` — TB & Chest Diseases | `SPEC.INFECT` |
+| `SPEC.HEPAT.VIRAL` — Viral Hepatitis (B & C) | `SPEC.INFECT` |
+
+These primary-parent entries were also absent from the original §3 child lists and are now accounted for above: `SPEC.RHEUM.ARTHRITIS` (Inflammatory Arthritis), `SPEC.ONCO.PALLIATIVE` (Palliative Oncology), `SPEC.SPORTS.EXERCISE` (Exercise Physiology), and `SPEC.SEXO.SECURE` (Sexual Health, discreet).
 
 ---
 
@@ -343,7 +381,7 @@ Home / directory par pehle **top demand (city ke hisaab se)** 8–12 tiles, "Bro
 │ 6 sub-specs  │  ← hint ki andar aur options hain
 └──────────────┘
 ```
-- Count: `N doctors` + (page par ho to) `M hospitals`. **0 doctors:** tile muted + "No doctors yet — notify me / request" (hide-zero toggle: "Show only available").
+- Count: `N doctors` + (page par ho to) `M hospitals`. **0 doctors:** tile muted + “No doctors yet · Request” (click opens specialty detail); browse-all hide-zero toggle: “Show only available”.
 - Hover/tap: sub-specialty **chips preview** (top 4 + "+n").
 
 ### 5.2 Drill-down (tile click)
@@ -362,11 +400,11 @@ Filters: city/area · mode (in-person/video/home) · fee · language · gender �
 ### 5.3 Alag-alag jagah alag list (ab har jagah same hai)
 | Jagah | Kya dikhe |
 |---|---|
-| Home | Top 8–12 **demand-based tiles** (city ke hisaab se) + "All specialties" |
+| Home | API-backed, city-scoped top 8 tiles by doctor availability + “Browse all specialties”; zero-count tiles muted with Request link |
 | Browse all page | 13 groups (§2), search box, A–Z toggle |
 | Hospital/Clinic page ka "Browse by Specialties" | **Sirf us facility ke specialties** (count > 0 pehle, zero hidden by default) + sub-specialty chips |
 | Doctor filters | Specialty → sub-specialty cascading dropdown |
-| Join/Doctor setup | Specialty (required) + sub-specialties (multi) + conditions + procedures |
+| Doctor profile setup/editor | Specialty (required) + sub-specialties (multi) + conditions + procedures; editable after account setup |
 
 ### 5.4 Search
 - Typeahead: specialty, sub-specialty, condition, symptom, procedure, doctor name; Hinglish/Hindi synonyms.
@@ -398,23 +436,29 @@ GET /categories/specialties?tree=1                 → 43 tiles with children (s
 GET /categories/specialties/:code                  → one specialty: subs, conditions, procedures, related tests/packages
 GET /categories/specialties/:code/counts?city=&facilityId=   → doctors/hospitals counts (distinct, parent+subs)
 GET /search/suggest?q=                             → specialties + subs + conditions + symptoms + procedures + doctors
+GET /platform-content?contentType=article&specialtyCode=SPEC.CARDIO → published, medically reviewed specialty articles
 ```
-- Frontend `@/data/specialties` copy **hatao**; React Query se API fetch, 5-min cache (route me already `Cache-Control: public, max-age=300`).
-- `total` comment/metadata sahi karo (169 → naye subs ke baad actual count).
+- Browse tree React Query se API fetch hota hai; local fallback specialty catalog removed from this page (API cache is 5 minutes).
+- Specialty detail ka Articles tab sirf published + medical-review-stamped content dikhata hai; article authoring/review `PlatformContent` workflow se hoti hai. Abhi koi article seed nahi kiya gaya.
+- Browse-all ke neeche Systems of Medicine, Allied & Therapy, Mind, aur age/care-area links live search/directory routes tak le jaate hain.
+- Current taxonomy metadata/API total is 343 (43 roots + 300 canonical subs); cross-list display links do not add records.
 - Seed: `data/categoryTree.mjs`/`taxonomy.js` me upar ke ➕ nodes + `meta` daalo; idempotent seeder (`POST /categories/seed`) se sync.
 
 ---
 
 ## 7. Checklist
-- [ ] 43 tiles ke liye unique icons + group colours (`specialtyVisuals`) — repeated generic pulse icon hatao
-- [ ] Tile me sub-specialty chips + drill-down page (sub-specialty / conditions / procedures / doctors / hospitals / tests)
-- [ ] ➕ sub-specialties seed (15 specialties jinke koi sub nahi + gaps in baaki)
-- [ ] Duplicate codes → canonical + alias + `alsoUnder` cross-list; `SPEC.PSURG.*` → `SPEC.PAEDSURG.*`
-- [ ] Doctor migration: `subSpecialtyCodes` remap + `conditionsTreated` / `procedures` fields + doctor setup UI
-- [ ] `GET /categories/specialties?tree=1`, `/:code`, `/:code/counts` + frontend copy removal
-- [ ] Zero-count handling (muted + notify/request, "only available" toggle)
-- [ ] Facility page par sirf us facility ke specialties (count > 0)
-- [ ] Symptom/condition/procedure search + Hinglish synonyms + red-flag banners
-- [ ] Sensitive tiles 🔒 (Psychiatry, Sexology, Infertility, Palliative): discreet labels/notifications, hidden from suggestions/recents
-- [ ] Claims-restricted ⚠ (Cosmetic derm, Plastic/cosmetic, Hair, IVF success rates, Sexology): banned-claims filter
-- [ ] Tests: alias resolution (Orthopedics/Orthopaedics/"bone doctor"), parent counts distinct, cross-list rendering, zero-state
+- [x] 43 tiles ke liye unique icons + group colours (`specialtyVisuals`)
+- [x] Tile me sub-specialty chips + drill-down page (sub-specialty / conditions / procedures / doctors / hospitals / tests)
+- [x] ➕ sub-specialties seed and gaps in existing specialties
+- [x] Duplicate codes → canonical + alias + `alsoUnder` cross-list; paediatric-surgery aliases retained
+- [x] Doctor `subSpecialtyCodes` canonical resolution + `conditionsTreated` / `procedures` fields and profile editor
+- [x] `GET /categories/specialties?tree=1`, `/:code`, `/:code/counts` + API-backed frontend browse tree
+- [x] Zero-count handling and "only available" toggle
+- [x] Facility pages show facility-scoped specialties/providers
+- [x] Symptom/condition/procedure search + Hinglish synonyms + red-flag banners
+- [x] Sensitive tiles: discreet labels and filtered suggestions; claims-restricted flags reach moderation
+- [x] Claims-restricted categories flagged in taxonomy and moderation
+- [x] Backend: 34 focused taxonomy/browse/API tests passed, including detail + count API calls for every one of 343 canonical codes, detail + count resolution for every registered legacy alias, and tree children for all 43 roots; frontend specialty-filter: 12 tests passed.
+- [x] Specialty-detail browser flow (including reviewed-articles tab) passed with mocked APIs; frontend production build and backend content-review tests passed.
+- [x] Doctor legacy-code migration dry-run connected to configured database and found 0 rows needing changes; the script defaults to read-only and requires `--apply` for writes.
+- [x] Specialty live read-only browse/detail flow passed in English and Hindi against the configured backend (2/2 on 2026-11-10); medically reviewed article authoring remains open in `FindMedi-Browse-By-Specialties-TODO.md`.

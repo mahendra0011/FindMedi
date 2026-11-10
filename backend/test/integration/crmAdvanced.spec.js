@@ -163,7 +163,9 @@ jestApi.unstable_mockModule('../../src/lib/crmAutomation.js', () => ({
 }));
 
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: (...a) => auditLog(...a),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 jestApi.unstable_mockModule('../../src/services/notificationService.js', () => ({

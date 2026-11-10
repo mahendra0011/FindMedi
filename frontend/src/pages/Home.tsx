@@ -20,6 +20,8 @@ import InstallAppButton from "@/components/InstallAppButton";
 import NationalHelplinesModal from "@/components/emergency/NationalHelplinesModal";
 import AccessibilityControls from "@/components/accessibility/AccessibilityControls";
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
+import { useSpecialtyTiles, useSpecialtyCountsByCode } from '@/hooks/useSpecialtyBrowse';
+import { getSpecialtyVisual } from '@/data/specialtyVisuals';
 
 const heroImage = "https://cdn.hms.hospital/123/01KNC4WSYHF1637VJ39K3KVJ2M.png";
 const doctorImage = "https://alliedsoftech89.wordpress.com/wp-content/uploads/2013/06/medical-doctor-jobs-in-china-expat-jobs-in-china.jpg";
@@ -63,16 +65,6 @@ const services = [
   { icon: Microscope, name: "Thyroid Panel", price: "₹500" },
   { icon: Video, name: "Teleconsultation", price: "₹300" },
   { icon: Syringe, name: "Vaccination", price: "₹250" },
-];
-
-// subcatogary.md Part B — Featured specialties with live counts from API
-const specialties = [
-  { icon: Stethoscope, name: "General Physician", query: "General Physician", code: "SPEC.GENMED", color: "bg-emerald-500/10 text-emerald-600" },
-  { icon: Baby, name: "Gynecologist", query: "Obstetrics & Gynaecology", code: "SPEC.OBGY", color: "bg-pink-500/10 text-pink-600" },
-  { icon: Smile, name: "Dermatologist", query: "Dermatology", code: "SPEC.DERM", color: "bg-rose-500/10 text-rose-600" },
-  { icon: Heart, name: "Pediatricians", query: "Paediatrics", code: "SPEC.PAED", color: "bg-violet-500/10 text-violet-600" },
-  { icon: Brain, name: "Neurologist", query: "Neurology", code: "SPEC.NEURO", color: "bg-blue-500/10 text-blue-600" },
-  { icon: UtensilsCrossed, name: "Gastroenterologist", query: "Gastroenterology", code: "SPEC.GASTRO", color: "bg-amber-500/10 text-amber-600" },
 ];
 
 const whyChooseUs = [
@@ -163,7 +155,11 @@ const Home = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [doctorsList, setDoctorsList] = useState<ApiRow[]>([]);
-  const [specialtyCounts, setSpecialtyCounts] = useState<Record<string, number | null>>({});
+  const specialtyTree = useSpecialtyTiles();
+  const [city] = useState(() => {
+    try { return localStorage.getItem('findmedi_city') || ''; } catch { return ''; }
+  });
+  const specialtyCountQuery = useSpecialtyCountsByCode(city ? { city } : {});
   const [counters, setCounters] = useState(statsData.map(() => 0));
   const [countersVisible, setCountersVisible] = useState(false);
   const [ctaPointer, setCtaPointer] = useState({ x: 50, y: 50 });
@@ -182,33 +178,11 @@ const Home = () => {
     load();
   }, []);
 
-  // Live specialty counts from DB (platform endpoint or per-specialty count); no fake marketing numbers.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const countsData: any = await api.getSpecialtyCounts().catch(() => null);
-        if (countsData && typeof countsData === 'object' && Object.keys(countsData).length > 0) {
-          const mapped: Record<string, number> = {};
-          for (const s of specialties) {
-            mapped[s.name] = countsData[s.code] ?? 0;
-          }
-          if (!cancelled) setSpecialtyCounts(mapped);
-          return;
-        }
-
-        const entries = await Promise.all(specialties.map(async (s) => {
-          try {
-            const res: any = await api.getDoctors({ specialization: s.query, limit: '1' });
-            const total = res?.total ?? res?.totalCount ?? res?.count;
-            return [s.name, typeof total === 'number' ? total : null] as const;
-          } catch { return [s.name, null] as const; }
-        }));
-        if (!cancelled) setSpecialtyCounts(Object.fromEntries(entries));
-      } catch { /* fail soft without fake numbers */ }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  const specialtyCounts = specialtyCountQuery.data?.counts || {};
+  const featuredSpecialties = [...specialtyTree.tiles]
+    .filter((specialty) => !specialty.sensitive)
+    .sort((a, b) => (specialtyCounts[b.code]?.doctors ?? 0) - (specialtyCounts[a.code]?.doctors ?? 0))
+    .slice(0, 8);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -569,27 +543,37 @@ const Home = () => {
             <p className="text-muted-foreground mt-3">Browse through our extensive list of trusted doctors by specialty</p>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {specialties.map((spec, i) => (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+            {featuredSpecialties.map((spec, i) => {
+              const visual = getSpecialtyVisual(spec.code);
+              const Icon = visual.icon;
+              const doctorCount = specialtyCounts[spec.code]?.doctors;
+              return (
               <motion.div
-                key={spec.name}
+                key={spec.code}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 whileHover={{ scale: 1.05 }}
-                className="group bg-card rounded-2xl border border-border/60 p-6 text-center cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all"
+                role="link"
+                tabIndex={0}
+                onClick={() => navigate(`/browse-specialties/${spec.code}`)}
+                onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); navigate(`/browse-specialties/${spec.code}`); } }}
+                className={`group bg-card rounded-2xl border border-border/60 p-4 text-center cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all ${specialtyCountQuery.isSuccess && (doctorCount ?? 0) === 0 ? 'opacity-60' : ''}`}
               >
-                <div className={`w-14 h-14 rounded-2xl ${spec.color} flex items-center justify-center mx-auto mb-4 transition-transform group-hover:scale-110`}>
-                  <spec.icon className="w-7 h-7" />
+                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${visual.color} flex items-center justify-center mx-auto mb-3 transition-transform group-hover:scale-110`}>
+                  <Icon className={`w-6 h-6 ${visual.textColor}`} />
                 </div>
-                <h3 className="font-semibold text-foreground">{spec.name}</h3>
-                {specialtyCounts[spec.name] != null ? (
-                  <p className="text-sm text-muted-foreground mt-1">{specialtyCounts[spec.name]} Doctors</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground mt-1 opacity-0">·</p>
-                )}
+                <h3 className="font-semibold text-sm text-foreground">{spec.name}</h3>
+                <p className="text-xs text-muted-foreground mt-1">{doctorCount != null ? (doctorCount > 0 ? `${doctorCount} doctors` : 'No doctors yet · Request') : 'Browse specialty'}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{spec.children?.length || 0} sub-specialties</p>
               </motion.div>
-            ))}
+            );})}
+          </div>
+          <div className="mt-8 text-center">
+            <Button variant="outline" onClick={() => navigate('/browse-specialties')}>
+              Browse all specialties <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </div>
         </div>
       </section>

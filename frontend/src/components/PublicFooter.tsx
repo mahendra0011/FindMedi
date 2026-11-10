@@ -76,6 +76,7 @@ export default function PublicFooter() {
             <Link to="/disclaimer" className="hover:text-primary transition-colors">Emergency Disclaimer (Sec 134A)</Link>
             <Link to="/refund-policy" className="hover:text-primary transition-colors">Refunds & Standby Fees</Link>
             <Link to="/grievance" className="hover:text-primary transition-colors">Grievance & DPO Office</Link>
+            <Link to="/seasonal-health" className="hover:text-primary transition-colors">Seasonal Health Guidance</Link>
             <Link to="/telemedicine-consent" className="hover:text-primary transition-colors">Telemedicine Consent (NMC 2020)</Link>
             <Link to="/patient-rights" className="hover:text-primary transition-colors">Patient Rights Charter</Link>
             <Link to="/cookies" className="hover:text-primary transition-colors">Cookie Policy</Link>

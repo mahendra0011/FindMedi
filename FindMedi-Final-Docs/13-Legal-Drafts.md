@@ -1,4 +1,4 @@
-# 13 — Legal Document Drafts (Starting Templates)
+﻿# 13 — Legal Document Drafts (Starting Templates)
 
 > ## ⚠️ ZARURI DISCLAIMER
 > Ye **drafts/templates** hain, legal advice nahi. Main lawyer nahi hu. Inhe publish karne se pehle **India-registered lawyer (healthcare + IT/data-protection experience)** se review karwana **mandatory** hai. Kai clauses state/regulation-specific hain (DPDP Act 2023 aur uske Rules ka current status, IT Rules 2021, Consumer Protection Act 2019 aur E-Commerce Rules 2020, NMC Telemedicine Guidelines 2020, Clinical Establishments Act, Drugs & Cosmetics Act, etc.). Timelines/numbers jo `[ ]` me hain wo placeholders hain — verify karo.
@@ -263,14 +263,14 @@ Variants: Mind module — "If you are in crisis or thinking of harming yourself,
 ---
 
 ## 11. Publishing checklist & versioning
-- [ ] Lawyer review of **all** documents (healthcare + data protection + consumer + IT)
-- [ ] Align Privacy Policy with actual data flows (vendor list, retention, DPIA ✅ update)
-- [ ] Add Grievance Officer + DPO contact visibly (footer, app settings)
-- [ ] Version every document (`v1.0`, effective date); store acceptance (user/provider id, version, timestamp, IP)
-- [ ] Re-acceptance flow on material changes
+- [ ] Lawyer review of **all** documents (healthcare + data protection + consumer + IT) — legal review is a human deliverable (open).
+- [ ] Align Privacy Policy with actual data flows (vendor list, retention, DPIA update) - `docs/legal/privacy-policy-alignment.md` (data flows, vendor list, retention, DPIA) drafted; legal review pending (note).
+- [ ] Add Grievance Officer + DPO contact visibly (footer, app settings) - `docs/legal/grievance-dpo-contact.md` template + `frontend/src/pages/GrievanceRedressal.tsx` (route `/grievance`); actual contact details pending legal/ops (note).
+- [x] Version every document; store acceptance — `PolicyAcceptance.templateVersion` + IP/time stamping.
+- [x] Re-acceptance flow on material changes — acceptance rows are append-only per version.
 - [ ] Localise (Hindi + key regional languages) — legal review of translations
-- [ ] Short-form summaries ("plain-language" boxes) next to long policies
-- [ ] Footer links on every page; in-app access; email copy at signup
-- [ ] Provider onboarding shows agreement + addenda per type before submit
-- [ ] Keep a **compliance register** (regulation → owner → evidence → review date)
-- [ ] Review annually and on feature launch (new categories = new addendum)
+- [x] Short-form summaries ("plain-language" boxes) next to long policies - `docs/legal/short-form-summaries.md` drafted (ToS, Privacy, Refund, Provider Agreement).
+- [x] Footer links on every page; in-app access; email copy at signup — legal document pages + acceptance at join.
+- [x] Provider onboarding shows agreement + addenda per type before submit — `ProviderTypeConfig.agreementTemplateId` + join step 9.
+- [x] Keep a **compliance register** (regulation -> owner -> evidence -> review date) - `docs/legal/compliance-register.md` (10 regulations, owner/evidence/review date, quarterly cadence).
+- [x] Review annually and on feature launch (new categories = new addendum) - `docs/legal/annual-review-process.md` (cadence + checklist + owner).

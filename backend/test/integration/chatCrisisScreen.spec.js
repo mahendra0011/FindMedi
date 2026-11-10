@@ -21,8 +21,10 @@ jestApi.unstable_mockModule('../../src/services/chatUploadService.js', () => ({
 
 const auditLog = jestApi.fn(async () => {});
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog,
   scrubAuditDetails: (v) => v,
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 let conversationById = () => query(null);

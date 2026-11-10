@@ -2,6 +2,11 @@ import { jest } from '@jest/globals';
 import ExcelJS from 'exceljs';
 import { mountApp } from '../helpers/appHarness.js';
 
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+  auditLog: async () => {},
+  auditLogRequired: async () => {},
+}));
+
 // 45s file-wide: every test does mountFresh = jest.resetModules() + a full
 // route-tree re-import; on a contended worker (full suite + coverage) a single
 // re-import can exceed jest's default 20s and flake the suite. Verified green
@@ -50,6 +55,14 @@ const patientWorkbook = async () => {
   return Buffer.from(await workbook.xlsx.writeBuffer());
 };
 
+const stepUpHeaders = async (userId) => {
+  // mountFresh resets the Jest module registry; issue through the same fresh
+  // step-up token registry that the dynamically imported route will consume.
+  const { recordStepUp, issueStepUpToken } = await import('../../src/middleware/stepUpAuth.js');
+  const grant = recordStepUp(userId, 'export:full');
+  return { 'x-step-up-token': issueStepUpToken(grant) };
+};
+
 describe('reports export tenant boundary', () => {
   test('rejects hospital admin without a facility before querying data', async () => {
     const state = csvModels();
@@ -62,18 +75,22 @@ describe('reports export tenant boundary', () => {
   test('scopes hospital admin export and caps rows', async () => {
     const state = csvModels({ rows: [{ name: 'A', email: 'a@example.test', phone: '1', age: 30, gender: 'Other', address: 'X', createdAt: '2026-01-01' }] });
     const { as } = await mountFresh(state);
-    const res = await as({ id: 'admin-1', role: 'hospital_admin', hospitalId: 'hospital-1' }).get('/api/reports/export/patients?format=csv');
+    const user = { _id: 'admin-1', id: 'admin-1', role: 'hospital_admin', hospitalId: 'hospital-1' };
+    const headers = await stepUpHeaders(user._id);
+    const res = await as(user, headers).get('/api/reports/export/patients?format=csv');
     expect(res.status).toBe(200);
     expect(state.find).toHaveBeenCalledWith({ hospitalId: 'hospital-1' });
     expect(res.text).toContain('a@example.test');
   });
 
-  test('allows explicitly global superadmin export while keeping the query bounded', async () => {
+  test('rejects global superadmin export without a tenant scope', async () => {
     const state = csvModels({ rows: [] });
     const { as } = await mountFresh(state);
-    const res = await as({ id: 'root', role: 'superadmin' }).get('/api/reports/export/patients?format=csv');
-    expect(res.status).toBe(200);
-    expect(state.find).toHaveBeenCalledWith({});
+    const user = { _id: 'root', id: 'root', role: 'superadmin' };
+    const headers = await stepUpHeaders(user._id);
+    const res = await as(user, headers).get('/api/reports/export/patients?format=csv');
+    expect(res.status).toBe(403);
+    expect(state.find).not.toHaveBeenCalled();
   });
 
   test('rejects report imports for hospital admins without facility scope before writing', async () => {

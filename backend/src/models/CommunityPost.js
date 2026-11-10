@@ -16,6 +16,15 @@ const communityPostCommentSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 }, { _id: true });
 
+const communityReportSchema = new mongoose.Schema({
+  reporterId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  reason: { type: String, enum: ['harassment', 'medical_advice', 'crisis', 'privacy', 'spam', 'other'], required: true },
+  details: { type: String, trim: true, maxlength: 1000, default: '' },
+  status: { type: String, enum: ['open', 'resolved', 'dismissed'], default: 'open', index: true },
+  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  reviewedAt: { type: Date, default: null },
+}, { timestamps: true });
+
 const communityPostSchema = new mongoose.Schema({
   authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   category: { type: String, enum: COMMUNITY_POST_CATEGORIES, default: 'general', index: true },
@@ -24,6 +33,7 @@ const communityPostSchema = new mongoose.Schema({
   status: { type: String, enum: ['visible', 'hidden', 'removed'], default: 'visible', index: true },
   hiddenBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   comments: [communityPostCommentSchema],
+  reports: [communityReportSchema],
 }, { timestamps: true });
 
 communityPostSchema.index({ status: 1, createdAt: -1 });

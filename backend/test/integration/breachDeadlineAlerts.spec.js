@@ -18,7 +18,9 @@ const userFind = jest.fn(() => query([
 
 jest.unstable_mockModule('../../src/models/Breach.js', () => ({ default: { find, findOneAndUpdate, updateOne } }));
 jest.unstable_mockModule('../../src/models/User.js', () => ({ default: { find: userFind } }));
-jest.unstable_mockModule('../../src/middleware/audit.js', () => ({ auditLogRequired, auditLog }));
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+ auditLogRequired, auditLog,
+}));
 jest.unstable_mockModule('../../src/services/notificationService.js', () => ({ sendEmail }));
 
 const { breachDeadlineSweep } = await import('../../src/routes/breach.js');

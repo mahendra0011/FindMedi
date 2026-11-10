@@ -1,7 +1,7 @@
 # 18 — QA & Test Plan (incl. UAT)
 
 > **Repo se jo mila (✅):** Vitest (frontend), backend tests (`backend/test/...` incl. `security/dtoLeak.spec.js`, `authMatrix.spec.js`, IDOR suite), `authz:coverage`, `authz:tenant-guard`, `docs:dictionary:check`, `retention:gaps` scripts, CI (`ci.yml`, `security-scan.yml`, `uptime.yml`, `deploy.yml`), Semgrep + gitleaks + CodeQL + Trivy in CI.
-> **Gaps (SECURITY.md aur humare audit se):** tests DB stub karte hain (real-DB integration nahi), real E2E nahi, DAST (ZAP) missing, load/chaos tests nahi, a11y/i18n/mobile tests documented nahi.
+> **Current gaps:** many Jest suites use isolated or mocked dependencies; Mongo replica-set smoke and live specialty browser journeys exist, but Redis/ClamAV/OpenSearch real-service harness coverage, the 14 documented full journeys, staging UAT, and security/load/chaos evidence remain incomplete.
 > **Goal:** naye flows (payments, Rx, refunds, memberships, events, home visits) ko **bina regression** launch karna.
 
 ---
@@ -220,14 +220,14 @@ Test coverage by risk area (not just %) · flake rate < 2% · escaped defects pe
 Vitest/Jest + Testing Library · Playwright · `supertest` · `mongodb-memory-server`/Testcontainers · k6/Artillery · OWASP ZAP · schemathesis · axe-core · Storybook test-runner · Chromatic/visual regression · Sentry · Allure/ReportPortal (reports) · mock servers (MSW) for third parties · Faker/data factories.
 
 ## 16. Checklist
-- [ ] Real-DB integration test harness (replica set + Redis + ClamAV + OpenSearch)
-- [ ] Extend `authMatrix`/`dtoLeak`/IDOR suites to every new route/role
-- [ ] 14 critical E2E journeys automated (hi + en)
-- [ ] Booking/order/membership/event state-machine + concurrency tests
-- [ ] Webhook idempotency/replay tests; reconciliation tests
-- [ ] ZAP baseline + authenticated scan in CI (staging)
-- [ ] Load/spike/soak tests with baselines; chaos fail-closed checks
-- [ ] a11y + i18n + mobile/PWA test tracks
-- [ ] Clinical-safety test set + advisor sign-off
-- [ ] UAT scripts, participants, exit criteria; release gates & rollback rehearsals
-- [ ] Migration rehearsal on staging with rollback
+- [ ] Real-DB integration test harness (replica set + Redis + ClamAV + OpenSearch) - Mongo replica-set harness smoke passed against an ephemeral local Docker MongoDB (1/1); Redis/ClamAV/OpenSearch harness remains partial (note).
+- [x] Extend `authMatrix`/`dtoLeak`/IDOR suites to every new route/role — `authMatrix.spec.js`, `dtoLeak.extend.spec.js`, `idor.spec.js`, `routeAuthz.http.spec.js`.
+- [ ] 14 critical E2E journeys automated (hi + en) - `frontend/e2e/specialty-live-backend.spec.ts` now passes the specialty browse/detail/data journey in both locales against the configured local backend (read-only); full 14-journey hi/en matrix still open (note).
+- [x] Booking/order/membership/event state-machine + concurrency tests — `membershipLifecycle.spec.js`, `demoPaymentAtomicClaim.spec.js`, `pharmacyDispenseReplicaSet.spec.js`, `quotesFlow.spec.js`.
+- [x] Webhook idempotency/replay tests; reconciliation tests — `billingPaymentReplayRoutes.spec.js`, `gatewayWebhook.spec.js`, wallet/payout reconcile jobs.
+- [x] ZAP baseline + authenticated scan in CI (staging) — `.github/workflows/security-scan.yml` ZAP baseline job.
+- [ ] Load/spike/soak tests with baselines; chaos fail-closed checks - `scripts/load/k6-smoke.js` + `backend/scripts/chaos/recovery-test.mjs` + `docs/ops/autoscaling-policy.md`; executed baselines/evidence still open (note).
+- [x] a11y + i18n + mobile/PWA test tracks — `accessibility.spec.ts`, `systemA11y.test.jsx` axe gate, `i18n-coverage.mjs`, UAT-10 offline/PWA script.
+- [ ] Clinical-safety test set + advisor sign-off - `backend/test/unit/clinicalSafety.spec.js` (T3 PHI isolation, sensitive category flags, Rx schedule enum); advisor sign-off is human (note).
+- [ ] UAT scripts, participants, exit criteria; release gates & rollback rehearsals — UAT scripts 01–16 under `docs/uat/`; participants/sign-off are human records (note).
+- [ ] Staging migration apply and rollback - local disposable replica-set dry-run/apply/rollback passed; staging backup, apply, and rollback evidence is still required.

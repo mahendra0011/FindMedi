@@ -857,5 +857,45 @@ router.get('/apikeys', requireTenant, async (req, res) => {
   }
 });
 
+// Policy analyzer (doc 25): risk + coverage report for a tenant.
+router.get('/analyze', requireTenant, async (req, res) => {
+  try {
+    const tenantId = tenantOf(req);
+    const [policies, roles, assignments, apiKeys] = await Promise.all([
+      IamPolicy.find({ tenantId }).select('_id name status statements').lean(),
+      IamRole.find({ tenantId }).select('_id name policyIds boundaryId').lean(),
+      IamAssignment.find({ tenantId, status: 'active' }).select('_id principalId roleId').lean(),
+      ApiKey.find({ tenantId }).select('_id prefix expiresAt revokedAt').lean(),
+    ]);
+    const unassignedRoles = roles.filter((r) => !assignments.some((a) => String(a.roleId) === String(r._id)));
+    const clinicalOnT3 = policies.filter((p) =>
+      (p.statements || []).some((st) =>
+        (st.actions || []).some((a) => String(a).startsWith('records:') || String(a).startsWith('prescriptions:'))));
+    const expiredKeys = apiKeys.filter((k) => k.expiresAt && new Date(k.expiresAt) < new Date());
+    const revokedKeys = apiKeys.filter((k) => !!k.revokedAt);
+    return res.json({
+      summary: {
+        policies: policies.length,
+        roles: roles.length,
+        activeAssignments: assignments.length,
+        apiKeys: apiKeys.length,
+      },
+      risks: {
+        unassignedRoles: unassignedRoles.map((r) => ({ id: r._id, name: r.name })),
+        clinicalPolicies: clinicalOnT3.length,
+        expiredApiKeys: expiredKeys.length,
+        revokedApiKeys: revokedKeys.length,
+      },
+      coverage: {
+        rolesWithBoundary: roles.filter((r) => !!r.boundaryId).length,
+        policiesActive: policies.filter((p) => p.status === 'active').length,
+      },
+    });
+  } catch (err) {
+    logger.error(`IAM analyze error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
 export { isClinicalAction };

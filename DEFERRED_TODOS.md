@@ -1,6 +1,6 @@
 # Deferred Production TODOs (code-complete, external dependency pending)
 
-Ye 13 items code me fail-closed aur test-covered hain (jahan code banna tha),
+Ye 15 items code me fail-closed aur test-covered hain (jahan code banna tha),
 par close karne ke liye bahar ki cheez chahiye (isliye audit-md se `[x]` mark
 karke yahan track ho rahe hain).
 Code base se audit md files hatane ke baad yehi ek source of truth hai.
@@ -56,7 +56,9 @@ Code base se audit md files hatane ke baad yehi ek source of truth hai.
 - **Blocked on:** Clinical pharmacist review + sign-off.
 
 ## 8. ClamAV daemon deploy + signature upkeep
-- **Status:** Code side ready hona baki hai (scanner client + upload hook +
+- **Status:** Code side DONE - scanner hook + magic-byte checks + fail-closed
+  production default in `backend/src/middleware/upload.js` (chat upload path included
+  via `scanBufferForMalware`); EICAR rejection covered.
   quarantine flow — AI backlog me hai, ye file ka item nahi).
 - **Baki:** clamd daemon ko staging/prod par chalana, freshclam signature
   updates, quarantine monitoring/alerting.
@@ -70,8 +72,9 @@ Code base se audit md files hatane ke baad yehi ek source of truth hai.
 - **Blocked on:** Human (accounts + certificates + store review).
 
 ## 10. Analytics warehouse provision + backfill
-- **Status:** Masked views + funnel queries + k-anonymity SQL AI se ban sakta
-  hai (backlog). Event taxonomy (`track.ts`, `events.yaml`) already live hai.
+- **Status:** Event taxonomy (`track.ts`, `events.yaml`) live; masked warehouse
+  schema + funnel dashboard JSON added (`infra/observability/grafana/dashboards/
+  findmedi-booking-funnel.json`); k-anonymity cohort thresholds in place.
 - **Baki:** Warehouse provision (BigQuery/Postgres), Kafka outbox → warehouse
   emitter, historical backfill, dashboard queries verify.
 - **Blocked on:** Data-infra provision + backfill run.

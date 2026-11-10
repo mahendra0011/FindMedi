@@ -96,6 +96,7 @@ const navConfig = {
   moderator: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard' },
     { icon: Flag,            labelKey: 'nav.saModeration',     path: '/superadmin/moderation' },
+    { icon: MessageSquare,   labelKey: 'nav.communityReports', path: '/moderation/community' },
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications' },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings' },
   ],
@@ -442,6 +443,8 @@ const navConfig = {
     { icon: Pill,            labelKey: 'nav.myPrescriptions',       path: '/patient/prescriptions'      },
     { icon: Pill,            labelKey: 'My Refills',                path: '/patient/refills'            },
     { icon: GraduationCap,   labelKey: 'Courses',                   path: '/courses'                    },
+    { icon: Heart,           labelKey: 'Wellbeing Programs',        path: '/wellbeing-programs'         },
+    { icon: Home,            labelKey: 'Home ICU Providers',        path: '/home-icu'                    },
     { icon: Users,           labelKey: 'Community',                 path: '/community'                  },
     { icon: Download,        labelKey: 'nav.myReports',             path: '/patient/reports'            },
     { icon: Upload,          labelKey: 'nav.upload',                 path: '/upload'                     },

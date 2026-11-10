@@ -1,4 +1,4 @@
-# 16 — Business Model & Unit Economics
+﻿# 16 — Business Model & Unit Economics
 
 > ## ⚠️ Is file ke numbers ke baare me
 > Maine koi **market data, benchmark ya competitor figures** yahan claim nahi kiye (mere paas aapke city ka verified data nahi hai). Neeche ke saare ₹ numbers **ILLUSTRATIVE placeholders** hain — sirf formulas aur reasoning dikhane ke liye. **Apne actual data se replace karo** (real data aane par). Tax/commission/fee-splitting ke points ke liye **CA aur lawyer** se confirm karo.
@@ -195,10 +195,10 @@ Scenarios: **Base / Conservative / Optimistic** per category and per city. Sensi
 | Dependence on a few big providers | Diversify supply, contracts, multi-branch tools |
 
 ## 13. Action list
-- [ ] Build per-category unit-economics sheet; fill with pilot data
+- [ ] Build per-category unit-economics sheet; fill with pilot data — finance deliverable (open).
 - [ ] Decide take-rate/plan pricing hypotheses → experiment plan
-- [ ] CA: GST/TDS/TCS + payout flow; lawyer: fee-splitting/advertising/IRDAI/e-pharmacy
-- [ ] Define activation & retention metrics for providers and patients
-- [ ] Set city launch gates (supply density, fill rate, repeat %, support load)
-- [ ] Budget: infra + SMS/WhatsApp + support per 1k bookings (file 19)
-- [ ] Monthly metrics review + quarterly pricing review
+- [ ] CA: GST/TDS/TCS + payout flow; lawyer: fee-splitting/advertising/IRDAI/e-pharmacy — legal/CA review (open).
+- [x] Define activation & retention metrics for providers and patients — analytics event taxonomy + funnel definitions.
+- [x] Set city launch gates (supply density, fill rate, repeat %, support load) — `ProviderTypeConfig.enabledCities` + city gates.
+- [ ] Budget: infra + SMS/WhatsApp + support per 1k bookings — finance (open).
+- [ ] Monthly metrics review + quarterly pricing review — ops cadence (open).

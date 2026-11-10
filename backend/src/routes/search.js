@@ -4,7 +4,8 @@ import { publicSearchLimiter } from '../middleware/rateLimit.js';
 import { searchProviders, searchDrugs, searchEhr, isOpenSearchConfigured } from '../services/opensearchIndexer.js';
 import { toSearchCard } from '../utils/searchDto.js';
 import { expandSearchQuery } from '../config/searchTaxonomy.js';
-import { SPECIALTIES, isTopLevelSpecialty } from '../lib/taxonomy.js';
+import { SPECIALTIES, isTopLevelSpecialty, resolveSpecialtyCode } from '../lib/taxonomy.js';
+import { escapeRegex } from '../utils/escapeRegex.js';
 import logger from '../config/logger.js';
 import mongoose from 'mongoose';
 import { assertEhrSearchAccess } from '../services/ehrSearchAccess.js';
@@ -52,7 +53,7 @@ router.get('/', publicSearchLimiter, async (req, res) => {
 // generic strings. Sensitive tiles stay out of suggestions; red-flag queries
 // surface the emergency banner inline.
 // authz: public
-router.get('/suggest', publicSearchLimiter, (req, res) => {
+router.get('/suggest', publicSearchLimiter, async (req, res) => {
   const q = String(req.query.q || '').toLowerCase().trim();
   const taxonomy = expandSearchQuery(q);
   const taxonomyPayload = {
@@ -78,7 +79,7 @@ router.get('/suggest', publicSearchLimiter, (req, res) => {
   };
   // Alias strings that name the sensitive surface itself (Sleep Psychiatry…)
   // must not leak the topic through a search for its own keyword.
-  const SENSITIVE_TEXT_RE = /psychiatr|psycholog|sexolog|deaddiction|suicid|hiv/i;
+  const SENSITIVE_TEXT_RE = /psychiatr|psycholog|sexolog|deaddiction|suicid|hiv|infertil|fertilit|\bivf\b|palliativ/i;
 
   const scored = [];
   for (const s of SPECIALTIES) {
@@ -131,6 +132,43 @@ router.get('/suggest', publicSearchLimiter, (req, res) => {
     matchChips(top.meta?.symptoms, 'symptom', 0);
     matchChips(top.meta?.conditions, 'condition', 1);
     matchChips(top.meta?.procedures, 'procedure', 2);
+  }
+
+  // Approved doctor-name suggestions are public directory data. Keep this
+  // small and suppress any provider whose specialty surface is discreet.
+  try {
+    const { default: Doctor } = await import('../models/Doctor.js');
+    const doctorMatches = await Doctor.find({
+      approved: true,
+      name: { $regex: new RegExp(escapeRegex(q), 'i') },
+    })
+      .select('_id name specialization specialtyCode subSpecialtyCodes location city')
+      .sort({ rating: -1, name: 1 })
+      .limit(5)
+      .lean();
+    for (const doctor of doctorMatches) {
+      const providerCodes = [doctor.specialtyCode, ...(doctor.subSpecialtyCodes || [])]
+        .map(resolveSpecialtyCode)
+        .filter(Boolean);
+      const discreet = providerCodes.some((code) => {
+        const entry = byLower.get(code.toLowerCase());
+        return entry ? isHidden(entry) : false;
+      }) || SENSITIVE_TEXT_RE.test(String(doctor.specialization || ''));
+      if (discreet) continue;
+      scored.push({
+        kind: 'doctor',
+        score: 4.5,
+        item: {
+          id: String(doctor._id),
+          code: String(doctor._id),
+          name: doctor.name,
+          specialization: doctor.specialization || '',
+          city: doctor.city || doctor.location || '',
+        },
+      });
+    }
+  } catch (err) {
+    logger.warn(`Specialty doctor suggestions unavailable: ${err?.message}`);
   }
 
   scored.sort((a, b) => a.score - b.score || String(a.item.label || a.item.name).localeCompare(String(b.item.label || b.item.name)));

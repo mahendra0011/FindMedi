@@ -36,7 +36,10 @@ jest.unstable_mockModule('../../src/models/Vehicle.js', () => stubModel());
 jest.unstable_mockModule('../../src/models/RiderProfile.js', () => stubModel());
 jest.unstable_mockModule('../../src/models/AssistantProfile.js', () => stubModel());
 jest.unstable_mockModule('../../src/models/LawyerProfile.js', () => stubModel());
-jest.unstable_mockModule('../../src/middleware/audit.js', () => ({ auditLog }));
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+ auditLog,
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
+}));
 jest.unstable_mockModule('../../src/services/socketService.js', () => ({ notifyUsers: jest.fn(async () => {}) }));
 jest.unstable_mockModule('../../src/services/referralService.js', () => ({ referralService: {} }));
 jest.unstable_mockModule('../../src/services/cloudinaryService.js', () => ({ uploadFileToCloudinary: jest.fn() }));

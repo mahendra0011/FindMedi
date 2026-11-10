@@ -34,7 +34,9 @@ let payoutDoc = null;
 const createdPayouts = [];
 
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: jestApi.fn(async () => {}),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 jestApi.unstable_mockModule('../../src/config/logger.js', () => ({
   default: { info: jestApi.fn(), warn: jestApi.fn(), error: jestApi.fn(), debug: jestApi.fn() },

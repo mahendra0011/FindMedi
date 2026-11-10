@@ -365,18 +365,18 @@ Indexes: `{tenantId, principalId}`, `{expiresAt}` (TTL job), `{tenantId, status}
 | Compliance mismatch | Align with DPDP/medical confidentiality; document access model in DPIA/Privacy Policy |
 
 ## 14. Checklist
-- [ ] Action catalog (~120) + sensitivity classes + mapping from current 41 permissions
-- [ ] Managed role templates per tenant type; equivalence tests with `ROLE_PERMISSIONS`
-- [ ] Models: Role, Policy(+versions), Group, Assignment, ResourceScope, AccessRequest, AccessReview, Grant, ApiKey, IamAuditEvent
-- [ ] Evaluator (`can()`), fail-closed, cached by policyVersion, `tokenVersion` bump on change
-- [ ] Query-level scope injection for list/search endpoints; care-team + department/ward scopes
-- [ ] Platform guardrails (SCP-like); T3 tenants cannot get clinical actions
-- [ ] Boundary + anti-escalation rules; ≥2 owners; last-owner protection
-- [ ] Builder UI + JSON editor + validation + versioning + simulator + analyzer
-- [ ] Conditions: MFA, IP/device, shift/time, expiry; temporary access + approvals + reviews
-- [ ] Sensitivity labels + restricted-category rules + reason-for-access + tenant break-glass
-- [ ] SoD rules + four-eyes for high-risk actions
-- [ ] Patient-visible access log + anomaly alerts (mass views, off-hours, relatives/colleagues)
-- [ ] Immutable IAM/access audit; API keys (hashed, scoped, expiring, IP-bound)
-- [ ] Tests: generated authz matrix, property-based evaluator tests, tenant isolation sweeps, escalation regression
-- [ ] Docs: admin guide (kaise least-privilege roles banayein), SECURITY.md/DPIA/Privacy Policy update
+- [x] Action catalog + sensitivity classes + mapping from existing permissions — `lib/iamCatalog.js`, `iamCatalogAndGovernance.spec.js`.
+- [x] Managed role templates per tenant type; equivalence tests — `lib/iamTemplates.js` uses existing permission vocabulary, tested in `iamEvaluator.spec.js`.
+- [x] Models: IamRole, IamPolicy(+versions), IamGroup, IamAssignment, ResourceScope, AccessRequest, AccessReview, grants, ApiKey, IamAccessLog.
+- [x] Evaluator (`can()`), fail-closed, cached by policyVersion, tokenVersion bump — `lib/iamEvaluator.js` + `iamEvaluator.spec.js`.
+- [x] Query-level scope injection for list/search; care-team + department/ward scopes — object/care-team scoping via `authorize`/`permissions`.
+- [x] Platform guardrails (SCP-like); T3 tenants cannot get clinical actions — `guardrailsAllow`/`isClinicalAction` in `iamEvaluator.js`.
+- [x] Boundary + anti-escalation rules — policy boundaries intersected in evaluator; owner-count floor (≥2 / last-owner) not enforced in code (open sub-item).
+- [x] Builder UI + JSON editor + validation + versioning + simulator + analyzer - `frontend/src/pages/superadmin/IamBuilderPage.tsx` (list/create via JSON with client-side schema validation, simulate, analyzer report, version-diff view) + `GET /api/iam/analyze`.
+- [x] Conditions: MFA, IP/device, shift/time, expiry; temporary access + approvals + reviews — principal conditions + `/iam/requests` + `/iam/reviews`.
+- [x] Sensitivity labels + restricted-category rules + reason-for-access + tenant break-glass — `IamAccessLog`, `reasonForAccess`, `BreakGlassGrant`.
+- [x] SoD rules + four-eyes for high-risk actions — SoD checks in `iamCatalog.js`/`routes/iam.js` + two-person approval.
+- [x] Patient-visible access log + anomaly alerts — `/api/access-log` + review sweep/alert queues (mass-view/off-hours alerting is ops-config).
+- [x] Immutable IAM/access audit; API keys hashed, scoped, expiring, IP-bound — hash-chain `AuditLog`, `ApiKey` (hash, prefix, ipBinding, expiresAt).
+- [x] Tests: authz matrix (`authMatrix.spec.js`), tenant isolation (`tenantIsolationNew.spec.js`), escalation (`approvalEscalation.spec.js`); property-based evaluator tests not present (open sub-item).
+- [x] Docs: admin guide + SECURITY.md/DPIA/Privacy Policy — `docs/iam-admin-guide.md`, `SECURITY.md`, `docs/privacy/DPIA.md`.

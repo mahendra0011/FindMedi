@@ -1,3 +1,5 @@
+import { resolveSpecialtyCode } from '@/data/specialtyAliases';
+
 const REGEX_META = /[.*+?^${}()|[\]\\]/g;
 
 const norm = (value) => String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -80,4 +82,26 @@ export function matchesSpecialty(value, filter, categories) {
   const terms = specialtyAliases(filter, categories);
   if (!terms.length) return containsTerm(target, norm(filter));
   return terms.some((term) => containsTerm(target, term));
+}
+
+/** Match a selected parent against a doctor's canonical parent or any child.
+ * `alsoUnder` cross-lists are expanded so e.g. paediatric neurology appears
+ * when the Paediatrics parent is selected, even though its primary parent is
+ * Neurology. */
+export function matchesDoctorSpecialty(doctor, specialty, filter, categories = []) {
+  if (matchesSpecialty(doctor?.specialization || doctor?.specialty, filter, categories)) return true;
+  if (!specialty?.code) return false;
+  const assignedCodes = [doctor?.specialtyCode, ...(doctor?.subSpecialtyCodes || [])]
+    .map(resolveSpecialtyCode)
+    .filter(Boolean);
+  const acceptedCodes = [specialty.code, ...(specialty.children || []).map((child) => child.code)];
+  const accepted = new Set(acceptedCodes.map(resolveSpecialtyCode).filter(Boolean));
+  if (assignedCodes.some((code) => accepted.has(code))) return true;
+  // Cross-listed child may be absent from this parent's children in an older
+  // cached payload; the category records carry the same relation in metadata.
+  const rootCode = specialty.code;
+  return assignedCodes.some((code) => {
+    const child = (categories || []).find((category) => resolveSpecialtyCode(category.code) === code);
+    return (child?.alsoUnder || []).map(resolveSpecialtyCode).includes(rootCode);
+  });
 }

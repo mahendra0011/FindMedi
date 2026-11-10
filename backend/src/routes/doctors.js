@@ -1,5 +1,5 @@
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
-import { resolveSpecialtyCode, specialtyCondition } from '../lib/taxonomy.js';
+import { resolveSpecialtyCode, specialtyCondition, remapSubSpecialtyCode, SPECIALTIES } from '../lib/taxonomy.js';
 import express from 'express';
 import { verifyAccessToken, signToken as signJwt } from '../utils/jwtKeys.js';
 import crypto from 'node:crypto';
@@ -27,6 +27,22 @@ import {
 } from '../config/redis.js';
 
 const router = express.Router();
+
+const doctorSpecialtyCondition = (value) => {
+  const base = specialtyCondition(value);
+  if (!base) return null;
+  const code = resolveSpecialtyCode(value);
+  if (!code) return base;
+  const isTop = /^SPEC\.[A-Z0-9]+$/.test(code);
+  const codes = new Set([code]);
+  if (isTop) {
+    const prefix = `${code}.`;
+    for (const specialty of SPECIALTIES) {
+      if (specialty.code.startsWith(prefix) || (specialty.alsoUnder || []).includes(code)) codes.add(specialty.code);
+    }
+  }
+  return { $or: [...(base.$or || [base]), { subSpecialtyCodes: { $in: [...codes] } }] };
+};
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -82,7 +98,7 @@ router.get('/', async (req, res) => {
     const {
       page, limit, search, available, specialization, specialty, specialtyCode,
       location, city, includeAll, hospitalId, facilityId, doctor_type,
-      homeVisit, language, languages,
+      homeVisit, language, languages, condition, procedure, fallbackSpecialtyCode,
     } = req.query;
 
     // AUTH-027: role + user in the key — otherwise an admin-view response
@@ -111,8 +127,21 @@ router.get('/', async (req, res) => {
     ];
     const specTarget = specialization || specialty || specialtyCode;
     if (specTarget && specTarget !== 'All') {
-      const condition = specialtyCondition(specTarget);
-      if (condition) filter.$and = [...(filter.$and || []), condition];
+      const specialtyFilter = doctorSpecialtyCondition(specTarget);
+      if (specialtyFilter) filter.$and = [...(filter.$and || []), specialtyFilter];
+    }
+    const fallbackCode = fallbackSpecialtyCode ? resolveSpecialtyCode(String(fallbackSpecialtyCode)) : null;
+    const fallbackFilter = fallbackCode ? doctorSpecialtyCondition(fallbackCode) : null;
+    for (const [term, field] of [[condition, 'conditionsTreated'], [procedure, 'procedures']]) {
+      const safeTerm = capSearch(term);
+      if (!safeTerm) continue;
+      const regex = new RegExp(escapeRegex(safeTerm), 'i');
+      const directMatch = { [field]: { $elemMatch: { $or: [{ label: regex }, { code: regex }] } } };
+      const alternatives = [directMatch];
+      if (fallbackFilter) {
+        alternatives.push({ $and: [fallbackFilter, { $or: [{ [field]: { $exists: false } }, { [field]: { $size: 0 } }] }] });
+      }
+      filter.$and = [...(filter.$and || []), { $or: alternatives }];
     }
     const locOrCity = city || location;
     if (locOrCity && locOrCity !== 'All') filter.location = new RegExp(escapeRegex(capSearch(locOrCity)), 'i');
@@ -432,7 +461,7 @@ router.put('/:id', protect, validate(updateDoctorSchema), async (req, res) => {
       'refundOnMissedOrCancelled', 'appointmentModes', 'appointmentFees',
       'chat_fee', 'video_fee', 'offline_fee', 'home_visit_fee', 'emergency_fee',
       'languages', 'image', 'photo', 'gender', 'degree', 'registrationNumber',
-      'settings', 'conditionsTreated', 'procedures',
+      'settings', 'conditionsTreated', 'procedures', 'subSpecialtyCodes',
     ];
     const writable = Object.create(null);
     for (const key of WRITABLE) {
@@ -442,6 +471,16 @@ router.put('/:id', protect, validate(updateDoctorSchema), async (req, res) => {
     writable.settings = body.settings;
     if (writable.specialization !== undefined) {
       writable.specialtyCode = resolveSpecialtyCode(writable.specialization) || '';
+    }
+    if (writable.subSpecialtyCodes !== undefined) {
+      const rootCode = writable.specialtyCode || doctor.specialtyCode || resolveSpecialtyCode(doctor.specialization);
+      const requested = [...new Set(writable.subSpecialtyCodes.map(remapSubSpecialtyCode).filter(Boolean))];
+      const allowed = new Set(SPECIALTIES
+        .filter((entry) => entry.code.startsWith(`${rootCode}.`) || (entry.alsoUnder || []).includes(rootCode))
+        .map((entry) => entry.code));
+      const invalid = requested.filter((code) => !allowed.has(code));
+      if (invalid.length) return res.status(400).json({ message: 'Selected sub-specialty does not belong to the doctor\'s main specialty', invalidCodes: invalid });
+      writable.subSpecialtyCodes = requested;
     }
 
     const updated = await Doctor.findByIdAndUpdate(req.params.id, writable, { new: true, runValidators: true });

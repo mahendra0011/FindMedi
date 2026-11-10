@@ -229,7 +229,7 @@ Plus: step-up (`requireStepUp('phi:breakglass')`) to *request/approve*; alerts o
 | Frontend | New nav from permissions; masked components; "BREAK-GLASS ACTIVE" banner; remove patient-list/records pages from superadmin nav |
 
 ### 5.4 Migration without breaking your ops
-1. **Shadow mode (1–2 sprints):** log "would-deny" for superadmin PHI access; see what ops really use.
+Rollout remains open: enable shadow enforcement by module, starting with mental health, then remove confirmed dead pages; the tracked deployment checklist is in §6.
 2. Build masked support tools + aggregate dashboards so ops don't *need* PHI.
 3. Introduce new roles; move current admins into them; keep one **Owner** account(s).
 4. Flip enforcement per module (mental health first, records next, rest after).
@@ -342,16 +342,17 @@ Har item permission se dikhe/chhupe; role ke bahar wale ko 404/hidden.
 ---
 
 ## 10. Checklist
-- [ ] Naye admin roles + permission sets; `superadmin` → Owner (no PHI perms)
-- [ ] `authorize()` bypass hatao; PHI-class permissions + break-glass middleware
-- [ ] `BreakGlassGrant` model + request/approve UI + patient notification + DPO review
-- [ ] Records/patients/mentalhealth/appointments/lab/billing/ipd/triage/nursing/insurance/pharmacy: superadmin PHI branches replace
-- [ ] Masked support tools + assist-session code + reveal-with-reason
-- [ ] Aggregate dashboards with k-anonymity; de-identified exports default
-- [ ] Naye step-up scopes + dual-approval flows (maker-checker)
-- [ ] `phi_access` & related audit events (immutable/hash-chain) + alerts
-- [ ] Admin console hardening: passkeys, short sessions, IP allowlist/Cloudflare Access, strict CSP, separate hostname
-- [ ] Tests: authMatrix (platform roles DENY on PHI), dtoLeak (admin DTOs), break-glass flows
-- [ ] Shadow mode → staged enforcement (mental health first) → remove dead pages
-- [ ] Quarterly access review + offboarding checklist
-- [ ] Update SECURITY.md/DPIA/Privacy Policy to match actual access model
+- [x] Naye admin roles + permission sets; platform roles hold no default PHI — `authz-manifest.json` (1897 routes classified, 0 unclassified), role/permission sets.
+- [x] `authorize()` bypass removed; PHI-class permissions + break-glass middleware — `requireBreakGlass.js` exact-subject gate.
+- [x] `BreakGlassGrant` model + request/approve UI + patient notification + DPO review — model, `BreakGlassQueue` page, `breakGlassDpoReview.spec.js`.
+- [x] Records/patients/mentalhealth/appointments/... superadmin PHI branches replaced — `records.js` `isPlatformBreakGlassRole` returns only with approved grant; `platformMentalHealthAccess.spec.js`.
+- [x] Masked support tools + assist-session code + reveal-with-reason — `SupportAssistSession`, masked phone/bank fields, `reasonForAccess`.
+- [x] Aggregate dashboards with k-anonymity; de-identified exports default — cohort thresholds + capped export path.
+- [x] Naye step-up scopes + dual-approval flows (maker-checker) — `stepUpAuth.js` scopes + two-person approval.
+- [x] `phi_access` & related audit events (immutable/hash-chain) + alerts — `AuditLog` hash-chain fields + `audit.js`, admin alert queues.
+- [x] Admin console hardening code: passkeys, short sessions, CSP — `passkeys.js`, `SecuritySection.tsx`, CSP headers.
+- [ ] Deploy and verify the admin IP allowlist and separate hostname in the target environment.
+- [x] Tests: platform roles DENY on PHI, dtoLeak, break-glass flows — `platformMentalHealthAccess.spec.js`, `dtoLeak.extend.spec.js`, `breakGlassDpoReview.spec.js`.
+- [ ] Shadow mode -> staged enforcement (mental health first) -> remove dead pages - `middleware/shadowMode.js` `shadowGate(module, check)` logs `shadow_violation` in shadow mode (default) and enforces (403) when `SHADOW_ENFORCE=true` or module listed in `SHADOW_ENFORCE_MODULES`; mental-health-first rollout via module key. Dead-page removal remains a cleanup task (note).
+- [x] Quarterly access review + offboarding checklist — `iamReviewSweep.js` + `AccessReview` page; offboarding checklist is an ops runbook item (`docs/ops`).
+- [x] Update SECURITY.md/DPIA/Privacy Policy to match actual access model — `SECURITY.md`, `docs/privacy/DPIA.md`, `docs/privacy/RETENTION.md`.

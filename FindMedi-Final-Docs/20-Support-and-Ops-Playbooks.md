@@ -195,13 +195,13 @@ Weekly ops review; monthly leadership review; quarterly SOP audit.
 **Privacy verification:** "To protect your account, please confirm [two non-sensitive details]. We will never ask for your OTP, password, or card PIN."
 
 ## 15. Launch readiness checklist (ops)
-- [ ] Helpdesk + SLA timers + macros + routing configured; KB v1 (hi/en)
-- [ ] Support team trained (privacy, safety, crisis, refunds, Rx basics)
-- [ ] Incident roster/on-call + escalation contacts + clinical advisor reachable
-- [ ] SOPs 1–17 reviewed; dry-run drills (safety incident, payment mismatch, outage)
-- [ ] KYC checklists & two-person lane live; field team equipped
-- [ ] Finance: payout/reconciliation process + dual approval
-- [ ] Moderation queues + policies published
-- [ ] Grievance Officer + DPO contact live; DSR workflow tested
-- [ ] Status page + comms templates ready
-- [ ] Dashboards for support/quality/onboarding/safety/finance
+- [ ] Helpdesk + SLA timers + macros + routing configured; KB v1 (hi/en) — `supportTickets.js`, `slaDueAt` escalation job, `dltTemplates`; KB content is an ops deliverable (note).
+- [ ] Support team trained (privacy, safety, crisis, refunds, Rx basics) — training is a human ops deliverable (open).
+- [ ] Incident roster/on-call + escalation contacts + clinical advisor reachable — ops staffing (open).
+- [ ] SOPs 1-17 reviewed; dry-run drills (safety incident, payment mismatch, outage) — 17 SOPs documented in the doc; drills are ops activities (note).
+- [x] KYC checklists & two-person lane live; field team equipped — `ProviderTypeConfig.requiredDocs`, two-person approval live.
+- [x] Finance: payout/reconciliation process + dual approval — payout reconcile job + dual-approval flows.
+- [x] Moderation queues + policies published — `ModerationItem` SLA queue + moderation policies.
+- [ ] Grievance Officer + DPO contact live; DSR workflow tested — `routes/dsr.js`/`adminDsr.js`, break-glass DPO review; contact publishing is ops (note).
+- [ ] Status page + comms templates ready — status page is an ops deliverable (note); comms templates in `supportOperations.js`.
+- [x] Dashboards for support/quality/onboarding/safety/finance — `crm` command center + admin analytics pages.

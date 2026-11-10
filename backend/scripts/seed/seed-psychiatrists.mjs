@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
-import { configureMongoDns } from './src/config/mongoDns.js';
+import { configureMongoDns, connectMongooseWithRetry } from '../../src/config/mongoDns.js';
 
 configureMongoDns();
 // SECURITY (P0): this seed creates well-known demo credentials. It must never
@@ -14,11 +14,11 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/findmedi';
 
-import Doctor from './src/models/Doctor.js';
+import Doctor from '../../src/models/Doctor.js';
 
 const psychiatrists = [
   {
@@ -125,7 +125,7 @@ const psychiatrists = [
 
 async function seed() {
   console.log('Connecting to MongoDB...');
-  await mongoose.connect(MONGO_URI);
+  await connectMongooseWithRetry(mongoose, MONGO_URI);
   console.log('Connected.');
   for (const doc of psychiatrists) {
     await Doctor.updateOne(

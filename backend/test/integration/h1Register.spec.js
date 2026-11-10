@@ -119,10 +119,12 @@ jestApi.unstable_mockModule('../../src/models/Billing.js', () => ({
 // T6: the audit mock RECORDS calls so specs can assert export auditing.
 const auditCalls = [];
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: async (action, userId, details) => {
     auditCalls.push({ action, userId, details });
     return {};
   },
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 jestApi.unstable_mockModule('../../src/middleware/authorize.js', () => ({
@@ -220,6 +222,12 @@ const { as } = await mountApp('pharmacy', {
     adminOnly: (req, res, next) => {
       if (req.user?.role !== 'hospital_admin' && req.user?.role !== 'superadmin') {
         return res.status(403).json({ message: 'Admin access required' });
+      }
+      return next();
+    },
+    denyPlatformClinicalAccess: (req, res, next) => {
+      if (req.user?.role === 'superadmin' || req.user?.role === 'platform_admin') {
+        return res.status(403).json({ message: 'Clinical service data requires a care-team relationship' });
       }
       return next();
     },

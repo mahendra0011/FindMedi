@@ -1,6 +1,6 @@
 /**
  * File 10 testing checklist: realistic demo hospital seed (idempotent).
- * Usage: node scripts/seed-demo-hospital.mjs
+ * Usage: node scripts/seed/seed-demo-hospital.mjs
  * Creates: demo hospital, 12 beds (General/ICU/Private), consult + lab
  * ServicePrices, room tariffs, 2 insurers, central + pharmacy stores.
  * All rows keyed by demo markers — safe to re-run, never touches prod data
@@ -10,18 +10,20 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { configureMongoDns, connectMongooseWithRetry } from '../../src/config/mongoDns.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
+configureMongoDns();
 
-const { default: Hospital } = await import('../src/models/Hospital.js');
-const { default: Bed } = await import('../src/models/Bed.js');
-const { default: ServicePrice } = await import('../src/models/ServicePrice.js');
-const { default: RoomTariff } = await import('../src/models/RoomTariff.js');
-const { default: Insurer } = await import('../src/models/Insurer.js');
-const { default: Store } = await import('../src/models/Store.js');
+const { default: Hospital } = await import('../../src/models/Hospital.js');
+const { default: Bed } = await import('../../src/models/Bed.js');
+const { default: ServicePrice } = await import('../../src/models/ServicePrice.js');
+const { default: RoomTariff } = await import('../../src/models/RoomTariff.js');
+const { default: Insurer } = await import('../../src/models/Insurer.js');
+const { default: Store } = await import('../../src/models/Store.js');
 
-await mongoose.connect(process.env.MONGO_URI);
+await connectMongooseWithRetry(mongoose, process.env.MONGO_URI);
 
 const hosp = await Hospital.findOneAndUpdate(
   { email: 'demo-hospital@findmedi.test' },
@@ -30,6 +32,8 @@ const hosp = await Hospital.findOneAndUpdate(
     phone: '9876500002', address: 'Arera Colony, Bhopal', city: 'Bhopal', state: 'MP',
     licenseNumber: 'DEMO-HOSP-001', status: 'approved',
     slug: 'demo-general-hospital-bhopal',
+    // 2dsphere index rejects docs whose location has type:'Point' but no coordinates
+    location: { type: 'Point', coordinates: [77.415, 23.243] },
   },
   { upsert: true, new: true, setDefaultsOnInsert: true },
 );

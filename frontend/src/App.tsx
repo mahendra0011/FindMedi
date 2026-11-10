@@ -4,6 +4,7 @@ import { HashRouter, Route, Routes, Navigate, Outlet } from 'react-router-dom';
 import { useEffect, useRef, lazy, Suspense } from 'react';
 import { Provider } from 'react-redux';
 import { Toaster as Sonner } from '@/components/ui/sonner';
+import SensitiveScreenGuard from '@/components/SensitiveScreenGuard';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { store } from '@/store';
@@ -105,6 +106,7 @@ const SAAiReviewQueue = lazy(() => import('./pages/superadmin/AiReviewQueue'));
 const SASecurity = lazy(() => import('./pages/superadmin/Security'));
 const SADsrQueue = lazy(() => import('./pages/superadmin/SADsrQueue'));
 const SAAccessReview = lazy(() => import('./pages/superadmin/AccessReview'));
+const SAIamBuilder = lazy(() => import('./pages/superadmin/IamBuilderPage'));
 const SAVendorDpaRegister = lazy(() => import('./pages/superadmin/VendorDpaRegister'));
 // File 24: Ops CRM & Team Management
 const CrmCommandCenter = lazy(() => import('./pages/superadmin/crm/CrmCommandCenter'));
@@ -276,9 +278,34 @@ const PatientBookings = lazy(() => import('./pages/patient/PatientBookings'));
 const PatientPrescriptions = lazy(() => import('./pages/patient/PatientPrescriptions'));
 const PatientRefillSubscriptions = lazy(() => import('./pages/patient/PatientRefillSubscriptions'));
 const CoursesPage = lazy(() => import('./pages/courses/CoursesPage'));
+const WellbeingProgramsPage = lazy(() => import('./pages/courses/WellbeingProgramsPage'));
+const QuitProgramsPage = lazy(() => import('./pages/courses/QuitProgramsPage'));
+const HomeIcuDirectory = lazy(() => import('./pages/home/HomeIcuDirectory'));
 const CommunityPage = lazy(() => import('./pages/community/CommunityPage'));
+const CommunityModerationPage = lazy(() => import('./pages/community/CommunityModerationPage'));
 const HelplineDirectory = lazy(() => import('./pages/info/HelplineDirectory'));
 const GovtSchemesPage = lazy(() => import('./pages/info/GovtSchemesPage'));
+const SeasonalAlertsPage = lazy(() => import('./pages/info/SeasonalAlertsPage'));
+const MythBustingPage = lazy(() => import('./pages/info/MythBustingPage'));
+const AcupuncturePage = lazy(() => import('./pages/info/AcupuncturePage'));
+const FirstResponderPage = lazy(() => import('./pages/info/FirstResponderPage'));
+const FallDetectionPage = lazy(() => import('./pages/info/FallDetectionPage'));
+const HearingAidsPage = lazy(() => import('./pages/info/HearingAidsPage'));
+const DementiaPage = lazy(() => import('./pages/info/DementiaPage'));
+const ProstheticsPage = lazy(() => import('./pages/info/ProstheticsPage'));
+const TransplantPage = lazy(() => import('./pages/info/TransplantPage'));
+const SexualHealthPage = lazy(() => import('./pages/info/SexualHealthPage'));
+const PlasticCosmeticPage = lazy(() => import('./pages/info/PlasticCosmeticPage'));
+const PainClinicPage = lazy(() => import('./pages/info/PainClinicPage'));
+const UrologyPage = lazy(() => import('./pages/info/UrologyPage'));
+const ENTPage = lazy(() => import('./pages/info/ENTPage'));
+const LactationPage = lazy(() => import('./pages/info/LactationPage'));
+const AdolescentPage = lazy(() => import('./pages/info/AdolescentPage'));
+const GeriatricDaycarePage = lazy(() => import('./pages/info/GeriatricDaycarePage'));
+const SportsAcademyPage = lazy(() => import('./pages/info/SportsAcademyPage'));
+const BabyFoodPage = lazy(() => import('./pages/info/BabyFoodPage'));
+const CosmetologyPage = lazy(() => import('./pages/info/CosmetologyPage'));
+const HomeDoctorVisitPage = lazy(() => import('./pages/info/HomeDoctorVisitPage'));
 const PatientMedicineOrders = lazy(() => import('./pages/patient/PatientMedicineOrders'));
 const PatientSupport = lazy(() => import('./pages/patient/PatientSupport'));
 const PatientFavorites = lazy(() => import('./pages/patient/PatientFavorites'));
@@ -898,6 +925,7 @@ const App = () => (
     <ErrorBoundary>
     <ReduxAuthProvider>
       <HashRouter>
+      <SensitiveScreenGuard />
       <NotificationProvider>
         <PreferredPharmacyProvider>
         <CartProvider>
@@ -993,6 +1021,7 @@ const App = () => (
                       <Route path="/eldercare/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
                       <Route path="/assisted-living/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
                       <Route path="/hospice/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
+                      <Route path="/home-icu/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
                       <Route path="/vaccinations/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
                       <Route path="/vaccination/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
                       <Route path="/meals/:id" element={<PublicLayout><FacilityDetailPage /></PublicLayout>} />
@@ -1166,6 +1195,7 @@ const App = () => (
                     <Route path="/superadmin/catalog" element={<RoleRoute allowedRoles={['superadmin', 'catalog_manager']}><SAGlobalCatalog /></RoleRoute>} />
                     <Route path="/superadmin/audit" element={<RoleRoute allowedRoles={['superadmin', 'compliance_officer']}><SAAuditLogs /></RoleRoute>} />
                     <Route path="/superadmin/access-review" element={<RoleRoute allowedRoles={['superadmin', 'super_admin', 'dpo', 'security_admin', 'auditor', 'compliance_officer']}><SAAccessReview /></RoleRoute>} />
+                    <Route path="/superadmin/iam-builder" element={<RoleRoute allowedRoles={['superadmin', 'super_admin']}><SAIamBuilder /></RoleRoute>} />
                     <Route path="/superadmin/vendor-dpas" element={<RoleRoute allowedRoles={['superadmin', 'super_admin', 'dpo', 'compliance_officer', 'security_admin']}><SAVendorDpaRegister /></RoleRoute>} />
                     <Route path="/audit-logs" element={<ProtectedRoute><SAAuditLogs /></ProtectedRoute>} />
                     <Route path="/superadmin/broadcast" element={<RoleRoute allowedRoles={['superadmin']}><SABroadcast /></RoleRoute>} />
@@ -1354,9 +1384,34 @@ const App = () => (
                     <Route path="/patient/prescriptions" element={<RoleRoute allowedRoles={['patient']}><PatientPrescriptions /></RoleRoute>} />
                     <Route path="/patient/refills" element={<RoleRoute allowedRoles={['patient']}><PatientRefillSubscriptions /></RoleRoute>} />
                     <Route path="/courses" element={<RoleRoute allowedRoles={['patient', 'doctor', 'hospital_admin', 'superadmin']}><CoursesPage /></RoleRoute>} />
+                    <Route path="/wellbeing-programs" element={<RoleRoute allowedRoles={['patient', 'doctor', 'hospital_admin', 'superadmin']}><WellbeingProgramsPage /></RoleRoute>} />
+                    <Route path="/quit-programs" element={<RoleRoute allowedRoles={['patient', 'doctor', 'hospital_admin', 'superadmin']}><QuitProgramsPage /></RoleRoute>} />
+                    <Route path="/home-icu" element={<HomeIcuDirectory />} />
                     <Route path="/community" element={<RoleRoute allowedRoles={['patient', 'doctor', 'hospital_admin', 'superadmin']}><CommunityPage /></RoleRoute>} />
+                    <Route path="/moderation/community" element={<RoleRoute allowedRoles={['moderator', 'compliance_officer', 'superadmin', 'super_admin']}><CommunityModerationPage /></RoleRoute>} />
                     <Route path="/helplines" element={<HelplineDirectory />} />
                     <Route path="/government-schemes" element={<GovtSchemesPage />} />
+                    <Route path="/seasonal-health" element={<SeasonalAlertsPage />} />
+                    <Route path="/myth-busting" element={<MythBustingPage />} />
+                    <Route path="/acupuncture" element={<AcupuncturePage />} />
+                    <Route path="/first-responders" element={<FirstResponderPage />} />
+                    <Route path="/fall-detection" element={<FallDetectionPage />} />
+                    <Route path="/hearing-aids" element={<HearingAidsPage />} />
+                    <Route path="/dementia-care" element={<DementiaPage />} />
+                    <Route path="/prosthetics" element={<ProstheticsPage />} />
+                    <Route path="/transplant" element={<TransplantPage />} />
+                    <Route path="/sexual-health" element={<SexualHealthPage />} />
+                    <Route path="/plastic-cosmetic" element={<PlasticCosmeticPage />} />
+                    <Route path="/pain-clinic" element={<PainClinicPage />} />
+                    <Route path="/urology" element={<UrologyPage />} />
+                    <Route path="/ent-audiology" element={<ENTPage />} />
+                    <Route path="/lactation" element={<LactationPage />} />
+                    <Route path="/adolescent-health" element={<AdolescentPage />} />
+                    <Route path="/geriatric-daycare" element={<GeriatricDaycarePage />} />
+                    <Route path="/sports-academy" element={<SportsAcademyPage />} />
+                    <Route path="/baby-food" element={<BabyFoodPage />} />
+                    <Route path="/cosmetology" element={<CosmetologyPage />} />
+                    <Route path="/home-doctor-visit" element={<HomeDoctorVisitPage />} />
                     <Route path="/patient/medicine-reminders" element={<RoleRoute allowedRoles={['patient']}><PatientMedicineReminders /></RoleRoute>} />
                     <Route path="/patient/vitals" element={<RoleRoute allowedRoles={['patient']}><PatientVitals /></RoleRoute>} />
                     <Route path="/patient/care-plans" element={<RoleRoute allowedRoles={['patient']}><PatientCarePlan /></RoleRoute>} />

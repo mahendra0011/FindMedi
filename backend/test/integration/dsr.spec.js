@@ -23,6 +23,7 @@ const PATIENT = { _id: 'pat-1', id: 'pat-1', role: 'patient' };
 
 const auditLog = jestApi.fn();
 const create = jestApi.fn();
+const createNotification = jestApi.fn(async () => ({ _id: 'notification-1' }));
 
 let listRows = [];
 let currentRow = null;
@@ -37,8 +38,11 @@ jestApi.unstable_mockModule('../../src/models/DataSubjectRequest.js', () => ({
   },
 }));
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
+jestApi.unstable_mockModule('../../src/services/notificationService.js', () => ({ createNotification: (...args) => createNotification(...args) }));
 
 const { as } = await mountApp('dsr', {});
 
@@ -60,6 +64,7 @@ beforeEach(() => {
   lastFindOneFilter = null;
   create.mockReset();
   auditLog.mockReset().mockResolvedValue(undefined);
+  createNotification.mockClear();
 });
 
 describe('authentication', () => {

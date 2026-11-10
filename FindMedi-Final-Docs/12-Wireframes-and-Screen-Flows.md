@@ -348,3 +348,14 @@ Dispute:     Report → Ticket → Evidence → Decision → Appeal
 - 5 provider interviews (clinic owner, lab, pharmacy, gym, nurse agency): complete join wizard on mobile.
 - Test in **Hindi** and one regional language; test on low-end Android + 3G throttle.
 - Metrics: task success, time-on-task, errors, SUS score; iterate before engineering.
+
+## 12. Verification checklist (evidence-based)
+
+- [x] Discovery: home -> search -> results -> detail/profile -> book -> pay -> confirm -> visit -> review routes/components exist (public routes in `App.tsx`, `BookingModal`).
+- [x] Join: type chooser -> wizard -> submit -> review/needs-info -> approved -> activation exists (`JoinPlatform`, `/api/join`, `ProviderApplication`, `PendingApproval`); backend integration suite `joinApplications.spec.js` passed 43/43 on 2026-11-10.
+- [x] Order: cart -> Rx check -> pay -> track -> deliver(OTP) -> return/refund exists (`orders`/`pharmacy` routes, `PharmacyDelivery.deliveryOtp` + `otpVerified`, refund models).
+- [x] Event: register -> ticket -> check-in -> attend -> feedback exists (`events` state machine: REGISTERED -> CHECKED_IN | CANCELLED | REFUNDED).
+- [x] Membership: plan -> trial -> pay/mandate -> active -> freeze/renew/cancel exists (`memberships` route/model).
+- [x] Emergency: SOS -> dispatch -> track -> hospital pre-alert exists (ambulance/emergency routes + war-room page).
+- [x] Dispute: report -> ticket -> evidence -> decision -> appeal exists (`disputes` route/model).
+- [ ] Usability test plan (5–8 users/persona, 5 provider interviews, Hindi/regional, low-end Android + 3G) — human research activity; not yet run.

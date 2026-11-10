@@ -235,10 +235,10 @@ Phlebotomist, nurse, rider, camp staff → **mobile-first PWA/app**: offline que
 Doctor: show rate, avg consult time, rating · Lab: TAT, rejection rate · Pharmacy: fill rate, Rx verification time · Gym: retention, occupancy · Yoga: class fill rate · Nurse agency: shift fill, incident rate · Camp organiser: attendance %, referrals · Equipment: utilisation, damage rate.
 
 ## 8. Security checklist
-- [ ] New roles added to `User.role` enum + authz manifest + tests (`authz:coverage`)
-- [ ] Least-privilege defaults; PHI scoped by assignment
-- [ ] Mandatory 2FA for privileged roles (`TWO_FACTOR_REQUIRED_ROLES`)
-- [ ] Field-level encryption for T1 notes (counselling, rehab, dental/medical notes)
-- [ ] Exports capped, audited, step-up
-- [ ] Sensitive roles (rehab, mental health, IVF): access reasons + extra audit
-- [ ] T3 roles (gym/yoga/store) cannot access medical records
+- [x] New roles added to `User.role` enum + authz manifest + tests — new roles in `models/User.js`, `authz-manifest.json`, `authzManifest.spec.js`/`authzGapClosure.spec.js`.
+- [x] Least-privilege defaults; PHI scoped by assignment — `middleware/permissions.js` + care-team/assignment scoping.
+- [x] Mandatory 2FA for privileged roles — `TWO_FACTOR_REQUIRED_ROLES` in `routes/auth.js`.
+- [x] Field-level encryption for T1 notes — `fieldEncryption.js`/`phiCrypto.js` envelopes on clinical note fields.
+- [x] Exports capped, audited, step-up — `EXPORT_ROW_CAP`, audit log, `requireStepUp('export:full')`.
+- [x] Sensitive roles (rehab, mental health, IVF): access reasons + extra audit — `IamAccessLog`, `reasonForAccess` on records, sensitive-category audit severity.
+- [x] T3 roles (gym/yoga/store) cannot access medical records — blocked in `permissions.js`/`iamEvaluator.js` clinical action sets.

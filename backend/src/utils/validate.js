@@ -232,7 +232,7 @@ export const FACILITY_OWNERSHIP_OPTIONS = [
 ];
 export const FACILITY_SYSTEMS_OF_MEDICINE = [
   'allopathy', 'ayurveda', 'homeopathy', 'unani', 'siddha', 'yoga_naturopathy',
-  'integrative', '',
+  'sowa_rigpa', 'integrative', '',
 ];
 export const FACILITY_SCHEME_OPTIONS = [
   'pmjay', 'cghs', 'esi', 'echs', 'state_scheme', 'insurance_cashless',
@@ -429,6 +429,7 @@ export const updateDoctorSchema = z.object({
   emergency_fee: positiveNumber.optional(),
   conditionsTreated: z.array(z.object({ code: z.string().max(64).optional(), label: z.string().trim().min(1).max(160) })).max(50).optional(),
   procedures: z.array(z.object({ code: z.string().max(64).optional(), label: z.string().trim().min(1).max(160) })).max(50).optional(),
+  subSpecialtyCodes: z.array(z.string().trim().min(1).max(64)).max(30).optional(),
 })
   // DOC-B-01: still `.passthrough()` so the ~40 legacy flat settings keys above
   // keep working, but every server-owned field is rejected explicitly.
@@ -1739,6 +1740,8 @@ export const createCategorySchema = z.object({
   soon: z.boolean().optional(),
   kind: z.enum(['Facility', 'Practitioner', 'Service', 'Product', 'Event', 'Info', 'Filter', 'Other', '']).optional(),
   externalCodes: categoryExternalCodesSchema.optional(),
+  alsoUnder: z.array(z.string().trim().min(1).max(64)).max(20).optional(),
+  meta: z.record(z.unknown()).optional(),
 });
 
 // code/level/path are server-owned; the pick allowlist in routes/categories.js
@@ -2655,6 +2658,7 @@ const eventScheduleRefine = (value) => !value.schedule?.end || !value.schedule?.
 const eventBody = z.object({
   organizerId: objectIdSchema,
   type: z.enum(EVENT_TYPES),
+  audience: z.enum(['students', 'workplace', 'general']).optional(),
   title: z.string().trim().min(3).max(200),
   description: z.string().max(8000).optional(),
   schedule: z.object({

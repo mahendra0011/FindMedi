@@ -41,7 +41,10 @@ jest.unstable_mockModule('../../src/models/Prescription.js', () => ({
   __esModule: true,
   default: { findOne: rxFindOne },
 }));
-jest.unstable_mockModule('../../src/middleware/audit.js', () => ({ auditLog }));
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+ auditLog,
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
+}));
 
 const { as } = await mountApp('refillSubscriptions');
 const patient = { id: 'pat1', role: 'patient' };

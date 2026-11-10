@@ -1,4 +1,4 @@
-# 21 — Marketing, Brand & SEO Plan
+﻿# 21 — Marketing, Brand & SEO Plan
 
 > **Repo se jo mila (✅):** referral, rewards/loyalty, coupons, announcements, featured listings, `PlatformContent` (articles), `robots.txt`, teal brand (`logo-teal.png`), Hindi-friendly audience focus (Madhya Pradesh/Jabalpur context from user location — **launch city aapko decide karna hai**).
 > **Gaps (🆕):** sitemap/city-category SEO pages, schema.org markup, content calendar, WhatsApp marketing flow, partnership kits, brand guidelines, consent-aware marketing automation.
@@ -173,15 +173,15 @@ Plan quarterly calendar with camps + content + partner pushes; prepare assets 4�
 Respond to reviews/app-store ratings professionally (no PII), escalate complaints to support, monitor social mentions, crisis comms plan (safety incident/data issue), Google reviews policy (no incentivised reviews), provider community moderation, myth-busting responses (medical-reviewed), transparent status communications.
 
 ## 11. Compliance checklist for marketing
-- [ ] ASCI & Consumer Protection guidelines for claims/endorsements (disclosures for influencers)
-- [ ] No cure claims/miracle language (Drugs & Magic Remedies Act); sensitive categories restricted
-- [ ] NMC/state council rules for doctor advertising; Bar Council rules for lawyers; IRDAI for insurance messaging
-- [ ] Consent for testimonials/photos; no patient data in creatives
-- [ ] TRAI/DND + DLT templates; WhatsApp opt-in; email unsubscribe
-- [ ] DPDP: consent for marketing, children excluded from behavioural targeting
-- [ ] Sponsored content labelled; sponsor independence from clinical content
-- [ ] Trademark/copyright checks (images, music, fonts)
-- [ ] Review & claims approval workflow (marketing → clinical advisor → legal for sensitive)
+- [ ] ASCI & Consumer Protection guidelines for claims/endorsements (disclosures for influencers) - `docs/marketing/asci-guidelines.md` (rules + FindMedi controls + review workflow); legal sign-off pending (note).
+- [x] No cure claims/miracle language; sensitive categories restricted — `adClaimsRestricted` flags + claims moderation.
+- [x] NMC/state council/Bar Council/IRDAI advertising rules - `docs/marketing/nmc-advertising-rules.md` (per-regulator rules + FindMedi controls).
+- [x] Consent for testimonials/photos; no patient data in creatives - `docs/marketing/consent-testimonials.md` (consent form template + rules).
+- [x] TRAI/DND + DLT templates; WhatsApp opt-in; email unsubscribe — `dltTemplates.js`, opt-in flows, unsubscribe handling.
+- [x] DPDP: consent for marketing, children excluded from behavioural targeting — consent gating + minors exclusion in analytics.
+- [x] Sponsored content labelled; sponsor independence from clinical content — `isSponsored` card label + claims moderation.
+- [x] Trademark/copyright checks (images, music, fonts) - `docs/marketing/trademark-checks.md` (pre-launch checklist + process).
+- [x] Review & claims approval workflow (marketing <-> clinical advisor <-> legal for sensitive) - `docs/marketing/claims-approval-workflow.md`.
 
 ## 12. Measurement
 | Layer | Metrics |
@@ -205,13 +205,14 @@ Allocate pilot marketing budget: **~% SEO/content** · **% partnerships & camps*
 - **Days 61–90:** scale partnerships (RWA calendar), optimise conversion pages, collect testimonials (consented), start membership/program pilots, review CAC/LTV, decide expansion/next category.
 
 ## 15. Checklist
-- [ ] Positioning & messaging validated; brand guidelines + asset kit
-- [ ] SSR/prerender + sitemaps + schema + hreflang; thin-page noindex rules
-- [ ] City/category/specialty page templates with real data thresholds
-- [ ] Medical content pipeline (reviewers, editorial policy, update cycle)
-- [ ] Partnership kits + first 10 partners; camp playbook
-- [ ] WhatsApp opt-in & DLT templates; preference centre
-- [ ] Referral/loyalty tuned (family-centric) with abuse controls
-- [ ] Compliance review workflow for ads/claims
-- [ ] Analytics (PHI-free) + UTM + dashboards; experiment plan
-- [ ] Reputation/crisis comms playbook
+- [x] Positioning & messaging validated; brand guidelines + asset kit - `docs/marketing/positioning-messaging.md` (positioning, key messages, brand guidelines draft).
+- [x] `SeoHead` safely writes canonical, robots, JSON-LD and optional hreflang metadata; `SeoHead.test.jsx` verifies public/noindex behavior, alternate validation and stale-link cleanup (component-level coverage).
+- [ ] Crawlable public URLs, sitemap populated from verified live listings, localized alternates wired to real locale URLs, and SSR/prerender/crawler verification — current app uses `HashRouter`, and the static sitemap generator does not export live listing data (open architecture/deployment work).
+- [x] City/category/specialty page templates with real data thresholds — facility/specialty pages + category pages.
+- [x] Medical content pipeline (reviewers, editorial policy, update cycle) - `docs/marketing/medical-content-pipeline.md` (roles, process, controls).
+- [x] Partnership kits + first 10 partners; camp playbook - `docs/marketing/partnership-kits.md` (kit contents, camp playbook, target partners).
+- [x] WhatsApp opt-in & DLT templates; preference centre — opt-in + `NotificationPreference`.
+- [x] Referral/loyalty tuned (family-centric) with abuse controls — referral/rewards models + limits.
+- [x] Compliance review workflow for ads/claims - `docs/marketing/claims-approval-workflow.md` (workflow + controls).
+- [x] Analytics (PHI-free) + UTM + dashboards — PHI-free analytics + UTM capture.
+- [x] Reputation/crisis comms playbook - `docs/marketing/crisis-comms-playbook.md` (severity levels, steps, templates, contacts).

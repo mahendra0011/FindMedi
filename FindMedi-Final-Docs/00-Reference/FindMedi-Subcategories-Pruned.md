@@ -2,10 +2,12 @@
 
 > `FindMedi-Categories-Pruned.md` ke har section ke subcategories. Koi Phase/timeline nahi.
 >
-> **Repo status (latest `origin/main`, `be3d9520`):**
-> - `Category` model ab taxonomy-ready hai: `code`, `nameHi`, `aliases`, `parent`, `path`, `level`, `tier`, `regulatedBy`, `adClaimsRestricted`, `externalCodes` (snomed/atc/loinc/icd10/hsn), text index — ✅
-> - `lib/taxonomy.js` aur `lib/canonicalSpecialties.js` hain, par canonical specialty file chhoti hai (47 lines, sirf Orthopaedics spelling alias dikha) — isliye **neeche ki poori tree seed karni hai**.
-> - `FACILITY_SUBTYPES`, `FACILITY_OWNERSHIP`, `SYSTEMS_OF_MEDICINE`, `FACILITY_SCHEMES` already hain — jo unme hai wo ✅, naye ➕ se mark hain.
+> **Revalidated (2026-11-10):** previously-➕ groups (community_health_centre, teaching_hospital, skin_hair_clinic … travel_vaccination_clinic, dental/eye diagnostics, audiology_lab, yoga_studio, dialysis_centre, optical_shop, hearing_aid_centre, geriatric_daycare, accreditations, amenities, service tags, Info schemes) now exist in `FACILITY_SUBTYPES`/`FACILITY_ACCREDITATIONS`/amenity+service enums or Info pages — no pending subtype additions remain in this document.
+>
+> **Workspace status (2026-11-09):**
+> - `Category` model supports `code`, `nameHi`, aliases, parent/path/level, tier, regulation, claims flags, external codes and text search.
+> - Canonical specialty taxonomy contains 43 roots and 300 sub-specialties; its complete tree is listed in §2, including cross-listed children. The specialty API, aliases and focused tests were checked.
+> - `FACILITY_SUBTYPES`, `FACILITY_OWNERSHIP`, `SYSTEMS_OF_MEDICINE`, `FACILITY_SCHEMES` remain catalogue references; this document's non-specialty entries are not part of the specialty-tree verification.
 >
 > **Code format:** `PREFIX.GROUP.LEAF` (jaise `SPEC.CARDIO.INTERVENTIONAL`). Immutable rakho; naam/aliases badal sakte hain.
 
@@ -21,87 +23,86 @@
 
 **1.1 Hospital**
 ✅ multi_specialty · super_specialty · single_specialty (eye, ortho, cardiac, cancer, maternity, ENT, kidney, neuro, paediatric) · nursing_home · maternity_hospital · day_care_surgery · government_hospital · district_hospital · medical_college · trauma_centre · rehabilitation_hospital · psychiatric_hospital · tb_chest_hospital · infectious_disease_hospital · cancer_centre · railway_esi_cghs_defence
-➕ community_health_centre (CHC alag se mark) · teaching_hospital (medical_college ka alias)
+✅ community_health_centre (CHC alag se mark) · teaching_hospital (medical_college ka alias)
 
 **1.2 Clinic**
 ✅ single_doctor_clinic · polyclinic · specialty_clinic · dental_clinic · eye_clinic · ayush_clinic · physiotherapy_clinic · fertility_clinic · urgent_care_clinic · corporate_clinic · campus_clinic · telemedicine_clinic · mohalla_community_clinic
-➕ skin_hair_clinic · diabetes_clinic · ortho_spine_clinic · ent_clinic · paediatric_clinic · women_clinic · pain_clinic · sleep_clinic · wound_care_clinic · travel_vaccination_clinic
+✅ skin_hair_clinic · diabetes_clinic · ortho_spine_clinic · ent_clinic · paediatric_clinic · women_clinic · pain_clinic · sleep_clinic · wound_care_clinic · travel_vaccination_clinic
 
 **1.3 Primary govt (Info + Facility)**
 ✅ phc · chc · uphc · sub_centre · arogya_mandir
 
 **1.4 Lab / diagnostic**
 ✅ pathology_lab · imaging_centre · diagnostic_centre · collection_centre · home_collection_lab · mobile_diagnostic_van · cardiac_diagnostic_centre · sleep_lab · genetic_molecular_lab · blood_bank
-➕ dental_diagnostic · eye_diagnostic · audiology_lab
+✅ dental_diagnostic · eye_diagnostic · audiology_lab
 
 **1.5 Pharmacy**
 ✅ retail_pharmacy · hospital_pharmacy · jan_aushadhi_kendra · generic_store · pharmacy_24x7 · online_pharmacy · ayurvedic_homeopathic_store · surgical_ortho_store · chain_pharmacy · wholesale_pharmacy
 
 **1.6 Wellness / rehab / long-term care**
 ✅ wellness_centre · fitness_centre · elder_care_home · assisted_living · hospice_palliative · de_addiction_centre 🔒 · child_development_centre · rehabilitation_centre
-➕ yoga_studio · dialysis_centre · optical_shop · hearing_aid_centre · geriatric_daycare
+✅ yoga_studio · dialysis_centre · optical_shop · hearing_aid_centre · geriatric_daycare
 
 **1.7 Ownership** ✅: government · private · trust_charitable · corporate_chain · cooperative · ppp · military_railway_esi
 **1.8 System of medicine** ✅: allopathy · ayurveda · homeopathy · unani · siddha · yoga_naturopathy · sowa_rigpa* · integrative  (*sowa_rigpa listing me rakho par practitioner category me nahi — unverifiable)
-**1.9 Accreditation** ➕: NABH (full / entry-level) · NABL · JCI · NQAS (govt) · Kayakalp · ISO 9001 · AERB registered · ART registered
+**1.9 Accreditation** ✅: NABH (full / entry-level) · NABL · JCI · NQAS (govt) · Kayakalp · ISO 9001 · AERB registered · ART registered
 **1.10 Schemes accepted** ✅ (`FACILITY_SCHEMES`): PM-JAY · CGHS · ESI · ECHS · state scheme · private cashless · TPA-empanelled · corporate tie-up
-**1.11 Amenities** ➕: 24x7 · ICU · NICU/PICU · emergency/trauma · blood bank · in-house pharmacy · ambulance · parking · wheelchair access · lift · cafeteria · pickup-drop · prayer room · visitor lodging · female staff available · Wi-Fi
-**1.12 Services offered (tags)** ➕: OPD · IPD · day-care · emergency · surgery · dialysis · chemo · IVF · vaccination · home collection · home visit · telemedicine · health packages · second opinion
+**1.11 Amenities** ✅: 24x7 · ICU · NICU/PICU · emergency/trauma · blood bank · in-house pharmacy · ambulance · parking · wheelchair access · lift · cafeteria · pickup-drop · prayer room · visitor lodging · female staff available · Wi-Fi
+**1.12 Services offered (tags)** ✅: OPD · IPD · day-care · emergency · surgery · dialysis · chemo · IVF · vaccination · home collection · home visit · telemedicine · health packages · second opinion
 
 ---
 
-## 2. Practitioners — `SPEC.*` / `PRO.*`
+## 2. Practitioners - SPEC.* / PRO.*
 
-**2.1 Specialty → sub-specialties** (canonical spelling: Orthopaedics, Paediatrics, Obstetrics & Gynaecology; aliases: Orthopedics, Pediatrics, Gynecology…)
+Current canonical specialty tree from backend/src/lib/taxonomy.js (43 root specialties; sub-specialty cross-lists keep one canonical code).
 
-| Specialty (code) | Sub-specialties |
-|---|---|
-| General / Family Medicine (`SPEC.GEN`) | Family physician · Internal medicine · Hospitalist · Preventive medicine · Travel medicine |
-| Cardiology (`SPEC.CARDIO`) | Interventional · Electrophysiology · Heart failure · Paediatric cardiology · Preventive · Cardiac imaging |
-| CTVS (`SPEC.CTVS`) | Cardiac surgery · Thoracic surgery · Vascular surgery · Endovascular |
-| Neurology (`SPEC.NEURO`) | Stroke · Epilepsy · Movement disorders · Headache · Neuromuscular · Paediatric neurology |
-| Neurosurgery (`SPEC.NSURG`) | Spine · Brain tumour · Functional · Paediatric · Endovascular |
-| Orthopaedics (`SPEC.ORTHO`) | Joint replacement · Sports/arthroscopy · Spine · Trauma · Paediatric ortho · Hand/microsurgery · Foot & ankle · Ortho-oncology |
-| Obstetrics & Gynaecology (`SPEC.OBGYN`) | Obstetrics/high-risk · Infertility/IVF · Gynae-oncology · Laparoscopic · Urogynaecology · Adolescent gynae · Menopause · Fetal medicine |
-| Paediatrics (`SPEC.PAED`) | Neonatology · Paediatric cardiology/neurology/nephrology/pulmonology/gastro/endocrinology/haem-onc · Developmental · Adolescent · Vaccination |
-| Paediatric Surgery (`SPEC.PSURG`) | Neonatal surgery · Urology · Oncology |
-| Dermatology (`SPEC.DERM`) | Medical derma · Cosmetology/aesthetics · Trichology · Venereology 🔒 · Paediatric derma · Dermatosurgery |
-| ENT (`SPEC.ENT`) | Otology · Rhinology · Laryngology · Head & neck · Paediatric ENT · Sleep surgery |
-| Ophthalmology (`SPEC.OPHTH`) | Cataract · Retina · Cornea · Glaucoma · Paediatric · Oculoplasty · Squint · Refractive/LASIK · Neuro-ophthalmology |
-| Dental & Oral (`SPEC.DENTAL`) | see §3 |
-| Psychiatry (`SPEC.PSY`) 🔒 | Child & adolescent · Geriatric · De-addiction · Neuropsychiatry · Perinatal · Sleep |
-| Gastroenterology (`SPEC.GI`) | Hepatology · Endoscopy/ERCP · IBD · Paediatric GI · GI surgery · Bariatric |
-| Pulmonology (`SPEC.PULM`) | Critical care · Sleep medicine · Interventional · TB & chest · Allergy-asthma · Occupational lung |
-| Endocrinology & Diabetology (`SPEC.ENDO`) | Diabetes · Thyroid · Obesity · Paediatric endocrine · PCOS/hormonal · Bone/osteoporosis · Pituitary |
-| Nephrology (`SPEC.NEPH`) | Dialysis · Transplant · Glomerular · Paediatric nephro · Hypertension |
-| Urology (`SPEC.URO`) | Andrology 🔒 · Endourology/stones · Uro-oncology · Paediatric urology · Female urology · Transplant |
-| Rheumatology (`SPEC.RHEUM`) | Arthritis · Lupus/connective tissue · Vasculitis · Paediatric rheumatology |
-| Oncology (`SPEC.ONCO`) | Medical · Surgical · Radiation · Paediatric · Haemato-oncology · Gynae-onco · Head & neck · Breast · Palliative onco |
-| Haematology (`SPEC.HAEM`) | Clinical haematology · Thalassemia/sickle cell · Bleeding disorders · BMT |
-| General Surgery (`SPEC.GSURG`) | Laparoscopic · Bariatric · Breast · Colorectal · Endocrine · Hernia · Trauma · Proctology |
-| Plastic & Reconstructive (`SPEC.PLASTIC`) | Cosmetic 🔒 · Burns · Hand · Craniofacial · Microvascular |
-| Anaesthesiology & Pain (`SPEC.ANAES`) | Pain medicine · Critical care · Cardiac · Paediatric · Palliative |
-| Radiology (`SPEC.RAD`) | Interventional · Neuro · Musculoskeletal · Breast · Paediatric · Nuclear medicine |
-| Pathology (`SPEC.PATH`) | Histopathology · Cytology · Haematopathology · Microbiology · Biochemistry · Transfusion medicine · Molecular/genetics |
-| Emergency & Critical Care (`SPEC.EM`) | Emergency medicine · Intensivist · Trauma |
-| Geriatrics (`SPEC.GERI`) | Memory clinic · Falls · Palliative · Polypharmacy |
-| PMR / Rehabilitation Medicine (`SPEC.PMR`) | Neuro rehab · Spine rehab · Sports · Paediatric rehab · Prosthetics/Orthotics |
-| Sports Medicine (`SPEC.SPORTS`) | Injury prevention · Performance · Exercise physiology |
-| Infectious Disease (`SPEC.ID`) | HIV 🔒 · Tropical medicine · Infection control · Travel |
-| Allergy & Immunology (`SPEC.ALLERGY`) | Asthma-allergy · Food allergy · Immunodeficiency |
-| Sexology / Andrology (`SPEC.SEX`) 🔒 | Sexual dysfunction · Sexual health (discreet) |
-| Genetics (`SPEC.GEN2`) | Prenatal · Oncogenetics · Rare diseases |
-| Sleep · Palliative · Occupational · Nuclear Medicine | (single-level specialties) |
+| Specialty | Code | Current sub-specialties |
+|---|---|---|
+| General Medicine | `SPEC.GENMED` | Diabetology & Metabolic Disorders (`SPEC.ENDO.DIABETES`) ↔ ; Family Physician (`SPEC.GENMED.FAMILY`) ; Fever & Infections Clinic (`SPEC.GENMED.FEVER`) ; Hospitalist (`SPEC.GENMED.HOSPITALIST`) ; Internal Medicine (`SPEC.GENMED.INTERNAL`) ; Lifestyle & Chronic-disease Care (`SPEC.GENMED.LIFESTYLE`) ; Preventive Medicine (`SPEC.GENMED.PREVENTIVE`) ; Travel Medicine (`SPEC.GENMED.TRAVEL_MED`) |
+| Cardiology | `SPEC.CARDIO` | Cardiac Imaging (`SPEC.CARDIO.IMAGING`) ; Cardiac Rehabilitation (`SPEC.CARDIO.REHAB`) ; Electrophysiology (`SPEC.CARDIO.EP`) ; Heart Failure & Transplant (`SPEC.CARDIO.HEART_FAILURE`) ; Interventional Cardiology (`SPEC.CARDIO.INTERVENTIONAL`) ; Paediatric Cardiology (`SPEC.CARDIO.PAED`) ↔ ; Preventive Cardiology (`SPEC.CARDIO.PREVENTIVE`) ; Structural Heart Disease (`SPEC.CARDIO.STRUCTURAL`) |
+| Cardiothoracic Surgery | `SPEC.CTVS` | Adult Cardiac Surgery (`SPEC.CTVS.CARDIAC`) ; Congenital Heart Surgery (`SPEC.CTVS.CONGENITAL`) ; Heart & Lung Transplant Surgery (`SPEC.CTVS.TRANSPLANT`) ; Minimally Invasive Cardiac Surgery (`SPEC.CTVS.MIS`) ; Thoracic Surgery (`SPEC.CTVS.THORACIC`) ; Vascular Surgery (`SPEC.VASC`) ↔ |
+| Vascular Surgery | `SPEC.VASC` | Aortic Surgery (`SPEC.VASC.AORTIC`) ; Diabetic Foot & Limb Salvage (`SPEC.VASC.DIABETIC_FOOT`) ; Dialysis Access Surgery (`SPEC.VASC.ACCESS`) ; Endovascular Therapy (`SPEC.VASC.ENDOVASCULAR`) ; Peripheral Artery Disease Clinic (`SPEC.VASC.PAD`) ; Varicose Vein & Venous Disease (`SPEC.VASC.VENOUS`) |
+| Orthopaedics | `SPEC.ORTHO` | Foot & Ankle Surgery (`SPEC.ORTHO.FOOT_ANKLE`) ; Hand & Microsurgery (`SPEC.ORTHO.HAND`) ; Joint Replacement (`SPEC.ORTHO.JOINT`) ; Orthopaedic Oncology (`SPEC.ORTHO.ONCO`) ; Orthopaedic Trauma (`SPEC.ORTHO.TRAUMA`) ; Paediatric Orthopaedics (`SPEC.ORTHO.PAED`) ↔ ; Shoulder & Elbow Surgery (`SPEC.ORTHO.SHOULDER_ELBOW`) ; Spine Surgery (`SPEC.ORTHO.SPINE`) ; Sports Medicine (`SPEC.SPORTS`) ↔ |
+| Obstetrics & Gynaecology | `SPEC.OBGY` | Adolescent Gynaecology (`SPEC.OBGY.ADOLESCENT`) ; Antenatal & Postnatal Care (`SPEC.OBGY.ANTENATAL`) ; Contraception & Family Planning (`SPEC.OBGY.FAMILY_PLANNING`) ; Fetal Medicine (`SPEC.OBGY.FETAL`) ; Gynaecological Laparoscopy & Endoscopy (`SPEC.OBGY.LAPAROSCOPY`) ; Gynaecological Oncology (`SPEC.OBGY.ONCO`) ↔ ; High-Risk Obstetrics & Maternal Fetal Medicine (`SPEC.OBGY.HIGH_RISK`) ; Infertility (`SPEC.INFERT`) ↔ ; Menopause & Midlife Health (`SPEC.OBGY.MENOPAUSE`) ; PCOS & Reproductive Endocrinology (`SPEC.ENDO.PCOS`) ↔ ; Urogynaecology (`SPEC.OBGY.UROGYNAE`) |
+| Paediatrics | `SPEC.PAED` | Adolescent Paediatrics (`SPEC.PAED.ADOLESCENT`) ; Developmental Paediatrics (`SPEC.PAED.DEVELOPMENTAL`) ; Growth & Nutrition Clinic (`SPEC.PAED.NUTRITION`) ; Neonatology (`SPEC.NEONATO`) ↔ ; Paediatric & Preventive Dentistry (`SPEC.DENTAL.PAEDO`) ↔ ; Paediatric Allergy & Asthma (`SPEC.PAED.ALLERGY`) ↔ ; Paediatric Cardiology (`SPEC.CARDIO.PAED`) ↔ ; Paediatric Dermatology (`SPEC.DERM.PAED`) ↔ ; Paediatric Endocrinology (`SPEC.ENDO.PAED`) ↔ ; Paediatric ENT (`SPEC.ENT.PAED`) ↔ ; Paediatric Gastroenterology (`SPEC.GASTRO.PAED`) ↔ ; Paediatric Haemato-oncology (`SPEC.PAED.HAEM_ONC`) ↔ ; Paediatric Nephrology (`SPEC.NEPHRO.PAED`) ↔ ; Paediatric Neurology (`SPEC.NEURO.PAED`) ↔ ; Paediatric Oncology (`SPEC.ONCO.PAED`) ↔ ; Paediatric Ophthalmology (`SPEC.OPHTH.PAED`) ↔ ; Paediatric Orthopaedics (`SPEC.ORTHO.PAED`) ↔ ; Paediatric Pulmonology (`SPEC.PULMO.PAED`) ↔ ; Paediatric Surgery (`SPEC.PAEDSURG`) ↔ ; Paediatric Vaccination & Immunisation (`SPEC.PAED.VACCINATION`) |
+| Paediatric Surgery | `SPEC.PAEDSURG` | Congenital Anomalies Surgery (`SPEC.PAEDSURG.CONGENITAL`) ; Neonatal Surgery (`SPEC.PAEDSURG.NEONATAL`) ; Paediatric Laparoscopic Surgery (`SPEC.PAEDSURG.LAPAROSCOPY`) ; Paediatric Surgical Oncology (`SPEC.PAEDSURG.ONCOLOGY`) ; Paediatric Urologic Surgery (`SPEC.PAEDSURG.UROLOGY`) |
+| Neonatology | `SPEC.NEONATO` | High-risk Infant Follow-up (`SPEC.NEONATO.FOLLOWUP`) ; Neonatal Intensive Care (NICU) (`SPEC.NEONATO.NICU`) ; Neonatal Jaundice Care (`SPEC.NEONATO.JAUNDICE`) ; Neonatal Respiratory Support (`SPEC.NEONATO.VENTILATION`) ; Newborn Screening (`SPEC.NEONATO.SCREENING`) ; Preterm & Low Birth Weight Care (`SPEC.NEONATO.PRETERM`) |
+| Dermatology | `SPEC.DERM` | Contact & Allergic Dermatitis (`SPEC.DERM.ALLERGY`) ; Cosmetic Dermatology & Aesthetics (`SPEC.DERM.COSMETIC`) ; Dermatology Laser Procedures (`SPEC.DERM.LASER`) ; Dermatosurgery (`SPEC.DERM.DERMATOSURGERY`) ; Medical Dermatology (`SPEC.DERM.MEDICAL`) ; Paediatric Dermatology (`SPEC.DERM.PAED`) ↔ ; Pigmentation & Vitiligo (`SPEC.DERM.PIGMENTATION`) ; Sexology & Andrology (`SPEC.SEXO`) ↔ ; Trichology & Hair Transplant (`SPEC.DERM.TRICHOLOGY`) ; Venereology & STI Medicine (`SPEC.DERM.VENEREOLOGY`) ↔ |
+| ENT | `SPEC.ENT` | Audiology & Hearing Sciences (`SPEC.ENT.AUDIOLOGY`) ; Cochlear Implant Programme (`SPEC.ENT.COCHLEAR`) ; ENT Allergy & Rhinitis Care (`SPEC.ENT.ALLERGY`) ; Head & Neck Surgery (ENT) (`SPEC.ENT.HEAD_NECK`) ; Laryngology & Voice (`SPEC.ENT.LARYNGOLOGY`) ; Otology & Neurotology (`SPEC.ENT.OTOLOGY`) ; Paediatric ENT (`SPEC.ENT.PAED`) ↔ ; Rhinology & Sinus Surgery (`SPEC.ENT.RHINOLOGY`) ; Sleep Medicine (`SPEC.SLEEP`) ↔ ; Sleep Surgery (ENT) (`SPEC.ENT.SLEEP_SURGERY`) |
+| Ophthalmology | `SPEC.OPHTH` | Cataract & Refractive Surgery (`SPEC.OPHTH.CATARACT`) ; Contact Lens Clinic (`SPEC.OPHTH.CONTACT_LENS`) ; Cornea & External Disease (`SPEC.OPHTH.CORNEA`) ; Dry Eye Clinic (`SPEC.OPHTH.DRY_EYE`) ; Glaucoma Surgery (`SPEC.OPHTH.GLAUCOMA`) ; LASIK & Vision Correction (`SPEC.OPHTH.LASIK`) ; Neuro-ophthalmology (`SPEC.OPHTH.NEURO`) ; Oculoplasty (`SPEC.OPHTH.OCULOPLASTY`) ; Paediatric Ophthalmology (`SPEC.OPHTH.PAED`) ↔ ; Squint & Strabismus (`SPEC.OPHTH.SQUINT`) ; Vitreoretinal Surgery (`SPEC.OPHTH.RETINA`) |
+| Dental & Oral Medicine | `SPEC.DENTAL` | Cosmetic Dentistry (`SPEC.DENTAL.COSMETIC`) ; Dental Emergency (`SPEC.DENTAL.EMERGENCY`) ; Endodontics & Conservative Dentistry (`SPEC.DENTAL.ENDO`) ; Geriatric Dentistry (`SPEC.DENTAL.GERIATRIC`) ; Oral & Maxillofacial Surgery (`SPEC.DENTAL.OMFS`) ; Oral Implantology & Periodontics (`SPEC.DENTAL.IMPLANT`) ; Oral Medicine & Radiology (`SPEC.DENTAL.ORAL_MED_RAD`) ; Orthodontics & Dentofacial Orthopaedics (`SPEC.DENTAL.ORTHO`) ; Paediatric & Preventive Dentistry (`SPEC.DENTAL.PAEDO`) ↔ ; Periodontics (`SPEC.DENTAL.PERIO`) ; Prosthodontics (`SPEC.DENTAL.PROSTHO`) |
+| Neurology | `SPEC.NEURO` | Dementia & Memory Disorders (`SPEC.NEURO.DEMENTIA`) ; Epilepsy & Seizure Disorders (`SPEC.NEURO.EPILEPSY`) ; Headache Medicine (`SPEC.NEURO.HEADACHE`) ; Movement Disorders & Parkinson's (`SPEC.NEURO.MOVEMENT`) ; Neuro-rehabilitation Medicine (`SPEC.NEURO.NEUROREHAB`) ; Neuromuscular Medicine (`SPEC.NEURO.NEUROMUSCULAR`) ; Paediatric Neurology (`SPEC.NEURO.PAED`) ↔ ; Pain Rehabilitation Medicine (`SPEC.PMR.PAIN`) ↔ ; Sleep Medicine (`SPEC.SLEEP`) ↔ ; Stroke & Neurovascular Medicine (`SPEC.NEURO.STROKE`) |
+| Neurosurgery | `SPEC.NEUROSURG` | Cerebrovascular Surgery (`SPEC.NEUROSURG.CEREBROVASCULAR`) ; Endovascular Neurosurgery (`SPEC.NEUROSURG.ENDOVASCULAR`) ; Functional Neurosurgery (`SPEC.NEUROSURG.FUNCTIONAL`) ; Head & Spine Trauma Surgery (`SPEC.NEUROSURG.TRAUMA`) ; Neuro-Oncology & Skull Base Surgery (`SPEC.NEUROSURG.BRAIN_TUMOR`) ; Paediatric Neurosurgery (`SPEC.NEUROSURG.PAED`) ; Spine Neurosurgery (`SPEC.NEUROSURG.SPINE`) |
+| Psychiatry | `SPEC.PSYCH` | Addiction Psychiatry & De-addiction (`SPEC.PSYCH.ADDICTION`) ; Child & Adolescent Psychiatry (`SPEC.PSYCH.CHILD`) ; Consultation-Liaison Psychiatry (`SPEC.PSYCH.CONSULT_LIAISON`) ; Forensic Psychiatry (`SPEC.PSYCH.FORENSIC`) ; Geriatric Psychiatry (`SPEC.PSYCH.GERIATRIC`) ↔ ; HIV Medicine & PrEP (`SPEC.INFECT.HIV`) ↔ ; Neuropsychiatry (`SPEC.PSYCH.NEUROPSYCH`) ; Perinatal Psychiatry (`SPEC.PSYCH.PERINATAL`) ; Psychotherapy & Counselling Medicine (`SPEC.PSYCH.PSYCHOTHERAPY`) ; Sleep Medicine (`SPEC.SLEEP`) ↔ |
+| Gastroenterology | `SPEC.GASTRO` | Bariatric & Metabolic Surgery (`SPEC.GENSURG.BARIATRIC`) ↔ ; Gastrointestinal Oncology (`SPEC.ONCO.GI`) ↔ ; Gastrointestinal Surgery (`SPEC.GASTRO.SURGERY`) ; GERD & Oesophageal Motility (`SPEC.GASTRO.MOTILITY`) ; Hepatology (`SPEC.HEPAT`) ↔ ; Inflammatory Bowel Disease (IBD) (`SPEC.GASTRO.IBD`) ; Paediatric Gastroenterology (`SPEC.GASTRO.PAED`) ↔ ; Pancreas & Biliary Diseases (`SPEC.GASTRO.PANCREATOBILIARY`) ; Therapeutic GI Endoscopy (`SPEC.GASTRO.ENDOSCOPY`) |
+| Hepatology | `SPEC.HEPAT` | Alcohol-related Liver Disease (`SPEC.HEPAT.ALCOHOL`) ; Cirrhosis & Portal Hypertension (`SPEC.HEPAT.CIRRHOSIS`) ; Fatty Liver Disease (NAFLD) (`SPEC.HEPAT.FATTY_LIVER`) ; Liver Transplant Medicine (`SPEC.HEPAT.TRANSPLANT`) ; Paediatric Hepatology (`SPEC.HEPAT.PAED`) ; Viral Hepatitis (B & C) (`SPEC.HEPAT.VIRAL`) ↔ |
+| Nephrology | `SPEC.NEPHRO` | CKD Care & Renal Diet (`SPEC.NEPHRO.CKD`) ; Clinical Nephrology & Dialysis (`SPEC.NEPHRO.DIALYSIS`) ; Critical Care Nephrology (`SPEC.NEPHRO.CRITICAL`) ; Glomerular Disease (`SPEC.NEPHRO.GLOMERULAR`) ; Hypertension & Kidney (`SPEC.NEPHRO.HYPERTENSION`) ; Kidney Transplant Medicine (`SPEC.NEPHRO.TRANSPLANT`) ; Paediatric Nephrology (`SPEC.NEPHRO.PAED`) ↔ |
+| Urology | `SPEC.URO` | Endourology & Lithotripsy (Stone Surgery) (`SPEC.URO.LITHOTRIPSY`) ; Female Urology (`SPEC.URO.FEMALE`) ; Paediatric Urology (`SPEC.URO.PAED`) ; Prostate Clinic (BPH) (`SPEC.URO.PROSTATE`) ; Sexology & Andrology (`SPEC.SEXO`) ↔ ; Urologic Oncology (`SPEC.URO.ONCO`) ; Urology Transplant (`SPEC.URO.TRANSPLANT`) |
+| Pulmonology | `SPEC.PULMO` | Asthma & Allergy Respiratory (`SPEC.PULMO.ASTHMA`) ; COPD & Respiratory Rehab (`SPEC.PULMO.COPD`) ; Interstitial Lung Disease (`SPEC.PULMO.ILD`) ; Interventional Pulmonology (`SPEC.PULMO.INTERVENTIONAL`) ; Occupational Lung Disease (`SPEC.PULMO.OCC_LUNG`) ↔ ; Paediatric Pulmonology (`SPEC.PULMO.PAED`) ↔ ; Pulmonary Critical Care (`SPEC.PULMO.CRITICAL_CARE`) ; Sleep Medicine (`SPEC.SLEEP`) ↔ ; TB & Chest Diseases (`SPEC.PULMO.TB_CHEST`) ↔ |
+| Endocrinology | `SPEC.ENDO` | Adrenal Disorders (`SPEC.ENDO.ADRENAL`) ; Bariatric & Metabolic Surgery (`SPEC.GENSURG.BARIATRIC`) ↔ ; Bone & Osteoporosis (`SPEC.ENDO.BONE`) ; Diabetology & Metabolic Disorders (`SPEC.ENDO.DIABETES`) ↔ ; Lipid & Cholesterol Disorders (`SPEC.ENDO.LIPID`) ; Paediatric Endocrinology (`SPEC.ENDO.PAED`) ↔ ; PCOS & Reproductive Endocrinology (`SPEC.ENDO.PCOS`) ↔ ; Pituitary & Neuroendocrinology (`SPEC.ENDO.PITUITARY`) ; Thyroid Disorders & Endocrine Oncology (`SPEC.ENDO.THYROID`) |
+| Rheumatology | `SPEC.RHEUM` | Gout & Crystal Arthritis (`SPEC.RHEUM.GOUT`) ; Inflammatory Arthritis (`SPEC.RHEUM.ARTHRITIS`) ; Lupus & Connective Tissue (`SPEC.RHEUM.LUPUS`) ; Osteoarthritis Clinic (`SPEC.RHEUM.OA`) ; Paediatric Rheumatology (`SPEC.RHEUM.PAED`) ; Rheumatoid Arthritis (`SPEC.RHEUM.RA`) ; Spondyloarthritis (`SPEC.RHEUM.SPA`) ; Vasculitis (`SPEC.RHEUM.VASCULITIS`) |
+| Oncology | `SPEC.ONCO` | Breast Oncology (`SPEC.ONCO.BREAST`) ; Cancer Survivorship & Follow-up (`SPEC.ONCO.SURVIVORSHIP`) ; Gastrointestinal Oncology (`SPEC.ONCO.GI`) ↔ ; Gynaecologic Oncology (`SPEC.ONCO.GYNAE`) ; Gynaecological Oncology (`SPEC.OBGY.ONCO`) ↔ ; Haemato-oncology (`SPEC.ONCO.HAEMATO`) ↔ ; Head & Neck Oncology (`SPEC.ONCO.HEAD_NECK`) ; Medical Oncology & Chemotherapy (`SPEC.ONCO.MEDICAL`) ; Paediatric Haemato-oncology (`SPEC.PAED.HAEM_ONC`) ↔ ; Paediatric Oncology (`SPEC.ONCO.PAED`) ↔ ; Palliative Oncology (`SPEC.ONCO.PALLIATIVE`) ; Radiation Oncology (`SPEC.ONCO.RADIATION`) ; Surgical Oncology (`SPEC.ONCO.SURGICAL`) ; Thoracic Oncology (`SPEC.ONCO.THORACIC`) |
+| Haematology | `SPEC.HAEM` | Anaemia Clinic (`SPEC.HAEM.ANAEMIA`) ; Bone Marrow Transplant & Stem Cell (`SPEC.HAEM.BMT`) ; Clinical Haematology & Bleeding Disorders (`SPEC.HAEM.CLINICAL`) ; Haemato-oncology (`SPEC.ONCO.HAEMATO`) ↔ ; Haemophilia & Coagulation (`SPEC.HAEM.HAEMOPHILIA`) ; Paediatric Haemato-oncology (`SPEC.PAED.HAEM_ONC`) ↔ ; Thalassemia & Sickle Cell (`SPEC.HAEM.THALASSEMIA`) |
+| General Surgery | `SPEC.GENSURG` | Bariatric & Metabolic Surgery (`SPEC.GENSURG.BARIATRIC`) ↔ ; Breast Surgery (`SPEC.GENSURG.BREAST`) ; Colorectal Surgery & Proctology (`SPEC.GENSURG.COLORECTAL`) ; Endocrine Surgery (`SPEC.GENSURG.ENDOCRINE`) ; Hepatobiliary & Pancreatic Surgery (`SPEC.GENSURG.HPB`) ; Hernia Surgery (`SPEC.GENSURG.HERNIA`) ; Minimal Access & Laparoscopic Surgery (`SPEC.GENSURG.LAPAROSCOPIC`) ; Trauma & Emergency Surgery (`SPEC.GENSURG.TRAUMA`) |
+| Plastic & Reconstructive Surgery | `SPEC.PLASTSURG` | Aesthetic & Cosmetic Surgery (`SPEC.PLASTSURG.COSMETIC`) ; Breast Reconstruction & Oncoplasty (`SPEC.PLASTSURG.BREAST_RECON`) ; Burns & Complex Wound Care (`SPEC.PLASTSURG.BURNS`) ; Craniofacial Surgery (`SPEC.PLASTSURG.CRANIOFACIAL`) ; Reconstructive Hand Surgery (`SPEC.PLASTSURG.HAND`) ; Reconstructive Microsurgery & Burns (`SPEC.PLASTSURG.RECONSTRUCTIVE`) ; Scar Revision Surgery (`SPEC.PLASTSURG.SCAR`) |
+| Anaesthesiology | `SPEC.ANAES` | Cardiac Anaesthesia (`SPEC.ANAES.CARDIAC`) ; Critical Care Anaesthesia (`SPEC.ANAES.CRITICAL_CARE`) ; Interventional Pain Medicine (`SPEC.ANAES.PAIN`) ↔ ; Obstetric Anaesthesia & Labour Analgesia (`SPEC.ANAES.OBSTETRIC`) ; Paediatric Anaesthesia (`SPEC.ANAES.PAED`) ; Pain Rehabilitation Medicine (`SPEC.PMR.PAIN`) ↔ ; Palliative Anaesthesia & Sedation (`SPEC.ANAES.PALLIATIVE`) ↔ ; Regional & Ambulatory Anaesthesia (`SPEC.ANAES.REGIONAL`) |
+| Radiology | `SPEC.RADIO` | Breast Imaging (`SPEC.RADIO.BREAST`) ; Cardiac Radiology (`SPEC.RADIO.CARDIAC`) ; Interventional Radiology (`SPEC.RADIO.INTERVENTIONAL`) ; Musculoskeletal Radiology (`SPEC.RADIO.MSK`) ; Neuroradiology (`SPEC.RADIO.NEURO`) ; Paediatric Radiology (`SPEC.RADIO.PAED`) ; Ultrasound & Doppler Imaging (`SPEC.RADIO.USG`) |
+| Pathology | `SPEC.PATHO` | Clinical Biochemistry (`SPEC.PATHO.BIOCHEM`) ; Clinical Microbiology (`SPEC.PATHO.MICRO`) ; Cytopathology (`SPEC.PATHO.CYTO`) ; Haematopathology (`SPEC.PATHO.HAEMATO`) ; Histopathology (`SPEC.PATHO.HISTO`) ; Molecular Pathology & Genetics (`SPEC.PATHO.MOLECULAR`) ; Transfusion Medicine & Blood Banking (`SPEC.PATHO.TRANSFUSION`) |
+| Emergency Medicine | `SPEC.EMERG` | Cardiac Emergencies (`SPEC.EMERG.CARDIAC`) ; Intensive Care Medicine (`SPEC.EMERG.INTENSIVIST`) ; Paediatric Emergencies (`SPEC.EMERG.PAED`) ; Poisoning & Toxicology (`SPEC.EMERG.TOXICOLOGY`) ; Pre-hospital & Ambulance Care (`SPEC.EMERG.PREHOSPITAL`) ; Stroke Emergencies (`SPEC.EMERG.STROKE`) ; Trauma & Resuscitation (`SPEC.EMERG.TRAUMA`) |
+| Geriatrics | `SPEC.GERI` | Elder Incontinence & Continence Care (`SPEC.GERI.CONTINENCE`) ; Falls & Fracture Prevention (`SPEC.GERI.FALLS`) ; Frailty & Elder Nutrition (`SPEC.GERI.FRAILTY`) ; Geriatric Palliative Care (`SPEC.GERI.PALLIATIVE`) ↔ ; Geriatric Polypharmacy (`SPEC.GERI.POLYPHARMACY`) ; Geriatric Psychiatry (`SPEC.PSYCH.GERIATRIC`) ↔ ; Memory & Dementia Clinic (`SPEC.GERI.MEMORY`) |
+| Sports Medicine | `SPEC.SPORTS` | Exercise Physiology (`SPEC.SPORTS.EXERCISE`) ; Return-to-Play Assessment (`SPEC.SPORTS.RETURN_TO_PLAY`) ; Sports Injury Prevention (`SPEC.SPORTS.PREVENTION`) ; Sports Nutrition (`SPEC.SPORTS.NUTRITION`) ; Sports Performance Medicine (`SPEC.SPORTS.PERFORMANCE`) ; Sports Rehabilitation (`SPEC.PMR.SPORTS`) ↔ |
+| Sexology & Andrology | `SPEC.SEXO` | Infertility (`SPEC.INFERT`) ↔ ; Male Infertility & Andrology (`SPEC.SEXO.ANDROLOGY`) ; Sexual Dysfunction Medicine (`SPEC.SEXO.DYSFUNCTION`) ; Sexual Health (Discreet) (`SPEC.SEXO.SECURE`) ; Sexual Health Counselling (`SPEC.SEXO.COUNSELLING`) ; STI & Genital Infection Care (`SPEC.SEXO.STI`) ; Venereology & STI Medicine (`SPEC.DERM.VENEREOLOGY`) ↔ ; Women's Sexual Health (`SPEC.SEXO.WOMEN`) |
+| Infertility | `SPEC.INFERT` | Fertility Counselling (`SPEC.INFERT.COUNSELLING`) ; Fertility Preservation (Egg/Sperm Freezing) (`SPEC.INFERT.PRESERVATION`) ; IUI (Intrauterine Insemination) (`SPEC.INFERT.IUI`) ; IVF & ICSI (`SPEC.INFERT.IVF`) ; Male Infertility Treatment (`SPEC.INFERT.MALE`) ; Recurrent Pregnancy Loss (`SPEC.INFERT.RPL`) ; Reproductive Endocrinology (`SPEC.INFERT.REPRO_ENDO`) |
+| Nuclear Medicine | `SPEC.NUCMED` | Bone Scan Imaging (`SPEC.NUCMED.BONE`) ; Cardiac Nuclear Imaging (MPI) (`SPEC.NUCMED.CARDIAC`) ; PET-CT Imaging (`SPEC.NUCMED.PET_CT`) ; Radionuclide Therapy (`SPEC.NUCMED.THERAPY`) ; Thyroid Scan & Radioiodine Therapy (`SPEC.NUCMED.THYROID`) |
+| Physical Medicine & Rehabilitation | `SPEC.PMR` | Cardiac & Pulmonary Rehabilitation (`SPEC.PMR.CARDIOPULM`) ; Interventional Pain Medicine (`SPEC.ANAES.PAIN`) ↔ ; Neurological Rehabilitation (`SPEC.PMR.NEURO`) ; Paediatric Rehabilitation (`SPEC.PMR.PAED`) ; Pain Rehabilitation Medicine (`SPEC.PMR.PAIN`) ↔ ; Post-stroke Rehabilitation (`SPEC.PMR.STROKE`) ; Prosthetics & Orthotics (`SPEC.PMR.PROSTHETICS`) ; Spine Rehabilitation (`SPEC.PMR.SPINE`) ; Sports Medicine (`SPEC.SPORTS`) ↔ ; Sports Rehabilitation (`SPEC.PMR.SPORTS`) ↔ |
+| Occupational Medicine | `SPEC.OCCMED` | Industrial Health Services (`SPEC.OCCMED.INDUSTRIAL`) ; Occupational Lung Disease (`SPEC.PULMO.OCC_LUNG`) ↔ ; Pre-employment & Periodic Health Checks (`SPEC.OCCMED.PRE_EMPLOYMENT`) ; Workplace Ergonomics (`SPEC.OCCMED.ERGONOMICS`) ; Workplace Injury Management (`SPEC.OCCMED.INJURY`) |
+| Palliative Medicine | `SPEC.PALLI` | Bereavement & Grief Support (`SPEC.PALLI.BEREAVEMENT`) ; Cancer Pain & Symptom Control (`SPEC.PALLI.CANCER_PAIN`) ; Geriatric Palliative Care (`SPEC.GERI.PALLIATIVE`) ↔ ; Home-based Palliative Care (`SPEC.PALLI.HOME`) ; Hospice & End-of-life Care (`SPEC.PALLI.HOSPICE`) ; Paediatric Palliative Care (`SPEC.PALLI.PAED`) ; Palliative Anaesthesia & Sedation (`SPEC.ANAES.PALLIATIVE`) ↔ |
+| Sleep Medicine | `SPEC.SLEEP` | Insomnia & CBT-I (`SPEC.SLEEP.INSOMNIA`) ; Narcolepsy & Hypersomnia (`SPEC.SLEEP.NARCOLEPSY`) ; Obstructive Sleep Apnoea (`SPEC.SLEEP.APNOEA`) ; Paediatric Sleep Medicine (`SPEC.SLEEP.PAED`) |
+| Allergy & Immunology | `SPEC.ALLERGY` | Allergic Diseases & Asthma (`SPEC.ALLERGY.ASTHMA`) ; Allergic Rhinitis & Immunotherapy (`SPEC.ALLERGY.RHINITIS`) ; Drug Allergy & Hypersensitivity (`SPEC.ALLERGY.DRUG`) ; Food Allergy & Anaphylaxis (`SPEC.ALLERGY.FOOD`) ; Immunodeficiency & Immune Disorders (`SPEC.ALLERGY.IMMUNO`) ; Paediatric Allergy & Asthma (`SPEC.PAED.ALLERGY`) ↔ ; Urticaria & Angioedema (`SPEC.ALLERGY.URTICARIA`) |
+| Infectious Disease | `SPEC.INFECT` | Antimicrobial Stewardship (`SPEC.INFECT.STEWARDSHIP`) ; Extra-pulmonary & Drug-resistant TB (`SPEC.INFECT.TB`) ; HIV Medicine & PrEP (`SPEC.INFECT.HIV`) ↔ ; Infection Prevention & Control (`SPEC.INFECT.CONTROL`) ; TB & Chest Diseases (`SPEC.PULMO.TB_CHEST`) ↔ ; Travel & Expedition Medicine (`SPEC.INFECT.TRAVEL`) ; Tropical Medicine (`SPEC.INFECT.TROPICAL`) ; Viral Hepatitis (B & C) (`SPEC.HEPAT.VIRAL`) ↔ |
+| Clinical Genetics | `SPEC.GENETICS` | Genetic Counselling Clinic (`SPEC.GENETICS.COUNSELLING`) ; Oncogenetics (`SPEC.GENETICS.ONCO`) ; Paediatric Genetics (`SPEC.GENETICS.PAED`) ; Pharmacogenomics (`SPEC.GENETICS.PHARMACO`) ; Prenatal & Preconception Genetics (`SPEC.GENETICS.PRENATAL`) ; Rare Disease Genetics (`SPEC.GENETICS.RARE`) |
 
-**2.2 AYUSH practitioner** (`PRO.AYUSH.*`): Ayurveda (Kayachikitsa · Panchakarma · Shalya · Shalakya · Prasuti-Streeroga · Kaumarbhritya · Swasthavritta) · Homeopathy (classical · paediatric · skin · chronic) · Unani · Siddha · Naturopathy · Yoga therapy
-
-**2.3 Allied & therapy professionals** (`PRO.ALLIED.*`): Physiotherapist · Occupational therapist · Speech-language pathologist · Audiologist · Dietitian/Nutritionist · Optometrist · Prosthetist/Orthotist · Radiographer · Sonographer · Lab technician · Phlebotomist · Pharmacist · Nurse (staff/home) · Paramedic/EMT
-
-**2.4 Mental-health professionals** (`PRO.MH.*`) 🔒: Clinical psychologist · Counselling psychologist · Counsellor · Psychotherapist · Child psychologist · Neuropsychologist · Rehabilitation psychologist · Psychiatric social worker · Art/music/dance therapist · De-addiction counsellor · Peer mentor (guardrails ke saath, clinical nahi)
-
-**2.5 Wellness professionals** (`PRO.WELL.*`): Yoga teacher · Personal trainer · Group-fitness instructor · Sports coach · Meditation teacher
-
----
+↔ means the same canonical child is displayed under another specialty; it is not a second category record.
 
 ## 3. Dental sub-tree — `SPEC.DENTAL.*`
 **Specialties:** Orthodontics · Endodontics · Periodontics · Prosthodontics · Oral & maxillofacial surgery · Implantology · Paedodontics · Oral medicine & radiology · Cosmetic dentistry
@@ -279,7 +280,7 @@ Diabetes (type 1/2, gestational, diabetic foot, retinopathy) · Hypertension · 
 ## 19. Government & schemes (Info) — `GOV.*`
 Facility types: PHC · CHC · UPHC · Sub-centre · Ayushman Arogya Mandir · Jan Aushadhi · Govt hospital OPD queue
 Schemes filter ✅: PM-JAY · CGHS · ESI · ECHS · State schemes
-Info pages ➕: Maternal-child schemes (JSY, PMMVY) · Immunisation (UIP) · National programs (TB, NCD, mental health) · Free-medicine lists · Grievance redressal ✅
+Info pages ✅: Maternal-child schemes (JSY, PMMVY) · Immunisation (UIP) · National programs (TB, NCD, mental health) · Free-medicine lists · Grievance redressal ✅
 
 ---
 

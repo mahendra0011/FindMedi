@@ -707,6 +707,7 @@ import patientPolicyRoutes from './routes/patientInsurancePolicies.js';
 import patientDashboardRoutes from './routes/patientDashboard.js';
 import patientTimelineRoutes from './routes/patientTimeline.js';
 import patientRecommendationsRoutes from './routes/patientRecommendations.js';
+import publicInfoRoutes from './routes/publicInfo.js';
 import patientWomensHealthRoutes from './routes/patientWomensHealth.js';
 import patientWellnessRoutes from './routes/patientWellness.js';
 import secondOpinionRoutes from './routes/secondOpinions.js';
@@ -732,6 +733,8 @@ import providerRoutes from './routes/providers.js';
 import practitionerRoutes from './routes/practitioners.js';
 import productRoutes from './routes/products.js';
 import providerTypeRoutes from './routes/providerTypes.js';
+import appConfigRoutes from './routes/appConfig.js';
+import attestationRoutes from './routes/attestation.js';
 import adminProviderTypeRoutes from './routes/adminProviderTypes.js';
 import providerServiceRoutes from './routes/providerServices.js';
 // Catalogue half of the provider workspace (10.md 4.2 plans + products).
@@ -929,6 +932,8 @@ app.use('/api/patient/timeline', patientTimelineRoutes);
 // programs, care-plan suggestions (opt-out via ?personalised=false), seasonal
 // alerts, reviewed content — object-authz via profileAccess on ?profileId=.
 app.use('/api/patient/recommendations', patientRecommendationsRoutes);
+// Public, non-personalized information pages (no booking or PHI access).
+app.use('/api/info', publicInfoRoutes);
 // 6.md §2.9 women's health (opt-in): separate per-profile consent, private by
 // design — no other surface reads these collections.
 app.use('/api/patient/wellness/womens', patientWomensHealthRoutes);
@@ -1112,6 +1117,8 @@ app.use('/api/providers', providerRoutes);
 app.use('/api/practitioners', practitionerRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/config/provider-types', providerTypeRoutes);
+app.use('/api/config', appConfigRoutes);
+app.use('/api/attestation', attestationRoutes);
 app.use('/api/admin/provider-type-configs', adminProviderTypeRoutes);
 app.use('/api/join', joinRoutes);
 // 2.md 9: owner-side staff invites for a listing.
@@ -1654,6 +1661,16 @@ if (process.env.NODE_ENV !== 'test') {
         startJoinDraftExpiry(process.env.JOIN_DRAFT_EXPIRY_CRON || '0 7 * * *');
       } catch (e) {
         logger.warn('join draft expiry job failed to start (non-fatal): ' + e.message);
+      }
+
+      // 5.md 15: location data minimal retention - null precise pickup/drop
+      // coordinates for completed/cancelled rides older than the retention
+      // window (default 7 days). Daily 04:00 UTC.
+      try {
+        const { startRideLocationPurge } = await import('./jobs/locationPurge.job.js');
+        startRideLocationPurge(process.env.RIDE_LOCATION_PURGE_CRON || '0 4 * * *');
+      } catch (e) {
+        logger.warn('ride location purge job failed to start (non-fatal): ' + e.message);
       }
     } catch (e) {
       logger.error('⚠️ Failed to sync indexes, seed demo users, or start outbox poller: ' + e.message);

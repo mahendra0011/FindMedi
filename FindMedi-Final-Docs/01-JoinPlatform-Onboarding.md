@@ -1,10 +1,10 @@
-# 01 — Join Platform / Provider Onboarding
+﻿# 01 — Join Platform / Provider Onboarding
 
-> **Current (✅):** `JoinPlatform.tsx` me 10 types: Hospital, Clinic, Diagnostic, Pharmacy, Delivery, Rider, Assistant, Lawyer, Counsellor, Psychiatrist.
-> Base steps: **Facility Type → Admin Account → Facility Info → Doctors & Services → Review & Submit**. Delivery/Rider/Assistant ke apne steps (Personal & KYC → Vehicle → Bank/Payout → Availability → Review).
+> **Current (✅):** `JoinWizard.tsx` config-driven chooser mein **103 provider types** hain across clinical, wellness, commerce, home-service, transport, community, and professional groups. Har type ka alag card, type-specific photo, and server config hai; 34 previously grouped standalone types ab separate cards hain (government facilities, pharmacy variants, diagnostics, allied roles, elder care, etc.).
+> Base wizard steps config se aate hain; practitioner, facility, vendor, organizer and transport types apne relevant steps/docs use karte hain. Government claim listings info-only hain; payout and availability steps nahi dikhte.
 > Status flow: `pending → approved / rejected / suspended` (+ `PendingApproval`, `License`, `KycCommand` superadmin pages).
 >
-> **Goal:** naye 20+ provider types ko ek hi **config-driven wizard** me lana (har type ka naya page nahi).
+> **Status:** original goal delivered. Source catalogue, frontend fallback, and live API now all return 103 types; the additive seed inserted 34 missing types and left 69 existing configs unchanged.
 
 ---
 
@@ -273,12 +273,12 @@ Visit → start → submit → approved funnel · drop-off per step · avg revie
 
 ## 14. Security checklist (join flow)
 
-- [ ] CAPTCHA + rate limit on all steps (Turnstile ✅)
-- [ ] OTP to verify phone/email before submit
-- [ ] No privilege from client (`role`/`tenant` server-assigned)
-- [ ] `.strict()` schemas, config-validated on server
-- [ ] Doc upload: ClamAV required, magic bytes, size/pixel limits
-- [ ] PII/PHI encrypted at rest (bank, ID numbers)
-- [ ] Reviewer access scoped + audited
-- [ ] Drafts expire (30 days) and are purge-able
-- [ ] Email/SMS reveal no PII; links are single-use, short-lived
+- [x] CAPTCHA + rate limit on all steps (Turnstile) — `middleware/botProtection.js`, `generalLimiter` on every join route.
+- [x] OTP to verify phone/email before submit — submit re-reads `User.isVerified` and refuses `JOIN_UNVERIFIED`.
+- [x] No privilege from client (`role`/`tenant` server-assigned) — `createApplicationSchema` accepts only `typeKey`/`appealOf`, `.strict()`.
+- [x] `.strict()` schemas, config-validated on server — `utils/validate.js` join schemas; `ProviderTypeConfig` validated server-side.
+- [x] Doc upload: ClamAV required (production default), magic bytes, size/pixel limits — `middleware/upload.js`.
+- [x] PII/PHI encrypted at rest (bank, ID numbers) — `BankAccount` account/IFSC encrypted, `PractitionerProfile.numberEnc`, `ProviderApplication` tax fields.
+- [x] Reviewer access scoped + audited — `adminApplications.js` `requireRole([superadmin, kyc_reviewer])` + `auditLog` on every decision.
+- [x] Drafts expire (30 days) and are purge-able — `jobs/joinDraftExpiry.job.js` (expire once, purge once, audited).
+- [x] Email/SMS reveal no PII; links are single-use, short-lived — OTP/token rows consumed atomically (`usedAt`, 15-min expiry).

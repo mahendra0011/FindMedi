@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalName, matchesSpecialty, specialtyAliases } from './specialtyFilter';
+import { canonicalName, matchesDoctorSpecialty, matchesSpecialty, specialtyAliases } from './specialtyFilter';
+import { resolveSpecialtyCode } from '@/data/specialtyAliases';
 
 const CATEGORIES = [
   { name: 'Orthopedics', aliases: ['Orthopaedics', 'Bone & Joint'] },
@@ -68,5 +69,22 @@ describe('canonicalName', () => {
     expect(canonicalName('Cardiology', CATEGORIES)).toBeNull();
     expect(canonicalName('All', CATEGORIES)).toBeNull();
     expect(canonicalName('', CATEGORIES)).toBeNull();
+  });
+});
+
+describe('canonical doctor specialty matching', () => {
+  it('matches legacy child codes and cross-listed children under a selected parent', () => {
+    const paediatrics = { code: 'SPEC.PAED', children: [{ code: 'SPEC.NEURO.PAED' }, { code: 'SPEC.PAEDSURG' }] };
+    const rows = [
+      { code: 'SPEC.NEURO.PAED', alsoUnder: ['SPEC.PAED'] },
+      { code: 'SPEC.PAEDSURG', alsoUnder: ['SPEC.PAED'] },
+    ];
+    expect(matchesDoctorSpecialty({ subSpecialtyCodes: ['SPEC.NEURO.PAED'] }, paediatrics, 'Paediatrics', rows)).toBe(true);
+    expect(matchesDoctorSpecialty({ subSpecialtyCodes: ['SPEC.PAED.SURGERY'] }, paediatrics, 'Paediatrics', rows)).toBe(true);
+  });
+
+  it('resolves legacy paediatric-surgery codes independent of case', () => {
+    expect(resolveSpecialtyCode('SPEC.PSURG.ONCOLOGY')).toBe('SPEC.PAEDSURG.ONCOLOGY');
+    expect(resolveSpecialtyCode('spec.paed.surgery')).toBe('SPEC.PAEDSURG');
   });
 });

@@ -30,7 +30,7 @@ export async function dispensePrescriptionMedicine({
           isActive: { $gt: [{ $subtract: ['$currentStock', Number(quantity)] }, 0] },
         },
       }],
-      { new: true, session }
+      { new: true, session, updatePipeline: true }
     );
     if (!medicine) {
       const existingMedicine = await Medicine.findById(medicineId).select('currentStock expiryDate').session(session).lean();

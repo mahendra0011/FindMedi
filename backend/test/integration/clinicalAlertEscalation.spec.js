@@ -124,7 +124,7 @@ const { as } = await mountApp('clinicalAlerts', {
 });
 
 const { escalateUnackedClinicalAlerts } = await import('../../src/workers/scheduler.js');
-const { seedClinicalAlertRules } = await import('../../scripts/seed-clinical-alert-rules.mjs');
+const { seedClinicalAlertRules } = await import('../../scripts/seed/seed-clinical-alert-rules.mjs');
 
 const nurse = { _id: 'n1', id: 'n1', role: 'nurse', hospitalId: 'h1' };
 const escNotes = () => notifications.filter((n) => String(n.dedupKey || '').startsWith('alert-escalation:'));

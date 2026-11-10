@@ -96,6 +96,23 @@ describe('FindMedi Final Category Catalogue (Pruned)', () => {
     }
   });
 
+  it('covers every taxonomy specialty code (taxonomy ⊆ tree, drift cannot silently reappear)', () => {
+    const treeCodes = new Set(CATEGORY_TREE.map((c) => c.code));
+    const missing = SPECIALTIES.filter((s) => !treeCodes.has(s.code));
+    expect(missing.map((s) => s.code)).toEqual([]);
+
+    // Roots render as specialties, subs as sub_specialties, parents resolve.
+    const byCode = new Map(CATEGORY_TREE.map((c) => [c.code, c]));
+    for (const specialty of SPECIALTIES) {
+      const node = byCode.get(specialty.code);
+      const isRoot = !specialty.code.slice(5).includes('.');
+      expect(node.type).toBe(isRoot ? 'specialty' : 'sub_specialty');
+      if (node.parent !== null && node.parent !== undefined) {
+        expect(treeCodes.has(node.parent)).toBe(true);
+      }
+    }
+  });
+
   it('contains zero dropped or out-of-scope categories', () => {
     for (const item of CATEGORY_TREE) {
       const text = `${item.code} ${item.name} ${(item.aliases || []).join(' ')}`.toLowerCase();
@@ -170,12 +187,12 @@ describe('FindMedi Final Category Catalogue (Pruned)', () => {
     expect(filtered[0].specialtyCode).toBe('SPEC.GENMED');
   });
 
-  it('contains strictly 53 approved provider types in providerTypeCatalog', () => {
+  it('contains all 103 documented provider types in providerTypeCatalog', () => {
     const typeKeys = PROVIDER_TYPE_CATALOG.map((p) => p.typeKey);
-    expect(typeKeys.length).toBe(53);
+    expect(typeKeys.length).toBe(103);
     const prunedKeys = [
       'prosthetist_orthotist', 'lactation_consultant',
-      'doula', 'audiologist', 'acupuncturist',
+      'doula', 'acupuncturist',
     ];
     for (const key of prunedKeys) {
       expect(typeKeys).not.toContain(key);

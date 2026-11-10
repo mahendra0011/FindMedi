@@ -15,6 +15,10 @@ export async function ensureDemoUsers() {
     logger.warn('ensureDemoUsers skipped: demo seeding disabled in production (AUTH-032)');
     return;
   }
+  if (process.env.DEMO_SEED_ENABLED !== 'true') {
+    logger.info('ensureDemoUsers skipped: set DEMO_SEED_ENABLED=true to seed an explicitly disposable development database');
+    return;
+  }
   try {
     // ─── 0. Seed Service Cities ──────────────────────────────────────────────
     const demoCities = [

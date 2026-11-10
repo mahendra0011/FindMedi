@@ -23,7 +23,7 @@ const config: RoleDashboardConfig = {
   ],
   domainModules: [
     { key: 'review-queue', emoji: '⭐', label: 'Patient Reviews & Photo Moderation', description: 'Screen verified-visit reviews, mask inadvertent personal contact details & clinical claims.', ctaLabel: 'Moderate Reviews', ctaHref: '/dashboard/moderator?tab=reviews' },
-    { key: 'qa-moderation', emoji: '💬', label: 'Health Q&A & Support Group Posts', description: 'Enforce intermediary rules: prevent medical prescribing by laymen & remove spam.', ctaLabel: 'Q&A Queue', ctaHref: '/dashboard/moderator?tab=support' },
+    { key: 'qa-moderation', emoji: '💬', label: 'Health Q&A & Support Group Posts', description: 'Enforce intermediary rules: prevent medical prescribing by laymen & remove spam.', ctaLabel: 'Q&A Queue', ctaHref: '/moderation/community' },
     { key: 'crisis-safety', emoji: '🚨', label: 'Crisis Detection & Helpline Dispatch', description: 'Monitor high-severity alerts (self-harm, domestic violence) and provide emergency numbers.', ctaLabel: 'Crisis Desk', ctaHref: '/dashboard/moderator?tab=docs' },
     { key: 'strike-ledger', emoji: '⚠️', label: 'User Warnings & Strike System', description: 'Issue 3-strike warnings, temporary 7-day shadow bans and permanent account suspensions.', ctaLabel: 'Strike Ledger', ctaHref: '/dashboard/moderator?tab=profile' },
   ],

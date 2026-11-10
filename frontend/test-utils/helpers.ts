@@ -83,7 +83,7 @@ export async function loginViaUi(page: Page, email: string, password: string, op
   const timeout = options.timeout ?? 10_000;
   await page.getByPlaceholder(/enter your email/i).fill(email, { timeout });
   await page.locator('input[type="password"]').first().fill(password, { timeout });
-  await page.getByRole('button', { name: /log in|sign in/i }).click({ timeout });
+  await page.getByRole('button', { name: /^sign in$/i }).click({ timeout });
 }
 
 export async function setupAuth(page: Page, user = patientUser) {

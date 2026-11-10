@@ -9,8 +9,10 @@
  * lib/providerTypeCatalog.js gets upserted here.
  *
  * Usage:
- *   node scripts/seed-provider-type-configs.mjs           # dry run (default)
- *   node scripts/seed-provider-type-configs.mjs --apply   # write
+ *   node scripts/seed/seed-provider-type-configs.mjs           # dry run (default)
+ *   node scripts/seed/seed-provider-type-configs.mjs --apply   # write
+ *   node scripts/seed/seed-provider-type-configs.mjs --add-missing-only --apply
+ *                                                               # insert new types only; preserve existing config versions
  *
  * Idempotent: an unchanged row is left alone; a changed definition bumps
  * `version` so applications filed under the old shape stay pinned to it
@@ -20,26 +22,27 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
-import { configureMongoDns } from '../src/config/mongoDns.js';
+import { configureMongoDns, connectMongooseWithRetry } from '../../src/config/mongoDns.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 configureMongoDns();
 
 const APPLY = process.argv.includes('--apply');
+const ADD_MISSING_ONLY = process.argv.includes('--add-missing-only');
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
   console.error('MONGO_URI is not set — refusing to run.');
   process.exit(1);
 }
 
-await mongoose.connect(MONGO_URI);
+await connectMongooseWithRetry(mongoose, MONGO_URI);
 mongoose.set('autoIndex', false);
 
-const { default: ProviderTypeConfig } = await import('../src/models/ProviderTypeConfig.js');
-const { PROVIDER_TYPE_CATALOG, providerTypeGroups } = await import('../src/lib/providerTypeCatalog.js');
+const { default: ProviderTypeConfig } = await import('../../src/models/ProviderTypeConfig.js');
+const { PROVIDER_TYPE_CATALOG, providerTypeGroups } = await import('../../src/lib/providerTypeCatalog.js');
 
-console.log(`Provider type config seed (${APPLY ? 'APPLY' : 'DRY RUN'})\n`);
+console.log(`Provider type config seed (${APPLY ? 'APPLY' : 'DRY RUN'}${ADD_MISSING_ONLY ? ', ADD MISSING ONLY' : ''})\n`);
 
 const report = (label, count, detail = '') =>
   console.log(`  ${label.padEnd(34)} ${String(count).padStart(5)}${detail ? `  ${detail}` : ''}`);
@@ -66,6 +69,10 @@ for (const row of PROVIDER_TYPE_CATALOG) {
     toCreate.push(row);
     continue;
   }
+  if (ADD_MISSING_ONLY) {
+    unchanged.push(row);
+    continue;
+  }
   // Version only matters when the SHAPE changes; a label tweak still bumps it
   // because the applicant-facing label is part of what they agreed to.
   const currentFull = await ProviderTypeConfig.findOne({ typeKey: row.typeKey }).lean();
@@ -78,7 +85,7 @@ for (const row of PROVIDER_TYPE_CATALOG) {
 
 report('catalogue rows', PROVIDER_TYPE_CATALOG.length);
 report('to create', toCreate.length);
-report('to update (version bump)', toUpdate.length);
+report(ADD_MISSING_ONLY ? 'updates skipped (additive mode)' : 'to update (version bump)', toUpdate.length);
 report('unchanged', unchanged.length);
 for (const group of providerTypeGroups()) {
   console.log(`      ${group.group.padEnd(14)} ${String(group.count).padStart(3)}  ${group.types.map((t) => t.typeKey).join(', ')}`);

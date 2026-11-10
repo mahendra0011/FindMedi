@@ -178,7 +178,9 @@ jest.unstable_mockModule('../../src/models/ImagingAppointment.js', () => ({
   default: { find: () => query([]) },
 }));
 jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: async () => {},
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 const { as } = await mountApp('assistantBookings', {});

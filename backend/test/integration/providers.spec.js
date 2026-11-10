@@ -51,7 +51,9 @@ jestApi.unstable_mockModule('../../src/models/ProviderTypeConfig.js', () => ({
 }));
 
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 const { as } = await mountApp('providers', {});
@@ -99,7 +101,7 @@ describe('GET /providers (public directory)', () => {
     await as().get('/?page=-4&limit=99999');
     const res = await as().get('/?page=-4&limit=99999');
     expect(res.body.page).toBe(1);
-    expect(res.body.limit).toBe(100);
+    expect(res.body.limit).toBe(50);
   });
 
   it('escapes regex metacharacters in the city filter', async () => {
@@ -200,9 +202,9 @@ describe('PATCH /providers/:id', () => {
     expect(auditLog).not.toHaveBeenCalled();
   });
 
-  it('lets superadmin through', async () => {
+  it('denies platform superadmin without a scoped provider permission', async () => {
     const res = await as(superadmin).patch(`/${PROVIDER_ID}`).send({ description: 'Updated by ops' });
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(404);
   });
 
   it('refuses status and trusted even for the owner', async () => {

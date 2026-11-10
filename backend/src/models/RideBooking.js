@@ -38,15 +38,16 @@ const rideBookingSchema = new mongoose.Schema({
   },
   pickup: {
     address: { type: String, required: true },
-    lat: { type: Number, required: true },
-    lng: { type: Number, required: true },
+    lat: { type: Number, default: null },
+    lng: { type: Number, default: null },
   },
   drop: {
     address: { type: String, required: true },
-    lat: { type: Number, required: true },
-    lng: { type: Number, required: true },
+    lat: { type: Number, default: null },
+    lng: { type: Number, default: null },
   },
   distanceKm: { type: Number, default: 0 },
+  locationPurgedAt: { type: Date, default: null, index: true },
   durationMin: { type: Number, default: 0 },
   fare: {
     base: { type: Number, default: 0 },

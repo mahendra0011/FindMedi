@@ -36,7 +36,9 @@ jestApi.unstable_mockModule('../../src/services/notificationService.js', () => (
   sendWhatsApp: (...args) => sendWhatsApp(...args),
 }));
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 // Dynamic import AFTER the mocks above: a static import would bind the real

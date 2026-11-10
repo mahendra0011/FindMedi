@@ -82,7 +82,8 @@ export default function FacilityDetailPage() {
   // Determine facilityType from URL path
   let facilityType = params.type || params.category || 'hospital';
   const path = location.pathname.toLowerCase();
-  if (path.includes('/dental')) facilityType = 'dental';
+  if (path.includes('/home-icu')) facilityType = 'home_icu';
+  else if (path.includes('/dental')) facilityType = 'dental';
   else if (path.includes('/eye') || path.includes('/optical')) facilityType = 'eye';
   else if (path.includes('/ayush')) facilityType = 'ayush';
   else if (path.includes('/gym')) facilityType = 'gym';

@@ -201,6 +201,13 @@ export const supportAssistRevealLimiter = createGrlRateLimiter({
   failClosed: true,
 });
 
+export const communityReportLimiter = createGrlRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  keyPrefix: 'rl:community-report',
+  failClosed: true,
+});
+
 /**
  * P2-14: chat file uploads. The body is up to ~34MB of base64 and each POST
  * runs MIME + magic-byte + AV-scan work, so an authenticated flood here is a

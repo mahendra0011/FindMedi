@@ -286,6 +286,7 @@ const en = {
   'nav.saStats': 'Platform Stats',
   'nav.saUsers': 'User Management',
   'nav.saModeration': 'Content Moderation',
+  'nav.communityReports': 'Community Reports',
   'nav.saDisputes': 'Disputes',
   'nav.saRevenue': 'Revenue',
   'nav.saLicenses': 'Licenses',

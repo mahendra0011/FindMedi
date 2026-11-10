@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import HospitalCard from '@/components/HospitalCard';
+import { matchesSpecialty } from '@/lib/specialtyFilter';
 
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
 import { useSpecialtyTiles } from '@/hooks/useSpecialtyBrowse';
@@ -32,6 +33,7 @@ export default function HospitalDirectory() {
   const [loading, setLoading] = useState(true);
   const [selectedDept, setSelectedDept] = useState('');
   const [showAllSpecialties, setShowAllSpecialties] = useState(false);
+  const [showZeroSpecialties, setShowZeroSpecialties] = useState(false);
   const specialtyTree = useSpecialtyTiles();
 
   // Synchronize with global navbar city selection
@@ -259,10 +261,10 @@ export default function HospitalDirectory() {
     return fromTree;
   }, [specialtyTree.tiles]);
 
-  const visibleSpecialties = useMemo(
-    () => (showAllSpecialties ? allSpecialties : allSpecialties.slice(0, INITIAL_VISIBLE)),
-    [allSpecialties, showAllSpecialties],
-  );
+  const availableSpecialties = useMemo(() => loading ? allSpecialties : allSpecialties.filter((dept) =>
+    allHospitals.some((hospital: Unmodelled) => hospital.specialties?.some((name: string) => matchesSpecialty(name, dept.name, [])))), [allSpecialties, allHospitals, loading]);
+  const specialtySource = showZeroSpecialties ? allSpecialties : availableSpecialties;
+  const visibleSpecialties = showAllSpecialties ? specialtySource : specialtySource.slice(0, INITIAL_VISIBLE);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -294,12 +296,17 @@ export default function HospitalDirectory() {
             <Building2 className="w-5 h-5 text-primary" />
             Browse by Specialties
           </h2>
-          {allSpecialties.length > INITIAL_VISIBLE && (
+          <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" onClick={() => setShowZeroSpecialties((value) => !value)} className="gap-1">
+            {showZeroSpecialties ? 'Hide unavailable' : 'Show all specialties'}
+          </Button>
+          {specialtySource.length > INITIAL_VISIBLE && (
             <Button variant="ghost" size="sm" onClick={() => setShowAllSpecialties(!showAllSpecialties)} className="gap-1">
               {showAllSpecialties ? 'Show Less' : 'More'}
               <ChevronDown className={`w-4 h-4 transition-transform ${showAllSpecialties ? 'rotate-180' : ''}`} />
             </Button>
           )}
+          </div>
         </div>
         {specialtyTree.isLoading && allSpecialties.length === 0 && (
           <p className="text-sm text-muted-foreground py-6">Loading specialties\u2026</p>
@@ -314,7 +321,8 @@ export default function HospitalDirectory() {
             {visibleSpecialties.map((dept) => {
               const Icon = dept.icon;
               const isActive = selectedDept === dept.name;
-              const subChips = (dept.children || []).slice(0, 3);
+              const subChips = (dept.children || []).slice(0, 4);
+              const facilityCount = allHospitals.filter((hospital: Unmodelled) => hospital.specialties?.some((name: string) => matchesSpecialty(name, dept.name, []))).length;
               return (
                 <motion.button
                   key={dept.code}
@@ -339,12 +347,12 @@ export default function HospitalDirectory() {
                   </h3>
                   {dept.nameHi && <p className="text-[10px] text-muted-foreground leading-none mt-0.5">{dept.nameHi}</p>}
                   <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {hospitals.filter(h => h.specialties?.includes(dept.name)).length}
+                  {facilityCount} hospitals
                   </p>
                   {subChips.length > 0 && (
-                    <p className="text-[9px] text-muted-foreground/80 mt-1 truncate" title={subChips.map(c => c.name).join(', ')}>
-                      {subChips.map(c => c.name).join(' · ')}
-                    </p>
+                    <span className="mt-1 flex flex-wrap justify-center gap-1" onClick={(event) => event.stopPropagation()}>
+                      {subChips.map((child) => <span key={child.code} role="button" tabIndex={0} className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] text-muted-foreground hover:text-primary" onClick={() => { setSpecFilter(child.name); setSelectedDept(child.name); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSpecFilter(child.name); setSelectedDept(child.name); } }}>{child.name}</span>)}
+                    </span>
                   )}
                 </motion.button>
               );

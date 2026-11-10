@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { matchesSpecialty, canonicalName } from '@/lib/specialtyFilter';
+import { matchesDoctorSpecialty, canonicalName } from '@/lib/specialtyFilter';
 import { useCategories } from '@/hooks/useCategories';
 import { toast } from 'sonner';
 import BookingModal from '@/components/BookingModal';
@@ -140,6 +140,15 @@ const loadDoctors = async () => {
     try {
       const params: Record<string, string> = { doctor_type: 'clinic' };
       if (search) params.search = search;
+      const selectedSpecialty = specialtyChips.find((specialty) => specialty.name === specFilter)
+        || specialtyChips.flatMap((specialty) => specialty.children || []).find((specialty) => specialty.name === specFilter);
+      if (selectedSpecialty?.code) params.specialtyCode = selectedSpecialty.code;
+      const condition = searchParams.get('condition');
+      const procedure = searchParams.get('procedure');
+      const fallbackSpecialtyCode = searchParams.get('fallbackSpecialtyCode');
+      if (condition) params.condition = condition;
+      if (procedure) params.procedure = procedure;
+      if (fallbackSpecialtyCode) params.fallbackSpecialtyCode = fallbackSpecialtyCode;
       const data = await api.getDoctors(params).catch(() => { throw new Error('Failed to load doctors'); });
       const docList = Array.isArray(data) ? data : (data?.doctors || data?.data || []);
       setAllDoctors(Array.isArray(docList) ? docList : []);
@@ -148,7 +157,7 @@ const loadDoctors = async () => {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadDoctors(); }, [search, specFilter]);
+  useEffect(() => { loadDoctors(); }, [search, specFilter, searchParams, specialtyChips]);
 
   const insuranceProviders = useMemo(() => {
     const providers = new Set<string>();
@@ -164,7 +173,11 @@ const loadDoctors = async () => {
   useEffect(() => {
     let filtered = Array.isArray(allDoctors) ? [...allDoctors] : [];
 
-    if (specFilter !== 'All') filtered = filtered.filter(d => matchesSpecialty(d.specialization, specFilter, specialtyCategories));
+    if (specFilter !== 'All') {
+      const selectedSpecialty = specialtyChips.find((specialty) => specialty.name === specFilter)
+        || specialtyChips.flatMap((specialty) => specialty.children || []).find((specialty) => specialty.name === specFilter);
+      filtered = filtered.filter((doctor) => matchesDoctorSpecialty(doctor, selectedSpecialty, specFilter, specialtyCategories));
+    }
     if (clinicFilter) filtered = filtered.filter(d => getClinicName(d) === clinicFilter);
     if (locationFilter && locationFilter !== 'All') filtered = filtered.filter(d => getClinicAddress(d).toLowerCase().includes(locationFilter.toLowerCase()));
     if (availabilityFilter === 'today') filtered = filtered.filter(d => d.available === true && d.next_available_slot?.toLowerCase().includes('today'));
@@ -207,7 +220,7 @@ const loadDoctors = async () => {
     else if (sortBy === 'fee') filtered.sort((a, b) => (a.consultation_fees || a.fees || 0) - (b.consultation_fees || b.fees || 0));
 
     setDoctors(filtered);
-  }, [allDoctors, specFilter, clinicFilter, locationFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy, specialtyCategories]);
+  }, [allDoctors, specFilter, clinicFilter, locationFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy, specialtyCategories, specialtyChips]);
 
   const renderStars = (rating: number) => (
     <div className="flex items-center gap-0.5">
@@ -261,7 +274,7 @@ const loadDoctors = async () => {
             {specialtyChips.slice(0, showAdvanced ? undefined : 7).map((spec) => {
               const Icon = spec.icon;
               const isActive = specFilter === spec.name;
-              const subChips = (spec.children || []).map((c: { name: string }) => c.name);
+              const subChips = (spec.children || []).slice(0, 4) as SpecialtyNode[];
               return (
                 <button
                   key={spec.code || spec.name}
@@ -280,11 +293,11 @@ const loadDoctors = async () => {
                   </span>
                   {spec.nameHi && <span className="text-[9px] text-muted-foreground">{spec.nameHi}</span>}
                   <span className="text-[10px] text-muted-foreground">
-                    {allDoctors.filter(d => matchesSpecialty(d.specialization, spec.name, specialtyCategories)).length}
+                    {allDoctors.filter((doctor) => matchesDoctorSpecialty(doctor, spec, spec.name, specialtyCategories)).length}
                   </span>
                   {subChips.length > 0 && (
-                    <span className="text-[9px] text-muted-foreground/70 text-center leading-tight" title={subChips.join(', ')}>
-                      {subChips.join(' · ')}
+                    <span className="flex flex-wrap justify-center gap-1" onClick={(event) => event.stopPropagation()}>
+                      {subChips.map((child) => <span key={child.code} role="button" tabIndex={0} className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] text-muted-foreground hover:text-primary" onClick={() => setSpecFilter(child.name)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSpecFilter(child.name); } }}>{child.name}</span>)}
                     </span>
                   )}
                 </button>

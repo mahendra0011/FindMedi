@@ -24,3 +24,27 @@ export const configureMongoDns = () => {
   dns.setServers(servers);
   return servers;
 };
+
+/**
+ * Atlas SRV lookups intermittently fail with querySrv ECONNREFUSED on some
+ * Windows DNS stacks. Seed/migration scripts connect once at startup, where a
+ * single flaky lookup aborts the whole run — so retry transient DNS/connect
+ * failures with backoff. Non-transient errors (bad credentials, etc.) throw
+ * immediately.
+ */
+const RETRY_DELAYS_MS = [1000, 5000, 15000, 30000, 30000];
+
+export const connectMongooseWithRetry = async (mongoose, uri, attempts = RETRY_DELAYS_MS.length + 1) => {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await mongoose.connect(uri);
+    } catch (err) {
+      const msg = `${err?.message || ''} ${err?.cause?.code || ''} ${err?.code || ''}`;
+      const transient = /querySrv|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|ESERVFAIL/i.test(msg);
+      if (!transient || attempt === attempts) throw err;
+      const delay = RETRY_DELAYS_MS[attempt - 1] ?? 30000;
+      console.warn(`Mongo connect attempt ${attempt}/${attempts} failed (${err.code || err.message}) — retrying in ${delay / 1000}s...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+};

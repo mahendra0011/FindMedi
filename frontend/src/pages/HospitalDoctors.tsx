@@ -9,12 +9,12 @@ import { Card } from '@/components/ui/card';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { matchesSpecialty } from '@/lib/specialtyFilter';
+import { matchesDoctorSpecialty } from '@/lib/specialtyFilter';
 import { useCategories } from '@/hooks/useCategories';
 import BookingModal from '@/components/BookingModal';
 
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
-import { useSpecialtyTiles } from '@/hooks/useSpecialtyBrowse';
+import { useSpecialtyTiles, type SpecialtyNode } from '@/hooks/useSpecialtyBrowse';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 function getSpecCard(spec: Unmodelled) {
@@ -99,7 +99,11 @@ export default function HospitalDoctors() {
       filtered = filtered.filter(d => (d.name || '').toLowerCase().includes(q) || (d.specialization || '').toLowerCase().includes(q));
     }
 
-    if (specFilter !== 'All') filtered = filtered.filter(d => matchesSpecialty(d.specialization, specFilter, specialtyCategories));
+    if (specFilter !== 'All') {
+      const selected = specialtyTree.tiles.find((tile) => tile.name === specFilter)
+        || specialtyTree.tiles.flatMap((tile) => tile.children || []).find((child) => child.name === specFilter);
+      filtered = filtered.filter(d => matchesDoctorSpecialty(d, selected, specFilter, specialtyCategories));
+    }
     if (availabilityFilter === 'today') filtered = filtered.filter(d => d.available === true && d.next_available_slot?.toLowerCase().includes('today'));
     else if (availabilityFilter === 'tomorrow') filtered = filtered.filter(d => d.available === true && d.next_available_slot?.toLowerCase().includes('tomorrow'));
     else if (availabilityFilter === 'available') filtered = filtered.filter(d => d.available === true);
@@ -137,7 +141,7 @@ export default function HospitalDoctors() {
     else if (sortBy === 'fee') filtered.sort((a, b) => (a.consultation_fees || a.fees || 0) - (b.consultation_fees || b.fees || 0));
 
     setDoctors(filtered);
-  }, [allDoctors, search, specFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy, specialtyCategories]);
+  }, [allDoctors, search, specFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy, specialtyCategories, specialtyTree.tiles]);
 
   const specializations = hospital?.specialties?.length
     ? ['All', ...hospital.specialties]
@@ -205,9 +209,10 @@ export default function HospitalDoctors() {
               const theme = isAll ? { icon: Stethoscope, color: 'from-primary/20 to-primary/5', textColor: 'text-primary' } : getSpecCard(s);
               const Icon = theme.icon;
               const tile = isAll ? null : tileByName.get(s);
+              const childTiles = tile?.children || [];
               const count = isAll
                 ? doctors.length
-                : doctors.filter(d => matchesSpecialty(d.specialization, s, specialtyCategories)).length;
+                : doctors.filter(d => matchesDoctorSpecialty(d, tile || undefined, s, specialtyCategories)).length;
               return (
                 <button
                   key={s}
@@ -227,6 +232,18 @@ export default function HospitalDoctors() {
                   </span>
                   {tile?.meta?.nameHi && <span className="text-[9px] text-muted-foreground">{tile.meta.nameHi}</span>}
                   <span className="text-[10px] text-muted-foreground">{count}</span>
+                  {!isAll && childTiles.length > 0 && (
+                    <span className="flex flex-wrap justify-center gap-1" onClick={(event) => event.stopPropagation()}>
+                      {childTiles.slice(0, 4).map((child: SpecialtyNode) => (
+                        <span key={child.code} role="button" tabIndex={0}
+                          className={cn('rounded-full bg-muted px-1.5 py-0.5 text-[9px] hover:text-primary', specFilter === child.name && 'text-primary')}
+                          onClick={() => setSpecFilter(child.name)}
+                          onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSpecFilter(child.name); } }}>
+                          {child.name}
+                        </span>
+                      ))}
+                    </span>
+                  )}
                 </button>
               );
             })}

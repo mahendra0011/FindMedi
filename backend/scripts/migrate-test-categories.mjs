@@ -38,43 +38,43 @@ for (const c of testCats) {
 
 // Built-in fallback alias table
 const FALLBACK_MAP = {
-  'blood test': 'TEST.BLOOD_BASICS',
-  'blood tests': 'TEST.BLOOD_BASICS',
-  'urine/stool': 'TEST.KIDNEY',
-  'urine/stool tests': 'TEST.KIDNEY',
-  'basic screening': 'TEST.BLOOD_BASICS',
-  'cardiac basic': 'TEST.LIPID_HEART',
-  'basic imaging': 'TEST.IMAGING_BASIC',
-  'advanced imaging': 'TEST.IMAGING_ADVANCED',
-  'advanced/invasive procedures': 'TEST.HISTOPATHOLOGY',
-  'advanced cardiac': 'TEST.NEURO_CARDIAC_FUNC',
-  'advanced blood/diagnostic panels': 'TEST.GENETIC_MOLECULAR',
-  'neurological': 'TEST.NEURO_CARDIAC_FUNC',
-  'microbiology/culture tests': 'TEST.MICROBIOLOGY',
-  'serology/infectious disease panel': 'TEST.INFECTION_SEROLOGY',
-  'fertility & reproductive hormone tests': 'TEST.THYROID_HORMONES',
-  'pulmonology/respiratory tests': 'TEST.NEURO_CARDIAC_FUNC',
-  'arthritis/autoimmune panel': 'TEST.AUTOIMMUNE',
-  'prenatal/maternity tests': 'TEST.WOMENS_HEALTH',
-  'eye (ophthalmology) tests': 'TEST.NEURO_CARDIAC_FUNC',
-  'ent tests': 'TEST.NEURO_CARDIAC_FUNC',
-  'dental tests': 'TEST.IMAGING_BASIC',
-  'toxicology tests': 'TEST.TOXICOLOGY',
-  'preventive health packages': 'TEST.HEALTH_PACKAGES',
-  'health package': 'TEST.HEALTH_PACKAGES',
-  'health packages': 'TEST.HEALTH_PACKAGES',
-  'pathology': 'TEST.BLOOD_BASICS',
-  'radiology': 'TEST.IMAGING_BASIC',
-  'cardiac': 'TEST.LIPID_HEART',
-  'hormone': 'TEST.THYROID_HORMONES',
-  'vitamin': 'TEST.VITAMINS_MINERALS',
+  'blood test': 'DIAG.TEST.BLOOD_BASICS',
+  'blood tests': 'DIAG.TEST.BLOOD_BASICS',
+  'urine/stool': 'DIAG.TEST.KIDNEY',
+  'urine/stool tests': 'DIAG.TEST.KIDNEY',
+  'basic screening': 'DIAG.TEST.BLOOD_BASICS',
+  'cardiac basic': 'DIAG.TEST.LIPID_HEART',
+  'basic imaging': 'DIAG.IMG.XRAY',
+  'advanced imaging': 'DIAG.IMG.CT',
+  'advanced/invasive procedures': 'DIAG.TEST.HISTOPATHOLOGY',
+  'advanced cardiac': 'DIAG.TEST.NEURO_CARDIAC_FUNC',
+  'advanced blood/diagnostic panels': 'DIAG.TEST.GENETIC_MOLECULAR',
+  'neurological': 'DIAG.TEST.NEURO_CARDIAC_FUNC',
+  'microbiology/culture tests': 'DIAG.TEST.MICROBIOLOGY',
+  'serology/infectious disease panel': 'DIAG.TEST.INFECTION_SEROLOGY',
+  'fertility & reproductive hormone tests': 'DIAG.TEST.THYROID_HORMONES',
+  'pulmonology/respiratory tests': 'DIAG.TEST.NEURO_CARDIAC_FUNC',
+  'arthritis/autoimmune panel': 'DIAG.TEST.AUTOIMMUNE',
+  'prenatal/maternity tests': 'DIAG.TEST.WOMENS_PRENTAL',
+  'eye (ophthalmology) tests': 'DIAG.TEST.NEURO_CARDIAC_FUNC',
+  'ent tests': 'DIAG.TEST.NEURO_CARDIAC_FUNC',
+  'dental tests': 'DIAG.IMG.XRAY',
+  'toxicology tests': 'DIAG.TEST.TOXICOLOGY',
+  'preventive health packages': 'DIAG.PACKAGE.BASIC',
+  'health package': 'DIAG.PACKAGE.BASIC',
+  'health packages': 'DIAG.PACKAGE.BASIC',
+  'pathology': 'DIAG.TEST.BLOOD_BASICS',
+  'radiology': 'DIAG.IMG.XRAY',
+  'cardiac': 'DIAG.TEST.LIPID_HEART',
+  'hormone': 'DIAG.TEST.THYROID_HORMONES',
+  'vitamin': 'DIAG.TEST.VITAMINS_MINERALS',
 };
 
 const tests = await Test.find({}).lean();
 let updated = 0;
 
 for (const t of tests) {
-  if (t.categoryCode && t.categoryCode.startsWith('TEST.')) continue;
+  if (t.categoryCode && t.categoryCode.startsWith('DIAG.TEST.')) continue;
   const raw = String(t.category ?? '').toLowerCase().trim();
   const targetCode = mapByTerm.get(raw) || FALLBACK_MAP[raw] || `TEST.${raw.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`;
   

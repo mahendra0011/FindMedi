@@ -59,7 +59,10 @@ jest.unstable_mockModule('../../src/models/LabBooking.js', () => ({
 jest.unstable_mockModule('../../src/services/socketService.js', () => ({
   getIO: () => io, emitDeliveryStatus: jest.fn(),
 }));
-jest.unstable_mockModule('../../src/middleware/audit.js', () => ({ auditLog }));
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+ auditLog,
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
+}));
 
 const { as } = await mountApp('sampleCourier');
 const lab = { id: 'lab1', role: 'lab_owner', hospitalId: '64e0000000000000000000aa' };

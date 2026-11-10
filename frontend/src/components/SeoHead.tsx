@@ -8,10 +8,20 @@ export interface SeoHeadProps {
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
   ogImage?: string;
   locale?: string;
+  alternates?: Array<{ hrefLang: string; href: string }>;
 }
 
 /** Public-page SEO head: title/meta/canonical + JSON-LD (MedicalOrganization/Physician/LocalBusiness/Event). Never render on private/dashboard pages. */
-export default function SeoHead({ title, description, canonical, noindex, jsonLd, ogImage, locale = 'en' }: SeoHeadProps) {
+const isSafeAbsoluteUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:';
+  } catch {
+    return false;
+  }
+};
+
+export default function SeoHead({ title, description, canonical, noindex, jsonLd, ogImage, locale = 'en', alternates = [] }: SeoHeadProps) {
   useEffect(() => {
     document.title = title;
     const setMeta = (selector: string, create: () => HTMLMetaElement) => {
@@ -40,8 +50,23 @@ export default function SeoHead({ title, description, canonical, noindex, jsonLd
     if (ogImage) {
       setMeta('meta[property="og:image"]', () => { const m = document.createElement('meta'); m.setAttribute('property', 'og:image'); return m; }).content = ogImage;
     }
+    document.head.querySelectorAll('link[data-seo-alternate="true"]').forEach((el) => el.remove());
+    if (!noindex) {
+      const seen = new Set<string>();
+      alternates.forEach(({ hrefLang, href }) => {
+        const language = String(hrefLang || '').trim();
+        if (!/^(?:[a-z]{2,3}(?:-[A-Z]{2})?|x-default)$/.test(language) || !isSafeAbsoluteUrl(href) || seen.has(language)) return;
+        seen.add(language);
+        const alternate = document.createElement('link');
+        alternate.rel = 'alternate';
+        alternate.setAttribute('hreflang', language);
+        alternate.href = href;
+        alternate.dataset.seoAlternate = 'true';
+        document.head.appendChild(alternate);
+      });
+    }
     document.documentElement.lang = locale;
-  }, [title, description, canonical, noindex, jsonLd, ogImage, locale]);
+  }, [title, description, canonical, noindex, jsonLd, ogImage, locale, alternates]);
   return null;
 }
 

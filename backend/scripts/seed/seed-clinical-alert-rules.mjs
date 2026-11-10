@@ -3,10 +3,11 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { configureMongoDns, connectMongooseWithRetry } from '../../src/config/mongoDns.js';
 
 export async function seedClinicalAlertRules(hospitalId) {
-  const { ALERT_ESCALATION } = await import('../src/lib/alerts.js');
-  const { default: Rule } = await import('../src/models/Rule.js');
+  const { ALERT_ESCALATION } = await import('../../src/lib/alerts.js');
+  const { default: Rule } = await import('../../src/models/Rule.js');
   const escalation = {
     afterMinutes: ALERT_ESCALATION.afterMinutes,
     backoffMinutes: ALERT_ESCALATION.backoffMinutes,
@@ -84,13 +85,14 @@ const invokedDirectly = Boolean(process.argv[1])
   && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (invokedDirectly) {
-  dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
+  dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '.env') });
+  configureMongoDns();
   const MONGO_URI = process.env.MONGO_URI;
   if (!MONGO_URI) {
     console.error('MONGO_URI is not set — refusing to run.');
     process.exit(1);
   }
-  await mongoose.connect(MONGO_URI);
+  await connectMongooseWithRetry(mongoose, MONGO_URI);
   mongoose.set('autoIndex', false);
   const argIndex = process.argv.indexOf('--hospital');
   const explicit = argIndex >= 0 ? process.argv[argIndex + 1] : process.env.HOSPITAL_ID;
@@ -98,7 +100,7 @@ if (invokedDirectly) {
   if (explicit) {
     hospitalIds = [explicit];
   } else {
-    const { default: Hospital } = await import('../src/models/Hospital.js');
+    const { default: Hospital } = await import('../../src/models/Hospital.js');
     hospitalIds = (await Hospital.find({}).select('_id').lean()).map((h) => String(h._id));
   }
   if (!hospitalIds.length) {

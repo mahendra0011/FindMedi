@@ -190,12 +190,12 @@ Report issue (wrong service, no-show, overcharge, quality, harassment) → ticke
 Search→view→book funnel · slot fill rate · no-show % · cancel % by side · reschedule % · payment success % · refund TAT · delivery on-time % · repeat rate · provider response time · review rate.
 
 ## 15. Security / compliance checklist
-- [ ] Server-owned pricing/eligibility; ignore client amounts
-- [ ] Idempotency + webhook HMAC/replay ✅ + atomic state transitions (CAS)
-- [ ] Authz on every transition (patient vs provider vs admin) + object-level checks
-- [ ] Rx validation; schedule-drug rules; H1 register
-- [ ] Uploads scanned; PHI in orders minimised in notifications
-- [ ] Location data: consent, minimal retention, purge after trip/visit
-- [ ] Rate limits (booking spam, coupon abuse, OTP)
-- [ ] Audit log for payment, refund, cancellation, prescription events
-- [ ] Teleconsult: NMC guidelines (consent, ID, prescribing limits), recording off by default
+- [x] Server-owned pricing/eligibility; ignore client amounts — `services/pricingService.js` `resolveAuthoritativeAmount`; body prices stripped.
+- [x] Idempotency + webhook HMAC/replay + atomic state transitions (CAS) — `middleware/idempotency.js`, `routes/webhook.js`/`checkout.js` signature verification, conditional status updates.
+- [x] Authz on every transition (patient vs provider vs admin) + object-level checks — `authz-manifest.json` (0 unclassified), `authorize`/object scoping.
+- [x] Rx validation; schedule-drug rules; H1 register — `Medicine.rxSchedule`, `H1RegisterEntry`, pharmacy Rx verification.
+- [x] Uploads scanned; PHI in orders minimised in notifications — ClamAV gate, discreet notification templates.
+- [x] Location data: consent, minimal retention, purge after trip/visit - `jobs/locationPurge.job.js` nulls precise pickup/drop coordinates for completed/cancelled rides older than `RIDE_LOCATION_RETENTION_DAYS` (default 7) and stamps `locationPurgedAt`; row + fare survive for billing/audit. `LAKE_OFFLOAD_DAYS` (90d) covers long-term archival separately.
+- [x] Rate limits (booking spam, coupon abuse, OTP) — `bookingLimiter`, couponService limits, OTP limiters.
+- [x] Audit log for payment, refund, cancellation, prescription events — `auditLog` on these transitions.
+- [x] Teleconsult: NMC guidelines (consent, ID, prescribing limits), recording off by default - `middleware/telemedicineGate.js` (identity + ConsentRecord + mode support) + `frontend/src/components/TelemedicineConsentGate.tsx`; audio-only recording default (no video recording).

@@ -27,7 +27,10 @@ jest.unstable_mockModule('../../src/models/PolicyAcceptance.js', () => ({
   __esModule: true,
   default: { findOne, create },
 }));
-jest.unstable_mockModule('../../src/middleware/audit.js', () => ({ auditLog }));
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+ auditLog,
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
+}));
 
 const { as } = await mountApp('legal');
 const user = { id: '64b0000000000000000000aa', role: 'patient' };

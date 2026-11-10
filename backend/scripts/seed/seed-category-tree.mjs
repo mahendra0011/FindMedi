@@ -5,22 +5,22 @@
  * Source: rolesmd/FindMedi-Categories-Pruned.md & rolesmd/FindMedi-Category-Seed-Plan.md
  *
  * Usage:
- *   node backend/scripts/seed-category-tree.mjs --dry-run   # Validation & plan print (exits 0 on success)
- *   node backend/scripts/seed-category-tree.mjs --apply     # Write to MongoDB (requires MONGO_URI)
+ *   node backend/scripts/seed/seed-category-tree.mjs --dry-run   # Validation & plan print (exits 0 on success)
+ *   node backend/scripts/seed/seed-category-tree.mjs --apply     # Write to MongoDB (requires MONGO_URI)
  */
 
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
-import { CATEGORY_TREE } from '../src/data/categoryTree.mjs';
-import { CATEGORY_TYPES, CATEGORY_TIERS, CATEGORY_CODE_RE } from '../src/lib/taxonomy.js';
+import { CATEGORY_TREE } from '../../src/data/categoryTree.mjs';
+import { CATEGORY_TYPES, CATEGORY_TIERS, CATEGORY_CODE_RE } from '../../src/lib/taxonomy.js';
 
-import { configureMongoDns } from '../src/config/mongoDns.js';
+import { configureMongoDns, connectMongooseWithRetry } from '../../src/config/mongoDns.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 configureMongoDns();
 
 const isApply = process.argv.includes('--apply');
@@ -34,7 +34,7 @@ const FORBIDDEN_TOKENS = [
   'ro purifier', 'purifier service', 'air ambulance', 'medical tourism',
   'cremation', 'funeral', 'crowdfunding', 'medical emi', 'medical loans',
   'insurance comparison', 'insurance advisor', 'cme', 'claims fraud',
-  'cord blood bank', 'sowa rigpa', 'reiki', 'energy healing',
+  'cord blood bank', 'reiki', 'energy healing',
 ];
 
 const FORBIDDEN_RES = FORBIDDEN_TOKENS.map(
@@ -156,10 +156,10 @@ if (!MONGO_URI) {
 }
 
 console.log(`\nConnecting to MongoDB: ${MONGO_URI.replace(/:[^:]*@/, ':****@')}...`);
-await mongoose.connect(MONGO_URI);
+await connectMongooseWithRetry(mongoose, MONGO_URI);
 mongoose.set('autoIndex', false);
 
-const { default: Category } = await import('../src/models/Category.js');
+const { default: Category } = await import('../../src/models/Category.js');
 
 let createdCount = 0;
 let updatedCount = 0;

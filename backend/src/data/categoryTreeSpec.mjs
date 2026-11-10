@@ -3,7 +3,7 @@
  * DO NOT EDIT BY HAND — edit taxonomy.js (and its subcatogary.md §2.1 seed) instead.
  *
  * Exclusion: every SPEC.DENTAL* code is curated by hand in categoryTree.mjs
- * (procedure/diagnostic leaves + tree-only codes such as SPEC.DENTAL.PAED),
+ * (procedure/diagnostic leaves + tree-only codes such as SPEC.DENTAL.PROC_*),
  * so the taxonomy DENTAL subtree is skipped here to avoid duplicate codes.
  *
  * Mapping rules:
@@ -40,6 +40,9 @@ const buildSpecNode = (entry) => {
     name: entry.name,
     nameHi: (entry.meta && entry.meta.nameHi) || '',
     aliases: [...(entry.aliases || [])],
+    alsoUnder: [...(entry.alsoUnder || [])],
+    meta: entry.meta ? { ...entry.meta } : {},
+    icon: (entry.meta && entry.meta.icon) || '',
     parent: isRootCode(entry.code) ? null : parts.slice(0, -1).join('.'),
     type: isRootCode(entry.code) ? 'specialty' : 'sub_specialty',
     tier: sensitive || isRootCode(entry.code) ? 'T1' : 'T2',

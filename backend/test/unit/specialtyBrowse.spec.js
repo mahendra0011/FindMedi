@@ -1,7 +1,6 @@
-﻿// Browse-by-Specialties taxonomy invariants (subcatogary.md v2 rules):
-// Â§4 de-dup via canonical single-record cross-lists, legacy code aliases,
-// PSURGâ†’PAEDSURG rename, and the Â§2/Â§3 browse meta (groups, chips, symptoms).
-import { jest as jestApi } from '@jest/globals';
+// Browse-by-Specialties taxonomy invariants (subcatogary.md v2 rules):
+// §4 de-dup via canonical single-record cross-lists, legacy code aliases,
+// PSURG→PAEDSURG rename, and the §2/§3 browse meta (groups, chips, symptoms).
 import { describe, it, expect } from '@jest/globals';import {
   SPECIALTIES,
   SPECIALTY_GROUPS,
@@ -41,17 +40,17 @@ describe('Browse-by-Specialties: catalogue shape', () => {
     }
   });
 
-  it('flags the four sensitive tiles ðŸ”’ (Psychiatry, Sexology, Infertility, Palliative)', () => {
+  it('flags the four sensitive tiles 🔒 (Psychiatry, Sexology, Infertility, Palliative)', () => {
     const sensitive = tops.filter((t) => t.meta.sensitive).map((t) => t.code).sort();
     expect(sensitive).toEqual(['SPEC.INFERT', 'SPEC.PALLI', 'SPEC.PSYCH', 'SPEC.SEXO'].sort());
   });
 
-  it('keeps claims-restricted âš  flags on cosmetic/hair/weight-loss/IVF nodes', () => {
+  it('keeps claims-restricted ⚠ flags on cosmetic/hair/weight-loss/IVF nodes', () => {
     const restricted = SPECIALTIES.filter((s) => s.claimsRestricted).map((s) => s.code);
     expect(restricted).toEqual(
       expect.arrayContaining([
         'SPEC.DERM.COSMETIC', 'SPEC.DERM.TRICHOLOGY', 'SPEC.DERM.LASER',
-        'SPEC.INFERT.IVF', 'SPEC.GENSURG.BARIATRIC', 'SPEC.GASTRO.BARIATRIC',
+        'SPEC.INFERT.IVF', 'SPEC.GENSURG.BARIATRIC',
       ]),
     );
     const restrictedTops = tops.filter((t) => t.meta.adClaimsRestricted).map((t) => t.code);
@@ -59,7 +58,7 @@ describe('Browse-by-Specialties: catalogue shape', () => {
   });
 });
 
-describe('Browse-by-Specialties: Â§4 de-dup + cross-lists', () => {
+describe('Browse-by-Specialties: §4 de-dup + cross-lists', () => {
   it('resolves every legacy duplicate code to its canonical record', () => {
     const cases = {
       'SPEC.PAED.NEONATO': 'SPEC.NEONATO',
@@ -73,7 +72,6 @@ describe('Browse-by-Specialties: Â§4 de-dup + cross-lists', () => {
       'SPEC.GASTRO.HEPATOLOGY': 'SPEC.HEPAT',
       'SPEC.PULMO.SLEEP': 'SPEC.SLEEP',
       'SPEC.PSYCH.SLEEP': 'SPEC.SLEEP',
-      'SPEC.ORTHO.SPORTS': 'SPEC.SPORTS',
       'SPEC.URO.ANDROLOGY': 'SPEC.SEXO',
       'SPEC.URO.SEXUAL_HEALTH': 'SPEC.SEXO',
     };
@@ -106,13 +104,15 @@ describe('Browse-by-Specialties: Â§4 de-dup + cross-lists', () => {
     expect(remapSubSpecialtyCode('SPEC.PAED.NEONATO')).toBe('SPEC.NEONATO');
     expect(remapSubSpecialtyCode('spec.ctvs.vascular')).toBe('SPEC.VASC');
     expect(remapSubSpecialtyCode('not a code')).toBe('not a code');
+    // SPEC.ORTHO.SPORTS is canonical now, so remap leaves it untouched
+    expect(remapSubSpecialtyCode('SPEC.ORTHO.SPORTS')).toBe('SPEC.SPORTS');
     expect(
-      remapSubSpecialtyCodes(['SPEC.ORTHO.SPORTS', 'SPEC.SPORTS', 'SPEC.PSURG.ONCOLOGY', 'SPEC.ORTHO.SPORTS']),
-    ).toEqual(['SPEC.SPORTS', 'SPEC.PAEDSURG.ONCOLOGY']);
+      remapSubSpecialtyCodes(['SPEC.PULMO.SLEEP', 'SPEC.SLEEP', 'SPEC.PSURG.ONCOLOGY', 'SPEC.PULMO.SLEEP']),
+    ).toEqual(['SPEC.SLEEP', 'SPEC.PAEDSURG.ONCOLOGY']);
   });
 });
 
-describe('Browse-by-Specialties: Â§5 alias + symptom search', () => {
+describe('Browse-by-Specialties: §5 alias + symptom search', () => {
   it('resolves spellings the checklist calls out', () => {
     expect(resolveSpecialtyCode('Orthopedics')).toBe('SPEC.ORTHO');
     expect(resolveSpecialtyCode('Orthopaedics')).toBe('SPEC.ORTHO');

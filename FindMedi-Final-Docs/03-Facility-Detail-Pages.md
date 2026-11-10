@@ -1,4 +1,4 @@
-# 03 — Facility Detail Pages (Spec)
+﻿# 03 — Facility Detail Pages (Spec)
 
 > **Existing (✅):** `HospitalProfile` (Doctors, Emergency, Accreditations, Insurance Accepted, Suggested Hospitals), `ClinicDetail` (Doctors, Insurance Accepted, Suggested Clinics), `DiagnosticCenterDetail` (Tests, Timings, Contact), `ImagingCenterDetail`, `MedicineStoreDetail` (Nearby Stores), `TechnicianDetail`.
 > **Pattern:** har page ke 1000–1800 lines hain → alag-alag copy. Naye types ke liye **ek `FacilityDetailLayout` + section registry** banao: har type apne sections choose kare.
@@ -221,11 +221,11 @@ Each section = standalone component fed by the **public DTO**; unknown/empty sec
 Closed now · Temporarily closed (holiday) · Not accepting bookings · Suspended (404 / "unavailable") · Unclaimed govt listing ("info may be outdated") · No reviews yet · Low-connectivity mode (text-first).
 
 ## 7. Security / compliance on pages
-- [ ] Public DTO only; `select` explicit
-- [ ] UGC (reviews, Q&A, descriptions) sanitized (DOMPurify/sanitize-html), no raw HTML
-- [ ] Before/after photos need patient consent + moderation
-- [ ] Claim restrictions (cosmetic/weight-loss/sexual-health/IVF success rates)
-- [ ] PCPNDT: no gender-determination content on imaging pages
-- [ ] Discreet display for sensitive categories
-- [ ] Click-to-call & directions don't leak user location without consent
-- [ ] Rate-limit report/claim/Q&A endpoints
+- [x] Public DTO only; `select` explicit — `providers.js` `DETAIL_FIELDS` projects explicit public fields (no ownerUserId/commissionConfigId).
+- [x] UGC (reviews, Q&A, descriptions) sanitized, no raw HTML — React escapes text; `sanitize-html` used in print/export; review content runs abuse/PII/claim analysis.
+- [x] Before/after photos need patient consent + moderation - `frontend/src/components/BeforeAfterConsent.tsx` consent gate records consent before rendering media; moderation queue covers media.
+- [x] Claim restrictions (cosmetic/weight-loss/sexual-health/IVF success rates) — taxonomy `adClaimsRestricted` flags + claims moderation severity.
+- [x] PCPNDT: no gender-determination content on imaging pages — `PcpndtFormF` workflow + taxonomy imaging guards.
+- [x] Discreet display for sensitive categories — `sensitiveCategories.js` flags + discreet labels/booking copy.
+- [x] Click-to-call & directions don't leak user location without consent — calls use public/relay phone; directions use provider coords; no `navigator.geolocation` on public detail/listing.
+- [x] Rate-limit report/claim/review endpoints — global `apiLimiter` on `/api` + `reviewWriteLimiter`; no Q&A surface exists to protect.

@@ -40,7 +40,10 @@ jestApi.unstable_mockModule('../../src/lib/transactionalOutbox.js', () => ({
   executeWithOutbox: (...args) => executeWithOutbox(...args),
   writeOutboxEvent: jestApi.fn(),
 }));
-jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({ auditLog: (...args) => auditLog(...args) }));
+jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+ auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
+}));
 
 const { as } = await mountApp('pharmacy', {});
 

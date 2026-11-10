@@ -50,7 +50,9 @@ jestApi.unstable_mockModule('../../src/models/Record.js', () => ({
   default: { findById: (...args) => recordFindById(...args) },
 }));
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 const { as } = await mountApp('vaccinations', {});

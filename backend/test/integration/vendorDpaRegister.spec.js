@@ -14,7 +14,9 @@ jest.unstable_mockModule('../../src/models/VendorDpa.js', () => ({ default: {
     save: jest.fn(async function save() { saved.push(this.dpaStatus); }),
   })),
 } }));
-jest.unstable_mockModule('../../src/middleware/audit.js', () => ({ auditLogRequired }));
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+ auditLogRequired,
+}));
 
 const { as } = await mountApp('vendorDpa');
 

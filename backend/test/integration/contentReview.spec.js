@@ -13,10 +13,11 @@ import { mountApp, query } from '../helpers/appHarness.js';
 const auditLog = jestApi.fn(async () => {});
 let rowByKey = () => null;
 const created = [];
+let lastPublicFilter = null;
 
 jestApi.unstable_mockModule('../../src/models/PlatformContent.js', () => ({
   default: {
-    find: () => query([]),
+    find: (filter) => { lastPublicFilter = filter; return query([]); },
     findOne: (filter) => query(rowByKey(filter?.key)),
     create: async (doc) => {
       const row = { _id: 'pc-1', version: 1, save: jestApi.fn(async () => row), ...doc };
@@ -26,7 +27,9 @@ jestApi.unstable_mockModule('../../src/models/PlatformContent.js', () => ({
   },
 }));
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 const { as } = await mountApp('platformContent', {});
@@ -44,11 +47,20 @@ const draftRow = () => {
 
 beforeEach(() => {
   rowByKey = () => null;
+  lastPublicFilter = null;
   created.length = 0;
   auditLog.mockClear();
 });
 
 describe('public reads', () => {
+  it('filters published, medically reviewed articles by canonical specialty code', async () => {
+    const res = await as().get('/?contentType=article&specialtyCode=spec.cardio');
+    expect(res.status).toBe(200);
+    expect(lastPublicFilter).toMatchObject({
+      status: 'published', contentType: 'article', specialtyCodes: 'SPEC.CARDIO', reviewedAt: { $ne: null },
+    });
+  });
+
   it('hides drafts behind 404, even by direct key', async () => {
     rowByKey = () => query(null); // findOne already filters status=published
     const res = await as().get('/some-draft-key');

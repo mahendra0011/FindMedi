@@ -122,6 +122,11 @@ export function DataGrid({
    */
   rowClassName,
   /**
+   * Columns whose values are sensitive (PHI/PII) and should be masked by
+   * default with a per-cell reveal toggle. Pass an array of column keys.
+   */
+  maskedColumns,
+  /**
    * Master-detail lists (e.g. a hospital row that expands to its doctors).
    * When `expandedRowKey` matches a row's `rowKey` value, an extra full-width
    * row renders underneath with this content. Virtualised grids skip it — a
@@ -131,6 +136,7 @@ export function DataGrid({
   renderDetail,
 }: Unmodelled) {
   const [globalFilter, setGlobalFilter] = useState('');
+  const [revealedCells, setRevealedCells] = useState<Set<string>>(new Set());
   const [sorting, setSorting] = useState<Unmodelled[]>([]);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize });
   const parentRef = useRef<Unmodelled>(null);
@@ -232,11 +238,36 @@ export function DataGrid({
         onClick={onRowClick ? () => onRowClick(r) : undefined}
         className={[onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-colors' : '', rowClassName ? rowClassName(r) : ''].filter(Boolean).join(' ') || undefined}
       >
-        {columns.map((c: Unmodelled) => (
-          <td key={c.key} className="px-3 py-2 text-sm">
-            {c.render ? c.render(r[c.key], r) : String(r[c.key] ?? '')}
-          </td>
-        ))}
+        {columns.map((c: Unmodelled) => {
+          const isMasked = Array.isArray(maskedColumns) && maskedColumns.includes(c.key);
+          const cellKey = `${row.id}-${c.key}`;
+          const revealed = revealedCells.has(cellKey);
+          const value = c.render ? c.render(r[c.key], r) : String(r[c.key] ?? '');
+          return (
+            <td key={c.key} className="px-3 py-2 text-sm">
+              {isMasked ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className={revealed ? '' : 'blur-sm select-none'}>{value}</span>
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                    aria-label={revealed ? 'Hide value' : 'Reveal value'}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRevealedCells((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(cellKey)) next.delete(cellKey); else next.add(cellKey);
+                        return next;
+                      });
+                    }}
+                  >
+                    {revealed ? 'Hide' : 'Show'}
+                  </button>
+                </span>
+              ) : value}
+            </td>
+          );
+        })}
       </tr>
     );
     if (!isExpanded) return mainRow;
@@ -485,5 +516,79 @@ export function PdfViewer({ src, height = 520 }: Unmodelled) {
       className="w-full rounded-lg border"
       style={{ height }}
     />
+  );
+}
+
+/* ��� MapPinCard ��������������������������������������������������������� */
+export function MapPinCard({ title, address, lat, lng, onDirections }: Unmodelled) {
+  return (
+    <div className="rounded-lg border bg-card p-3">
+      <div className="text-sm font-semibold">{title}</div>
+      {address ? <div className="text-xs text-muted-foreground mt-0.5">{address}</div> : null}
+      {lat != null && lng != null ? (
+        <div className="mt-2 text-xs text-muted-foreground">Pin: {Number(lat).toFixed(5)}, {Number(lng).toFixed(5)}</div>
+      ) : null}
+      {onDirections ? (
+        <button
+          type="button"
+          className="mt-2 rounded-md border px-3 py-1 text-xs font-medium hover:bg-muted"
+          onClick={() => onDirections(lat, lng)}
+        >
+          Get directions
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/* ��� ConsentToggle �������������������������������������������������������� */
+export function ConsentToggle({ label, checked, onChange, description, disabled }: Unmodelled) {
+  return (
+    <label className={`flex items-start gap-3 ${disabled ? 'opacity-60' : ''}`}>
+      <input
+        type="checkbox"
+        className="mt-1 h-4 w-4 rounded border"
+        checked={!!checked}
+        disabled={disabled}
+        onChange={e => onChange?.(e.target.checked)}
+      />
+      <span className="text-sm">
+        <span className="font-medium">{label}</span>
+        {description ? <span className="block text-xs text-muted-foreground">{description}</span> : null}
+      </span>
+    </label>
+  );
+}
+
+/* ��� DiscreetBanner ������������������������������������������������������ */
+export function DiscreetBanner({ message, onDismiss }: Unmodelled) {
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status">
+      <span>{message || 'Discreet mode is on. Notifications and recent activity are hidden.'}</span>
+      {onDismiss ? (
+        <button type="button" className="rounded bg-white/70 px-2 py-0.5 text-xs font-semibold hover:bg-white" onClick={onDismiss}>
+          Dismiss
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/* ��� FilterSheet ���������������������������������������������������������� */
+export function FilterSheet({ open, onClose, children, title = 'Filters' }: Unmodelled) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative w-full max-w-md rounded-t-xl sm:rounded-xl bg-card p-4 shadow-xl">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">{title}</h3>
+          <button type="button" className="rounded p-1 hover:bg-muted" onClick={onClose} aria-label="Close filters">
+            <X size={16} />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
   );
 }

@@ -12,6 +12,9 @@ const categorySchema = new mongoose.Schema({
   },
   type: { type: String, enum: CATEGORY_TYPES, required: true },
   aliases: { type: [String], default: [] },
+  // Canonical cross-list parents and browse metadata from the category catalogue.
+  alsoUnder: { type: [String], default: [] },
+  meta: { type: mongoose.Schema.Types.Mixed, default: {} },
   description: { type: String, default: '' },
   parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null },
   path: { type: String, default: '' },

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MessageSquare, Loader2, Plus } from 'lucide-react';
+import { MessageSquare, Loader2, Plus, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,8 @@ export default function CommunityPage() {
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState('');
   const [reply, setReply] = useState<Unmodelled>({});
+  const [reportedPosts, setReportedPosts] = useState<Set<string>>(new Set());
+  const [reportReason, setReportReason] = useState('medical_advice');
 
   const load = async () => {
     setLoading(true);
@@ -57,6 +59,18 @@ export default function CommunityPage() {
       await load();
     } catch (e: unknown) {
       setError(errMsg(e, 'Failed to comment'));
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const report = async (id: string) => {
+    setBusy('r' + id); setError('');
+    try {
+      await api.reportCommunityPost(id, { reason: reportReason });
+      setReportedPosts((current) => new Set(current).add(id));
+    } catch (e: unknown) {
+      setError(errMsg(e, 'Failed to report post'));
     } finally {
       setBusy('');
     }
@@ -110,6 +124,20 @@ export default function CommunityPage() {
             <div className="flex gap-2">
               <Input className="max-w-md" placeholder="Reply" value={reply[String(p._id)] || ''} onChange={(e) => setReply({ ...reply, [String(p._id)]: e.target.value })} />
               <Button size="sm" disabled={busy === 'c' + String(p._id)} onClick={() => comment(String(p._id))}>Reply</Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <label className="sr-only" htmlFor={`report-reason-${String(p._id)}`}>Report reason</label>
+              <select id={`report-reason-${String(p._id)}`} className="border rounded-lg px-2 py-1 text-xs bg-background" value={reportReason} onChange={(e) => setReportReason(e.target.value)}>
+                <option value="medical_advice">Unsafe medical advice</option>
+                <option value="crisis">Crisis or self-harm content</option>
+                <option value="privacy">Someone’s private information</option>
+                <option value="harassment">Harassment</option>
+                <option value="spam">Spam</option>
+                <option value="other">Other safety concern</option>
+              </select>
+              <Button size="sm" variant="ghost" disabled={busy === 'r' + String(p._id) || reportedPosts.has(String(p._id))} onClick={() => report(String(p._id))}>
+                <Flag className="mr-1 h-3.5 w-3.5" />{reportedPosts.has(String(p._id)) ? 'Reported' : 'Report'}
+              </Button>
             </div>
           </article>
         ))}

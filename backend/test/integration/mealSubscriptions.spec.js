@@ -48,7 +48,9 @@ jestApi.unstable_mockModule('../../src/models/Plan.js', () => ({
   default: { findOne: (filter) => { lastPlanFilter = filter; return planFindOne(filter); } },
 }));
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 const { as } = await mountApp('mealSubscriptions', {});

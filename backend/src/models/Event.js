@@ -19,6 +19,8 @@ const eventSchema = new mongoose.Schema({
   partnerProviderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Provider', default: null },
 
   type: { type: String, enum: EVENT_TYPES, required: true, index: true },
+  // Audience is only a discovery label; registration must not collect clinical details.
+  audience: { type: String, enum: ['students', 'workplace', 'general'], default: 'general', index: true },
   title: { type: String, required: true, trim: true, maxlength: 200 },
   description: { type: String, maxlength: 8000, default: '' },
   slug: { type: String, unique: true, sparse: true, lowercase: true, trim: true },

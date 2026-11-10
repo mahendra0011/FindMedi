@@ -1,4 +1,4 @@
-# 11 — Design System (UI Kit Spec)
+﻿# 11 — Design System (UI Kit Spec)
 
 > **Repo se jo mila (✅):** React 18 · Vite · Tailwind 4 + `tailwindcss-animate` · Radix UI (shadcn-style) · `lucide-react` · `framer-motion` · `react-hook-form` + `zod` · `recharts` · `maplibre-gl` · dark mode (`class`) · tokens: `--primary: 174 62% 38%` (teal), `--accent: 174 45% 92%`, `--destructive: 0 72% 51%`, `--radius: 0.75rem`, fonts **Plus Jakarta Sans** (heading) + **Inter** (body).
 > **Gaps (🆕):** i18n library nahi mili · `manifest.json` nahi (sirf `sw.js`) · semantic tokens (success/warning/info/tier colours) limited · category-wise icon system · motion & accessibility rules documented nahi.
@@ -158,12 +158,12 @@ LCP < 2.5s on 4G mid-range Android · JS per route < 200 KB gz (code-split by ro
 - **Figma library** mirroring components (cards, booking widget, wizard, dashboards).
 
 ## 17. Deliverables checklist
-- [ ] Add semantic + category tokens; dark-mode parity
-- [ ] Indic font strategy + `react-i18next` set up
-- [ ] `manifest.webmanifest` + offline shell
-- [ ] ProviderCard base + variants; PractitionerHeader; BookingWidget; SlotPicker; PriceBreakup
-- [ ] Wizard component (config-driven)
-- [ ] FilterBar/FilterSheet; MapPinCard; StatusTimeline; ConsentToggle; DiscreetBanner; SOS button
-- [ ] DataTable for ops (masked cells, capped exports)
-- [ ] Storybook + a11y CI + Figma library
-- [ ] Elder mode + low-bandwidth mode
+- [x] Semantic + category tokens; dark-mode parity — CSS variables in `index.css` + `darkMode: ["class"]`.
+- [x] Indic font strategy + `react-i18next` — Noto Sans Devanagari/Bengali/Tamil/Telugu/Malayalam/Kannada/Gujarati/Oriya in `index.css`; `i18n.ts` + `useTranslation`.
+- [x] `manifest.webmanifest` + offline shell — `frontend/public/manifest.webmanifest`, `sw.js`.
+- [x] ProviderCard base + variants; PractitionerHeader; BookingWidget; SlotPicker; PriceBreakup — all present under `components/cards`, `practitioner/sections`, `ui`.
+- [x] Wizard component (config-driven) — `pages/join/JoinWizard.tsx` driven by `ProviderTypeConfig`.
+- [x] FilterBar/FilterSheet/MapPinCard/StatusTimeline/ConsentToggle/DiscreetBanner/SOSButton all exist in `ui/System.tsx`.
+- [x] DataTable for ops (masked cells, capped exports) - masked-cell mode via `maskedColumns` prop (blur + per-cell reveal) in `DataGrid`; exports capped (`EXPORT_ROW_CAP`, step-up on full export).
+- [x] Storybook + a11y CI — `.storybook/`, stories, `systemA11y.test.jsx` axe gate wired in `.github/workflows/ci.yml`; Figma library remains a design deliverable.
+- [x] Elder mode + low-bandwidth mode — `components/accessibility/AccessibilityControls.tsx` (elder-mode, high-contrast, low-bandwidth).

@@ -1,0 +1,11 @@
+{
+  "title": "FindMedi - Booking Funnel",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    { "id": 1, "type": "stat", "title": "Bookings (24h)", "targets": [{ "expr": "sum(increase(findmedi_bookings_total[24h]))" }] },
+    { "id": 2, "type": "stat", "title": "Payment success %", "targets": [{ "expr": "sum(rate(findmedi_payments_success_total[1h])) / sum(rate(findmedi_payments_total[1h])) * 100" }] },
+    { "id": 3, "type": "graph", "title": "Booking rate by mode", "targets": [{ "expr": "sum by (mode)(rate(findmedi_bookings_total[5m]))" }] },
+    { "id": 4, "type": "stat", "title": "No-show %", "targets": [{ "expr": "sum(rate(findmedi_noshow_total[1h])) / sum(rate(findmedi_bookings_total[1h])) * 100" }] }
+  ]
+}

@@ -1,7 +1,7 @@
 /**
  * # 01 — Join FindMedi: Config-Driven Provider Onboarding Wizard
  *
- * Unified onboarding for all 46 provider types across 8 display groups:
+ * Unified onboarding for all 103 provider types across 8 display groups:
  * - Healthcare Facilities (Hospital, Clinic, Diagnostic, Blood Bank, Day-care, etc.)
  * - Practitioners (Doctor, Dentist, Ayush, Dietitian, Physio, Counsellor, etc.)
  * - Wellness & Fitness (Yoga, Gym, Wellness Centre, Sports Academy, Trainer)
@@ -13,7 +13,7 @@
  *
  * Strict boundary: zero out-of-scope/faltu categories (no pet care, tattoo, funeral, medical tourism).
  * Server-authoritative: loads configs from GET /api/config/provider-types,
- * with comprehensive 46-type offline fallback.
+ * with comprehensive 103-type offline fallback.
  * Auto-draft sync, document upload, status tracker, and multilingual (EN/HI).
  */
 
@@ -96,6 +96,7 @@ import { api, apiClient } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import ActivationPanel from './ActivationPanel';
 import fallbackCatalogData from '@/data/providerTypeCatalogFallback.json';
+import providerTypeImages from '@/data/providerTypeImages.json';
 
 /* ── Types ─────────────────────────────────────────────────────────────── */
 
@@ -176,7 +177,7 @@ const STRINGS = {
   en: {
     title: 'Join FindMedi Network',
     subtitle: 'Register your facility, medical practice, or healthcare service on India’s leading healthcare platform.',
-    searchPh: 'Search 50+ provider types (e.g. Hospital, Dentist, Gym, Pharmacy, Ambulance)…',
+    searchPh: 'Search 100+ provider types (e.g. Hospital, Dentist, Gym, Pharmacy, Ambulance)…',
     quizTitle: 'Not sure which category fits your organization?',
     quizSubtitle: 'Answer 3 quick questions to discover your optimal onboarding flow.',
     quizCta: 'Find my category',
@@ -349,6 +350,8 @@ function displayGroupOf(t: ProviderTypeConfigDto): string {
   if (t.group === 'clinical') return t.kind === 'practitioner' ? 'practitioners' : 'facilities';
   return t.group;
 }
+
+const GROUP_ART: Record<string, string> = providerTypeImages;
 
 /* ── Icon Component Resolver ─────────────────────────────────────────── */
 
@@ -1083,7 +1086,7 @@ export default function JoinWizard() {
   if (!selected) {
     return (
       <div className="min-h-screen bg-slate-50/40 dark:bg-slate-950/40 py-10 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto space-y-8">
+        <div className="max-w-screen-2xl mx-auto space-y-6 px-3 sm:px-5">
           {/* Header Bar */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-6">
             <div className="space-y-1">
@@ -1271,22 +1274,22 @@ export default function JoinWizard() {
           </div>
 
           {/* Grouped Cards */}
-          <div className="space-y-10">
+          <div className="space-y-7">
             {DISPLAY_GROUPS.filter((g) => activeGroup === 'all' || activeGroup === g.key).map((g) => {
               const items = filtered.filter((x) => displayGroupOf(x) === g.key);
               if (items.length === 0) return null;
               return (
-                <section key={g.key} className="space-y-4">
-                  <div className="flex items-baseline justify-between border-b pb-2">
+                <section key={g.key} className="space-y-3">
+                  <div className="flex items-baseline justify-between border-b pb-1.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-xl">{g.emoji}</span>
-                      <h2 className="font-bold text-lg text-foreground">{lang === 'hi' ? g.labelHi : g.labelEn}</h2>
-                      <span className="text-xs text-muted-foreground font-normal">({items.length} options)</span>
+                      <span className="text-lg">{g.emoji}</span>
+                      <h2 className="font-bold text-base text-foreground">{lang === 'hi' ? g.labelHi : g.labelEn}</h2>
+                      <span className="text-[11px] text-muted-foreground font-normal">({items.length})</span>
                     </div>
-                    <span className="text-xs text-muted-foreground hidden sm:inline">{g.descEn}</span>
+                    <span className="text-[11px] text-muted-foreground hidden md:inline">{g.descEn}</span>
                   </div>
 
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                     {items.map((x) => {
                       const IconComp = resolveIcon(x.icon);
                       const isT1 = x.tier === 'T1';
@@ -1294,47 +1297,64 @@ export default function JoinWizard() {
                       return (
                         <div
                           key={x.typeKey}
-                          className="group relative rounded-2xl border bg-card p-5 flex flex-col justify-between hover:border-primary/50 hover:shadow-md transition-all duration-200"
+                          className="group relative flex min-h-52 flex-col justify-between overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/15"
                         >
-                          <div className="space-y-2">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
-                                <IconComp className="w-5 h-5" />
+                          <div className="relative h-[5.5rem] overflow-hidden bg-primary/5">
+                            {GROUP_ART[x.typeKey] ? (
+                              <img
+                                src={GROUP_ART[x.typeKey]}
+                                alt=""
+                                aria-hidden="true"
+                                loading="lazy"
+                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              />
+                            ) : (
+                              <div aria-hidden="true" className="flex h-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/25">
+                                <IconComp className="h-8 w-8 text-primary/60" />
                               </div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent" />
+                            <div className="absolute right-[16%] top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-2xl border border-white/70 bg-white/85 text-primary shadow-lg shadow-slate-900/10 backdrop-blur-sm transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110 dark:bg-slate-900/85">
+                              <IconComp className="h-7 w-7" />
+                            </div>
+                            <div className="absolute right-2.5 top-2.5">
                               <span
-                                className={`text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full ${
+                                className={`rounded-full border px-2 py-1 text-[9px] font-semibold tracking-wide uppercase shadow-sm backdrop-blur-sm ${
                                   isT1
-                                    ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900'
                                     : isT2
-                                    ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20'
-                                    : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                                    ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900'
+                                    : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900'
                                 }`}
                               >
                                 {x.tier} {isT1 ? 'Clinical' : isT2 ? 'Health' : 'Wellness'}
                               </span>
                             </div>
+                          </div>
 
-                            <div>
-                              <h3 className="font-semibold text-base text-foreground group-hover:text-primary transition-colors">
+                          <div className="flex flex-1 flex-col justify-between p-3.5">
+                            <div className="space-y-1.5">
+                              <h3 className="min-h-10 line-clamp-2 text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
                                 {x.label}
                               </h3>
-                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                              <p className="min-h-8 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
                                 {x.description}
                               </p>
                             </div>
-                          </div>
 
-                          <div className="pt-4 mt-2 border-t border-border/50 flex items-center justify-between">
-                            <span className="text-[11px] text-muted-foreground">
-                              SLA: {x.approvalPolicy?.slaHours ?? 24}h
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => pickType(x)}
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary group-hover:translate-x-0.5 transition-transform"
-                            >
-                              {t('pickType')} <ChevronRight className="w-4 h-4" />
-                            </button>
+                            <div className="mt-3 flex items-center justify-between gap-1 border-t border-border/60 pt-2.5">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                SLA: {x.approvalPolicy?.slaHours ?? 24}h
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => pickType(x)}
+                                className="inline-flex items-center gap-0.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              >
+                                {t('pickType')} <ChevronRight className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );

@@ -17,8 +17,12 @@ const platformContentSchema = new mongoose.Schema({
   reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   reviewedAt: { type: Date, default: null },
   reviewNote: { type: String, default: '' },
+  contentType: { type: String, enum: ['page', 'article', 'guide'], default: 'page', index: true },
+  specialtyCodes: [{ type: String, maxlength: 64, index: true }],
+  summary: { type: String, maxlength: 500, default: '' },
 }, { timestamps: true });
 
 platformContentSchema.index({ updatedAt: -1 });
+platformContentSchema.index({ status: 1, contentType: 1, specialtyCodes: 1, publishedAt: -1 });
 
 export default mongoose.model('PlatformContent', platformContentSchema);

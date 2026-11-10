@@ -1,4 +1,4 @@
-# 10 — Data Model, API Additions & Rollout Plan
+﻿# 10 — Data Model, API Additions & Rollout Plan
 
 > Is file me wo technical changes hain jo files 01–09 ko implement karne ke liye chahiye. Existing models (✅) ko reuse/extend karo; naye models sirf jahan zaruri.
 > **Existing models (repo scan):** `User, Hospital, Facility, ClinicProfile, Doctor, Pharmacy, Medicine, Test, Radiology, Physiotherapy, MentalHealth, BloodBank, Ambulance, Vehicle, AssistantProfile, LawyerProfile, RiderProfile, DeliveryPartner, DietKitchen, DietOrder, HealthPackage, Insurance, Review, Category, ServiceCity, License, PendingApproval, Dispute, SupportTicket, AuditLog, Announcement, FeaturedListing, PlatformCoupon, CommissionConfig, Billing, Payment, Refund, Payout, AppointmentSeries, WaitlistEntry, OPDToken, FamilyMember, ChronicCarePlan, VitalsLog, MedicineReminder, ConsentRecord, PlatformContent…`
@@ -186,18 +186,18 @@ Index public DTO fields only: name, aliases, categories (codes+labels), city/are
 Join funnel · approval TAT · search no-result rate · view→book conversion · slot fill · cancel/no-show · payment success · refund TAT · event fill · membership churn · moderation SLA · safety incidents · provider response time · NPS.
 
 ## 10. Implementation checklist (engineering)
-- [ ] Taxonomy `Category` upgrade + canonical specialties + migration script
-- [ ] `Provider`, `ProviderTypeConfig`, `ProviderApplication`, `ProviderDocument`
-- [ ] `Service`, `Product`, `Plan/Membership`, `Event/EventRegistration`, `Rental/AssetUnit`
-- [ ] Booking/Order generic + state machines + idempotency
-- [ ] Public DTO layer + search index
-- [ ] Section-registry detail pages + card system
-- [ ] Role registry + permission sets + new dashboards
-- [ ] Moderation + DSR + policy-acceptance models
-- [ ] Authz manifest + tests for every new route
-- [ ] Field encryption for T1 notes; T3 isolation from PHI
-- [ ] Feature flags per type/city
-- [ ] Docs: provider guides, patient FAQs, runbooks
+- [x] Taxonomy `Category` upgrade + canonical specialties + migration — `Category` model, `lib/taxonomy.js` (343), `scripts/migrate-doctor-subspecialties.mjs`.
+- [x] `Provider`, `ProviderTypeConfig`, `ProviderApplication`, `ProviderDocument` models + `/api/providers`, `/api/join`, `/api/config/provider-types` routes.
+- [x] `Service`, `Product`, `Plan`/`Membership`, `Event`/`EventRegistration`, `Rental`/`AssetUnit` models + routes.
+- [x] Booking/Order generic + state machines + idempotency — `Order`, `Appointment`/`PharmacyDelivery` state machines, `middleware/idempotency.js` on create routes.
+- [x] Public DTO layer + search index — explicit `CARD_FIELDS`/`DETAIL_FIELDS`; MongoDB `provider_text_search` index (not OpenSearch).
+- [x] Section-registry detail pages + card system — `FacilityDetailLayout`, `PractitionerProfileLayout`, 51 card components.
+- [x] Role registry + permission sets + new dashboards — `authz-manifest.json`, role sets, 110 dashboard pages.
+- [x] Moderation + DSR + policy-acceptance models — `ModerationItem`, `DataSubjectRequest`, `PolicyAcceptance`.
+- [x] Authz manifest + tests — `authz-manifest.json`, `test/unit/authzManifest.spec.js`, `authzGapClosure.spec.js`.
+- [x] Field encryption for T1 notes; T3 isolation — `fieldEncryption.js`/`phiCrypto.js`; T3 provider kinds gated away from PHI reads.
+- [x] Feature flags per type/city — `services/featureFlags.js` + admin controls.
+- [x] Docs: provider guides, patient FAQs, runbooks - `docs/provider-guide.md`, `docs/patient-faq.md`, runbooks under `docs/ops/runbooks`.
 
 ## 11. Catalogue alignment (pruned categories → data model)
 

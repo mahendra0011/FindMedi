@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
-import { configureMongoDns } from './src/config/mongoDns.js';
+import { configureMongoDns, connectMongooseWithRetry } from '../../src/config/mongoDns.js';
 
 configureMongoDns();
 // SECURITY (P0): this seed creates well-known demo credentials. It must never
@@ -16,32 +16,32 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/findmedi';
 
-import Hospital from './src/models/Hospital.js';
-import Facility from './src/models/Facility.js';
-import User from './src/models/User.js';
-import Doctor from './src/models/Doctor.js';
-import Patient from './src/models/Patient.js';
-import Appointment from './src/models/Appointment.js';
-import Test from './src/models/Test.js';
-import Medicine from './src/models/Medicine.js';
-import Bed from './src/models/Bed.js';
-import Department from './src/models/Department.js';
-import Staff from './src/models/Staff.js';
-import Inventory from './src/models/Inventory.js';
-import ClinicProfile from './src/models/ClinicProfile.js';
-import Review from './src/models/Review.js';
-import DeliveryPartner from './src/models/DeliveryPartner.js';
+import Hospital from '../../src/models/Hospital.js';
+import Facility from '../../src/models/Facility.js';
+import User from '../../src/models/User.js';
+import Doctor from '../../src/models/Doctor.js';
+import Patient from '../../src/models/Patient.js';
+import Appointment from '../../src/models/Appointment.js';
+import Test from '../../src/models/Test.js';
+import Medicine from '../../src/models/Medicine.js';
+import Bed from '../../src/models/Bed.js';
+import Department from '../../src/models/Department.js';
+import Staff from '../../src/models/Staff.js';
+import Inventory from '../../src/models/Inventory.js';
+import ClinicProfile from '../../src/models/ClinicProfile.js';
+import Review from '../../src/models/Review.js';
+import DeliveryPartner from '../../src/models/DeliveryPartner.js';
 
-const readJSON = (file) => JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-data', file), 'utf-8'));
+const readJSON = (file) => JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'mock-data', file), 'utf-8'));
 
 async function seed() {
   try {
     console.log('Connecting to MongoDB...');
-    await mongoose.connect(MONGO_URI);
+    await connectMongooseWithRetry(mongoose, MONGO_URI);
     console.log('Connected.');
 
     const db = mongoose.connection.db;
@@ -287,7 +287,7 @@ async function seed() {
         // ===== SEED SERVICE CITIES & ADDITIONAL DEMO USERS =====
     console.log('Seeding additional demo profiles (riders, assistants, lawyers, ambulance, psychiatrists)...');
     try {
-      const { ensureDemoUsers } = await import('./src/services/demoSeedService.js');
+      const { ensureDemoUsers } = await import('../../src/services/demoSeedService.js');
       await ensureDemoUsers();
     } catch (e) {
       console.warn('  ensureDemoUsers warning:', e.message);

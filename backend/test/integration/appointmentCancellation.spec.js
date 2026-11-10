@@ -82,7 +82,9 @@ const seedPayment = (apptId, over = {}) => {
 
 // ─── module substitutions (registered BEFORE the route is imported) ─────────
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: jestApi.fn(async () => {}),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 jestApi.unstable_mockModule('../../src/services/socketService.js', () => ({
   emitAppointmentUpdate: jestApi.fn(async () => {}),

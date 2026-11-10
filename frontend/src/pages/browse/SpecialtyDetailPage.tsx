@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Lock, TriangleAlert, UserRound, Building2, BellPlus, Loader2, ArrowLeft, ClipboardList, FlaskConical, Pill } from 'lucide-react';
+import { Lock, TriangleAlert, UserRound, Building2, BellPlus, Loader2, ArrowLeft, ClipboardList, FlaskConical, Pill, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
 import { useSpecialtyDetail, useBrowseSpecialtyCounts, SPECIALTIES_STALE_TIME } from '@/hooks/useSpecialtyBrowse';
@@ -14,6 +14,19 @@ import { api } from '@/lib/api';
 // SITE-I18N 3.2: fully keyed chrome, and in hi the Hindi name becomes the
 // primary heading (the English one dangles below as the alias line).
 
+type SpecialtyArticle = { key: string; title: string; summary?: string; body?: string };
+
+function readArticles(response: unknown): SpecialtyArticle[] {
+  if (!response || typeof response !== 'object' || !('contents' in response)) return [];
+  const contents = (response as { contents?: unknown }).contents;
+  if (!Array.isArray(contents)) return [];
+  return contents.filter((item): item is SpecialtyArticle =>
+    !!item && typeof item === 'object' &&
+    typeof (item as SpecialtyArticle).key === 'string' &&
+    typeof (item as SpecialtyArticle).title === 'string'
+  );
+}
+
 export default function SpecialtyDetailPage() {
   const { code = '' } = useParams();
   const { t, i18n } = useTranslation();
@@ -22,7 +35,9 @@ export default function SpecialtyDetailPage() {
   const [metroCity, setMetroCity] = useState('');
   const [scope, setScope] = useState<'city' | 'all'>(metroCity ? 'city' : 'all');
   const [scopeNote, setScopeNote] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'conditions' | 'procedures' | 'tests'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'conditions' | 'procedures' | 'tests' | 'articles'>('overview');
+  const [articles, setArticles] = useState<SpecialtyArticle[]>([]);
+  const [articlesLoading, setArticlesLoading] = useState(false);
 
   useEffect(() => {
     let c = '';
@@ -32,6 +47,18 @@ export default function SpecialtyDetailPage() {
       setScope('city');
     }
   }, []);
+
+  useEffect(() => {
+    const specialtyCode = detail.data?.specialty?.code;
+    if (activeTab !== 'articles' || !specialtyCode) return;
+    let cancelled = false;
+    setArticlesLoading(true);
+    api.get(`/platform-content?contentType=article&specialtyCode=${encodeURIComponent(specialtyCode)}`)
+      .then((response: unknown) => { if (!cancelled) setArticles(readArticles(response)); })
+      .catch(() => { if (!cancelled) setArticles([]); })
+      .finally(() => { if (!cancelled) setArticlesLoading(false); });
+    return () => { cancelled = true; };
+  }, [activeTab, detail.data?.specialty?.code]);
 
   const specialty = detail.data?.specialty || null;
   const children = detail.data?.children || detail.data?.specialty?.children || [];
@@ -69,6 +96,8 @@ export default function SpecialtyDetailPage() {
 
   const providersHref = `/clinic-doctors?specialty=${encodeURIComponent(specialty.name)}`;
   const hospitalsHref = `/hospitals?specialty=${encodeURIComponent(specialty.name)}`;
+  const termHref = (kind: 'condition' | 'procedure', term: string) =>
+    `/clinic-doctors?specialty=${encodeURIComponent(specialty.name)}&${kind}=${encodeURIComponent(term)}&fallbackSpecialtyCode=${encodeURIComponent(specialty.code)}`;
 
   const notifyMe = async () => {
     try {
@@ -188,6 +217,14 @@ export default function SpecialtyDetailPage() {
           >
             <FlaskConical className="w-3.5 h-3.5 inline mr-1.5" /> {t('specialties.tab_tests_packages')}
           </button>
+          <button
+            role="tab"
+            aria-selected={activeTab === 'articles'}
+            onClick={() => setActiveTab('articles')}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === 'articles' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <FileText className="w-3.5 h-3.5 inline mr-1.5" /> {t('specialties.tab_articles', 'Articles')}
+          </button>
         </nav>
       </div>
 
@@ -238,7 +275,9 @@ export default function SpecialtyDetailPage() {
           {(specialty.meta?.conditions || []).length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {(specialty.meta?.conditions || []).map((c: string) => (
-                <span key={c} className="text-xs bg-secondary text-secondary-foreground rounded-full px-3 py-1.5 border border-border/60">{c}</span>
+                specialty.sensitive
+                  ? <span key={c} className="text-xs bg-secondary text-secondary-foreground rounded-full px-3 py-1.5 border border-border/60">{c}</span>
+                  : <Link key={c} to={termHref('condition', c)} className="text-xs bg-secondary text-secondary-foreground rounded-full px-3 py-1.5 border border-border/60 hover:border-primary/50">{c}</Link>
               ))}
             </div>
           ) : (
@@ -253,7 +292,9 @@ export default function SpecialtyDetailPage() {
           {(specialty.meta?.procedures || []).length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {(specialty.meta?.procedures || []).map((p: string) => (
-                <span key={p} className="text-xs bg-secondary text-secondary-foreground rounded-full px-3 py-1.5 border border-border/60">{p}</span>
+                specialty.sensitive
+                  ? <span key={p} className="text-xs bg-secondary text-secondary-foreground rounded-full px-3 py-1.5 border border-border/60">{p}</span>
+                  : <Link key={p} to={termHref('procedure', p)} className="text-xs bg-secondary text-secondary-foreground rounded-full px-3 py-1.5 border border-border/60 hover:border-primary/50">{p}</Link>
               ))}
             </div>
           ) : (
@@ -274,6 +315,28 @@ export default function SpecialtyDetailPage() {
               <Link to={`/health-packages?specialty=${encodeURIComponent(specialty.name)}`}><ClipboardList className="w-4 h-4" /> {t('specialties.browse_packages')}</Link>
             </Button>
           </div>
+        </section>
+      )}
+
+      {activeTab === 'articles' && (
+        <section className="mb-8" aria-live="polite">
+          <h2 className="font-heading text-lg font-bold mb-3">{t('specialties.tab_articles', 'Articles')}</h2>
+          {articlesLoading ? (
+            <p className="text-muted-foreground text-sm">{t('specialties.loading')}</p>
+          ) : articles.length ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {articles.map((article) => (
+                <article key={article.key} className="rounded-xl border border-border/60 bg-card p-4">
+                  <h3 className="font-semibold">{article.title}</h3>
+                  {article.summary && <p className="mt-2 text-sm text-muted-foreground">{article.summary}</p>}
+                  {article.body && <p className="mt-3 text-sm whitespace-pre-line">{article.body}</p>}
+                  <p className="mt-3 text-xs text-muted-foreground">{t('specialties.medically_reviewed', 'Medically reviewed')}</p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">{t('specialties.no_articles', 'No reviewed articles are published for this specialty yet.')}</p>
+          )}
         </section>
       )}
 

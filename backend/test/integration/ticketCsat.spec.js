@@ -26,6 +26,7 @@ jestApi.unstable_mockModule('../../src/models/SupportTicket.js', () => ({
 }));
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => auditLog(...args),
 }));
 
 const { as } = await mountApp('supportTickets', {});

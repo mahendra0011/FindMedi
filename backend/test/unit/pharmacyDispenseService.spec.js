@@ -48,7 +48,7 @@ describe('pharmacy dispense atomic state transition', () => {
       [{ $set: {
         currentStock: { $subtract: ['$currentStock', 2] },
         isActive: { $gt: [{ $subtract: ['$currentStock', 2] }, 0] },
-      } }], { new: true, session },
+      } }], { new: true, session, updatePipeline: true },
     );
     expect(prescriptionFindOneAndUpdate.mock.calls[0][0]).toMatchObject({
       _id: 'rx-1', verificationStatus: 'verified', medicines: { $elemMatch: { _id: 'line-1', isDispensed: { $ne: true } } },

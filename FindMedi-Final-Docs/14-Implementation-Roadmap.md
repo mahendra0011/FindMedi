@@ -182,14 +182,14 @@ Critical path: **Taxonomy → Provider/Service models → Config join → Approv
 
 ## 11. Definition of Done (per feature)
 
-- [ ] Spec reviewed (docs 01–10) · design approved (Figma) · a11y checklist
-- [ ] Authz (role + tenant + object) + tests; DTO leak test; rate limits; audit events
-- [ ] Input validation `.strict()`; uploads scanned; no PHI in logs/analytics
-- [ ] i18n strings externalised (hi+en)
-- [ ] Unit + integration + E2E (happy path + 3 failure paths)
-- [ ] Feature flag + rollout/rollback plan + metrics/alerts
-- [ ] Docs (provider guide/patient FAQ/runbook) updated
-- [ ] Security review for T1 features; pentest for R4
+- [ ] Spec reviewed (docs 01–10) · design approved (Figma) · a11y checklist — specs + a11y gate exist; Figma design sign-off is a human deliverable (open).
+- [x] Authz (role + tenant + object) + tests; DTO leak test; rate limits; audit events — `authz-manifest.json`, `authMatrix.spec.js`, `dtoLeak*.spec.js`, limiters, `auditLog`.
+- [x] Input validation `.strict()`; uploads scanned; no PHI in logs/analytics — zod `.strict()` schemas, ClamAV gate, logger redaction, PHI-free analytics dictionary.
+- [x] i18n strings externalised (hi+en) — `frontend/src/i18n/locales/en.json` + `hi.json`, `i18n-coverage.mjs`.
+- [ ] Unit + integration + E2E — current configured Chromium suite has 39 Playwright tests; the 14 specified end-to-end journeys and their failure-path coverage are not exhaustive.
+- [x] Feature flag + rollout/rollback plan + metrics/alerts — `services/featureFlags.js`, runbooks under `docs/ops/`, Prometheus/Grafana alerts.
+- [x] Docs: provider guides, patient FAQs, runbooks - `docs/provider-guide.md`, `docs/patient-faq.md`, runbooks under `docs/ops/runbooks`.
+- [ ] Security review for T1 features; pentest for R4 — human security activity; ZAP baseline CI exists but no recorded review/pentest (open).
 
 ## 12. Risk register (top)
 

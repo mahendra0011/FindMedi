@@ -14,7 +14,7 @@
 ## Summary
 
 - **351 models** across 343 files (0 skipped)
-- **7784 schema fields**, of which **812 classified as PII** in **249 collections**
+- **7800 schema fields**, of which **813 classified as PII** in **249 collections**
 - **10 collections** carry a TTL index
 - **129 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -95,7 +95,7 @@
 | `casepresentations` | CasePresentation | 14 | 0 | 4 | — | No PII fields detected |
 | `cashcounters` | CashCounter | 8 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `cashshifts` | CashShift | 15 | 0 | 4 | — | No PII fields detected |
-| `categories` | Category | 26 | 0 | 3 | — | Operational config (organization/catalog record — not personal data) |
+| `categories` | Category | 28 | 0 | 3 | — | Operational config (organization/catalog record — not personal data) |
 | `cathlabrecords` | CathLabRecord | 19 | 1 | 3 | — | Clinical records |
 | `chargeitems` | ChargeItem | 23 | 1 | 8 | — | Clinical records |
 | `chatconversations` | ChatConversation | 37 | 4 | 4 | — | **UNMAPPED — see gaps** |
@@ -112,7 +112,7 @@
 | `clinicprofiles` | ClinicProfile | 21 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `cmecredits` | CMECredit | 9 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `commissionconfigs` | CommissionConfig | 13 | 1 | 1 | — | Payment and ledger entries |
-| `communityposts` | CommunityPost | 13 | 2 | 4 | — | **UNMAPPED — see gaps** |
+| `communityposts` | CommunityPost | 22 | 3 | 5 | — | **UNMAPPED — see gaps** |
 | `consentforms` | ConsentForm | 17 | 2 | 5 | — | ABDM consent records |
 | `consentrecords` | ConsentRecord | 14 | 2 | 4 | — | ABDM consent records |
 | `contracts` | Contract | 19 | 0 | 4 | — | No PII fields detected |
@@ -162,7 +162,7 @@
 | `enquiries` | Enquiry | 14 | 4 | 4 | — | **UNMAPPED — see gaps** |
 | `equipment` | Equipment | 22 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `eventregistrations` | EventRegistration | 20 | 2 | 5 | — | **UNMAPPED — see gaps** |
-| `events` | Event | 44 | 4 | 8 | — | **UNMAPPED — see gaps** |
+| `events` | Event | 45 | 4 | 9 | — | **UNMAPPED — see gaps** |
 | `expenses` | Expense | 15 | 1 | 4 | — | Payment and ledger entries |
 | `eyeexams` | EyeExam | 21 | 3 | 3 | — | **UNMAPPED — see gaps** |
 | `eyesurgeryleads` | EyeSurgeryLead | 10 | 2 | 5 | — | **UNMAPPED — see gaps** |
@@ -273,7 +273,7 @@
 | `phototherapysessions` | PhototherapySession | 13 | 1 | 3 | — | **UNMAPPED — see gaps** |
 | `physiotherapies` | Physiotherapy | 34 | 6 | 2 | — | Clinical records |
 | `plans` | Plan | 19 | 0 | 3 | — | No PII fields detected |
-| `platformcontents` | PlatformContent | 14 | 0 | 3 | — | Operational config (organization/catalog record — not personal data) |
+| `platformcontents` | PlatformContent | 17 | 0 | 6 | — | Operational config (organization/catalog record — not personal data) |
 | `platformcouponredemptions` | PlatformCouponRedemption | 8 | 1 | 4 | — | Payment and ledger entries |
 | `platformcoupons` | PlatformCoupon | 17 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `platformcouponuserusages` | PlatformCouponUserUsage | 6 | 1 | 1 | — | Payment and ledger entries |
@@ -323,7 +323,7 @@
 | `reviews` | Review | 28 | 5 | 9 | — | **UNMAPPED — see gaps** |
 | `rewardcatalogitems` | RewardCatalogItem | 15 | 0 | 2 | — | No PII fields detected |
 | `rewardredemptions` | RewardRedemption | 11 | 1 | 4 | — | Payment and ledger entries |
-| `ridebookings` | RideBooking | 72 | 13 | 9 | — | Ride and SOS location traces |
+| `ridebookings` | RideBooking | 73 | 13 | 10 | — | Ride and SOS location traces |
 | `riderprofiles` | RiderProfile | 49 | 12 | 12 | — | Provider KYC documents |
 | `ridetrackings` | RideTracking | 10 | 3 | 4 | 2592000s | Ride and SOS location traces |
 | `roomtariffs` | RoomTariff | 13 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
@@ -2795,6 +2795,8 @@ source `Category.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `code` | String |  |  |  |  |  |  |
 | `type` | String | yes |  |  | test, medicine, department, service, specialty, sub_specialty, facility_type, provider_type, imaging, medicine_class, medicine_form, rx_schedule, product_line, diet, condition, event_type, program, wellness, device, language, accreditation, scheme, insurance_policy, legal_practic… (321 chars) |  |  |
 | `aliases` | Array<Mixed> |  |  | [] |  |  |  |
+| `alsoUnder` | Array<Mixed> |  |  | [] |  |  |  |
+| `meta` | Mixed |  |  | [function] |  |  |  |
 | `description` | String |  |  | "" |  |  |  |
 | `parent` | ObjectId |  |  | null |  | Category |  |
 | `path` | String |  |  | "" |  |  |  |
@@ -3422,6 +3424,15 @@ source `CommunityPost.js` · timestamps: yes · virtuals: 0 · retention: **UNMA
 | `comments.authorId` | ObjectId | yes |  |  |  | User | Identifier |
 | `comments.body` | String | yes |  |  |  |  |  |
 | `comments.createdAt` | Date |  |  | [function] |  |  |  |
+| `reports` | Array<subdocument> |  |  |  |  |  |  |
+| `reports.reporterId` | ObjectId | yes |  |  |  | User | Identifier |
+| `reports.reason` | String | yes |  |  | harassment, medical_advice, crisis, privacy, spam, other |  |  |
+| `reports.details` | String |  |  | "" |  |  |  |
+| `reports.status` | String |  |  | "open" | open, resolved, dismissed |  |  |
+| `reports.reviewedBy` | ObjectId |  |  | null |  | User |  |
+| `reports.reviewedAt` | Date |  |  | null |  |  |  |
+| `reports.createdAt` | Date |  |  |  |  |  |  |
+| `reports.updatedAt` | Date |  |  |  |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -3433,6 +3444,7 @@ Indexes:
 | `authorId:1` |  |
 | `category:1` |  |
 | `status:1` |  |
+| `reports.status:1` |  |
 | `status:1, createdAt:-1` |  |
 
 ### `consentforms` — ConsentForm
@@ -5303,7 +5315,8 @@ source `Event.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPED —
 |---|---|---|---|---|---|---|---|
 | `organizerId` | ObjectId | yes |  |  |  | Provider |  |
 | `partnerProviderId` | ObjectId |  |  | null |  | Provider |  |
-| `type` | String | yes |  |  | camp, workshop, webinar, vaccination, blood_drive, training, retreat |  |  |
+| `type` | String | yes |  |  | camp, workshop, webinar, vaccination, blood_drive, training, retreat, wellbeing |  |  |
+| `audience` | String |  |  | "general" | students, workplace, general |  |  |
 | `title` | String | yes |  |  |  |  |  |
 | `description` | String |  |  | "" |  |  |  |
 | `slug` | String |  | yes |  |  |  |  |
@@ -5352,6 +5365,7 @@ Indexes:
 |---|---|
 | `organizerId:1` |  |
 | `type:1` |  |
+| `audience:1` |  |
 | `slug:1` | unique, sparse |
 | `schedule.start:1` |  |
 | `status:1` |  |
@@ -5465,7 +5479,7 @@ source `Facility.js` · timestamps: yes · virtuals: 0 · retention: n/a — no 
 | `type` | String | yes |  |  | hospital, clinic, lab, pharmacy |  |  |
 | `subType` | String |  |  | "" | multi_specialty, super_specialty, single_specialty, nursing_home, maternity_hospital, day_care_surgery, government_hospital, district_hospital, medical_college, phc, chc, uphc, sub_centre, arogya_mandir, mohalla_community_clinic, trauma_centre, rehabilitation_hospital, psychiatri… (1775 chars) |  |  |
 | `ownership` | String |  |  | "" | government, private, trust_charitable, corporate_chain, cooperative, ppp, military_railway_esi, |  |  |
-| `systemOfMedicine` | String |  |  | "" | allopathy, ayurveda, homeopathy, unani, siddha, yoga_naturopathy, integrative, |  |  |
+| `systemOfMedicine` | String |  |  | "" | allopathy, ayurveda, homeopathy, unani, siddha, yoga_naturopathy, sowa_rigpa, integrative, |  |  |
 | `schemesAccepted` | Array<Mixed> |  |  |  |  |  |  |
 | `email` | String | yes |  |  |  |  |  |
 | `phone` | String | yes |  |  |  |  |  |
@@ -9631,6 +9645,9 @@ source `PlatformContent.js` · timestamps: yes · virtuals: 0 · retention: n/a 
 | `reviewedBy` | ObjectId |  |  | null |  | User |  |
 | `reviewedAt` | Date |  |  | null |  |  |  |
 | `reviewNote` | String |  |  | "" |  |  |  |
+| `contentType` | String |  |  | "page" | page, article, guide |  |  |
+| `specialtyCodes` | Array<Mixed> |  |  |  |  |  |  |
+| `summary` | String |  |  | "" |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -9641,7 +9658,10 @@ Indexes:
 |---|---|
 | `key:1` | unique |
 | `status:1` |  |
+| `contentType:1` |  |
+| `specialtyCodes:1` |  |
 | `updatedAt:-1` |  |
+| `status:1, contentType:1, specialtyCodes:1, publishedAt:-1` |  |
 
 ### `platformcouponredemptions` — PlatformCouponRedemption
 
@@ -11532,12 +11552,13 @@ source `RideBooking.js` · timestamps: yes · virtuals: 0 · retention: Trip dur
 | `vehicleType` | String | yes |  |  | bike, auto, e_rickshaw, car, van |  |  |
 | `isEmergency` | Boolean |  |  | false |  |  |  |
 | `pickup.address` | String | yes |  |  |  |  | Contact |
-| `pickup.lat` | Number | yes |  |  |  |  | Location |
-| `pickup.lng` | Number | yes |  |  |  |  | Location |
+| `pickup.lat` | Number |  |  | null |  |  | Location |
+| `pickup.lng` | Number |  |  | null |  |  | Location |
 | `drop.address` | String | yes |  |  |  |  | Contact |
-| `drop.lat` | Number | yes |  |  |  |  | Location |
-| `drop.lng` | Number | yes |  |  |  |  | Location |
+| `drop.lat` | Number |  |  | null |  |  | Location |
+| `drop.lng` | Number |  |  | null |  |  | Location |
 | `distanceKm` | Number |  |  | 0 |  |  |  |
+| `locationPurgedAt` | Date |  |  | null |  |  |  |
 | `durationMin` | Number |  |  | 0 |  |  |  |
 | `fare.base` | Number |  |  | 0 |  |  |  |
 | `fare.distanceCharge` | Number |  |  | 0 |  |  |  |
@@ -11607,6 +11628,7 @@ Indexes:
 | `riderId:1` |  |
 | `vehicleType:1` |  |
 | `isEmergency:1` |  |
+| `locationPurgedAt:1` |  |
 | `status:1` |  |
 | `retryAt:1` |  |
 | `lakeArchivedAt:1` |  |

@@ -68,6 +68,8 @@ const auditLog = jestApi.fn();
 // 2.md 6 — assignment targets are validated against the User row (active
 // reviewer role), so the assign route needs this model stubbed too.
 const userFindOne = jestApi.fn();
+const reviewerAssignmentAssign = jestApi.fn();
+const reviewerAssignmentComplete = jestApi.fn();
 
 let lastListFilter = null;
 let lastDocumentsFilter = null;
@@ -111,8 +113,18 @@ jestApi.unstable_mockModule('../../src/models/Provider.js', () => ({
   },
 }));
 
+jestApi.unstable_mockModule('../../src/models/ReviewerAssignment.js', () => ({
+  __esModule: true,
+  default: {
+    assignReviewer: (...args) => reviewerAssignmentAssign(...args),
+    completeAssignment: (...args) => reviewerAssignmentComplete(...args),
+  },
+}));
+
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
+
   auditLog: (...args) => auditLog(...args),
+  auditLogRequired: (...args) => (typeof auditLog === 'function' ? auditLog(...args) : Promise.resolve()),
 }));
 
 const { as } = await mountApp('adminApplications', {
@@ -139,6 +151,8 @@ beforeEach(() => {
   providerCreate.mockReset().mockImplementation(async (body) => ({ _id: PROVIDER_ID, ...body }));
   providerFindById.mockReset().mockResolvedValue(null);
   userFindOne.mockReset().mockImplementation(() => chain({ _id: ASSIGN_TARGET }));
+  reviewerAssignmentAssign.mockReset().mockResolvedValue({ _id: 'assignment-test' });
+  reviewerAssignmentComplete.mockReset().mockResolvedValue({ status: 'completed' });
   auditLog.mockReset().mockResolvedValue(undefined);
 });
 
