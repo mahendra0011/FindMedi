@@ -1,0 +1,90 @@
+# FindMedi DISPOSABLE real-services test harness (file 18:223).
+#
+# This stack exists ONLY to execute `backend/test/integration/realServicesHarnessSmoke.spec.js`
+# against real Mongo (replica set), Redis, ClamAV and OpenSearch. It is NOT a
+# development or production profile:
+#   - OpenSearch runs with the security plugin DISABLED because nothing is
+#     persisted and the only client is the harness probe. Never run this file
+#     anywhere a real index could exist.
+#   - Bindings stay on 127.0.0.1 so the ports are not reachable off-host.
+#   - ClamAV's first boot downloads the signature database (minutes).
+#
+# Usage:
+#   docker compose -f infra/docker-compose.harness.yml up -d
+#   # wait for clamav health
+#   backend/.env harness vars:
+#     MONGO_REPLICA_TEST_URI=mongodb://127.0.0.1:27018/findmedi_harness?directConnection=true
+#     REDIS_URL=redis://127.0.0.1:6380
+#     CLAMAV_HOST=127.0.0.1
+#     CLAMAV_PORT=3310
+#     OPENSEARCH_NODE=http://127.0.0.1:9200
+#     REAL_SERVICES_REQUIRED=true
+services:
+  mongo1:
+    image: mongo:7.0
+    container_name: findmedi-harness-mongo
+    ports:
+      - "127.0.0.1:27018:27017"
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - harness_mongo_data:/data/db
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: findmedi-harness-redis
+    ports:
+      - "127.0.0.1:6380:6379"
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  clamav:
+    image: clamav/clamav:1.4
+    container_name: findmedi-harness-clamav
+    ports:
+      - "127.0.0.1:3310:3310"
+    tmpfs:
+      - /var/lib/clamav
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 360s
+
+  opensearch:
+    image: opensearchproject/opensearch:2.12.0
+    container_name: findmedi-harness-opensearch
+    ports:
+      - "127.0.0.1:9200:9200"
+    environment:
+      - cluster.name=findmedi-harness
+      - node.name=harness-node1
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - DISABLE_SECURITY_PLUGIN=true
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - harness_opensearch_data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  harness_mongo_data:
+  harness_opensearch_data:

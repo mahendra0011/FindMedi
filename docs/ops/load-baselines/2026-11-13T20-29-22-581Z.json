@@ -1,0 +1,63 @@
+{
+  "capturedAt": "2026-11-13T20:29:22.581Z",
+  "baseUrl": "http://localhost:5001",
+  "mode": "full",
+  "thresholds": {
+    "p95Ms": 500,
+    "errorRate": 0.01
+  },
+  "stages": [
+    {
+      "name": "ramp",
+      "vus": 20,
+      "durationMs": 30000,
+      "requests": 4002,
+      "errors": 0,
+      "errorRate": 0,
+      "throughputRps": 133.4,
+      "p50Ms": 9.1,
+      "p95Ms": 81.9,
+      "p99Ms": 187.8
+    },
+    {
+      "name": "sustain",
+      "vus": 50,
+      "durationMs": 60000,
+      "requests": 11206,
+      "errors": 0,
+      "errorRate": 0,
+      "throughputRps": 186.76666666666668,
+      "p50Ms": 99.3,
+      "p95Ms": 363.8,
+      "p99Ms": 776
+    },
+    {
+      "name": "spike",
+      "vus": 100,
+      "durationMs": 30000,
+      "requests": 5058,
+      "errors": 0,
+      "errorRate": 0,
+      "throughputRps": 168.6,
+      "p50Ms": 366.1,
+      "p95Ms": 1103.5,
+      "p99Ms": 1681.3
+    },
+    {
+      "name": "soak",
+      "vus": 25,
+      "durationMs": 120000,
+      "requests": 12769,
+      "errors": 0,
+      "errorRate": 0,
+      "throughputRps": 106.40833333333333,
+      "p50Ms": 66.9,
+      "p95Ms": 326.6,
+      "p99Ms": 589.8
+    }
+  ],
+  "passed": false,
+  "failures": [
+    "spike: p95 1103.5ms > 500ms"
+  ]
+}

@@ -1,3 +1,5 @@
+import { readLocaleFromQuery } from './localeUrl';
+
 export const DEFAULT_USER_SETTINGS = {
   emailNotifications: true,
   systemNotifications: true,
@@ -49,7 +51,11 @@ export function applyUserSettings(settings = {}) {
   root.dataset.lowBandwidth = next.lowBandwidth ? 'true' : 'false';
   root.classList.toggle('low-bandwidth', Boolean(next.lowBandwidth));
   document.body?.classList.toggle('low-bandwidth', Boolean(next.lowBandwidth));
-  root.lang = next.language || 'en';
+  // The url locale wins over the stored preference: a shared or crawled
+  // `?lang=hi` link must render in Hindi, not in whatever the visitor picked
+  // last time. The stored preference is only the fallback.
+  const urlLocale = readLocaleFromQuery(typeof window !== 'undefined' ? window.location.search : '');
+  root.lang = urlLocale || next.language || 'en';
   root.dir = 'ltr';
 
   if (typeof localStorage !== 'undefined') {

@@ -57,9 +57,9 @@ export default function PatientDashboardV2() {
         }
       } catch { /* keep fallback */ }
       try {
-        const a = await api.get('/appointments/mine?upcoming=1') as unknown as { items?: Array<{ _id?: string; doctorName?: string; time?: string; appointmentDate?: string }> };
-        if (!cancelled && Array.isArray(a?.items)) {
-          setToday(a.items.slice(0, 3).map((x, i) => ({
+        const a = await api.get('/appointments/my-appointments?upcoming=1') as unknown as { appointments?: Array<{ _id?: string; doctorName?: string; time?: string; appointmentDate?: string }> };
+        if (!cancelled && Array.isArray(a?.appointments)) {
+          setToday(a.appointments.slice(0, 3).map((x, i) => ({
             id: String(x._id ?? i),
             title: `Visit — ${String(x.doctorName ?? 'Doctor')}`,
             time: String(x.time ?? x.appointmentDate ?? ''),
@@ -67,9 +67,9 @@ export default function PatientDashboardV2() {
         }
       } catch { /* keep fallback */ }
       try {
-        const p = await api.get('/programs/mine') as unknown as { items?: Array<{ _id?: string; name?: string; status?: string }> };
-        if (!cancelled && Array.isArray(p?.items)) {
-          setPrograms(p.items.map((x, i) => ({
+        const p = await api.get('/patient/recommendations') as unknown as { programs?: Array<{ _id?: string; name?: string; status?: string }> };
+        if (!cancelled && Array.isArray(p?.programs)) {
+          setPrograms(p.programs.map((x, i) => ({
             id: String(x._id ?? i), name: String(x.name ?? 'Program'), status: String(x.status ?? 'active'),
           })));
         }

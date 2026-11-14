@@ -21,6 +21,14 @@ import path from 'node:path';
 
 export const SELF_HINTS = ['/me', '/my-', '/profile', '/self', '/mine'];
 
+/**
+ * Tags the authorization grammar in `authzClassify.mjs` declares. A `// authz:`
+ * comment whose first word is not in this list is prose, not a tag.
+ */
+export const KNOWN_AUTHZ_TAGS = Object.freeze([
+  'public', 'self', 'role', 'object', 'facility', 'inherited', 'unclassified',
+]);
+
 /** Middleware that authenticate or validate, but do NOT authorize. */
 export const NON_AUTHZ = new Set([
   'protect', 'optionalProtect', 'authenticate',
@@ -177,7 +185,12 @@ function authzTag(lines, i) {
   for (let j = i - 1; j >= 0 && j >= i - 3; j--) {
     const t = lines[j] || '';
     const m = t.match(/^\s*\/\/\s*authz:\s*(\w+)/);
-    if (m) return m[1];
+    // Only a KNOWN tag counts. `// authz: moderator. Reporter identity is not
+    // included in this queue response.` is prose that happens to start with a
+    // tag word - treating the first word as the tag invented a "moderator"
+    // tag that no grammar declares, and the manifest then failed its own
+    // "only declared tags" check.
+    if (m) return KNOWN_AUTHZ_TAGS.includes(m[1]) ? m[1] : null;
     if (/^\s*\/\//.test(t)) continue;
     if (t.trim()) break;
   }

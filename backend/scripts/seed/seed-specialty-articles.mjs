@@ -1,5 +1,7 @@
-﻿import mongoose from 'mongoose';
-import PlatformContent from '../src/models/PlatformContent.js';
+﻿import dns from 'node:dns';
+dns.setServers(['8.8.8.8']);
+import mongoose from 'mongoose';
+import PlatformContent from '../../src/models/PlatformContent.js';
 
 const ARTICLES = [
   { code: 'SPEC.CARDIO', title: 'Understanding Heart Health', summary: 'An overview of cardiovascular health and prevention.' },

@@ -3,6 +3,7 @@ import Doctor from '../models/Doctor.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
+import { telemedicineGate } from '../middleware/telemedicineGate.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 import { getISTDateString } from '../utils/dateUtils.js';
@@ -56,7 +57,7 @@ const createNotification = async (userId, title, message, type = 'appointment') 
 };
 
 // authz: self
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, telemedicineGate, async (req, res) => {
   try {
     const b = req.body || {};
     if (!b.doctorId || !OBJECT_ID.test(String(b.doctorId))) {

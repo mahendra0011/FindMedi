@@ -1,6 +1,6 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { HashRouter, Route, Routes, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate, Outlet } from 'react-router-dom';
 import { useEffect, useRef, lazy, Suspense } from 'react';
 import { Provider } from 'react-redux';
 import { Toaster as Sonner } from '@/components/ui/sonner';
@@ -50,6 +50,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
+const TwoFactorSetup = lazy(() => import('./pages/TwoFactorSetup'));
 const OTPVerification = lazy(() => import('./pages/OTPVerification'));
 const PendingApproval = lazy(() => import('./pages/PendingApproval'));
 const DoctorSetup = lazy(() => import('./pages/DoctorSetup'));
@@ -124,6 +125,8 @@ const CrmProjectsRoadmap = lazy(() => import('./pages/superadmin/crm/ProjectsRoa
 const CrmSettings = lazy(() => import('./pages/superadmin/crm/CrmSettings'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const LegalDocumentPage = lazy(() => import('./pages/legal/LegalDocumentPage'));
+const About = lazy(() => import('./pages/About'));
+const Contact = lazy(() => import('./pages/Contact'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const Disclaimer = lazy(() => import('./pages/Disclaimer'));
 const RefundPolicy = lazy(() => import('./pages/RefundPolicy'));
@@ -648,6 +651,7 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
     </div>
   );
   if (!user) return <Navigate to="/login" replace />;
+  if (user.requiresTwoFactorEnrollment) return <Navigate to="/2fa-setup" replace />;
   if (user.status === 'blocked') return <BlockedAccountRedirect />;
   if (!user.isVerified) return <Navigate to={`/verify-otp?email=${encodeURIComponent(user.email ?? '')}`} replace />;
   if ((user.role === 'doctor' || user.role === 'clinic_doctor') && !user.doctorApproved) {
@@ -684,6 +688,7 @@ function DashboardShell() {
 
 function RoleRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
   const { user } = useAuth();
+  if (user?.requiresTwoFactorEnrollment) return <Navigate to="/2fa-setup" replace />;
   if (allowedRoles && !allowedRoles.includes(user?.role ?? '')) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
@@ -924,7 +929,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ErrorBoundary>
     <ReduxAuthProvider>
-      <HashRouter>
+      <BrowserRouter>
       <SensitiveScreenGuard />
       <NotificationProvider>
         <PreferredPharmacyProvider>
@@ -954,7 +959,10 @@ const App = () => (
                   <Routes>
                   {/* Public routes */}
                   <Route path="/" element={<Home />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
                   <Route path="/login" element={<Login />} />
+                    <Route path="/2fa-setup" element={<TwoFactorSetup />} />
                     <Route path="/signup" element={<Signup />} />
                     <Route path="/join-platform" element={<JoinPlatform />} />
                     <Route path="/join" element={<Navigate to="/join-platform" replace />} />
@@ -1702,7 +1710,7 @@ const App = () => (
         </CartProvider>
         </PreferredPharmacyProvider>
       </NotificationProvider>
-      </HashRouter>
+      </BrowserRouter>
     </ReduxAuthProvider>
     </ErrorBoundary>
   </QueryClientProvider>

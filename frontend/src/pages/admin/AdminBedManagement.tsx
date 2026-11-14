@@ -109,7 +109,7 @@ export default function AdminBedManagement() {
         <p className="text-sm text-muted-foreground">Ward layout map (2D floor-plan) — General / ICU / Emergency blocks</p>
         <div className="flex gap-2">
           <Button variant={view === 'plan' ? 'default' : 'outline'} size="sm" onClick={() => setView(view === 'plan' ? 'cards' : 'plan')}>{view === 'plan' ? 'Card View' : 'Floor-plan View'}</Button>
-          <Button variant="outline" size="sm" onClick={() => window.location.hash = '#/patient-registration'}>Admit Patient to Bed</Button>
+          <Button variant="outline" size="sm" onClick={() => window.location.href = '/patient-registration'}>Admit Patient to Bed</Button>
         </div>
       </div>
 

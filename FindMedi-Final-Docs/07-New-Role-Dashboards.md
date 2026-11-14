@@ -236,7 +236,7 @@ Doctor: show rate, avg consult time, rating · Lab: TAT, rejection rate · Pharm
 
 ## 8. Security checklist
 - [x] New roles added to `User.role` enum + authz manifest + tests — new roles in `models/User.js`, `authz-manifest.json`, `authzManifest.spec.js`/`authzGapClosure.spec.js`.
-- [x] Least-privilege defaults; PHI scoped by assignment — `middleware/permissions.js` + care-team/assignment scoping.
+- [x] Least-privilege defaults; PHI scoped by assignment — `config/permissions.js` + care-team/assignment scoping.
 - [x] Mandatory 2FA for privileged roles — `TWO_FACTOR_REQUIRED_ROLES` in `routes/auth.js`.
 - [x] Field-level encryption for T1 notes — `fieldEncryption.js`/`phiCrypto.js` envelopes on clinical note fields.
 - [x] Exports capped, audited, step-up — `EXPORT_ROW_CAP`, audit log, `requireStepUp('export:full')`.

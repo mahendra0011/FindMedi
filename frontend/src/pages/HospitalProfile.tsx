@@ -145,7 +145,8 @@ export default function HospitalProfile() {
         if (!hosp) { setNotFound(true); return; }
         setHospital(hosp);
         setDoctors(docs?.doctors || docs?.data || docs || []);
-      if (revs && revs.length > 0) setReviews(revs);
+      const reviewList = Array.isArray(revs) ? revs : (revs?.reviews || revs?.data || []);
+      if (reviewList.length > 0) setReviews(reviewList);
       // Fetch suggested hospitals
       try {
         const rawHosp = await api.getHospitals({});

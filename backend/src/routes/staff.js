@@ -109,6 +109,19 @@ router.get('/', protect, authorize('staff:manage'), async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+router.get('/stats', protect, authorize('staff:manage'), async (req, res) => {
+  // ADM-B-02: headcount per department is tenant data.
+  if (denyIfTenantless(req, res)) return;
+  const filter = { status: 'Active', ...staffScopeFilter(req) };
+  const total = await Staff.countDocuments(filter);
+  const onLeave = await Staff.countDocuments({ ...filter, status: 'On Leave' });
+  const byDepartment = await Staff.aggregate([
+    { $match: filter },
+    { $group: { _id: '$department', count: { $sum: 1 } } }
+  ]);
+  res.json({ total, onLeave, byDepartment });
+});
+
 router.get('/:id', protect, authorize('staff:manage'), requireObjectId, async (req, res) => {
   try {
     const filter = { _id: req.params.id };
@@ -173,19 +186,6 @@ router.delete('/:id', protect, authorize('staff:manage'), adminOnly, requireObje
     }
     res.json({ message: 'Staff deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
-});
-
-router.get('/stats', protect, authorize('staff:manage'), async (req, res) => {
-  // ADM-B-02: headcount per department is tenant data.
-  if (denyIfTenantless(req, res)) return;
-  const filter = { status: 'Active', ...staffScopeFilter(req) };
-  const total = await Staff.countDocuments(filter);
-  const onLeave = await Staff.countDocuments({ ...filter, status: 'On Leave' });
-  const byDepartment = await Staff.aggregate([
-    { $match: filter },
-    { $group: { _id: '$department', count: { $sum: 1 } } }
-  ]);
-  res.json({ total, onLeave, byDepartment });
 });
 
 // ─── Attendance ───────────────────────────────────────────────────────────────

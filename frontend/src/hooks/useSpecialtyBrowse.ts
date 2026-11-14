@@ -1,5 +1,6 @@
 import { useApiQuery } from './useApiQuery';
 import { api } from '../lib/api';
+import { useMemo } from 'react';
 
 // Browse-by-specialties data layer.
 // Source of truth = backend /categories/specialties (43 tiles x 13 groups).
@@ -116,14 +117,14 @@ export function useSpecialtyTiles(): SpecialtyTilesResult {
   const groups: SpecialtyGroup[] = tree.data?.groups || [];
   const fromApi = groups.length > 0;
 
-  const groupList: SpecialtyGroup[] = groups.map((g) => ({
+  const groupList: SpecialtyGroup[] = useMemo(() => groups.map((g) => ({
     id: g.id || g.group || g.label || 'specialty-group',
     name: g.name || g.label || g.group || 'Specialties',
     color: g.color,
     tiles: g.tiles || [],
-  }));
+  })), [groups]);
 
-  const allTiles = groupList.flatMap((g) => g.tiles);
+  const allTiles = useMemo(() => groupList.flatMap((g) => g.tiles), [groupList]);
   return { ...tree, groups: groupList, tiles: allTiles, fromApi, ready: tree.isSuccess || fromApi };
 }
 

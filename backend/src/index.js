@@ -449,7 +449,7 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 // MongoDB injection protection
 app.use(mongoSanitize());
 
-// P1-5: HTTP Parameter Pollution â€” the `hpp` package collapses duplicate
+// P1-5: HTTP Parameter Pollution — the `hpp` package collapses duplicate
 // query/body keys to the last scalar value, running after mongoSanitize.
 app.use(hpp());
 // File 22 P2-31: downtime read-only gate (cached flag, writes 503).

@@ -49,7 +49,7 @@ test.describe('Feedback & NPS Dashboard (B4)', () => {
       }),
     );
 
-    await page.goto('/#/hospital/feedback');
+    await page.goto('/hospital/feedback');
 
     await expect(page.getByRole('heading', { name: /patient feedback & net promoter score/i })).toBeVisible();
     await expect(page.getByText('Exceptional care and friendly staff')).toBeVisible();
@@ -106,7 +106,7 @@ test.describe('Feedback & NPS Dashboard (B4)', () => {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: {} }) });
     });
 
-    await page.goto('/#/patient/appointments');
+    await page.goto('/patient/appointments');
     await expect(page.getByRole('heading', { name: /my appointments/i })).toBeVisible();
     await page.getByRole('tab', { name: 'Past' }).click();
     await page.getByRole('button', { name: /rate experience/i }).click();
@@ -175,7 +175,7 @@ test.describe('Feedback & NPS Dashboard (B4)', () => {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: {} }) });
     });
 
-    await page.goto('/#/patient/reports');
+    await page.goto('/patient/reports');
     await expect(page.getByText('Pathology Lab Orders')).toBeVisible();
     await page.getByRole('button', { name: /LAB-FB-001/ }).click();
     await page.getByRole('button', { name: /^Rate$/ }).click();

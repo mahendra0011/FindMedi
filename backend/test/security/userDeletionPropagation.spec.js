@@ -98,7 +98,7 @@ app.use('/api/users', userRoutes);
 const request = supertest(app);
 
 const TARGET = '652f000000000000000000aa';
-const ADMIN = { id: '652f000000000000000000ad', _id: '652f000000000000000000ad', role: 'admin' };
+const ADMIN = { id: '652f000000000000000000ad', _id: '652f000000000000000000ad', role: 'admin', hospitalId: 'H1' };
 
 afterAll(() => {
   rmSync(MANIFEST_DIR, { recursive: true, force: true });
@@ -113,7 +113,7 @@ describe('DP-M-04 · DELETE /api/users/:id runs the chain before the hard delete
       order.push('chain');
       return { steps: [], failed: [] };
     });
-    userFindById.mockResolvedValue({ _id: TARGET, role: 'patient' });
+    userFindById.mockResolvedValue({ _id: TARGET, role: 'patient', hospitalId: 'H1' });
     userFindByIdAndDelete.mockImplementation(async () => {
       order.push('delete');
       return {};

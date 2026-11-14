@@ -176,7 +176,7 @@ describe('STEP-UP F7: the sensitive mounts exist and every scope is registered',
   const read = (p) => fs.readFileSync(new URL(p, routeDir), 'utf8');
   // Comments carry `requireStepUp('<scope>')` examples - only live code counts.
   const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
-  const scopesIn = (src) => [...stripComments(src).matchAll(/requireStepUp\('([^']+)'\)/g)].map((m) => m[1]);
+  const scopesIn = (src) => [...stripComments(src).matchAll(/requireStepUp\('([^']+)'(?:,[^)]*)?\)/g)].map((m) => m[1]);
 
   it('every scope used at a route is registered in SENSITIVE_SCOPES', () => {
     // An unregistered scope cannot be minted by /auth/step-up, so the mount
@@ -194,22 +194,24 @@ describe('STEP-UP F7: the sensitive mounts exist and every scope is registered',
     expect(found).toBeGreaterThanOrEqual(11); // 6 export + reports + audit + records + staff + payouts + refunds
   });
 
-  it('export.js guards job creation and the five data pulls', () => {
+  it('export.js guards job creation, the job-status poll and the five data pulls', () => {
     const src = read('export.js');
     const scopes = scopesIn(src);
-    expect(scopes).toHaveLength(6);
+    // 1 job creation + 1 job poll + 5 data pulls (users, revenue, bookings,
+    // facilities, audit).
+    expect(scopes).toHaveLength(7);
     expect(scopes.every((s) => s === 'export:full')).toBe(true);
-    // The job-status poll stays unguarded: it reveals nothing about the data,
-    // and prompting on every poll tick would loop the dialog.
-    expect(src).toMatch(/router\.get\('\/jobs\/:id', protect, superadminOnly, async/);
+    // The poll returns the completed job's result payload, so it is guarded
+    // like the pulls: a stolen session must not read the export by jobId.
+    expect(src).toMatch(/router\.get\('\/jobs\/:id', protect, superadminOnly, requireStepUp\('export:full'/);
   });
 
   it('reports and audit-log exports require a fresh proof', () => {
     expect(read('reports.js')).toMatch(
-      /router\.get\('\/export\/:type', protect, adminOnly, requireStepUp\('export:full'\)/
+      /router\.get\('\/export\/:type', protect, adminOnly, requireStepUp\('export:full'[^)]*\)/
     );
     expect(read('auditLogs.js')).toMatch(
-      /router\.get\('\/export', protect, authorize\('audit:read'\), auditSearchLimiter, requireStepUp\('export:full'\)/
+      /router\.get\('\/export', protect, authorize\('audit:read'\), auditSearchLimiter, requireStepUp\('export:full'[^)]*\)/
     );
   });
 

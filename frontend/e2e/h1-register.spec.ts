@@ -38,7 +38,7 @@ test.describe('Pharmacy H1 / Narcotic Register (B4)', () => {
       }),
     );
 
-    await page.goto('/#/pharmacy/h1-register');
+    await page.goto('/pharmacy/h1-register');
 
     await expect(page.getByRole('heading', { name: /pharmacy h1 \/ narcotic statutory register/i })).toBeVisible();
     await expect(page.getByText('Devendra Joshi')).toBeVisible();

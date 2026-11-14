@@ -11,7 +11,7 @@ test.describe('Join Platform provider type cards', () => {
       contentType: 'application/json',
       body: JSON.stringify({ providerTypes }),
     }));
-    await page.goto('/#/join-platform');
+    await page.goto('/join-platform');
 
     await expect(page.getByRole('button', { name: new RegExp(`All Categories \\(${providerTypes.length}\\)`) })).toBeVisible();
     const firstGrid = page.locator('section .grid').first();
@@ -39,7 +39,7 @@ test.describe('Join Platform provider type cards', () => {
       contentType: 'application/json',
       body: JSON.stringify({ providerTypes }),
     }));
-    await page.goto('/#/join-platform');
+    await page.goto('/join-platform');
 
     await expect(page.getByRole('button', { name: new RegExp(`All Categories \\(${providerTypes.length}\\)`) })).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

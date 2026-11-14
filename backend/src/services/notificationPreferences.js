@@ -59,7 +59,7 @@ export const inQuietHours = (quietHours, now = new Date()) => {
 };
 
 export const DEFAULT_PREFERENCE = {
-  channels: { inApp: true, email: true, sms: true, push: true },
+  channels: { inApp: true, email: true, sms: true, push: true, whatsapp: true },
   marketingOptIn: true,
   mutedTypes: [],
   quietHours: { enabled: false, startMinute: 22 * 60, endMinute: 7 * 60 },

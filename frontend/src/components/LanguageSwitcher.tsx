@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, ChevronDown, Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { applyLocaleToUrl } from '@/lib/localeUrl';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,10 @@ export default function LanguageSwitcher() {
     } catch { /* private mode — session-only */ }
     try { document.documentElement.lang = next; } catch { /* non-DOM */ }
     void i18n.changeLanguage(next);
+    // Keep the address bar in sync with the locale URLs (doc 21 §15):
+    // en/hi are crawlable variants (?lang=hi), the other languages rely on
+    // the stored preference and keep the clean default URL.
+    applyLocaleToUrl(next === 'hi' ? 'hi' : 'en');
     setOpen(false);
   };
 

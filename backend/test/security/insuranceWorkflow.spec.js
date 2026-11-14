@@ -147,7 +147,10 @@ const { as } = await mountApp('insurance', {
   '../../src/models/Insurance.js': () => ({ default: fakeInsurance }),
   '../../src/models/Hospital.js': () => ({ default: fakeHospital }),
     '../../src/models/Notification.js': () => ({ default: { create: notificationCreate } }),
-  '../../src/middleware/audit.js': () => ({ auditLog: (...a) => auditLog(...a) }),
+  '../../src/middleware/audit.js': () => ({
+    auditLog: (...a) => auditLog(...a),
+    auditLogRequired: (...a) => auditLog(...a),
+  }),
   '../../src/middleware/idempotency.js': () => ({
     idempotencyGuard: () => (_req, _res, next) => next(),
   }),

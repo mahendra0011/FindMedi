@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import IntakeFormStep from './IntakeFormStep';
+import { TelemedicineConsentGate } from './TelemedicineConsentGate';
 import { userFacingError } from '@/lib/errorCopy';
 import { isSensitiveCategory, neutralText, SLOT_HOLD_SECONDS, formatHoldCountdown } from '@/lib/discreet';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
@@ -71,6 +72,7 @@ export default function BookingModal({
   // Guardian consent: required when booking for a family member / other person
   // (minor or dependent). Recorded as a checkbox confirmation sent with payment.
   const [guardianConsent, setGuardianConsent] = useState(false);
+  const [telemedAccepted, setTelemedAccepted] = useState(false);
   // Discreet mode: neutral copy when the category is sensitive (mental health,
   // sexual/reproductive, de-addiction, IVF) or the user toggles it on.
   const [discreetMode, setDiscreetMode] = useState(false);
@@ -116,6 +118,7 @@ export default function BookingModal({
       setBookingFor('self');
       setSelectedFamilyMember(null);
       setGuardianConsent(false);
+      setTelemedAccepted(false);
       setSlotHoldLeft(null);
       setSelectedPackageId('single');
       setPackageInfoId(null);
@@ -395,6 +398,12 @@ export default function BookingModal({
     setBookingDetails({ doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees: effectiveFee, mode: appointmentMode, packageId: selectedPackage?.id || '', packageName: selectedPackage?.name || '' });
     
     setBookingStep(1); // Package & Mode already selected in Quick booking (step 0) for counsellor/psychiatrist
+  };
+
+  const handleTelemedicineConsent = async () => {
+    if (!currentDoc) throw new Error('No doctor selected');
+    await api.grantTelemedicineConsent({ doctorId: currentDoc.user_id || currentDoc.userId || currentDoc._id });
+    toast.success('Telemedicine consent recorded');
   };
 
   const handlePayment = async () => {
@@ -1623,9 +1632,17 @@ export default function BookingModal({
                   </div>
                 </div>
               )}
+              {isOnlineMode && !telemedAccepted && (
+                <TelemedicineConsentGate
+                  onConsent={async () => {
+                    await handleTelemedicineConsent();
+                    setTelemedAccepted(true);
+                  }}
+                />
+              )}
               <DialogFooter className="gap-2 sm:gap-2">
                 <Button variant="outline" size="sm" className="w-full sm:w-auto flex-1" onClick={() => setBookingStep(3)}>Back</Button>
-                <Button size="sm" className="w-full sm:w-auto flex-1" disabled={paymentLoading} onClick={handlePayment}>
+                <Button size="sm" className="w-full sm:w-auto flex-1" disabled={paymentLoading || (isOnlineMode && !telemedAccepted)} onClick={handlePayment}>
                   {paymentLoading ? <>Processing…</> : <>Pay ₹{effectiveFee}</>}
                 </Button>
               </DialogFooter>

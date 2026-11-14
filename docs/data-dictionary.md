@@ -14,7 +14,7 @@
 ## Summary
 
 - **351 models** across 343 files (0 skipped)
-- **7800 schema fields**, of which **813 classified as PII** in **249 collections**
+- **7801 schema fields**, of which **813 classified as PII** in **249 collections**
 - **10 collections** carry a TTL index
 - **129 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -239,7 +239,7 @@
 | `nicurecords` | NicuRecord | 26 | 3 | 3 | — | Clinical records |
 | `notificationaudits` | NotificationAudit | 11 | 1 | 6 | — | Audit logs |
 | `notificationdeliveries` | NotificationDelivery | 19 | 1 | 6 | — | Notifications |
-| `notificationpreferences` | NotificationPreference | 16 | 2 | 1 | — | **UNMAPPED — see gaps** |
+| `notificationpreferences` | NotificationPreference | 17 | 2 | 1 | — | **UNMAPPED — see gaps** |
 | `notifications` | Notification | 15 | 1 | 3 | — | Notifications |
 | `notificationtemplates` | NotificationTemplate | 12 | 0 | 3 | — | No PII fields detected |
 | `notifytemplates` | NotifyTemplate | 14 | 2 | 3 | — | **UNMAPPED — see gaps** |
@@ -8360,6 +8360,7 @@ source `NotificationPreference.js` · timestamps: yes · virtuals: 0 · retentio
 | `channels.sms` | Boolean |  |  | true |  |  |  |
 | `channels.push` | Boolean |  |  | true |  |  |  |
 | `channels.ivr` | Boolean |  |  | true |  |  |  |
+| `channels.whatsapp` | Boolean |  |  | true |  |  |  |
 | `marketingOptIn` | Boolean |  |  | true |  |  |  |
 | `mutedTypes` | Array<Mixed> |  |  | [] |  |  |  |
 | `discreetMode` | Boolean |  |  | false |  |  |  |

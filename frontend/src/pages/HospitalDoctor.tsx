@@ -102,7 +102,8 @@ export default function HospitalDoctor() {
         setDoctor(doc);
 
         const rv = await api.getReviews({ doctorId: id }).catch(() => []);
-        if (Array.isArray(rv) && rv.length > 0) setReviews(rv);
+        const reviewList = Array.isArray(rv) ? rv : (rv?.reviews || rv?.data || []);
+        if (reviewList.length > 0) setReviews(reviewList);
 
         const allDocs = await api.getDoctors({}).catch(() => ({ data: [] }));
         const allList = Array.isArray(allDocs) ? allDocs : (allDocs?.data || allDocs?.doctors || []);

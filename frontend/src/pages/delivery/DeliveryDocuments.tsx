@@ -141,7 +141,7 @@ export default function DeliveryDocuments() {
         <p className="text-muted-foreground text-sm mb-6">
           Please complete your basic fleet registration to start submitting compliance documentation.
         </p>
-        <Button className="rounded-xl bg-primary text-primary-foreground px-6 font-semibold" onClick={() => window.location.hash = '#/register/delivery-partner'}>
+        <Button className="rounded-xl bg-primary text-primary-foreground px-6 font-semibold" onClick={() => window.location.href = '/register/delivery-partner'}>
           Register as Delivery Partner
         </Button>
       </div>

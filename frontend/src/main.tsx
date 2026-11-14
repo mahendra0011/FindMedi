@@ -2,8 +2,10 @@ import { createRoot } from "react-dom/client";
 import * as Sentry from "@sentry/react";
 import App from "./App";
 import "./index.css";
-import "./i18n";
+import i18n from "./i18n";
 import { initFeatureFlags, initPostHog } from "./services/featureFlags";
+import { captureUtmParams } from "./lib/track";
+import { readLocaleFromQuery } from "./lib/localeUrl";
 
 // Sentry error tracking + performance (env-gated: no VITE_SENTRY_DSN = no-op)
 // §6.4: never ship cookies/auth headers, query strings (tokens/PHI) or bodies.
@@ -46,15 +48,16 @@ if (!(import.meta as any).env?.VITE_TEST_MODE) {
   initPostHog();
 }
 
-// ─── HashRouter migration helper ──────────────────────────────────────────
-// If a user hits https://findmedi.online/login or gets redirected without '#',
-// seamlessly migrate the URL to https://findmedi.online/#/login so HashRouter routes correctly.
-if (window.location.pathname && window.location.pathname !== '/' && window.location.pathname !== '/index.html' && !window.location.hash) {
-  const path = window.location.pathname.replace(/^\/index\.html/, '');
-  const search = window.location.search || '';
-  if (path) {
-    window.history.replaceState(null, '', `/#${path}${search}`);
-  }
+// BrowserRouter migration: no hash migration needed.
+
+// Locale in the URL (`?lang=hi`) wins over the stored preference, so a
+// shared / crawled url renders the locale it names. The stored preference
+// is updated to match, otherwise the next visit would flip back.
+const urlLocale = readLocaleFromQuery(window.location.search);
+if (urlLocale) {
+  try { window.localStorage.setItem('findmedi_lang', urlLocale); } catch { /* private mode */ }
+  try { document.documentElement.lang = urlLocale; } catch { /* non-DOM */ }
+  void i18n.changeLanguage(urlLocale);
 }
 
 const root = createRoot(document.getElementById("root")!);

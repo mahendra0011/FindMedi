@@ -453,6 +453,14 @@ export const api = {
 
   getAppointments:    (p={})    => request('/appointments?' + new URLSearchParams(p)),
   getMyAppointments:  (p={})    => request('/appointments/my-appointments?' + new URLSearchParams({ ...p, _t: Date.now() })),
+
+  // Membership lifecycle (6.md Flow D): the buyer's own terms.
+  getMyMemberships:   ()        => request('/memberships'),
+  freezeMembership:   (id,body) => request(`/memberships/${id}/freeze`,    { method:'POST', body: JSON.stringify(body) }),
+  unfreezeMembership: (id)      => request(`/memberships/${id}/unfreeze`,  { method:'POST', body: JSON.stringify({}) }),
+  renewMembership:    (id,body) => request(`/memberships/${id}/renew`,     { method:'POST', body: JSON.stringify(body || {}) }),
+  cancelMembership:   (id,body) => request(`/memberships/${id}/cancel`,    { method:'POST', body: JSON.stringify(body || {}) }),
+  checkInMembership:  (id,body) => request(`/memberships/${id}/check-in`,  { method:'POST', body: JSON.stringify(body || {}) }),
   getAppointmentsHistory: ()    => request('/appointments/history-with-payments?_t=' + Date.now()),
   getBookedSlots:     (p={})    => request('/appointments/booked-slots?' + new URLSearchParams(p)),
   lockAppointmentSlot:(body)    => request('/appointments/lock-slot', { method:'POST', body: JSON.stringify(body) }),
@@ -1200,6 +1208,7 @@ export const api = {
   bookLawyer:                (body)    => request('/lawyer-booking/book', { method: 'POST', body: JSON.stringify(body) }),
   fallbackBroadcastLawyerBooking: (id) => request(`/lawyer-booking/${id}/broadcast-fallback`, { method: 'POST' }),
   getFamilyMembers:          ()        => request('/patient/family'),
+  grantTelemedicineConsent:  (body)    => request('/patient/telemedicine-consent', { method: 'POST', body: JSON.stringify(body) }),
   // Patient portal live lists (replacing page-level demo fixtures).
   getMyEventRegistrations: ()        => request('/patient/events'),
   getMyInsurancePolicies:  ()        => request('/patient/insurance/policies'),

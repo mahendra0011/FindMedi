@@ -13,7 +13,7 @@ test('demo login role cards remain scrollable and the final role is reachable', 
       'nurse', 'radiologist', 'counsellor', 'psychiatrist', 'delivery_boy', 'ambulance',
     ] }),
   }));
-  await page.goto('/#/login');
+  await page.goto('/login');
 
   const rolePanel = page.getByLabel('Demo role cards');
   await expect(rolePanel).toBeVisible();

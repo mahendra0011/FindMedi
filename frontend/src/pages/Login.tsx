@@ -600,9 +600,7 @@ export default function Login() {
           </form>
 
           {(() => {
-            const hash = typeof window !== 'undefined' ? window.location.hash || '' : '';
-            const qIndex = hash.indexOf('?');
-            const qs = qIndex >= 0 ? hash.slice(qIndex + 1) : '';
+            const qs = typeof window !== 'undefined' ? window.location.search.slice(1) : '';
             const ref = new URLSearchParams(qs).get('ref');
             return ref ? (
               <p className="text-xs text-center text-muted-foreground mt-3">

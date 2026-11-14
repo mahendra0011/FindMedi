@@ -19,7 +19,8 @@ export default function DoctorReviews() {
       setLoading(true);
       try {
         const data = await api.getReviews();
-        setReviews(data.filter((r: Unmodelled) => r.doctorName === user?.name));
+        const list = Array.isArray(data) ? data : (data?.reviews || data?.data || []);
+        setReviews(list.filter((r: Unmodelled) => r.doctorName === user?.name));
       } catch (e: any) { console.error(e); }
       setLoading(false);
     };

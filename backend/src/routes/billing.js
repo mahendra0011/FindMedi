@@ -18,6 +18,7 @@ import logger from '../config/logger.js';
 import { validate, createPaymentSchema, createBillingSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { paymentLimiter } from '../middleware/rateLimit.js';
+import { telemedicineGate } from '../middleware/telemedicineGate.js';
 import { computeGstSplit } from '../lib/gst.js';
 import { paginatedResults } from '../utils/pagination.js';
 import { generateTransactionId, generateInvoiceId, generateBillId, generateTokenNumber } from '../utils/idGenerator.js';
@@ -728,7 +729,7 @@ router.delete('/:id', protect, authorize('billing:write'), paymentLimiter, async
 // PAY-B-05: every mutating money route opts into the replay guard.
 // `failClosed: true` means no `Idempotency-Key` header => 400 and Redis being
 // down => 503, i.e. a double-submit can never reach the money path.
-router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', failClosed: true }), async (req, res, next) => {
+router.post('/pay', protect, telemedicineGate, paymentLimiter, idempotencyGuard({ prefix: 'pay', failClosed: true }), async (req, res, next) => {
   let createdAppointment = null;
   let pharmacyOrderStateChanged = null;
   // PAY-B-03: holds the atomic seat claim so the compensating release can run on
@@ -1064,6 +1065,7 @@ router.post('/pay', protect, paymentLimiter, idempotencyGuard({ prefix: 'pay', f
           hospitalId: hospitalId || undefined,
           fees: Number(amount) || 0,
           status: 'Pending',
+          appointmentMode: apptData?.appointmentMode || 'offline',
           preConsultationDetails: preConsultationDetails ? { ...preConsultationDetails, filledAt: new Date() } : undefined,
           // PAY-B-08: an explicit hold expiry, so cleanup never has to guess from
           // `createdAt` and can reason about an in-flight checkout.

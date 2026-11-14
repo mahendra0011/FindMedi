@@ -36,7 +36,7 @@ test.describe('Hospital Security & Gate Pass Ledger (B4)', () => {
       }),
     );
 
-    await page.goto('/#/hospital/security');
+    await page.goto('/hospital/security');
 
     await expect(page.getByRole('heading', { name: /security desk & gate control/i })).toBeVisible();
     await expect(page.getByText('Ultrasound probe for vendor recalibration')).toBeVisible();

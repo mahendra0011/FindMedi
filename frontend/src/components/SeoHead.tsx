@@ -7,6 +7,7 @@ export interface SeoHeadProps {
   noindex?: boolean;
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
   ogImage?: string;
+  /** Omit to follow the app's current language (the `?lang=` url or the switcher). */
   locale?: string;
   alternates?: Array<{ hrefLang: string; href: string }>;
 }
@@ -21,7 +22,7 @@ const isSafeAbsoluteUrl = (value: string) => {
   }
 };
 
-export default function SeoHead({ title, description, canonical, noindex, jsonLd, ogImage, locale = 'en', alternates = [] }: SeoHeadProps) {
+export default function SeoHead({ title, description, canonical, noindex, jsonLd, ogImage, locale, alternates = [] }: SeoHeadProps) {
   useEffect(() => {
     document.title = title;
     const setMeta = (selector: string, create: () => HTMLMetaElement) => {
@@ -65,7 +66,11 @@ export default function SeoHead({ title, description, canonical, noindex, jsonLd
         document.head.appendChild(alternate);
       });
     }
-    document.documentElement.lang = locale;
+    // The language of the document follows the app's current language unless
+    // the page states one. Defaulting it to "en" here used to overwrite the
+    // `?lang=hi` locale with English on every public page.
+    const documentLang = (typeof document !== 'undefined' && document.documentElement.lang) || 'en';
+    document.documentElement.lang = locale || documentLang;
   }, [title, description, canonical, noindex, jsonLd, ogImage, locale, alternates]);
   return null;
 }

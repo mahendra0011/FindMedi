@@ -1,5 +1,5 @@
 /**
- * AUTHZ gap triage â€” which unclassified routes are actually unguarded?
+ * AUTHZ gap triage — which unclassified routes are actually unguarded?
  *
  * WHY THIS EXISTS
  * The `check-authz-coverage.mjs` gate reports 288 "unclassified" routes, which
@@ -124,7 +124,7 @@ console.log(bar);
 console.log('AUTHZ GAP TRIAGE');
 console.log(bar);
 console.log(`guarded         : ${guarded.length}`);
-console.log(`self-hinted     : ${selfHinted.length}   (/me, /my- â€” a NAMING convention, not a control)`);
+console.log(`self-hinted     : ${selfHinted.length}   (/me, /my- — a NAMING convention, not a control)`);
 console.log(`reviewed-safe   : ${reviewedSafe.length}   (read in full; reason recorded in this file)`);
 console.log(`UNGUARDED       : ${unguarded.length}   <-- the real work`);
 console.log(`files           : ${new Set(unguarded.map((r) => r.file)).size}`);
@@ -137,7 +137,7 @@ const matched = new Set(
 );
 const stale = [...REVIEWED_SAFE.keys()].filter((k) => !matched.has(k));
 if (stale.length > 0 && !only) {
-  console.log(`\n  STALE reviewed-safe keys (route renamed/moved â€” re-review or delete):`);
+  console.log(`\n  STALE reviewed-safe keys (route renamed/moved — re-review or delete):`);
   for (const k of stale) console.log(`    ${k}`);
 }
 

@@ -110,7 +110,10 @@ jest.unstable_mockModule('../../src/lib/transactionalOutbox.js', () => ({
   executeWithOutbox: (...a) => executeWithOutbox(...a),
   writeOutboxEvent: jest.fn(),
 }));
-jest.unstable_mockModule('../../src/middleware/audit.js', () => ({ auditLog: (...a) => auditLog(...a) }));
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+  auditLog: (...a) => auditLog(...a),
+  auditLogRequired: (...a) => auditLog(...a),
+}));
 jest.unstable_mockModule('../../src/middleware/idempotency.js', () => ({
   idempotencyGuard: () => (_req, _res, next) => next(),
 }));

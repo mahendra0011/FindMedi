@@ -13,7 +13,7 @@ test.describe('front desk search (mocked API)', () => {
         body: JSON.stringify({ data: [{ _id: 'p1', name: 'E2E Walker', uhid: 'UHID-E2E-1' }] }),
       }),
     );
-    await page.goto('/#/frontdesk');
+    await page.goto('/frontdesk');
     await expect(page.getByRole('heading', { name: /front desk/i })).toBeVisible();
     await page.getByPlaceholder(/UHID \/ phone \/ name/i).fill('UHID-E2E-1');
     await page.getByRole('button', { name: 'Search', exact: true }).click();

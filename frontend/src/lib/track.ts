@@ -470,6 +470,32 @@ export function track(
   return { ok: true };
 }
 
+const UTM_KEY = 'fm_utm_context';
+
+export function captureUtmParams(): void {
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    const utm: Record<string, string> = {};
+    for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']) {
+      const v = params.get(key);
+      if (v) utm[key] = v.slice(0, 128);
+    }
+    if (Object.keys(utm).length) {
+      sessionStorage.setItem(UTM_KEY, JSON.stringify(utm));
+    }
+  } catch {
+    // storage unavailable - ignore
+  }
+}
+
+export function getUtmContext(): Record<string, string> {
+  try {
+    const raw = sessionStorage.getItem(UTM_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
 export function identifyUser(userId: string, opts?: { isMinor?: boolean }): void {
   if (opts?.isMinor || !hasAnalyticsConsent() || !userId) return;
   try {

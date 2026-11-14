@@ -313,15 +313,22 @@ router.get('/orders', protect, denyPlatformClinicalAccess, authorize('lab:read',
     } else if (doctorId) {
       filter.doctorId = doctorId;
     }
-    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
-    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
+    // A patient is a non-tenant account: the ownership predicate above is the
+    // whole scope. Applying the staff tenant filters here 403'd every patient
+    // (they have no hospitalId) and, worse, hid their own orders behind the
+    // "belongs to no tenant" clause. Staff/tenant accounts still go through
+    // the fail-closed tenant predicate.
+    if (req.user.role !== 'patient') {
+      if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
+      if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
 
-    // PHARM-B-05: fail CLOSED on the tenant predicate. The two guards above are
-    // conditional on the CALLER having a facility, so a tenant-less lab account
-    // produced an entirely unfiltered query — a full-platform lab-order dump of
-    // orders plus results.
-    const labScope = applyTenantScope(req, filter, { fields: ['facilityId'] });
-    if (!labScope.ok) return res.status(403).json({ message: labScope.message });
+      // PHARM-B-05: fail CLOSED on the tenant predicate. The two guards above are
+      // conditional on the CALLER having a facility, so a tenant-less lab account
+      // produced an entirely unfiltered query - a full-platform lab-order dump of
+      // orders plus results.
+      const labScope = applyTenantScope(req, filter, { fields: ['facilityId'] });
+      if (!labScope.ok) return res.status(403).json({ message: labScope.message });
+    }
 
     // Handle order-level status filter with proper mapping
     if (status && status !== 'All') {
@@ -356,7 +363,7 @@ router.get('/orders/:id', protect, denyPlatformClinicalAccess, authorizeObject({
   try {
     const order = await LabOrder.findById(req.params.id).populate('patientId', 'name email phone').populate('doctorId', 'name email');
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (req.user.role !== 'superadmin' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'patient' && (!req.user.hospitalId || order.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
     res.json(order);

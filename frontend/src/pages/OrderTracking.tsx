@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Package, CheckCircle2, Clock, Truck, Home, Store, BadgeCheck,
@@ -84,7 +84,6 @@ export default function OrderTracking() {
     };
     load();
   }, [orderId]);
-
   const [storeNameMap, setStoreNameMap] = useState<ApiRow>({});
   useEffect(() => {
     const load = async () => {
@@ -127,17 +126,58 @@ export default function OrderTracking() {
   const [returnReason,    setReturnReason]    = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
 
-  // Auto-advance stages
+  /**
+   * The server status is the source of truth for WHERE the order is. The
+   * stage list is keyed by flow stage, so map the stored status onto it.
+   * Without this the tracker only ever simulated its own timer and a
+   * delivered order stayed on "Out for Delivery" forever - the delivered
+   * banner, the return request and the review prompt were unreachable.
+   */
+  const serverStageIndex = useMemo(() => {
+    const status = String(orderData?.status || '').trim().toLowerCase();
+    if (!status) return -1;
+    const byStatus: Record<string, string> = {
+      pending: 'placed',
+      placed: 'placed',
+      confirmed: 'confirmed',
+      preparing: 'packed',
+      packed: 'packed',
+      shipped: 'packed',
+      'out for delivery': 'out_for_delivery',
+      dispatched: 'out_for_delivery',
+      delivered: 'delivered',
+      completed: 'delivered',
+      'report ready': 'report_ready',
+      'sample collected': 'sample_collected',
+      'report processing': 'report_processing',
+      'in queue': 'reminder',
+      serving: 'in_progress',
+      'in progress': 'in_progress',
+    };
+    const key = byStatus[status];
+    if (!key) return -1;
+    const idx = STAGES.findIndex((s: Unmodelled) => s.key === key);
+    return idx;
+  }, [orderData?.status, STAGES]);
+
+  // The server status wins over the simulated timer.
+  useEffect(() => {
+    if (serverStageIndex >= 0) setCurrentStage(serverStageIndex);
+  }, [serverStageIndex]);
+
+  // Auto-advance stages (simulated progress for an order still moving).
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentStage(p => {
-        if (p >= STAGES.length - 2) { clearInterval(timer); return p; }
+        // Never past the stage the server already told us about.
+        const ceiling = serverStageIndex >= 0 ? serverStageIndex : STAGES.length - 1;
+        if (p >= ceiling) { clearInterval(timer); return p; }
         return p + 1;
       });
     }, ADVANCE_INTERVAL[flowType]);
     return () => clearInterval(timer);
-   
-  }, [flowType, STAGES.length]);
+
+  }, [flowType, STAGES.length, serverStageIndex]);
 
   const canCancel  = currentStage <= Math.min(2, STAGES.length - 4);
   const isDone     = currentStage >= STAGES.length - 1;

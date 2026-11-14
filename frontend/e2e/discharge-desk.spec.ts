@@ -26,7 +26,7 @@ test.describe('discharge desk journey (mocked API)', () => {
       });
     });
 
-    await page.goto('/#/ipd/discharges');
+    await page.goto('/ipd/discharges');
     await expect(page.getByRole('heading', { name: /discharge desk/i })).toBeVisible();
     await page.getByPlaceholder('Admission ID').fill('ADM-E2E-1');
     await page.getByRole('button', { name: 'Load' }).click();

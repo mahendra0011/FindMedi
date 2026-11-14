@@ -253,6 +253,10 @@ export const registerSchema = z.object({
   phone: phoneSchema,
   gender: z.enum(['Male', 'Female', 'Other', '']).optional().default(''),
   dateOfBirth: z.string().optional(),
+  // Clinical fields the patient signup form collects. `emergencyContactName`
+  // / `emergencyContactPhone` are declared further down (the assistant
+  // section) - a second declaration here would silently shadow them.
+  bloodGroup: z.enum(['', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).optional().default(''),
   address: z.string().optional().default(''),
   specialization: z.string().optional().default(''),
   experience: z.string().optional().default(''),
@@ -378,10 +382,10 @@ export const createDoctorSchema = z.object({
 // DOC-B-01: `updateDoctorSchema` was `.passthrough()`, and the handler wrote
 // `req.body` straight onto the Doctor document. `authorize()` is a role check, so
 // any doctor who passed the `isSelf` test could send:
-//   { approved: true }            â†’ self-approve out of the admin review queue
-//   { hospitalId: <other> }       â†’ re-parent the profile into another tenant
-//   { rating: { avg: 5, count: 1 } } â†’ fabricate their own public reputation
-//   { user_id: <someone else> }    â†’ hijack the profile->account link
+//   { approved: true }            → self-approve out of the admin review queue
+//   { hospitalId: <other> }       → re-parent the profile into another tenant
+//   { rating: { avg: 5, count: 1 } } → fabricate their own public reputation
+//   { user_id: <someone else> }    → hijack the profile->account link
 //   { reviewsCount, doctor_type, autoConfirmAppointment, fees, signatureUrl }
 // The server-owned fields are declared here so a schema violation is a 400 with a
 // clear message, rather than a silent privilege grant. Admin-only changes belong
@@ -391,7 +395,7 @@ export const DOCTOR_SERVER_OWNED_FIELDS = Object.freeze([
   'approved', 'approvedAt', 'approvedBy', 'status', 'verificationStatus',
   // tenancy + identity linkage
   'hospitalId', 'facilityId', 'user_id', 'userId', 'email',
-  // reputation â€” derived from real ratings only
+  // reputation — derived from real ratings only
   'rating', 'reviewsCount', 'totalReviews', 'averageRating',
   // commercial terms an admin negotiates, not a doctor self-declares
   'fees', 'consultation_fees', 'consultationFee', 'settlementPayout',
@@ -478,7 +482,7 @@ export const updatePatientSchema = z.object({
  * `date` and `time` were `z.string().min(1)`, so `"next tuesday"`, `"2026-13-45"`
  * or `"99:99"` were accepted and stored verbatim. Downstream that meant slot
  * comparisons, the unique slot index, the doctor's `dateDisabledSlots` lookup and
- * the capacity reservation all silently failed to match â€” a booking that the UI
+ * the capacity reservation all silently failed to match — a booking that the UI
  * showed as "confirmed" while no slot logic could see it.
  */
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -527,7 +531,7 @@ export const walkInSchema = z.object({
   doctorId: z.string().optional(),
   doctor: z.string().optional(),
   department: z.string().optional(),
-  // APPT-B-06: the same calendar rules as the self-booking path â€” a walk-in slot
+  // APPT-B-06: the same calendar rules as the self-booking path — a walk-in slot
   // that no slot logic can match is worse than a rejected one.
   date: slotDate,
   time: slotTime,
@@ -1761,7 +1765,7 @@ export const createStaffSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   salary: z.number().optional(),
-  // ADM-B-07: `hospitalId` is no longer accepted from the body â€” the tenant is
+  // ADM-B-07: `hospitalId` is no longer accepted from the body — the tenant is
   // always derived from the session (superadmin may target one explicitly via
   // ?hospitalId=). Otherwise any hospital admin could file a staff row inside a
   // competitor's tenant.
@@ -1793,8 +1797,8 @@ export const updateClinicProfileSchema = z.object({
 
 // AUTH-B-19: facility staff endpoints may only mint facility-scoped roles.
 // Tenant/platform roles (superadmin, hospital_admin, clinic_doctor, ...) are
-// invite-only. A free-form `role: z.string()` here let ANY hospital_admin â€”
-// including a self-registered one with no hospital â€” create a fully verified
+// invite-only. A free-form `role: z.string()` here let ANY hospital_admin —
+// including a self-registered one with no hospital — create a fully verified
 // `superadmin` account, which bypasses every authorize() check.
 export const CLINIC_STAFF_ROLES = ['nurse', 'technician', 'helper', 'accountant', 'lab_receptionist', 'pharmacist'];
 const clinicStaffRole = (optional = false) => (optional
@@ -1831,7 +1835,7 @@ export const createNotificationSchema = z.object({
 // DLB-26: `POST /api/billing` used to spread the raw request body into
 // `Billing.create({ ...req.body })` with NO validation, so a caller could set
 // `hospitalId` / `facilityId` (move the revenue to another tenant), `paid`,
-// `status`, `balance`, `_id`, `createdAt` â€” i.e. forge a settled invoice.
+// `status`, `balance`, `_id`, `createdAt` — i.e. forge a settled invoice.
 export const createBillingSchema = z.object({
   patient: z.string().trim().min(1, 'Patient is required'),
   patientId: z.string().optional(),

@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import SeoHead, { aggregateRating } from '@/components/SeoHead';
+import { buildLocaleAlternates } from '@/lib/seoAlternates';
 import { UniversalBookingModal } from '@/components/booking';
 import ReviewDialog from '@/components/ReviewDialog';
 import PractitionerProfileLayout from '@/components/practitioner/PractitionerProfileLayout';
@@ -272,11 +273,17 @@ export default function PractitionerProfilePage() {
       ? practitioner.specialty?.label || 'Doctor'
       : practitioner.specialty || 'Doctor';
 
+  const canonicalPath = specialty && city && slug
+    ? `/doctors/${specialty}/${city}/${slug}`
+    : `/${type || 'practitioner'}/${identifier}`;
+
   return (
     <>
       <SeoHead
         title={`${practitioner.name} — ${specialtyStr} in ${practitioner.city || 'India'} | FindMedi`}
         description={practitioner.bio ? practitioner.bio.slice(0, 160) : `Consult with ${practitioner.name}, verified ${specialtyStr}. Check consultation fees, clinic locations, and book appointments online.`}
+        canonical={canonicalPath}
+        alternates={buildLocaleAlternates(canonicalPath)}
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'Physician',

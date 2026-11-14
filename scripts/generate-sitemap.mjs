@@ -25,7 +25,7 @@ const arg = (name, fb) => {
 
 const base = (arg('base', process.env.SITEMAP_BASE ?? 'https://findmedi.in')).replace(/\/$/, '');
 const out = arg('out', 'frontend/public/sitemap.xml');
-const dataPath = arg('data', '');
+const dataPath = arg('data', 'scripts/sitemap-data.json');
 const minProviders = Math.max(1, parseInt(arg('min', '3'), 10) || 3);
 const URL_CAP = 50000;
 
@@ -37,7 +37,41 @@ const esc = (s) => String(s)
 
 // Static public routes only - never dashboards, portals, admin or auth pages.
 const staticRoutes = ['/', '/about', '/contact', '/privacy', '/terms', '/refund-policy', '/disclaimer'];
-const urls = staticRoutes.map((r) => `  <url><loc>${base}${r}</loc><changefreq>weekly</changefreq></url>`);
+
+// Locales the site actually ships content for. The other supported languages
+// fall back to English, so a hreflang pointing at them would advertise an
+// English page as a translation.
+const LOCALES = ['en', 'hi'];
+const DEFAULT_LOCALE = 'en';
+const LOCALE_PARAM = 'lang';
+
+const localeVariants = (loc) => {
+  const raw = String(loc || '/');
+  const [pathname, query = ''] = raw.split('?');
+  const params = new URLSearchParams(query);
+  params.delete(LOCALE_PARAM);
+  const base = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+  return LOCALES.map((locale) => ({
+    locale,
+    href: locale === DEFAULT_LOCALE
+      ? base
+      : `${base}${base.includes('?') ? '&' : '?'}${LOCALE_PARAM}=${locale}`,
+  }));
+};
+
+/** One <url> entry with the hreflang alternates of its locale variants. */
+const urlEntry = (loc, changefreq, extra = '') => {
+  const variants = localeVariants(loc);
+  const alternates = variants.map(({ locale, href }) =>
+    `    <xhtml:link rel="alternate" hreflang="${locale}" href="${esc(base + href)}"/>`).join('\n');
+  const xDefault = variants.find((v) => v.locale === DEFAULT_LOCALE);
+  const xDefaultLink = xDefault
+    ? `\n    <xhtml:link rel="alternate" hreflang="x-default" href="${esc(base + xDefault.href)}"/>`
+    : '';
+  return `  <url>\n    <loc>${esc(base + variants[0].href)}</loc>\n    <changefreq>${changefreq}</changefreq>${extra ? `\n${extra}` : ''}\n${alternates}${xDefaultLink}\n  </url>`;
+};
+
+const urls = staticRoutes.map((r) => urlEntry(r, 'weekly'));
 let skippedThin = 0;
 
 if (dataPath) {
@@ -56,11 +90,11 @@ if (dataPath) {
       skippedThin += 1;
       continue;
     }
-    urls.push(`  <url><loc>${base}${esc(item.loc)}</loc><changefreq>daily</changefreq></url>`);
+    urls.push(urlEntry(item.loc, 'daily'));
   }
   for (const item of data.details || []) {
     if (!item || typeof item.loc !== 'string') continue;
-    urls.push(`  <url><loc>${base}${esc(item.loc)}</loc><changefreq>weekly</changefreq></url>`);
+    urls.push(urlEntry(item.loc, 'weekly'));
   }
 }
 
@@ -70,7 +104,7 @@ if (urls.length > URL_CAP) {
   urls.length = URL_CAP;
 }
 
-const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
+const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join('\n')}\n</urlset>\n`;
 fs.mkdirSync(out.split('/').slice(0, -1).join('/') || '.', { recursive: true });
 fs.writeFileSync(out, xml);
 console.log(`sitemap written: ${out} (${urls.length} urls, ${skippedThin} thin listings skipped${capped ? `, ${capped} OVER 50k cap DROPPED` : ''})`);

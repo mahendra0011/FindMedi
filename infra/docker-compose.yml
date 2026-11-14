@@ -211,6 +211,9 @@ services:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: findmedi-zookeeper
     restart: unless-stopped
+    profiles: ["streaming"]
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "2181:2181"
     environment:
@@ -221,6 +224,9 @@ services:
     image: confluentinc/cp-kafka:7.5.0
     container_name: findmedi-kafka
     restart: unless-stopped
+    profiles: ["streaming"]
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       - zookeeper
     healthcheck:

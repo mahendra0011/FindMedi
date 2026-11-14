@@ -29,7 +29,7 @@ test.describe('tpa desk (mocked API)', () => {
         }),
       });
     });
-    await page.goto('/#/insurance/desk');
+    await page.goto('/insurance/desk');
     await expect(page.getByRole('heading', { name: /tpa desk/i })).toBeVisible();
     await expect(page.getByText('Queue empty.')).toBeVisible();
     await page.getByPlaceholder('Admission ID').fill('ADM-E2E-9');

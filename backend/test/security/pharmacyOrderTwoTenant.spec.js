@@ -44,7 +44,10 @@ const countMock = jest.fn((filter = {}) => Promise.resolve(ORDERS.filter((o) => 
 jest.unstable_mockModule('../../src/models/PharmacyOrder.js', () => ({
   default: { find: (...a) => findMock(...a), countDocuments: (...a) => countMock(...a) },
 }));
-jest.unstable_mockModule('../../src/middleware/audit.js', () => ({ auditLog: jest.fn(async () => {}) }));
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+  auditLog: jest.fn(async () => {}),
+  auditLogRequired: jest.fn(async () => {}),
+}));
 
 const { as } = await mountApp('pharmacy', {});
 

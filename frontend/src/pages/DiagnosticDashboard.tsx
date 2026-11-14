@@ -434,7 +434,7 @@ export default function DiagnosticDashboard() {
           {tab === 'rxqueue' && (
             <>
               <SectionHeader title="Prescription Verification Queue" subtitle="Verify uploaded prescriptions and approve/reject test requests"
-                action={<Button size="sm" variant="outline" onClick={() => window.location.hash = '#/lab/prescriptions'}><Send className="w-4 h-4 mr-1" /> Trigger Fallback</Button>} />
+                action={<Button size="sm" variant="outline" onClick={() => window.location.href = '/lab/prescriptions'}><Send className="w-4 h-4 mr-1" /> Trigger Fallback</Button>} />
               <div className="space-y-3">
                 {orders.filter((o: Unmodelled) => o.status === 'Processing' || o.status === 'Under Verification').map((rx: Unmodelled) => (
                   <div key={rx._id} className="bg-card rounded-xl border p-4">
@@ -517,7 +517,7 @@ export default function DiagnosticDashboard() {
                       {(b.tests || []).map((t: Unmodelled, i: Unmodelled) => <span key={i} className="text-xs bg-muted px-2 py-1 rounded-lg">{t}</span>)}
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
-                      <Button size="sm" variant="outline" onClick={() => window.location.hash = '#/lab/bookings'}><Calendar className="w-3 h-3 mr-1" /> Reschedule</Button>
+                      <Button size="sm" variant="outline" onClick={() => window.location.href = '/lab/bookings'}><Calendar className="w-3 h-3 mr-1" /> Reschedule</Button>
                       <Button size="sm" variant="outline" onClick={() => { api.createNotification({ userId: b.patientId, title: 'Lab Appointment Reminder', message: 'Your lab appointment is coming up', type: 'reminder' }).then(() => showToast('Reminder sent to patient')).catch(() => showToast('Failed to send reminder', 'error')); }}><Bell className="w-3 h-3 mr-1" /> Send Reminder</Button>
                     </div>
                   </div>
@@ -577,7 +577,7 @@ export default function DiagnosticDashboard() {
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
                       <Button size="sm" variant="outline" onClick={() => { setEditEquipId(e._id); setEquipForm({ name: e.name, type: e.type, model: e.model || '', serialNumber: e.serialNumber || '', manufacturer: e.manufacturer || '', installationDate: e.installationDate?.split('T')[0] || '', nextMaintenanceDate: e.nextMaintenanceDate || '', status: e.status, location: e.location || '', notes: e.notes || '' }); setShowModal('add-equipment'); }}><Edit className="w-3 h-3 mr-1" /> Edit</Button>
-                      <Button size="sm" variant="outline" onClick={() => window.location.hash = '#/lab/equipment'}><Calendar className="w-3 h-3 mr-1" /> Schedule Maint.</Button>
+                      <Button size="sm" variant="outline" onClick={() => window.location.href = '/lab/equipment'}><Calendar className="w-3 h-3 mr-1" /> Schedule Maint.</Button>
                     </div>
                   </div>
                 ))}

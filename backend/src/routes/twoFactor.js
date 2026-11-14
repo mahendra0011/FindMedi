@@ -1,7 +1,7 @@
-import express from 'express';
+﻿import express from 'express';
 import { z } from 'zod';
 import User from '../models/User.js';
-import { protect, authorize } from '../middleware/auth.js';
+import { protect } from '../middleware/auth.js';
 import { requireStepUp } from '../middleware/stepUpAuth.js';
 import { totpLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../utils/validate.js';
@@ -23,7 +23,7 @@ const router = express.Router();
  * POST /api/auth/2fa/setup
  * Generate 2FA secret and QR code URL (step 1)
  */
-router.post('/setup', protect, authorize('profile:write', 'profile:write:own'), totpLimiter, async (req, res) => {
+router.post('/setup', protect, totpLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -51,11 +51,11 @@ router.post('/setup', protect, authorize('profile:write', 'profile:write:own'), 
  * POST /api/auth/2fa/verify
  * Verify TOTP token and enable 2FA (step 2)
  */
-router.post('/verify', protect, authorize('profile:write', 'profile:write:own'), totpLimiter, validate(twoFactorVerifySchema), async (req, res) => {
+router.post('/verify', protect, totpLimiter, validate(twoFactorVerifySchema), async (req, res) => {
   try {
     const { token } = req.body;
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select('+twoFactorTempSecret');
     if (!user) return res.status(404).json({ message: 'User not found' });
     if (!user.twoFactorTempSecret) {
       return res.status(400).json({ message: 'Please call /api/auth/2fa/setup first' });
@@ -89,11 +89,11 @@ router.post('/verify', protect, authorize('profile:write', 'profile:write:own'),
  * POST /api/auth/2fa/disable
  * Disable 2FA (requires current password)
  */
-router.post('/disable', protect, authorize('profile:write', 'profile:write:own'), requireStepUp('account:2fa-disable'), totpLimiter, validate(twoFactorDisableSchema), async (req, res) => {
+router.post('/disable', protect, requireStepUp('account:2fa-disable'), totpLimiter, validate(twoFactorDisableSchema), async (req, res) => {
   try {
     const { password } = req.body;
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select('+password');
     if (!user) return res.status(404).json({ message: 'User not found' });
     if (!user.twoFactorEnabled) {
       return res.status(400).json({ message: '2FA is not enabled' });
@@ -118,7 +118,7 @@ router.post('/disable', protect, authorize('profile:write', 'profile:write:own')
  * GET /api/auth/2fa/status
  * Check 2FA status for current user
  */
-router.get('/status', protect, authorize('profile:read', 'profile:read:own'), totpLimiter, async (req, res) => {
+router.get('/status', protect, totpLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('twoFactorEnabled');
     res.json({ enabled: user?.twoFactorEnabled || false });
@@ -128,3 +128,4 @@ router.get('/status', protect, authorize('profile:read', 'profile:read:own'), to
 });
 
 export default router;
+

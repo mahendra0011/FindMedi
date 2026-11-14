@@ -71,6 +71,11 @@ beforeAll(async () => {
   ({ as } = await mountApp('auditLogs', {
     '../../src/models/AuditLog.js': () => ({ default: auditModule }),
     '../../src/models/User.js': () => ({ default: userModule }),
+    // F7: step-up is pinned by stepUpAuth.spec.js; here it must not gate the
+    // export behaviour under test.
+    '../../src/middleware/stepUpAuth.js': () => ({
+      requireStepUp: () => (_req, _res, next) => next(),
+    }),
   }));
 });
 beforeEach(() => {
@@ -111,10 +116,13 @@ describe('ADM-M-02 GET /audit-logs/export', () => {
     expect(res.headers['cache-control']).toBe('no-store');
     // BOM: without it Excel reads UTF-8 as ANSI and mangles every non-ASCII name.
     expect(res.text.charCodeAt(0)).toBe(0xFEFF);
-    expect(res.text).toContain('"timestamp","action","actorName"');
+    // Privacy hardening: the export carries the actor id, not the actor's
+    // profile (name/email would turn an incident-pack download into a PII dump).
+    expect(res.text).toContain('"timestamp","action","actorId","ip"');
     expect(res.text).toContain('"approve_rider"');
-    // actor was enriched from the User lookup, not just the raw userId.
-    expect(res.text).toContain('"ops@findmedi.test"');
+    expect(res.text).toContain(`"${TARGET_USER}"`);
+    expect(res.text).not.toContain('ops@findmedi.test');
+    expect(res.text).not.toContain('=EVIL()');
 
     expect(createCalls).toHaveLength(1);
     expect(createCalls[0].action).toBe('audit_exported');
@@ -125,7 +133,6 @@ describe('ADM-M-02 GET /audit-logs/export', () => {
 
   it('defangs spreadsheet formula injection (a leading =, +, - or @ executes in Excel)', async () => {
     const res = await as(SUPER).get('/export').expect(200);
-    expect(res.text).toContain('"\'=EVIL()"');   // actor name
     expect(res.text).toContain('"\'=SUM(A1)"');  // action field
     expect(res.text).not.toMatch(/,"=SUM/);      // no raw formula cell survived
   });

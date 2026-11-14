@@ -421,9 +421,9 @@ export default function PublicNavbar() {
             )}
 
             <Link
-              to="/"
+              to="/about"
               className={`px-2 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                location.hash === '#about' || location.pathname === '/about'
+                location.pathname === '/about'
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               }`}
@@ -751,10 +751,10 @@ export default function PublicNavbar() {
               </>
             )}
             <Link
-              to="/"
+              to="/about"
               onClick={() => setMobileOpen(false)}
               className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                location.hash === '#about' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                location.pathname === '/about' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               }`}
             >
               About

@@ -445,6 +445,14 @@ router.put('/privacy', protect, authorize('profile:write:own'), validate(privacy
 const PERSONAS = ['adult', 'parent', 'elderly', 'caregiver', 'fitness', 'chronic', 'maternity'];
 const personaSchema = z.object({ persona: z.enum(PERSONAS) }).strict();
 
+// NMC telemedicine: the patient, not the doctor, grants the consult consent.
+// One active GRANTED telemedicine record per patient+doctor; re-granting
+// extends the expiry instead of stacking duplicate rows.
+const telemedicineConsentSchema = z.object({
+  doctorId: z.string().regex(/^[0-9a-f]{24}$/i),
+  validityHours: z.number().int().min(1).max(720).optional(),
+}).strict();
+
 router.get('/persona', protect, authorize('profile:read:own'), async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('settings').lean();
@@ -491,6 +499,48 @@ router.get('/consents', protect, authorize('profile:read:own'), async (req, res)
 // details.resourceId (the records-list read) or details.patientId (record
 // writes). The subject id never comes from a parameter, so a caller cannot
 // read anyone else's log by asking.
+router.post('/telemedicine-consent', protect, authorize('profile:write:own'), validate(telemedicineConsentSchema), async (req, res) => {
+  try {
+    const { default: ConsentRecord } = await import('../models/ConsentRecord.js');
+    const { default: Doctor } = await import('../models/Doctor.js');
+    const cryptoSync = await import('node:crypto');
+    const rawDoctorId = String(req.body.doctorId);
+    const doctor = await Doctor.findById(rawDoctorId).select('user_id').lean();
+    const doctorUserId = doctor?.user_id ? String(doctor.user_id) : rawDoctorId;
+    const validityHours = req.body.validityHours || 24;
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + validityHours * 60 * 60 * 1000);
+    const existing = await ConsentRecord.findOne({
+      patientId: req.user._id,
+      doctorId: doctorUserId,
+      status: 'GRANTED',
+      purposeOfCare: /telemed/i,
+      expiresAt: { $gt: now },
+    });
+    const record = existing
+      ? await ConsentRecord.findByIdAndUpdate(existing._id, { expiresAt, validityHours }, { new: true })
+      : await ConsentRecord.create({
+        consentId: `TELEMED-${cryptoSync.randomUUID()}`,
+        patientId: req.user._id,
+        doctorId: doctorUserId,
+        purposeOfCare: 'Telemedicine consultation',
+        status: 'GRANTED',
+        validityHours,
+        grantedAt: now,
+        expiresAt,
+      });
+    const { auditLog } = await import('../middleware/audit.js');
+    await auditLog('telemedicine_consent_granted', req.user._id, { consentId: record.consentId, doctorId: doctorUserId, expiresAt, ip: req.ip });
+    return res.status(existing ? 200 : 201).json({
+      consentId: record.consentId,
+      doctorId: record.doctorId,
+      status: record.status,
+      grantedAt: record.grantedAt,
+      expiresAt: record.expiresAt,
+    });
+  } catch (err) { return res.status(400).json({ message: err.message }); }
+});
+
 router.get('/access-log', protect, authorize('profile:read:own'), async (req, res) => {
   try {
     const { default: AuditLog } = await import('../models/AuditLog.js');

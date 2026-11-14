@@ -1,77 +1,159 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Sparkles, Calendar, Clock, QrCode, PauseCircle, PlayCircle,
-  RotateCcw, ArrowRight, ShieldCheck, CheckCircle2, ChevronRight
+  Sparkles, Clock, QrCode, PauseCircle, PlayCircle,
+  RotateCcw, ArrowRight, ShieldCheck, CheckCircle2, ChevronRight, XCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { api } from '@/lib/api';
 import type { Unmodelled } from '@/lib/apiTypes';
+
+/**
+ * Patient programs & memberships.
+ *
+ * The rows come from the buyer's own memberships (GET /api/memberships) and
+ * every action here hits the membership lifecycle API - freeze, resume,
+ * check-in and cancel. Nothing is a local fixture: a membership that is not
+ * on the server must not be rendered as if the patient owned it, and a freeze
+ * that only toggled a local boolean would tell the patient their term is
+ * paused while the server still counts the days against them.
+ */
+
+const TERMINAL = ['CANCELLED', 'EXPIRED'];
+
+const titleCase = (value: Unmodelled) =>
+  String(value || '').toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+
+const fmtDate = (iso: Unmodelled) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+interface ProgramRow {
+  id: string;
+  title: string;
+  provider: string;
+  plan: string;
+  type: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  daysLeft: number | null;
+  isFrozen: boolean;
+  creditsLeft: number | null;
+  sessionsCompleted: string;
+  progressPercent: number;
+  nextMilestone: string;
+  checkIns: number;
+  autoRenew: boolean;
+}
 
 export default function PatientPrograms() {
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
+  const [programs, setPrograms] = useState<ProgramRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [actingId, setActingId] = useState<string | null>(null);
 
-  const [programs, setPrograms] = useState([
-    {
-      id: 'prg-1',
-      title: 'Diabetes Remission & Lifestyle Management Program',
-      provider: 'Apollo Sugar Clinics & Health',
-      type: 'Chronic Care',
-      plan: '3-Month Guided Plan',
-      status: 'Active',
-      startDate: '1 Oct 2026',
-      endDate: '31 Dec 2026',
-      daysLeft: 78,
-      coach: 'Dr. Neha Varma (Diabetologist) & Ritu Saxena (Dietitian)',
-      progressPercent: 35,
-      sessionsCompleted: '4 of 12 consults',
-      nextMilestone: 'HbA1c Mid-Term Review on 15 Nov 2026',
-    },
-    {
-      id: 'prg-2',
-      title: 'Unlimited Studio & Yoga Pass',
-      provider: 'Cult.Fit Partner Studio, Green Park',
-      type: 'Fitness / Yoga',
-      plan: 'Annual Pass',
-      status: 'Active',
-      startDate: '15 Aug 2026',
-      endDate: '14 Aug 2027',
-      daysLeft: 304,
-      freezeDaysLeft: 25,
-      isFrozen: false,
-      progressPercent: 20,
-      sessionsCompleted: '28 sessions attended',
-      nextMilestone: 'Class tomorrow: Hatha Yoga (07:00 AM)',
-    },
-    {
-      id: 'prg-3',
-      title: 'Post-Op Knee Rehab Package (10 Sessions)',
-      provider: 'Dr. Vivek Physio Rehab Center',
-      type: 'Physiotherapy Series',
-      plan: '10 Sessions Pack',
-      status: 'Active',
-      startDate: '5 Oct 2026',
-      endDate: '5 Nov 2026',
-      daysLeft: 22,
-      progressPercent: 60,
-      sessionsCompleted: '6 of 10 completed',
-      nextMilestone: 'Home Session #7 on Thursday (04:30 PM)',
-    },
-  ]);
+  const loadPrograms = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.getMyMemberships();
+      const rows = (res?.memberships || []) as Unmodelled[];
+      setPrograms(rows.map((row: Unmodelled) => {
+        const plan = row.planId && typeof row.planId === 'object' ? row.planId : null;
+        const provider = row.providerId && typeof row.providerId === 'object' ? row.providerId : null;
+        const checkIns = Array.isArray(row.checkIns) ? row.checkIns.length : 0;
+        const total = row.creditsLeft != null ? row.checkIns?.length + row.creditsLeft || 0 : 0;
+        const used = Array.isArray(row.checkIns) ? row.checkIns.length : 0;
+        return {
+          id: String(row._id || row.id || ''),
+          title: plan?.name || plan?.title || 'Membership plan',
+          provider: provider?.name || provider?.businessName || 'Partner provider',
+          plan: plan?.termLabel || plan?.durationLabel || 'Membership',
+          type: plan?.category || 'Membership',
+          status: String(row.status || 'ACTIVE'),
+          startDate: fmtDate(row.startAt),
+          endDate: fmtDate(row.endAt),
+          daysLeft: row.daysLeft == null ? null : Number(row.daysLeft),
+          isFrozen: String(row.status) === 'FROZEN',
+          creditsLeft: row.creditsLeft == null ? null : Number(row.creditsLeft),
+          sessionsCompleted: row.creditsLeft == null
+            ? `${used} session${used === 1 ? '' : 's'} attended`
+            : `${used} of ${total} sessions used`,
+          progressPercent: total > 0 ? Math.round((used / total) * 100) : 0,
+          nextMilestone: row.freeze?.resumeAt
+            ? `Frozen until ${fmtDate(row.freeze.resumeAt)}`
+            : row.endAt
+              ? `Term ends on ${fmtDate(row.endAt)}`
+              : 'No upcoming milestone',
+          checkIns,
+          autoRenew: Boolean(row.autoRenew),
+        };
+      }));
+      setError('');
+    } catch {
+      setError('Could not load your memberships.');
+      setPrograms([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const handleToggleFreeze = (id: string) => {
-    setPrograms((prev: Unmodelled) =>
-      prev.map((p: Unmodelled) => {
-        if (p.id === id) {
-          const nextState = !p.isFrozen;
-          toast.success(nextState ? 'Membership frozen for 14 days.' : 'Membership resumed successfully.');
-          return { ...p, isFrozen: nextState };
-        }
-        return p;
-      })
-    );
+  useEffect(() => { loadPrograms(); }, [loadPrograms]);
+
+  const handleToggleFreeze = async (row: ProgramRow) => {
+    setActingId(row.id);
+    try {
+      if (row.isFrozen) {
+        await api.unfreezeMembership(row.id);
+        toast.success('Membership resumed successfully.');
+      } else {
+        await api.freezeMembership(row.id, { days: 14, reason: 'Paused from the patient app' });
+        toast.success('Membership frozen for 14 days.');
+      }
+      await loadPrograms();
+    } catch (e: Unmodelled) {
+      toast.error(e?.response?.data?.message || e?.message || 'Could not update the membership.');
+    } finally {
+      setActingId(null);
+    }
   };
+
+  const handleCheckIn = async (row: ProgramRow) => {
+    setActingId(row.id);
+    try {
+      await api.checkInMembership(row.id, { method: 'app' });
+      toast.success('Checked in for this session.');
+      await loadPrograms();
+    } catch (e: Unmodelled) {
+      toast.error(e?.response?.data?.message || e?.message || 'Check-in failed.');
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const handleCancel = async (row: ProgramRow) => {
+    setActingId(row.id);
+    try {
+      await api.cancelMembership(row.id, { reason: 'Cancelled from the patient app' });
+      toast.success('Membership cancelled.');
+      await loadPrograms();
+    } catch (e: Unmodelled) {
+      toast.error(e?.response?.data?.message || e?.message || 'Cancellation failed.');
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const visible = programs.filter((p) => {
+    const terminal = TERMINAL.includes(p.status.toUpperCase());
+    return activeTab === 'completed' ? terminal : !terminal;
+  });
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
@@ -101,7 +183,7 @@ export default function PatientPrograms() {
               : 'text-muted-foreground hover:bg-muted/50'
           }`}
         >
-          Active Subscriptions ({programs.length})
+          Active Subscriptions ({programs.filter((p) => !TERMINAL.includes(p.status.toUpperCase())).length})
         </button>
         <button
           onClick={() => setActiveTab('completed')}
@@ -115,9 +197,34 @@ export default function PatientPrograms() {
         </button>
       </div>
 
+      {loading && (
+        <p className="text-xs text-muted-foreground py-8 text-center">Loading your memberships…</p>
+      )}
+
+      {!loading && error && (
+        <div className="p-8 rounded-3xl border border-border/60 bg-card text-center space-y-1">
+          <XCircle className="w-5 h-5 mx-auto text-destructive" />
+          <p className="text-sm text-foreground">{error}</p>
+        </div>
+      )}
+
+      {!loading && !error && visible.length === 0 && (
+        <div className="p-8 rounded-3xl border border-border/60 bg-card text-center space-y-1">
+          <QrCode className="w-5 h-5 mx-auto text-muted-foreground" />
+          <p className="text-sm font-semibold text-foreground">
+            {activeTab === 'completed' ? 'No past memberships' : 'No active memberships'}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {activeTab === 'completed'
+              ? 'Cancelled and expired terms will appear here.'
+              : 'Buy a plan from a partner provider to see it here.'}
+          </p>
+        </div>
+      )}
+
       {/* Programs List */}
       <div className="space-y-4">
-        {programs.map((item) => (
+        {visible.map((item) => (
           <div
             key={item.id}
             className="p-5 rounded-3xl border border-border/60 bg-card space-y-4 shadow-xs hover:border-primary/40 transition-colors"
@@ -131,9 +238,11 @@ export default function PatientPrograms() {
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                     item.isFrozen
                       ? 'bg-amber-500/10 text-amber-600'
-                      : 'bg-emerald-500/10 text-emerald-600'
+                      : item.status.toUpperCase() === 'TRIAL'
+                        ? 'bg-info/10 text-info'
+                        : 'bg-emerald-500/10 text-emerald-600'
                   }`}>
-                    {item.isFrozen ? 'Temporarily Frozen' : 'Active'}
+                    {item.isFrozen ? 'Temporarily Frozen' : titleCase(item.status)}
                   </span>
                 </div>
                 <h2 className="font-heading text-base font-bold text-foreground">{item.title}</h2>
@@ -142,7 +251,9 @@ export default function PatientPrograms() {
 
               <div className="text-right sm:shrink-0">
                 <span className="text-xs text-muted-foreground block">Validity</span>
-                <span className="text-sm font-extrabold text-foreground">{item.daysLeft} days remaining</span>
+                <span className="text-sm font-extrabold text-foreground">
+                  {item.daysLeft == null ? '—' : `${item.daysLeft} days remaining`}
+                </span>
               </div>
             </div>
 
@@ -168,18 +279,43 @@ export default function PatientPrograms() {
               </div>
 
               <div className="flex items-center gap-2">
-                {item.freezeDaysLeft != null && (
+                {!item.isFrozen && !TERMINAL.includes(item.status.toUpperCase()) && (
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleToggleFreeze(item.id)}
+                    disabled={actingId === item.id}
+                    onClick={() => handleCheckIn(item)}
+                    className="h-7 text-xs rounded-lg gap-1"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-primary" /> Check in
+                  </Button>
+                )}
+
+                {!TERMINAL.includes(item.status.toUpperCase()) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={actingId === item.id}
+                    onClick={() => handleToggleFreeze(item)}
                     className="h-7 text-xs rounded-lg gap-1"
                   >
                     {item.isFrozen ? (
                       <><PlayCircle className="w-3.5 h-3.5 text-emerald-600" /> Resume Pass</>
                     ) : (
-                      <><PauseCircle className="w-3.5 h-3.5 text-amber-600" /> Freeze Pass ({item.freezeDaysLeft}d left)</>
+                      <><PauseCircle className="w-3.5 h-3.5 text-amber-600" /> Freeze Pass (14d)</>
                     )}
+                  </Button>
+                )}
+
+                {!TERMINAL.includes(item.status.toUpperCase()) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={actingId === item.id}
+                    onClick={() => handleCancel(item)}
+                    className="h-7 text-xs rounded-lg gap-1 text-destructive"
+                  >
+                    <XCircle className="w-3.5 h-3.5" /> Cancel
                   </Button>
                 )}
 

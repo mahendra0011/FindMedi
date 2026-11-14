@@ -393,6 +393,9 @@ const userResponse = async (user) => {
      consultationFee: user.consultationFee,
      isVerified: user.isVerified,
      status: user.status,
+     twoFactorEnabled: Boolean(user.twoFactorEnabled),
+     requiresTwoFactorEnrollment:
+       roleRequiresTwoFactor(user.role) && !user.twoFactorEnabled,
      // AUTH-F-06: the client needs this on EVERY auth response (login, google,
      // 2fa/complete, /me) to route into /set-password without a 403 round-trip.
      mustResetPassword: Boolean(user.mustResetPassword),
@@ -564,6 +567,11 @@ router.post('/register', authLimiter, botProtection(), validate(registerSchema),
       gender,
       address: req.body.address || '',
       dateOfBirth: dateOfBirth || undefined,
+      bloodGroup: req.body.bloodGroup || '',
+      emergencyContact: {
+        name: req.body.emergencyContactName || '',
+        phone: req.body.emergencyContactPhone || '',
+      },
       specialization,
       experience,
       qualification: qualification || qualifications,
@@ -781,15 +789,32 @@ router.post('/register', authLimiter, botProtection(), validate(registerSchema),
     }
 
     if (normalizedRole === 'patient') {
-      await Patient.create({
-        name,
-        age: calculateAge(dateOfBirth),
-        gender: gender || 'Other',
-        phone,
-        email: lowerEmail,
-        userId: user._id,
-        status: 'Active',
-      });
+      // The outpatient patient row is unique per phone (APPT-B-03 de-dup
+      // index: {hospitalId, phone}). A SECOND account registering on a phone
+      // that already has an outpatient row used to abort the whole signup
+      // with a duplicate-key 500 - the account was created, but the response
+      // said "Something went wrong" and the user could not sign in.
+      //
+      // The clinical row is a de-dup convenience, not the account: records
+      // and prescriptions are keyed by the USER id everywhere. So when the
+      // phone is already taken, the existing row is left with its owner and
+      // the new account simply gets no duplicate clinical row.
+      let outpatientExists = false;
+      if (phone) {
+        const existing = await Patient.findOne({ hospitalId: null, phone }).select('_id').lean();
+        outpatientExists = Boolean(existing);
+      }
+      if (!outpatientExists) {
+        await Patient.create({
+          name,
+          age: calculateAge(dateOfBirth),
+          gender: gender || 'Other',
+          phone,
+          email: lowerEmail,
+          userId: user._id,
+          status: 'Active',
+        });
+      }
     }
 
     const otpResult = await sendVerificationOtp(user);
@@ -2475,7 +2500,7 @@ router.post('/refresh', authLimiter, validate(refreshTokenSchema), async (req, r
     }
 
     const tokenKey = RefreshToken.getTokenKey(refreshToken);
-    const stored = await RefreshToken.findOne({ tokenKey });
+    const stored = await RefreshToken.findOne({ tokenKey }).select('+tokenHash');
     if (!stored) {
       return res.status(401).json({ message: 'Invalid refresh token' });
     }

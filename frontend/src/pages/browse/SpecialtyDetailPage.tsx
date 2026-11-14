@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Lock, TriangleAlert, UserRound, Building2, BellPlus, Loader2, ArrowLeft, ClipboardList, FlaskConical, Pill, FileText } from 'lucide-react';
+import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { getSpecialtyVisual } from '@/data/specialtyVisuals';
 import { useSpecialtyDetail, useBrowseSpecialtyCounts, SPECIALTIES_STALE_TIME } from '@/hooks/useSpecialtyBrowse';
@@ -329,7 +330,12 @@ export default function SpecialtyDetailPage() {
                 <article key={article.key} className="rounded-xl border border-border/60 bg-card p-4">
                   <h3 className="font-semibold">{article.title}</h3>
                   {article.summary && <p className="mt-2 text-sm text-muted-foreground">{article.summary}</p>}
-                  {article.body && <p className="mt-3 text-sm whitespace-pre-line">{article.body}</p>}
+                  {article.body && (
+                    <div
+                      className="mt-3 text-sm text-foreground [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5"
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.body) }}
+                    />
+                  )}
                   <p className="mt-3 text-xs text-muted-foreground">{t('specialties.medically_reviewed', 'Medically reviewed')}</p>
                 </article>
               ))}

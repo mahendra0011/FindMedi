@@ -33,7 +33,10 @@ function readDiscreet(): boolean {
 }
 
 function toItems(raw: unknown, kind: FeedItem['kind'], titleOf: (x: Record<string, unknown>) => string): FeedItem[] {
-  const arr = Array.isArray(raw) ? raw : (raw as { items?: unknown[] })?.items ?? [];
+  const obj = raw as Record<string, unknown> | null;
+  const arr = Array.isArray(raw)
+    ? raw
+    : (obj?.items ?? obj?.data ?? obj?.appointments ?? obj?.prescriptions ?? obj?.records ?? obj?.orders ?? obj?.readings ?? []) as unknown[];
   return (arr as Record<string, unknown>[]).slice(0, 30).map((x, i) => ({
     id: `${kind}-${String(x._id ?? x.id ?? i)}`,
     kind,
@@ -53,11 +56,11 @@ export default function Timeline({ discreet: discreetProp }: { discreet?: boolea
     (async () => {
       const out: FeedItem[] = [];
       const tries: Array<[string, FeedItem['kind'], (x: Record<string, unknown>) => string]> = [
-        ['/appointments/mine', 'appointment', (x) => `Visit — ${String(x.doctorName ?? x.facilityName ?? 'Doctor')}`],
-        ['/prescriptions/mine', 'prescription', (x) => `Prescription — ${String(x.doctorName ?? 'Doctor')}`],
-        ['/reports/mine', 'report', (x) => `Report — ${String(x.testName ?? 'Lab')}`],
-        ['/orders/mine', 'order', (x) => `Medicine order — ${String(x.status ?? 'placed')}`],
-        ['/vitals/mine', 'vital', (x) => `Vitals — ${String(x.type ?? 'check')}`],
+        ['/appointments/my-appointments', 'appointment', (x) => `Visit — ${String(x.doctorName ?? x.facilityName ?? 'Doctor')}`],
+        ['/pharmacy/prescriptions', 'prescription', (x) => `Prescription — ${String(x.doctorName ?? 'Doctor')}`],
+        ['/records', 'report', (x) => `Report — ${String(x.testName ?? x.title ?? x.type ?? 'Record')}`],
+        ['/pharmacy/orders', 'order', (x) => `Medicine order — ${String(x.status ?? 'placed')}`],
+        ['/vitals', 'vital', (x) => `Vitals — ${String(x.type ?? x.vitalType ?? 'check')}`],
       ];
       for (const [path, kind, titleOf] of tries) {
         try {

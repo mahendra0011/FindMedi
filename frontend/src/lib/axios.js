@@ -349,6 +349,12 @@ apiClient.interceptors.response.use(
     // IDLE_LOCK). Surface it to the global lock overlay — same pattern as the
     // step-up dialog. The request still rejects below so no caller treats it
     // as success; the overlay's unlock re-arms lastActivityAt server-side.
+    if (error.response?.status === 403 && error.response?.data?.code === 'TWO_FACTOR_REQUIRED') {
+      if (typeof window !== 'undefined' && !(window.location.hash || '').startsWith('#/2fa-setup')) {
+        window.location.hash = '#/2fa-setup';
+      }
+    }
+
     if (error.response?.status === 403 && error.response?.data?.code === 'IDLE_LOCK') {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('idle-lock', {

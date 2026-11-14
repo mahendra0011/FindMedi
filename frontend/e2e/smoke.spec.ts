@@ -15,7 +15,7 @@ test.describe('smoke: public entry points', () => {
 
   test('login page renders the credential form', async ({ page }) => {
     await mockApiBaseline(page);
-    await page.goto('/#/login');
+    await page.goto('/login');
     await expect(page.getByPlaceholder(/enter your email/i)).toBeVisible();
     await expect(page.locator('input[type="password"]').first()).toBeVisible();
     await expect(page.getByRole('button', { name: /^sign in$/i })).toBeVisible();
@@ -26,34 +26,34 @@ test.describe('smoke: authentication (mocked API)', () => {
   test('successful login stores the session and leaves /login', async ({ page }) => {
     await mockApiBaseline(page, 'anonymous');
     await mockLogin(page, 'success');
-    await page.goto('/#/login');
+    await page.goto('/login');
     await loginViaUi(page, patientUser.email, 'whatever', { timeout: 10_000 });
-    await expect(page).not.toHaveURL(/#\/login/);
+    await expect(page).not.toHaveURL(/\/login/);
   });
 
   test('failed login surfaces the server error and stays on /login', async ({ page }) => {
     await mockApiBaseline(page);
     await mockLogin(page, 'failure');
-    await page.goto('/#/login');
+    await page.goto('/login');
     await loginViaUi(page, 'victim@e2e.test', 'wrong-password', { timeout: 10_000 });
     await expect(page.getByText('Invalid credentials')).toBeVisible({ timeout: 15_000 });
-    await expect(page).toHaveURL(/#\/login/);
+    await expect(page).toHaveURL(/\/login/);
   });
 });
 
 test.describe('smoke: role guards', () => {
   test('patient-only records route does not render protected medical records when logged out', async ({ page }) => {
     await mockApiBaseline(page);
-    await page.goto('/#/patient/records');
-    await expect(page).toHaveURL(/#\/login/);
+    await page.goto('/patient/records');
+    await expect(page).toHaveURL(/\/login/);
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();
   });
 
   test('patient-only records route renders for an authenticated patient', async ({ page }) => {
     await mockApiBaseline(page, 'authenticated');
     await setupAuth(page, patientUser);
-    await page.goto('/#/patient/records');
-    await expect(page).not.toHaveURL(/#\/login/);
+    await page.goto('/patient/records');
+    await expect(page).not.toHaveURL(/\/login/);
     await expect(page.getByRole('button', { name: /emergency help/i })).toBeVisible();
   });
 });
@@ -63,7 +63,7 @@ test.describe('appointment booking validation', () => {
     await mockApiBaseline(page, 'authenticated');
     await mockDoctorBooking(page);
     await setupAuth(page, patientUser);
-    await page.goto('/#/doctors/doctor-e2e');
+    await page.goto('/doctors/doctor-e2e');
 
     await page.getByRole('button', { name: /book appointment/i }).first().click();
     await expect(page.getByRole('heading', { name: /book appointment/i })).toBeVisible();
@@ -101,7 +101,7 @@ test.describe('appointment booking validation', () => {
       }
       return route.fulfill({ status: 405, body: '' });
     });
-    await page.goto('/#/patient/appointments');
+    await page.goto('/patient/appointments');
     await expect(page.getByRole('heading', { name: /my appointments/i })).toBeVisible();
     await expect(page.getByText('Dr. Cancel Test')).toBeVisible();
 
@@ -131,7 +131,7 @@ test.describe('role flows: patient book → provider accept → admin report', (
     await mockApiBaselineFor(page, patientUser);
     await mockDoctorBooking(page);
     await setupAuth(page, patientUser);
-    await page.goto('/#/doctors/doctor-e2e');
+    await page.goto('/doctors/doctor-e2e');
 
     await page.getByRole('button', { name: /book appointment/i }).first().click();
     await expect(page.getByRole('heading', { name: /book appointment/i })).toBeVisible();
@@ -165,7 +165,7 @@ test.describe('role flows: patient book → provider accept → admin report', (
       return route.fallback();
     });
 
-    await page.goto('/#/doctor/appointments/approve');
+    await page.goto('/doctor/appointments/approve');
     await expect(page.getByRole('heading', { name: /approve appointments/i })).toBeVisible();
     await expect(page.getByText('E2E Pending Patient').first()).toBeVisible();
     await page.getByRole('button', { name: /^confirm$/i }).first().click();
@@ -176,7 +176,7 @@ test.describe('role flows: patient book → provider accept → admin report', (
     await mockApiBaselineFor(page, adminUser);
     await mockAdminReports(page);
     await setupAuth(page, adminUser);
-    await page.goto('/#/analytics-reports');
+    await page.goto('/analytics-reports');
     await expect(page.getByRole('heading', { name: /reports & analytics/i })).toBeVisible();
     await page.getByRole('button', { name: /opd count/i }).click();
     await expect(page.getByRole('button', { name: /export pdf/i })).toBeVisible();

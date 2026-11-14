@@ -45,8 +45,34 @@ export const classify = (r) => {
 };
 
 /**
+ * File 23 §5.3: "Mark PHI routes `phiClass: true`".
+ *
+ * A route that returns clinical PHI is a different kind of endpoint from one
+ * that returns finance or metadata, and the staged-enforcement plan (mental
+ * health first, records next, the rest after) needs to know which is which.
+ * The list is a route-PREFIX list on purpose: it is a policy statement about
+ * a module, and a module is enforced as a unit.
+ *
+ * The SAME list drives the runtime shadow gate, so the manifest and the gate
+ * can never disagree about what counts as PHI.
+ */
+export const PHI_ROUTE_PREFIXES = Object.freeze([
+  '/api/mentalhealth',
+  '/api/mindsupport',
+  '/api/records',
+  '/api/prescriptions',
+  '/api/teleconsults',
+]);
+
+/** Is this route a PHI route? */
+export const isPhiRoute = (target) => {
+  const raw = String(target || '');
+  return PHI_ROUTE_PREFIXES.some((prefix) => raw.startsWith(prefix) || raw.includes(`'${prefix}`));
+};
+
+/**
  * @param {string} routesDir
- * @returns {Array<{file,line,method,target,tag}>} sorted, so callers can
+ * @returns {Array<{file,line,method,target,tag,phiClass}>} sorted, so callers can
  *   byte-compare the result against a committed manifest.
  */
 export const buildInventory = (routesDir) =>
@@ -57,6 +83,7 @@ export const buildInventory = (routesDir) =>
       method: r.method,
       target: r.rawTarget,
       tag: r.routerGuarded && classify(r) === 'unclassified' ? 'inherited' : classify(r),
+      phiClass: isPhiRoute(r.rawTarget),
     }))
     // Locale-independent ASCII order: localeCompare puts 'appointments.js'
     // before 'appointmentSeries.js' (case-insensitive), which disagrees with

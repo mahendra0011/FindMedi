@@ -26,9 +26,9 @@ test('specialty detail tabs load reviewed articles and specialty data', async ({
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ contents: [] }) });
   });
 
-  await page.goto('/#/browse-specialties/SPEC.CARDIO');
+  await page.goto('/browse-specialties/SPEC.CARDIO');
   await expect(page.getByRole('heading', { name: 'Cardiology', exact: true })).toBeVisible();
-  await expect(page.getByText('Interventional Cardiology')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Interventional Cardiology', exact: true })).toBeVisible();
   await page.getByRole('tab', { name: /articles/i }).click();
   await expect(page.getByRole('heading', { name: 'Understanding heart health' })).toBeVisible();
   await expect(page.getByText(/medically reviewed/i)).toBeVisible();

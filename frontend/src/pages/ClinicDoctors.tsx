@@ -157,7 +157,7 @@ const loadDoctors = async () => {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadDoctors(); }, [search, specFilter, searchParams, specialtyChips]);
+  useEffect(() => { loadDoctors(); }, [search, specFilter, specialtyChips]);
 
   const insuranceProviders = useMemo(() => {
     const providers = new Set<string>();

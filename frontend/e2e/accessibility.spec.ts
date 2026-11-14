@@ -53,16 +53,16 @@ test.describe('accessibility: axe-core on key pages', () => {
 
   test('login page has no serious a11y violations', async ({ page }) => {
     await mockApiBaseline(page);
-    await page.goto('/#/login');
+    await page.goto('/login');
     await expect(page.getByPlaceholder(/enter your email/i)).toBeVisible();
     assertNoSerious(await runAxe(page));
   });
 
   const authenticatedPages = [
-    { name: 'feedback page', url: '/#/hospital/feedback', text: /patient feedback/i },
-    { name: 'ambulance trips page', url: '/#/hospital/ambulance-trips', text: /ambulance trips/i },
-    { name: 'security ledger page', url: '/#/hospital/security', text: /security desk/i },
-    { name: 'h1 register page', url: '/#/pharmacy/h1-register', text: /pharmacy h1/i },
+    { name: 'feedback page', url: '/hospital/feedback', text: /patient feedback/i },
+    { name: 'ambulance trips page', url: '/hospital/ambulance-trips', text: /ambulance trips/i },
+    { name: 'security ledger page', url: '/hospital/security', text: /security desk/i },
+    { name: 'h1 register page', url: '/pharmacy/h1-register', text: /pharmacy h1/i },
   ];
 
   for (const p of authenticatedPages) {

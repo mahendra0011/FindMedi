@@ -272,5 +272,5 @@ Variants: Mind module — "If you are in crisis or thinking of harming yourself,
 - [x] Short-form summaries ("plain-language" boxes) next to long policies - `docs/legal/short-form-summaries.md` drafted (ToS, Privacy, Refund, Provider Agreement).
 - [x] Footer links on every page; in-app access; email copy at signup — legal document pages + acceptance at join.
 - [x] Provider onboarding shows agreement + addenda per type before submit — `ProviderTypeConfig.agreementTemplateId` + join step 9.
-- [x] Keep a **compliance register** (regulation -> owner -> evidence -> review date) - `docs/legal/compliance-register.md` (10 regulations, owner/evidence/review date, quarterly cadence).
+- [x] Keep a **compliance register** (regulation -> owner -> evidence -> review date) - `docs/legal/COMPLIANCE-REGISTER.md` (10 regulations, owner/evidence/review date, quarterly cadence).
 - [x] Review annually and on feature launch (new categories = new addendum) - `docs/legal/annual-review-process.md` (cadence + checklist + owner).

@@ -73,10 +73,8 @@ export default function Signup() {
       if (data.googleIdToken) setGoogleIdToken(data.googleIdToken);
     }
 
-    // Referral code auto-detect (?ref=CODE) — HashRouter puts query in location.hash
-    const hash = window.location.hash || '';
-    const qIndex = hash.indexOf('?');
-    const qs = qIndex >= 0 ? hash.slice(qIndex + 1) : window.location.search.slice(1);
+    // Referral code auto-detect (?ref=CODE) — BrowserRouter puts query in location.search
+    const qs = window.location.search.slice(1);
     const refFromUrl = new URLSearchParams(qs).get('ref') || new URLSearchParams(qs).get('referralCode');
     if (refFromUrl) {
       setReferralCode(refFromUrl.toUpperCase());
@@ -250,6 +248,9 @@ export default function Signup() {
           phone,
           gender,
           dateOfBirth,
+          bloodGroup,
+          emergencyContactName: emergencyName,
+          emergencyContactPhone: emergencyPhone,
           referralCode: referralCode || undefined,
         });
 
@@ -466,6 +467,46 @@ export default function Signup() {
                   className="h-10"
                 />
               </div>
+            </div>
+
+            {/* Blood Group & Emergency Contact */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">Blood Group</label>
+                <select
+                  value={bloodGroup}
+                  onChange={e => setBloodGroup(e.target.value)}
+                  required
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Select blood group</option>
+                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                    <option key={bg} value={bg}>{bg}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">Primary Emergency Contact</label>
+                <Input
+                  type="text"
+                  value={emergencyName}
+                  onChange={e => setEmergencyName(e.target.value)}
+                  placeholder="Emergency contact name"
+                  required
+                  className="h-10"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-foreground mb-1 block">Emergency Contact Mobile</label>
+              <Input
+                type="tel"
+                value={emergencyPhone}
+                onChange={e => setEmergencyPhone(e.target.value)}
+                placeholder="Enter 10-digit emergency contact number"
+                required
+                className="h-10"
+              />
             </div>
 
             {/* Password Fields — ONLY shown in manual mode, HIDDEN in Google mode */}

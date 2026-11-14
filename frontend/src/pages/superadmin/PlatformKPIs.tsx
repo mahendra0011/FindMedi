@@ -148,6 +148,15 @@ export default function PlatformKPIs() {
     </div>
   );
 
+  if (!data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <p className="text-muted-foreground">Platform KPIs could not be loaded.</p>
+        <Button variant="outline" onClick={() => load()}>Retry</Button>
+      </div>
+    );
+  }
+
   const { stats, weeklyAppointments, commission, hospitalCount, userCount, facilityCount, pendingCount, openTickets, urgentTickets, openDisputes, criticalDisputes, activeEmergencies, todayRegistrations } = data;
 
   const maxWeekly = Math.max(...weeklyAppointments.map((w: Unmodelled) => w.count), 1);

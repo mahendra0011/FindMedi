@@ -9,6 +9,7 @@ import { createNotification } from '../services/notificationService.js';
 import NotificationPreference from '../models/NotificationPreference.js';
 import NotificationAudit from '../models/NotificationAudit.js';
 import { loadPreference, applyDiscreetCopy } from '../services/notificationPreferences.js';
+import { verifyUnsubscribeToken } from '../lib/unsubscribeToken.js';
 import { applyProviderEvent, receiptsFor } from '../services/notificationDelivery.js';
 
 const router = express.Router();
@@ -313,6 +314,23 @@ router.delete('/:id', protect, authorize('notifications:read', 'notifications:re
   } catch (err) {
     if (err.status === 403) return res.status(403).json({ message: err.message });
     res.status(500).json({ message: err.message });
+  }
+});
+
+// Public one-click unsubscribe (DPDP/TRAI): a signed token identifies the user;
+// no auth required. Sets marketingOptIn=false only - transactional contact
+// stays untouched.
+router.get('/unsubscribe', async (req, res) => {
+  try {
+    const userId = verifyUnsubscribeToken(String(req.query.token || ''));
+    await NotificationPreference.findOneAndUpdate(
+      { userId },
+      { $set: { marketingOptIn: false }, $setOnInsert: { userId } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    return res.status(200).type('html').send('<!doctype html><html><body style="font-family:sans-serif;padding:2rem"><h1>Unsubscribed</h1><p>You will no longer receive marketing messages from FindMedi. Transactional messages (appointments, results, billing) continue.</p></body></html>');
+  } catch {
+    return res.status(400).type('html').send('<!doctype html><html><body style="font-family:sans-serif;padding:2rem"><h1>Invalid link</h1><p>This unsubscribe link is invalid or expired.</p></body></html>');
   }
 });
 

@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import SeoHead, { aggregateRating } from '@/components/SeoHead';
+import { buildLocaleAlternates } from '@/lib/seoAlternates';
 import { sectionsByType, SECTION_LABELS, type SectionKey, type FacilityTypeKey } from './sectionRegistry';
 
 export interface FacilityDetailDTO {
@@ -189,12 +190,19 @@ export default function FacilityDetailLayout({ typeKey, dto, loading, sections, 
 
   const ratingCount = dto.ratingCount ?? 0;
   const pageTitle = `${dto.name}${dto.categoryLabel ? ` — ${dto.categoryLabel}` : ''}${dto.city ? ` in ${dto.city}` : ''} | FindMedi`;
+  // The canonical has to be a route that EXISTS. The old
+  // `/{city}/{typeKey}/{slug}` shape matched no route at all, so every
+  // facility page pointed crawlers at a 404. The live public path is
+  // `/facility/:type/:id` (the id segment accepts the slug).
+  const facilityId = dto.slug || dto._id || dto.id;
+  const canonicalPath = facilityId ? `/facility/${typeKey || 'provider'}/${facilityId}` : undefined;
   return (
     <div className="space-y-4">
       <SeoHead
         title={pageTitle}
         description={(dto.tagline || dto.description || '').slice(0, 160)}
-        canonical={dto.slug && dto.city ? `/${dto.city}/${typeKey}/${dto.slug}` : undefined}
+        canonical={canonicalPath}
+        alternates={canonicalPath ? buildLocaleAlternates(canonicalPath) : []}
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'MedicalOrganization',

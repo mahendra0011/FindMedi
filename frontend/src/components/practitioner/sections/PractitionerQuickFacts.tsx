@@ -7,9 +7,10 @@ interface PractitionerQuickFactsProps {
 }
 
 export default function PractitionerQuickFacts({ practitioner }: PractitionerQuickFactsProps) {
+  const baseFee = practitioner.fee || practitioner.consultation_fees || 500;
   const modes = practitioner.modes || [
-    { mode: 'in_clinic', fee: practitioner.fee || practitioner.consultation_fees || 500 },
-    { mode: 'video', fee: (practitioner.fee || 500) },
+    { mode: 'in_clinic', fee: baseFee },
+    { mode: 'video', fee: baseFee },
   ];
 
   const getModeIcon = (mode: string) => {

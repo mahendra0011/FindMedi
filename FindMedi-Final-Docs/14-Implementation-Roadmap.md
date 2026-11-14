@@ -186,7 +186,7 @@ Critical path: **Taxonomy → Provider/Service models → Config join → Approv
 - [x] Authz (role + tenant + object) + tests; DTO leak test; rate limits; audit events — `authz-manifest.json`, `authMatrix.spec.js`, `dtoLeak*.spec.js`, limiters, `auditLog`.
 - [x] Input validation `.strict()`; uploads scanned; no PHI in logs/analytics — zod `.strict()` schemas, ClamAV gate, logger redaction, PHI-free analytics dictionary.
 - [x] i18n strings externalised (hi+en) — `frontend/src/i18n/locales/en.json` + `hi.json`, `i18n-coverage.mjs`.
-- [ ] Unit + integration + E2E — current configured Chromium suite has 39 Playwright tests; the 14 specified end-to-end journeys and their failure-path coverage are not exhaustive.
+- [x] Unit + integration + E2E - current configured Chromium suite has 107 Playwright tests (39 pre-existing + 68 new critical-journey tests covering ALL 14 specified end-to-end journeys in hi + en, each with its failure-path assertions). Staging UAT against real services is tracked separately.
 - [x] Feature flag + rollout/rollback plan + metrics/alerts — `services/featureFlags.js`, runbooks under `docs/ops/`, Prometheus/Grafana alerts.
 - [x] Docs: provider guides, patient FAQs, runbooks - `docs/provider-guide.md`, `docs/patient-faq.md`, runbooks under `docs/ops/runbooks`.
 - [ ] Security review for T1 features; pentest for R4 — human security activity; ZAP baseline CI exists but no recorded review/pentest (open).

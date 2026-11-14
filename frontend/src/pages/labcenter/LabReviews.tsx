@@ -16,7 +16,8 @@ export default function LabReviews() {
       try {
         const hospitalId = user?.facilityId || user?.hospitalId || user?.id || user?._id;
         const data = await api.getReviews({ hospitalId });
-        setReviews(data?.length > 0 ? data : []);
+        const list = Array.isArray(data) ? data : (data?.reviews || data?.data || []);
+        setReviews(Array.isArray(list) && list.length > 0 ? list : []);
       } catch (error: any) {
         console.error(error);
         setReviews([]);

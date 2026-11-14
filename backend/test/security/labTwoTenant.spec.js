@@ -65,7 +65,10 @@ jest.unstable_mockModule('../../src/models/LabOrder.js', () => ({
 jest.unstable_mockModule('../../src/models/PharmacyDelivery.js', () => ({
   default: { findOne: (...a) => deliveryFindOne(...a), find: () => chain([]) },
 }));
-jest.unstable_mockModule('../../src/middleware/audit.js', () => ({ auditLog: jest.fn(async () => {}) }));
+jest.unstable_mockModule('../../src/middleware/audit.js', () => ({
+  auditLog: jest.fn(async () => {}),
+  auditLogRequired: jest.fn(async () => {}),
+}));
 jest.unstable_mockModule('../../src/services/notificationService.js', () => ({ createNotification: jest.fn(async () => ({})) }));
 jest.unstable_mockModule('../../src/services/socketService.js', () => ({
   getIO: jest.fn(() => null), emitDeliveryStatus: jest.fn(),

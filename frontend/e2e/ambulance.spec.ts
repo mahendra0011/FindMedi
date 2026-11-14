@@ -64,7 +64,7 @@ test.describe('Ambulance Trips & Fleet Dashboard (B4)', () => {
       }),
     );
 
-    await page.goto('/#/hospital/ambulance-trips');
+    await page.goto('/hospital/ambulance-trips');
 
     await expect(page.getByRole('heading', { name: /ambulance trips & fleet running log/i })).toBeVisible();
     await expect(page.getByText('City Center Triage')).toBeVisible();

@@ -1,0 +1,49 @@
+{
+  "capturedAt": "2026-11-13T20:25:07.675Z",
+  "baseUrl": "http://localhost:5001",
+  "mode": "quick",
+  "thresholds": {
+    "p95Ms": 500,
+    "errorRate": 0.01
+  },
+  "stages": [
+    {
+      "name": "ramp",
+      "vus": 10,
+      "durationMs": 10000,
+      "requests": 726,
+      "errors": 0,
+      "errorRate": 0,
+      "throughputRps": 72.6,
+      "p50Ms": 8.2,
+      "p95Ms": 36.4,
+      "p99Ms": 77.4
+    },
+    {
+      "name": "spike",
+      "vus": 50,
+      "durationMs": 10000,
+      "requests": 2086,
+      "errors": 0,
+      "errorRate": 0,
+      "throughputRps": 208.6,
+      "p50Ms": 102.5,
+      "p95Ms": 236.7,
+      "p99Ms": 346.4
+    },
+    {
+      "name": "soak",
+      "vus": 20,
+      "durationMs": 10000,
+      "requests": 1439,
+      "errors": 0,
+      "errorRate": 0,
+      "throughputRps": 143.9,
+      "p50Ms": 7.9,
+      "p95Ms": 50.3,
+      "p99Ms": 92.6
+    }
+  ],
+  "passed": true,
+  "failures": []
+}

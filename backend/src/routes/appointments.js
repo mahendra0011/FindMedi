@@ -1,6 +1,7 @@
 import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 import { bookingLimiter } from '../middleware/rateLimit.js';
 import { idempotencyGuard } from '../middleware/idempotency.js';
+import { telemedicineGate } from '../middleware/telemedicineGate.js';
 import express from 'express';
 import Appointment from '../models/Appointment.js';
 import Bed from '../models/Bed.js';
@@ -741,7 +742,7 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
 // duplicates are already blocked by the patient+doctor+slot guard + unique
 // index below. failClosed here would 400 every client that does not send
 // Idempotency-Key, including production mobile apps.
-router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), authorize('appointments:write'), bookingLimiter, idempotencyGuard({ prefix: 'appt-create' }), validate(createAppointmentSchema), async (req, res) => {
+router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), authorize('appointments:write'), telemedicineGate, bookingLimiter, idempotencyGuard({ prefix: 'appt-create' }), validate(createAppointmentSchema), async (req, res) => {
   try {
     const { doctorId, doctor, department, date, time, type, symptoms, priority, appointmentMode } = req.body;
     

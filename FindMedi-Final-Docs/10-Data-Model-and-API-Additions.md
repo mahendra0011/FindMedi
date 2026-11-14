@@ -194,7 +194,7 @@ Join funnel · approval TAT · search no-result rate · view→book conversion �
 - [x] Section-registry detail pages + card system — `FacilityDetailLayout`, `PractitionerProfileLayout`, 51 card components.
 - [x] Role registry + permission sets + new dashboards — `authz-manifest.json`, role sets, 110 dashboard pages.
 - [x] Moderation + DSR + policy-acceptance models — `ModerationItem`, `DataSubjectRequest`, `PolicyAcceptance`.
-- [x] Authz manifest + tests — `authz-manifest.json`, `test/unit/authzManifest.spec.js`, `authzGapClosure.spec.js`.
+- [x] Authz manifest + tests — `authz-manifest.json`, `test/security/authzManifest.spec.js`, `authzGapClosure.spec.js`.
 - [x] Field encryption for T1 notes; T3 isolation — `fieldEncryption.js`/`phiCrypto.js`; T3 provider kinds gated away from PHI reads.
 - [x] Feature flags per type/city — `services/featureFlags.js` + admin controls.
 - [x] Docs: provider guides, patient FAQs, runbooks - `docs/provider-guide.md`, `docs/patient-faq.md`, runbooks under `docs/ops/runbooks`.

@@ -40,6 +40,7 @@ export default function PublicFooter() {
               <li><Link to="/" className="hover:text-primary transition-colors">Home</Link></li>
               <li><Link to="/hospitals" className="hover:text-primary transition-colors">Find Hospital</Link></li>
               <li><Link to="/clinic-doctors" className="hover:text-primary transition-colors">Find Clinic</Link></li>
+              <li><Link to="/contact" className="hover:text-primary transition-colors">Contact Us</Link></li>
               <li><Link to="/login" className="hover:text-primary transition-colors">Book Appointment</Link></li>
             </ul>
           </div>

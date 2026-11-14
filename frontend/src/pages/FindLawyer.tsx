@@ -113,7 +113,7 @@ export default function FindLawyer() {
   const [allLawyers, setAllLawyers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState(() => {
-    const p = new URLSearchParams(window.location.search || window.location.hash.split('?')[1] || '').get('category');
+    const p = new URLSearchParams(window.location.search || '').get('category');
     const all = DEFAULT_LAWYER_CATEGORIES;
     if (!p) return 'All';
     const match = all.find(c => c.toLowerCase() === p.toLowerCase());
@@ -121,7 +121,7 @@ export default function FindLawyer() {
   });
   const [cityFilter, setCityFilter] = useState<string>(() => {
     return (
-      new URLSearchParams(window.location.search || window.location.hash.split('?')[1] || '').get('city') ||
+      new URLSearchParams(window.location.search || '').get('city') ||
       localStorage.getItem('findmedi_city') ||
       localStorage.getItem('mediCore_city') ||
       'Jabalpur'

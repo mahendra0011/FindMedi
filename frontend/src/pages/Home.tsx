@@ -241,7 +241,7 @@ const Home = () => {
       <div className="bg-red-600 text-white py-2 px-4 text-center text-sm flex items-center justify-center gap-3 flex-wrap">
         <span className="flex items-center gap-2">
           <Ambulance className="w-4 h-4" />
-          <span className="font-semibold">24/7 Emergency Assistance:</span> Dial 108 (Ambulance) or +91 8299431275
+          <span className="font-semibold">24/7 Emergency Assistance:</span> Dial 108 (Ambulance) or 112 (All-India Emergency)
         </span>
         <button
           type="button"
@@ -897,9 +897,9 @@ const Home = () => {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: Phone, title: "Emergency Hotline", desc: "+91 8299431275", color: "bg-red-500/10 text-red-600" },
-              { icon: Mail, title: "Email Support", desc: "hexagonsservices@gmail.com", color: "bg-blue-500/10 text-blue-600" },
-              { icon: MapPin, title: "Visit Us", desc: "Lucknow, India", color: "bg-emerald-500/10 text-emerald-600" }
+              { icon: Phone, title: "Support Hotline", desc: "+91 1800-123-4567", color: "bg-red-500/10 text-red-600" },
+              { icon: Mail, title: "Email Support", desc: "contact@findmedi.in", color: "bg-blue-500/10 text-blue-600" },
+              { icon: MapPin, title: "Visit Us", desc: "Bengaluru, Karnataka", color: "bg-emerald-500/10 text-emerald-600" }
             ].map((item, i) => (
               <motion.div
                 key={item.title}

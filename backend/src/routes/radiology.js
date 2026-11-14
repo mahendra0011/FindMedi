@@ -5,6 +5,7 @@ import ImagingModality from '../models/ImagingModality.js';
 import ImagingAppointment from '../models/ImagingAppointment.js';
 import User from '../models/User.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { platformPhiGate } from '../middleware/platformPhiGate.js';
 import { auditLog } from '../middleware/audit.js';
 import { validate, createRadiologyOrderSchema } from '../utils/validate.js';
 import { generateOrderId, generateTimestampedId } from '../utils/idGenerator.js';
@@ -234,7 +235,11 @@ router.post('/orders', protect, authorize('radiology:write', 'radiology:order'),
 });
 
 // ─── List Orders ──────────────────────────────────────────────────────────
-router.get('/orders', protect, async (req, res) => {
+// File 23 §5.4: shadow-mode rollout for platform PHI access. A platform role
+// (superadmin included) that lists or opens imaging orders without an approved
+// break-glass grant is audited as `shadow_violation`; enforcement is switched
+// on per module with SHADOW_ENFORCE_MODULES=phi-radiology.
+router.get('/orders', protect, platformPhiGate('phi-radiology'), async (req, res) => {
   try {
     const { status, modality, search } = req.query;
     const filter = {};
@@ -256,7 +261,7 @@ router.get('/orders', protect, async (req, res) => {
 });
 
 // ─── Get Single Order ──────────────────────────────────────────────────────
-router.get('/orders/:id', protect, async (req, res) => {
+router.get('/orders/:id', protect, platformPhiGate('phi-radiology'), async (req, res) => {
   try {
     const order = await Radiology.findById(req.params.id).populate('patientId', 'name email phone').populate('doctorId', 'name email');
     if (!order) return res.status(404).json({ message: 'Order not found' });

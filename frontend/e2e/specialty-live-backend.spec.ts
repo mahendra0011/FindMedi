@@ -23,7 +23,7 @@ for (const locale of ['en', 'hi']) {
     expect(countsResponse.ok()).toBeTruthy();
 
     await page.goto('/browse-specialties');
-    await page.locator('a[href="#/browse-specialties/SPEC.CARDIO"]').click();
+    await page.locator('a[href="/browse-specialties/SPEC.CARDIO"]').click();
     await expect(page.getByRole('heading', { name: /cardiology/i }).first()).toBeVisible();
     await expect(page.getByText(detail.subs[0].name, { exact: true }).first()).toBeVisible();
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Chaos recovery test (local infra only — NEVER touches Atlas/.env).
  * Kills mongo + redis mid-flight (SIGKILL), then verifies:
  *  1. mongo re-elects PRIMARY + transactions work again
@@ -11,12 +11,18 @@ import { execSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Repo-root compose file (script runs from anywhere).
-const COMPOSE_FILE = path.join(__dirname, '..', '..', '..', 'infra', 'docker-compose.yml');
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+// Repo-root compose file (script runs from anywhere). Override for the
+// disposable harness stack: CHAOS_COMPOSE_FILE/CHAOS_*_SERVICE/CONTAINER/URL.
+const COMPOSE_FILE = process.env.CHAOS_COMPOSE_FILE
+  || path.join(scriptDir, '..', '..', '..', 'infra', 'docker-compose.yml');
+const MONGO_SERVICE = process.env.CHAOS_MONGO_SERVICE || 'mongo1';
+const REDIS_SERVICE = process.env.CHAOS_REDIS_SERVICE || 'redis';
+const MONGO_CONTAINER = process.env.CHAOS_MONGO_CONTAINER || 'findmedi-mongo1';
+const REDIS_CONTAINER = process.env.CHAOS_REDIS_CONTAINER || 'findmedi-redis';
 
-const MONGO_URL = 'mongodb://127.0.0.1:27018/findmedi?directConnection=true';
-const REDIS_URL = 'redis://localhost:6380';
+const MONGO_URL = process.env.CHAOS_MONGO_URL || 'mongodb://127.0.0.1:27018/findmedi?directConnection=true';
+const REDIS_URL = process.env.CHAOS_REDIS_URL || 'redis://localhost:6380';
 process.env.MONGO_URI = MONGO_URL;
 process.env.REDIS_URL = REDIS_URL;
 
@@ -43,9 +49,9 @@ try {
 }
 
 // ── CHAOS: SIGKILL both data services ──
-console.log('CHAOS: killing findmedi-mongo1 + findmedi-redis (SIGKILL)...');
+console.log(`CHAOS: killing ${MONGO_CONTAINER} + ${REDIS_CONTAINER} (SIGKILL)...`);
 try {
-  sh('docker kill findmedi-mongo1 findmedi-redis');
+  sh(`docker kill ${MONGO_CONTAINER} ${REDIS_CONTAINER}`);
   check('chaos: kill delivered', true);
 } catch (e) {
   check('chaos: kill delivered', false, e.message);
@@ -56,8 +62,8 @@ try {
 // (verified: containers stay Exited). The supported recovery path is an
 // explicit `up -d` (runbook), which this test exercises end-to-end.
 try {
-  console.log('RECOVERY: docker compose up -d mongo1 redis ...');
-  sh(`docker compose -f "${COMPOSE_FILE}" up -d mongo1 redis`);
+  console.log(`RECOVERY: docker compose up -d ${MONGO_SERVICE} ${REDIS_SERVICE} ...`);
+  sh(`docker compose -f "${COMPOSE_FILE}" up -d ${MONGO_SERVICE} ${REDIS_SERVICE}`);
   check('recovery: compose up accepted', true);
 } catch (e) {
   check('recovery: compose up accepted', false, e.message);

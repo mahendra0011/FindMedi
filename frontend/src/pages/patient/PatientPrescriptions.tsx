@@ -128,7 +128,7 @@ export default function PatientPrescriptions() {
             {search ? 'Try a different ID or doctor name.' : 'Your doctor-issued prescriptions will appear here.'}
           </p>
           {!search && (
-            <Button size="sm" className="mt-4 rounded-xl" onClick={() => window.location.hash = '#/doctors'}>
+            <Button size="sm" className="mt-4 rounded-xl" onClick={() => window.location.href = '/doctors'}>
               <Stethoscope className="w-3.5 h-3.5 mr-1.5" /> Consult a Doctor
             </Button>
           )}

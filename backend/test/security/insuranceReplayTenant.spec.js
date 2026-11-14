@@ -146,7 +146,10 @@ const { as } = await mountApp('insurance', {
   '../../src/models/Insurance.js': () => ({ default: fakeInsurance }),
   '../../src/models/Hospital.js': () => ({ default: { findById: () => query(null) } }),
   '../../src/models/Notification.js': () => ({ default: { create: async () => ({}) } }),
-  '../../src/middleware/audit.js': () => ({ auditLog: async () => {} }),
+  '../../src/middleware/audit.js': () => ({
+    auditLog: async () => {},
+    auditLogRequired: async () => {},
+  }),
   '../../src/middleware/idempotency.js': () => ({ idempotencyGuard: () => (_req, _res, next) => next() }),
   '../../src/lib/pgDualWrite.js': () => ({
     toPgEnum: () => null, ledgerRow: () => ({}), mirrorLedgerEntry: () => {},

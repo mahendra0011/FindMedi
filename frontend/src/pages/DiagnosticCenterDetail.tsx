@@ -167,7 +167,8 @@ export default function DiagnosticCenterDetail() {
         ]);
         setTestsData(tests || ALL_TESTS);
         setPackagesData(pkgs || PACKAGES);
-        setReviewsData(reviews || REVIEWS_DATA);
+        const reviewList = Array.isArray(reviews) ? reviews : (reviews?.reviews || reviews?.data || []);
+        setReviewsData(reviewList.length > 0 ? reviewList : REVIEWS_DATA);
         setNearbyLabs(Array.isArray(nearby) ? nearby : nearby?.facilities || SUGGESTED_LABS);
       } catch (e: any) { console.error(e); }
       setLoading(false);

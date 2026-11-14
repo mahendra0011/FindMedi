@@ -22,7 +22,7 @@ export default function PendingApproval() {
       try {
         const user = await api.me();
         if (user?.approvalStatus === 'approved' || user?.doctorApproved) {
-          window.location.hash = '#/dashboard';
+          window.location.href = '/dashboard';
         }
       } catch (e: any) { console.error('Polling check failed:', e);
       } finally {

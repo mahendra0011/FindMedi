@@ -38,6 +38,18 @@ export const adminUser = {
   settings: { defaultDashboard: 'overview' },
 };
 
+export const superadminUser = {
+  _id: 'e2e-superadmin-1',
+  id: 'e2e-superadmin-1',
+  name: 'E2E Super Admin',
+  email: 'superadmin@e2e.test',
+  role: 'superadmin',
+  status: 'active',
+  isVerified: true,
+  approvalStatus: 'approved',
+  settings: { defaultDashboard: 'overview' },
+};
+
 const json = (body: unknown, status = 200) => ({
   status,
   contentType: 'application/json',

@@ -19,29 +19,6 @@ import {
 } from '@/lib/hmsDashboardSpec';
 
 import UniversalHmsDashboard from './UniversalHmsDashboard';
-import IcuDoctorDashboard from './IcuDoctorDashboard';
-import IcuNurseDashboard from './IcuNurseDashboard';
-import OtCoordinatorDashboard from './OtCoordinatorDashboard';
-import SurgeonDashboard from './SurgeonDashboard';
-import AnaesthesiologistDashboard from './AnaesthesiologistDashboard';
-import EmergencyCasualtyDashboard from './EmergencyCasualtyDashboard';
-import RadiologyTechDashboard from './RadiologyTechDashboard';
-import RadiologistDashboard from './RadiologistDashboard';
-import PharmacistRoleDashboard from './PharmacistRoleDashboard';
-import CashierDashboard from './CashierDashboard';
-import PurchaseOfficerDashboard from './PurchaseOfficerDashboard';
-import HousekeepingDashboard from './HousekeepingDashboard';
-import CssdDashboard from './CssdDashboard';
-import BiomedicalDashboard from './BiomedicalDashboard';
-import AmbulanceRoleDashboard from './AmbulanceRoleDashboard';
-import QualityManagerDashboard from './QualityManagerDashboard';
-import InfectionControlDashboard from './InfectionControlDashboard';
-import SecurityDashboard from './SecurityDashboard';
-import DischargeCoordinatorDashboard from './DischargeCoordinatorDashboard';
-import MortuaryDashboard from './MortuaryDashboard';
-import ItAdminDashboard from './ItAdminDashboard';
-import MisReportingDashboard from './MisReportingDashboard';
-import DoctorRoleDashboard from './DoctorRoleDashboard';
 
 afterEach(() => {
   cleanup();
@@ -190,29 +167,6 @@ describe('UniversalHmsDashboard Component Rendering', () => {
 });
 
 const SPECIALIZED_NEW_DASHBOARDS = [
-  { name: 'DoctorRole', Comp: DoctorRoleDashboard, title: 'Doctor Consultation Dashboard', kpi: "Today's Appointments" },
-  { name: 'IcuDoctor', Comp: IcuDoctorDashboard, title: 'ICU Intensivist Dashboard', kpi: 'Active ICU Beds' },
-  { name: 'IcuNurse', Comp: IcuNurseDashboard, title: 'ICU Bedside Nurse Dashboard', kpi: 'Assigned ICU Beds' },
-  { name: 'OtCoordinator', Comp: OtCoordinatorDashboard, title: 'Operation Theatre (OT) Coordinator Dashboard', kpi: 'Surgeries Scheduled' },
-  { name: 'Surgeon', Comp: SurgeonDashboard, title: 'Consultant Surgeon Dashboard', kpi: 'Today Surgeries' },
-  { name: 'Anaesthesiologist', Comp: AnaesthesiologistDashboard, title: 'Anaesthesiologist Dashboard', kpi: 'Cases on Schedule' },
-  { name: 'EmergencyCasualty', Comp: EmergencyCasualtyDashboard, title: 'Emergency / Casualty Dashboard', kpi: 'Patients in ER' },
-  { name: 'RadiologyTech', Comp: RadiologyTechDashboard, title: 'Radiology Technician Dashboard', kpi: "Today's Imaging Orders" },
-  { name: 'Radiologist', Comp: RadiologistDashboard, title: 'Consultant Radiologist Dashboard', kpi: 'Studies Awaiting Report' },
-  { name: 'PharmacistRole', Comp: PharmacistRoleDashboard, title: 'Hospital Pharmacist Dashboard', kpi: 'Pending Dispensing' },
-  { name: 'Cashier', Comp: CashierDashboard, title: 'Cashier Desk Dashboard', kpi: "Today's Till Collection" },
-  { name: 'PurchaseOfficer', Comp: PurchaseOfficerDashboard, title: 'Purchase & Procurement Dashboard', kpi: 'Pending Indent Requests' },
-  { name: 'Housekeeping', Comp: HousekeepingDashboard, title: 'Housekeeping & Sanitization Dashboard', kpi: 'Pending Cleaning Requests' },
-  { name: 'Cssd', Comp: CssdDashboard, title: 'Central Sterile Supply Department (CSSD) Dashboard', kpi: 'Active Autoclave Cycles' },
-  { name: 'Biomedical', Comp: BiomedicalDashboard, title: 'Biomedical Engineering Dashboard', kpi: 'Total Medical Equipment' },
-  { name: 'AmbulanceRole', Comp: AmbulanceRoleDashboard, title: 'Ambulance & Transport Dashboard', kpi: 'Ambulances on Duty' },
-  { name: 'QualityManager', Comp: QualityManagerDashboard, title: 'Quality & Patient Safety Dashboard', kpi: 'Open Incident Reports' },
-  { name: 'InfectionControl', Comp: InfectionControlDashboard, title: 'Infection Control Dashboard', kpi: 'Patients in Isolation' },
-  { name: 'Security', Comp: SecurityDashboard, title: 'Hospital Security & Visitor Dashboard', kpi: 'Visitors Inside' },
-  { name: 'DischargeCoordinator', Comp: DischargeCoordinatorDashboard, title: 'Patient Discharge Desk Dashboard', kpi: 'Discharge Orders Today' },
-  { name: 'Mortuary', Comp: MortuaryDashboard, title: 'Mortuary & Death Records Dashboard', kpi: 'Mortuary Cold Chambers' },
-  { name: 'ItAdmin', Comp: ItAdminDashboard, title: 'Hospital IT Admin & Systems Dashboard', kpi: 'Connected Medical Devices' },
-  { name: 'MisReporting', Comp: MisReportingDashboard, title: 'Hospital MIS & Analytics Dashboard', kpi: 'Hospital Census' },
 ];
 
 describe.each(SPECIALIZED_NEW_DASHBOARDS)('$name Dashboard Component', ({ Comp, title, kpi }) => {

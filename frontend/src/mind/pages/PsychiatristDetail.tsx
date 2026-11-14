@@ -144,7 +144,8 @@ export default function PsychiatristDetail() {
         setDoctor(doc);
         setSaved(doctor_is_saved(id));
         const rv = await api.getReviews({ doctorId: id }).catch(() => []);
-        if (Array.isArray(rv) && rv.length > 0) setReviews(rv);
+        const reviewList = Array.isArray(rv) ? rv : (rv?.reviews || rv?.data || []);
+        if (reviewList.length > 0) setReviews(reviewList);
         const allDocs = await api.getDoctors({}).catch(() => ({ data: [] }));
         const allList = Array.isArray(allDocs) ? allDocs : (allDocs?.data || allDocs?.doctors || []);
         const filtered = (Array.isArray(allList) ? allList : []).filter(d => d._id !== id);

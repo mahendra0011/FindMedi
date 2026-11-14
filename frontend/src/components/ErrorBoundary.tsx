@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import { Button } from '@/components/ui/button';
+import { api } from '@/lib/api';
 import type { Unmodelled } from '@/lib/apiTypes';
 
 export default class ErrorBoundary extends Component<Unmodelled, Unmodelled> {
@@ -39,7 +40,10 @@ export default class ErrorBoundary extends Component<Unmodelled, Unmodelled> {
     window.location.reload();
   };
 
-  handleClearCacheAndReload = () => {
+  handleClearCacheAndReload = async () => {
+    try {
+      await api.logout();
+    } catch { /* cookie may already be gone */ }
     try {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
