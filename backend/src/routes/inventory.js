@@ -194,7 +194,7 @@ router.get('/barcode/:code', protect, async (req, res) => {
 router.get('/stats', protect, async (req, res) => {
   try {
     const hFilter = {};
-    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); hFilter.hospitalId = req.user.hospitalId; }
+    if (req.user.role !== 'superadmin') { const _scope = req.user.hospitalId || req.user.facilityId; if (!_scope) return res.status(403).json({ message: 'Hospital scope required' }); hFilter.hospitalId = _scope; }
     const total = await Inventory.countDocuments({ isActive: true, ...hFilter });
     const lowStock = await Inventory.countDocuments({
       isActive: true, ...hFilter,

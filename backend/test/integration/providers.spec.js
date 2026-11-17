@@ -25,6 +25,16 @@ const auditLog = jestApi.fn();
 
 let lastListFilter = null;
 let lastSelect = null;
+let lastDetailSelect = null;
+
+// The detail route also queries for the neighbouring listings, and that query
+// projects its own fields - so the detail projection is captured separately
+// from the list projection, or the assertion would read the wrong select.
+const detailChain = (value) => {
+  const q = query(value);
+  q.select = (fields) => { lastDetailSelect = fields; return q; };
+  return q;
+};
 
 // Query stub that records the projection the route asked for, so the spec can
 // assert the DTO fields directly (the way categoriesPublic.spec.js does).
@@ -50,6 +60,34 @@ jestApi.unstable_mockModule('../../src/models/ProviderTypeConfig.js', () => ({
   default: { findOne: (...args) => configFindOne(...args) },
 }));
 
+// The public detail DTO (Spec 03 §4) reads the provider's live services, the
+// practitioners behind them and the published reviews. Those live in their own
+// collections, so they are stubbed here the same way Provider is - otherwise
+// the detail route would query a database this harness does not have.
+jestApi.unstable_mockModule('../../src/models/Service.js', () => ({
+  __esModule: true,
+  default: {
+    find: () => query([]),
+    findOne: () => query(null),
+    aggregate: () => Promise.resolve([]),
+  },
+}));
+
+jestApi.unstable_mockModule('../../src/models/Review.js', () => ({
+  __esModule: true,
+  default: {
+    find: () => query([]),
+  },
+}));
+
+jestApi.unstable_mockModule('../../src/models/Doctor.js', () => ({
+  __esModule: true,
+  default: {
+    find: () => query([]),
+    findById: () => query(null),
+  },
+}));
+
 jestApi.unstable_mockModule('../../src/middleware/audit.js', () => ({
 
   auditLog: (...args) => auditLog(...args),
@@ -69,7 +107,7 @@ const PROVIDER_ID = '700000000000000000000001';
 beforeEach(() => {
   lastListFilter = null;
   lastSelect = null;
-  providerFindOne.mockReset().mockImplementation(() => chain(LIVE_CARD));
+  providerFindOne.mockReset().mockImplementation(() => detailChain(LIVE_CARD));
   providerFindById.mockReset().mockResolvedValue({
     _id: 'p1', ownerUserId: 'owner-1', type: 'dental_clinic', kind: 'facility',
     group: 'clinical', tier: 'T1', status: 'draft', save: jestApi.fn().mockResolvedValue(undefined),
@@ -118,6 +156,17 @@ describe('GET /providers/:slug (detail DTO)', () => {
     expect(res.headers['cache-control']).toBe('public, max-age=120');
   });
 
+  it('carries the public detail sections the page renders (Spec 03 §4)', async () => {
+    const res = await as().get('/smile-dental-studio');
+    expect(res.status).toBe(200);
+    for (const key of ['services', 'practitioners', 'reviews', 'similar', 'photos', 'verified', 'ratingAvg', 'reviewsCount']) {
+      expect(res.body).toHaveProperty(key);
+    }
+    expect(res.body.verified).toBe(true);
+    expect(Array.isArray(res.body.services)).toBe(true);
+    expect(Array.isArray(res.body.reviews)).toBe(true);
+  });
+
   it('404s a slug that is not live', async () => {
     providerFindOne.mockImplementation(() => chain(null));
     const res = await as().get('/draft-clinic');
@@ -126,6 +175,26 @@ describe('GET /providers/:slug (detail DTO)', () => {
 });
 
 describe('provider DTO projections', () => {
+  it('serves the public card contract (Spec 02 §5) on the directory listing', async () => {
+    const res = await as().get('/');
+    const card = res.body.providers[0];
+    expect(card).toMatchObject({
+      id: 'p1',
+      type: 'dental_clinic',
+      slug: 'smile-dental-studio',
+      name: 'Smile Dental Studio',
+      group: 'clinical',
+    });
+    expect(card.verified).toBe(true);
+    expect(card.ratingAvg).toBe(4.6);
+    expect(card.ratingCount).toBe(12);
+    expect(card.isSponsored).toBe(true);
+    expect(card.trustBadges).toContain('Verified');
+    expect(card).not.toHaveProperty('relayPhone');
+    expect(card).not.toHaveProperty('ownerUserId');
+    expect(card).not.toHaveProperty('probation');
+  });
+
   it('keeps private provider fields out of the card list', async () => {
     await as().get('/');
     for (const forbidden of ['relayPhone', 'ownerUserId', 'probation', 'riskScore', 'commissionConfigId']) {
@@ -138,10 +207,10 @@ describe('provider DTO projections', () => {
   it('keeps private provider fields out of the detail page', async () => {
     await as().get('/smile-dental-studio');
     for (const forbidden of ['relayPhone', 'ownerUserId', 'probation', 'riskScore', 'commissionConfigId']) {
-      expect(lastSelect).not.toContain(forbidden);
+      expect(lastDetailSelect).not.toContain(forbidden);
     }
-    expect(lastSelect).toContain('contact.publicPhone');
-    expect(lastSelect).toContain('address.geo');
+    expect(lastDetailSelect).toContain('contact.publicPhone');
+    expect(lastDetailSelect).toContain('address.geo');
   });
 });
 

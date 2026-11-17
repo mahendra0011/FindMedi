@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import OpsHealthCard from '@/components/OpsHealthCard';
 import {
   BUSINESS_MODEL_CANVAS,
@@ -36,6 +37,7 @@ const AnimatedCard = ({ children, delay = 0 }: Unmodelled) => (
 );
 
 export default function PlatformKPIs() {
+  const { user } = useAuth();
   const [data, setData] = useState<Unmodelled>(null);
   const [loading, setLoading] = useState(true);
   const [isUnitEconomicsOpen, setIsUnitEconomicsOpen] = useState(false);
@@ -55,10 +57,12 @@ export default function PlatformKPIs() {
         api.dashboardStats(),
         api.getCommissionStats().catch(() => null),
         api.getHospitals({ limit: 1 }).catch(() => null),
-        api.getUsers({ limit: 1 }).catch(() => null),
+        api.getPlatformUserCount().catch(() => null),
         api.getPendingHospitals().catch(() => null),
         api.getFacilities({ limit: 1 }).catch(() => null),
-        api.getTicketStats().catch(() => null),
+        // Support queue metrics are an L2-only surface (supportTickets.js); the
+        // 403 is expected for everyone else, so we simply never ask.
+        user?.role === 'support_l2' ? api.getTicketStats().catch(() => null) : Promise.resolve(null),
         api.getDisputeStats().catch(() => null),
         api.getEmergencyStats().catch(() => null),
       ]);
@@ -73,6 +77,7 @@ export default function PlatformKPIs() {
         facilityCount: facilities?.total ?? (Array.isArray(facilities?.data) ? facilities.data.length : Array.isArray(facilities) ? facilities.length : 0),
         pendingCount: pendingHosp?.length || pendingHosp?.total || 0,
         openTickets: ticketStats?.open ?? ticketStats?.total ?? 0,
+        ticketStatsKnown: Boolean(ticketStats),
         urgentTickets: ticketStats?.urgent ?? 0,
         openDisputes: disputeStats?.open ?? 0,
         criticalDisputes: disputeStats?.critical ?? 0,
@@ -82,7 +87,7 @@ export default function PlatformKPIs() {
       });
     } catch { if (!silent) toast.error('Failed to load platform KPIs'); }
     if (!silent && activeRef.current) setLoading(false);
-  }, []);
+  }, [user?.role]);
 
   useEffect(() => {
     activeRef.current = true;
@@ -157,7 +162,7 @@ export default function PlatformKPIs() {
     );
   }
 
-  const { stats, weeklyAppointments, commission, hospitalCount, userCount, facilityCount, pendingCount, openTickets, urgentTickets, openDisputes, criticalDisputes, activeEmergencies, todayRegistrations } = data;
+  const { stats, weeklyAppointments, commission, hospitalCount, userCount, facilityCount, pendingCount, openTickets, ticketStatsKnown, urgentTickets, openDisputes, criticalDisputes, activeEmergencies, todayRegistrations } = data;
 
   const maxWeekly = Math.max(...weeklyAppointments.map((w: Unmodelled) => w.count), 1);
 
@@ -291,8 +296,8 @@ export default function PlatformKPIs() {
             <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center mb-3">
               <Headset className="w-5 h-5 text-violet-600 dark:text-violet-400" />
             </div>
-            <p className="text-2xl font-bold text-foreground">{openTickets}{urgentTickets > 0 && <span className="text-sm text-destructive ml-1">({urgentTickets} urgent)</span>}</p>
-            <p className="text-xs text-muted-foreground">Open Support Tickets</p>
+            <p className="text-2xl font-bold text-foreground">{ticketStatsKnown ? <>{openTickets}{urgentTickets > 0 && <span className="text-sm text-destructive ml-1">({urgentTickets} urgent)</span>}</> : '—'}</p>
+            <p className="text-xs text-muted-foreground">Open Support Tickets{user?.role !== 'support_l2' && ' (L2-only metric)'}</p>
           </CardContent>
         </AnimatedCard>
         <AnimatedCard delay={0.55}>

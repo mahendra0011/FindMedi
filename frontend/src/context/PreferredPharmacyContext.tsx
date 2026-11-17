@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useReducer, useState, type ReactNode } from 'react';
 import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 export interface Pharmacy {
   id?: string;
@@ -83,6 +84,7 @@ function prefsReducer(state: PrefsState, action: PrefsAction): PrefsState {
 const PreferredPharmacyContext = createContext<PreferredPharmacyValue | null>(null);
 
 export function PreferredPharmacyProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [state, dispatch] = useReducer(prefsReducer, initialState);
 
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +106,10 @@ export function PreferredPharmacyProvider({ children }: { children: ReactNode })
   }, []);
 
   useEffect(() => {
+    if (user?.role !== 'patient') {
+      dispatch({ type: 'INIT', payload: { pharmacies: DEFAULT_PHARMACIES.map((p, i) => ({ ...p, priority: i + 1 })), autoRetryEnabled: false } });
+      return;
+    }
     (async () => {
       const loaded = await loadFromBackend();
       if (!loaded) {
@@ -121,7 +127,7 @@ export function PreferredPharmacyProvider({ children }: { children: ReactNode })
         }
       }
     })();
-  }, [loadFromBackend]);
+  }, [loadFromBackend, user?.role]);
 
   useEffect(() => {
     if (state.initialized) {

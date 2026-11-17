@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
+import { useAuth } from '@/context/AuthContext';
 
 const labApi: Unmodelled = {
   getOrders: (p: Unmodelled) => api.getLabOrders(p),
@@ -43,6 +44,7 @@ import { TABS, CATEGORIES, DEPARTMENTS, REPORT_TIMES, StatusBadge, SectionHeader
 import type { Unmodelled } from '@/lib/apiTypes';
 
 export default function DiagnosticDashboard() {
+  const { user } = useAuth();
   const qc = useQueryClient();
   const [tab, setTab] = useState('overview');
   const [search, setSearch] = useState('');
@@ -113,7 +115,8 @@ export default function DiagnosticDashboard() {
   const { data: packagesData }: Unmodelled = useQuery({ queryKey: ['lab-packages'], queryFn: () => labApi.getPackages({}) });
   const { data: staffData }: Unmodelled = useQuery({ queryKey: ['lab-staff'], queryFn: () => api.getStaff({ role: 'lab', limit: 200 }).catch(() => []) });
   const { data: reviewsData }: Unmodelled = useQuery({ queryKey: ['lab-reviews'], queryFn: () => api.getReviews({ limit: 100 }).catch(() => []) });
-  const { data: refundsData }: Unmodelled = useQuery({ queryKey: ['lab-refunds'], queryFn: () => api.getRefunds({ limit: 100 }).catch(() => ({ payments: [] })) });
+  const canReadRefunds = ['superadmin', 'compliance_officer', 'hospital_admin', 'billing_executive'].includes((user?.role || '') as string);
+  const { data: refundsData }: Unmodelled = useQuery({ queryKey: ['lab-refunds'], queryFn: () => api.getRefunds({ limit: 100 }).catch(() => ({ payments: [] })), enabled: canReadRefunds });
   const labLoading = statsLoading || ordersLoading || bookingsLoading;
   const labError = statsError || ordersError || bookingsError;
   const refetchLab = () => { refetchStats(); refetchOrders(); refetchBookings(); };

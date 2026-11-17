@@ -24,6 +24,24 @@ const teamMemberSchema = new mongoose.Schema({
   }],
   onboardingChecklist: [{ label: { type: String }, done: { type: Boolean, default: false } }],
   goals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Objective' }],
+  // File 24 §4.8 — 1:1 notes (manager-of-record visible only via the API's
+  // masked DTO for non-managers; these are coaching notes, not HR files).
+  oneToOnes: [{
+    date: { type: Date, required: true },
+    by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    note: { type: String, required: true, maxlength: 4000 },
+    followUp: { type: String, default: '', maxlength: 500 },
+  }],
+  // File 24 §4.8 — quarterly scorecard snapshots (manager-entered; the page
+  // also computes live coaching signals from training/checklist/goals).
+  scorecards: [{
+    period: { type: String, required: true, maxlength: 20 }, // e.g. '2026-Q3'
+    rating: { type: Number, min: 1, max: 5, default: 3 },
+    wins: { type: String, default: '', maxlength: 1000 },
+    focus: { type: String, default: '', maxlength: 1000 },
+    by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    at: { type: Date, default: Date.now },
+  }],
 }, { timestamps: true });
 
 teamMemberSchema.index({ roleTemplate: 1, status: 1 });

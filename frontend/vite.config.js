@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => ({
         port: 5173,
         proxy: {
             '/api': { target: 'http://localhost:5001', changeOrigin: true },
+            // Dev uploads/media and Socket.IO are served by the backend, not Vite.
+            '/uploads': { target: 'http://localhost:5001', changeOrigin: true },
+            '/socket.io': { target: 'http://localhost:5001', changeOrigin: true, ws: true },
         },
         hmr: {
             overlay: false,

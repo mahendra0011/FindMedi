@@ -5,6 +5,16 @@ import { gatewayFor } from '../lib/gateways.js';
 import { mirrorPayment } from '../lib/pgDualWrite.js';
 import logger from '../config/logger.js';
 import { getISTDateString } from '../utils/dateUtils.js';
+import { emitAnalyticsEvent } from './analyticsEmitter.js';
+
+const amountBucket = (a) => {
+  const n = Number(a) || 0;
+  if (n < 500) return 'lt_500';
+  if (n < 1000) return '500_1k';
+  if (n < 2000) return '1k_2k';
+  if (n < 5000) return '2k_5k';
+  return '5k_plus';
+};
 
 /**
  * PAY-B-07: Atomic Webhook Settlement Service
@@ -120,6 +130,17 @@ export async function settlePaymentFromWebhook({ provider, payload } = {}) {
       });
 
       await payment.save();
+      // Server-side source-of-truth analytics: money state changed.
+      void emitAnalyticsEvent({
+        name: 'payment_succeeded',
+        props: {
+          method_type: payment.method || 'upi',
+          amount_bucket: amountBucket(payment.amount),
+          service_type: payment.serviceType || undefined,
+        },
+        userId: payment.patient_id || null,
+        platform: 'server',
+      });
 
       // Cascade status update to referenced entity
       if (payment.referenceId) {

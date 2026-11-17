@@ -57,6 +57,23 @@ jestApi.unstable_mockModule('../../src/models/Provider.js', () => ({
     findOne: (filter) => { lastFindOneFilter = filter; return query(detailRow); },
   },
 }));
+
+// `providerDetail` (Spec 03 §4) also reads the provider's live services, the
+// practitioners behind them and the published reviews, so those collections
+// are stubbed like Provider is.
+jestApi.unstable_mockModule('../../src/models/Service.js', () => ({
+  default: {
+    find: () => query([]),
+    findOne: () => query(null),
+    aggregate: () => Promise.resolve([]),
+  },
+}));
+jestApi.unstable_mockModule('../../src/models/Review.js', () => ({
+  default: { find: () => query([]) },
+}));
+jestApi.unstable_mockModule('../../src/models/Doctor.js', () => ({
+  default: { find: () => query([]), findById: () => query(null) },
+}));
 jestApi.unstable_mockModule('../../src/services/opensearchIndexer.js', () => ({
   searchProviders: async (args) => { lastSearchArgs = args; return searchOut; },
   searchDrugs: async () => ({ results: [] }),

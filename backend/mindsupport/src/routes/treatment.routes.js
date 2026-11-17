@@ -1,4 +1,5 @@
 import { body, validationResult } from "express-validator";
+import { decryptText } from "../fieldCrypto.js";
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -24,15 +25,15 @@ const normalizePrescription = (p) => {
     revokeReason: raw.revokeReason || "",
     renewedFrom: raw.renewedFrom ? String(raw.renewedFrom) : null,
     clinicName: raw.clinicName || "",
-    diagnosis: raw.diagnosis || "",
-    notes: raw.notes || "",
+    diagnosis: decryptText(raw.diagnosis || ""),
+    notes: decryptText(raw.notes || ""),
     followUpDate: raw.followUpDate || null,
     medicines: (raw.medicines || []).map((m) => ({
       name: m.name,
       dosage: m.dosage || "",
       frequency: m.frequency || "",
       duration: m.duration || "",
-      notes: m.notes || "",
+      notes: decryptText(m.notes || ""),
     })),
     createdAt: raw.createdAt,
   };

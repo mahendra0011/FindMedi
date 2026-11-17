@@ -2,19 +2,18 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import { buildCorsOptions } from "../src/config/cors.js";
+import { buildCorsOptions } from "../../src/config/cors.js";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import fs from "node:fs";
-import crypto from "node:crypto";
 import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import mongoose from "mongoose";
-import { CLIENT_ORIGIN, GOOGLE_MEET_DEFAULT_LINK, JWT_SECRET, NOTES_ENCRYPTION_KEY, maskMongoUri, MONGODB_DATABASE, MONGODB_URI, PORT } from "./config/env.js";
+import { CLIENT_ORIGIN, GOOGLE_MEET_DEFAULT_LINK, maskMongoUri, MONGODB_DATABASE, MONGODB_URI, PORT } from "./config/env.js";
 import { verifyAccessToken } from "../../src/utils/jwtKeys.js";
-import { readAuthCookie } from "../../../src/lib/cookiePolicy.js";
+import { readAuthCookie } from "../../src/lib/cookiePolicy.js";
 import { connectDatabase, isDatabaseReady } from "./database/connect.js";
 import {
   Appointment,
@@ -100,35 +99,7 @@ function todayYMD() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function deriveEncryptionKey() {
-  const key = NOTES_ENCRYPTION_KEY || JWT_SECRET || "mindsupport-fallback-key-2024";
-  if (!NOTES_ENCRYPTION_KEY && process.env.NODE_ENV === "production") {
-    console.warn("[encrypt] NOTES_ENCRYPTION_KEY not set — falling back to JWT_SECRET. Set a separate key to avoid data loss on JWT rotation.");
-  }
-  return crypto.createHash("sha256").update(key).digest();
-}
-const ENCRYPTION_KEY = deriveEncryptionKey();
-const IV_LENGTH = 16;
-
-function encryptText(text) {
-  if (!text) return { encrypted: text, encryptedFlag: false };
-  const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv("aes-256-cbc", ENCRYPTION_KEY, iv);
-  const encrypted = Buffer.concat([cipher.update(text, "utf8"), cipher.final()]);
-  return { encrypted: iv.toString("hex") + ":" + encrypted.toString("hex"), encryptedFlag: true };
-}
-
-function decryptText(text) {
-  if (!text || typeof text !== "string" || !text.includes(":")) return text;
-  const parts = text.split(":");
-  try {
-    const iv = Buffer.from(parts.shift(), "hex");
-    const encrypted = Buffer.from(parts.join(":"), "hex");
-    const decipher = crypto.createDecipheriv("aes-256-cbc", ENCRYPTION_KEY, iv);
-    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-    return decrypted.toString("utf8");
-  } catch { return text; }
-}
+import { encryptText, decryptText } from "./fieldCrypto.js";
 
 function detectCrisis(concern = "") {
   if (!concern) return { crisis: false, message: "" };
@@ -416,9 +387,9 @@ function normalizeJournal(entry) {
   const raw = entry.toObject ? entry.toObject({ virtuals: true }) : entry;
   return {
     id: String(raw._id || raw.id),
-    title: raw.title || "Private journal entry",
-    content: raw.content || "",
-    excerpt: String(raw.content || "").slice(0, 120),
+    title: decryptText(raw.title || "Private journal entry"),
+    content: decryptText(raw.content || ""),
+    excerpt: decryptText(raw.content || "").slice(0, 120),
     mood: raw.mood || "",
     gratitude: raw.gratitude || "",
     trigger: raw.trigger || "",

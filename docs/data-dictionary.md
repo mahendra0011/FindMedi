@@ -14,7 +14,7 @@
 ## Summary
 
 - **351 models** across 343 files (0 skipped)
-- **7801 schema fields**, of which **813 classified as PII** in **249 collections**
+- **7816 schema fields**, of which **813 classified as PII** in **249 collections**
 - **10 collections** carry a TTL index
 - **129 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -286,7 +286,7 @@
 | `printlogs` | PrintLog | 13 | 0 | 3 | — | No PII fields detected |
 | `printtemplates` | PrintTemplate | 17 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `products` | Product | 33 | 0 | 6 | — | No PII fields detected |
-| `providerapplications` | ProviderApplication | 57 | 3 | 14 | — | Provider KYC documents |
+| `providerapplications` | ProviderApplication | 60 | 3 | 14 | — | Provider KYC documents |
 | `providerdocuments` | ProviderDocument | 29 | 1 | 7 | — | Provider KYC documents |
 | `providers` | Provider | 89 | 12 | 18 | — | Provider KYC documents |
 | `providerstaffinvites` | ProviderStaffInvite | 14 | 3 | 4 | 0s | **UNMAPPED — see gaps** |
@@ -355,7 +355,7 @@
 | `supporttickets` | SupportTicket | 31 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `systemsettings` | SystemSetting | 7 | 0 | 1 | — | Operational config (organization/catalog record — not personal data) |
 | `tasks` | Task | 17 | 2 | 5 | — | **UNMAPPED — see gaps** |
-| `teammembers` | TeamMember | 18 | 1 | 4 | — | **UNMAPPED — see gaps** |
+| `teammembers` | TeamMember | 30 | 1 | 4 | — | **UNMAPPED — see gaps** |
 | `teleconsents` | TeleConsent | 10 | 3 | 4 | — | **UNMAPPED — see gaps** |
 | `tenantgrants` | TenantGrant | 20 | 0 | 6 | — | No PII fields detected |
 | `territories` | Territory | 11 | 1 | 2 | — | **UNMAPPED — see gaps** |
@@ -10141,6 +10141,9 @@ source `ProviderApplication.js` · timestamps: yes · virtuals: 0 · retention: 
 | `approvalState.firstApprovedBy` | ObjectId |  |  | null |  | User |  |
 | `approvalState.firstApprovedAt` | Date |  |  | null |  |  |  |
 | `appealOf` | ObjectId |  |  | null |  | ProviderApplication |  |
+| `appealBasis.reason` | String |  |  | "" |  |  |  |
+| `appealBasis.notes` | Array<Mixed> |  |  |  |  |  |  |
+| `appealBasis.decidedAt` | Date |  |  | null |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |
@@ -12728,6 +12731,18 @@ source `TeamMember.js` · timestamps: yes · virtuals: 0 · retention: **UNMAPPE
 | `onboardingChecklist.label` | String |  |  |  |  |  |  |
 | `onboardingChecklist.done` | Boolean |  |  | false |  |  |  |
 | `goals` | Array<Mixed> |  |  |  |  |  |  |
+| `oneToOnes` | Array<subdocument> |  |  |  |  |  |  |
+| `oneToOnes.date` | Date | yes |  |  |  |  |  |
+| `oneToOnes.by` | ObjectId | yes |  |  |  | User |  |
+| `oneToOnes.note` | String | yes |  |  |  |  |  |
+| `oneToOnes.followUp` | String |  |  | "" |  |  |  |
+| `scorecards` | Array<subdocument> |  |  |  |  |  |  |
+| `scorecards.period` | String | yes |  |  |  |  |  |
+| `scorecards.rating` | Number |  |  | 3 |  |  |  |
+| `scorecards.wins` | String |  |  | "" |  |  |  |
+| `scorecards.focus` | String |  |  | "" |  |  |  |
+| `scorecards.by` | ObjectId |  |  | null |  | User |  |
+| `scorecards.at` | Date |  |  | [function] |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |

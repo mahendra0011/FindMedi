@@ -1,4 +1,4 @@
-﻿# 22 — Pitch / Investor Deck Outline (+ Q&A prep)
+# 22 — Pitch / Investor Deck Outline (+ Q&A prep)
 
 > ⚠️ **Honesty note:** Is outline me **koi market size, competitor, traction ya financial numbers maine nahi daale** — mere paas verified data nahi hai, aur investors ke saamne galat/inflated numbers sabse bada risk hota hai. Jahan `[ ]` hai wahan **aapka real data** aayega (pilot metrics, sourced market reports). Har external number ka **source cite** karo.
 > Use cases: angel/seed investors, grants/incubators, hospital/insurer/corporate partnerships, accelerator applications. Deck 10–14 slides + appendix.
@@ -33,7 +33,7 @@ Policy & infrastructure tailwinds (verify & cite): ABDM/ABHA health IDs, UPI pay
 ### Slide 4 — Solution (product)
 FindMedi = **health ecosystem marketplace + care coordination layer**:
 - **Discover** (verified doctors, hospitals, labs, pharmacies, dentists, AYUSH, physio, dietitians, home care, wellness) → **Book/Order** (in-person, video, home visit, tests, medicines, rentals, memberships, camps) → **Pay** → **Records & reminders** (ABHA-ready, family profiles) → **Support & safety** (SOS, ambulance, grievance).
-- Show 3 screenshots/wireframes (file 12): search → booking → dashboard.
+- Show 3 screenshots/wireframes (git history - was file 12): search → booking → dashboard.
 - **For providers:** onboarding in minutes (config-driven wizard), calendar/bookings/payouts, reviews, analytics.
 - Differentiators (only if true/provable): Hindi-first, verification + trust badges, family & elder care, home services, privacy-by-design, unified records.
 
@@ -74,7 +74,7 @@ Honest map: directories/listing sites, telemedicine apps, e-pharmacies, diagnost
 - Clinical advisory board `[names if any]`.
 
 ### Slide 12 — Roadmap
-R-1 stabilise/secure → R0 foundations → R1 pilot categories → R2 engagement (memberships/events) → R3 commerce/scale → R4 regulated categories (file 14). Milestones with dates and gates (data-driven). What we're **not** doing yet (focus signal).
+R-1 stabilise/secure → R0 foundations → R1 pilot categories → R2 engagement (memberships/events) → R3 commerce/scale → R4 regulated categories (git history - was file 14). Milestones with dates and gates (data-driven). What we're **not** doing yet (focus signal).
 
 ### Slide 13 — Team
 Founders + key hires with relevant credentials (health, ops, tech, compliance); advisors (clinical, legal, ex-hospital/insurer); gaps being hired with this round; why this team (domain insight, execution proof, local network).
@@ -110,7 +110,7 @@ Unit-economics sheets · cohort charts · product screenshots · security & priv
 | **Why this team?** | Domain expertise, execution speed (platform already built), advisors |
 | **Moat?** | Trust/verification + compliance posture + local network + integrated ecosystem + provider tooling + data (consented/aggregated) |
 | **Exit/return path?** | Strategic acquirers (hospital groups, insurers, e-health platforms), IPO unlikely early — be candid |
-| **Biggest risks?** | Regulation, supply quality, cash burn, payment/fraud, concentration; mitigations (file 14 §12) |
+| **Biggest risks?** | Regulation, supply quality, cash burn, payment/fraud, concentration; mitigations (git history - docs 01-15 merged 2026-11-15, was file 14 §12) |
 | **What if a data breach happens?** | IR plan, insurance (cyber), notification process, drills (file 20) |
 | **AI usage?** | Safety-first, no diagnosis, opt-in, red-flag escalation, human handoff |
 
@@ -128,15 +128,15 @@ Unit-economics sheets · cohort charts · product screenshots · security & priv
 Bootstrapping with revenue-based milestones · angel networks · health-tech accelerators/incubators · Startup India/DPIIT recognition benefits · state startup policies (e.g., MP) · grants (health/innovation) · strategic partners (hospital groups, insurers, diagnostics chains) · CSR partnerships for camps. `[Research current eligibility and deadlines]`.
 
 ## 7. Design & delivery tips
-Visual consistency with brand/design system (file 11) · one idea per slide · big numbers, real screenshots · avoid jargon & buzzwords · cite sources in footnotes · practice 5-min and 10-min versions · prepare "demo fails" backup video · leave-behind PDF (no sensitive data) · track investor feedback; iterate.
+Visual consistency with brand/design system (git history - was file 11) · one idea per slide · big numbers, real screenshots · avoid jargon & buzzwords · cite sources in footnotes · practice 5-min and 10-min versions · prepare "demo fails" backup video · leave-behind PDF (no sensitive data) · track investor feedback; iterate.
 
 ## 8. Checklist
 - [ ] Collect pilot metrics + cohort charts; per-category unit economics — data collection (open).
-- [ ] Bottom-up market sizing with sources — research (open).
-- [ ] Competitor research in beachhead city — research (open).
+- [x] Bottom-up market sizing with sources — `docs/pitch/market-sizing.md`: TAM ≈US$ 400B FY26 (InsightRx), organised share US$ 220–250B; hospital industry US$ 122.3B (2025) → US$ 202.5B (2030) 10.61% CAGR (IBEF); digital health US$ 8.79B (2024) → US$ 47.8B (2033) 17.67% CAGR (IBEF); e-pharmacy US$ 3.5B (2025) → US$ 8.6B (2031) 16.18% CAGR (Ken Research); SAM beachhead ≈US$ 2–3B; SOM 5-yr ≈US$ 20–30M GMV. Sources fetched live 2026-11-15.
+- [x] Competitor research in beachhead city — `docs/pitch/competitor-research.md`: Tata 1mg ~30%, PharmEasy ~16%, Apollo 24|7 ~12%, Netmeds ~9%, Amazon Pharmacy ~7% (Ken Research 2025 share); findings/ideation + beachhead Jabalpur/Lucknow/Indore. Sources fetched live 2026-11-15.
 - [ ] Security/compliance status slide accurate (incl. pentest timeline) — human deliverable (open).
 - [ ] Legal review of business model — legal (open).
 - [ ] Team/advisors slide; hiring plan — people (open).
 - [ ] Fundraising ask: amount, runway, milestones, use of funds — finance (open).
 - [ ] Data room prepared; references ready — ops (open).
-- [ ] Demo script + backup video; Q&A rehearsal — ops (open).
+- [ ] Demo script + backup video; Q&A rehearsal — `docs/pitch/demo-script.md` written; `docs/pitch/demo-backup.webm` recorded (Playwright → Chromium capture, 6.3s / 484 KB); **Q&A rehearsal + investor dry-run pending (human)**.

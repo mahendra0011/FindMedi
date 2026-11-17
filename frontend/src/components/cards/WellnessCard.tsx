@@ -27,6 +27,8 @@ export default function WellnessCard({ item, onPrimary, onSecondary }: any) {
       secondaryLabel="View"
       onPrimary={onPrimary || (() => navigate(`/wellness/${item._id || item.id}`))}
       onSecondary={onSecondary}
+      sponsored={item.isSponsored}
+      overlayBadge={item.overlayBadge}
     />
   );
 }

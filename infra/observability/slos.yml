@@ -1,0 +1,51 @@
+# Prometheus recording rules for FindMedi SLOs (see docs/ops/slos.md).
+# Scrape config: infra/observability/prometheus.yml (already points at /metrics).
+# Load with promtool check config before apply:
+#   promtool check config slos.yml
+groups:
+  - name: findmedi-slos
+    interval: 30s
+    rules:
+      # SLI: non-5xx availability
+      - record: job:sli_availability:ratio_rate5m
+        expr: sum(rate(http_requests_total{status!~"5.."}[5m])) by (job) / sum(rate(http_requests_total[5m])) by (job)
+      # SLI: 5xx error ratio
+      - record: job:sli_error_rate:ratio_rate5m
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) by (job) / sum(rate(http_requests_total[5m])) by (job)
+      # SLI: API p95 latency (seconds) by route
+      - record: route:sli_p95_seconds:rate10m
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[10m])) by (le, route))
+      # SLI: booking completion (confirmed appointments / initiated checkouts)
+      - record: job:sli_booking_completion:ratio_rate1h
+        expr: sum(rate(findmedi_appointments_total{status="Confirmed"}[1h])) / sum(rate(findmedi_checkout_initiated_total[1h]))
+      # SLI: payment success (gateway captured / authorized) — populate via gateway webhook metrics
+      - record: job:sli_payment_success:ratio_rate1h
+        expr: sum(rate(findmedi_payments_total{status="completed"}[1h])) / sum(rate(findmedi_payments_total[1h]))
+      # SLI: notification queue lag (seconds)
+      - record: queue:sli_notification_lag_seconds:max
+        expr: max(bullmq_queue_waiting_count{queue="notifications"})
+      # Burn-rate alerts (fast/slow window pairs) for API availability (SLO 99.9%)
+      - alert: APIAvailabilityBurnFast
+        expr: job:sli_availability:ratio_rate5m < 0.998
+        for: 5m
+        labels: { severity: page }
+        annotations:
+          summary: "API availability burning fast (<99.8% over 5m)"
+      - alert: APIAvailabilityBurnSlow
+        expr: avg_over_time(job:sli_availability:ratio_rate5m[30m]) < 0.999
+        for: 30m
+        labels: { severity: page }
+        annotations:
+          summary: "API availability burning slow (<99.9% over 30m)"
+      - alert: APIErrorRateBreach
+        expr: job:sli_error_rate:ratio_rate5m > 0.01
+        for: 10m
+        labels: { severity: page }
+        annotations:
+          summary: "API 5xx ratio above 1%"
+      - alert: SearchP95LatencyRegression
+        expr: route:sli_p95_seconds:rate10m{route=~"/api/search.*"} > 0.5
+        for: 15m
+        labels: { severity: ticket }
+        annotations:
+          summary: "Search p95 latency > 500ms"

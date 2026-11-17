@@ -20,6 +20,15 @@ import { auditLog } from '../middleware/audit.js';
 import { paymentLimiter } from '../middleware/rateLimit.js';
 import { telemedicineGate } from '../middleware/telemedicineGate.js';
 import { computeGstSplit } from '../lib/gst.js';
+import { emitAnalyticsEvent } from '../services/analyticsEmitter.js';
+const amountBucket = (a) => {
+  const n = Number(a) || 0;
+  if (n < 500) return 'lt_500';
+  if (n < 1000) return '500_1k';
+  if (n < 2000) return '1k_2k';
+  if (n < 5000) return '2k_5k';
+  return '5k_plus';
+};
 import { paginatedResults } from '../utils/pagination.js';
 import { generateTransactionId, generateInvoiceId, generateBillId, generateTokenNumber } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
@@ -1261,6 +1270,17 @@ router.post('/pay', protect, telemedicineGate, paymentLimiter, idempotencyGuard(
         lineItems: lineItems || [],
       }], paymentSession ? { session: paymentSession } : {});
       payment = p;
+      // Server-side analytics: the canonical money transition (mock gateway path).
+      void emitAnalyticsEvent({
+        name: 'payment_succeeded',
+        props: {
+          method_type: method || 'upi',
+          amount_bucket: amountBucket(amount),
+          service_type: serviceType || undefined,
+        },
+        userId: String(req.user._id),
+        platform: 'server',
+      });
 
       // Auto-confirm the referenced booking (check facility setting)
       if (referenceId) {

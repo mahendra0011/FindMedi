@@ -8,6 +8,8 @@
 
 ## 1. Abhi aapke code me kya hai (verified)
 
+> **Status note (2026-11-15):** Sections 1 and the line references in 1.2 are the **pre-remediation snapshot** (they document what the audit found and drove the fixes). Items 1–10 in 1.2 were all remediated; current state was re-verified line-by-line in a 2026-11-14 audit (`middleware/authorize.js` break-glass gate, masked patient DTOs, platform-wide appointment listing → 403, `denyPlatformClinicalAccess` guards, `phi_access` events, scoped admin team). Do not read §1 as the current state.
+
 ### 1.1 Superadmin pages jo mile
 `UserManagement · DataExport · EmergencyWarRoom · AllFacilities · SupportTickets · AuditLogs · SuperAdminTeam · Security · Legal · AiSafety · Disputes · KycCommand · TenantQuotas` + endpoints: pending approvals, facilities, delivery-partners, lawyers/assistants/riders (pending + list), revenue, SOS/vehicle settings, categories, licences, commission, coupons, featured listings, content, broadcast, integrations, cities, deletion requests, review moderation, ops health, wallet guards.
 
@@ -79,7 +81,7 @@
 | Section | Change |
 |---|---|
 | **Dashboard** | Sirf **aggregated** KPIs (k ≥ 10); no patient names/lists |
-| **KYC Command / Approvals / Licences** | Role: KYC Reviewer; split-pane review workspace (file 08); two-person approval for high-risk; doc viewer watermarked, no bulk download |
+| **KYC Command / Approvals / Licences** | Role: KYC Reviewer; split-pane review workspace (git history - was file 08); two-person approval for high-risk; doc viewer watermarked, no bulk download |
 | **All Facilities / Providers** | Business data only; suspend/delist/merge with reason; branch view; **no patient counts per provider that reveal individuals** |
 | **Categories / Cities / Commission / Coupons / Featured** | Role: Platform Admin / Catalog Manager; change-history + approval for commission/coupon changes |
 | **Disputes / Support Tickets** | Support L1/L2; masked data, evidence attachments from parties, SLA timers, refund limits by role |
@@ -224,12 +226,12 @@ Plus: step-up (`requireStepUp('phi:breakglass')`) to *request/approve*; alerts o
 | `routes/lab.js`, `billing.js`, `ipd.js`, `triage.js`, `nursing.js`, `insurance.js`, `pharmacy.js` | Tenant-bypass for superadmin → platform roles get **metadata/financial views** only; PHI fields stripped |
 | `middleware/authorize.js:15` | Remove blanket superadmin pass (see 5.1) |
 | `AuditLog` | Add events: `phi_access`, `breakglass_requested/approved/denied/expired`, `admin_role_changed`, `export_created`, `masked_field_revealed`; hash-chain or external append-only sink |
-| `requireStepUp` | Add scopes: `phi:breakglass`, `admin:role-assign`, `commission:change`, `payout:approve`, `legal:takedown`, `export:identified`, `provider:ban` |
+| `requireStepUp` | DONE: all listed scopes registered & wired - phi:breakglass (breakGlass.js), iam:role-change + admin:role-assign (iam.js `/assignments`), commission:change, payout:approve, legal:takedown, export:identified, provider:ban, account:2fa-disable, account:email-change; registry pinned by `test/security/stepUpAuth.spec.js` |
 | `authz-manifest` + tests | Mark PHI routes `phiClass: true`; **authMatrix**: every platform role → DENY on PHI routes without grant; with grant → ALLOW only for that subject; `dtoLeak` for admin DTOs (no identity/PHI) |
-| Frontend | New nav from permissions; masked components; "BREAK-GLASS ACTIVE" banner; remove patient-list/records pages from superadmin nav |
+| Frontend | New nav from permissions; masked components; BREAK-GLASS ACTIVE banner (`frontend/src/components/BreakGlassBanner.tsx`, polls `/api/admin/break-glass/mine/active` every 30s + live countdown, mounted globally in App.tsx); remove patient-list/records pages from superadmin nav |
 
 ### 5.4 Migration without breaking your ops
-Rollout remains open: enable shadow enforcement by module, starting with mental health, then remove confirmed dead pages; the tracked deployment checklist is in §6.
+Rollout remains open: enable shadow enforcement by module, starting with mental health, then remove confirmed dead pages; the tracked deployment checklist is in §10.
 2. Build masked support tools + aggregate dashboards so ops don't *need* PHI.
 3. Introduce new roles; move current admins into them; keep one **Owner** account(s).
 4. Flip enforcement per module (mental health first, records next, rest after).
@@ -242,7 +244,7 @@ Rollout remains open: enable shadow enforcement by module, starting with mental 
 | Control | Setting |
 |---|---|
 | **Auth** | Passkeys/TOTP mandatory for all admin roles (`TWO_FACTOR_REQUIRED_ROLES`), no SMS-only MFA; no social login |
-| **Sessions** | Short (idle 15 min, absolute 8–12 h), concurrent limit 2, re-auth for sensitive actions, device binding optional |
+| **Sessions** | Hardening target (not the shipped default): short sessions (idle 15 min, absolute 8-12 h), concurrent device limit, re-auth for sensitive actions. Today's default is uncapped; `SESSION_IDLE_TIMEOUT_MS` / `SESSION_ADMIN_MAX_CONCURRENT` are documented in `backend/.env.example` as the knobs to tighten |
 | **Network** | Separate admin hostname (`admin.`), IP allowlist/VPN/Cloudflare Access, strict CSP (`script-src 'self'`), `frame-ancestors 'none'`, no third-party scripts/analytics on admin |
 | **Step-up** | All sensitive actions (§5.3 scopes) |
 | **Dual approval (maker-checker)** | Role→admin, commission change, payouts above threshold, legal takedown/law-enforcement disclosure, identified export, provider ban for high-risk, break-glass for mental/sexual health |
@@ -342,15 +344,15 @@ Har item permission se dikhe/chhupe; role ke bahar wale ko 404/hidden.
 ---
 
 ## 10. Checklist
-- [x] Naye admin roles + permission sets; platform roles hold no default PHI — `authz-manifest.json` (1897 routes classified, 0 unclassified), role/permission sets.
+- [x] Naye admin roles + permission sets; platform roles hold no default PHI — `authz-manifest.json` (1907 routes classified, 0 unclassified), role/permission sets.
 - [x] `authorize()` bypass removed; PHI-class permissions + break-glass middleware — `requireBreakGlass.js` exact-subject gate.
 - [x] `BreakGlassGrant` model + request/approve UI + patient notification + DPO review — model, `BreakGlassQueue` page, `breakGlassDpoReview.spec.js`.
 - [x] Records/patients/mentalhealth/appointments/... superadmin PHI branches replaced — `records.js` `isPlatformBreakGlassRole` returns only with approved grant; `platformMentalHealthAccess.spec.js`.
 - [x] Masked support tools + assist-session code + reveal-with-reason — `SupportAssistSession`, masked phone/bank fields, `reasonForAccess`.
 - [x] Aggregate dashboards with k-anonymity; de-identified exports default — cohort thresholds + capped export path.
 - [x] Naye step-up scopes + dual-approval flows (maker-checker) — `stepUpAuth.js` scopes + two-person approval.
-- [x] `phi_access` & related audit events (immutable/hash-chain) + alerts — `AuditLog` hash-chain fields + `audit.js`, admin alert queues.
-- [x] Admin console hardening code: passkeys, short sessions, CSP — `passkeys.js`, `SecuritySection.tsx`, CSP headers.
+- [x] `phi_access` & related audit events (immutable/hash-chain) + alerts — `AuditLog` hash-chain fields + `audit.js`; mass-view/off-hours access alerting implemented as `jobs/adminAccessAlert.job.js` (hourly in the scheduler; >=10 admin-PHI reads per actor per 60m, or any read 23:00–06:00 → deduped `security_alert` to DPO/security/superadmin + hash-chain audit row).
+- [x] Admin console hardening code: passkeys, short sessions, CSP — `passkeys.js`, frontend/src/components/SecuritySection.tsx, CSP headers.
 - [ ] Deploy and verify the admin IP allowlist and separate hostname in the target environment.
 - [x] Tests: platform roles DENY on PHI, dtoLeak, break-glass flows — `platformMentalHealthAccess.spec.js`, `dtoLeak.extend.spec.js`, `breakGlassDpoReview.spec.js`.
 - [x] Shadow mode -> staged enforcement (mental health first) -> remove dead pages - mental-health platform access is already hard-enforced behind break-glass; dead pages removed (23 orphan dashboards, 2026-11-11); `platformPhiGate` is now mounted in shadow mode on `GET /api/radiology/orders(/:id)` (module `phi-radiology`) so platform-role PHI reads without a grant are audited as `shadow_violation`; `shadowMode.spec.js` (6/6) pins audit-only vs enforced behaviour and per-module flips via `SHADOW_ENFORCE_MODULES` (documented in `backend/.env.example`). Enforcement is an ops decision after reviewing the audit trail.

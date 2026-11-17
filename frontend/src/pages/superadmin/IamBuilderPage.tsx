@@ -25,16 +25,16 @@ export default function IamBuilderPage() {
 
   const { data: policies } = useQuery({
     queryKey: ['iam-policies'],
-    queryFn: async (): Promise<PolicyRecord[]> => (await api.get('/iam/policies')).data,
+    queryFn: async (): Promise<PolicyRecord[]> => (await api.get('/iam/policies')).policies ?? [],
   });
 
   const { data: analysis } = useQuery({
     queryKey: ['iam-analyze'],
-    queryFn: async (): Promise<unknown> => (await api.get('/iam/analyze')).data,
+    queryFn: async (): Promise<unknown> => await api.get('/iam/analyze'),
   });
 
   const create = useMutation({
-    mutationFn: async (body: PolicyDraft) => (await api.post('/iam/policies', body)).data,
+    mutationFn: async (body: PolicyDraft) => await api.post('/iam/policies', body),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['iam-policies'] }); setError(null); },
     onError: (e: unknown) => setError(errorMessage(e, 'Create failed')),
   });

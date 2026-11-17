@@ -27,6 +27,8 @@ export default function DietitianCard({ item, onPrimary, onSecondary }: any) {
       secondaryLabel="View plans"
       onPrimary={onPrimary || (() => navigate(`/practitioner/${item._id || item.id}`))}
       onSecondary={onSecondary}
+      sponsored={item.isSponsored}
+      overlayBadge={item.overlayBadge}
     />
   );
 }

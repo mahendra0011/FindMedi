@@ -1,4 +1,19 @@
 import mongoose from "mongoose";
+import { encryptText, isEncryptedText } from "../fieldCrypto.js";
+
+// T1 clinical-note encryption at rest (durg-layer, mongoose save hooks).
+// Writes encrypt automatically on .save()/.create(); reads go through the
+// decrypting normalize* mappers or decryptText directly (dual-read: legacy
+// AES-256-CBC rows and plaintext legacy rows still render). Inserting an
+// already-encrypted value (e.g. copies created via renewal) is a no-op, so
+// re-saving never double-encrypts. The mindsupport sub-app reads these rows
+// through the same fieldCrypto, so main-app readers are unaffected.
+function encryptIfPlaintext(value) {
+  if (value === undefined || value === null || value === "") return value;
+  const s = String(value);
+  if (isEncryptedText(s)) return s;
+  return encryptText(s).encrypted;
+}
 
 function applyJsonTransform(schema) {
   schema.set("toJSON", {
@@ -209,6 +224,14 @@ const appointmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 applyJsonTransform(appointmentSchema);
+appointmentSchema.pre("save", function encryptAppointmentNotes(next) {
+  if (this.notes) {
+    const encrypted = encryptIfPlaintext(this.notes);
+    if (encrypted !== this.notes || isEncryptedText(this.notes)) this.notesEncrypted = true;
+    this.notes = encrypted;
+  }
+  if (typeof next === 'function') next();
+});
 appointmentSchema.index({ student: 1, status: 1 });
 appointmentSchema.index({ counsellor: 1, date: 1 });
 
@@ -245,6 +268,11 @@ const journalSchema = new mongoose.Schema(
   { timestamps: true }
 );
 applyJsonTransform(journalSchema);
+journalSchema.pre("save", function encryptJournal(next) {
+  this.content = encryptIfPlaintext(this.content);
+  this.title = encryptIfPlaintext(this.title || "Private journal entry");
+  if (typeof next === 'function') next();
+});
 
 const messageSchema = new mongoose.Schema(
   {
@@ -558,6 +586,17 @@ const prescriptionSchema = new mongoose.Schema({
   }],
 }, { timestamps: true });
 applyJsonTransform(prescriptionSchema);
+prescriptionSchema.pre("save", function encryptPrescription(next) {
+  this.diagnosis = encryptIfPlaintext(this.diagnosis);
+  this.notes = encryptIfPlaintext(this.notes);
+  if (Array.isArray(this.medicines)) {
+    this.medicines = this.medicines.map((medicine) => ({
+      ...(typeof medicine.toObject === "function" ? medicine.toObject() : medicine),
+      notes: encryptIfPlaintext(medicine?.notes),
+    }));
+  }
+  if (typeof next === 'function') next();
+});
 const Prescription = mongoose.model("MindPrescription", prescriptionSchema, "mind_prescriptions");
 
 const assignmentSchema = new mongoose.Schema({

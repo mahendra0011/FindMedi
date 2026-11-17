@@ -74,7 +74,7 @@ Tools: ticketing (✅ `SupportTicket` + external helpdesk later), macros, tags, 
 4. Log incident for pattern analysis (webhook failures).
 
 ### SOP-3 Refund request (general)
-Check policy snapshot at booking → apply refund matrix (file 13 §4) → override only with reason + approval (step-up for > ₹threshold) → process → notify → audit.
+Check policy snapshot at booking → apply refund matrix (git history - docs 01-15 merged 2026-11-15, was file 13 §4) → override only with reason + approval (step-up for > ₹threshold) → process → notify → audit.
 
 ### SOP-4 Pharmacy order issues
 Wrong/missing/damaged/expired: collect photo evidence → verify with store → replace/refund → **expired/wrong-drug = Sev-2** (notify pharmacy, check batch, recall if needed); Rx rejection: explain reason, guide to upload valid Rx / book consult.
@@ -93,7 +93,7 @@ Triggers: self-harm/violence keywords in chat/groups/support. Steps: human revie
 Open dispute → freeze payout portion (if applicable) → request evidence from both (48h) → decide per policy (refund/credit/penalty/none) → communicate with reasons → appeal window (7 days) → close. Pattern detection → strike system.
 
 ### SOP-8 Provider onboarding & verification
-Queue by priority → checklist per type (file 01/08) → registry checks (council portals, drug licence validity, AERB/PCPNDT, FSSAI/CDSCO) → address verification (call/video/field visit for high-risk) → decision → welcome/training → probation (caps/payout hold) → 30-day review. **High-risk types = two-person approval.**
+Queue by priority → checklist per type (git history - was files 01/08) → registry checks (council portals, drug licence validity, AERB/PCPNDT, FSSAI/CDSCO) → address verification (call/video/field visit for high-risk) → decision → welcome/training → probation (caps/payout hold) → 30-day review. **High-risk types = two-person approval.**
 
 ### SOP-9 Document expiry & re-verification
 60/30/7-day reminders → provider action → reviewer re-check → grace period → auto-hide bookings (existing honoured) → suspend if lapsed; notify patients of affected bookings.
@@ -153,7 +153,7 @@ Structure: Getting started · Booking & payments · Refunds · Orders & prescrip
 Use **workforce planning:** tickets per 1k bookings × bookings forecast ÷ agent capacity (e.g., ~X tickets/agent/day) + shrinkage 25–30%.
 
 ## 9. Tools stack (suggestions)
-Helpdesk (Freshdesk/Zendesk/Zoho/open-source) integrated with `SupportTicket` · telephony/IVR + call recording consent · WhatsApp Business API · status page (Statuspage/Upptime) · incident tooling (PagerDuty/Opsgenie/Grafana OnCall) · knowledge base · QA tools · internal ops console ✅ (file 08) · BI dashboards · password manager · secure screen-share. **Access control:** RBAC, masked PII, reveal-with-reason, session timeouts, audit logs, no PHI in chat tools/screenshots shared externally.
+Helpdesk (Freshdesk/Zendesk/Zoho/open-source) integrated with `SupportTicket` · telephony/IVR + call recording consent · WhatsApp Business API · status page (Statuspage/Upptime) · incident tooling (PagerDuty/Opsgenie/Grafana OnCall) · knowledge base · QA tools · internal ops console ✅ (git history - was file 08) · BI dashboards · password manager · secure screen-share. **Access control:** RBAC, masked PII, reveal-with-reason, session timeouts, audit logs, no PHI in chat tools/screenshots shared externally.
 
 ## 10. Provider success playbook
 - **Day 0–7:** welcome call, profile completion help, first-booking test, training video/WhatsApp group.
@@ -195,13 +195,13 @@ Weekly ops review; monthly leadership review; quarterly SOP audit.
 **Privacy verification:** "To protect your account, please confirm [two non-sensitive details]. We will never ask for your OTP, password, or card PIN."
 
 ## 15. Launch readiness checklist (ops)
-- [ ] Helpdesk + SLA timers + macros + routing configured; KB v1 (hi/en) — `supportTickets.js`, `slaDueAt` escalation job, `dltTemplates`; KB content is an ops deliverable (note).
+- [x] Helpdesk + SLA timers + macros + routing configured; KB v1 (hi/en) — `supportTickets.js`, `slaDueAt` escalation job, `dltTemplates.js` (DLT registry), `config/supportOperations.js` (`COMMUNICATION_TEMPLATES` + `renderCommunicationTemplate()`); KB v1 (20 articles, hi/en, patient + provider) in `docs/ops/kb/v1-articles.md`; communication templates documented in `docs/ops/communication-templates.md`.
 - [ ] Support team trained (privacy, safety, crisis, refunds, Rx basics) — training is a human ops deliverable (open).
 - [ ] Incident roster/on-call + escalation contacts + clinical advisor reachable — ops staffing (open).
-- [ ] SOPs 1-17 reviewed; dry-run drills (safety incident, payment mismatch, outage) — 17 SOPs documented in the doc; drills are ops activities (note).
+- [ ] SOPs 1-17 reviewed; dry-run drills (safety incident, payment mismatch, outage) — 17 SOPs documented in the doc; drill runbook ready at `docs/ops/drill-runbook.md` (4 drills, minutes/owner/pass-criteria); drill execution + records are ops activities (note).
 - [x] KYC checklists & two-person lane live; field team equipped — `ProviderTypeConfig.requiredDocs`, two-person approval live.
 - [x] Finance: payout/reconciliation process + dual approval — payout reconcile job + dual-approval flows.
 - [x] Moderation queues + policies published — `ModerationItem` SLA queue + moderation policies.
 - [ ] Grievance Officer + DPO contact live; DSR workflow tested — `routes/dsr.js`/`adminDsr.js`, break-glass DPO review; contact publishing is ops (note).
-- [ ] Status page + comms templates ready — status page is an ops deliverable (note); comms templates in `supportOperations.js`.
+- [ ] Status page + comms templates ready — comms macros documented in `docs/ops/communication-templates.md` (EN/hi) and DLT templates (`dltTemplates.js`); status page artifact `status/index.html` (GitHub Pages-ready, polls /health every 30s) with deploy runbook at `docs/ops/status-page.md`; **page publishing + host choice is an ops deliverable (Statuspage/Upptime or Pages) — open**.
 - [x] Dashboards for support/quality/onboarding/safety/finance — `crm` command center + admin analytics pages.

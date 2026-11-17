@@ -11,6 +11,7 @@ import mongoose from 'mongoose';
 import { assertEhrSearchAccess } from '../services/ehrSearchAccess.js';
 import { sendServerError } from '../utils/safeError.js';
 import { roleHasPermission } from '../config/permissions.js';
+import { PROVIDER_TYPE_CATALOG } from '../lib/providerTypeCatalog.js';
 
 const router = express.Router();
 
@@ -427,6 +428,38 @@ router.get('/all', protect, async (req, res) => {
   }
 });
 
+// ─── Provider catalogue lookup for the unified search ─────────────────────
+// The vertical tabs the public UI offers (doctor / hospital / clinic / lab /
+// pharmacy / transport) are legacy names; the catalogue behind the join
+// wizard uses typeKeys. This maps one onto the other so a vertical filter
+// actually narrows the provider rows instead of silently showing everything.
+const VERTICAL_PROVIDER_TYPES = {
+  hospital: ['hospital'],
+  clinic: ['clinic'],
+  lab: ['diagnostic', 'imaging_centre', 'pathology_lab', 'collection_centre', 'mobile_diagnostic_van', 'cardiac_diagnostic_centre', 'genetic_molecular_lab'],
+  pharmacy: ['pharmacy', 'hospital_pharmacy', 'jan_aushadhi_kendra', 'generic_medicine_store', '24x7_pharmacy', 'online_pharmacy', 'ayush_medicine_store', 'wholesale_pharmacy'],
+  doctor: ['doctor', 'home_doctor'],
+  transport: ['ambulance_operator', 'patient_transport', 'delivery', 'rider'],
+};
+
+const PROVIDER_TYPE_KEYS = new Set(
+  PROVIDER_TYPE_CATALOG.map((entry) => entry.typeKey),
+);
+
+/**
+ * @returns {object|string|undefined} a mongo filter for `type`, or undefined
+ * when no provider-type filter should apply. `null` would mean "no provider
+ * rows at all", which is never right here: an unrecognised category (a
+ * specialty name, say) must not hide the whole catalogue.
+ */
+function providerTypesForVertical(category) {
+  const key = String(category || '').toLowerCase().trim();
+  if (!key) return undefined;
+  if (VERTICAL_PROVIDER_TYPES[key]) return { $in: VERTICAL_PROVIDER_TYPES[key] };
+  if (PROVIDER_TYPE_KEYS.has(key)) return key;
+  return undefined;
+}
+
 // ─── GET /api/search/unified — Multi-vertical, taxonomy-expanded directory search ───
 // authz: public
 router.get('/unified', publicSearchLimiter, async (req, res) => {
@@ -510,6 +543,74 @@ router.get('/unified', publicSearchLimiter, async (req, res) => {
         image: f.logo || '',
         category: f.subType || f.type,
       });
+    }
+
+    // 1.5 Provider listings (the provider catalogue behind the join wizard).
+    // Without this the 103 typeKeys the platform accepts were invisible to
+    // search - a provider could complete onboarding and still never appear in
+    // a listing. Provider rows carry the public card contract (Spec 02 §5).
+    if (results.length < maxItems) {
+      try {
+        const { default: Provider } = await import('../models/Provider.js');
+        const { buildProviderCard, rollupProviderServices, haversineKm } = await import('../lib/providerPublicDetail.js');
+
+        const providerFilter = { status: 'live' };
+        if (city && city.toLowerCase() !== 'all') {
+          providerFilter['address.city'] = new RegExp(`^${city.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+        }
+        if (rx) {
+          providerFilter.$or = [{ name: rx }, { tagline: rx }, { description: rx }];
+        }
+        const providerTypes = providerTypesForVertical(targetCategory);
+        if (providerTypes) providerFilter.type = providerTypes;
+
+        const matchedProviders = await Provider.find(providerFilter)
+          .select('slug kind type group tier name tagline description media address.city address.area address.pincode address.geo stats verification.status verification.verifiedAt trusted plan createdAt accreditations schemesAccepted languages timings')
+          .sort({ 'stats.ratingAvg': -1, createdAt: -1 })
+          .limit(maxItems - results.length)
+          .lean()
+          .catch(() => []);
+
+        if (matchedProviders.length) {
+          const rollups = await rollupProviderServices(matchedProviders.map((p) => p._id));
+          const originLat = Number(lat);
+          const originLng = Number(lng ?? lon);
+          for (const p of matchedProviders) {
+            const card = buildProviderCard(p, rollups.get(String(p._id)) || {});
+            // "Nearest" needs a real distance, so it is computed here rather
+            // than guessed in the UI.
+            if (card.geo && Number.isFinite(originLat) && Number.isFinite(originLng)) {
+              card.distanceKm = haversineKm(originLat, originLng, card.geo.lat, card.geo.lng);
+            }
+            results.push({
+              id: String(p._id),
+              providerId: String(p._id),
+              fullName: p.name,
+              slug: p.slug,
+              vertical: p.type,
+              source: 'provider',
+              type: p.type,
+              card,
+              subType: p.tagline,
+              city: p.address?.city,
+              address: { city: p.address?.city, area: p.address?.area },
+              rating: card.ratingAvg,
+              reviewCount: card.ratingCount,
+              verified: card.verified,
+              openNow: card.openNow,
+              image: card.imageUrl,
+              category: card.category?.label,
+              priceFrom: card.priceFrom,
+              badges: card.badges,
+              languages: card.languages,
+              modes: card.modes,
+              schemes: card.schemes,
+            });
+          }
+        }
+      } catch (providerErr) {
+        logger.warn(`Provider search error: ${providerErr.message}`);
+      }
     }
 
     // 2. Search Doctors if remaining slots

@@ -30,6 +30,7 @@ export default function EventCard({ item, onPrimary, onSecondary }: any) {
       unavailableLabel="Registrations closed"
       onPrimary={onPrimary || (() => navigate(`/events/${item._id || item.id}`))}
       onSecondary={onSecondary}
+      sponsored={item.isSponsored}
     />
   );
 }

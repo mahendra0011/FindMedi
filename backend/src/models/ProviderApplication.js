@@ -133,6 +133,14 @@ const providerApplicationSchema = new mongoose.Schema({
   // One appeal per rejection (2.md 6). Points at the rejected application, and
   // the join route refuses a second row for the same decision.
   appealOf: { type: mongoose.Schema.Types.ObjectId, ref: 'ProviderApplication', default: null, index: true },
+  // 2.md 12 "provider rejected then re-applies": the refused application's
+  // reason and the reviewer's per-document notes are carried onto the appeal so
+  // the applicant sees WHY it was refused instead of starting blind.
+  appealBasis: {
+    reason: { type: String, maxlength: 1000, default: '' },
+    notes: [{ type: String, maxlength: 1000 }],
+    decidedAt: { type: Date, default: null },
+  },
 }, { timestamps: true });
 
 providerApplicationSchema.index({ applicantUserId: 1, status: 1 });

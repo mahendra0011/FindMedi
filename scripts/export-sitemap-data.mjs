@@ -78,7 +78,13 @@ for (const p of providers) {
   const slug = p.slug || slugify(p.name);
   const city = p.city || p.address?.city || '';
   if (!slug) { skippedUnverified += 1; continue; }
-  details.push({ loc: `/facility/${p.type || 'provider'}/${slug}` });
+  const type = String(p.type || 'provider').replace(/_/g, ' ');
+  const name = p.name ? String(p.name) : 'Provider';
+  details.push({
+    loc: `/facility/${p.type || 'provider'}/${slug}`,
+    title: `${name} | FindMedi`,
+    description: `${name} — verified ${type}${city ? ` in ${city}` : ''}. Check fees, timings and book online.`,
+  });
   if (city) {
     const key = city.toLowerCase();
     providerIdsByCity.set(key, (providerIdsByCity.get(key) || 0) + 1);
@@ -113,7 +119,14 @@ for (const d of doctors) {
   const id = String(d._id || '');
   if (!id) { skippedUnverified += 1; continue; }
   const isClinic = d.doctor_type === 'clinic' || d.facilityType === 'clinic';
-  details.push({ loc: isClinic ? `/clinic-doctors/${id}` : `/hospital-doctors/${id}` });
+  const dName = d.name ? String(d.name) : 'Doctor';
+  const dSpec = d.specialization ? String(d.specialization) : '';
+  const dCity = d.city || d.clinicProfile?.clinic_city || d.location?.city || '';
+  details.push({
+    loc: isClinic ? `/clinic-doctors/${id}` : `/hospital-doctors/${id}`,
+    title: `${dName}${dSpec ? `, ${dSpec}` : ''} | FindMedi`,
+    description: `${dName}${dSpec ? `, ${dSpec}` : ''}${dCity ? ` in ${dCity}` : ''} — verified doctor. Check timings and book online.`,
+  });
   const city = d.city || d.clinicProfile?.clinic_city || d.location?.city || '';
   if (city) {
     const key = city.toLowerCase();
@@ -139,7 +152,14 @@ const specialties = await db.collection('specialties').find(
   { projection: { code: 1 } },
 ).toArray().catch(() => []);
 for (const s of specialties) {
-  if (s?.code) details.push({ loc: `/browse-specialties/${s.code}` });
+  if (s?.code) {
+    const code = String(s.code);
+    details.push({
+      loc: `/browse-specialties/${code}`,
+      title: `${code} — Specialists near you | FindMedi`,
+      description: `Browse verified ${code} doctors, tests and services near you, and book online.`,
+    });
+  }
 }
 
 const payload = {

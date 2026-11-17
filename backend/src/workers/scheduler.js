@@ -148,6 +148,23 @@ export function startScheduler() {
     } catch (e) {
       logger.warn(`[scheduler:crmAutomation] ${e.message}`);
     }
+    // File 24 A§4.13: CRM ↔ application event sync — upsert a Lead per submitted
+    // ProviderApplication (idempotent via linkedApplicationId, never throws).
+    try {
+      const { syncCrmFromApplications } = await import('../lib/crmApplicationSync.js');
+      const out = await syncCrmFromApplications();
+      if (out?.created) logger.info(`[scheduler:crmApplicationSync] created ${out.created} lead(s) from applications`);
+    } catch (e) {
+      logger.warn(`[scheduler:crmApplicationSync] ${e.message}`);
+    }
+    // File 23 §5.2: admin-PHI mass-view / off-hours alerting (never throws).
+    try {
+      const { runAdminAccessAlerts } = await import('../jobs/adminAccessAlert.job.js');
+      const out = await runAdminAccessAlerts();
+      if (out?.flagged) logger.info(`[scheduler:adminAccessAlerts] flagged ${out.flagged} actor(s), notified ${out.notified}`);
+    } catch (e) {
+      logger.warn(`[scheduler:adminAccessAlerts] ${e.message}`);
+    }
   }));
   // Nightly 01:30: daily metrics + report schedules due.
   tasks.push(cron.schedule('30 1 * * *', async () => {

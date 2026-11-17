@@ -10,6 +10,7 @@ import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
+import { emitAnalyticsEvent } from '../services/analyticsEmitter.js';
 import { generalLimiter } from '../middleware/rateLimit.js';
 import { validateFileContent, scanBufferForMalware } from '../middleware/upload.js';
 import { saveApplicationDocument } from '../services/applicationDocumentStore.js';
@@ -149,6 +150,44 @@ router.post('/', validate(createApplicationSchema), async (req, res) => {
       status: 'draft',
       draft: { stepData: {} },
     });
+
+    // 2.md 12 - an appeal reuses the documents the applicant already supplied
+    // (they are still theirs) and carries the refusal reason forward, so the
+    // applicant corrects the flagged items instead of re-entering everything.
+    // The copies start at `uploaded` again: the reviewer re-verifies them.
+    if (appealOf) {
+      const priorDocs = await ProviderDocument.find({ applicationId: appealOf }).lean();
+      if (priorDocs.length) {
+        await ProviderDocument.insertMany(priorDocs.map((doc) => ({
+          ...doc,
+          _id: undefined,
+          applicationId: application._id,
+          status: 'uploaded',
+          rejectionReason: '',
+          verifiedBy: null,
+          verifiedAt: null,
+          uploadedAt: new Date(),
+        })));
+      }
+      const prior = await ProviderApplication.findById(appealOf).lean();
+      application.appealBasis = {
+        reason: prior?.rejectionReason || '',
+        notes: (prior?.needsInfo || []).map((item) => (item?.docKey ? `${item.docKey}: ${item.comment}` : item?.comment)).filter(Boolean),
+        decidedAt: prior?.decidedAt || null,
+      };
+    await application.save();
+    // Document 17 §4.9 - server-side: provider joined (config-driven wizard).
+    void emitAnalyticsEvent({
+      name: 'join_submitted',
+      props: {
+        provider_type: application.typeKey || 'unknown',
+        doc_count: Array.isArray(application.documents) ? application.documents.length : undefined,
+        time_to_submit_min_bucket: 'lt_10',
+      },
+      userId: String(req.user?._id || req.user?.id || ''),
+      platform: 'server',
+    });
+    }
 
     await auditLog('create_provider_application', req.user._id ?? req.user.id, {
       applicationId: String(application._id),

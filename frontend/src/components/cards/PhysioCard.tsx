@@ -29,6 +29,8 @@ export default function PhysioCard({ item, onPrimary, onSecondary }: any) {
       secondaryLabel="View"
       onPrimary={onPrimary || (() => navigate(`/practitioner/${item._id || item.id}`))}
       onSecondary={onSecondary}
+      sponsored={item.isSponsored}
+      overlayBadge={item.overlayBadge}
     />
   );
 }

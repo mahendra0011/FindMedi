@@ -98,26 +98,7 @@ Code base se audit md files hatane ke baad yehi ek source of truth hai.
   ko backlog me dalna.
 - **Blocked on:** Human researcher + recruited users.
 
-## 14. T1 clinical-note encryption at rest (File 07 §8)
-- **Status:** AES-256-GCM infra ready (`utils/fieldEncryption.js` + `phiFields.js`
-  blind index + migrate script) but applied only to govt IDs + bank details.
-  Mental-health session notes deliberately NOT encrypted yet.
-- **Baki:** Encrypt on session-write + decrypt on every read path TOGETHER.
-- **Blocked on:** Joint migration — `backend/mindsupport` sub-app reads the
-  same session rows directly; one-sided encryption breaks its readers.
-  Encrypt-write here without decrypt-there = data loss. Do both sides in one
-  change with a clinician sign-off on the read paths.
-
-## 15. Full SSR / prerender for SEO (File 09 §1.3, 11, 21)
-- **Status:** Crawl basics done — marketplace-accurate title/meta/OG/JSON-LD
-  (`index.html`), robots.txt blocks app shells + `/api` + sitemap pointer,
-  dynamic `sitemap.xml` with thin-page filter. i18n boot + switcher live.
-- **Baki:** App uses HashRouter (`App.tsx`) so crawlers only ever see entry
-  points. Real prerender needs: BrowserRouter migration + server fallback
-  rewrites + build-time prerender of public routes (/, hospitals, search,
-  facility pages) + per-route meta.
-- **Blocked on:** A dedicated migration turn — HashRouter→BrowserRouter
-  changes every deep link/bookmark; needs hosting rewrite rules + full E2E
-  pass. Do NOT attempt as a side quest.
-
-Related: see docs/qa-release.md for the release process.
+## 14. T1 clinical-note encryption at rest (File 07 A§8) — joint change DONE
+- **Status (2026-11-15):** DONE code-side. One joint change landed in mindsupport: session notes (MindAppointment.notes), journal entries (MindJournal title+content) and prescriptions (MindPrescription diagnosis/notes/medicines[].notes) now encrypt on write via Mongoose save hooks and decrypt on every read path (dual-read; legacy AES-256-CBC rows still decrypt). New writes are AES-256-GCM v2 (integrity-protected) via `mindsupport/src/fieldCrypto.js`. Verified end-to-end against in-memory Mongo (encrypt->store->read->decrypt roundtrip for all four fields + legacy CBC compatibility + re-save idempotency). Journal viewer fixed to decrypt (normalizeJournal), including the counsellor excerpt path.
+- **Baki (human):** clinician sign-off on the read paths (decrypt -> render is loss-free) before flipping any flag; provision `NOTES_ENCRYPTION_KEY` in production (currently falls back to JWT_SECRET with a warning); extend same encryption pass to intake forms + consent forms + assessments (plaintext T1 today) with the same dual-read pattern.
+- **Blocked on:** clinical advisor/clinician sign-off; production key provisioning (Ops).

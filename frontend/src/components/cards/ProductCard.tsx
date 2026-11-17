@@ -27,6 +27,8 @@ export default function ProductCard({ item, onPrimary, onSecondary }: any) {
       secondaryLabel="View"
       onPrimary={onPrimary}
       onSecondary={onSecondary || (() => navigate(`/product/${item._id || item.id}`))}
+      sponsored={item.isSponsored}
+      overlayBadge={item.overlayBadge}
     />
   );
 }

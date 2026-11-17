@@ -1,7 +1,8 @@
 # 24 — Ops CRM & Team Management (Super Admin ke andar)
 
 > **Goal:** ek jagah se (1) platform ki **progress** dekhna, (2) **supply (providers) aur partners** ko pipeline me manage karna, (3) **team** ke kaam, targets aur performance manage karna.
-> **Repo scan:** CRM jaisa kuch **nahi hai** — `Lead`, `Task`, `Activity`, `Visit`, `Target/OKR`, `Campaign` models/routes nahi mile. Jo hai: `Staff` (hospital-tenant HR: attendance/leave/**salary**/emergency contact), `LeaveRequest`, `SupportTicket`, `Dispute`, `Announcement`, `Notification*`, `Referral` (ye **patient referral rewards** hai, CRM nahi), limited analytics (`/analytics/doctor`, `/dashboard/stats`). Matlab CRM **naya banega**.
+> **Repo scan (historical, pre-build):** CRM jaisa kuch **nahi tha** — `Lead`, `Task`, `Activity`, `Visit`, `Target/OKR`, `Campaign` models/routes nahi mile the. Jo tha: `Staff` (hospital-tenant HR: attendance/leave/**salary**/emergency contact), `LeaveRequest`, `SupportTicket`, `Dispute`, `Announcement`, `Notification*`, `Referral` (ye **patient referral rewards** hai, CRM nahi), limited analytics (`/analytics/doctor`, `/dashboard/stats`). **Ab CRM bana hai** — `routes/crm.js` + 13 CRM pages under `superadmin/crm/` (see §5/§16).
+>
 > ⚠️ `Staff` model ko platform-team ke liye reuse **mat** karo — wo hospital tenant ka HR data hai (salary, address, emergency contact). Platform team ka data alag + strictly restricted rakho.
 > Vendor tools ke prices/features ke claims maine nahi diye — decide karte waqt unki current pricing/features khud check karo.
 
@@ -165,7 +166,7 @@ Unified task engine across Leads/Accounts/Partners/Tickets/KYC.
 
 ### 4.10 Projects & Roadmap
 - Link to engineering tool (Jira/Linear/GitHub Projects) via API: show sprint progress, release calendar, blockers.
-- Roadmap view mapped to phases R-1…R4 (file 14): features, owner, status, dependencies, risk.
+- Roadmap view mapped to phases R-1…R4 (git history - was file 14): features, owner, status, dependencies, risk.
 - Incident/postmortem log summary (from ops).
 - Decision log (what we decided, why, date) — useful for founders.
 (If you don't want to build this, embed/sync only; don't rebuild a project tracker.)
@@ -269,7 +270,7 @@ Keep formulas visible/explainable; review quarterly; don't use protected attribu
 
 | Platform event/data | CRM effect |
 |---|---|
-| `ProviderApplication` created/submitted/approved/rejected (file 10) | Auto-advance lead stage; tasks to KYC/owner; notify |
+| `ProviderApplication` created/submitted/approved/rejected (git history - was file 10) | Auto-advance lead stage; tasks to KYC/owner; notify |
 | Provider bookings/ratings/refunds/no-shows (aggregated per provider) | Account health score & dashboards |
 | Document expiry job | Auto tasks + alerts |
 | SupportTicket/Dispute linked to provider | Appear in Account 360; affects health |
@@ -346,7 +347,7 @@ Meena (PSM)   accounts 34 · retention 92% · at-risk 3 · ⚠ overload
 | **v2 (2–3 sprints)** | Partnerships CRM, Field Ops (territories, visits, PWA offline), automation rules, Provider 360 health score, reports (standard), WhatsApp templates (opt-in) | L |
 | **v3 (2–3 sprints)** | Team module (scorecards, onboarding, training, 1:1s), OKRs, campaigns/camps pipeline, report builder + scheduled reports, projects integration | L |
 | **v4** | Forecasting, advanced automation, telephony integration, ATS/HR integrations, BI export | M |
-Use existing building blocks: `SupportTicket`, `Announcement`, `Notification*`, audit log, feature flags (Unleash), config-driven forms, DataTable, StatusTimeline (file 11).
+Use existing building blocks: `SupportTicket`, `Announcement`, `Notification*`, audit log, feature flags (Unleash), config-driven forms, the ops DataGrid (`components/ui/System.tsx`), StatusTimeline (git history - was file 11).
 
 ## 14. Starter (no-code) path while you build
 Use a spreadsheet/Notion/Zoho-type CRM for 30–60 days: fixed stages from §4.2, fields from §4.2, weekly review using the KPI list (§6). Export to CSV → import into built CRM later. Don't put PHI or KYC docs in these tools.
@@ -367,12 +368,12 @@ Use a spreadsheet/Notion/Zoho-type CRM for 30–60 days: fixed stages from §4.2
 - [ ] Decide hybrid scope (build vs buy per module); sign DPAs for any external tool — business/vendor decision (open).
 - [x] Define pipeline stages, SLAs, lost reasons, scoring — `CrmPipelineConfig` + stages in `routes/crm.js`.
 - [x] Models: Lead, Account overlay, Partner, Activity, Task, Visit, Territory, Objective/KR, Campaign, TeamMember (separate from hospital `Staff`) — `Lead`, `CrmAccount`, `Partner`, `Activity`, `Task`/`Visit`, `Territory`, `Objective`, `Campaign`, `TeamMember` exist.
-- [x] Platform event sync (applications, bookings aggregates, doc expiry, tickets) — CRM command-center reads aggregates + event sync.
+- [x] Platform event sync (applications → CRM) — `lib/crmApplicationSync.js` + hourly scheduler sweep (`workers/scheduler.js`): upserts a `Lead` per submitted ProviderApplication (idempotent via `linkedApplicationId`, dedupeKey name|city|pincode fallback, stage advances forward-only, rejections land in `churned` with the reason, `activated` derived from `application.providerId`). Bookings/tickets stay live aggregates in the command-center (not synced to rows). Tests: `test/unit/crmApplicationSync.spec.js`.
 - [x] Command Center v1 (aggregate, k-anonymous) + city launch gates — `CrmCommandCenter` + city launch controls.
-- [x] CRM roles/permissions (territory/ownership-based, masked contacts, export controls) — `crm:read`/`crm:write`, masked phone in CRM responses, export caps.
+- [x] CRM roles/permissions (territory/ownership-based, masked contacts, export controls) — `crm:read`/`crm:write`, masked phone in CRM responses, CSV export row-capped at 10k and audited (`/reports/:key/export`).
 - [x] Automation rules (SLA, activation, at-risk, doc expiry) with logs + pause — `CrmAutomationRule` + `runCrmAutomation` + audit.
 - [x] Field PWA (offline queue, check-ins with disclosed policy) - `frontend/src/lib/offlineQueue.ts` `enqueueFieldAction`/`drainFieldQueue`/`startFieldAutoSync` with IndexedDB + localStorage fallback and `disclosed` flag on every queued check-in.
-- [x] Team module: scorecards, onboarding, training (privacy/claims/crisis), 1:1s — `TeamManagement.tsx` + team models.
+- [x] Team module: scorecards, onboarding, training (privacy/claims/crisis), 1:1s — `TeamManagement.tsx` (scorecard period/rating + 1:1 note UI, manager-of-record view) + `TeamMember.scorecards/oneToOnes` with `POST /crm/team/:id/scorecards` and `/one-to-ones` (manager-of-record/platform-admin visibility only).
 - [x] OKRs linked to live metrics; weekly review cadence — `GoalsOkrs.tsx` + `Objective` model.
 - [x] Privacy: no-PHI policy, consent for WhatsApp/SMS/calls, retention, DSR for contacts, audit — DSR routes + retention docs.
 - [ ] Start with spreadsheet/Notion process in parallel; migrate once stable — process decision (open).

@@ -1,0 +1,94 @@
+<!doctype html>
+<!--
+  FindMedi status page — self-contained, zero build step, no external assets.
+  Deploy: enable GitHub Pages for this repo with path=/status, or paste the file into
+  any static host (S3+CloudFront, nginx webroot, Netlify).
+  It polls https://<API_HOST>/health every 30s and renders green/amber/red.
+  Update API_HOST below to the production backend before publishing.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FindMedi Status</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; margin: 0; background: #0b1512; color: #e6f4ef; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; border-bottom: 1px solid #1e3a32; }
+  .logo { font-weight: 800; font-size: 1.25rem; letter-spacing: .02em; }
+  .logo span { color: #2dd4bf; }
+  main { max-width: 720px; margin: 28px auto; padding: 0 20px; }
+  .overall { padding: 22px 26px; border-radius: 14px; border: 1px solid #1e3a32; background: #101f1a; display: flex; align-items: center; gap: 18px; }
+  .dot { width: 18px; height: 18px; border-radius: 50%; background: #475569; }
+  .dot.ok   { background: #22c55e; box-shadow: 0 0 14px #22c55e66; }
+  .dot.down { background: #ef4444; box-shadow: 0 0 14px #ef444466; }
+  .dot.deg  { background: #f59e0b; box-shadow: 0 0 14px #f59e0b66; }
+  .badge { font-weight: 700; font-size: 1.05rem; }
+  ul.components { list-style: none; margin: 22px 0 0; padding: 0; }
+  li.comp { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid #1e3a32; border-radius: 10px; margin-top: 12px; background: #0e1d18; }
+  .comp small { color: #7fb0a3; }
+  .comp b { font-variant-numeric: tabular-nums; }
+  footer { max-width: 720px; margin: 40px auto 60px; padding: 0 20px; color: #7fb0a3; font-size: .85rem; }
+  a { color: #2dd4bf; }
+  @media (prefers-color-scheme: light) {
+    body { background: #f5faf7; color: #0b1512; }
+    header { border-color: #d5ebe3; }
+    .overall, li.comp { background: #ffffff; border-color: #d5ebe3; }
+    footer { color: #3d6a5d; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo">Find<span>Medi</span> · Status</div>
+    <div style="font-size:.85rem;color:inherit;opacity:.75">Last checked: <span id="ts">—</span></div>
+  </header>
+  <main>
+    <div class="overall" role="status" aria-live="polite">
+      <span class="dot" id="overallDot"></span>
+      <div><div class="badge" id="overallText">Checking…</div><div id="overallDetail" style="opacity:.8;font-size:.9rem"></div></div>
+    </div>
+    <ul class="components" id="components"></ul>
+  </main>
+  <footer>
+    FindMedi is a healthcare coordination platform — not an emergency service. Emergencies: call <b>112</b> or <b>108</b>.<br/>
+    Trouble? Email <a href="mailto:status@findmedi.in">status@findmedi.in</a>.
+  </footer>
+<script>
+// ====== configure these once, before publishing ======
+const API_HOST = 'https://api.findmedi.in';          // production backend origin
+const INCIDENT_FEED_URL = null;                      // optional JSON: [{started, summary, impact}]
+// ====================================================
+const COMPONENTS = [
+  { name: 'API', path: '/api/health' },
+  { name: 'Booking', path: '/api/health' }, // health covers auth + appointment stack
+  { name: 'Payments', path: '/api/health' },
+  { name: 'Records (PHI)', path: '/api/health' },
+];
+async function check(url) {
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 5000);
+  try { const r = await fetch(url, { signal: ctl.signal, cache: 'no-store' }); return r.status === 200; }
+  catch { return false; } finally { clearTimeout(t); }
+}
+async function render() {
+  document.getElementById('ts').textContent = new Date().toLocaleString();
+  const ul = document.getElementById('components'); ul.innerHTML = '';
+  let allOk = true;
+  for (const c of COMPONENTS) {
+    const ok = await check(API_HOST + c.path);
+    if (!ok) allOk = false;
+    ul.insertAdjacentHTML('beforeend',
+      `<li class="comp"><span><b>${c.name}</b><br><small>${c.path}</small></span><b style="color:${ok ? '#22c55e' : '#ef4444'}">${ok ? 'Operational' : 'Down'}</b></li>`);
+  }
+  const dot = document.getElementById('overallDot');
+  dot.className = 'dot ' + (allOk ? 'ok' : 'deg');
+  document.getElementById('overallText').textContent = allOk ? 'All systems operational' : 'Degraded performance';
+  document.getElementById('overallDetail').textContent = allOk
+    ? 'Booking, payments, records and login are reachable.'
+    : 'One or more components are not responding. We are investigating.';
+}
+render(); setInterval(render, 30000);
+</script>
+</body>
+</html>

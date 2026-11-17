@@ -8,6 +8,14 @@ import { UniversalBookingModal } from '@/components/booking';
 import ReviewDialog from '@/components/ReviewDialog';
 import PractitionerProfileLayout from '@/components/practitioner/PractitionerProfileLayout';
 import { PractitionerDTO } from '@/components/practitioner/sections/PractitionerHeader';
+import { adaptProviderToPractitioner } from './practitionerDetailAdapter';
+
+/**
+ * Public practitioner profile (Spec 04). Data source of truth is the live
+ * provider listing (`GET /api/practitioners/:slug` -> 404 for anything not
+ * live). The legacy `/doctors/:id` row is tried second. When neither resolves
+ * the page shows a real "not found" state instead of an invented biography.
+ */
 
 export default function PractitionerProfilePage() {
   const { id, slug, specialty, city, type } = useParams<{
@@ -22,11 +30,12 @@ export default function PractitionerProfilePage() {
   const location = useLocation();
 
   const [practitioner, setPractitioner] = useState<PractitionerDTO | null>(null);
-  const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [selectedBookingContext, setSelectedBookingContext] = useState<any>(null);
+  const [notFound, setNotFound] = useState(false);
 
   const identifier = id || slug;
 
@@ -35,162 +44,49 @@ export default function PractitionerProfilePage() {
 
     async function fetchPractitioner() {
       setLoading(true);
+      setNotFound(false);
       try {
         let fetchedData: any = null;
 
-        // Try practitioner endpoint
+        // 1) live provider listing (practitioner kind) - source of truth
         if (identifier) {
           try {
-            const res: any = await api.get(`/practitioners/${identifier}`);
-            fetchedData = res?.data || res;
+            const res: any = await api.get(`/practitioners/${encodeURIComponent(identifier)}`);
+            const provider = res?.data || res;
+            if (provider?.name) fetchedData = adaptProviderToPractitioner(provider);
           } catch {
-            // Try doctor endpoint
-            try {
-              const resDoc: any = await api.get(`/doctors/${identifier}`);
-              fetchedData = resDoc?.data || resDoc;
-            } catch {
-              fetchedData = null;
-            }
+            // fall through
           }
         }
 
-        // If not found in backend API, generate rich canonical fallback so page is resilient
+        // 2) legacy doctor row
+        if (!fetchedData && identifier) {
+          try {
+            const resDoc: any = await api.get(`/doctors/${encodeURIComponent(identifier)}`);
+            const doc = resDoc?.data || resDoc;
+            if (doc?.name) fetchedData = doc;
+          } catch {
+            // fall through
+          }
+        }
+
         if (!fetchedData || !fetchedData.name) {
-          const roleFromType = type || (location.pathname.includes('/physio') ? 'physiotherapist'
-            : location.pathname.includes('/dietitian') ? 'dietitian'
-            : location.pathname.includes('/nurse') ? 'nurse'
-            : location.pathname.includes('/dentist') ? 'dentist'
-            : location.pathname.includes('/yoga') ? 'yoga_teacher'
-            : location.pathname.includes('/ayush') ? 'ayush'
-            : location.pathname.includes('/psychologist') ? 'psychologist'
-            : location.pathname.includes('/counsellor') ? 'counsellor'
-            : location.pathname.includes('/lawyer') ? 'lawyer'
-            : location.pathname.includes('/speech') || location.pathname.includes('/therapist') ? 'speech_occupational'
-            : location.pathname.includes('/attendant') || location.pathname.includes('/caregiver') ? 'attendant'
-            : location.pathname.includes('/phlebo') ? 'phlebotomist'
-            : location.pathname.includes('/optomet') || location.pathname.includes('/audiolog') ? 'optometrist_audiologist'
-            : location.pathname.includes('/trainer') ? 'trainer'
-            : location.pathname.includes('/tpa') ? 'tpa_executive'
-            : 'doctor');
-
-          const formattedSpecialty = specialty
-            ? specialty.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-            : roleFromType === 'dentist'
-            ? 'Dental Surgeon'
-            : roleFromType === 'physiotherapist'
-            ? 'Physiotherapist'
-            : roleFromType === 'dietitian'
-            ? 'Clinical Nutritionist'
-            : roleFromType === 'nurse'
-            ? 'Critical Care Nurse'
-            : roleFromType === 'ayush'
-            ? 'Ayurveda Consultant'
-            : roleFromType === 'psychologist'
-            ? 'Clinical Psychologist'
-            : roleFromType === 'counsellor'
-            ? 'Counseling Psychologist'
-            : roleFromType === 'lawyer'
-            ? 'Healthcare Legal Counsel'
-            : roleFromType === 'speech_occupational'
-            ? 'Speech & Occupational Therapist'
-            : roleFromType === 'attendant'
-            ? 'Certified Bedside Caregiver'
-            : roleFromType === 'phlebotomist'
-            ? 'Certified Phlebotomist & Lab Tech'
-            : roleFromType === 'optometrist_audiologist'
-            ? 'Optometrist & Audiologist'
-            : roleFromType === 'trainer'
-            ? 'Fitness & Transformation Coach'
-            : roleFromType === 'tpa_executive'
-            ? 'Cashless Mediclaim Executive'
-            : 'Senior Consultant Physician';
-
-          fetchedData = {
-            id: identifier || 'doc-canonical-1',
-            name: identifier?.includes('-')
-              ? identifier.split('-').map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
-              : 'Dr. Aarav Sharma',
-            title: roleFromType === 'lawyer' ? 'Adv.'
-              : roleFromType === 'yoga_teacher' ? 'Yogi'
-              : ['attendant', 'phlebotomist', 'trainer', 'tpa_executive'].includes(roleFromType) ? ''
-              : 'Dr.',
-            roleType: roleFromType,
-            specialty: formattedSpecialty,
-            subSpecialties: ['Internal Medicine', 'Preventive Health', 'Lifestyle Disease Care'],
-            qualifications: roleFromType === 'dentist' ? 'BDS, MDS (Oral & Maxillofacial)'
-              : roleFromType === 'lawyer' ? 'BA LLB (Hons), LLM'
-              : roleFromType === 'speech_occupational' ? 'BASLP, MASLP, RCI Certified'
-              : roleFromType === 'attendant' ? 'Certified Patient Care Assistant (CPCA)'
-              : roleFromType === 'phlebotomist' ? 'DMLT / BMLT (Clinical Pathology)'
-              : roleFromType === 'optometrist_audiologist' ? 'B.Optom, Fellow in Clinical Refraction'
-              : roleFromType === 'trainer' ? 'ACE / ACSM Certified Personal Trainer'
-              : 'MBBS, MD (Medicine), Fellowship in Clinical Diabetology',
-            experienceYears: 12,
-            experience: '12+ years experience',
-            languages: ['English', 'Hindi', 'Punjabi'],
-            gender: 'Male',
-            registration: {
-              council: 'Delhi Medical Council',
-              numberMasked: '•••4821',
-              verifiedAt: '2024-03-15T00:00:00.000Z',
-              scope: ['Clinical Diagnosis', 'Digital Prescription', 'Preventive Counseling'],
-            },
-            verified: true,
-            councilVerified: true,
-            backgroundChecked: true,
-            rating: 4.9,
-            ratingAvg: 4.9,
-            reviewsCount: 168,
-            ratingCount: 168,
-            responseTime: '< 15 mins',
-            onTimePercent: 98,
-            cancellationRate: '< 2%',
-            city: city || 'New Delhi',
-            area: 'South Extension II',
-            bio: 'Dedicated medical professional with over a decade of clinical experience in evidence-based diagnostics, preventative medicine, and comprehensive treatment plans. Specializes in managing chronic disorders and offering personalized holistic patient counseling.',
-            philosophy: 'Patient-first healthcare backed by clinical evidence, transparency, and accessible continuous follow-up.',
-            fee: 600,
-            consultation_fees: 600,
-            modes: [
-              { mode: 'in_clinic', label: 'In-Clinic Consult', fee: 600, duration: '25 mins', followUp: 'Free 7 days' },
-              { mode: 'video', label: 'Live Video Consult', fee: 600, duration: '20 mins', followUp: 'Free 7 days' },
-              { mode: 'audio', label: 'Audio Call Consult', fee: 450, duration: '15 mins', followUp: 'Valid 3 days' },
-              { mode: 'chat', label: 'Doctor Chat Consult', fee: 350, duration: '24h validity', followUp: 'Included in chat' },
-            ],
-            locations: [
-              {
-                id: 'loc-1',
-                name: 'City Care Specialist Clinic',
-                type: 'Primary Clinic',
-                area: 'South Extension II',
-                city: 'New Delhi',
-                address: 'C-24, Main Market, South Extension Part II, New Delhi 110049',
-                timings: 'Mon – Sat • 10:00 AM – 02:00 PM',
-                fee: 600,
-              },
-              {
-                id: 'loc-2',
-                name: 'Apex Super Specialty Hospital',
-                type: 'Hospital OPD Affiliation',
-                area: 'Sector 62',
-                city: 'Noida',
-                address: 'Institutional Area, Sector 62, Gautam Buddha Nagar 201309',
-                timings: 'Tue, Thu, Sat • 04:30 PM – 08:00 PM',
-                fee: 800,
-              },
-            ],
-          };
+          if (!cancelled) {
+            setPractitioner(null);
+            setNotFound(true);
+          }
+          return;
         }
 
         if (!cancelled) {
           setPractitioner(fetchedData);
-          // Check saved status
           const savedList = JSON.parse(localStorage.getItem('findmedi_saved_practitioners') || '[]');
           setIsSaved(savedList.includes(fetchedData.id || identifier));
         }
       } catch (err: any) {
         if (!cancelled) {
           toast.error('Could not load practitioner profile');
+          setNotFound(true);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -235,21 +131,11 @@ export default function PractitionerProfilePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6 animate-pulse">
         <div className="h-4 w-48 bg-muted rounded" />
         <div className="h-64 bg-card rounded-3xl border border-border/60" />
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 space-y-6">
-            <div className="h-28 bg-card rounded-3xl border border-border/60" />
-            <div className="h-48 bg-card rounded-3xl border border-border/60" />
-            <div className="h-64 bg-card rounded-3xl border border-border/60" />
-          </div>
-          <div className="hidden lg:block lg:col-span-4">
-            <div className="h-96 bg-card rounded-3xl border border-border/60" />
-          </div>
-        </div>
       </div>
     );
   }
 
-  if (!practitioner) {
+  if (notFound || !practitioner) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-4">
         <h1 className="text-2xl font-bold font-heading">Practitioner Not Found</h1>

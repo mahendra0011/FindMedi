@@ -31,6 +31,20 @@ const adminTeamMutationAccess = (req, res, next) => {
   return adminOnly(req, res, next);
 };
 
+// File 23 god-mode split: a bare KPI card needs two integers, not a list of
+// people. Aggregates only, superadmin-only — no identities ever leave here.
+router.get('/count', protect, superadminOnly, async (req, res) => {
+  try {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const [total, todayCount] = await Promise.all([
+      User.countDocuments({}),
+      User.countDocuments({ createdAt: { $gte: start } }),
+    ]);
+    res.json({ total, todayCount });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.get('/', protect, adminDirectoryAccess, async (req, res) => {
   try {
     const { page, limit } = req.query;

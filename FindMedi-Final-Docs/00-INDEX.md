@@ -1,10 +1,10 @@
-﻿# FindMedi Platform Docs — Index
+# FindMedi Platform Docs — Index
 
-> Ye 26 files ka set hai (00 index + 01–25). Naye categories (dental, eye, AYUSH, yoga/gym, dietitian, home nursing, equipment rental, camps/events, govt facilities, etc.) ko aapke **existing** FindMedi me kaise add karna hai — onboarding se leke dashboard tak.
+> Ye set: 00 index + 01-25 (execution + product/feature specs) + 26-28 (remaining-work consolidations of docs 01-15; originals intact). Naye categories ko existing FindMedi me kaise add karna hai - onboarding se leke dashboard tak.
 >
 > **Base:** repo scan (roles, JoinPlatform, cards, detail pages, BookingModal, dashboards) plus later verification passes (unit/integration tests, seed dry-run, typecheck/build). Har checklist item tabhi tick hoga jab uska code + evidence dono ho; human approval (legal/finance/content) wale items alag track hote hain.
 
-> **Open TODO audit (2026-11-10):** 31 Markdown files, 289 checklist entries, 237 checked and 52 open. Full file-and-line inventory, source paths and current evidence: [`00-Reference/FindMedi-Open-Items.md`](00-Reference/FindMedi-Open-Items.md). “100%” is not claimed while any required item remains open.
+> **Open TODO audit (2026-11-15, re-run after revert):** 34 Markdown files, 289 checklist entries, 251 checked and 38 open. Full file-and-line inventory, source paths and current evidence: [`00-Reference/FindMedi-Open-Items.md`](00-Reference/FindMedi-Open-Items.md). "100%" is not claimed while any required item remains open. Docs 01-15 were re-verified end-to-end (codebase/tests/Chrome) on 2026-11-15 and restored (an earlier same-day edit had deleted them; reverted); the remaining items from those docs are consolidated with verbatim detail in files 26-28.
 
 ## Category alignment (current catalogue)
 
@@ -16,21 +16,24 @@ Ye saari files **`FindMedi-Categories-Pruned.md`** (24 sections) aur **`FindMedi
 | # | File | Kya hai |
 |---|---|---|
 | 00 | `00-INDEX.md` | Ye file: map, build order, glossary |
-| 01 | `01-JoinPlatform-Onboarding.md` | Config-driven provider catalogue and wizard: 12 source catalogue groups currently presented as 8 UI groups; type-wise fields/documents, approval workflow, probation, anti-fraud |
-| 02 | `02-Listing-Cards.md` | Base card anatomy + 38 card types (catalogue map ke saath): fields, badges, CTAs, states |
-| 03 | `03-Facility-Detail-Pages.md` | Common layout + 26 type-specific pages (catalogue map ke saath): sections, SEO, trust, edge states |
-| 04 | `04-Provider-Profiles.md` | Doctor, dentist, physio, dietitian, counsellor, yoga trainer, nurse, lawyer, etc. ke profile pages |
-| 05 | `05-Booking-and-Order-Flows.md` | Appointments, home visit, lab, pharmacy, rental, camps, memberships, state machines, cancel/refund |
-| 06 | `06-Patient-Dashboard-Changes.md` | User/patient dashboard me kya add/change hoga |
-| 07 | `07-New-Role-Dashboards.md` | Shared modules + 30 naye role dashboards (elder-care, vaccination, diet kitchen, corporate, child-development, specialty centre samet): sections + features, permission matrix |
-| 08 | `08-Admin-and-Moderation.md` | Superadmin/ops: category mgmt, approvals, verification, moderation, disputes |
-| 09 | `09-Missing-Pieces-and-Cross-Cutting.md` | Jo aapse chhut gaya ho: search, notifications, trust & safety, payments, support, SEO, i18n, etc. |
-| 10 | `10-Data-Model-and-API-Additions.md` | Naye models/fields/endpoints, migration, rollout + §11 catalogue → Category.type/code prefix/Provider.kind mapping |
-| 11 | `11-Design-System.md` | Tokens (repo ke teal/Inter/Plus Jakarta), components, a11y, i18n gap, PWA gap |
-| 12 | `12-Wireframes-and-Screen-Flows.md` | ASCII wireframes: home, search, cards, join wizard, booking, orders, dashboards, ops, SOS |
-| 13 | `13-Legal-Drafts.md` | ToS, Privacy, Provider Agreement, Refund policy, Community, Disclaimer, Claims, Grievance, consent texts (**lawyer review mandatory**) |
-| 14 | `14-Implementation-Roadmap.md` | Sprint-wise plan (R-1 → R4), dependencies, team, DoD, risks, first 30 days |
-| 15 | `15-Mobile-App-Strategy.md` | PWA → Capacitor → native, field apps, mobile security, store compliance |
+| 26 | `26-Remaining-Mobile-and-Native.md` | Docs 01-15 survivors: the 5 incomplete mobile/native items from doc 15 (verbatim quotes + evidence + close criteria) |
+| 27 | `27-Remaining-Legal-Security-Compliance.md` | Docs 01-15 survivors: the 8 incomplete legal/security/compliance items (verbatim quotes + evidence + close criteria) |
+| 28 | `28-Remaining-Ops-Research-Launch.md` | Docs 01-15 survivors: the 3 incomplete ops/research items (verbatim quotes + evidence + close criteria) |
+| 01 | `01-JoinPlatform-Onboarding.md` | Config-driven provider catalogue & wizard: 103 types in 8 groups, fields/docs per type, approval workflow, probation. **Verified done** (code + tests + Chrome) — remaining: none |
+| 02 | `02-Listing-Cards.md` | Card anatomy + 38 card types (catalogue map): fields, badges, CTAs, states. **Verified done** (code + cards registry + tests + Chrome search) — remaining: none |
+| 03 | `03-Facility-Detail-Pages.md` | Common layout + 26 type-specific detail pages: sections, SEO, trust, edge states. **Verified done** (code + Chrome live provider detail) — remaining: none |
+| 04 | `04-Provider-Profiles.md` | Doctor/dentist/physio/etc. profile pages. Mostly done; 1 item open (NMC legal rule set) -> see `27-Remaining-Legal-Security-Compliance.md` S1 |
+| 05 | `05-Booking-and-Order-Flows.md` | Appointments, home visit, lab, pharmacy, rental, camps, memberships. **Verified done** (flow code + Chrome booking modal, mode switching, telemedicine consent gate) — remaining: none |
+| 06 | `06-Patient-Dashboard-Changes.md` | Patient dashboard additions. **Verified done** (code + adapter + tests + Chrome render) — remaining: none |
+| 07 | `07-New-Role-Dashboards.md` | Shared modules + 30 role dashboards + permission matrix. **Verified done** (code + role-gated routes, typecheck) — remaining: none (role-gated click-through requires credentials) |
+| 08 | `08-Admin-and-Moderation.md` | Superadmin/ops: categories, approvals, verification, moderation, disputes. **Verified done** (code + tests) — remaining: none |
+| 09 | `09-Missing-Pieces-and-Cross-Cutting.md` | Search, notifications, trust & safety, payments, support, SEO, i18n, etc. Mostly done; 3 items open (grievance contacts, pentest, staffing) -> see `27-...` S2, `28-...` O1 |
+| 10 | `10-Data-Model-and-API-Additions.md` | Models/fields/endpoints, migration. **Verified done** (all 12 checklist items) — remaining: none |
+| 11 | `11-Design-System.md` | Tokens, components, a11y, i18n, PWA. **Verified done** (semantic tokens + components + vitest + a11y gates) — remaining: none |
+| 12 | `12-Wireframes-and-Screen-Flows.md` | ASCII wireframes: home, search, cards, wizard, booking, orders, dashboards, ops, SOS. Design reference; 1 item open (usability study) -> see `28-Remaining-Ops-Research-Launch.md` O2 |
+| 13 | `13-Legal-Drafts.md` | ToS, Privacy, Provider Agreement, Refund, Community, Disclaimer, Claims, Grievance. Drafts done; 4 items open (lawyer review, privacy sign-off, G.O/DPO contacts, localisation) -> see `27-Remaining-Legal-Security-Compliance.md` S2-S5 |
+| 14 | `14-Implementation-Roadmap.md` | Sprint plan R-1 -> R4, DoD, risks. Plan complete; 2 items open (design sign-off, security review) -> see `27-Remaining-Legal-Security-Compliance.md` S6/S7 |
+| 15 | `15-Mobile-App-Strategy.md` | PWA -> Capacitor -> native. Most done; 5 items open (native Android work) -> see `26-Remaining-Mobile-and-Native.md` M1-M5 |
 | 16 | `16-Business-and-Unit-Economics.md` | Revenue streams, pricing, unit-economics formulas + illustrative example, legal guardrails |
 | 17 | `17-Analytics-Event-Taxonomy.md` | PHI-free event dictionary, funnels, governance, architecture |
 | 18 | `18-QA-and-Test-Plan.md` | Test pyramid, real-DB integration, E2E journeys, non-functional, clinical safety, UAT, release gates |
@@ -45,7 +48,7 @@ Ye saari files **`FindMedi-Categories-Pruned.md`** (24 sections) aur **`FindMedi
 
 | 25 | `25-Access-Control-IAM-Design.md` | AWS-IAM jaisa tenant-level access control: custom roles/policies, scopes, conditions, temporary access, simulator, analyzer, healthcare controls, security |
 
-> **Files 11–25 = "execution layer"**: design, legal, roadmap, mobile, business, analytics, QA, DevOps, ops, marketing, pitch. Files 01–10 = product/feature specs.
+> **Files 11-25 = "execution layer"**: business, analytics, QA, DevOps, ops, marketing, pitch, superadmin/IAM. Docs 01-15 (product/feature specs + design/legal/roadmap/mobile) verified done or open per item; remaining items consolidated in 26-28.
 
 ## Is set ki conventions
 
@@ -57,7 +60,7 @@ Ye saari files **`FindMedi-Categories-Pruned.md`** (24 sections) aur **`FindMedi
 | T1 / T2 / T3 | Data sensitivity tier (T1 = PHI, T3 = commerce/wellness) |
 | P1–P4 | Launch phase |
 
-**Role names** repo ke `User.role` enum se liye gaye hain: `superadmin, hospital_admin, doctor, clinic_doctor, patient, lab_owner, lab_receptionist, lab_technician, pathologist, pharmacy_owner, pharmacist, nurse, radiologist, dietitian, physiotherapist, counsellor, psychiatrist, accountant, security, technician, helper, delivery_boy, rider, assistant, lawyer, ambulance`. **Naye roles** (🆕) file 07 me define hain.
+**New roles** were defined in `07-New-Role-Dashboards.md` (restored; implementation unchanged in repo).
 
 ## Existing building blocks (reuse karo, dobara mat banao)
 
@@ -75,12 +78,12 @@ Ye saari files **`FindMedi-Categories-Pruned.md`** (24 sections) aur **`FindMedi
 ## Build order (recommended)
 
 1. **Taxonomy fix** (specialty canonical list, Category tree) — dekho `00-Reference/FindMedi-Browse-By-Specialties.md` + `00-Reference/FindMedi-Subcategories-Pruned.md` + `00-Reference/FindMedi-Browse-By-Specialties-TODO.md`
-2. **Generic provider/service model** (file 10) — taaki har naya type naya model na maange
-3. **Onboarding (01)** → **Admin approval (08)** — pehle providers aa sakein
-4. **Cards (02) + Detail pages (03) + Profiles (04)** — discoverability
-5. **Booking/Order flows (05)** — revenue
-6. **Dashboards (06, 07)** — retention + operations
-7. **Cross-cutting (09)** — trust, search, notifications, support
+2. **Generic provider/service model** (file 10) - taaki har naya type naya model na maange
+3. **Onboarding (01)** → **Admin approval (08)** - pehle providers aa sakein
+4. **Cards (02) + Detail pages (03) + Profiles (04)** - discoverability
+5. **Booking/Order flows (05)** - revenue
+6. **Dashboards (06, 07)** - retention + operations
+7. **Cross-cutting (09)** - trust, search, notifications, support
 8. **Phase-wise categories** (P1 → P4)
 
 ## Security hook (har naye type par)

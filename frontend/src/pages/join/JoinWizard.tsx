@@ -93,6 +93,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { api, apiClient } from '@/lib/api';
+import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/context/AuthContext';
 import ActivationPanel from './ActivationPanel';
 import fallbackCatalogData from '@/data/providerTypeCatalogFallback.json';
@@ -213,6 +214,9 @@ const STRINGS = {
     expiredBadge: 'Draft Expired',
     expiredNote: 'This draft expired after 30 days of inactivity. Nothing from it is retained - start a new application to continue.',
     appealBtn: 'Appeal Decision',
+    appealStarted: 'Appeal started — your previous documents were carried over.',
+    appealFailed: 'Could not start an appeal for this decision.',
+    appealNote: 'Appeal of a refused application. Your previously uploaded documents were carried over; the reviewer re-checks them.',
     fixAndResubmit: 'Review & Resubmit',
     resumeDraft: 'Resume Draft',
     stageDraft: 'Draft',
@@ -261,6 +265,9 @@ const STRINGS = {
     expiredBadge: 'ड्राफ्ट समाप्त',
     expiredNote: 'यह ड्राफ्ट 30 दिन की निष्क्रियता के बाद समाप्त हो गया। इसका कोई डेटा सुरक्षित नहीं है - जारी रखने के लिए नया आवेदन शुरू करें।',
     appealBtn: 'पुनर्विचार अपील',
+    appealStarted: 'अपील शुरू हो गई — आपके पहले अपलोड किए गए दस्तावेज़ स्वचालित रूप से जुड़ दिए गए हैं।',
+    appealFailed: 'इस निर्णय के लिए अपील शुरू नहीं की जा सकी।',
+    appealNote: 'अस्वीकृत आवेदन की अपील। आपके पहले अपलोड किए गए दस्तावेज़ जुड़ दिए गए हैं; समीक्षक उन्हें पुनः जाँचेगा।',
     fixAndResubmit: 'सुधारें और पुनः भेजें',
     resumeDraft: 'ड्राफ्ट जारी रखें',
     stageDraft: 'ड्राफ्ट',
@@ -458,6 +465,7 @@ export default function JoinWizard() {
   const [viewMode, setViewMode] = useState<'chooser' | 'my-applications'>('chooser');
   const [myApplications, setMyApplications] = useState<ApplicationSummary[]>([]);
   const [loadingMyApps, setLoadingMyApps] = useState(false);
+  const [appealingId, setAppealingId] = useState<string | null>(null);
 
   // Auth Dialog Modal for unauthenticated visitors
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -553,6 +561,27 @@ export default function JoinWizard() {
       setLoadingMyApps(false);
     }
   }, [isAuthenticated]);
+
+  // 2.md 6 appeal: one appeal per rejection, opened from the status list. The
+  // server copies the documents the applicant already supplied and carries the
+  // refusal reason onto the new draft, so this only has to start it.
+  const appealApplication = useCallback(async (app: any) => {
+    setAppealingId(app._id);
+    try {
+      const res = (await api.post('/join', { typeKey: app.typeKey, appealOf: app._id })) as unknown as {
+        application?: { _id: string };
+      };
+      if (res?.application?._id) {
+        toast.success(t('appealStarted'));
+        fetchMyApplications();
+        void res.application._id;
+      }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || t('appealFailed'));
+    } finally {
+      setAppealingId(null);
+    }
+  }, [fetchMyApplications, t]);
 
   // Load existing application from server
   const loadServerApplication = useCallback(async (appId: string) => {
@@ -1065,8 +1094,25 @@ export default function JoinWizard() {
                             {app.status === 'needs_info' ? t('fixAndResubmit') : t('resumeDraft')}
                           </Button>
                         ) : null}
+                        {app.status === 'rejected' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={appealingId === app._id}
+                            onClick={() => appealApplication(app)}
+                          >
+                            {appealingId === app._id ? '…' : t('appealBtn')}
+                          </Button>
+                        )}
                       </div>
                     </div>
+
+                    {((app as any).appealOf) && ((app as any).appealBasis)?.reason && (
+                      <div className="mb-3 text-xs bg-muted border border-border text-muted-foreground rounded-lg p-2.5">
+                        <span className="font-semibold">{t('appealNote')}</span>{' '}
+                        {((app as any).appealBasis).notes?.length ? ((app as any).appealBasis).notes.join('; ') : ((app as any).appealBasis).reason}
+                      </div>
+                    )}
 
                     {app.status === 'approved' && (
                       <ActivationPanel applicationId={app._id} providerId={app.providerId} />

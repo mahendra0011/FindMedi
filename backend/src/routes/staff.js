@@ -142,14 +142,23 @@ const isLastOwner = async (staffDoc) => {
   return count <= 1;
 };
 
+// File 25 §296: tenant keeps at least 2 owners once it has 2+. Fresh tenants are grandfathered by isLastOwner.
+const isBelowOwnerFloor = async (staffDoc) => {
+  if (staffDoc.role !== 'hospital_admin') return false;
+  const scope = { role: 'hospital_admin', status: { $in: ['Active', 'On Leave'] } };
+  if (staffDoc.hospitalId) scope.hospitalId = staffDoc.hospitalId;
+  const count = await Staff.countDocuments(scope);
+  return count <= 2;
+};
+
 router.put('/:id', protect, authorize('staff:manage'), adminOnly, requireObjectId, validate(updateStaffSchema), requireStepUp('users:role-change'), async (req, res) => {
   try {
     const filter = { _id: req.params.id };
     if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const current = await Staff.findOne(filter);
     if (!current) return res.status(404).json({ message: 'Not found' });
-    if (req.body.role && req.body.role !== 'hospital_admin' && (await isLastOwner(current))) {
-      return res.status(409).json({ message: 'Cannot demote the last owner: assign another hospital_admin first' });
+    if (req.body.role && req.body.role !== 'hospital_admin' && (await isBelowOwnerFloor(current))) {
+      return res.status(409).json({ message: 'Cannot demote below 2 owners: tenant must keep at least two hospital_admins (fresh single-owner tenants may lose their only admin only after assigning a successor)' });
     }
     const staff = await Staff.findOneAndUpdate(filter, req.body, { new: true });
     if (!staff) return res.status(404).json({ message: 'Not found' });
@@ -172,8 +181,8 @@ router.delete('/:id', protect, authorize('staff:manage'), adminOnly, requireObje
     if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
     const doomed = await Staff.findOne(filter);
     if (!doomed) return res.status(404).json({ message: 'Staff not found' });
-    if (await isLastOwner(doomed)) {
-      return res.status(409).json({ message: 'Cannot delete the last owner: assign another hospital_admin first' });
+    if (await isBelowOwnerFloor(doomed)) {
+      return res.status(409).json({ message: 'Cannot delete below 2 owners: tenant must keep at least two hospital_admins (fresh single-owner tenants may lose their only admin only after assigning a successor)' });
     }
     const staff = await Staff.findOneAndDelete(filter);
     if (!staff) return res.status(404).json({ message: 'Staff not found' });

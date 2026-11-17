@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
-  Search, Filter, MapPin, CheckCircle2, Star, Clock, Phone, AlertTriangle,
-  Building2, Stethoscope, Pill, ShieldCheck, HeartPulse, ExternalLink,
-  ChevronRight, CalendarCheck, Home as HomeIcon, Video, SlidersHorizontal
+  Search, MapPin, AlertTriangle,
+  Phone, HeartPulse, LayoutGrid, Rows3, SlidersHorizontal
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +12,7 @@ import { api } from '@/lib/api';
 import UnifiedSearch from '@/components/search/UnifiedSearch';
 import PublicNavbar from '@/components/PublicNavbar';
 import PublicFooter from '@/components/PublicFooter';
+import { RenderEntityCard } from '@/components/cards';
 
 const VERTICALS = [
   { key: '', label: 'All Services' },
@@ -24,6 +24,71 @@ const VERTICALS = [
   { key: 'transport', label: 'Ambulance / Rides' },
 ];
 
+// Spec 02 §4 - the sorts the listing offers.
+const SORTS = [
+  { key: 'relevance', label: 'Relevance' },
+  { key: 'nearest', label: 'Nearest' },
+  { key: 'rating', label: 'Rating' },
+  { key: 'price_low', label: 'Price: low to high' },
+  { key: 'earliest_slot', label: 'Earliest slot' },
+  { key: 'experience', label: 'Experience' },
+  { key: 'most_booked', label: 'Most booked' },
+];
+
+// Spec 02 §4 - the quick filter chips shown with the cards. Each one is a
+// filter over data the card contract actually carries, so a chip can never
+// promise something the listing cannot answer.
+const QUICK_CHIPS = [
+  { key: 'open_now', label: 'Open now' },
+  { key: 'twenty_four_seven', label: '24x7' },
+  { key: 'home_visit', label: 'Home visit' },
+  { key: 'video', label: 'Video' },
+  { key: 'women', label: 'Women provider' },
+  { key: 'govt', label: 'Govt' },
+  { key: 'insurance', label: 'PM-JAY / Insurance' },
+  { key: 'under_500', label: 'Under ₹500' },
+  { key: 'accessible', label: 'Parking / Wheelchair' },
+  { key: 'language', label: 'Language' },
+];
+
+/** Map a legacy search row onto the public card contract (Spec 02 §5). */
+function legacyRowToCard(item: any) {
+  const vertical = String(item?.vertical || 'facility');
+  const type = vertical === 'lab' ? 'diagnostic'
+    : vertical === 'transport' ? 'ambulance'
+      : vertical;
+  return {
+    id: item.id,
+    type,
+    slug: item.slug,
+    name: item.fullName || item.name || '',
+    tagline: item.subType || item.specialization || '',
+    imageUrl: item.image || '',
+    gallery: item.image ? [item.image] : [],
+    verified: !!item.verified,
+    ratingAvg: Number(item.rating || 0),
+    ratingCount: Number(item.reviewCount || 0),
+    ratingVisible: Number(item.reviewCount || 0) >= 3,
+    openNow: !!item.openNow,
+    openLabel: item.openNow ? 'Open now' : 'Closed',
+    is24x7: !!item.openNow,
+    distanceKm: item.distanceKm ?? null,
+    priceFrom: item.fee ?? null,
+    badges: [],
+    trustBadges: item.verified ? ['Verified'] : [],
+    schemes: [],
+    languages: [],
+    amenities: [],
+    city: item.city || '',
+    area: item.address?.area || '',
+    geo: undefined,
+    category: { code: vertical, label: item.category || item.specialization || vertical },
+    modes: [],
+    isSponsored: false,
+    isSaved: false,
+  };
+}
+
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -32,8 +97,10 @@ export default function SearchPage() {
   const city = searchParams.get('city') || '';
 
   const [vertical, setVertical] = useState(searchParams.get('vertical') || '');
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [emergencyOnly, setEmergencyOnly] = useState(false);
+  const [sortBy, setSortBy] = useState('relevance');
+  const [activeChips, setActiveChips] = useState<string[]>([]);
+  const [language, setLanguage] = useState('');
+  const [view, setView] = useState<'grid' | 'list'>('grid');
   const [results, setResults] = useState<any[]>([]);
   const [taxonomy, setTaxonomy] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -45,7 +112,7 @@ export default function SearchPage() {
       if (query.trim()) qParams.set('q', query.trim());
       if (city && city !== 'All Cities') qParams.set('city', city);
       if (vertical) qParams.set('category', vertical);
-      qParams.set('limit', '30');
+      qParams.set('limit', '50');
 
       const res: any = await api.get(`/search/unified?${qParams.toString()}`);
       if (res?.success) {
@@ -67,12 +134,79 @@ export default function SearchPage() {
     loadResults();
   }, [loadResults]);
 
-  // Client side facet filtering
-  const filteredResults = results.filter((item) => {
-    if (verifiedOnly && !item.verified) return false;
-    if (emergencyOnly && !item.openNow && !item.emergency) return false;
-    return true;
-  });
+  /** The card contract for every row, whatever produced it. */
+  const entries = useMemo(
+    () => results.map((item) => ({
+      item,
+      card: item.source === 'provider' && item.card ? item.card : legacyRowToCard(item),
+    })),
+    [results],
+  );
+
+  const toggleChip = (key: string) => {
+    setActiveChips((prev) => (prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]));
+  };
+
+  const matchesChip = (card: any, key: string) => {
+    switch (key) {
+      case 'open_now': return !!card.openNow;
+      case 'twenty_four_seven': return !!card.is24x7 || (card.badges || []).includes('24x7');
+      case 'home_visit': return (card.modes || []).includes('home_visit') || (card.serviceArea?.radiusKm > 0);
+      case 'video': return (card.modes || []).includes('video');
+      case 'women': return (card.amenities || []).some((a: string) => /women/i.test(a));
+      case 'govt': return (card.badges || []).includes('Govt');
+      case 'insurance': return (card.schemes || []).length > 0;
+      case 'under_500': return typeof card.priceFrom === 'number' && card.priceFrom > 0 && card.priceFrom < 500;
+      case 'accessible': return (card.amenities || []).some((a: string) => /parking|wheelchair|wheel chair/i.test(a));
+      case 'language': return !!language && (card.languages || []).includes(language);
+      default: return true;
+    }
+  };
+
+  const filteredResults = useMemo(() => {
+    const filtered = entries.filter((entry) => activeChips.every((chip) => matchesChip(entry.card, chip)));
+
+    const priceOf = (card: any) => (typeof card.priceFrom === 'number' && card.priceFrom > 0 ? card.priceFrom : Number.MAX_SAFE_INTEGER);
+    const distanceOf = (card: any) => (typeof card.distanceKm === 'number' ? card.distanceKm : Number.MAX_SAFE_INTEGER);
+
+    const sorted = [...filtered];
+    switch (sortBy) {
+      case 'nearest':
+        sorted.sort((a, b) => distanceOf(a.card) - distanceOf(b.card));
+        break;
+      case 'rating':
+        sorted.sort((a, b) => (b.card.ratingAvg || 0) - (a.card.ratingAvg || 0) || (b.card.ratingCount || 0) - (a.card.ratingCount || 0));
+        break;
+      case 'price_low':
+        sorted.sort((a, b) => priceOf(a.card) - priceOf(b.card));
+        break;
+      case 'earliest_slot':
+        sorted.sort((a, b) => String(a.card.nextSlotAt || 'zzz').localeCompare(String(b.card.nextSlotAt || 'zzz')));
+        break;
+      case 'experience':
+        sorted.sort((a, b) => (b.card.experience || 0) - (a.card.experience || 0));
+        break;
+      case 'most_booked':
+        sorted.sort((a, b) => (b.card.bookingsCount || 0) - (a.card.bookingsCount || 0));
+        break;
+      default:
+        break;
+    }
+    return sorted;
+  }, [entries, activeChips, sortBy, language]);
+
+  const detailPathFor = (item: any, card: any) => {
+    if (item.source === 'provider') return `/facility/${card.slug || card.id}`;
+    if (item.vertical === 'doctor') return `/doctor/${item.id}`;
+    if (item.vertical === 'medicine') return `/buy-medicine?q=${encodeURIComponent(item.fullName)}`;
+    return `/facility/${card.slug || item.id}`;
+  };
+
+  const languageOptions = useMemo(() => {
+    const set = new Set<string>();
+    entries.forEach((entry) => (entry.card.languages || []).forEach((l: string) => set.add(l)));
+    return Array.from(set).slice(0, 12);
+  }, [entries]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -124,7 +258,7 @@ export default function SearchPage() {
                 </p>
               </div>
             </div>
-            <Button size="sm" variant="destructive" className="gap-1.5 shrink-0" onClick={() => window.location.href = 'tel:108'}>
+            <Button size="sm" variant="destructive" className="gap-1.5" onClick={() => { window.location.href = 'tel:108'; }}>
               <Phone className="w-3.5 h-3.5" /> Call 108 Ambulance
             </Button>
           </div>
@@ -150,31 +284,81 @@ export default function SearchPage() {
             ))}
           </div>
 
-          {/* Quick toggle chips */}
           <div className="flex items-center gap-2 text-xs">
-            <button
-              type="button"
-              onClick={() => setVerifiedOnly(!verifiedOnly)}
-              className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${
-                verifiedOnly
-                  ? 'border-success bg-success/10 text-success'
-                  : 'border-border text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              ✓ Verified Only
-            </button>
-            <button
-              type="button"
-              onClick={() => setEmergencyOnly(!emergencyOnly)}
-              className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${
-                emergencyOnly
-                  ? 'border-destructive bg-destructive/10 text-destructive'
-                  : 'border-border text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              🚨 24x7 Emergency
-            </button>
+            {/* Sort (Spec 02 §4) */}
+            <label className="flex items-center gap-1.5 text-muted-foreground">
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span className="sr-only">Sort results</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+              >
+                {SORTS.map((s) => (
+                  <option key={s.key} value={s.key}>{s.label}</option>
+                ))}
+              </select>
+            </label>
+
+            {/* View variant (Spec 02 §3) */}
+            <div className="flex items-center rounded-md border border-border overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setView('grid')}
+                aria-label="Grid view"
+                aria-pressed={view === 'grid'}
+                className={`px-2 py-1 ${view === 'grid' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground'}`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('list')}
+                aria-label="List view"
+                aria-pressed={view === 'list'}
+                className={`px-2 py-1 ${view === 'list' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground'}`}
+              >
+                <Rows3 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
+        </div>
+
+        {/* Quick filter chips (Spec 02 §4) */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {QUICK_CHIPS.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={() => toggleChip(chip.key)}
+              aria-pressed={activeChips.includes(chip.key)}
+              className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${
+                activeChips.includes(chip.key)
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {chip.label}
+            </button>
+          ))}
+          {languageOptions.length > 0 && (
+            <select
+              value={language}
+              onChange={(e) => {
+                setLanguage(e.target.value);
+                if (e.target.value && !activeChips.includes('language')) {
+                  setActiveChips((prev) => [...prev, 'language']);
+                }
+              }}
+              aria-label="Filter by language"
+              className="rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              <option value="">Any language</option>
+              {languageOptions.map((lang) => (
+                <option key={lang} value={lang}>{lang}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Results Count & Taxonomy insight */}
@@ -204,78 +388,18 @@ export default function SearchPage() {
             ))}
           </div>
         ) : filteredResults.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredResults.map((item) => {
-              const isDoc = item.vertical === 'doctor';
-              const isMed = item.vertical === 'medicine';
-              const detailPath = isDoc
-                ? `/doctor/${item.id}`
-                : isMed
-                ? `/buy-medicine?q=${encodeURIComponent(item.fullName)}`
-                : `/facility/${item.slug || item.id}`;
-
+          <div className={view === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-3'}>
+            {filteredResults.map(({ item, card }) => {
+              const detailPath = detailPathFor(item, card);
               return (
-                <Card key={`${item.vertical}-${item.id}`} className="hover:shadow-md transition-all border-border/80 flex flex-col justify-between">
-                  <CardContent className="p-5 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <Link to={detailPath} className="font-bold text-base text-foreground hover:text-primary transition-colors line-clamp-1">
-                          {item.fullName}
-                        </Link>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                          {[item.specialization || item.category, item.city].filter(Boolean).join(' · ')}
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="text-[10px] capitalize shrink-0">
-                        {item.vertical}
-                      </Badge>
-                    </div>
-
-                    {/* Address & Emergency Info */}
-                    <div className="space-y-1 text-xs text-muted-foreground">
-                      {item.address?.city && (
-                        <p className="flex items-center gap-1.5 truncate">
-                          <MapPin className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-                          {item.address.city}{item.address.area ? `, ${item.address.area}` : ''}
-                        </p>
-                      )}
-                      {item.openNow && (
-                        <p className="flex items-center gap-1.5 text-success font-medium">
-                          <Clock className="w-3.5 h-3.5 shrink-0" /> Open 24/7 Emergency Service
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Badges strip */}
-                    <div className="flex flex-wrap items-center gap-1.5 text-[11px] pt-1">
-                      {item.verified && (
-                        <Badge variant="outline" className="text-[10px] text-success border-success/30 gap-1">
-                          <CheckCircle2 className="w-2.5 h-2.5" /> Verified
-                        </Badge>
-                      )}
-                      {item.rating > 0 && (
-                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold text-[10px]">
-                          <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
-                          {item.rating.toFixed(1)}
-                        </span>
-                      )}
-                      {item.fee && (
-                        <Badge variant="secondary" className="text-[10px]">
-                          ₹{item.fee} Consult
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Action button */}
-                    <div className="pt-2 border-t border-border/60">
-                      <Button asChild size="sm" className="w-full gap-1.5 text-xs font-semibold">
-                        <Link to={detailPath}>
-                          View Profile & Book <ChevronRight className="w-3.5 h-3.5" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <RenderEntityCard
+                  key={card.id || detailPath}
+                  type={card.type}
+                  item={card}
+                  variant={view === 'grid' ? 'grid' : 'list'}
+                  onPrimary={() => navigate(detailPath)}
+                  onSecondary={() => navigate(detailPath)}
+                />
               );
             })}
           </div>
@@ -292,8 +416,8 @@ export default function SearchPage() {
               size="sm"
               onClick={() => {
                 setVertical('');
-                setVerifiedOnly(false);
-                setEmergencyOnly(false);
+                setActiveChips([]);
+                setLanguage('');
               }}
             >
               Reset Filters

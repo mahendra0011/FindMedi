@@ -102,7 +102,7 @@ if (dataPath && fs.existsSync(dataPath)) {
     if (!item || typeof item.loc !== 'string') continue;
     routes.push({
       loc: item.loc,
-      title: `${item.title || 'FindMedi provider'} | FindMedi`,
+      title: item.title || 'FindMedi provider | FindMedi',
       description: item.description || 'Verified provider on FindMedi. Check fees, timings and book online.',
     });
   }

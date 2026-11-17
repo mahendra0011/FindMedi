@@ -1,28 +1,28 @@
-# 21 — Marketing, Brand & SEO Plan
+# 21 ï¿½ Marketing, Brand & SEO Plan
 
-> **Repo se jo mila (?):** referral, rewards/loyalty, coupons, announcements, featured listings, `PlatformContent` (articles), `robots.txt`, teal brand (`logo-teal.png`), Hindi-friendly audience focus (Madhya Pradesh/Jabalpur context from user location — **launch city aapko decide karna hai**).
+> **Repo se jo mila (?):** referral, rewards/loyalty, coupons, announcements, featured listings, `PlatformContent` (articles), `robots.txt`, teal brand (`logo-teal.png`), Hindi-friendly audience focus (Madhya Pradesh/Jabalpur context from user location ï¿½ **launch city aapko decide karna hai**).
 > **Gaps (??):** sitemap/city-category SEO pages, schema.org markup, content calendar, WhatsApp marketing flow, partnership kits, brand guidelines, consent-aware marketing automation.
-> ?? Maine koi competitor/market-size/benchmark claims nahi kiye. Numbers aur targets pilot data se lo. Advertising me **Drugs & Magic Remedies Act, ASCI, NMC/Bar/IRDAI advertising rules, TRAI/DND, DPDP consent** follow karna zaruri hai — lawyer se confirm.
+> ?? Maine koi competitor/market-size/benchmark claims nahi kiye. Numbers aur targets pilot data se lo. Advertising me **Drugs & Magic Remedies Act, ASCI, NMC/Bar/IRDAI advertising rules, TRAI/DND, DPDP consent** follow karna zaruri hai ï¿½ lawyer se confirm.
 
 ---
 
 ## 1. Brand foundation
 
-### 1.1 Positioning (draft — validate with interviews)
-> **"Aapke shehar me bharosemand health aur wellness — doctor se dawai, test se yoga tak — ek hi jagah."**
-> Verified providers · transparent prices · Hindi-first · family care · records & reminders · emergency-ready.
+### 1.1 Positioning (draft ï¿½ validate with interviews)
+> **"Aapke shehar me bharosemand health aur wellness ï¿½ doctor se dawai, test se yoga tak ï¿½ ek hi jagah."**
+> Verified providers ï¿½ transparent prices ï¿½ Hindi-first ï¿½ family care ï¿½ records & reminders ï¿½ emergency-ready.
 
 | Element | Draft |
 |---|---|
-| **Audience (primary)** | Urban/tier-2 families (25–55), caregivers of elders, young parents, chronic-care patients, fitness/wellness seekers |
+| **Audience (primary)** | Urban/tier-2 families (25ï¿½55), caregivers of elders, young parents, chronic-care patients, fitness/wellness seekers |
 | **Audience (supply)** | Clinics, dentists, labs, pharmacies, physios, dietitians, yoga/gym owners, home-care agencies |
 | **Promise** | *Trust + convenience + transparency* |
 | **Pillars** | (1) **Verified** (2) **Simple** (booking/payments/records) (3) **Local & vernacular** (4) **Private & safe** (5) **Complete care** (family, elders, wellness) |
 | **Tone** | Warm, calm, respectful, plain Hindi/English; never fear-mongering; no "miracle" language |
-| **Do/Don't** | Do: clarity, empathy, factual claims. Don't: guaranteed cures, shaming, scare tactics, stock-photo clichés |
+| **Do/Don't** | Do: clarity, empathy, factual claims. Don't: guaranteed cures, shaming, scare tactics, stock-photo clichï¿½s |
 
 ### 1.2 Brand identity (extend ? teal)
-Name & tagline lock (trademark search — lawyer) · logo variants (teal, mono, dark) · colour/typography per design system (file 11) · iconography · photography style (real local providers/patients with consent) · voice guide (Hindi/English examples) · motion/sound (minimal) · do/don't gallery · co-branding rules for providers/partners · **Brand guidelines PDF + asset kit**.
+Name & tagline lock (trademark search ï¿½ lawyer) ï¿½ logo variants (teal, mono, dark) ï¿½ colour/typography per design system (git history - was file 11) ï¿½ iconography ï¿½ photography style (real local providers/patients with consent) ï¿½ voice guide (Hindi/English examples) ï¿½ motion/sound (minimal) ï¿½ do/don't gallery ï¿½ co-branding rules for providers/partners ï¿½ **Brand guidelines PDF + asset kit**.
 
 ### 1.3 Naming & vernacular
 Hindi + regional taglines (reviewed by native speakers), Hinglish search terms for SEO ("dentist near me", "paas ka doctor", "sasti jaanch"), category names consistent with taxonomy aliases (Doctor ? ????????/??????).
@@ -40,14 +40,14 @@ Hindi + regional taglines (reviewed by native speakers), Hinglish search terms f
 
 ```
 AWARENESS ? CONSIDERATION ? FIRST BOOKING ? REPEAT/RETENTION ? REFERRAL
-SEO/Content · Community · Camps ·  Provider profile pages · Reminders/Records · Referral ?
-Partnerships  WhatsApp · Reviews     Offers (first booking)    Memberships/Programs   Loyalty ?
+SEO/Content ï¿½ Community ï¿½ Camps ï¿½  Provider profile pages ï¿½ Reminders/Records ï¿½ Referral ?
+Partnerships  WhatsApp ï¿½ Reviews     Offers (first booking)    Memberships/Programs   Loyalty ?
 ```
 
 ### 3.1 Channel mix (priority for pilot)
 | Channel | Role | Priority | Notes |
 |---|---|---|---|
-| **SEO (local + content)** | High-intent discovery | **P0** | City × category × specialty pages, provider pages, health content |
+| **SEO (local + content)** | High-intent discovery | **P0** | City ï¿½ category ï¿½ specialty pages, provider pages, health content |
 | **Google Business Profile & Maps** | Local discovery | **P0** | Claim/optimise FindMedi + help providers claim theirs (partner training) |
 | **Provider-driven (QR/links/widgets)** | Zero-CAC demand | **P0** | "Book on FindMedi" QR at clinics/labs/pharmacies; WhatsApp link; profile share kit |
 | **Camps/events/workshops** | Trust + acquisition | **P0** | Free screening camps with partners; sign-ups at event |
@@ -66,7 +66,7 @@ Partnerships  WhatsApp · Reviews     Offers (first booking)    Memberships/Progr
 
 ### 4.1 Site architecture
 ```
-/<city>/                                   City hub (Bhopal, Jabalpur…)
+/<city>/                                   City hub (Bhopal, Jabalpurï¿½)
 /<city>/<category>/                        e.g., /bhopal/dentist/
 /<city>/<category>/<area>/                 e.g., /bhopal/dentist/arera-colony/
 /<city>/<category>/<slug>                  Provider/Facility page
@@ -76,16 +76,16 @@ Partnerships  WhatsApp · Reviews     Offers (first booking)    Memberships/Progr
 /health/<topic>/                           Medical-reviewed articles (hi/en)
 /events/<city>/<slug>                      Camps/workshops
 /packages/<slug>                           Health packages
-/compare/…                                 (later) comparisons
+/compare/ï¿½                                 (later) comparisons
 ```
 
 ### 4.2 On-page & technical
 - **Programmatic pages with real value only** (no thin/duplicate): minimum N verified providers per page, unique intro/FAQs, local info (hospitals, areas), pricing ranges (from real data), "how to choose" guidance; **noindex** pages below threshold.
 - **Schema.org JSON-LD:** `MedicalOrganization`/`LocalBusiness`/`Physician`/`Dentist`/`Pharmacy`, `OpeningHoursSpecification`, `AggregateRating` (**only with genuine reviews**), `FAQPage`, `Event`, `BreadcrumbList`, `Article` + `MedicalWebPage` for health content (with reviewer info).
 - **E-E-A-T for YMYL health:** author bios with credentials, medical reviewer ?, citations to authoritative sources (WHO, ICMR, MoHFW, NHP, peer-reviewed), last-reviewed dates, editorial policy page, transparent about commercial relationships.
-- Core Web Vitals (LCP < 2.5s mobile), SSR/prerender for public pages (Vite SPA ?? — consider **SSR/SSG** via Vite SSR, Astro/Next for public site or prerender service), canonical URLs, hreflang (hi/en), XML sitemaps per city/category (+ `lastmod`), `robots.txt` ? (block private/dashboard/search-param duplicates), internal linking (nearby areas, related specialties), image alt text, breadcrumbs, pagination, 404/410 handling for delisted providers, redirects on slug change.
+- Core Web Vitals (LCP < 2.5s mobile), SSR/prerender for public pages (Vite SPA ?? ï¿½ consider **SSR/SSG** via Vite SSR, Astro/Next for public site or prerender service), canonical URLs, hreflang (hi/en), XML sitemaps per city/category (+ `lastmod`), `robots.txt` ? (block private/dashboard/search-param duplicates), internal linking (nearby areas, related specialties), image alt text, breadcrumbs, pagination, 404/410 handling for delisted providers, redirects on slug change.
 - **Never index:** patient pages, records, dashboards, booking links with tokens, internal search URLs with PHI-like queries.
-- **Local SEO:** NAP consistency (name/address/phone), GBP posts, reviews, citations (Justdial-type directories — verify relevance), provider-claimed listings, geo-structured pages.
+- **Local SEO:** NAP consistency (name/address/phone), GBP posts, reviews, citations (Justdial-type directories ï¿½ verify relevance), provider-claimed listings, geo-structured pages.
 - **Multilingual SEO:** native-written Hindi pages (not machine translation), transliterated queries (Hinglish) in titles/H1/FAQs.
 - **Programmatic content quality gates:** human review sampling; dedupe; avoid doorway-page patterns.
 
@@ -108,8 +108,8 @@ Partnerships  WhatsApp · Reviews     Offers (first booking)    Memberships/Progr
 
 ### 4.4 Content engine (medical-reviewed)
 - **Pillars:** conditions (diabetes, BP, thyroid, PCOS, dental care), preventive care (vaccination, screening schedules), elder care, child health, women's health, nutrition & recipes (Indian), yoga/fitness, mental wellbeing, "how to choose a doctor/lab", insurance & schemes explainers, costs guides (transparent ranges), first-aid/CPR.
-- **Process:** brief ? writer ? **medical reviewer** (credentialed) ? fact-check/citations ? editor ? legal/claims check ? publish ? review cycle (6–12 months) ? update/deprecate.
-- **Formats:** articles, short videos/reels (consented experts), infographics, checklists (PDF), WhatsApp snippets, FAQs, glossaries, calculators (BMI, due date, vaccination schedule — with disclaimers).
+- **Process:** brief ? writer ? **medical reviewer** (credentialed) ? fact-check/citations ? editor ? legal/claims check ? publish ? review cycle (6ï¿½12 months) ? update/deprecate.
+- **Formats:** articles, short videos/reels (consented experts), infographics, checklists (PDF), WhatsApp snippets, FAQs, glossaries, calculators (BMI, due date, vaccination schedule ï¿½ with disclaimers).
 - **Languages:** Hindi + English first; regional by demand.
 - **Governance:** editorial policy, correction policy, conflicts-of-interest disclosure, sponsored content labelled, no medical advice to individuals via articles.
 
@@ -139,20 +139,20 @@ Partner kit: one-pager, QR/links, co-branded posters, FAQ, onboarding steps, rep
 - Rules: never discount **clinical quality**; no "free medicine" that violates Rx rules; clear T&Cs; budget caps; fraud controls (device/phone limits); no dark patterns (fake urgency/countdowns).
 - Pricing transparency in ads: "from ?x*" with clear conditions.
 
-## 8. Health-calendar content & campaigns (aligned to commonly observed days — verify dates each year)
+## 8. Health-calendar content & campaigns (aligned to commonly observed days ï¿½ verify dates each year)
 | When | Theme | Idea |
 |---|---|---|
 | 24 Mar | World TB Day | Awareness + free screening camps (partners) |
 | 7 Apr | World Health Day | Platform launch/PR, health packages |
-| Apr–May | Heat season | Heatstroke/hydration tips; AQI/heat alerts |
-| Jun–Sep | Monsoon | Dengue/malaria/typhoid awareness; fever panels; mosquito-prevention content |
+| Aprï¿½May | Heat season | Heatstroke/hydration tips; AQI/heat alerts |
+| Junï¿½Sep | Monsoon | Dengue/malaria/typhoid awareness; fever panels; mosquito-prevention content |
 | 21 Jun | International Yoga Day | Yoga events/trials with studios |
 | 29 Sep | World Heart Day | Cardiac screening packages, CPR training |
 | 10 Oct | World Mental Health Day | Mental wellbeing content, helplines (sensitive handling) |
 | 14 Nov | World Diabetes Day | Diabetes screening/program enrolment |
-| Oct–Dec | Festive/winter | Eye/dental camps, immunity/diet content, senior flu shots |
+| Octï¿½Dec | Festive/winter | Eye/dental camps, immunity/diet content, senior flu shots |
 | Month-specific | Breast cancer awareness (Oct), Women's health, Child vaccination drives, Blood-donor days |
-Plan quarterly calendar with camps + content + partner pushes; prepare assets 4–6 weeks ahead.
+Plan quarterly calendar with camps + content + partner pushes; prepare assets 4ï¿½6 weeks ahead.
 
 ## 9. Lifecycle & CRM (consent-based)
 
@@ -163,7 +163,7 @@ Plan quarterly calendar with camps + content + partner pushes; prepare assets 4–
 | Post-booking | Booking confirmed | Prep tips, directions, calendar | SMS/push |
 | Post-visit | Completed | Review request, records saved, follow-up reminder | Push/WhatsApp |
 | Chronic care | Care plan | Refill & check-up reminders | Push/WhatsApp (discreet) |
-| Win-back | 60–90 days inactive | Seasonal packages, family checkups | Email/push |
+| Win-back | 60ï¿½90 days inactive | Seasonal packages, family checkups | Email/push |
 | Membership | Expiry near | Renewal offers, freeze options | Push/email |
 | Provider lifecycle | Approved/no bookings/low rating | Tips, training, boosts | WhatsApp/email |
 - **Discreet/sensitive categories:** no marketing nudges (opt-in only), neutral wording.
@@ -174,12 +174,12 @@ Respond to reviews/app-store ratings professionally (no PII), escalate complaint
 
 ## 11. Compliance checklist for marketing
 - [ ] ASCI & Consumer Protection guidelines for claims/endorsements (disclosures for influencers) - `docs/marketing/asci-guidelines.md` (rules + FindMedi controls + review workflow); legal sign-off pending (note).
-- [x] No cure claims/miracle language; sensitive categories restricted — `adClaimsRestricted` flags + claims moderation.
+- [x] No cure claims/miracle language; sensitive categories restricted ï¿½ `adClaimsRestricted` flags + claims moderation.
 - [x] NMC/state council/Bar Council/IRDAI advertising rules - `docs/marketing/nmc-advertising-rules.md` (per-regulator rules + FindMedi controls).
 - [x] Consent for testimonials/photos; no patient data in creatives - `docs/marketing/consent-testimonials.md` (consent form template + rules).
-- [x] TRAI/DND + DLT templates; WhatsApp opt-in; email unsubscribe — `dltTemplates.js`, opt-in flows, unsubscribe handling.
-- [x] DPDP: consent for marketing, children excluded from behavioural targeting — consent gating + minors exclusion in analytics.
-- [x] Sponsored content labelled; sponsor independence from clinical content — `isSponsored` card label + claims moderation.
+- [x] TRAI/DND + DLT templates; WhatsApp opt-in; email unsubscribe ï¿½ `dltTemplates.js`, opt-in flows, unsubscribe handling.
+- [x] DPDP: consent for marketing, children excluded from behavioural targeting ï¿½ consent gating + minors exclusion in analytics.
+- [x] Sponsored content labelled; sponsor independence from clinical content ï¿½ `isSponsored` card label + claims moderation.
 - [x] Trademark/copyright checks (images, music, fonts) - `docs/marketing/trademark-checks.md` (pre-launch checklist + process).
 - [x] Review & claims approval workflow (marketing <-> clinical advisor <-> legal for sensitive) - `docs/marketing/claims-approval-workflow.md`.
 
@@ -197,22 +197,22 @@ Respond to reviews/app-store ratings professionally (no PII), escalate complaint
 Use PHI-free analytics (file 17); UTM discipline; incrementality tests (geo-holdouts) before scaling spend.
 
 ## 13. Budget framework (fill with your numbers)
-Allocate pilot marketing budget: **~% SEO/content** · **% partnerships & camps** · **% provider acquisition (field)** · **% paid tests** · **% referral/offers (capped)** · **% brand assets/PR**. Rule: start low-CAC channels; scale paid only when LTV:CAC and repeat rate proven (file 16).
+Allocate pilot marketing budget: **~% SEO/content** ï¿½ **% partnerships & camps** ï¿½ **% provider acquisition (field)** ï¿½ **% paid tests** ï¿½ **% referral/offers (capped)** ï¿½ **% brand assets/PR**. Rule: start low-CAC channels; scale paid only when LTV:CAC and repeat rate proven (file 16).
 
 ## 14. 90-day launch plan (1 city)
-- **Days 1–30:** brand kit, messaging validation (10–15 interviews), GBP setup, SEO foundations (sitemaps, schema, SSR/prerender), city hub + top-category pages with real data, content backlog (20 pillar articles hi/en), partner list (10 RWAs, 5 corporates, 3 NGOs, 2 associations), provider onboarding kit.
-- **Days 31–60:** onboard anchor providers; first camps (2–3) with partners; WhatsApp opt-in funnel; referral live; PR launch; small paid tests (intent keywords); weekly SEO publishing.
-- **Days 61–90:** scale partnerships (RWA calendar), optimise conversion pages, collect testimonials (consented), start membership/program pilots, review CAC/LTV, decide expansion/next category.
+- **Days 1ï¿½30:** brand kit, messaging validation (10ï¿½15 interviews), GBP setup, SEO foundations (sitemaps, schema, SSR/prerender), city hub + top-category pages with real data, content backlog (20 pillar articles hi/en), partner list (10 RWAs, 5 corporates, 3 NGOs, 2 associations), provider onboarding kit.
+- **Days 31ï¿½60:** onboard anchor providers; first camps (2ï¿½3) with partners; WhatsApp opt-in funnel; referral live; PR launch; small paid tests (intent keywords); weekly SEO publishing.
+- **Days 61ï¿½90:** scale partnerships (RWA calendar), optimise conversion pages, collect testimonials (consented), start membership/program pilots, review CAC/LTV, decide expansion/next category.
 
 ## 15. Checklist
 - [x] Positioning & messaging validated; brand guidelines + asset kit - `docs/marketing/positioning-messaging.md` (positioning, key messages, brand guidelines draft).
 - [x] `SeoHead` safely writes canonical, robots, JSON-LD and optional hreflang metadata; `SeoHead.test.jsx` verifies public/noindex behavior, alternate validation and stale-link cleanup (component-level coverage).
-- [x] Crawlable public URLs, sitemap populated from verified live listings, localized alternates wired to real locale URLs, and SSR/prerender/crawler verification - clean path URLs (`BrowserRouter`), locale in the url (`?lang=hi`, set by `frontend/src/lib/localeUrl.ts` and honoured by `main.tsx` + the language switcher), hreflang alternates on every public head (`frontend/src/lib/seoAlternates.ts`), per-route prerendered head (`scripts/prerender-routes.mjs`, wired into `npm run build`), sitemap exported from the VERIFIED live listings (`scripts/export-sitemap-data.mjs` -> `scripts/generate-sitemap.mjs`, with hreflang alternates) and a crawler check (`scripts/verify-sitemap.mjs`) that asserts 200 + matching canonical + indexable + resolvable locale variants. Verified: `npm run seo:export` -> 20 detail pages, `npm run seo:prerender` -> 27 route heads, `npm run seo:verify` -> 27/27 urls pass. Also fixed on the way: the facility canonical pointed at a route that did not exist (every facility page canonicalised to a 404) and `/contact` was in the sitemap with no route (now a real page). Staging crawl against the production host still needs the deployment (note).
-- [x] City/category/specialty page templates with real data thresholds — facility/specialty pages + category pages.
+- [x] Crawlable public URLs, sitemap populated from verified live listings, localized alternates wired to real locale URLs, and SSR/prerender/crawler verification - clean path URLs (`BrowserRouter`), locale in the url (`?lang=hi`, set by `frontend/src/lib/localeUrl.ts` and honoured by `main.tsx` + the language switcher), hreflang alternates on every public head (`frontend/src/lib/seoAlternates.ts`), per-route prerendered head (`scripts/prerender-routes.mjs`, wired into `npm run build`), sitemap exported from the VERIFIED live listings (`scripts/export-sitemap-data.mjs` -> `scripts/generate-sitemap.mjs`, with hreflang alternates) and a crawler check (`scripts/verify-sitemap.mjs`) that asserts 200 + matching canonical + indexable + resolvable locale variants. Verified: `npm run seo:export` -> 20 detail pages, `npm run seo:prerender` -> 29 route heads, `npm run seo:verify` -> 29/29 urls pass. Also fixed on the way: the facility canonical pointed at a route that did not exist (every facility page canonicalised to a 404) and `/contact` was in the sitemap with no route (now a real page). Staging crawl against the production host still needs the deployment (note).
+- [x] City/category/specialty page templates with real data thresholds ï¿½ facility/specialty pages + category pages.
 - [x] Medical content pipeline (reviewers, editorial policy, update cycle) - `docs/marketing/medical-content-pipeline.md` (roles, process, controls).
 - [x] Partnership kits + first 10 partners; camp playbook - `docs/marketing/partnership-kits.md` (kit contents, camp playbook, target partners).
-- [x] WhatsApp opt-in & DLT templates; preference centre — opt-in + `NotificationPreference`.
-- [x] Referral/loyalty tuned (family-centric) with abuse controls — referral/rewards models + limits.
+- [x] WhatsApp opt-in & DLT templates; preference centre ï¿½ opt-in + `NotificationPreference`.
+- [x] Referral/loyalty tuned (family-centric) with abuse controls ï¿½ referral/rewards models + limits.
 - [x] Compliance review workflow for ads/claims - `docs/marketing/claims-approval-workflow.md` (workflow + controls).
-- [x] Analytics (PHI-free) + UTM + dashboards — PHI-free analytics + UTM capture.
+- [x] Analytics (PHI-free) + UTM + dashboards ï¿½ PHI-free analytics + UTM capture.
 - [x] Reputation/crisis comms playbook - `docs/marketing/crisis-comms-playbook.md` (severity levels, steps, templates, contacts).

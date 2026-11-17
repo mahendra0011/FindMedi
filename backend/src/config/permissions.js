@@ -250,32 +250,33 @@ export const ROLE_PERMISSIONS = {
   // split (8.md 8: dual approval above threshold) is what makes a finance_admin
   // approving a payout meaningful.
   // 8.md 2: review queue, watermarked doc viewer, decide/needs-info/escalate.
-  kyc_reviewer: ['applications:read', 'applications:decide', 'documents:read'],
+  kyc_reviewer: ['applications:read', 'applications:decide', 'documents:read', 'notifications:read'],
   // 8.md 5: moderation queues + canned actions (flag/unflag/warn). Removing a
   // row outright is irreversible, so DELETE /reviews/:id stays superadmin.
-  moderator: ['moderation:read', 'moderation:write'],
+  moderator: ['moderation:read', 'moderation:write', 'notifications:read'],
   // 7.md 3.22: unified inbox — read the queue, reply on the ticket. Assign /
   // status / stats (`support:manage`) stay with support leads + superadmin.
-  support_agent: ['support:read', 'support:write'],
+  support_agent: ['support:read', 'support:write', 'notifications:read'],
   // 7.md 3.23 / 8.md 8: settlements, refunds, commission config READ, ledger,
   // tax summary, payout approve (the second pair of eyes). Creating or paying a
   // payout and editing commission config are NOT in this set.
-  finance_admin: ['commission:read', 'payouts:read', 'payouts:approve'],
+  finance_admin: ['commission:read', 'payouts:read', 'payouts:approve', 'notifications:read'],
   // 8.md 4: category tree editor (incl. merge) + provider-type join configs.
   catalog_manager: [
     'categories:read', 'categories:write',
     'provider-types:read', 'provider-types:write',
+    'notifications:read',
   ],
   // 8.md 11: immutable audit log read, DPDP data-subject request queue,
   // licence/registry tracker. Erasure EXECUTION stays superadmin (four hands).
   compliance_officer: [
     'audit:read', 'dsr:read', 'dsr:approve', 'licenses:read', 'licenses:write',
-    'breakglass:read',
+    'breakglass:read', 'notifications:read',
   ],
   // 7.md 3.21 / 8.md 11: versioned platform content (ToS, privacy, policies).
-  content_editor: ['content:read', 'content:write'],
+  content_editor: ['content:read', 'content:write', 'notifications:read'],
   // 8.md 4: city + service-city launch/pause (delete stays superadmin).
-  city_manager: ['cities:read', 'cities:write', 'service-cities:read', 'service-cities:write', 'crm:read', 'crm:write'],
+  city_manager: ['cities:read', 'cities:write', 'service-cities:read', 'service-cities:write', 'crm:read', 'crm:write', 'notifications:read'],
   hospital_admin: [
     'hospital:manage', 'staff:manage', 'staff:view', 'beds:manage', 'departments:manage',
     'records:read', 'records:write', 'records:amend', 'billing:read', 'billing:write',
@@ -304,9 +305,9 @@ export const ROLE_PERMISSIONS = {
     'prescriptions:write', 'patients:read', 'chat:read', 'chat:write',
     'profile:read', 'profile:write', 'notifications:read', 'upload:write',
   ],
-  counsellor: ['records:read', 'appointments:read', 'patients:read', 'chat:read', 'chat:write'],
-  psychiatrist: ['records:read', 'records:write', 'appointments:read', 'patients:read', 'chat:read', 'chat:write'],
-  nurse: ['records:read', 'vitals:write', 'patients:read', 'beds:read', 'notifications:read', 'nursing:read'],
+  counsellor: ['records:read', 'appointments:read', 'patients:read', 'chat:read', 'chat:write', 'notifications:read'],
+  psychiatrist: ['records:read', 'records:write', 'appointments:read', 'patients:read', 'chat:read', 'chat:write', 'notifications:read'],
+  nurse: ['records:read', 'vitals:write', 'patients:read', 'beds:read', 'notifications:read', 'nursing:read', 'appointments:read'],
   lab_owner: ['lab:manage', 'lab:read', 'lab:book', 'lab:verify', 'reports:read'],
   lab_receptionist: ['lab:read', 'lab:book', 'notifications:read'],
   lab_technician: ['lab:read', 'lab:enter_result', 'notifications:read'],
@@ -407,21 +408,21 @@ export const ROLE_PERMISSIONS = {
   equipment_manager: [
     'equipment:read', 'equipment:manage', 'inventory:read', 'notifications:read',
   ],
-  dietitian: ['diet:read', 'diet:write'],
-  physiotherapist: ['physio:read', 'physio:write'],
+  dietitian: ['diet:read', 'diet:write', 'notifications:read'],
+  physiotherapist: ['physio:read', 'physio:write', 'notifications:read'],
   accountant: ['billing:read', 'commission:read', 'reports:read', 'notifications:read'],
   security: ['audit:read', 'security:read', 'security:manage'],
   technician: ['beds:read', 'equipment:read', 'radiology:read'],
   helper: [],
-  delivery_boy: ['delivery:read', 'delivery:write', 'chat:read', 'chat:write'],
+  delivery_boy: ['delivery:read', 'delivery:write', 'chat:read', 'chat:write', 'notifications:read'],
   rider: ['ride:read', 'ride:write', 'chat:read', 'chat:write', 'notifications:read', 'wallet:withdraw'],
-  assistant: ['assistant:read', 'assistant:write', 'chat:read', 'chat:write', 'legal:read', 'wallet:withdraw'],
+  assistant: ['assistant:read', 'assistant:write', 'chat:read', 'chat:write', 'legal:read', 'wallet:withdraw', 'notifications:read'],
   lawyer: [
-    'legal:read', 'legal:write', 'billing:read', 'chat:read', 'chat:write',
+    'legal:read', 'legal:read:own', 'legal:write', 'billing:read', 'chat:read', 'chat:write',
     'profile:read', 'profile:write', 'notifications:read', 'upload:write',
     'wallet:withdraw',
   ],
-  ambulance: ['ambulance:read', 'ambulance:write', 'ride:read', 'ride:write'],
+  ambulance: ['ambulance:read', 'ambulance:write', 'ride:read', 'ride:write', 'notifications:read'],
   // Self-service: every grant is `:own`-scoped, so the handler must still
   // resolve the document against req.user._id.
   patient: [

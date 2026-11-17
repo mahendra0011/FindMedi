@@ -469,6 +469,13 @@ const getAllowedSocketOrigins = () => {
       'http://localhost:5173',
       'http://localhost:3000',
       'http://localhost:5001',
+      // Vite dev server is commonly opened via the loopback IP, and
+      // `localhost` !== `127.0.0.1` for an exact-match allowlist. Without
+      // these the socket handshake 400s while every REST call (permissive
+      // non-production CORS) works — a confusing dev-only failure.
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5001',
     ]),
   ];
   return Array.from(new Set([...envOrigins, ...defaults]))

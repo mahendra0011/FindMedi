@@ -23,6 +23,8 @@ export default function BloodBankCard({ item, onPrimary, onSecondary }: any) {
       secondaryLabel="Call"
       onPrimary={onPrimary}
       onSecondary={onSecondary}
+      sponsored={item.isSponsored}
+      overlayBadge={item.overlayBadge}
     />
   );
 }

@@ -1,7 +1,7 @@
-﻿# 11 — Design System (UI Kit Spec)
+# 11 — Design System (UI Kit Spec)
 
 > **Repo se jo mila (✅):** React 18 · Vite · Tailwind 4 + `tailwindcss-animate` · Radix UI (shadcn-style) · `lucide-react` · `framer-motion` · `react-hook-form` + `zod` · `recharts` · `maplibre-gl` · dark mode (`class`) · tokens: `--primary: 174 62% 38%` (teal), `--accent: 174 45% 92%`, `--destructive: 0 72% 51%`, `--radius: 0.75rem`, fonts **Plus Jakarta Sans** (heading) + **Inter** (body).
-> **Gaps (🆕):** i18n library nahi mili · `manifest.json` nahi (sirf `sw.js`) · semantic tokens (success/warning/info/tier colours) limited · category-wise icon system · motion & accessibility rules documented nahi.
+> **Gaps (original audit, now closed):** i18n library was missing -> react-i18next + i18n.ts wired (frontend/src/i18n.ts, LanguageSwitcher.tsx, locale param ?lang=hi, hreflang alternates); manifest.json missing -> manifest.webmanifest + sw.js present; semantic tokens limited -> --success/--warning/--info/--emergency/--tier-t1..t3 defined; no category-wise icon system -> listingCardRegistry.ts + components/cards/; motion & a11y undocumented -> framer-motion + Radix primitives + accessibility.spec.ts/systemA11y.test.jsx in use.
 > **Goal:** 25+ provider types ka UI ek hi language me — naye cards/pages (files 02–04) isi kit se banein.
 
 ---
@@ -128,8 +128,8 @@ default · hover · focus-visible (2px ring, offset) · active · disabled · lo
 ## 11. Accessibility (WCAG 2.1 AA minimum)
 Contrast ≥ 4.5:1 · keyboard navigable · focus-visible · semantic landmarks/headings · ARIA for custom widgets (Radix ✅) · alt text · captions for video · form labels/error association · tap targets ≥ 44px (elder 48px) · no colour-only meaning · reduced-motion · zoom to 200% · screen-reader test (TalkBack/VoiceOver) in CI checklist · voice input/read-aloud for key flows · plain-language option.
 
-## 12. Internationalisation (🆕 big gap — no i18n lib found)
-- Add **`react-i18next`** (or `lingui`) + namespaces per area; ICU plurals; locale files for **hi, en** first, then mr, bn, ta, te, gu, kn, ml, pa, or, as.
+## 12. Internationalisation (implemented — coverage verified in audit)
+- react-i18next is wired (frontend/src/i18n.ts, useTranslation, LanguageSwitcher.tsx; locale URLs ?lang=hi via main.tsx + localeUrl.ts, hreflang alternates via seoAlternates.ts; scripts/prerender-routes.mjs). Regional locales (mr, bn, ta, te, gu, kn, ml, pa, or, as) remain open roadmap items.
 - Backend: localised notification templates; category/specialty names from taxonomy (`name.{en,hi}`).
 - Number/date/currency formatting (₹, Indian numbering lakh/crore), 12/24h, calendars.
 - RTL (Urdu) support check; font fallbacks; text-expansion tolerant layouts (Hindi ~20–30% longer).

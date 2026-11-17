@@ -11,7 +11,7 @@ import Service from '../models/Service.js';
 import User from '../models/User.js';
 import Hospital from '../models/Hospital.js';
 import Patient from '../models/Patient.js';
-import { protect, scopeToHospital, requireRole, authorize } from '../middleware/auth.js';
+import { protect, scopeToHospital, scopeToHospitalOrPatient, requireRole, authorize } from '../middleware/auth.js';
 import { requireBreakGlass } from '../middleware/requireBreakGlass.js';
 import { validate, createAppointmentSchema, updateAppointmentSchema, walkInSchema } from '../utils/validate.js';
 import logger from '../config/logger.js';
@@ -226,7 +226,7 @@ router.post('/release-slot', protect, async (req, res) => {
 // behind them are appointment volume for a named doctor at another tenant —
 // enough to infer a clinician's caseload. Scoped to the caller's own tenant.
 // authz: object
-router.get('/booked-slots', protect, scopeToHospital, async (req, res) => {
+router.get('/booked-slots', protect, scopeToHospitalOrPatient, async (req, res) => {
   try {
     const { doctorId, date } = req.query;
     if (!doctorId || !date) return res.status(400).json({ message: 'doctorId and date required' });

@@ -28,6 +28,8 @@ export default function NurseCard({ item, onPrimary, onSecondary }: any) {
       secondaryLabel="View"
       onPrimary={onPrimary || (() => navigate(`/practitioner/${item._id || item.id}`))}
       onSecondary={onSecondary}
+      sponsored={item.isSponsored}
+      overlayBadge={item.overlayBadge}
     />
   );
 }

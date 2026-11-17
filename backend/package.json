@@ -15,6 +15,7 @@
     "seed:test-categories": "node scripts/seed/seed-test-categories.mjs --apply",
     "seed:alert-rules": "node scripts/seed/seed-clinical-alert-rules.mjs",
     "seed:demo-hospital": "node scripts/seed/seed-demo-hospital.mjs",
+    "seed:doc-roles": "node scripts/seed/seed-doc-role-demos.mjs",
     "seed:sos-demo": "node scripts/seed/seed-sos-demo.mjs",
     "seed:all": "node scripts/seed/seed-demo.mjs && node scripts/seed/seed-category-tree.mjs --apply && node scripts/seed/seed-test-categories.mjs --apply && node scripts/seed/seed-provider-type-configs.mjs --apply && node scripts/seed/seed-demo-hospital.mjs && node scripts/seed/seed-sos-demo.mjs && node scripts/seed/seed-psychiatrists.mjs && node scripts/seed/seed-clinical-alert-rules.mjs",
     "seed:psychiatrists": "node scripts/seed/seed-psychiatrists.mjs",

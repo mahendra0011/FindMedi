@@ -12,6 +12,7 @@ const REDIS_TLS_ENABLED = process.env.REDIS_TLS === 'true'
   || String(process.env.REDIS_URL || '').startsWith('rediss://');
 
 export const redisClient = createClient({
+  RESP: 2,
   url: process.env.REDIS_URL || 'redis://localhost:6379',
   socket: {
     // Never silently accept an unverifiable certificate: TLS without

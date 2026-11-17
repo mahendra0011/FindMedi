@@ -230,9 +230,17 @@ req.user = {
   // here; otherwise the omitted predicate can become a platform-wide query.
   const missingTenant = !req.user.hospitalId && !req.user.facilityId;
   const legacyScopedEndpoint = requiresLegacyTenantContext(req);
+  // /auth/me must always resolve so the frontend auth context can bootstrap,
+  // even for tenant-staff accounts that have not been linked to a facility yet
+  // (e.g. mind-support counsellors/psychiatrists). User-scoped endpoints such
+  // as notifications and break-glass (own grants) are likewise not tenant data.
+  const isAuthMe = req.originalUrl === '/api/auth/me' || req.path === '/me';
+  const isUserScoped = req.originalUrl.startsWith('/api/notifications') || req.originalUrl.startsWith('/api/admin/break-glass/mine');
   if (
     missingTenant
     && req.user.role !== 'superadmin'
+    && !isAuthMe
+    && !isUserScoped
     && (isTenantStaff(req.user) || (legacyScopedEndpoint && isPlatformBreakGlassRole(req.user.role)))
   ) {
     return res.status(403).json({ message: 'No hospital/facility linked to this account', code: 'TENANT_SCOPE_REQUIRED' });
@@ -332,6 +340,14 @@ export const scopeToHospital = (req, res, next) => {
   }
   req.hospitalId = req.user.hospitalId.toString();
   next();
+};
+
+// Availability lookups (booked-slots) must be readable by any authenticated
+// user, including patients, so they can pick an open slot. Patients are not
+// tenant-scoped; staff keep the tenant scope.
+export const scopeToHospitalOrPatient = (req, res, next) => {
+  if (req.user?.role === 'patient') return next();
+  return scopeToHospital(req, res, next);
 };
 
 export const scopeToFacility = (req, res, next) => {

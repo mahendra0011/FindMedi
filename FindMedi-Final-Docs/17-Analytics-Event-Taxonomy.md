@@ -185,7 +185,7 @@ Event volume drops (instrumentation broke), schema violations spike, PII-detecto
 - [x] `track()` wrapper + zod schemas + PII detector; lint ban on direct SDK calls — `frontend/src/lib/track.ts`.
 - [x] `events.yaml` registry + CI check — `analytics/events.yaml` + `scripts/analytics-coverage.mjs`.
 - [x] Pseudonymous `distinct_id` (HMAC) and `provider_id_hash` — `hashDistinctId` in `frontend/src/lib/analytics.ts`.
-- [x] Server-side events for booking/order/payment/join transitions — analytics events emitted in backend routes/jobs.
+- [x] Server-side events for booking/order/payment/join transitions — `services/analyticsEmitter.js` (scrubber-backed, fire-and-forget, forwards to PostHog when configured) wired into payment settlement (`settlePaymentFromWebhook`), `POST /api/billing/pay` (mock path), `POST /api/memberships` (`membership_started`), join submit (`join_submitted`).
 - [x] Sensitive-category count-only rule implemented — `sensitiveCategories.js` + count-only analytics rule.
 - [x] Consent gating + opt-out + minors exclusion — `ConsentRecord`, opt-out flag, minors excluded from behavioural analytics.
 - [x] Dashboards: funnels, unmet demand, provider quality, onboarding TAT - `infra/observability/grafana/dashboards/findmedi-booking-funnel.json` + existing findmedi-api dashboard.

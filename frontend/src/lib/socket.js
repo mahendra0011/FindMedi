@@ -1,7 +1,9 @@
 import { io } from 'socket.io-client';
 import { getServerOrigin } from './axios';
 
-const SOCKET_URL = getServerOrigin();
+// Same-origin deploys (dev proxy, production) yield '' — pass no URL so socket.io
+// targets the page origin. `io('')` would be parsed as an empty host string.
+const SOCKET_URL = getServerOrigin() || undefined;
 
 let socket = null;
 

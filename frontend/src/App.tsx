@@ -39,6 +39,7 @@ import { LenisScroll } from './components/LenisScroll';
 import ErrorBoundary from './components/ErrorBoundary';
 import StepUpDialog from './components/StepUpDialog';
 import IdleLockOverlay from '@/components/IdleLockOverlay';
+import BreakGlassBanner from '@/components/BreakGlassBanner';
 import { useProactiveTokenRefresh } from '@/lib/useProactiveTokenRefresh';
 import EmergencyFlowController from '@/components/emergency/EmergencyFlowController';
 import ReminderAlarmHost from '@/components/patient/ReminderAlarmHost';
@@ -946,6 +947,8 @@ const App = () => (
           <StepUpDialog />
           {/* Checklist I8: global idle PIN-lock overlay (403 IDLE_LOCK) */}
           <IdleLockOverlay />
+          {/* File 23 §4.2: high-visibility banner while a break-glass grant is active */}
+          <BreakGlassBanner />
           <TooltipProvider>
             <Toaster />
             <Sonner />

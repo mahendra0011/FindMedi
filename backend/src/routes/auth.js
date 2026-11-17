@@ -52,6 +52,10 @@ const SENSITIVE_SCOPES = new Set([
   // stepUpAuth spec now pins used-scopes ⊆ registry.
   'phi:breakglass',
   'iam:role-change',
+  // Assigning or revoking an ADMIN role assignment (iam.js /assignments).
+  // Kept distinct from iam:role-change (create/edit role definitions) so the
+  // audit trail shows who granted privileged access, not just who edited config.
+  'admin:role-assign',
   // SITE-SEC 1.4 backfill: the scopes below were added for actions that only
   // needed step-up semantics late — money-approvals, identified exports,
   // irreversible provider/account operations. Each one is wired at a real
@@ -1393,7 +1397,10 @@ router.post('/2fa/complete', authLimiter, totpLimiter, async (req, res) => {
       return res.status(401).json({ message });
     }
 
-    const user = await User.findById(ticketCheck.userId).select('+password');
+    // SITE-SEC 1.7: twoFactorSecret/twoFactorBackupCodes are select:false, so
+    // they must be explicitly requested here — without them verifyToken() saw
+    // `undefined` and EVERY enrolled account was locked out by its own 2FA.
+    const user = await User.findById(ticketCheck.userId).select('+password +twoFactorSecret +twoFactorBackupCodes');
     if (!user) {
       return res.status(401).json({ message: 'Invalid 2FA session. Please sign in again.' });
     }

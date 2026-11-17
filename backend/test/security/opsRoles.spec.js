@@ -49,21 +49,22 @@ const routeSrc = (file) => read(path.join(BACKEND, 'src', 'routes', file));
  * of shipping as a quiet privilege escalation.
  */
 const EXPECTED = {
-  kyc_reviewer: ['applications:read', 'applications:decide', 'documents:read'],
-  moderator: ['moderation:read', 'moderation:write'],
-  support_agent: ['support:read', 'support:write'],
-  finance_admin: ['commission:read', 'payouts:read', 'payouts:approve'],
+  kyc_reviewer: ['applications:read', 'applications:decide', 'documents:read', 'notifications:read'],
+  moderator: ['moderation:read', 'moderation:write', 'notifications:read'],
+  support_agent: ['support:read', 'support:write', 'notifications:read'],
+  finance_admin: ['commission:read', 'payouts:read', 'payouts:approve', 'notifications:read'],
   catalog_manager: [
     'categories:read', 'categories:write', 'provider-types:read', 'provider-types:write',
+    'notifications:read',
   ],
   // File 23: compliance reviews break-glass usage (read-only queue view).
   compliance_officer: [
     'audit:read', 'dsr:read', 'dsr:approve', 'licenses:read', 'licenses:write',
-    'breakglass:read',
+    'breakglass:read', 'notifications:read',
   ],
-  content_editor: ['content:read', 'content:write'],
+  content_editor: ['content:read', 'content:write', 'notifications:read'],
   // File 24: city managers run the supply pipeline in their city.
-  city_manager: ['cities:read', 'cities:write', 'service-cities:read', 'service-cities:write', 'crm:read', 'crm:write'],
+  city_manager: ['cities:read', 'cities:write', 'service-cities:read', 'service-cities:write', 'crm:read', 'crm:write', 'notifications:read'],
 };
 
 describe('8.md 1 · the ops roles are first-class rows in the canonical matrix', () => {

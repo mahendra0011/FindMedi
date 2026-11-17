@@ -50,6 +50,20 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://findmedi.in/disclaimer"/>
   </url>
   <url>
+    <loc>https://findmedi.in/facility/dental_clinic/smile-dental-studio</loc>
+    <changefreq>weekly</changefreq>
+    <xhtml:link rel="alternate" hreflang="en" href="https://findmedi.in/facility/dental_clinic/smile-dental-studio"/>
+    <xhtml:link rel="alternate" hreflang="hi" href="https://findmedi.in/facility/dental_clinic/smile-dental-studio?lang=hi"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://findmedi.in/facility/dental_clinic/smile-dental-studio"/>
+  </url>
+  <url>
+    <loc>https://findmedi.in/facility/doctor/dr-priya-sharma</loc>
+    <changefreq>weekly</changefreq>
+    <xhtml:link rel="alternate" hreflang="en" href="https://findmedi.in/facility/doctor/dr-priya-sharma"/>
+    <xhtml:link rel="alternate" hreflang="hi" href="https://findmedi.in/facility/doctor/dr-priya-sharma?lang=hi"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://findmedi.in/facility/doctor/dr-priya-sharma"/>
+  </url>
+  <url>
     <loc>https://findmedi.in/hospital-doctors/6aee46db6c17c8754c60242a</loc>
     <changefreq>weekly</changefreq>
     <xhtml:link rel="alternate" hreflang="en" href="https://findmedi.in/hospital-doctors/6aee46db6c17c8754c60242a"/>

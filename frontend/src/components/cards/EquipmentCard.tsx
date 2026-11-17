@@ -27,6 +27,8 @@ export default function EquipmentCard({ item, onPrimary, onSecondary }: any) {
       secondaryLabel="Details"
       onPrimary={onPrimary || (() => navigate(`/equipment/${item._id || item.id}`))}
       onSecondary={onSecondary}
+      sponsored={item.isSponsored}
+      overlayBadge={item.overlayBadge}
     />
   );
 }

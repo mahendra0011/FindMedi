@@ -189,6 +189,7 @@ app.get(
       const latestMood = latestMoodByUser.get(patient.id);
       const latestAssessment = latestAssessmentByUser.get(patient.id);
       const journalInfo = journalByUser.get(patient.id) || { count: 0, latest: null };
+      const latestJournal = journalInfo.latest ? normalizeJournal(journalInfo.latest) : null;
       const attendanceBase = patient.totalSessions - patient.cancelledSessions - patient.declinedSessions;
       const attendance = attendanceBase ? Math.round((patient.completedSessions / attendanceBase) * 100) : 0;
       // B6-8: no 12% floor, no default mood — null when there is no signal.
@@ -212,8 +213,8 @@ app.get(
         latestAssessmentLevel: latestAssessment?.level || "",
         latestAssessmentScore: latestAssessment?.score || null,
         sharedJournalCount: journalInfo.count,
-        latestJournalTitle: journalInfo.latest?.title || "",
-        latestJournalExcerpt: journalInfo.latest?.content ? String(journalInfo.latest.content).slice(0, 140) : "",
+        latestJournalTitle: latestJournal?.title || "",
+        latestJournalExcerpt: latestJournal?.content ? String(latestJournal.content).slice(0, 140) : "",
         progress,
         attendance,
         risk: latestAssessment?.level || ["low", "moderate", "low", "high"][index % 4],

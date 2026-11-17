@@ -25,6 +25,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import PhysicianSeoJsonLd from '@/components/PhysicianSeoJsonLd';
 import ReviewDialog from '@/components/ReviewDialog';
 import { getISTDateString } from '@/lib/dateUtils';
 
@@ -229,6 +230,18 @@ export default function ClinicDoctor() {
   const reviewCount = doctor.reviews_count || reviews.length;
   const avgRating = doctor.rating || 0;
 
+  const clinicName = (typeof getClinicName === 'function' ? getClinicName(doctor) : '') || doctor.clinicProfile?.clinic_name || doctor.hospitalId?.name || '';
+  const seoJsonLd: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Physician',
+    name: doctor.name,
+    description: doctor.specialization ? `${doctor.specialization} specialist on FindMedi.` : 'Verified doctor on FindMedi.',
+    ...(doctor.specialization ? { medicalSpecialty: doctor.specialization } : {}),
+    ...(clinicName ? { worksFor: { '@type': 'MedicalClinic', name: clinicName } } : {}),
+    ...(doctor.qualification ? { hasCredential: { '@type': 'EducationalOccupationalCredential', credentialCategory: doctor.qualification } } : {}),
+    ...(avgRating > 0 && reviewCount >= 3 ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: Math.round(avgRating * 10) / 10, reviewCount } } : {}),
+  };
+
   const scheduleRows: ScheduleRow[] = DAY_ORDER.map(day => {
     const active = !!doctor.weekly_schedule?.[day];
     const isToday = new Date().toLocaleDateString('en', { weekday: 'long' }).toLowerCase() === day;
@@ -244,6 +257,7 @@ export default function ClinicDoctor() {
 
   return (
     <motion.div initial="hidden" animate="show" className="bg-background min-h-screen">
+      <PhysicianSeoJsonLd title={`${doctor.name}${doctor.specialization ? ` — ${doctor.specialization}` : ''} | FindMedi`} jsonLd={seoJsonLd} />
 
       {/* ═══════════ BREADCRUMB ═══════════ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-0">

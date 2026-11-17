@@ -454,7 +454,7 @@ export default function BookingModal({
               description: `Consultation with ${currentDoc.name} (${occ.date})`,
               provider: facility?.name || currentDoc.name,
               lineItems: [{ name: `Consultation Fee ${occ.date}`, price: fees, qty: 1 }],
-            });
+            }, { headers: { 'Idempotency-Key': `appt-series-${occ._id}` } });
             paidCount += 1;
           }
         } catch (payErr: any) {
@@ -568,7 +568,7 @@ export default function BookingModal({
           price: fees,
           qty: 1
         }],
-      });
+      }, { headers: { 'Idempotency-Key': globalThis.crypto?.randomUUID?.() || `${currentDoc._id}-${bookingDate}-${bookingTime}-${Date.now()}` } });
 
       if (!payResult?.success) {
         throw new Error(payResult?.message || 'Payment failed');

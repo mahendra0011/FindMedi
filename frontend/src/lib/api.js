@@ -419,6 +419,7 @@ export const api = {
   dashboardStats:     ()        => request('/dashboard/stats'),
 
   getUsers:           (p={})    => request('/users?' + new URLSearchParams(p)),
+  getPlatformUserCount: ()      => request('/users/count'),
   deleteUser:             (id)      => request(`/users/${id}`, { method:'DELETE' }),
   blockUser:              (id)      => request(`/users/${id}/block`, { method:'PUT' }),
   flagUser:               (id,b)    => request(`/users/${id}/flag`, { method:'PUT', body: JSON.stringify(b) }),
@@ -780,6 +781,7 @@ export const api = {
   getLicenseStats:        ()        => request('/licenses/stats'),
 
   // File 23 §4.2 break-glass queue (step-up enforced server-side)
+  getMyBreakGlass:        ()        => request('/admin/break-glass/mine/active'),
   getBreakGlass:          (p={})    => request('/admin/break-glass?' + new URLSearchParams(p)),
   requestBreakGlass:      (body)    => request('/admin/break-glass', { method:'POST', body: JSON.stringify(body) }),
   decideBreakGlass:       (id,b)    => request(`/admin/break-glass/${id}/decision`, { method:'POST', body: JSON.stringify(b) }),

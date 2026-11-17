@@ -5,6 +5,7 @@ import Service from '../models/Service.js';
 import Doctor from '../models/Doctor.js';
 import Appointment from '../models/Appointment.js';
 import { PROVIDER_STATUS, SERVICE_MODES } from '../lib/providerTypes.js';
+import { buildPublicProviderDetail, buildProviderCard, rollupProviderServices } from '../lib/providerPublicDetail.js';
 import ProviderTypeConfig from '../models/ProviderTypeConfig.js';
 import { protect, requireRole } from '../middleware/auth.js';
 import { requireStepUp } from '../middleware/stepUpAuth.js';
@@ -21,11 +22,11 @@ const router = express.Router();
 // caller must not see. relayPhone, ownerUserId, probation.payoutHold,
 // verification.riskScore and commissionConfigId are deliberately absent —
 // an anonymous directory must not leak the routing number or the payout state.
-const CARD_FIELDS = 'slug kind type group tier name tagline media address.city address.area address.pincode stats verification.status verification.level trusted plan createdAt';
+const CARD_FIELDS = 'slug kind type group tier name tagline media address.city address.area address.pincode address.geo stats verification.status verification.level verification.verifiedAt trusted plan createdAt accreditations schemesAccepted languages amenities serviceArea timings';
 const DETAIL_FIELDS = [
   CARD_FIELDS,
-  'description systemOfMedicine ownership accreditations schemesAccepted languages amenities',
-  'address.line1 address.state address.geo serviceArea timings categoryCodes',
+  'description systemOfMedicine ownership amenities',
+  'address.line1 address.state serviceArea categoryCodes',
   'contact.publicPhone verification.verifiedAt verification.scope parentProviderId branches',
 ].join(' ');
 
@@ -87,9 +88,14 @@ router.get('/', async (req, res) => {
       Provider.countDocuments(filter),
     ]);
 
+    // Spec 02 §5 - the card contract: one extra rollup for the cheapest
+    // price and the delivery modes of the returned providers.
+    const rollups = await rollupProviderServices(providers.map((p) => p._id));
+    const cards = providers.map((provider) => buildProviderCard(provider, rollups.get(String(provider._id)) || {}));
+
     res.set('Cache-Control', 'public, max-age=60');
     res.removeHeader('Pragma');
-    res.json({ providers, total, page, pages: Math.ceil(total / limit) || 1, limit });
+    res.json({ providers: cards, total, page, pages: Math.ceil(total / limit) || 1, limit });
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
@@ -142,15 +148,25 @@ router.get('/admin/list', protect, requireRole(['superadmin', 'compliance_office
 // there is nothing to hide and nothing to enumerate.
 export const providerDetail = (kind) => async (req, res) => {
   try {
-    const provider = await Provider.findOne({
-      slug: String(req.params.slug).toLowerCase(),
+    // A public listing is addressable by its slug (the canonical public URL)
+    // and by its id (the shape the directory links use), so both resolve.
+    const raw = String(req.params.slug || '').trim();
+    const slug = raw.toLowerCase();
+    const query = {
       status: 'live',
       ...(kind ? { kind } : {}),
-    }).select(DETAIL_FIELDS).lean();
+      ...(OBJECT_ID.test(raw) ? { _id: raw } : { slug }),
+    };
+    const provider = await Provider.findOne(query).select(DETAIL_FIELDS).lean();
     if (!provider) return res.status(404).json({ message: 'Provider not found' });
+    // Spec 03 §4 - the public detail DTO carries the live services, the
+    // practitioners behind them, the published reviews and the neighbouring
+    // listings on top of the provider's own fields. Every one of them is
+    // projected down to public fields in the builder.
+    const detail = await buildPublicProviderDetail(provider);
     res.set('Cache-Control', 'public, max-age=120');
     res.removeHeader('Pragma');
-    return res.json(provider);
+    return res.json(detail);
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }

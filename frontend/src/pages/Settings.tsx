@@ -853,6 +853,12 @@ export default function Settings() {
                   {tr('settings.downloadData')}
                 </Button>
               </div>
+              <div className="mt-6 rounded-xl border p-4 text-sm">
+                <p className="font-semibold text-foreground">Grievance Officer &amp; Data Protection Officer</p>
+                <p className="text-muted-foreground mt-1">FindMedi maintains a dedicated Grievance &amp; DPO office for DPDP Act 2023 redressal, consent withdrawals, data-access/erasure requests, and policy complaints. Contact details and SLA timelines are published at:</p>
+                <a href="/grievance" className="inline-flex items-center gap-1.5 text-primary underline underline-offset-4 mt-2 font-semibold">Grievance Redressal &amp; DPO Office →</a>
+                <p className="text-muted-foreground mt-2 text-xs">Typical acknowledgement within 48h; resolution within 15 days as per IT Rules 2021 and DPDP Act 2023.</p>
+              </div>
             </div>
           )}
         </div>

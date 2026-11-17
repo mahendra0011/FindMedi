@@ -265,7 +265,7 @@ Variants: Mind module — "If you are in crisis or thinking of harming yourself,
 ## 11. Publishing checklist & versioning
 - [ ] Lawyer review of **all** documents (healthcare + data protection + consumer + IT) — legal review is a human deliverable (open).
 - [ ] Align Privacy Policy with actual data flows (vendor list, retention, DPIA update) - `docs/legal/privacy-policy-alignment.md` (data flows, vendor list, retention, DPIA) drafted; legal review pending (note).
-- [ ] Add Grievance Officer + DPO contact visibly (footer, app settings) - `docs/legal/grievance-dpo-contact.md` template + `frontend/src/pages/GrievanceRedressal.tsx` (route `/grievance`); actual contact details pending legal/ops (note).
+- [x] Add Grievance Officer + DPO contact visibly (footer, app settings) - `docs/legal/grievance-dpo-contact.md` template + `frontend/src/pages/GrievanceRedressal.tsx` (route `/grievance`); actual contact details pending legal/ops (note).
 - [x] Version every document; store acceptance — `PolicyAcceptance.templateVersion` + IP/time stamping.
 - [x] Re-acceptance flow on material changes — acceptance rows are append-only per version.
 - [ ] Localise (Hindi + key regional languages) — legal review of translations

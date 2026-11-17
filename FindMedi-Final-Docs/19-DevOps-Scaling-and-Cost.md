@@ -178,9 +178,9 @@ Start: shared on-call (2–3 engineers), business-hours + critical alerts after-
 - [x] Backend/frontend/worker Dockerfiles (non-root, read-only) + Trivy ? non-root node/nginx users, read-only-compatible layout, healthchecks; Trivy in ci.yml.
 - [x] Boot-time config validation (fail on missing/weak secrets) ? envValidator.js.
 - [x] Cloudflare + origin lock + cache rules; nginx real-IP/CSP/timeouts ? infra/nginx/* incl admin-allowlist.conf.
-- [ ] Staging parity + synthetic data + sandbox vendors ? not evidenced in repo (environment/human, open).
-- [x] Canary + feature-flag rollout + rollback runbook ? featureFlags.js + runbooks under docs/ops/runbooks.
-- [ ] SLOs, alerts ? Prometheus/Grafana configs + observability/alerts.yml; status page + on-call rotation are ops deliverables (note).
+- [ ] Staging parity + synthetic data + sandbox vendors ? staging parity gates documented in `docs/ops/staging-environments.md` (parity rules, 0.5d runbook for DevOps) and validated by `scripts/staging-parity-check.mjs` (checks service set, host-port reset, prod-guard presence, digest-pinned images); still requires an actual staging environment + sandbox vendor credentials (environment/human, open).
+- [x] Canary + feature-flag rollout + rollback runbook ? `featureFlags.js` (backend/src/services) + rollback/cutover playbook in `docs/go-live/cutover.md`; operational runbook in `docs/ops/observability-runbook.md`.
+- [x] SLOs, alerts ? `docs/ops/slos.md` (8 SLIs, error budgets, freeze policy) + `infra/observability/slos.yml` (Prometheus recording rules + burn-rate alerts) + `infra/observability/alerts.yml` + `docs/ops/monthly-metrics-review.md` (first SLO review scheduled); status page + on-call rotation are ops deliverables (note).
 - [x] Immutable backups + quarterly restore drill with evidence ? infra/backup/backup-all.sh, restore-drill.sh, verify-secret-rotation.sh (quarterly cadence is ops).
 - [x] Cost tags, budgets, per-1k-bookings dashboard, messaging/video caps - `docs/ops/cost-tags.md` (required tags + budgets + 80/100% alerts).
 - [x] Secrets manager + rotation calendar + access audit - `docs/ops/secrets-manager.md` + `infra/backup/verify-secret-rotation.sh`.

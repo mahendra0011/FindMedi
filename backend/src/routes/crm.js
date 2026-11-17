@@ -789,18 +789,25 @@ router.get('/team', authorize('crm:read'), async (req, res) => {
       .lean();
 
     return res.json({
-      members: rows.map((m) => ({
-        id: String(m._id),
-        user: m.userId,
-        roleTemplate: m.roleTemplate,
-        manager: m.managerId,
-        city: m.city,
-        territory: m.territoryId,
-        joinDate: m.joinDate,
-        status: m.status,
-        trainingRecords: m.trainingRecords || [],
-        onboardingChecklist: m.onboardingChecklist || [],
-      })),
+      members: rows.map((m) => {
+        const isManager = isPlatformAdmin(req)
+          || (m.managerId && String(m.managerId._id || m.managerId) === String(actorId(req)));
+        return {
+          id: String(m._id),
+          user: m.userId,
+          roleTemplate: m.roleTemplate,
+          manager: m.managerId,
+          city: m.city,
+          territory: m.territoryId,
+          joinDate: m.joinDate,
+          status: m.status,
+          trainingRecords: m.trainingRecords || [],
+          onboardingChecklist: m.onboardingChecklist || [],
+          goals: m.goals || [],
+          // Coaching material: manager-of-record / platform admins only.
+          ...(isManager ? { oneToOnes: m.oneToOnes || [], scorecards: m.scorecards || [] } : {}),
+        };
+      }),
     });
   } catch (err) {
     logger.error(`CRM team error: ${err.message}`);
@@ -836,6 +843,51 @@ router.post('/team', authorize('crm:write'), async (req, res) => {
     return res.status(201).json({ id: String(member._id), roleTemplate: member.roleTemplate });
   } catch (err) {
     logger.error(`CRM create team member error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// authz: role (crm:write) — append a 1:1 note (manager-of-record visibility).
+router.post('/team/:id/one-to-ones', authorize('crm:write'), requireObjectId, async (req, res) => {
+  try {
+    const { date, note, followUp } = req.body || {};
+    if (!date || Number.isNaN(new Date(date).getTime())) return res.status(400).json({ message: 'Valid date required' });
+    const text = String(note || '').trim();
+    if (text.length < 5) return res.status(400).json({ message: 'note must be at least 5 characters' });
+    const member = await TeamMember.findById(req.params.id);
+    if (!member) return res.status(404).json({ message: 'Team member not found' });
+    member.oneToOnes.push({ date: new Date(date), by: actorId(req), note: text.slice(0, 4000), followUp: String(followUp || '').slice(0, 500) });
+    await member.save();
+    await auditLog('crm_team_one_to_one', actorId(req), { teamMemberId: member._id, ip: req.ip });
+    return res.status(201).json({ id: String(member._id), oneToOnes: member.oneToOnes.length });
+  } catch (err) {
+    logger.error(`CRM 1:1 error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// authz: role (crm:write) — upsert a quarterly scorecard snapshot for the period.
+router.post('/team/:id/scorecards', authorize('crm:write'), requireObjectId, async (req, res) => {
+  try {
+    const { period, rating, wins, focus } = req.body || {};
+    const p = String(period || '').trim().slice(0, 20);
+    if (!p) return res.status(400).json({ message: 'period required (e.g. 2026-Q3)' });
+    const r = Number(rating);
+    if (!Number.isFinite(r) || r < 1 || r > 5) return res.status(400).json({ message: 'rating must be 1–5' });
+    const member = await TeamMember.findById(req.params.id);
+    if (!member) return res.status(404).json({ message: 'Team member not found' });
+    const entry = {
+      period: p, rating: r,
+      wins: String(wins || '').slice(0, 1000), focus: String(focus || '').slice(0, 1000),
+      by: actorId(req), at: new Date(),
+    };
+    const idx = (member.scorecards || []).findIndex((s) => s.period === p);
+    if (idx >= 0) member.scorecards[idx] = entry; else member.scorecards.push(entry);
+    await member.save();
+    await auditLog('crm_team_scorecard', actorId(req), { teamMemberId: member._id, period: p, rating: r, ip: req.ip });
+    return res.status(201).json({ id: String(member._id), period: p, rating: r });
+  } catch (err) {
+    logger.error(`CRM scorecard error: ${err.message}`);
     return res.status(500).json({ message: err.message });
   }
 });
@@ -1456,15 +1508,24 @@ router.get('/reports/:key', authorize('crm:read'), async (req, res) => {
   }
 });
 
-// authz: role (crm:read) — CSV download for the same aggregates.
+// authz: role (crm:read) — CSV download for the same aggregates. Row-capped and
+// audited: these are aggregate exports, but a bulk dump still carries commercial
+// intelligence, so it is counted like the other sensitive exports.
+const CRM_EXPORT_ROW_CAP = 10000;
 router.get('/reports/:key/export', authorize('crm:read'), async (req, res) => {
   try {
     const build = REPORT_BUILDERS[req.params.key];
     if (!build) return res.status(404).json({ message: 'Unknown report' });
     const out = await build();
-    const csv = toCsv(out.columns, out.rows);
+    const rows = (out.rows || []).slice(0, CRM_EXPORT_ROW_CAP);
+    const truncated = (out.rows || []).length > rows.length;
+    const csv = toCsv(out.columns, rows);
+    await auditLog('crm_report_exported', actorId(req), {
+      reportKey: req.params.key, rowCount: rows.length, truncated, ip: req.ip,
+    });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="crm-${req.params.key}-${new Date().toISOString().slice(0, 10)}.csv"`);
+    if (truncated) res.setHeader('X-Export-Row-Cap', String(CRM_EXPORT_ROW_CAP));
     return res.send(csv);
   } catch (err) {
     logger.error(`CRM report export error: ${err.message}`);

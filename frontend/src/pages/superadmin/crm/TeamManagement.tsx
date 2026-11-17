@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Users, Plus, RefreshCw, ShieldCheck, CheckSquare, Award, Clock,
-  MapPin, CheckCircle2, UserCheck, AlertCircle
+  MapPin, CheckCircle2, UserCheck, AlertCircle, BookOpen, ClipboardList, Save,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,9 @@ interface TeamMember {
   joinDate?: string;
   onboardingChecklist?: Array<{ label: string; done: boolean }>;
   trainingRecords?: Array<{ module: string; completedAt?: string }>;
+  goals?: string[];
+  oneToOnes?: Array<{ date: string; note: string; followUp?: string; by?: string }>;
+  scorecards?: Array<{ period: string; rating: number; wins?: string; focus?: string; by?: string }>;
 }
 
 export default function TeamManagement() {
@@ -35,6 +38,11 @@ export default function TeamManagement() {
     roleTemplate: 'field_exec',
     city: 'Bhopal',
   });
+  const [coachingId, setCoachingId] = useState<string | null>(null);
+  const coachingMember = members.find((m) => m.id === coachingId) ?? null;
+  const [scorecard, setScorecard] = useState({ period: '2026-Q3', rating: '3', wins: '', focus: '' });
+  const [oneToOne, setOneToOne] = useState({ date: new Date().toISOString().slice(0, 10), note: '', followUp: '' });
+  const [saving, setSaving] = useState(false);
 
   const fetchTeam = async () => {
     setLoading(true);
@@ -88,6 +96,53 @@ export default function TeamManagement() {
       fetchTeam();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to update checklist');
+    }
+  };
+
+  const saveScorecard = async () => {
+    if (!coachingMember) return;
+    if (!/^\d{4}-Q[1-4]$/.test(scorecard.period.trim())) {
+      toast.error('Period must look like 2026-Q3');
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiClient.post(`/crm/team/${coachingMember.id}/scorecards`, {
+        period: scorecard.period.trim(),
+        rating: Number(scorecard.rating),
+        wins: scorecard.wins,
+        focus: scorecard.focus,
+      });
+      toast.success('Scorecard saved');
+      setScorecard({ ...scorecard, wins: '', focus: '' });
+      fetchTeam();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to save scorecard');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveOneToOne = async () => {
+    if (!coachingMember) return;
+    if (oneToOne.note.trim().length < 5) {
+      toast.error('Note must be at least 5 characters');
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiClient.post(`/crm/team/${coachingMember.id}/one-to-ones`, {
+        date: oneToOne.date,
+        note: oneToOne.note,
+        followUp: oneToOne.followUp,
+      });
+      toast.success('1:1 note saved');
+      setOneToOne({ date: new Date().toISOString().slice(0, 10), note: '', followUp: '' });
+      fetchTeam();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to save 1:1 note');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -179,6 +234,18 @@ export default function TeamManagement() {
                     ))}
                   </div>
                 </div>
+                {/* Scorecards & 1:1s (manager-of-record only) */}
+                {member.scorecards !== undefined && (
+                  <div className="flex items-center justify-between border-t border-border/50 pt-3">
+                    <span className="text-[11px] text-muted-foreground">
+                      {member.scorecards?.length ?? 0} scorecard{(member.scorecards?.length ?? 0) === 1 ? '' : 's'} · {member.oneToOnes?.length ?? 0} 1:1{(member.oneToOnes?.length ?? 0) === 1 ? '' : 's'} · {member.goals?.length ?? 0} goal{(member.goals?.length ?? 0) === 1 ? '' : 's'}
+                    </span>
+                    <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setCoachingId(member.id)}>
+                      <BookOpen className="h-3.5 w-3.5" />
+                      Scorecards & 1:1s
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
@@ -189,6 +256,87 @@ export default function TeamManagement() {
           </div>
         )}
       </div>
+
+      {/* Coaching Dialog: scorecards + 1:1 notes (manager-of-record) */}
+      <Dialog open={!!coachingId} onOpenChange={(open) => { if (!open) setCoachingId(null); }}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{coachingMember?.user?.name || 'Member'} — Scorecards & 1:1s</DialogTitle>
+            <DialogDescription>Manager-of-record coaching material. Visible only to this member's manager and platform admins.</DialogDescription>
+          </DialogHeader>
+
+          {/* Scorecards */}
+          <div className="space-y-3 border-b border-border/60 pb-4">
+            <h3 className="text-sm font-semibold flex items-center gap-2"><Award className="h-4 w-4 text-primary" /> Quarterly scorecard</h3>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs font-semibold">Period</Label>
+                <Input value={scorecard.period} onChange={(e) => setScorecard({ ...scorecard, period: e.target.value })} placeholder="2026-Q3" className="mt-1 text-xs" />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold">Rating (1–5)</Label>
+                <Select value={scorecard.rating} onValueChange={(v) => setScorecard({ ...scorecard, rating: v })}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['1', '2', '3', '4', '5'].map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button size="sm" className="w-full gap-1.5 h-9" onClick={saveScorecard} disabled={saving}>
+                  <Save className="h-3.5 w-3.5" /> Save
+                </Button>
+              </div>
+            </div>
+            <Input placeholder="Wins this period" value={scorecard.wins} onChange={(e) => setScorecard({ ...scorecard, wins: e.target.value })} className="text-xs" />
+            <Input placeholder="Focus for next period" value={scorecard.focus} onChange={(e) => setScorecard({ ...scorecard, focus: e.target.value })} className="text-xs" />
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {(coachingMember?.scorecards || []).map((s, i) => (
+                <div key={i} className="text-xs border rounded p-2 flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-semibold">{s.period}</span> · rating {s.rating}/5
+                    {s.wins && <p className="text-muted-foreground pt-0.5">Wins: {s.wins}</p>}
+                    {s.focus && <p className="text-muted-foreground pt-0.5">Focus: {s.focus}</p>}
+                  </div>
+                </div>
+              ))}
+              {(coachingMember?.scorecards || []).length === 0 && (
+                <p className="text-xs text-muted-foreground">No scorecards yet — save the first one above.</p>
+              )}
+            </div>
+          </div>
+
+          {/* 1:1 notes */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2"><ClipboardList className="h-4 w-4 text-primary" /> 1:1 notes</h3>
+            <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-end">
+              <div>
+                <Label className="text-xs font-semibold">Date</Label>
+                <Input type="date" value={oneToOne.date} onChange={(e) => setOneToOne({ ...oneToOne, date: e.target.value })} className="mt-1 text-xs" />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold">Follow-up (optional)</Label>
+                <Input value={oneToOne.followUp} onChange={(e) => setOneToOne({ ...oneToOne, followUp: e.target.value })} placeholder="e.g. revisit payout SLA" className="mt-1 text-xs" />
+              </div>
+              <Button size="sm" className="gap-1.5 h-9" onClick={saveOneToOne} disabled={saving}>
+                <Save className="h-3.5 w-3.5" /> Add
+              </Button>
+            </div>
+            <Input value={oneToOne.note} onChange={(e) => setOneToOne({ ...oneToOne, note: e.target.value })} placeholder="Note from this 1:1…" className="text-xs" />
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {(coachingMember?.oneToOnes || []).map((n, i) => (
+                <div key={i} className="text-xs border rounded p-2">
+                  <span className="font-semibold">{new Date(n.date).toLocaleDateString()}</span> — {n.note}
+                  {n.followUp && <p className="text-muted-foreground pt-0.5">Follow-up: {n.followUp}</p>}
+                </div>
+              ))}
+              {(coachingMember?.oneToOnes || []).length === 0 && (
+                <p className="text-xs text-muted-foreground">No 1:1 notes yet — add the first one above.</p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Member Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>

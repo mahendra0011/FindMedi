@@ -204,6 +204,28 @@ router.post('/:id/revoke', authorize('breakglass:approve'), requireObjectId, asy
   }
 });
 
+// authz: session — the caller's OWN approved, unexpired, unrevoked grants.
+// Powers the BREAK-GLASS ACTIVE banner; read-only, never returns subject clinical data.
+router.get('/mine/active', async (req, res) => {
+  try {
+    const now = new Date();
+    const rows = await BreakGlassGrant.find({
+      requesterId: actorId(req), status: 'approved', expiresAt: { $gt: now }, revokedAt: null,
+    }).sort({ expiresAt: 1 }).limit(10).lean();
+    return res.json({
+      active: rows.length > 0,
+      grants: rows.map((g) => ({
+        id: String(g._id), subjectType: g.subject?.type, reasonCode: g.reasonCode,
+        approvedAt: g.approvedAt, expiresAt: g.expiresAt,
+        remainingSeconds: Math.max(0, Math.floor((new Date(g.expiresAt).getTime() - now.getTime()) / 1000)),
+      })),
+    });
+  } catch (err) {
+    logger.error(`Break-glass mine/active error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 // DPO post-access review. Returns only metadata and route/object references;
 // it never dereferences the protected clinical object.
 router.get('/review/queue', authorize('breakglass:read'), async (req, res) => {

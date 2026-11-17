@@ -7,6 +7,8 @@
 
 ## 1. Abhi aapke code me kya hai (verified)
 
+> **Status note (2026-11-15):** This section is the **pre-IAM-build snapshot** — the static-RBAC baseline that motivated the design. The counts are no longer accurate (`~180` distinct permission strings across `authorize()` call-sites; 30+ canonical roles; `superadmin: ['*']` is gone; IAM runtime exists with `lib/iamEvaluator.js`, `iamCatalog.js`, `iamTemplates.js`, `IamRole/IamPolicy/...` models). Read §1 as history; §5 onwards is the build that followed.
+
 | Cheez | Current state |
 |---|---|
 | Permission model | **Static RBAC:** `config/permissions.js` → `ROLE_PERMISSIONS` (role → permission strings), `roleHasPermission()`, role aliases/families (`counselor`→`counsellor`, `doctor`≈`clinic_doctor`) |
@@ -16,7 +18,7 @@
 | Staff creation | `routes/staff.js` — `staff:manage` + `adminOnly`; role change par `requireStepUp('users:role-change')` ✅ |
 | Patient self-service | `:own` suffix (`records:read:own`) ✅ achha pattern |
 | Object-level | `authorizeObject`, tenant scope ✅ (404-on-mismatch), authz coverage scripts ✅ (`check-authz-coverage.mjs`) |
-| **Custom roles / policies** | **Nahi hain** (grep: koi `customRole/policyDocument/permissionSet` nahi) |
+| **Custom roles / policies** | **Nahi the** at audit time (koi `customRole/policyDocument/permissionSet` nahi) | **Ab hain**: `IamRole`, `IamPolicy` (+ version), `IamGroup`, `IamAssignment`, `ResourceScope`, `AccessRequest`, `AccessReview` — see §5 |
 | Resource scope (department/ward/location) | **Nahi** — role dene ka matlab poore tenant me access |
 | Time/IP/MFA conditions | Nahi (sirf step-up for kuch actions) |
 | Temporary access / approvals / access review | Nahi |
@@ -295,7 +297,7 @@ Try: change scope · request access · view effective permissions
 | **Over-permissive custom roles** | Managed templates; analyzer warnings; "*" action/resource blocked for tenants; max statements/size; risky combos flagged (SoD) |
 | **Policy injection / evaluator bugs** | Strict JSON-schema; allowlisted conditions; **no eval/regex from user input**; catalog-validated actions; property-based tests; fail-closed |
 | **Stale/leaked permissions via cache** | Permission cache keyed by `(user, policyVersion)`; version bump invalidates; `tokenVersion++` on role/policy change ✅ (existing pattern) → sessions refresh; short TTL; sockets disconnect on revoke |
-| **JWT carries power** | JWT me sirf `userId, tenantId, roleIds, tv`; **permissions server-side resolve** (token se nahi) |
+| **JWT carries power** | JWT me sirf `{id, role, tv, jti, typ}`; tenantId/permissions **server-side resolve** (token se nahi) — so a stolen token after revocation (tokenVersion bump) is useless |
 | **Account takeover of admins** | Passkeys/TOTP mandatory for IAM-capable users (`TWO_FACTOR_REQUIRED_ROLES`), step-up for IAM changes, new-device alerts, IP allowlist optional |
 | **Insider snooping** | Reason-for-access, care-team, anomaly alerts (mass views, off-hours, relative records), patient-visible logs, periodic access reviews |
 | **Tampering with logs** | Immutable/append-only audit (hash-chain or external sink); IAM changes + access events; tenant admins can't delete |
@@ -371,12 +373,12 @@ Indexes: `{tenantId, principalId}`, `{expiresAt}` (TTL job), `{tenantId, status}
 - [x] Evaluator (`can()`), fail-closed, cached by policyVersion, tokenVersion bump — `lib/iamEvaluator.js` + `iamEvaluator.spec.js`.
 - [x] Query-level scope injection for list/search; care-team + department/ward scopes — object/care-team scoping via `authorize`/`permissions`.
 - [x] Platform guardrails (SCP-like); T3 tenants cannot get clinical actions — `guardrailsAllow`/`isClinicalAction` in `iamEvaluator.js`.
-- [x] Boundary + anti-escalation rules — policy boundaries intersected in evaluator; owner-count floor (≥2 / last-owner) not enforced in code (open sub-item).
+- [x] Boundary + anti-escalation rules - policy boundaries intersected in evaluator; tenant last-owner (>=1 hospital_admin) enforced in code (`staff.js` blocks demote/delete of the final admin + tokenVersion bump); the >=2 owner floor is now enforced (staff.js isBelowOwnerFloor blocks demote/delete that would drop the tenant below 2 active hospital_admins; fresh single-owner tenants are grandfathered by last-owner protection); the IAM-assignment path remains an open sub-item.
 - [x] Builder UI + JSON editor + validation + versioning + simulator + analyzer - `frontend/src/pages/superadmin/IamBuilderPage.tsx` (list/create via JSON with client-side schema validation, simulate, analyzer report, version-diff view) + `GET /api/iam/analyze`.
 - [x] Conditions: MFA, IP/device, shift/time, expiry; temporary access + approvals + reviews — principal conditions + `/iam/requests` + `/iam/reviews`.
-- [x] Sensitivity labels + restricted-category rules + reason-for-access + tenant break-glass — `IamAccessLog`, `reasonForAccess`, `BreakGlassGrant`.
+- [x] Sensitivity labels + restricted-category rules + reason-for-access + tenant break-glass - `IamAccessLog`, `restrictedReasonCheck` (records.js) + `reason_required` condition (iamEvaluator.js), `BreakGlassGrant`.
 - [x] SoD rules + four-eyes for high-risk actions — SoD checks in `iamCatalog.js`/`routes/iam.js` + two-person approval.
 - [x] Patient-visible access log + anomaly alerts — `/api/access-log` + review sweep/alert queues (mass-view/off-hours alerting is ops-config).
 - [x] Immutable IAM/access audit; API keys hashed, scoped, expiring, IP-bound — hash-chain `AuditLog`, `ApiKey` (hash, prefix, ipBinding, expiresAt).
-- [x] Tests: authz matrix (`authMatrix.spec.js`), tenant isolation (`tenantIsolationNew.spec.js`), escalation (`approvalEscalation.spec.js`); property-based evaluator tests not present (open sub-item).
+- [x] Tests: authz matrix (`authMatrix.spec.js`), tenant isolation (`tenantIsolationNew.spec.js`), escalation (`approvalEscalation.spec.js`); property-based evaluator tests present (`test/unit/iamProperty.spec.js`, fast-check: guardrailsAllow / matchAction / matchResource).
 - [x] Docs: admin guide + SECURITY.md/DPIA/Privacy Policy — `docs/iam-admin-guide.md`, `SECURITY.md`, `docs/privacy/DPIA.md`.

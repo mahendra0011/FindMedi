@@ -14,6 +14,7 @@ import { bookingLimiter } from '../middleware/rateLimit.js';
 import { idempotencyGuard } from '../middleware/idempotency.js';
 import { auditLog } from '../middleware/audit.js';
 import { verifiedPaymentFor } from '../services/paymentVerification.js';
+import { emitAnalyticsEvent } from '../services/analyticsEmitter.js';
 import { MEMBERSHIP_STATUS, MEMBERSHIP_TRANSITIONS } from '../lib/flowStates.js';
 
 const router = express.Router();
@@ -157,6 +158,16 @@ router.post('/', protect, bookingLimiter, idempotencyGuard({ prefix: 'membership
         paymentId: payment?._id ? String(payment._id) : null,
         ip: req.ip,
         userAgent: req.get('user-agent'),
+      });
+      // Document 17 section 4.6: server-side membership "started" event.
+      void emitAnalyticsEvent({
+        name: 'membership_started',
+        props: {
+          plan_type: plan.planType || 'membership',
+          term_months: plan.duration?.unit === 'month' ? Number(plan.duration?.value) || 1 : 1,
+        },
+        userId: String(actorId(req)),
+        platform: 'server',
       });
       return res.status(201).json({ membership });
     } catch (err) {

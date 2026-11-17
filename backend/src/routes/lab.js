@@ -319,8 +319,7 @@ router.get('/orders', protect, denyPlatformClinicalAccess, authorize('lab:read',
     // "belongs to no tenant" clause. Staff/tenant accounts still go through
     // the fail-closed tenant predicate.
     if (req.user.role !== 'patient') {
-      if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
-      if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
+    if (req.user.role !== 'superadmin') { const _scope = req.user.hospitalId || req.user.facilityId; if (!_scope) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = _scope; if (req.user.facilityId || req.user.hospitalId) filter.facilityId = req.user.facilityId || req.user.hospitalId; }
 
       // PHARM-B-05: fail CLOSED on the tenant predicate. The two guards above are
       // conditional on the CALLER having a facility, so a tenant-less lab account
@@ -802,7 +801,7 @@ router.get('/qc/chart', protect, denyPlatformClinicalAccess, authorize('lab:read
     const { analyzer, testName } = req.query;
     if (!testName) return res.status(400).json({ message: 'testName required' });
     const filter = { testName };
-    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
+    if (req.user.role !== 'superadmin') { const _scope = req.user.hospitalId || req.user.facilityId; if (!_scope) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = _scope; }
     if (analyzer) filter.analyzer = analyzer;
     const rows = await QcRun.find(filter).sort({ at: -1 }).limit(30).lean();
     const asc = [...rows].reverse();
@@ -1837,7 +1836,7 @@ router.get('/report-deliveries', protect, denyPlatformClinicalAccess, async (req
   try {
     const { status, limit = 50 } = req.query;
     const filter = { serviceType: 'lab_report' };
-    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
+    if (req.user.role !== 'superadmin') { const _scope = req.user.hospitalId || req.user.facilityId; if (!_scope) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = _scope; }
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') {
       filter.facilityId = req.user.facilityId || req.user.hospitalId;
     }
@@ -1854,7 +1853,7 @@ router.get('/report-deliveries', protect, denyPlatformClinicalAccess, async (req
 router.get('/equipment', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const filter = {};
-    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
+    if (req.user.role !== 'superadmin') { const _scope = req.user.hospitalId || req.user.facilityId; if (!_scope) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = _scope; }
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     const equipment = await Equipment.find(filter).sort({ name: 1 });
     res.json({ equipment });
@@ -1916,7 +1915,7 @@ router.get('/packages/public', async (req, res) => {
 router.get('/packages', protect, denyPlatformClinicalAccess, async (req, res) => {
   try {
     const filter = {};
-    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }
+    if (req.user.role !== 'superadmin') { const _scope = req.user.hospitalId || req.user.facilityId; if (!_scope) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = _scope; }
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     const packages = await HealthPackage.find(filter).sort({ createdAt: -1 });
     res.json({ packages });

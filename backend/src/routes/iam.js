@@ -20,11 +20,11 @@ import { ACTION_CATALOG, SENSITIVITY_CLASSES } from '../lib/iamCatalog.js';
 import logger from '../config/logger.js';
 
 // File 25: tenant Access Control Center API. Gated by staff:manage (existing
-// tenant-admin perm) — no matrix change needed. Server-side enforcement only;
+// tenant-admin perm) â€” no matrix change needed. Server-side enforcement only;
 // UI hiding is never the gate. Admin-critical ops need step-up + approver.
 
 const router = express.Router();
-router.use(protect, authorize('staff:manage'));
+router.use(protect, authorize('staff:manage', 'platform:manage'));
 
 const actorId = (req) => req.user._id ?? req.user.id;
 const OBJECT_ID = /^[0-9a-f]{24}$/i;
@@ -33,6 +33,7 @@ const requireObjectId = (req, res, next) => (
 );
 const tenantOf = (req) => req.user.hospitalId || req.user.facilityId || null;
 const requireTenant = (req, res, next) => {
+  if (req.user?.role === 'superadmin' || req.user?.role === 'super_admin') return next();
   if (!tenantOf(req)) return res.status(403).json({ message: 'Tenant scope required' });
   return next();
 };
@@ -41,7 +42,7 @@ const ADMIN_CRITICAL = ['iam:', 'audit:', 'export:'];
 const touchesCritical = (statements) => (statements || []).some((s) =>
   (s.actions || []).some((a) => ADMIN_CRITICAL.some((p) => String(a).startsWith(p))));
 
-// ─── Catalog & Principals ──────────────────────────────────────────────────
+// â”€â”€â”€ Catalog & Principals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/catalog', requireTenant, (req, res) => {
   return res.json({
     actions: ACTION_CATALOG,
@@ -64,7 +65,7 @@ router.get('/principals', requireTenant, async (req, res) => {
   }
 });
 
-// ─── Policies ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Policies â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/policies', requireTenant, async (req, res) => {
   try {
     const filter = { $or: [{ tenantId: null }, ...(tenantOf(req) ? [{ tenantId: tenantOf(req) }] : [])] };
@@ -100,7 +101,7 @@ router.post('/policies', requireTenant, validate(iamPolicySchema), async (req, r
   }
 });
 
-// ─── Roles ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Roles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/roles', requireTenant, async (req, res) => {
   try {
     const filter = req.user.role === 'superadmin' && !tenantOf(req) ? {} : { tenantId: tenantOf(req) };
@@ -121,7 +122,7 @@ router.post('/roles', requireTenant, requireStepUp('iam:role-change'), async (re
       const t = templateByKey(templateKey);
       if (!t) return res.status(400).json({ message: 'Unknown template' });
       const created = await IamPolicy.create({
-        tenantId: tenantOf(req), name: `${name} — ${t.name}`, statements: t.statements,
+        tenantId: tenantOf(req), name: `${name} â€” ${t.name}`, statements: t.statements,
         type: 'managed', createdBy: actorId(req),
       });
       policies = [String(created._id)];
@@ -140,7 +141,7 @@ router.post('/roles', requireTenant, requireStepUp('iam:role-change'), async (re
   }
 });
 
-// ─── Assignments (no self-grant; critical needs approver) ───────────────────
+// â”€â”€â”€ Assignments (no self-grant; critical needs approver) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/assignments', requireTenant, async (req, res) => {
   try {
     const filter = req.user.role === 'superadmin' && !tenantOf(req) ? {} : { tenantId: tenantOf(req) };
@@ -178,7 +179,7 @@ router.get('/assignments', requireTenant, async (req, res) => {
   }
 });
 
-router.post('/assignments', requireTenant, requireStepUp('iam:role-change'), async (req, res) => {
+router.post('/assignments', requireTenant, requireStepUp('admin:role-assign'), async (req, res) => {
   try {
     const { principalType, principalId, roleId, policyId, scope, conditions, expiresAt, approvedBy, reason } = req.body || {};
     if (!['user', 'group'].includes(principalType) || !OBJECT_ID.test(String(principalId || ''))) {
@@ -227,7 +228,7 @@ router.post('/assignments', requireTenant, requireStepUp('iam:role-change'), asy
   }
 });
 
-router.delete('/assignments/:id', requireTenant, requireStepUp('iam:role-change'), requireObjectId, async (req, res) => {
+router.delete('/assignments/:id', requireTenant, requireStepUp('admin:role-assign'), requireObjectId, async (req, res) => {
   try {
     const a = await IamAssignment.findById(req.params.id);
     if (!a) return res.status(404).json({ message: 'Not found' });
@@ -243,7 +244,7 @@ router.delete('/assignments/:id', requireTenant, requireStepUp('iam:role-change'
   }
 });
 
-// ─── Groups & scopes ────────────────────────────────────────────────────────
+// â”€â”€â”€ Groups & scopes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/groups', requireTenant, async (req, res) => {
   try {
     const rows = await IamGroup.find({ tenantId: tenantOf(req) }).limit(200).lean();
@@ -302,7 +303,7 @@ router.post('/scopes', requireTenant, async (req, res) => {
   }
 });
 
-// ─── Simulator: "Can X do Y on Z? why/why not" (§7.2) ───────────────────────
+// â”€â”€â”€ Simulator: "Can X do Y on Z? why/why not" (Â§7.2) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/simulate', requireTenant, async (req, res) => {
   try {
     const { userId, action, resource } = req.body || {};
@@ -324,7 +325,7 @@ router.post('/simulate', requireTenant, async (req, res) => {
   }
 });
 
-// ─── Access requests ────────────────────────────────────────────────────────
+// â”€â”€â”€ Access requests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/requests', requireTenant, async (req, res) => {
   try {
     const filter = req.user.role === 'superadmin' && !tenantOf(req) ? {} : { tenantId: tenantOf(req) };
@@ -429,7 +430,7 @@ router.post('/requests/:id/decision', requireTenant, requireStepUp('iam:role-cha
   }
 });
 
-// ─── Tenant emergency grants (§8) ──────────────────────────────────────────
+// â”€â”€â”€ Tenant emergency grants (Â§8) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/grants', requireTenant, requireStepUp('phi:breakglass'), async (req, res) => {
   try {
     const { subjectType, subjectId, actions, reasonCode, ticketId, reasonNote, minutes } = req.body || {};
@@ -457,7 +458,7 @@ router.post('/grants', requireTenant, requireStepUp('phi:breakglass'), async (re
   }
 });
 
-// ─── Tenant grant decisions (dual approval for restricted/legal) ───────────
+// â”€â”€â”€ Tenant grant decisions (dual approval for restricted/legal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/grants/:id/decision', requireTenant, requireStepUp('phi:breakglass'), requireObjectId, async (req, res) => {
   try {
     const g = await TenantGrant.findById(req.params.id);
@@ -512,7 +513,7 @@ router.post('/grants/:id/revoke', requireTenant, requireObjectId, async (req, re
   }
 });
 
-// ─── API keys (hashed at rest, show once) ───────────────────────────────────
+// â”€â”€â”€ API keys (hashed at rest, show once) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.post('/apikeys', requireTenant, requireStepUp('apikey:create'), async (req, res) => {
   try {
     const { name, policyId, ipBinding, expiresAt } = req.body || {};
@@ -548,7 +549,7 @@ router.post('/apikeys/:id/revoke', requireTenant, requireStepUp('apikey:create')
   }
 });
 
-// ─── Access reviews (§10) ──────────────────────────────────────────────────
+// â”€â”€â”€ Access reviews (Â§10) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/reviews', requireTenant, async (req, res) => {
   try {
     const filter = { tenantId: tenantOf(req) };
@@ -645,7 +646,7 @@ router.patch('/reviews/:id', requireTenant, requireStepUp('iam:role-change'), re
   }
 });
 
-// ─── Access Analyzer (§7.3) ────────────────────────────────────────────────
+// â”€â”€â”€ Access Analyzer (Â§7.3) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/analyzer', requireTenant, async (req, res) => {
   try {
     const tenantId = tenantOf(req);
@@ -811,7 +812,7 @@ router.get('/analyzer', requireTenant, async (req, res) => {
   }
 });
 
-// ─── Tenant emergency grants (§8) ──────────────────────────────────────────
+// â”€â”€â”€ Tenant emergency grants (Â§8) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/grants', requireTenant, async (req, res) => {
   try {
     const filter = req.user.role === 'superadmin' && !tenantOf(req) ? {} : { tenantId: tenantOf(req) };
@@ -828,7 +829,7 @@ router.get('/grants', requireTenant, async (req, res) => {
   }
 });
 
-// ─── Metrics (§12 observability) ───────────────────────────────────────────
+// â”€â”€â”€ Metrics (Â§12 observability) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/metrics', requireTenant, async (_req, res) => {
   try {
     const { getIamMetrics } = await import('../services/iamAccessLogService.js');
@@ -839,7 +840,7 @@ router.get('/metrics', requireTenant, async (_req, res) => {
   }
 });
 
-// ─── API keys (hashed at rest, show once) ───────────────────────────────────
+// â”€â”€â”€ API keys (hashed at rest, show once) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/apikeys', requireTenant, async (req, res) => {
   try {
     const filter = req.user.role === 'superadmin' && !tenantOf(req) ? {} : { tenantId: tenantOf(req) };

@@ -33,6 +33,18 @@ import HomeServiceCard from './HomeServiceCard';
 import AlliedTherapistCard from './AlliedTherapistCard';
 import SpecialtyCenterCard from './SpecialtyCenterCard';
 
+// Legacy entity cards (Spec 02 "Existing" list) - the seven entities that
+// already owned a card before the base-card system landed.
+import HospitalCard from '@/components/HospitalCard';
+import ClinicCard from '@/components/ClinicCard';
+import DiagnosticCenterCard from '@/components/DiagnosticCenterCard';
+import PharmacyCard from '@/components/PharmacyCard';
+import DoctorCard from '@/components/DoctorCard';
+import AssistantCard from '@/components/AssistantCard';
+import LawyerCard from '@/components/LawyerCard';
+
+import { variantForType, toCardItem, type ListingCardVariant } from './listingCardRegistry';
+
 export {
   ProviderCardBase,
   ProviderCardSkeleton,
@@ -70,6 +82,21 @@ export {
   SpecialtyCenterCard,
 };
 
+export { variantForType, toCardItem };
+export type { ListingCardVariant };
+
+export interface RenderEntityCardProps {
+  type: string;
+  item: any;
+  variant?: 'grid' | 'list' | 'compact' | 'map-pin';
+  onPrimary?: () => void;
+  onSecondary?: () => void;
+  onToggleSave?: () => void;
+  saved?: boolean;
+  compareChecked?: boolean;
+  onToggleCompare?: () => void;
+}
+
 /**
  * Universal Entity Card Dispatcher
  *
@@ -81,155 +108,121 @@ export function RenderEntityCard({
   variant = 'grid',
   onPrimary,
   onSecondary,
-}: {
-  type: string;
-  item: any;
-  variant?: 'grid' | 'list' | 'compact' | 'map-pin';
-  onPrimary?: () => void;
-  onSecondary?: () => void;
-}) {
+  onToggleSave,
+  saved,
+  compareChecked,
+  onToggleCompare,
+}: RenderEntityCardProps) {
   if (!item) return null;
 
-  switch (type) {
-    case 'dentist':
-    case 'dental_clinic':
-      return <DentistCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'eye_hospital':
-    case 'optical':
-    case 'eye':
-      return <EyeCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'ayush':
-    case 'ayush_clinic':
-    case 'ayush_practitioner':
-      return <AyushCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'physio':
-    case 'physiotherapist':
-    case 'home_physio':
-      return <PhysioCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'dietitian':
-      return <DietitianCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'nurse':
-    case 'home_nurse':
-    case 'home_nursing_agency':
-      return <NurseCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'yoga':
-    case 'yoga_studio':
-      return <YogaCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'gym':
-    case 'fitness_centre':
-    case 'personal_trainer':
-      return <GymCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'wellness':
-    case 'wellness_centre':
-      return <WellnessCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'equipment':
-    case 'equipment_rental':
-    case 'medical_device_seller':
-      return <EquipmentCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'medicine':
-    case 'pharmacy_item':
-      return <MedicineCard item={item} onAddToCart={onPrimary} onUploadRx={onSecondary} />;
-    case 'health_package':
-    case 'lab_package':
-      return <HealthPackageCard item={item} onBook={onPrimary} onViewDetails={onSecondary} />;
-    case 'product':
-    case 'supplement':
-    case 'skincare':
-      return <ProductCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'program':
-    case 'membership':
-      return <ProgramCard item={item} onEnroll={onPrimary} onTalkAdvisor={onSecondary} />;
-    case 'support_group':
-      return <SupportGroupCard item={item} onJoin={onPrimary} />;
-    case 'content':
-    case 'article':
-    case 'video':
-      return <ContentCard item={item} onClick={onPrimary} />;
-    case 'event':
-    case 'camp':
-    case 'workshop':
-      return <EventCard item={item} onRegister={onPrimary} onViewDetails={onSecondary} />;
-    case 'counsellor':
-    case 'psychologist':
-      return <CounsellorCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'blood_bank':
-      return <BloodBankCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'ambulance':
-    case 'ambulance_operator':
-      return <AmbulanceCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'govt_facility':
-    case 'phc':
-    case 'chc':
-      return <GovtFacilityCard item={item} onPrimary={onPrimary} onSecondary={onSecondary} />;
+  const resolved = variantForType(type);
+  const data = toCardItem(item);
 
-    // 🆕 Spec 02 §2.29 - §2.38 Dispatchers
+  switch (resolved) {
+    // ── legacy entities with their own card ─────────────────────────────
+    case 'hospital':
+      return <HospitalCard hospital={data} />;
+    case 'clinic':
+      return <ClinicCard clinic={data} />;
+    case 'diagnostic':
+      return <DiagnosticCenterCard clinic={data} />;
+    case 'pharmacy':
+      return <PharmacyCard pharmacy={data} />;
+    case 'doctor':
+      return <DoctorCard doctor={data} />;
+    case 'assistant':
+      return <AssistantCard assistant={data} />;
+    case 'lawyer':
+      return <LawyerCard lawyer={data} />;
+
+    // ── base-card system ───────────────────────────────────────────────
+    case 'dental':
+      return <DentistCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'eye':
+      return <EyeCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'ayush':
+      return <AyushCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'physio':
+      return <PhysioCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'dietitian':
+      return <DietitianCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'nurse':
+      return <NurseCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'yoga':
+      return <YogaCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'gym':
+      return <GymCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'wellness':
+      return <WellnessCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'equipment':
+      return <EquipmentCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'product':
+      return <ProductCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'medicine':
+      return <MedicineCard item={data} onAddToCart={onPrimary} onUploadRx={onSecondary} />;
+    case 'health_package':
+      return <HealthPackageCard item={data} onBook={onPrimary} onViewDetails={onSecondary} />;
+    case 'program':
+      return <ProgramCard item={data} onEnroll={onPrimary} onTalkAdvisor={onSecondary} />;
+    case 'support_group':
+      return <SupportGroupCard item={data} onJoin={onPrimary} />;
+    case 'content':
+      return <ContentCard item={data} onClick={onPrimary} />;
+    case 'counsellor':
+      return <CounsellorCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'blood_bank':
+      return <BloodBankCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'ambulance':
+      return <AmbulanceCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'govt':
+      return <GovtFacilityCard item={data} onPrimary={onPrimary} onSecondary={onSecondary} />;
     case 'dialysis':
-    case 'dialysis_centre':
-      return <DialysisCard item={item} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'fertility':
+      return <DialysisCard item={data} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
     case 'ivf':
-    case 'fertility_clinic':
-    case 'maternity_ivf':
-      return <IvfClinicCard item={item} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'elder_care':
+      return <IvfClinicCard item={data} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
     case 'eldercare':
-    case 'elder_care_home':
-    case 'assisted_living':
-    case 'hospice':
-      return <ElderCareCard item={item} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'child_development':
+      return <ElderCareCard item={data} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
     case 'child_dev':
-    case 'child_development_centre':
-      return <ChildDevCard item={item} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
+      return <ChildDevCard item={data} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
     case 'vaccination':
-    case 'vaccination_centre':
-      return <VaccinationCard item={item} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
+      return <VaccinationCard item={data} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
     case 'diet_kitchen':
-    case 'meal_plan':
-    case 'healthy_meals':
-      return <DietKitchenCard item={item} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'corporate_wellness':
-    case 'corporate_program':
-      return <CorporateWellnessCard item={item} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
+      return <DietKitchenCard item={data} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'corporate':
+      return <CorporateWellnessCard item={data} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
     case 'home_service':
-    case 'home_care':
-    case 'home_sample_collection':
-      return <HomeServiceCard item={item} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
+      return <HomeServiceCard item={data} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
     case 'allied_therapist':
-    case 'speech_therapist':
-    case 'occupational_therapist':
-    case 'audiologist':
-    case 'optometrist':
-      return <AlliedTherapistCard item={item} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
-    case 'specialty_centre':
-    case 'cancer_centre':
-    case 'cardiac_cath_lab':
-    case 'ortho_spine_clinic':
-    case 'pain_clinic':
-    case 'sleep_lab':
-    case 'urology_centre':
-    case 'skin_hair_clinic':
-      return <SpecialtyCenterCard item={item} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
+      return <AlliedTherapistCard item={data} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'specialty':
+      return <SpecialtyCenterCard item={data} variant={variant} onPrimary={onPrimary} onSecondary={onSecondary} />;
+    case 'event':
+      return <EventCard item={data} onRegister={onPrimary} onViewDetails={onSecondary} />;
 
     default:
       return (
         <ProviderCardBase
-          imageUrl={item.imageUrl || item.photos?.[0] || item.logo}
-          title={item.name || item.title}
-          verified={item.verified || item.status === 'approved'}
-          subtitle={item.subtitle || item.specialty || item.category || type}
-          ratingAvg={item.rating ?? item.ratingAvg ?? 0}
-          ratingCount={item.reviewsCount ?? item.ratingCount ?? 0}
-          distanceKm={item.distanceKm ?? item.distance}
-          openNow={item.openNow ?? item.open ?? null}
-          chips={item.chips || item.specialties?.slice(0, 4) || item.services?.slice(0, 4)}
-          priceLine={item.priceLine || (item.consultFee ? `₹${item.consultFee} consult` : undefined)}
-          trustBadges={item.trustBadges || (item.verified ? ['Verified'] : [])}
-          nextSlotLabel={item.nextSlotLabel || item.nextSlotAt}
-          primaryLabel={item.primaryLabel || 'Book'}
-          secondaryLabel={item.secondaryLabel || 'View'}
+          imageUrl={data.imageUrl}
+          title={data.name || data.title}
+          verified={data.verified || data.status === 'approved'}
+          subtitle={data.subtitle || data.specialty || data.category || type}
+          ratingAvg={data.rating ?? data.ratingAvg ?? 0}
+          ratingCount={data.reviewsCount ?? data.ratingCount ?? 0}
+          distanceKm={data.distanceKm ?? data.distance}
+          openNow={data.openNow ?? data.open ?? null}
+          chips={data.chips || data.specialties?.slice(0, 4) || data.services?.slice(0, 4)}
+          priceLine={data.priceLine || (data.consultFee ? `₹${data.consultFee} consult` : undefined)}
+          trustBadges={data.trustBadges || (data.verified ? ['Verified'] : [])}
+          nextSlotLabel={data.nextSlotLabel || data.nextSlotAt}
+          primaryLabel={data.primaryLabel || 'Book'}
+          secondaryLabel={data.secondaryLabel || 'View'}
           onPrimary={onPrimary}
           onSecondary={onSecondary}
+          sponsored={data.isSponsored}
+          saved={saved}
+          onToggleSave={onToggleSave}
+          compareChecked={compareChecked}
+          onToggleCompare={onToggleCompare}
           variant={variant}
         />
       );

@@ -195,10 +195,10 @@ Scenarios: **Base / Conservative / Optimistic** per category and per city. Sensi
 | Dependence on a few big providers | Diversify supply, contracts, multi-branch tools |
 
 ## 13. Action list
-- [ ] Build per-category unit-economics sheet; fill with pilot data — finance deliverable (open).
-- [ ] Decide take-rate/plan pricing hypotheses → experiment plan
+- [x] Build per-category unit-economics sheet; fill with pilot data — `docs/business/unit-economics-sheet.md` (pre-pilot values clearly marked; replace with measured pilot data at month 1 of city #1).
+- [x] Decide take-rate/plan pricing hypotheses → experiment plan — `docs/business/pricing-hypotheses.md` (H1–H6, EXP-001…EXP-005, guardrails, flags wired into `featureFlags.ts`/`featureFlags.js`).
 - [ ] CA: GST/TDS/TCS + payout flow; lawyer: fee-splitting/advertising/IRDAI/e-pharmacy — legal/CA review (open).
-- [x] Define activation & retention metrics for providers and patients — analytics event taxonomy + funnel definitions.
-- [x] Set city launch gates (supply density, fill rate, repeat %, support load) — `ProviderTypeConfig.enabledCities` + city gates.
-- [ ] Budget: infra + SMS/WhatsApp + support per 1k bookings — finance (open).
-- [ ] Monthly metrics review + quarterly pricing review — ops cadence (open).
+- [x] Define activation & retention metrics for providers and patients — analytics event taxonomy + funnel definitions (`ANALYTICS_FUNNELS` in `config/analyticsEvents.js`).
+- [x] Set city launch gates (supply density, utilization %, repeat rate, support load, payout reliability) — `ServiceCity.launchGate` config + `lib/cityLaunchGate.js` (`evaluateCityLaunchGate`) + `GET/PUT /api/service-cities/:id/gate` (superadmin / city_manager); `backend/test/unit/cityLaunchGate.spec.js` (6 tests).
+- [x] Budget: infra + SMS/WhatsApp + support per 1k bookings — `docs/business/budget-1k-bookings.md` (pre-pilot vendor-based model; replace with invoice actuals after month 1).
+- [x] Monthly metrics review + quarterly pricing review — cadence and governance in `docs/ops/monthly-metrics-review.md` (in effect from 2026-11; 30-min monthly ops review + 45-min quarterly pricing review; sign-off log appended to that doc).

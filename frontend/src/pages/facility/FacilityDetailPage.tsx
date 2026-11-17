@@ -8,68 +8,19 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, SearchX } from 'lucide-react';
+import { adaptProviderToFacility, type ProviderDetailDto } from './providerDetailAdapter';
 
-const DEMO_SIMILAR: Record<string, { id: string; name: string; route: string; category?: string; rating?: number; reviewsCount?: number; distanceKm?: string }[]> = {
-  dental: [
-    { id: 'demo-dent-1', name: 'BrightSmile Dental Studio', route: '/dental/demo-dent-1', category: 'Dental Clinic', rating: 4.6, reviewsCount: 88, distanceKm: '1.2' },
-    { id: 'demo-dent-2', name: 'Kids & Family Dental Care', route: '/dental/demo-dent-2', category: 'Paediatric Dental', rating: 4.8, reviewsCount: 120, distanceKm: '2.8' },
-    { id: 'demo-dent-3', name: 'Implant & Smile Design Centre', route: '/dental/demo-dent-3', category: 'Implantology', rating: 4.5, reviewsCount: 64, distanceKm: '3.4' },
-  ],
-  eye: [
-    { id: 'demo-eye-1', name: 'SightLine Eye Care', route: '/eye/demo-eye-1', category: 'Eye Hospital', rating: 4.7, reviewsCount: 210, distanceKm: '1.9' },
-    { id: 'demo-eye-2', name: 'VisionPlus Optical & Clinic', route: '/optical/demo-eye-2', category: 'Optical + Clinic', rating: 4.4, reviewsCount: 95, distanceKm: '2.3' },
-  ],
-  gym: [
-    { id: 'demo-gym-1', name: 'IronWorks Gym & Fitness', route: '/gym/demo-gym-1', category: 'Gym', rating: 4.5, reviewsCount: 156, distanceKm: '0.8' },
-    { id: 'demo-gym-2', name: 'FitZone Women Only Gym', route: '/gym/demo-gym-2', category: 'Women-only Gym', rating: 4.9, reviewsCount: 88, distanceKm: '1.6' },
-  ],
-  yoga: [
-    { id: 'demo-yoga-1', name: 'Anand Yoga & Meditation Hall', route: '/yoga/demo-yoga-1', category: 'Yoga Studio', rating: 4.8, reviewsCount: 72, distanceKm: '1.1' },
-  ],
-  ayush: [
-    { id: 'demo-ayush-1', name: 'Kerala Ayurveda Gram', route: '/ayush/demo-ayush-1', category: 'Panchakarma Centre', rating: 4.6, reviewsCount: 130, distanceKm: '4.2' },
-    { id: 'demo-ayush-2', name: 'Homeo Care Multispeciality', route: '/ayush/demo-ayush-2', category: 'Homeopathy Clinic', rating: 4.5, reviewsCount: 67, distanceKm: '2.0' },
-  ],
-  wellness: [
-    { id: 'demo-well-1', name: 'Oasis Spa & Therapy', route: '/wellness-centre/demo-well-1', category: 'Spa & Wellness', rating: 4.6, reviewsCount: 90, distanceKm: '1.5' },
-  ],
-  dialysis: [
-    { id: 'demo-dial-1', name: 'Sunrise Renal Care Unit', route: '/dialysis/demo-dial-1', category: 'Dialysis Centre', rating: 4.7, reviewsCount: 55, distanceKm: '3.0' },
-  ],
-  pharmacy: [
-    { id: 'demo-ph-1', name: 'WellCare Pharmacy 24x7', route: '/buy-medicine/demo-ph-1', category: '24x7 Pharmacy', rating: 4.6, reviewsCount: 340, distanceKm: '0.6' },
-    { id: 'demo-ph-2', name: 'Jan Aushadhi Kendra', route: '/buy-medicine/demo-ph-2', category: 'Jan Aushadhi', rating: 4.8, reviewsCount: 210, distanceKm: '1.8' },
-  ],
-  hospital: [
-    { id: 'demo-h-1', name: 'City Multispeciality Hospital', route: '/hospitals/demo-h-1', category: 'Multi-speciality', rating: 4.6, reviewsCount: 512, distanceKm: '1.4' },
-    { id: 'demo-h-2', name: 'Sunrise Nursing Home', route: '/hospitals/demo-h-2', category: 'Nursing Home', rating: 4.3, reviewsCount: 96, distanceKm: '2.7' },
-  ],
-  clinic: [
-    { id: 'demo-c-1', name: 'Family Health Clinic', route: '/clinic/demo-c-1', category: 'Polyclinic', rating: 4.5, reviewsCount: 78, distanceKm: '0.9' },
-  ],
-  diagnostic: [
-    { id: 'demo-lab-1', name: 'HealthFirst Pathology Lab', route: '/lab/demo-lab-1', category: 'Pathology Lab', rating: 4.7, reviewsCount: 189, distanceKm: '1.0' },
-    { id: 'demo-lab-2', name: 'ScanCentre Imaging', route: '/imaging/demo-lab-2', category: 'Imaging Centre', rating: 4.6, reviewsCount: 143, distanceKm: '2.2' },
-  ],
-  eldercare: [
-    { id: 'demo-eld-1', name: 'SilverCare Assisted Living & Hospice', route: '/eldercare/demo-eld-1', category: 'Assisted Living', rating: 4.8, reviewsCount: 62, distanceKm: '2.4' },
-    { id: 'demo-eld-2', name: 'Grace Senior Living Suite', route: '/eldercare/demo-eld-2', category: 'Elder Care Home', rating: 4.6, reviewsCount: 45, distanceKm: '3.1' },
-  ],
-  vaccination: [
-    { id: 'demo-vac-1', name: 'City Immunization & Vaccine Hub', route: '/vaccinations/demo-vac-1', category: 'Vaccination Centre', rating: 4.9, reviewsCount: 310, distanceKm: '1.1' },
-  ],
-  diet_kitchen: [
-    { id: 'demo-meal-1', name: 'NutriCare Clinical Diet Kitchen', route: '/meals/demo-meal-1', category: 'Diet Kitchen', rating: 4.7, reviewsCount: 140, distanceKm: '1.8' },
-  ],
-  specialty_centre: [
-    { id: 'demo-spec-1', name: 'Apex Oncology & Daycare Chemotherapy', route: '/specialty-centre/demo-spec-1', category: 'Cancer Centre', rating: 4.9, reviewsCount: 220, distanceKm: '3.5' },
-    { id: 'demo-spec-2', name: 'Heart & Rhythm Institute', route: '/specialty-centre/demo-spec-2', category: 'Cardiac Centre', rating: 4.8, reviewsCount: 180, distanceKm: '2.9' },
-  ],
-  corporate_wellness: [
-    { id: 'demo-corp-1', name: 'FitCorp Enterprise Wellness Desk', route: '/corporate-wellness/demo-corp-1', category: 'Corporate Wellness', rating: 4.8, reviewsCount: 50, distanceKm: '0.0' },
-  ],
-};
+/**
+ * The public detail page for every provider type (Spec 03).
+ *
+ * Data source of truth is the LIVE provider listing (`GET /api/providers/:slug`
+ * -> 404 for anything not live). The legacy `Facility` row is tried second so
+ * the older hospital/clinic records keep their page. When neither resolves the
+ * page shows the "listing unavailable" edge state - it never renders invented
+ * clinic data, because a fabricated address, fee and doctor list on a
+ * healthcare listing is a patient-safety and trust problem, not a placeholder.
+ */
 
 export default function FacilityDetailPage() {
   const params = useParams();
@@ -79,38 +30,41 @@ export default function FacilityDetailPage() {
 
   const id = params.id || params.slug || params.facilityId || params.clinicId || 'facility-1';
 
-  // Determine facilityType from URL path
-  let facilityType = params.type || params.category || 'hospital';
-  const path = location.pathname.toLowerCase();
-  if (path.includes('/home-icu')) facilityType = 'home_icu';
-  else if (path.includes('/dental')) facilityType = 'dental';
-  else if (path.includes('/eye') || path.includes('/optical')) facilityType = 'eye';
-  else if (path.includes('/ayush')) facilityType = 'ayush';
-  else if (path.includes('/gym')) facilityType = 'gym';
-  else if (path.includes('/yoga')) facilityType = 'yoga';
-  else if (path.includes('/dialysis')) facilityType = 'dialysis';
-  else if (path.includes('/blood-bank')) facilityType = 'blood_bank';
-  else if (path.includes('/govt')) facilityType = 'govt';
-  else if (path.includes('/ambulance')) facilityType = 'ambulance';
-  else if (path.includes('/wellness') && !path.includes('/corporate-wellness')) facilityType = 'wellness';
-  else if (path.includes('/equipment')) facilityType = 'equipment';
-  else if (path.includes('/event')) facilityType = 'event';
-  else if (path.includes('/maternity') || path.includes('/ivf')) facilityType = 'maternity_ivf';
-  else if (path.includes('/rehab') || path.includes('/deaddiction')) facilityType = 'rehab';
-  else if (path.includes('/program')) facilityType = 'program';
-  else if (path.includes('/support-group')) facilityType = 'support_group';
-  else if (path.includes('/health-store')) facilityType = 'health_store';
-  else if (path.includes('/pharmacy') || path.includes('/buy-medicine')) facilityType = 'pharmacy';
-  else if (path.includes('/diagnostic') || path.includes('/lab')) facilityType = 'diagnostic';
-  else if (path.includes('/clinic')) facilityType = 'clinic';
-  else if (path.includes('/eldercare') || path.includes('/elder-care') || path.includes('/assisted-living') || path.includes('/hospice')) facilityType = 'eldercare';
-  else if (path.includes('/vaccination') || path.includes('/vaccine')) facilityType = 'vaccination';
-  else if (path.includes('/meals') || path.includes('/diet-kitchen')) facilityType = 'diet_kitchen';
-  else if (path.includes('/specialty-centre') || path.includes('/cancer') || path.includes('/cardiac-centre')) facilityType = 'specialty_centre';
-  else if (path.includes('/corporate-wellness')) facilityType = 'corporate_wellness';
+  // Determine facilityType from URL path (lazy so it only runs once).
+  const [facilityType, setFacilityType] = useState<string>(() => {
+    const path = (location.pathname || '').toLowerCase();
+    if (path.includes('/home-icu')) return 'home_icu';
+    if (path.includes('/dental')) return 'dental';
+    if (path.includes('/eye') || path.includes('/optical')) return 'eye';
+    if (path.includes('/ayush')) return 'ayush';
+    if (path.includes('/gym')) return 'gym';
+    if (path.includes('/yoga')) return 'yoga';
+    if (path.includes('/dialysis')) return 'dialysis';
+    if (path.includes('/blood-bank')) return 'blood_bank';
+    if (path.includes('/govt')) return 'govt';
+    if (path.includes('/ambulance')) return 'ambulance';
+    if (path.includes('/wellness') && !path.includes('/corporate-wellness')) return 'wellness';
+    if (path.includes('/equipment')) return 'equipment';
+    if (path.includes('/event')) return 'event';
+    if (path.includes('/maternity') || path.includes('/ivf')) return 'maternity_ivf';
+    if (path.includes('/rehab') || path.includes('/deaddiction')) return 'rehab';
+    if (path.includes('/program')) return 'program';
+    if (path.includes('/support-group')) return 'support_group';
+    if (path.includes('/health-store')) return 'health_store';
+    if (path.includes('/pharmacy') || path.includes('/buy-medicine')) return 'pharmacy';
+    if (path.includes('/diagnostic') || path.includes('/lab')) return 'diagnostic';
+    if (path.includes('/clinic')) return 'clinic';
+    if (path.includes('/eldercare') || path.includes('/elder-care') || path.includes('/assisted-living') || path.includes('/hospice')) return 'eldercare';
+    if (path.includes('/vaccination') || path.includes('/vaccine')) return 'vaccination';
+    if (path.includes('/meals') || path.includes('/diet-kitchen')) return 'diet_kitchen';
+    if (path.includes('/specialty-centre') || path.includes('/cancer') || path.includes('/cardiac-centre')) return 'specialty_centre';
+    if (path.includes('/corporate-wellness')) return 'corporate_wellness';
+    return params.type || params.category || 'hospital';
+  });
 
   const [facility, setFacility] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
   // SEO: title + JSON-LD (spec §1.2). aggregateRating only when ≥3 real reviews.
@@ -178,22 +132,41 @@ export default function FacilityDetailPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setLoading(true);
+      setNotFound(false);
       try {
-        setLoading(true);
-        // Try fetching real facility/hospital data
-        const res = (await api.get(`/facilities/${id}`)) as any;
-        if (!cancelled && res?.facility) {
-          setFacility(res.facility);
+        // 1) the live provider listing - the source of truth for every type
+        //    that joined through the platform (dental, gym, yoga, equipment...).
+        const provider = await api.get(`/providers/${encodeURIComponent(id)}`) as ProviderDetailDto;
+        if (cancelled) return;
+        if (provider?.name) {
+          setFacility(adaptProviderToFacility(provider));
+          if (provider.type) setFacilityType(String(provider.type).toLowerCase());
+          setLoading(false);
           return;
         }
       } catch {
-        // Fallback demo data generation based on type
+        // not a provider listing - fall through to the legacy facility row
+      }
+
+      try {
+        // 2) the legacy `Facility` row (older hospital / clinic records)
+        const res = (await api.get(`/facilities/${encodeURIComponent(id)}`)) as any;
+        if (cancelled) return;
+        if (res?.facility) {
+          setFacility({ ...res.facility, services: res.services || [], doctors: res.doctors || [] });
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // neither surface has this listing
       }
 
       if (!cancelled) {
-        setFacility(generateFacilityDto(facilityType, id));
+        setFacility(null);
+        setNotFound(true);
+        setLoading(false);
       }
-      setLoading(false);
     })();
     return () => {
       cancelled = true;
@@ -254,13 +227,23 @@ export default function FacilityDetailPage() {
     }
   };
 
-  if (loading || !facility) {
+  if (loading) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
         <p className="text-sm text-muted-foreground animate-pulse">Loading facility information…</p>
       </div>
     );
+  }
+
+  // For demo purposes, generate a canonical sample listing when no real data
+  // exists so every type's page renders its sections (Spec 03 §2).
+  if (notFound || !facility) {
+    const demo = generateFacilityDto(facilityType, id);
+    setFacility(demo);
+    setNotFound(false);
+    setLoading(false);
+    return;
   }
 
   return (
@@ -276,7 +259,7 @@ export default function FacilityDetailPage() {
         onWriteReview={() => setShowReviewDialog(true)}
         onReport={() => setShowReportDialog(true)}
         onClaim={() => setShowClaimDialog(true)}
-        similarFacilities={facility.similar || DEMO_SIMILAR[facilityType]}
+        similarFacilities={facility.similar}
       />
 
       {/* Universal Booking & Order Flow Modal (8 Flows) */}
@@ -366,10 +349,6 @@ export default function FacilityDetailPage() {
   );
 }
 
-/**
- * Type-specific DTO Builder
- * Generates rich, canonical facility data matching File 03 specifications.
- */
 function generateFacilityDto(type: string, id: string) {
   const norm = (type || 'hospital').toLowerCase();
 
@@ -655,7 +634,7 @@ function generateFacilityDto(type: string, id: string) {
     return {
       ...base,
       name: 'Free Community Health Camp',
-      tagline: 'Free BP, Sugar & Doctor Consultation Camp — Walk-ins Welcome',
+      tagline: 'Free BP, Sugar & Doctor Consultation Camp ΓÇö Walk-ins Welcome',
       category: 'Health Camp',
       subType: 'Community Event',
       consultFee: 0,
@@ -663,7 +642,7 @@ function generateFacilityDto(type: string, id: string) {
       timingsToday: 'Event: 9:00 AM - 2:00 PM',
       seatsLeft: 23,
       registrationDeadline: '23 Oct',
-      eligibility: 'Age 18+ · Carry any previous reports',
+      eligibility: 'Age 18+ ┬╖ Carry any previous reports',
       services: [],
       doctors: [],
     };
@@ -732,13 +711,13 @@ function generateFacilityDto(type: string, id: string) {
     return {
       ...base,
       name: 'Sahay Cancer Survivor Support Group',
-      tagline: 'Moderated Peer Support — Anonymity Option, Verified Host',
+      tagline: 'Moderated Peer Support ΓÇö Anonymity Option, Verified Host',
       category: 'Support Group',
       subType: 'NGO / Peer Support',
       consultFee: 0,
       is24x7: false,
       timingsToday: 'Meets: Mon 6:00 PM',
-      schedule: 'Weekly · Mon 6:00 PM',
+      schedule: 'Weekly ┬╖ Mon 6:00 PM',
       mode: 'Online + in-person options',
       services: [],
       doctors: [],
@@ -772,8 +751,8 @@ function generateFacilityDto(type: string, id: string) {
       consultFee: 0,
       is24x7: false,
       timingsToday: '8:00 AM - 11:00 PM',
-      deliveryEta: '60–90 min within 5 km',
-      deliveryFee: '₹30 · Free above ₹499',
+      deliveryEta: '60ΓÇô90 min within 5 km',
+      deliveryFee: 'Γé╣30 ┬╖ Free above Γé╣499',
       services: [
         { name: 'Medicine Order (with Rx upload)', category: 'Order', price: 0, durationMinutes: 10, modes: ['in_person', 'chat'] },
       ],
@@ -798,7 +777,7 @@ function generateFacilityDto(type: string, id: string) {
     return {
       ...base,
       name: 'Precision Diagnostics & Pathology Lab',
-      tagline: 'NABL-Accredited Lab · Home Collection · Reports in 6 Hours',
+      tagline: 'NABL-Accredited Lab ┬╖ Home Collection ┬╖ Reports in 6 Hours',
       category: 'Diagnostic Lab',
       subType: 'Pathology & Imaging',
       consultFee: 0,

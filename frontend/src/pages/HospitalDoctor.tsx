@@ -22,6 +22,7 @@ import { DataGrid } from '@/components/ui/System';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+import PhysicianSeoJsonLd from '@/components/PhysicianSeoJsonLd';
 import ReviewDialog from '@/components/ReviewDialog';
 import BookingModal from '@/components/BookingModal';
 import DoctorCard from '@/components/DoctorCard';
@@ -189,6 +190,17 @@ export default function HospitalDoctor() {
   const reviewCount = doctor.reviews_count || reviews.length;
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) : (doctor.rating || 0);
 
+  const seoJsonLd: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Physician',
+    name: doctor.name,
+    description: doctor.specialization ? `${doctor.specialization} specialist on FindMedi.` : 'Verified doctor on FindMedi.',
+    ...(doctor.specialization ? { medicalSpecialty: doctor.specialization } : {}),
+    ...(doctor.hospitalId?.name ? { worksFor: { '@type': 'Hospital', name: doctor.hospitalId.name } } : {}),
+    ...(doctor.qualification ? { hasCredential: { '@type': 'EducationalOccupationalCredential', credentialCategory: doctor.qualification } } : {}),
+    ...(avgRating > 0 && reviews.length >= 3 ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: Math.round(avgRating * 10) / 10, reviewCount: reviews.length } } : {}),
+  };
+
   const scheduleRows: ScheduleRow[] = DAY_ORDER.map(day => {
     const active = !!doctor.weekly_schedule?.[day];
     const isToday = new Date().toLocaleDateString('en', { weekday: 'long' }).toLowerCase() === day;
@@ -204,6 +216,7 @@ export default function HospitalDoctor() {
 
   return (
     <motion.div initial="hidden" animate="show" className="bg-background min-h-screen">
+      <PhysicianSeoJsonLd title={`${doctor.name}${doctor.specialization ? ` — ${doctor.specialization}` : ''} | FindMedi`} jsonLd={seoJsonLd} />
 
       {/* ═══════════ BREADCRUMB ═══════════ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-0">
@@ -212,7 +225,7 @@ export default function HospitalDoctor() {
             <Home className="w-3.5 h-3.5" /><span className="hidden sm:inline">Home</span>
           </Link>
           <ChevronRight className="w-3.5 h-3.5" />
-          <Link to={doctor?.hospitalId?._id ? `/hospitals/${doctor.hospitalId._id}/doctors` : `/hospitals/${doctor.hospitalId}/doctors`} className="hover:text-primary transition-colors">Doctors</Link>
+          <Link to={(() => { const hid = doctor?.hospitalId?._id || (typeof doctor?.hospitalId === 'string' ? doctor.hospitalId : ''); return hid ? `/hospitals/${hid}/doctors` : '/hospital-doctors'; })()} className="hover:text-primary transition-colors">Doctors</Link>
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="text-foreground font-medium truncate max-w-[200px]">{doctor.name}</span>
         </nav>
