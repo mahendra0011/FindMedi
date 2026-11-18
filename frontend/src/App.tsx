@@ -781,6 +781,7 @@ const SPECIALTY_DASHBOARD_PATHS: Record<string, string> = {
   dietitian: '/dashboard/dietitian',
   hod: '/dashboard/hod',
   opd_coordinator: '/dashboard/opd-coordinator',
+  resident_doctor: '/dashboard/resident',
   resident: '/dashboard/resident',
   admission_coordinator: '/dashboard/admission-coordinator',
   bed_manager: '/dashboard/bed-manager',
@@ -811,6 +812,16 @@ const SPECIALTY_DASHBOARD_PATHS: Record<string, string> = {
   finance_admin: '/dashboard/finance-admin',
   compliance_officer: '/dashboard/compliance-kyc',
   kyc_reviewer: '/dashboard/compliance-kyc',
+  support_l1: '/superadmin/tickets',
+  support_l2: '/superadmin/tickets',
+  catalog_manager: '/superadmin/catalog',
+  platform_admin: '/admin/users',
+  dpo: '/superadmin/dsr',
+  security_admin: '/superadmin/security',
+  clinical_safety: '/superadmin/incident-command',
+  analyst: '/analytics-reports',
+  technician: '/radiology',
+  ngo_admin: '/dashboards/ngo_admin',
   // File 07 §3.25-§3.30 specialty verticals. Without these entries the six
   // owner roles fell through RoleDashboard() to the generic StaffDashboard,
   // so their dedicated /dashboard/* routes were unreachable by their own role.
@@ -820,7 +831,118 @@ const SPECIALTY_DASHBOARD_PATHS: Record<string, string> = {
   corporate_admin: '/dashboard/corporate-wellness',
   child_dev_admin: '/dashboard/child-development',
   specialty_centre_admin: '/dashboard/specialty-centre',
+  // Universal HMS/CMS/LIS/RIS blueprint consoles (/dashboards/:roleKey dispatches
+  // to the right spec file). Without these, every staff role fell through to the
+  // generic StaffDashboard and the blueprint was unreachable by its own role.
+  // Lab (LIS) staff
+  lab_receptionist: '/dashboards/lab_receptionist',
+  lab_technician: '/dashboards/lab_technician',
+  lab_supervisor: '/dashboards/lab_supervisor',
+  lab_receiving: '/dashboards/lab_receiving',
+  biochem_tech: '/dashboards/biochem_tech',
+  hematology_tech: '/dashboards/hematology_tech',
+  clinical_pathology_tech: '/dashboards/clinical_pathology_tech',
+  microbiology_tech: '/dashboards/microbiology_tech',
+  histopathology_tech: '/dashboards/histopathology_tech',
+  cytology_tech: '/dashboards/cytology_tech',
+  serology_tech: '/dashboards/serology_tech',
+  molecular_tech: '/dashboards/molecular_tech',
+  report_coordinator: '/dashboards/report_coordinator',
+  home_collection_staff: '/dashboards/home_collection_staff',
+  lab_admin: '/dashboards/lab_admin',
+  lab_manager: '/dashboards/lab_manager',
+  lab_quality_mgr: '/dashboards/lab_quality_mgr',
+  analyzer_staff: '/dashboards/analyzer_staff',
+  lab_inventory_mgr: '/dashboards/lab_inventory_mgr',
+  // Radiology (RIS) staff
+  radiology_manager: '/dashboards/radiology_manager',
+  radiology_scheduler: '/dashboards/radiology_scheduler',
+  radiology_prep_staff: '/dashboards/radiology_prep_staff',
+  mri_technician: '/dashboards/mri_technician',
+  xray_technician: '/dashboards/xray_technician',
+  ct_technician: '/dashboards/ct_technician',
+  us_technician: '/dashboards/us_technician',
+  mammo_technician: '/dashboards/mammo_technician',
+  reporting_assistant: '/dashboards/reporting_assistant',
+  pacs_admin: '/dashboards/pacs_admin',
+  radiology_admin: '/dashboards/radiology_admin',
+  radiology_receptionist: '/dashboards/radiology_receptionist',
+  radiology_billing_executive: '/dashboards/radiology_billing_executive',
+  equipment_manager: '/dashboards/equipment_manager',
+  radiology_technician: '/dashboards/radiology_technician',
+  // Hospital (HMS) operational staff
+  front_desk: '/dashboards/front_desk',
+  cashier: '/dashboards/cashier',
+  insurance_desk: '/dashboards/insurance_desk',
+  medical_director: '/dashboards/medical_director',
+  cmo: '/dashboards/cmo',
+  nursing_supervisor: '/dashboards/nursing_supervisor',
+  matron: '/dashboards/matron',
+  ward_nurse: '/dashboards/ward_nurse',
+  icu_nurse: '/dashboards/icu_nurse',
+  ot_nurse: '/dashboards/ot_nurse',
+  infection_control_nurse: '/dashboards/infection_control_nurse',
+  surgeon: '/dashboards/surgeon',
+  anaesthetist: '/dashboards/anaesthetist',
+  ot_technician: '/dashboards/ot_technician',
+  cssd_technician: '/dashboards/cssd_technician',
+  store_keeper: '/dashboards/store_keeper',
+  purchase_officer: '/dashboards/purchase_officer',
+  hr_manager: '/dashboards/hr_manager',
+  biomedical_engineer: '/dashboards/biomedical_engineer',
+  maintenance: '/dashboards/maintenance',
+  housekeeping_supervisor: '/dashboards/housekeeping_supervisor',
+  ward_boy: '/dashboards/ward_boy',
+  dietician_head: '/dashboards/dietician_head',
+  kitchen_staff: '/dashboards/kitchen_staff',
+  mortuary_attendant: '/dashboards/mortuary_attendant',
+  medical_records_officer: '/dashboards/medical_records_officer',
+  quality_officer: '/dashboards/quality_officer',
+  pharmacovigilance_officer: '/dashboards/pharmacovigilance_officer',
+  call_center_agent: '/dashboards/call_center_agent',
+  hospital_owner: '/dashboards/hospital_owner',
+  icu_doctor: '/dashboards/icu_doctor',
+  emergency: '/dashboards/emergency',
+  ot_coordinator: '/dashboards/ot_coordinator',
+  discharge_coordinator: '/dashboards/discharge_coordinator',
+  mis_reporting: '/dashboards/mis_reporting',
+  doctor_portal: '/dashboards/doctor_portal',
+  it_admin: '/dashboards/it_admin',
+  pharmacist: '/dashboards/pharmacist',
+  accountant: '/dashboards/accountant',
+  security: '/dashboards/security',
+  // Clinic (CMS) non-ops roles — the eight ops roles keep /clinic/admin
+  clinic_lab_tech: '/dashboards/clinic_lab_tech',
+  clinic_radiology_tech: '/dashboards/clinic_radiology_tech',
+  clinic_inventory_mgr: '/dashboards/clinic_inventory_mgr',
+  clinic_purchase_officer: '/dashboards/clinic_purchase_officer',
+  clinic_hr_admin: '/dashboards/clinic_hr_admin',
+  clinic_home_collection: '/dashboards/clinic_home_collection',
+  clinic_telemed_coord: '/dashboards/clinic_telemed_coord',
+  clinic_crm_staff: '/dashboards/clinic_crm_staff',
+  clinic_quality_mgr: '/dashboards/clinic_quality_mgr',
+  clinic_patient_portal: '/dashboards/clinic_patient_portal',
+  clinic_owner_analytics: '/dashboards/clinic_owner_analytics',
+  // Platform ops with a blueprint spec (the rest fall back to StaffDashboard)
+  super_admin: '/dashboards/super_admin',
 };
+
+// Single canonical clinic dashboard dispatcher — both /dashboard and
+// /clinic/dashboard route through this, so there is ONE clinic dashboard per role.
+function ClinicRoleDispatch() {
+  const { user } = useAuth();
+  switch (user?.role) {
+    case 'clinic_doctor': return <ClinicDashboard />;
+    case 'clinic_admin': return <ClinicAdminDashboard />;
+    case 'clinic_receptionist': return <ClinicReceptionDashboard />;
+    case 'clinic_nurse': return <ClinicNurseDashboard />;
+    case 'clinic_cashier':
+    case 'clinic_accountant': return <ClinicCashierDashboard />;
+    case 'clinic_branch_manager': return <ClinicBranchManagerDashboard />;
+    case 'clinic_telemed_coordinator': return <ClinicTelemedCoordinatorDashboard />;
+    default: return <StaffDashboard />;
+  }
+}
 
 function RoleDashboard() {
   const { user } = useAuth();
@@ -828,16 +950,11 @@ function RoleDashboard() {
   if (defaultPath) return <Navigate to={defaultPath} replace />;
   if (user?.role === 'superadmin') return <Navigate to="/superadmin/overview" replace />;
   if (user?.role === 'doctor') return <DoctorDashboard />;
-  if (user?.role === 'clinic_doctor') return <ClinicDoctorDashboard />;
-  if (user?.role === 'clinic_admin') return <ClinicAdminDashboard />;
-  if (user?.role === 'clinic_receptionist') return <ClinicReceptionDashboard />;
-  if (user?.role === 'clinic_cashier' || user?.role === 'clinic_accountant') return <ClinicCashierDashboard />;
-  if (user?.role === 'clinic_nurse') return <ClinicNurseDashboard />;
-  if (user?.role === 'clinic_branch_manager') return <ClinicBranchManagerDashboard />;
-  if (user?.role === 'clinic_telemed_coordinator') return <ClinicTelemedCoordinatorDashboard />;
+  // Clinic roles have exactly one canonical dashboard — /clinic/dashboard.
+  if (CLINIC_ROLES.includes(user?.role ?? '')) return <Navigate to="/clinic/dashboard" replace />;
   // Psychiatrist doctor hai → FindMedi DoctorDashboard; counsellor ka bhi provider dashboard
   if (user?.role === 'psychiatrist') return <DoctorDashboard />;
-  if (user?.role === 'counsellor') return <DoctorDashboard />;
+  if (['counsellor', 'counselor', 'mid_level_counselor', 'senior_counselor'].includes(user?.role ?? '')) return <DoctorDashboard />;
   if (user?.role === 'hospital_admin') return <Navigate to="/dashboard/v2" replace />;
   // File 22 P0-8: operations roles land on their module (each target route
   // admits the role — see the RoleRoute entries below).
@@ -1553,7 +1670,7 @@ const App = () => (
                     <Route path="/psychiatrist/profile" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorProfile /></RoleRoute>} />
 
                     {/* Clinic Doctor routes — CLINIC_ROLES is declared at module scope */}
-                    <Route path="/clinic/dashboard" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicDashboard /></RoleRoute>} />
+                    <Route path="/clinic/dashboard" element={<RoleRoute allowedRoles={CLINIC_ROLES}><ClinicRoleDispatch /></RoleRoute>} />
                     <Route path="/clinic/admin" element={<RoleRoute allowedRoles={['clinic_admin', 'superadmin']}><ClinicAdminDashboard /></RoleRoute>} />
                     <Route path="/clinic/doctor" element={<RoleRoute allowedRoles={['clinic_doctor', 'doctor', 'superadmin']}><ClinicDoctorDashboard /></RoleRoute>} />
                     <Route path="/clinic/reception" element={<RoleRoute allowedRoles={['clinic_receptionist', 'receptionist', 'clinic_admin', 'superadmin']}><ClinicReceptionDashboard /></RoleRoute>} />
@@ -1656,16 +1773,16 @@ const App = () => (
                     <Route path="/dashboard/phlebotomist" element={<PhlebotomistDashboard />} />
 
                     {/* Wave 2: 10 missing role dashboards */}
-                    <Route path="/dashboard/hod" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'surgeon', 'anaesthetist', 'medical_director', 'cmo']}><HodDashboard /></RoleRoute>} />
-                    <Route path="/dashboard/opd-coordinator" element={<RoleRoute allowedRoles={['hospital_admin', 'receptionist', 'front_desk', 'nurse']}><OpdCoordinatorDashboard /></RoleRoute>} />
-                    <Route path="/dashboard/resident" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><ResidentDashboard /></RoleRoute>} />
-                    <Route path="/dashboard/admission-coordinator" element={<RoleRoute allowedRoles={['hospital_admin', 'receptionist', 'front_desk', 'insurance_desk', 'tpa_agent']}><AdmissionCoordinatorDashboard /></RoleRoute>} />
-                    <Route path="/dashboard/bed-manager" element={<RoleRoute allowedRoles={['hospital_admin', 'nursing_supervisor', 'matron', 'receptionist', 'front_desk']}><BedManagerDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/hod" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'surgeon', 'anaesthetist', 'medical_director', 'cmo', 'hod']}><HodDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/opd-coordinator" element={<RoleRoute allowedRoles={['hospital_admin', 'receptionist', 'front_desk', 'nurse', 'opd_coordinator']}><OpdCoordinatorDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/resident" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse', 'resident_doctor']}><ResidentDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/admission-coordinator" element={<RoleRoute allowedRoles={['hospital_admin', 'receptionist', 'front_desk', 'insurance_desk', 'tpa_agent', 'admission_coordinator']}><AdmissionCoordinatorDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/bed-manager" element={<RoleRoute allowedRoles={['hospital_admin', 'nursing_supervisor', 'matron', 'receptionist', 'front_desk', 'bed_manager']}><BedManagerDashboard /></RoleRoute>} />
                     <Route path="/dashboard/corporate-billing" element={<RoleRoute allowedRoles={['hospital_admin', 'accountant', 'billing_executive', 'insurance_desk', 'finance_admin']}><CorporateBillingDashboard /></RoleRoute>} />
-                    <Route path="/dashboard/patient-relations" element={<RoleRoute allowedRoles={['hospital_admin', 'quality_officer', 'support_agent', 'call_center_agent']}><PatientRelationsDashboard /></RoleRoute>} />
-                    <Route path="/dashboard/facility-manager" element={<RoleRoute allowedRoles={['hospital_admin', 'biomedical_engineer', 'maintenance', 'store_keeper']}><FacilityManagerDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/patient-relations" element={<RoleRoute allowedRoles={['hospital_admin', 'quality_officer', 'support_agent', 'call_center_agent', 'patient_relations']}><PatientRelationsDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/facility-manager" element={<RoleRoute allowedRoles={['hospital_admin', 'biomedical_engineer', 'maintenance', 'store_keeper', 'facility_manager']}><FacilityManagerDashboard /></RoleRoute>} />
                     <Route path="/dashboard/auditor" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'auditor', 'compliance_officer', 'dpo']}><AuditorDashboard /></RoleRoute>} />
-                    <Route path="/dashboard/medical-superintendent" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'medical_director', 'cmo']}><MedicalSuperintendentDashboard /></RoleRoute>} />
+                    <Route path="/dashboard/medical-superintendent" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'medical_director', 'cmo', 'medical_superintendent']}><MedicalSuperintendentDashboard /></RoleRoute>} />
 
                     {/* File 07: Specialty & Platform Role Dashboards */}
                     <Route path="/dashboard/optician" element={<RoleRoute allowedRoles={['optician', 'optical_shop_owner', 'doctor', 'hospital_admin', 'superadmin']}><OpticianDashboard /></RoleRoute>} />

@@ -95,6 +95,22 @@ router.get('/sessions', protect, authorize('records:read'), async (req, res) => 
   }
 });
 
+// ─── Dialysis unit worklist (provider-scoped) ────────────────────────────────
+// Same ownership discipline as the rest of the module: the caller lists the
+// sessions of the dialysis-centre providers they own. No cross-tenant reads.
+// authz: object
+router.get('/worklist', protect, authorize('records:read'), async (req, res) => {
+  try {
+    const providerIds = await myProviderIds(req);
+    if (providerIds.length === 0) return res.json({ total: 0, sessions: [] });
+    const rows = await DialysisSession.find({ providerId: { $in: providerIds } })
+      .sort({ date: -1 }).limit(50).lean();
+    return res.json({ total: rows.length, sessions: rows });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 // ─── Water-quality logs ─────────────────────────────────────────────────────
 // authz: object
 router.post('/water-quality', protect, validate(createDialysisWaterQualitySchema), authorizeObject(providerOwner), async (req, res) => {

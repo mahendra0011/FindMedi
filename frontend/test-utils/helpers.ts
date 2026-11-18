@@ -56,8 +56,6 @@ const json = (body: unknown, status = 200) => ({
   body: JSON.stringify(body),
 });
 
-const apiOrigin = new URL(process.env.VITE_API_URL || 'http://localhost:5001/api').origin;
-
 export async function mockApiBaseline(page: Page, session: 'authenticated' | 'anonymous' = 'anonymous') {
   await page.route('**/api/**', (route: Route) => {
     const url = route.request().url();

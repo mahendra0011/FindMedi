@@ -319,6 +319,9 @@ router.put('/:id/slot-capacity', protect, async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
+    if (!/^[a-f\d]{24}$/i.test(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid doctor id' });
+    }
     const doctor = await populatePractice(Doctor.findById(req.params.id)).lean();
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
     if (req.user && req.user.role !== 'superadmin' && req.user.hospitalId && doctor.hospitalId && doctor.hospitalId.toString() !== req.user.hospitalId.toString()) {

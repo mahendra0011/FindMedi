@@ -36,10 +36,12 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['admin:manage', 'hospitals:manage', 'subscriptions:manage', 'users:manage', 'audit:read'],
     sidebarSections: ['Dashboard', 'Hospitals', 'Subscriptions', 'Users', 'System Health', 'Logs', 'Global Settings'],
     kpis: [
-      { label: 'Registered Hospitals', value: '14', hint: 'Total active tenants' },
-      { label: 'Platform Doctors', value: '428', hint: 'Credentialed physicians' },
-      { label: 'Active Subscriptions', value: '12', hint: 'Paid MRR plans' },
-      { label: 'System Uptime', value: '99.98%', hint: 'Cluster health' },
+      { label: 'Registered Hospitals', value: '—', hint: 'Total approved tenants' },
+      { label: 'Platform Doctors', value: '—', hint: 'Credentialed physicians (all-time)' },
+      { label: 'Active Subscriptions', value: '—', hint: 'No subscription backend yet' },
+      { label: 'System Uptime', value: '—', hint: 'No uptime probe yet' },
+      { label: 'Total Platform Users', value: '—', hint: 'Registered accounts' },
+      { label: "Today's New Users", value: '—', hint: 'Accounts created today (IST)' },
     ],
     tasks: [
       { id: 't1', text: 'Review pending hospital onboarding verifications' },
@@ -67,10 +69,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['reports:read', 'billing:read', 'operations:read', 'staff:manage'],
     sidebarSections: ['Dashboard', 'Hospital Overview', 'Revenue', 'Departments', 'Occupancy', 'Performance', 'Reports'],
     kpis: [
-      { label: "Today's OPD", value: '386', hint: 'Outpatient census' },
-      { label: 'Current IPD', value: '142', hint: 'Active admissions' },
-      { label: 'Bed Occupancy', value: '78%', hint: 'Total occupied / total' },
-      { label: "Today's Collection", value: '₹17.9L', hint: 'Gross cash & digital' },
+      { label: "Today's OPD", value: '—', hint: 'Outpatient census' },
+      { label: 'Current IPD', value: '—', hint: 'Active admissions' },
+      { label: 'Bed Occupancy', value: '—', hint: 'Total occupied / total' },
+      { label: "Today's Collection", value: '—', hint: 'Gross cash & digital' },
     ],
     tasks: [
       { id: 't1', text: 'Review executive monthly profit & loss comparison' },
@@ -98,10 +100,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['admin:manage', 'operations:manage', 'beds:manage', 'billing:manage', 'staff:manage'],
     sidebarSections: ['Dashboard', 'Patients', 'Admissions', 'Departments', 'Beds', 'Staff', 'Billing Overview', 'Approvals', 'Reports'],
     kpis: [
-      { label: "Today's Patients", value: '585', hint: 'OPD + IPD + ER' },
-      { label: 'Active Admissions', value: '142', hint: 'Admitted patients' },
-      { label: 'Discharges Due', value: '18', hint: 'Pending clearance' },
-      { label: 'Staff Present', value: '168/180', hint: 'On-duty personnel' },
+      { label: "Today's Patients", value: '—', hint: 'OPD + IPD + ER' },
+      { label: 'Active Admissions', value: '—', hint: 'Admitted patients' },
+      { label: 'Discharges Due', value: '—', hint: 'Pending clearance' },
+      { label: 'Staff Present', value: '—', hint: 'On-duty personnel' },
     ],
     tasks: [
       { id: 't1', text: 'Approve vendor purchase requisitions above threshold' },
@@ -132,10 +134,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['clinical:manage', 'records:read', 'quality:manage', 'reports:read'],
     sidebarSections: ['Dashboard', 'Clinical Operations', 'Departments', 'Emergency', 'ICU', 'Quality', 'Clinical Reports'],
     kpis: [
-      { label: 'Bed Occupancy', value: '78%', hint: 'Clinical wards' },
-      { label: 'Critical Alert Count', value: '4', hint: 'Unacknowledged vitals/labs' },
-      { label: 'Average LOS', value: '4.2d', hint: 'Length of stay (days)' },
-      { label: 'Discharge Summaries Due', value: '6', hint: 'Awaiting doctor signoff' },
+      { label: 'Bed Occupancy', value: '—', hint: 'Clinical wards' },
+      { label: 'Critical Alert Count', value: '—', hint: 'Unacknowledged vitals/labs' },
+      { label: 'Average LOS', value: '—', hint: 'Length of stay (days)' },
+      { label: 'Discharge Summaries Due', value: '—', hint: 'Awaiting doctor signoff' },
     ],
     tasks: [
       { id: 't1', text: 'Convene weekly morbidity & mortality clinical review' },
@@ -162,10 +164,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['clinical:manage', 'appointments:read', 'staff:read', 'reports:read'],
     sidebarSections: ['Dashboard', 'Department Patients', 'Doctors', 'Roster', 'Procedures', 'Department Reports'],
     kpis: [
-      { label: 'Active Faculty', value: '18', hint: 'Consultants & residents' },
-      { label: 'Department OPD', value: '94', hint: 'Specialty consultations' },
-      { label: 'IPD Inpatients', value: '38', hint: 'Under department care' },
-      { label: 'Procedures Scheduled', value: '7', hint: 'Planned today' },
+      { label: 'Active Faculty', value: '—', hint: 'Consultants & residents' },
+      { label: 'Department OPD', value: '—', hint: 'Specialty consultations' },
+      { label: 'IPD Inpatients', value: '—', hint: 'Under department care' },
+      { label: 'Procedures Scheduled', value: '—', hint: 'Planned today' },
     ],
     tasks: [
       { id: 't1', text: 'Finalize consultant clinical call roster for next month' },
@@ -191,10 +193,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['consultation:write', 'prescriptions:write', 'records:read', 'records:write', 'appointments:read'],
     sidebarSections: ['Dashboard', 'My Queue', 'Appointments', 'Patients', 'EMR', 'Prescription', 'Orders', 'IPD', 'Reports'],
     kpis: [
-      { label: "Today's Appointments", value: '28', hint: 'Scheduled visits' },
-      { label: 'Patients Waiting', value: '5', hint: 'In OPD queue' },
-      { label: 'Inpatients (IPD)', value: '12', hint: 'Assigned ward patients' },
-      { label: 'Pending Rx/Orders', value: '2', hint: 'Requiring signoff' },
+      { label: "Today's Appointments", value: '—', hint: 'Scheduled visits' },
+      { label: 'Patients Waiting', value: '—', hint: 'In OPD queue' },
+      { label: 'Inpatients (IPD)', value: '—', hint: 'Assigned ward patients' },
+      { label: 'Pending Rx/Orders', value: '—', hint: 'Requiring signoff' },
     ],
     tasks: [
       { id: 't1', text: 'Complete clinical notes for morning OPD consultations' },
@@ -222,10 +224,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['records:write', 'records:read', 'orders:write', 'vitals:read'],
     sidebarSections: ['Dashboard', 'Assigned Patients', 'Admissions', 'Rounds', 'Orders', 'Handover'],
     kpis: [
-      { label: 'Duty This Week', value: '4 Shifts', hint: 'Assigned ward shifts' },
-      { label: 'Assigned Inpatients', value: '18', hint: 'Under active monitoring' },
-      { label: 'New Admissions', value: '4', hint: 'Last 12 hours' },
-      { label: 'Pending Reviews', value: '3', hint: 'Vitals/labs check due' },
+      { label: 'Duty This Week', value: '—', hint: 'Assigned ward shifts' },
+      { label: 'Assigned Inpatients', value: '—', hint: 'Under active monitoring' },
+      { label: 'New Admissions', value: '—', hint: 'Last 12 hours' },
+      { label: 'Pending Reviews', value: '—', hint: 'Vitals/labs check due' },
     ],
     tasks: [
       { id: 't1', text: 'Record morning progress notes for all Ward-2 inpatients' },
@@ -251,10 +253,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['nursing:write', 'nursing:read', 'vitals:write', 'records:read', 'beds:read'],
     sidebarSections: ['Dashboard', 'Assigned Patients', 'Vitals', 'Medication', 'Nursing Notes', 'Tasks', 'Handover'],
     kpis: [
-      { label: 'Assigned Beds', value: '6 Beds', hint: 'Patients on shift' },
-      { label: 'Vitals Due', value: '2 Overdue', hint: 'Overdue monitoring' },
-      { label: 'Medications Due', value: '4 Due', hint: 'Scheduled in next hour' },
-      { label: 'Completed Care Tasks', value: '18 Done', hint: 'Dressings & lines' },
+      { label: 'Assigned Beds', value: '—', hint: 'Patients on shift' },
+      { label: 'Vitals Due', value: '—', hint: 'Overdue monitoring' },
+      { label: 'Medications Due', value: '—', hint: 'Scheduled in next hour' },
+      { label: 'Completed Care Tasks', value: '—', hint: 'Dressings & lines' },
     ],
     tasks: [
       { id: 't1', text: 'Administer 12:00 PM antibiotic IV infusions as per MAR' },
@@ -268,8 +270,8 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     workQueues: ['Assigned Ward Patients', 'Medication Due Queue', 'Pending Vitals', 'Pending Handover'],
     quickActions: ['Record Patient Vitals', 'Log Medication Administration', 'Add Nursing Note', 'Request Doctor Review'],
     domainModules: [
-      { key: 'nursing-chart', emoji: '📊', label: 'Nursing Flowsheet', description: 'Vitals, pain score, fluid balance and fall risk.', ctaLabel: 'Open Charts', ctaHref: '/hospital/nursing' },
-      { key: 'mar', emoji: '💊', label: 'MAR (Medication Admin)', description: 'Barcode-scanned medication administration record.', ctaLabel: 'Open MAR', ctaHref: '/hospital/nursing' },
+      { key: 'nursing-chart', emoji: '📊', label: 'Nursing Flowsheet', description: 'Vitals, pain score, fluid balance and fall risk.', ctaLabel: 'Open Charts', ctaHref: '/nursing' },
+      { key: 'mar', emoji: '💊', label: 'MAR (Medication Admin)', description: 'Barcode-scanned medication administration record.', ctaLabel: 'Open MAR', ctaHref: '/nursing' },
     ],
   },
 
@@ -285,10 +287,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['emergency:manage', 'clinical:write', 'records:write', 'admissions:write'],
     sidebarSections: ['Dashboard', 'Emergency Queue', 'Triage', 'Clinical Records', 'Orders', 'Transfers'],
     kpis: [
-      { label: 'Patients in ER', value: '16', hint: 'Active in casualty' },
-      { label: 'Red (Priority 1)', value: '1 Resus', hint: 'Immediate resuscitation' },
-      { label: 'Yellow (Priority 2)', value: '5 Urgent', hint: 'Urgent evaluation' },
-      { label: 'Green (Priority 3)', value: '10 Stable', hint: 'Non-urgent ambulatory' },
+      { label: 'Patients in ER', value: '—', hint: 'Active in casualty' },
+      { label: 'Red (Priority 1)', value: '—', hint: 'Immediate resuscitation' },
+      { label: 'Yellow (Priority 2)', value: '—', hint: 'Urgent evaluation' },
+      { label: 'Green (Priority 3)', value: '—', hint: 'Non-urgent ambulatory' },
     ],
     tasks: [
       { id: 't1', text: 'Complete trauma triage assessment for incoming ambulance patient' },
@@ -316,10 +318,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['icu:manage', 'clinical:write', 'records:write', 'orders:write'],
     sidebarSections: ['Dashboard', 'ICU Patients', 'Rounds', 'Clinical Notes', 'Orders', 'Critical Alerts'],
     kpis: [
-      { label: 'Active ICU Beds', value: '10/12', hint: 'Current occupancy' },
-      { label: 'Ventilated Patients', value: '6 Patients', hint: 'Invasive / NIV' },
-      { label: 'High Vasopressor Support', value: '4 Cases', hint: 'Inotrope infusions' },
-      { label: 'Available ICU Beds', value: '2 Beds', hint: 'Free for emergencies' },
+      { label: 'Active ICU Beds', value: '—', hint: 'Current occupancy' },
+      { label: 'Ventilated Patients', value: '—', hint: 'Invasive / NIV' },
+      { label: 'High Vasopressor Support', value: '—', hint: 'Inotrope infusions' },
+      { label: 'Available ICU Beds', value: '—', hint: 'Free for emergencies' },
     ],
     tasks: [
       { id: 't1', text: 'Perform morning multi-system intensivist rounds across ICU beds' },
@@ -346,10 +348,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['nursing:write', 'icu:write', 'vitals:write', 'records:read'],
     sidebarSections: ['Dashboard', 'ICU Beds', 'Monitoring', 'Medication', 'Infusions', 'Nursing Notes'],
     kpis: [
-      { label: 'Assigned ICU Beds', value: '2 Beds', hint: '1:1 or 1:2 critical ratio' },
-      { label: 'Active Infusions', value: '5 Pumps', hint: 'Syringe / IV pumps' },
-      { label: 'Hourly Vitals Due', value: 'Due in 10m', hint: 'Hemodynamic logs' },
-      { label: 'Critical Alarms (Shift)', value: '3 Handled', hint: 'Physiological triggers' },
+      { label: 'Assigned ICU Beds', value: '—', hint: '1:1 or 1:2 critical ratio' },
+      { label: 'Active Infusions', value: '—', hint: 'Syringe / IV pumps' },
+      { label: 'Hourly Vitals Due', value: '—', hint: 'Hemodynamic logs' },
+      { label: 'Critical Alarms (Shift)', value: '—', hint: 'Physiological triggers' },
     ],
     tasks: [
       { id: 't1', text: 'Log hourly hemodynamics, Glasgow Coma Scale (GCS) and urine output' },
@@ -375,10 +377,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['ot:manage', 'operations:manage', 'records:read', 'staff:read'],
     sidebarSections: ['Dashboard', 'OT Schedule', 'Surgeries', 'Checklists', 'Equipment', 'Recovery'],
     kpis: [
-      { label: 'Surgeries Scheduled', value: '9 Cases', hint: 'Elective + Emergency' },
-      { label: 'Surgeries In Progress', value: '4 Theatres', hint: 'Active theatres' },
-      { label: 'OT Rooms Available', value: '2 Ready', hint: 'Cleaned & ready' },
-      { label: 'PACU Recovery Beds', value: '5/6 Full', hint: 'Post-anesthesia care' },
+      { label: 'Surgeries Scheduled', value: '—', hint: 'Elective + Emergency' },
+      { label: 'Surgeries In Progress', value: '—', hint: 'Active theatres' },
+      { label: 'OT Rooms Available', value: '—', hint: 'Cleaned & ready' },
+      { label: 'PACU Recovery Beds', value: '—', hint: 'Post-anesthesia care' },
     ],
     tasks: [
       { id: 't1', text: 'Verify surgical safety checklists and PAC fitness clearances' },
@@ -405,10 +407,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['ot:write', 'clinical:write', 'records:write', 'records:read'],
     sidebarSections: ['Dashboard', 'Surgery Schedule', 'Patients', 'Pre-op', 'Operative Notes', 'Post-op'],
     kpis: [
-      { label: 'Today Surgeries', value: '3 Cases', hint: 'Assigned list' },
-      { label: 'Operative Notes Pending', value: '1 Pending', hint: 'Awaiting completion' },
-      { label: 'Pre-Op Clearance Due', value: '0 Ready', hint: 'PAC fitness pending' },
-      { label: 'PACU Inpatients', value: '2 Patients', hint: 'Under recovery review' },
+      { label: 'Today Surgeries', value: '—', hint: 'Assigned list' },
+      { label: 'Operative Notes Pending', value: '—', hint: 'Awaiting completion' },
+      { label: 'Pre-Op Clearance Due', value: '—', hint: 'PAC fitness pending' },
+      { label: 'PACU Inpatients', value: '—', hint: 'Under recovery review' },
     ],
     tasks: [
       { id: 't1', text: 'Review pre-operative imaging and informed consent for 10:00 AM cholecystectomy' },
@@ -434,10 +436,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['ot:write', 'clinical:write', 'records:read'],
     sidebarSections: ['Dashboard', 'Assessments', 'Surgery Schedule', 'Anaesthesia Records', 'Recovery'],
     kpis: [
-      { label: 'Cases on Schedule', value: '4 Cases', hint: 'Today surgical cases' },
-      { label: 'PAC Pending', value: '2 Due', hint: 'Pre-op evaluations' },
-      { label: 'Active In-Theatre Cases', value: '1 Active', hint: 'Currently monitored' },
-      { label: 'PACU Clearance Pending', value: '1 Ready', hint: 'Aldrete score >= 9' },
+      { label: 'Cases on Schedule', value: '—', hint: 'Today surgical cases' },
+      { label: 'PAC Pending', value: '—', hint: 'Pre-op evaluations' },
+      { label: 'Active In-Theatre Cases', value: '—', hint: 'Currently monitored' },
+      { label: 'PACU Clearance Pending', value: '—', hint: 'Aldrete score >= 9' },
     ],
     tasks: [
       { id: 't1', text: 'Conduct pre-anaesthetic evaluation and Mallampati airway classification' },
@@ -463,10 +465,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['dialysis:manage', 'operations:read', 'records:write'],
     sidebarSections: ['Dashboard', 'Sessions', 'Machines', 'Patients', 'Session Records'],
     kpis: [
-      { label: 'Active Hemodialysis Stations', value: '6 Stations', hint: 'Machines running' },
-      { label: "Today's Dialysis Sessions", value: '18 Sessions', hint: 'Planned treatments' },
-      { label: 'Completed Sessions', value: '12 Done', hint: 'Discharged today' },
-      { label: 'Available Machines', value: '2 Ready', hint: 'Sanitized & ready' },
+      { label: 'Active Hemodialysis Stations', value: '—', hint: 'Machines running' },
+      { label: "Today's Dialysis Sessions", value: '—', hint: 'Planned treatments' },
+      { label: 'Completed Sessions', value: '—', hint: 'Discharged today' },
+      { label: 'Available Machines', value: '—', hint: 'Sanitized & ready' },
     ],
     tasks: [
       { id: 't1', text: 'Record pre-dialysis weight, standing/sitting BP and vascular access check' },
@@ -495,10 +497,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['lab:enter_result', 'lab:manage_samples', 'lab:read', 'reports:read'],
     sidebarSections: ['Dashboard', 'Lab Orders', 'Samples', 'Workbench', 'QC', 'Results'],
     kpis: [
-      { label: 'Samples Pending Collection', value: '24 Samples', hint: 'OPD / Ward accession' },
-      { label: 'Samples in Processing', value: '18 Runs', hint: 'Running on analyzers' },
-      { label: 'Results Pending Entry', value: '12 Tests', hint: 'Manual / Auto-calc' },
-      { label: 'Rejected / Recollect', value: '2 Samples', hint: 'Hemolyzed or clotted' },
+      { label: 'Samples Pending Collection', value: '—', hint: 'OPD / Ward accession' },
+      { label: 'Samples in Processing', value: '—', hint: 'Running on analyzers' },
+      { label: 'Results Pending Entry', value: '—', hint: 'Manual / Auto-calc' },
+      { label: 'Rejected / Recollect', value: '—', hint: 'Hemolyzed or clotted' },
     ],
     tasks: [
       { id: 't1', text: 'Scan barcodes and accept morning ward phlebotomy sample batches' },
@@ -525,10 +527,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['lab:verify', 'lab:read', 'reports:read', 'records:read'],
     sidebarSections: ['Dashboard', 'Result Verification', 'Critical Results', 'Reports', 'QC'],
     kpis: [
-      { label: 'Awaiting Verification', value: '28 Reports', hint: 'Pending signoff' },
-      { label: 'Critical Panic Alerts', value: '3 Panic', hint: 'Require immediate telephonic intimation' },
-      { label: 'Verified Reports Today', value: '384 Signed', hint: 'Released to portal' },
-      { label: 'Average Turnaround (TAT)', value: '72 min', hint: 'Sample-to-report minutes' },
+      { label: 'Awaiting Verification', value: '—', hint: 'Pending signoff' },
+      { label: 'Critical Panic Alerts', value: '—', hint: 'Require immediate telephonic intimation' },
+      { label: 'Verified Reports Today', value: '—', hint: 'Released to portal' },
+      { label: 'Average Turnaround (TAT)', value: '—', hint: 'Sample-to-report minutes' },
     ],
     tasks: [
       { id: 't1', text: 'Review and verify abnormal CBC and metabolic profiles' },
@@ -554,10 +556,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['radiology:write', 'radiology:read', 'operations:read'],
     sidebarSections: ['Dashboard', 'Imaging Queue', 'Studies', 'Preparation', 'Equipment'],
     kpis: [
-      { label: "Today's Imaging Orders", value: '86 Studies', hint: 'All modalities' },
-      { label: 'Patients in Waiting Area', value: '7 Waiting', hint: 'Ready for scan' },
-      { label: 'Studies In Progress', value: '3 Active', hint: 'Currently scanning' },
-      { label: 'Completed Studies Today', value: '76 Pushed', hint: 'Transferred to PACS' },
+      { label: 'Imaging Orders', value: '—', hint: 'All-time orders — date scope not available yet' },
+      { label: 'Patients in Waiting Area', value: '—', hint: 'Ready for scan' },
+      { label: 'Studies In Progress', value: '—', hint: 'Currently scanning' },
+      { label: 'Studies Completed', value: '—', hint: 'Transferred to PACS' },
     ],
     tasks: [
       { id: 't1', text: 'Perform MRI safety screening check (metal implants, pacemaker)' },
@@ -583,10 +585,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['radiology:verify', 'radiology:read', 'records:read'],
     sidebarSections: ['Dashboard', 'Studies', 'Reporting', 'Final Reports', 'Amendments'],
     kpis: [
-      { label: 'Studies Awaiting Report', value: '14 Scans', hint: 'Unread scans' },
-      { label: 'Stat / Emergency Scans', value: '2 Urgent', hint: 'Trauma & stroke protocols' },
-      { label: 'Reports Finalized Today', value: '68 Signed', hint: 'Signed & delivered' },
-      { label: 'Average Diagnostic TAT', value: '45 min', hint: 'Scan-to-report turnaround' },
+      { label: 'Studies Awaiting Report', value: '—', hint: 'Unread scans' },
+      { label: 'Stat / Emergency Scans', value: '—', hint: 'Trauma & stroke protocols' },
+      { label: 'Reports Finalized', value: '—', hint: 'Signed & delivered — all-time count' },
+      { label: 'Average Diagnostic TAT', value: '—', hint: 'Scan-to-report turnaround' },
     ],
     tasks: [
       { id: 't1', text: 'Prioritize and interpret urgent non-contrast head CT for stroke rule-out' },
@@ -612,10 +614,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['pharmacy:dispense', 'pharmacy:manage', 'inventory:read', 'billing:read'],
     sidebarSections: ['Dashboard', 'Prescriptions', 'Dispensing', 'Pharmacy Sales', 'Returns', 'Inventory'],
     kpis: [
-      { label: 'Pending Dispensing', value: '18 Orders', hint: 'OPD + Ward indents' },
-      { label: 'Completed Dispensing', value: '246 Filled', hint: 'Dispensed today' },
-      { label: 'Near-Expiry Items', value: '12 Batches', hint: 'Expiring in <= 60 days' },
-      { label: 'Low Stock Alerts', value: '8 SKUs', hint: 'Below reorder point' },
+      { label: 'Pending Dispensing', value: '—', hint: 'OPD + Ward indents' },
+      { label: 'Completed Dispensing', value: '—', hint: 'Dispensed today' },
+      { label: 'Near-Expiry Items', value: '—', hint: 'Expiring in <= 60 days' },
+      { label: 'Low Stock Alerts', value: '—', hint: 'Below reorder point' },
     ],
     tasks: [
       { id: 't1', text: 'Fulfill urgent Ward-3 IPD medication indent request' },
@@ -642,10 +644,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['bloodbank:manage', 'operations:read', 'records:read'],
     sidebarSections: ['Dashboard', 'Donors', 'Inventory', 'Requests', 'Cross-match', 'Issue'],
     kpis: [
-      { label: 'Total Units in Stock', value: '84 Units', hint: 'All blood groups' },
-      { label: 'PRBC Units Available', value: '46 Units', hint: 'Packed red blood cells' },
-      { label: 'Platelet Concentrates', value: '12 Units', hint: 'Short 5-day shelf life' },
-      { label: 'Pending Cross-Matches', value: '5 Requests', hint: 'OT & ICU requisitions' },
+      { label: 'Total Units in Stock', value: '—', hint: 'All blood groups' },
+      { label: 'PRBC Units Available', value: '—', hint: 'Packed red blood cells' },
+      { label: 'Platelet Concentrates', value: '—', hint: 'Short 5-day shelf life' },
+      { label: 'Pending Cross-Matches', value: '—', hint: 'OT & ICU requisitions' },
     ],
     tasks: [
       { id: 't1', text: 'Process blood grouping and viral serology screening on new donor units' },
@@ -674,10 +676,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['patients:create', 'patients:read', 'appointments:create', 'appointments:read', 'billing:create'],
     sidebarSections: ['Dashboard', 'Registration', 'Patients', 'Appointments', 'Check-in', 'Queue', 'OPD Billing'],
     kpis: [
-      { label: 'New Registrations', value: '42 UHIDs', hint: 'UHIDs generated today' },
-      { label: 'Walk-in Tokens Issued', value: '186 Tokens', hint: 'OPD queue entries' },
-      { label: 'Checked-in Patients', value: '28 Waiting', hint: 'Waiting in lobby' },
-      { label: "Today's Counter Collections", value: '₹1.24L', hint: 'Consultation & reg fees' },
+      { label: 'New Registrations', value: '—', hint: 'UHIDs generated today' },
+      { label: 'Walk-in Tokens Issued', value: '—', hint: 'OPD queue entries' },
+      { label: 'Checked-in Patients', value: '—', hint: 'Waiting in lobby' },
+      { label: "Today's Counter Collections", value: '—', hint: 'Consultation & reg fees' },
     ],
     tasks: [
       { id: 't1', text: 'Register walk-in patient with demographic deduplication check' },
@@ -703,10 +705,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['appointments:manage', 'appointments:read', 'staff:read', 'operations:read'],
     sidebarSections: ['Dashboard', 'Appointments', 'Doctors', 'Schedules', 'Queue', 'Follow-ups'],
     kpis: [
-      { label: 'In Queue Now', value: '48 Patients', hint: 'Across all OPDs' },
-      { label: 'Doctors Available', value: '14 Active', hint: 'Active in consultation rooms' },
-      { label: 'Average Waiting Time', value: '22 min', hint: 'Token-to-consult minutes' },
-      { label: 'Appointments Booked', value: '386 Visits', hint: 'Scheduled for today' },
+      { label: 'In Queue Now', value: '—', hint: 'Across all OPDs' },
+      { label: 'Doctors Available', value: '—', hint: 'Active in consultation rooms' },
+      { label: 'Average Waiting Time', value: '—', hint: 'Token-to-consult minutes' },
+      { label: 'Appointments Booked', value: '—', hint: 'Scheduled for today' },
     ],
     tasks: [
       { id: 't1', text: 'Monitor specialty waiting times and redirect overflow patients' },
@@ -732,10 +734,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['admissions:manage', 'beds:read', 'insurance:read', 'billing:create'],
     sidebarSections: ['Dashboard', 'Admission Requests', 'Patient Registration', 'Bed Requests', 'Transfers'],
     kpis: [
-      { label: 'Pending Pre-Auth', value: '4 Requests', hint: 'TPA approval awaited' },
-      { label: 'Admissions Today', value: '21 Admitted', hint: 'Processed & admitted' },
-      { label: 'Patients Awaiting Beds', value: '3 Patients', hint: 'ER / OPD admitted' },
-      { label: 'Available Beds', value: '42 Beds', hint: 'General, Semi-Private, Deluxe' },
+      { label: 'Pending Pre-Auth', value: '—', hint: 'TPA approval awaited' },
+      { label: 'Admissions Today', value: '—', hint: 'Processed & admitted' },
+      { label: 'Patients Awaiting Beds', value: '—', hint: 'ER / OPD admitted' },
+      { label: 'Available Beds', value: '—', hint: 'General, Semi-Private, Deluxe' },
     ],
     tasks: [
       { id: 't1', text: 'Process admission request from OPD doctor and allocate preferred bed' },
@@ -761,10 +763,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['beds:manage', 'beds:read', 'housekeeping:read', 'reports:read'],
     sidebarSections: ['Dashboard', 'Bed Board', 'Wards', 'Availability', 'Allocation', 'Cleaning Status'],
     kpis: [
-      { label: 'Total Beds', value: '180 Beds', hint: 'All operational categories' },
-      { label: 'Occupied', value: '142 (78%)', hint: 'Current inpatients' },
-      { label: 'Available', value: '33 Ready', hint: 'Cleaned & ready' },
-      { label: 'Under Cleaning', value: '5 Rooms', hint: 'Housekeeping turnaround' },
+      { label: 'Total Beds', value: '—', hint: 'All operational categories' },
+      { label: 'Occupied', value: '—', hint: 'Current inpatients' },
+      { label: 'Available', value: '—', hint: 'Cleaned & ready' },
+      { label: 'Under Cleaning', value: '—', hint: 'Housekeeping turnaround' },
     ],
     tasks: [
       { id: 't1', text: 'Release beds marked cleaned and verified by housekeeping supervisor' },
@@ -791,10 +793,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['billing:manage', 'billing:create', 'billing:read', 'discounts:request'],
     sidebarSections: ['Dashboard', 'Invoices', 'Estimates', 'Charges', 'Advances', 'Refund Requests'],
     kpis: [
-      { label: 'Invoices Generated Today', value: '142 Bills', hint: 'OPD + IPD' },
-      { label: 'Unbilled Service Orders', value: '18 Orders', hint: 'Lab, Radiology, OT' },
-      { label: 'Pending Discharge Bills', value: '7 Bills', hint: 'Final settlement' },
-      { label: 'Total Billed Amount', value: '₹17.9L', hint: 'Gross invoice value' },
+      { label: 'Invoices Generated Today', value: '—', hint: 'OPD + IPD' },
+      { label: 'Unbilled Service Orders', value: '—', hint: 'Lab, Radiology, OT' },
+      { label: 'Pending Discharge Bills', value: '—', hint: 'Final settlement' },
+      { label: 'Total Billed Amount', value: '—', hint: 'Gross invoice value' },
     ],
     tasks: [
       { id: 't1', text: 'Consolidate pharmacy, lab, OT and bed charges for final IPD discharge bill' },
@@ -820,10 +822,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['payments:collect', 'billing:read', 'cash:reconcile'],
     sidebarSections: ['Dashboard', 'Payments', 'Receipts', 'Refunds', 'Cash Closing'],
     kpis: [
-      { label: "Today's Till Collection", value: '₹3.42L', hint: 'All payment modes' },
-      { label: 'Cash in Hand', value: '₹48,500', hint: 'Physical currency in till' },
-      { label: 'Digital / UPI / Cards', value: '₹2.93L', hint: 'Electronic settlements' },
-      { label: 'Refunds Processed', value: '₹2,400', hint: 'Authorized returns' },
+      { label: "Today's Till Collection", value: '—', hint: 'All payment modes' },
+      { label: 'Cash in Hand', value: '—', hint: 'Physical currency in till' },
+      { label: 'Digital / UPI / Cards', value: '—', hint: 'Electronic settlements' },
+      { label: 'Refunds Processed', value: '—', hint: 'Authorized returns' },
     ],
     tasks: [
       { id: 't1', text: 'Collect patient invoice payment with multi-mode split (Cash + UPI)' },
@@ -849,10 +851,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['insurance:manage', 'billing:read', 'records:read', 'claims:manage'],
     sidebarSections: ['Dashboard', 'Pre-auth', 'Claims', 'Queries', 'Discharge Approval', 'Settlements'],
     kpis: [
-      { label: 'Pending Pre-Auth Requests', value: '6 Requests', hint: 'Awaiting TPA initial response' },
-      { label: 'Approved Cashless Cases', value: '24 Cases', hint: 'Active inpatient approvals' },
-      { label: 'Queries Requiring Response', value: '3 Queries', hint: 'Medical justification needed' },
-      { label: 'Pending Final Claim Settlement', value: '₹14.8L', hint: 'Post-discharge claims' },
+      { label: 'Pending Pre-Auth Requests', value: '—', hint: 'Awaiting TPA initial response' },
+      { label: 'Approved Cashless Cases', value: '—', hint: 'Active inpatient approvals' },
+      { label: 'Queries Requiring Response', value: '—', hint: 'Medical justification needed' },
+      { label: 'Pending Final Claim Settlement', value: '—', hint: 'Post-discharge claims' },
     ],
     tasks: [
       { id: 't1', text: 'Submit digital pre-auth cashless form with initial doctor clinical notes' },
@@ -879,10 +881,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['corporate:manage', 'billing:manage', 'reports:read'],
     sidebarSections: ['Dashboard', 'Corporate Patients', 'Contracts', 'Invoices', 'Outstanding'],
     kpis: [
-      { label: 'Active Corporate Accounts', value: '38 Corporates', hint: 'Empaneled companies' },
-      { label: 'Credit Outstanding', value: '₹22.4L', hint: 'Awaiting corporate remittance' },
-      { label: 'Corporate Patients Today', value: '14 Patients', hint: 'Beneficiaries admitted' },
-      { label: 'Invoices Pending Submission', value: '6 Invoices', hint: 'Signed bills ready' },
+      { label: 'Active Corporate Accounts', value: '—', hint: 'Empaneled companies' },
+      { label: 'Credit Outstanding', value: '—', hint: 'Awaiting corporate remittance' },
+      { label: 'Corporate Patients Today', value: '—', hint: 'Beneficiaries admitted' },
+      { label: 'Invoices Pending Submission', value: '—', hint: 'Signed bills ready' },
     ],
     tasks: [
       { id: 't1', text: 'Verify corporate employee authorization letter and eligible room category' },
@@ -908,10 +910,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['accounts:manage', 'finance:read', 'billing:read', 'reports:read'],
     sidebarSections: ['Dashboard', 'Accounts', 'Expenses', 'Receivables', 'Payables', 'Banking', 'Financial Reports'],
     kpis: [
-      { label: 'Monthly Revenue', value: '₹1.42 Cr', hint: 'Accrued across all depts' },
-      { label: 'Accounts Receivable', value: '₹37.2L', hint: 'Outstanding TPA + Corporate' },
-      { label: 'Accounts Payable', value: '₹18.6L', hint: 'Vendor invoices due' },
-      { label: 'Bank Reconciliation Variance', value: '₹0', hint: 'Unmatched statements' },
+      { label: 'Monthly Revenue', value: '—', hint: 'Accrued across all depts' },
+      { label: 'Accounts Receivable', value: '—', hint: 'Outstanding TPA + Corporate' },
+      { label: 'Accounts Payable', value: '—', hint: 'Vendor invoices due' },
+      { label: 'Bank Reconciliation Variance', value: '—', hint: 'Unmatched statements' },
     ],
     tasks: [
       { id: 't1', text: 'Perform daily bank statement reconciliation against payment gateway UTRs' },
@@ -937,10 +939,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['inventory:manage', 'inventory:read', 'operations:read'],
     sidebarSections: ['Dashboard', 'Items', 'Stock', 'Indents', 'Transfers', 'Expiry', 'Stock Reports'],
     kpis: [
-      { label: 'Total Catalog SKUs', value: '1,280 SKUs', hint: 'Active inventory items' },
-      { label: 'Low Stock Alerts', value: '14 Items', hint: 'Below reorder threshold' },
-      { label: 'Pending Dept Indents', value: '8 Indents', hint: 'Ward & OT requisition' },
-      { label: 'Total Stock Valuation', value: '₹48.6L', hint: 'Warehouse inventory value' },
+      { label: 'Total Catalog SKUs', value: '—', hint: 'Active inventory items' },
+      { label: 'Low Stock Alerts', value: '—', hint: 'Below reorder threshold' },
+      { label: 'Pending Dept Indents', value: '—', hint: 'Ward & OT requisition' },
+      { label: 'Total Stock Valuation', value: '—', hint: 'Warehouse inventory value' },
     ],
     tasks: [
       { id: 't1', text: 'Fulfill surgical consumables indent for Operation Theatre Complex' },
@@ -967,10 +969,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['procurement:manage', 'inventory:read', 'operations:read'],
     sidebarSections: ['Dashboard', 'Indents', 'Vendors', 'Quotations', 'Purchase Orders', 'GRN'],
     kpis: [
-      { label: 'Pending Indent Requests', value: '8 Indents', hint: 'Awaiting purchase order' },
-      { label: 'Open Purchase Orders', value: '12 Orders', hint: 'Sent to vendors' },
-      { label: 'Deliveries Expected Today', value: '3 Shipments', hint: 'Scheduled GRN inward' },
-      { label: 'Pending GRN Approvals', value: '2 Pending', hint: 'Quality inspection due' },
+      { label: 'Pending Indent Requests', value: '—', hint: 'Awaiting purchase order' },
+      { label: 'Open Purchase Orders', value: '—', hint: 'Sent to vendors' },
+      { label: 'Deliveries Expected Today', value: '—', hint: 'Scheduled GRN inward' },
+      { label: 'Pending GRN Approvals', value: '—', hint: 'Quality inspection due' },
     ],
     tasks: [
       { id: 't1', text: 'Generate competitive vendor comparative statement for medical gas supplier' },
@@ -983,7 +985,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     workQueues: ['Purchase Requisitions Queue', 'Vendor Quotations to Compare', 'Pending Purchase Orders', 'GRN Inward Inspection'],
     quickActions: ['Create Purchase Order', 'Request Quotation (RFQ)', 'Verify Goods Receipt Note (GRN)', 'Add Approved Vendor'],
     domainModules: [
-      { key: 'procurement-cycle', emoji: '🛒', label: 'Procurement Cycle', description: 'Indent → RFQ → Quotation → PO → GRN → Invoice matching.', ctaLabel: 'Open Procurement', ctaHref: '/hospital/inventory' },
+      { key: 'procurement-cycle', emoji: '🛒', label: 'Procurement Cycle', description: 'Indent ⇒ RFQ ⇒ Quotation ⇒ PO ⇒ GRN ⇒ Invoice matching.', ctaLabel: 'Open Procurement', ctaHref: '/hospital/inventory' },
     ],
   },
 
@@ -996,10 +998,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['staff:manage', 'hr:manage', 'payroll:read', 'reports:read'],
     sidebarSections: ['Dashboard', 'Employees', 'Attendance', 'Leaves', 'Roster', 'Payroll'],
     kpis: [
-      { label: 'Total Hospital Staff', value: '210 Staff', hint: 'Doctors, nurses & staff' },
-      { label: 'Present Today', value: '184 (88%)', hint: 'Biometric / face check-in' },
-      { label: 'Pending Leave Requests', value: '6 Requests', hint: 'Awaiting approval' },
-      { label: 'Expiring Registrations', value: '2 Council', hint: 'Medical council licenses' },
+      { label: 'Total Hospital Staff', value: '—', hint: 'Doctors, nurses & staff' },
+      { label: 'Present Today', value: '—', hint: 'Biometric / face check-in' },
+      { label: 'Pending Leave Requests', value: '—', hint: 'Awaiting approval' },
+      { label: 'Expiring Registrations', value: '—', hint: 'Medical council licenses' },
     ],
     tasks: [
       { id: 't1', text: 'Approve pending nurse annual leave requests with roster coverage check' },
@@ -1012,7 +1014,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     workQueues: ['Leave Approval Queue', 'Staff Credentialing Verification', 'Attendance Exception Log', 'Monthly Payroll Batch'],
     quickActions: ['Onboard New Staff Member', 'Approve Leave Request', 'Publish Shift Duty Roster', 'Generate Monthly Payslips'],
     domainModules: [
-      { key: 'hr-staff', emoji: '👥', label: 'Hospital HR & Roster', description: 'Staff directory, duty rosters, biometric attendance and compliance.', ctaLabel: 'Open HR', ctaHref: '/hospital/staff' },
+      { key: 'hr-staff', emoji: '👥', label: 'Hospital HR & Roster', description: 'Staff directory, duty rosters, biometric attendance and compliance.', ctaLabel: 'Open HR', ctaHref: '/hr/roster' },
     ],
   },
 
@@ -1028,10 +1030,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['housekeeping:manage', 'housekeeping:read', 'beds:read'],
     sidebarSections: ['Dashboard', 'Cleaning Requests', 'Bed Cleaning', 'Ward Cleaning', 'Tasks'],
     kpis: [
-      { label: 'Pending Cleaning Requests', value: '5 Rooms', hint: 'Beds vacated / requests' },
-      { label: 'Cleaning In Progress', value: '3 Active', hint: 'Staff active in rooms' },
-      { label: 'Completed Today', value: '26 Verified', hint: 'Verified & released' },
-      { label: 'Average Turnaround (min)', value: '34 min', hint: 'SLA target: 45 min' },
+      { label: 'Pending Cleaning Requests', value: '—', hint: 'Beds vacated / requests' },
+      { label: 'Cleaning In Progress', value: '—', hint: 'Staff active in rooms' },
+      { label: 'Completed Today', value: '—', hint: 'Verified & released' },
+      { label: 'Average Turnaround (min)', value: '—', hint: 'SLA target: 45 min' },
     ],
     tasks: [
       { id: 't1', text: 'Assign cleaner to Bed 204 vacated upon discharge' },
@@ -1057,10 +1059,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['cssd:manage', 'operations:read', 'ot:read'],
     sidebarSections: ['Dashboard', 'Instruments', 'Trays', 'Sterilization', 'Cycles', 'Dispatch'],
     kpis: [
-      { label: 'Active Autoclave Cycles', value: '2 Running', hint: 'Sterilization in progress' },
-      { label: 'Sterile Trays Ready', value: '34 Packs', hint: 'Available for OT' },
-      { label: 'Pending Decontamination', value: '6 Trays', hint: 'Returned soiled sets' },
-      { label: 'Near-Expiry Sterile Packs', value: '2 Packs', hint: 'Exceeding validity window' },
+      { label: 'Active Autoclave Cycles', value: '—', hint: 'Sterilization in progress' },
+      { label: 'Sterile Trays Ready', value: '—', hint: 'Available for OT' },
+      { label: 'Pending Decontamination', value: '—', hint: 'Returned soiled sets' },
+      { label: 'Near-Expiry Sterile Packs', value: '—', hint: 'Exceeding validity window' },
     ],
     tasks: [
       { id: 't1', text: 'Load and initiate 134°C vacuum autoclave cycle for Orthopedic Tray Set B' },
@@ -1086,10 +1088,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['diet:manage', 'operations:read', 'records:read'],
     sidebarSections: ['Dashboard', 'Patient Diet', 'Diet Orders', 'Assessments', 'Meal Status'],
     kpis: [
-      { label: 'Active Meal Plans', value: '124 Plans', hint: 'Inpatients enrolled' },
-      { label: 'Special / Diabetic Diets', value: '38 Special', hint: 'Therapeutic requirements' },
-      { label: 'NPO (Nil By Mouth) Patients', value: '9 NPO Holds', hint: 'Surgery pre-op holds' },
-      { label: 'Trays Dispatched', value: '118 Served', hint: 'Delivered to wards' },
+      { label: 'Active Meal Plans', value: '—', hint: 'Inpatients enrolled' },
+      { label: 'Special / Diabetic Diets', value: '—', hint: 'Therapeutic requirements' },
+      { label: 'NPO (Nil By Mouth) Patients', value: '—', hint: 'Surgery pre-op holds' },
+      { label: 'Trays Dispatched', value: '—', hint: 'Delivered to wards' },
     ],
     tasks: [
       { id: 't1', text: 'Cross-check surgical NPO status list before dispatching lunch trays' },
@@ -1102,7 +1104,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     workQueues: ['Ward Diet Distribution List', 'Therapeutic Diet Modifications', 'NPO Surgical Hold Queue'],
     quickActions: ['Confirm Meal Tray Delivery', 'Update Patient Diet Prescription', 'Record Kitchen Food Hygiene Audit', 'Print Ward Diet Slips'],
     domainModules: [
-      { key: 'diet-kitchen-ops', emoji: '🥗', label: 'Diet Kitchen', description: 'Diet schedules, therapeutic modifications and delivery tracking.', ctaLabel: 'Open Diet Kitchen', ctaHref: '/hospital/diet' },
+      { key: 'diet-kitchen-ops', emoji: '🥗', label: 'Diet Kitchen', description: 'Diet schedules, therapeutic modifications and delivery tracking.', ctaLabel: 'Open Diet Kitchen', ctaHref: '/diet' },
     ],
   },
 
@@ -1115,10 +1117,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['diet:manage', 'records:read', 'clinical:write'],
     sidebarSections: ['Dashboard', 'Assessments', 'Diet Plans', 'Consultations', 'Ward Rounds'],
     kpis: [
-      { label: 'Nutritional Assessments Due', value: '6 Due', hint: 'Newly admitted patients' },
-      { label: 'Active Therapeutic Plans', value: '42 Active', hint: 'Prescribed diets' },
-      { label: 'Critical ICU Feeds', value: '8 Enteral', hint: 'Enteral / Ryle tube' },
-      { label: 'OPD Diet Consultations', value: '12 Consults', hint: 'Scheduled today' },
+      { label: 'Nutritional Assessments Due', value: '—', hint: 'Newly admitted patients' },
+      { label: 'Active Therapeutic Plans', value: '—', hint: 'Prescribed diets' },
+      { label: 'Critical ICU Feeds', value: '—', hint: 'Enteral / Ryle tube' },
+      { label: 'OPD Diet Consultations', value: '—', hint: 'Scheduled today' },
     ],
     tasks: [
       { id: 't1', text: 'Perform comprehensive nutritional risk screening for Bed 305' },
@@ -1131,7 +1133,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     workQueues: ['Nutritional Screening Queue', 'Enteral / Parenteral Feed Plans', 'Dietary Consultations'],
     quickActions: ['Create Nutrition Assessment', 'Prescribe Therapeutic Diet', 'Log Enteral Feed Plan', 'Print Diet Chart'],
     domainModules: [
-      { key: 'clinical-diet', emoji: '🍏', label: 'Clinical Nutrition', description: 'Nutritional assessment forms, calorie calculators and diet charts.', ctaLabel: 'Open Nutrition', ctaHref: '/hospital/diet' },
+      { key: 'clinical-diet', emoji: '🍏', label: 'Clinical Nutrition', description: 'Nutritional assessment forms, calorie calculators and diet charts.', ctaLabel: 'Open Nutrition', ctaHref: '/dashboard/diet-kitchen' },
     ],
   },
 
@@ -1144,10 +1146,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['biomedical:manage', 'operations:read', 'operations:manage'],
     sidebarSections: ['Dashboard', 'Equipment', 'Maintenance', 'Calibration', 'Work Orders'],
     kpis: [
-      { label: 'Total Medical Equipment', value: '342 Assets', hint: 'Tracked asset inventory' },
-      { label: 'Open Breakdown Tickets', value: '3 Open', hint: 'Requiring immediate repair' },
-      { label: 'Preventive Maintenance Due', value: '8 Scheduled', hint: 'Scheduled this week' },
-      { label: 'Equipment Availability Rate', value: '98.4%', hint: 'Uptime percentage' },
+      { label: 'Total Medical Equipment', value: '—', hint: 'Tracked asset inventory' },
+      { label: 'Open Breakdown Tickets', value: '—', hint: 'Requiring immediate repair' },
+      { label: 'Preventive Maintenance Due', value: '—', hint: 'Scheduled this week' },
+      { label: 'Equipment Availability Rate', value: '—', hint: 'Uptime percentage' },
     ],
     tasks: [
       { id: 't1', text: 'Respond to urgent breakdown ticket: ICU Ventilator #4 flow sensor error' },
@@ -1173,10 +1175,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['maintenance:manage', 'operations:read', 'operations:manage'],
     sidebarSections: ['Dashboard', 'Maintenance', 'Work Orders', 'Utilities', 'Equipment Issues'],
     kpis: [
-      { label: 'Open Tickets', value: '6 Tickets', hint: 'Facility maintenance' },
-      { label: 'Medical Gas Pressure', value: '4.2 Bar', hint: 'O2, N2O, Medical Air' },
-      { label: 'Backup Generators', value: 'Ready 100%', hint: 'Auto-transfer ready' },
-      { label: 'HVAC Filter Replacements Due', value: '2 HEPA Due', hint: 'OT & ICU HEPA' },
+      { label: 'Open Tickets', value: '—', hint: 'Facility maintenance' },
+      { label: 'Medical Gas Pressure', value: '—', hint: 'O2, N2O, Medical Air' },
+      { label: 'Backup Generators', value: '—', hint: 'Auto-transfer ready' },
+      { label: 'HVAC Filter Replacements Due', value: '—', hint: 'OT & ICU HEPA' },
     ],
     tasks: [
       { id: 't1', text: 'Inspect central liquid medical oxygen (LMO) tank level and manifold pressure' },
@@ -1202,10 +1204,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['ambulance:manage', 'operations:read', 'emergency:read'],
     sidebarSections: ['Dashboard', 'Trips', 'Ambulances', 'Drivers', 'Transfers'],
     kpis: [
-      { label: 'Ambulances on Duty', value: '4 Vehicles', hint: 'Staffed & ready' },
-      { label: 'Trips in Progress', value: '1 En Route', hint: 'Active patient transport' },
-      { label: 'Completed Trips Today', value: '8 Completed', hint: 'Dispatches completed' },
-      { label: 'Average Dispatch Response', value: '6.4 min', hint: 'Call-to-rollout minutes' },
+      { label: 'Ambulances on Duty', value: '—', hint: 'Staffed & ready' },
+      { label: 'Trips in Progress', value: '—', hint: 'Active patient transport' },
+      { label: 'Completed Trips Today', value: '—', hint: 'Dispatches completed' },
+      { label: 'Average Dispatch Response', value: '—', hint: 'Call-to-rollout minutes' },
     ],
     tasks: [
       { id: 't1', text: 'Perform start-of-shift vehicle inspection: Oxygen cylinder pressure and AED battery' },
@@ -1231,10 +1233,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['quality:manage', 'audit:read', 'operations:read', 'clinical:read'],
     sidebarSections: ['Dashboard', 'Incidents', 'Audits', 'Corrective Actions', 'Quality Reports'],
     kpis: [
-      { label: 'Open Incident Reports', value: '3 Reports', hint: 'Falls, errors, near-misses' },
-      { label: 'CAPA Pending Actions', value: '5 Pending', hint: 'Corrective actions due' },
-      { label: 'NABH Quality KPIs Tracked', value: '18 Metric', hint: 'Mandatory clinical metrics' },
-      { label: 'Clinical Audits Completed', value: '12 Audits', hint: 'Internal quality rounds' },
+      { label: 'Open Incident Reports', value: '—', hint: 'Falls, errors, near-misses' },
+      { label: 'CAPA Pending Actions', value: '—', hint: 'Corrective actions due' },
+      { label: 'NABH Quality KPIs Tracked', value: '—', hint: 'Mandatory clinical metrics' },
+      { label: 'Clinical Audits Completed', value: '—', hint: 'Internal quality rounds' },
     ],
     tasks: [
       { id: 't1', text: 'Investigate reported near-miss medication dispensing incident' },
@@ -1260,10 +1262,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['quality:manage', 'operations:read', 'clinical:read'],
     sidebarSections: ['Dashboard', 'Infection Incidents', 'Isolation', 'Audits', 'Surveillance'],
     kpis: [
-      { label: 'Patients in Isolation', value: '4 Isolated', hint: 'Contact / Airborne' },
-      { label: 'Active HAI Surveillance', value: '28 Lines', hint: 'Central lines, catheters' },
-      { label: 'Hand Hygiene Compliance', value: '92%', hint: 'Audit score (%)' },
-      { label: 'BMW Daily Generation (kg)', value: '142 kg', hint: 'Color-coded waste log' },
+      { label: 'Patients in Isolation', value: '—', hint: 'Contact / Airborne' },
+      { label: 'Active HAI Surveillance', value: '—', hint: 'Central lines, catheters' },
+      { label: 'Hand Hygiene Compliance', value: '—', hint: 'Audit score (%)' },
+      { label: 'BMW Daily Generation (kg)', value: '—', hint: 'Color-coded waste log' },
     ],
     tasks: [
       { id: 't1', text: 'Conduct prospective surveillance rounds for Ventilator-Associated Pneumonia (VAP)' },
@@ -1289,10 +1291,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['support:manage', 'operations:read', 'patients:read'],
     sidebarSections: ['Dashboard', 'Complaints', 'Feedback', 'Follow-ups', 'Resolution'],
     kpis: [
-      { label: 'NPS Score', value: '+74', hint: 'Net promoter index' },
-      { label: 'Open Complaints', value: '2 Open', hint: 'Pending resolution' },
-      { label: 'Feedback Forms Today', value: '42 Forms', hint: 'Digital / paper submissions' },
-      { label: 'Post-Discharge Calls Due', value: '8 Calls', hint: 'Day-3 courtesy calls' },
+      { label: 'NPS Score', value: '—', hint: 'Net promoter index' },
+      { label: 'Open Complaints', value: '—', hint: 'Pending resolution' },
+      { label: 'Feedback Forms Today', value: '—', hint: 'Digital / paper submissions' },
+      { label: 'Post-Discharge Calls Due', value: '—', hint: 'Day-3 courtesy calls' },
     ],
     tasks: [
       { id: 't1', text: 'Contact patient regarding billing wait-time grievance and resolve dispute' },
@@ -1318,10 +1320,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['security:manage', 'security:read', 'operations:read'],
     sidebarSections: ['Dashboard', 'Visitors', 'Passes', 'Incidents', 'Entry / Exit'],
     kpis: [
-      { label: 'Visitors Inside', value: '78 Visitors', hint: 'Active passes' },
-      { label: 'Passes Issued Today', value: '210 Passes', hint: 'Visitor registrations' },
-      { label: 'Attendant Badges Active', value: '142 Badges', hint: 'IPD patient attendants' },
-      { label: 'Security Incidents', value: '0 Open', hint: 'Logged this month' },
+      { label: 'Visitors Inside', value: '—', hint: 'Active passes' },
+      { label: 'Passes Issued Today', value: '—', hint: 'Visitor registrations' },
+      { label: 'Attendant Badges Active', value: '—', hint: 'IPD patient attendants' },
+      { label: 'Security Incidents', value: '—', hint: 'Logged this month' },
     ],
     tasks: [
       { id: 't1', text: 'Issue barcode visitor pass for evening IPD visiting hours' },
@@ -1347,10 +1349,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['discharges:manage', 'operations:read', 'billing:read', 'records:read'],
     sidebarSections: ['Dashboard', 'Discharges', 'Clearances', 'Bills', 'Summaries', 'Pending Tasks'],
     kpis: [
-      { label: 'Discharge Orders Today', value: '18 Orders', hint: 'Doctor advice entered' },
-      { label: 'Clearances In Progress', value: '6 In Flight', hint: 'Pharmacy, billing, nursing' },
-      { label: 'Insurance Approvals Pending', value: '3 Pending', hint: 'Awaiting TPA final nod' },
-      { label: 'Discharges Completed', value: '12 Cleared', hint: 'Patient handed over' },
+      { label: 'Discharge Orders Today', value: '—', hint: 'Doctor advice entered' },
+      { label: 'Clearances In Progress', value: '—', hint: 'Pharmacy, billing, nursing' },
+      { label: 'Insurance Approvals Pending', value: '—', hint: 'Awaiting TPA final nod' },
+      { label: 'Discharges Completed', value: '—', hint: 'Patient handed over' },
     ],
     tasks: [
       { id: 't1', text: 'Track pharmacy medicine return and nursing discharge clearance for Bed 214' },
@@ -1363,7 +1365,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     workQueues: ['Multi-Stage Discharge Clearance Board', 'Pending Pharmacy Returns', 'Awaiting TPA Final Approval', 'Ready for Exit'],
     quickActions: ['Check Clearance Status', 'Notify Pharmacy / Billing', 'Print Discharge Folder', 'Mark Discharge Completed'],
     domainModules: [
-      { key: 'discharge-desk', emoji: '🚪', label: 'Discharge Coordination', description: 'Step-by-step discharge workflow: Doctor → Pharmacy → Billing → Exit.', ctaLabel: 'Discharge Desk', ctaHref: '/hospital/discharges' },
+      { key: 'discharge-desk', emoji: '🚪', label: 'Discharge Coordination', description: 'Step-by-step discharge workflow: Doctor ⇒ Pharmacy ⇒ Billing ⇒ Exit.', ctaLabel: 'Discharge Desk', ctaHref: '/hospital/discharges' },
     ],
   },
 
@@ -1376,10 +1378,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['mortuary:manage', 'records:read', 'operations:read'],
     sidebarSections: ['Dashboard', 'Death Records', 'Mortuary Beds', 'Release Status', 'Police NOC'],
     kpis: [
-      { label: 'Mortuary Cold Chambers', value: '8 Chambers', hint: 'Total storage capacity' },
-      { label: 'Chambers Occupied', value: '2 Occupied', hint: 'Deceased in custody' },
-      { label: 'Bodies Awaiting Release', value: '1 Awaiting', hint: 'Documentation in progress' },
-      { label: 'MLC / Autopsy Cases', value: '1 Police NOC', hint: 'Police intimation required' },
+      { label: 'Mortuary Cold Chambers', value: '—', hint: 'Total storage capacity' },
+      { label: 'Chambers Occupied', value: '—', hint: 'Deceased in custody' },
+      { label: 'Bodies Awaiting Release', value: '—', hint: 'Documentation in progress' },
+      { label: 'MLC / Autopsy Cases', value: '—', hint: 'Police intimation required' },
     ],
     tasks: [
       { id: 't1', text: 'Verify death certificate and identity wristband upon receiving body from Ward' },
@@ -1405,10 +1407,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['admin:manage', 'system:manage', 'audit:read'],
     sidebarSections: ['Dashboard', 'Users', 'Devices', 'Integrations', 'Logs', 'Backups', 'IT Tickets'],
     kpis: [
-      { label: 'Connected Medical Devices', value: '48 Online', hint: 'Analyzers, monitors, PACS' },
-      { label: 'Active User Sessions', value: '124 Users', hint: 'Hospital-wide logins' },
-      { label: 'Open IT Support Tickets', value: '3 Tickets', hint: 'Printer, network, login' },
-      { label: 'Automated Backup Status', value: 'Success (02:00)', hint: 'Point-in-time snapshot' },
+      { label: 'Active Users', value: '—', hint: 'Total registered accounts' },
+      { label: 'Suspended Accounts', value: '—', hint: 'Deactivated by admin' },
+      { label: '2FA-Pending Enrollment', value: '—', hint: 'Staff not yet enrolled' },
+      { label: 'Infrastructure Alerts', value: '—', hint: 'Integration failures' },
     ],
     tasks: [
       { id: 't1', text: 'Resolve thermal barcode printer communication error at Emergency Reception' },
@@ -1434,10 +1436,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['audit:read', 'reports:read', 'records:read'],
     sidebarSections: ['Dashboard', 'Audit Plan', 'Findings', 'Access Logs', 'Corrective Actions'],
     kpis: [
-      { label: 'Audit Events (24h)', value: '1,420 Events', hint: 'System-wide transactions' },
-      { label: 'Open Audit Findings', value: '4 Findings', hint: 'Non-conformances noted' },
-      { label: 'Clinical Documentation Audits', value: '25 Sampled', hint: 'Random sample reviews' },
-      { label: 'Billing Discrepancies', value: '1 Resolved', hint: 'Investigated and closed' },
+      { label: 'Audit Events (24h)', value: '—', hint: 'System-wide transactions' },
+      { label: 'Open Audit Findings', value: '—', hint: 'Non-conformances noted' },
+      { label: 'Clinical Documentation Audits', value: '—', hint: 'Random sample reviews' },
+      { label: 'Billing Discrepancies', value: '—', hint: 'Investigated and closed' },
     ],
     tasks: [
       { id: 't1', text: 'Perform random retrospective audit on 20 completed IPD discharge billing records' },
@@ -1463,10 +1465,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['reports:read', 'billing:read', 'operations:read', 'clinical:read'],
     sidebarSections: ['Dashboard', 'Patient Reports', 'Clinical KPIs', 'Financial Analytics', 'Department MIS'],
     kpis: [
-      { label: 'Hospital Census', value: '585 Total', hint: 'Total patients under care' },
-      { label: 'Average Bed Turnover', value: '4.8 Beds/mo', hint: 'Admissions per bed per month' },
-      { label: 'Gross Hospital Revenue', value: '₹17.9L Today', hint: 'MTD collection index' },
-      { label: 'Clinical Turnaround Index', value: '94% On-Time', hint: 'TAT target adherence' },
+      { label: 'Hospital Census', value: '—', hint: 'Total patients under care' },
+      { label: 'Average Bed Turnover', value: '—', hint: 'Admissions per bed per month' },
+      { label: 'Gross Hospital Revenue', value: '—', hint: 'MTD collection index' },
+      { label: 'Clinical Turnaround Index', value: '—', hint: 'TAT target adherence' },
     ],
     tasks: [
       { id: 't1', text: 'Generate daily institutional management census report for board briefing' },
@@ -1492,10 +1494,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['records:read:own', 'appointments:create', 'payments:collect'],
     sidebarSections: ['Dashboard', 'Appointments', 'Health Records', 'Reports', 'Bills', 'Payments', 'Family'],
     kpis: [
-      { label: 'Upcoming Appointment', value: 'Tomorrow 10:30', hint: 'Scheduled doctor visit' },
-      { label: 'Active Prescriptions', value: '3 Medicines', hint: 'Medicines & doses' },
-      { label: 'New Lab Reports Ready', value: '2 Reports', hint: 'Downloadable PDF' },
-      { label: 'Outstanding Balance', value: '₹0 Paid', hint: 'Online payment enabled' },
+      { label: 'Upcoming Appointment', value: '—', hint: 'Scheduled doctor visit' },
+      { label: 'Active Prescriptions', value: '—', hint: 'Medicines & doses' },
+      { label: 'New Lab Reports Ready', value: '—', hint: 'Downloadable PDF' },
+      { label: 'Outstanding Balance', value: '—', hint: 'Online payment enabled' },
     ],
     tasks: [
       { id: 't1', text: 'View instructions for upcoming fasting blood sugar diagnostic test' },
@@ -1521,10 +1523,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['consultation:write', 'records:read', 'prescriptions:write'],
     sidebarSections: ['Dashboard', 'My Schedule', 'Teleconsult Queue', 'Inpatients', 'Signoffs', 'Messages'],
     kpis: [
-      { label: 'Teleconsults Waiting', value: '3 Waiting', hint: 'Video call queue' },
-      { label: 'Assigned Inpatients', value: '12 Patients', hint: 'Ward & ICU rounds' },
-      { label: 'Pending Digital Signoffs', value: '4 Signoffs', hint: 'Rx & summaries' },
-      { label: 'Critical Results Alerted', value: '1 Alert', hint: 'Urgent attention' },
+      { label: 'Teleconsults Waiting', value: '—', hint: 'Video call queue' },
+      { label: 'Assigned Inpatients', value: '—', hint: 'Ward & ICU rounds' },
+      { label: 'Pending Digital Signoffs', value: '—', hint: 'Rx & summaries' },
+      { label: 'Critical Results Alerted', value: '—', hint: 'Urgent attention' },
     ],
     tasks: [
       { id: 't1', text: 'Connect to scheduled video teleconsultation with remote patient' },
@@ -1540,6 +1542,219 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
       { key: 'telemed-remote', emoji: '📱', label: 'Telemedicine & Rounds', description: 'Remote video consults, mobile EMR and quick orders.', ctaLabel: 'Doctor Portal', ctaHref: '/doctor/dashboard' },
     ],
   },
+
+  nursing_supervisor: {
+    roleKey: 'nursing_supervisor',
+    layer: 2,
+    layerName: 'Clinical',
+    title: 'Nursing Supervisor Dashboard',
+    subtitle: 'Ward staffing coverage, escalated clinical reviews, shift handovers & nursing quality rounds',
+    permissions: ['records:read', 'vitals:write', 'patients:read', 'beds:read', 'staff:manage', 'staff:view'],
+    sidebarSections: ['Dashboard', 'Staffing', 'Ward Census', 'Handovers', 'Escalations', 'Nursing Reports'],
+    kpis: [
+      { label: 'Patients in Care', value: '—', hint: 'Live from the bed board' },
+      { label: 'Vitals Entries Logged', value: '—', hint: 'All-ward charting counter' },
+      { label: 'Care Tasks Completed', value: '—', hint: 'Dressings, I/O & rounds' },
+      { label: 'Beds in Turnaround', value: '—', hint: 'Cleaning / maintenance' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Verify nurse-to-patient staffing coverage on ICU and high-dependency wards for the night shift' },
+      { id: 't2', text: 'Review unresolved escalated vitals on Ward-2 and Ward-3 before hourly rounds' },
+      { id: 't3', text: 'Audit one completed SBAR handover per ward and countersign' },
+    ],
+    alerts: [
+      { id: 'a1', text: 'Two wards below safe staffing ratio for tonight', level: 'urgent' },
+      { id: 'a2', text: 'Handover template missing counter-signature on Bed 308', level: 'warn' },
+    ],
+    workQueues: ['Ward Inpatient List', 'Urgent Reviews Due', 'Staffing & Shift Coverage', 'Medication Error Reviews'],
+    quickActions: ['Assign Ward Staffing', 'Escalate Clinical Concern', 'Audit Nursing Handover', 'Review Nursing Quality Round'],
+    domainModules: [
+      { key: 'staffing', emoji: '👩‍⚕️', label: 'Staffing & Roster', description: 'Shift allotment, leave coverage and agency float across wards.', ctaLabel: 'Open Staffing', ctaHref: '/hr/roster' },
+      { key: 'nursing-quality', emoji: '✅', label: 'Nursing Quality Rounds', description: 'Bedside care audits, escalation trending and corrective actions.', ctaLabel: 'Quality Rounds', ctaHref: '/nursing' },
+    ],
+  },
+
+  matron: {
+    roleKey: 'matron',
+    layer: 2,
+    layerName: 'Clinical',
+    title: 'Matron Dashboard',
+    subtitle: 'Nursing service governance, staff performance, patient safety & infection indicators',
+    permissions: ['records:read', 'vitals:write', 'patients:read', 'beds:read', 'staff:manage', 'staff:view'],
+    sidebarSections: ['Dashboard', 'Nursing Service Review', 'Staff Performance', 'Patient Safety', 'Infection Control', 'Executive Reports'],
+    kpis: [
+      { label: 'Bed Occupancy', value: '—', hint: 'Live from the bed board' },
+      { label: 'MAR Doses Administered', value: '—', hint: 'Medication administration counter' },
+      { label: 'Vitals Entries Logged', value: '—', hint: 'All-ward charting counter' },
+      { label: 'Beds in Turnaround', value: '—', hint: 'Cleaning / maintenance' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Chair weekly nursing service governance review with ward sisters' },
+      { id: 't2', text: 'Review CAUTI and CLABSI indicator trend for the last 30 days' },
+      { id: 't3', text: 'Sign off appraisal rotation for Grade-II nursing staff' },
+    ],
+    alerts: [
+      { id: 'a1', text: 'SSI rate above threshold in the gynaecology ward', level: 'urgent' },
+    ],
+    workQueues: ['Ward Inpatient List', 'Urgent Reviews Due', 'Patient Safety Escalations', 'Roster & Leave Approvals'],
+    quickActions: ['Review Nursing KPIs', 'Approve Staff Leave', 'Open Patient Safety File', 'Sign Governance Minutes'],
+    domainModules: [
+      { key: 'governance', emoji: '🛡️', label: 'Nursing Governance', description: 'Governance reviews, audit minutes and compliance evidence.', ctaLabel: 'Governance', ctaHref: '/nursing' },
+      { key: 'infection', emoji: '🧪', label: 'Infection Indicators', description: 'HAI surveillance, SSI/UTI/BSI counts and outbreak readiness.', ctaLabel: 'Quality', ctaHref: '/hospital/quality' },
+    ],
+  },
+
+  medical_director: {
+    roleKey: 'medical_director',
+    layer: 2,
+    layerName: 'Clinical',
+    title: 'Medical Director Dashboard',
+    subtitle: 'Clinical governance for the whole facility: OPD flow, inpatients, safety and quality outcomes',
+    permissions: ['records:read', 'reports:read', 'audit:read', 'appointments:read', 'patients:read'],
+    sidebarSections: ['Dashboard', 'Clinical Governance', 'OPD & IPD Census', 'Quality & Safety', 'Clinical Reports', 'Audit'],
+    kpis: [
+      { label: 'Bed Occupancy', value: '—', hint: 'Live occupancy across wards' },
+      { label: 'OPD Waiting Now', value: '—', hint: 'Live token queue' },
+      { label: 'IPD Census', value: '—', hint: 'Active admitted inpatients' },
+      { label: 'Critical Labs Awaiting Review', value: '—', hint: 'Unreviewed critical results' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Review unresolved critical lab results before end of rounds' },
+      { id: 't2', text: 'Chair monthly clinical governance committee (safety, mortality, complaints)' },
+      { id: 't3', text: 'Review discharge summary turnaround and delayed-signoff list' },
+    ],
+    alerts: [
+      { id: 'a1', text: 'Unreviewed critical lab values pending for more than 30 minutes', level: 'urgent' },
+      { id: 'a2', text: 'Three delayed discharge summaries exceeding 24 hours', level: 'warn' },
+    ],
+    workQueues: ['Critical Labs Triage', 'Discharge Summary Backlog', 'Clinical Audit Actions', 'Second Opinion Reviews'],
+    quickActions: ['Review Critical Labs', 'Open Governance Dashboard', 'Sign Discharge Summary Batch', 'Review Mortality Book'],
+    domainModules: [
+      { key: 'clinical-governance', emoji: '🩺', label: 'Clinical Governance', description: 'Protocols, audit outcomes, mortality reviews and safety data.', ctaLabel: 'Governance', ctaHref: '/hospital/quality' },
+      { key: 'ops', emoji: '🏥', label: 'Operations Snapshot', description: 'OPD/IPD census, OT load and bed position.', ctaLabel: 'Overview', ctaHref: '/dashboard/v2' },
+    ],
+  },
+
+  cmo: {
+    roleKey: 'cmo',
+    layer: 2,
+    layerName: 'Clinical',
+    title: 'Chief Medical Officer Dashboard',
+    subtitle: 'Medical strategy, clinical effectiveness, consultant performance & high-risk care oversight',
+    permissions: ['records:read', 'reports:read', 'audit:read', 'appointments:read', 'patients:read'],
+    sidebarSections: ['Dashboard', 'Clinical Effectiveness', 'Consultant Performance', 'High-Risk Care', 'Research & CME', 'Quality Reports'],
+    kpis: [
+      { label: 'Bed Occupancy', value: '—', hint: 'Live occupancy across wards' },
+      { label: 'OPD Waiting Now', value: '—', hint: 'Live token queue' },
+      { label: 'IPD Census', value: '—', hint: 'Active admitted inpatients' },
+      { label: 'Critical Labs Awaiting Review', value: '—', hint: 'Unreviewed critical results' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Review consultant roster coverage and outlier duty rosters' },
+      { id: 't2', text: 'Review pathway compliance for sepsis and ACS order sets' },
+      { id: 't3', text: 'Approve CME credit schedule for the department' },
+    ],
+    alerts: [
+      { id: 'a1', text: 'Two consultants above safe on-call duty frequency this month', level: 'warn' },
+    ],
+    workQueues: ['MDT Case Reviews', 'Critical Labs Triage', 'Pathway Compliance Audits', 'Consultant Appraisal Cycle'],
+    quickActions: ['Review Consultant Roster', 'Open Clinical Effectiveness', 'Approve CME Schedule', 'Escalate Clinical Safety Concern'],
+    domainModules: [
+      { key: 'effectiveness', emoji: '📈', label: 'Clinical Effectiveness', description: 'Pathway compliance, benchmarking and consultant scorecards.', ctaLabel: 'Effectiveness', ctaHref: '/dashboard/v2' },
+      { key: 'safety', emoji: '🛡️', label: 'Patient Safety Office', description: 'Safety incidents, near misses and sentinel events.', ctaLabel: 'Safety', ctaHref: '/hospital/quality' },
+    ],
+  },
+
+  compliance_officer: {
+    roleKey: 'compliance_officer',
+    layer: 6,
+    layerName: 'Facility, Quality & Digital',
+    title: 'Compliance Officer Dashboard',
+    subtitle: 'Accreditation, CAPA tracking, licence renewals & DPDP data-subject request queue',
+    permissions: ['audit:read', 'dsr:read', 'dsr:approve', 'licenses:read', 'licenses:write', 'breakglass:read'],
+    sidebarSections: ['Dashboard', 'Accreditation', 'CAPA Tracker', 'Licences', 'DPDP / DSR', 'Compliance Reports'],
+    kpis: [
+      { label: 'Licenses Expiring Soon', value: '—', hint: 'Live from licence registry' },
+      { label: 'Open DSR Requests', value: '—', hint: 'Overdue DPDP requests first' },
+      { label: 'CAPA Overdue', value: '—', hint: 'Awaiting implementation evidence' },
+      { label: 'Open Audit Findings', value: '—', hint: 'Awaiting closure verification' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Review overdue DSR requests and confirm acknowledgement letters' },
+      { id: 't2', text: 'Chase CAPA owners for closure evidence on last audit' },
+      { id: 't3', text: 'Prepare NABH surveillance readiness pack for next window' },
+    ],
+    alerts: [
+      { id: 'a1', text: 'One licence expires within 14 days without renewal filed', level: 'urgent' },
+      { id: 'a2', text: 'DPDP statutory 72-hour response clock at risk on one request', level: 'urgent' },
+    ],
+    workQueues: ['CAPA Action Item Tracker', 'DPDP Data-Subject Requests', 'Licence Renewal Register', 'Accreditation Gaps'],
+    quickActions: ['Log CAPA Action', 'Approve DSR Fulfillment', 'File Licence Renewal', 'Export Compliance Pack'],
+    domainModules: [
+      { key: 'dsr', emoji: '🗂️', label: 'DPDP / DSR Queue', description: 'Data-subject request queue with statutory clocks.', ctaLabel: 'Open DSR Queue', ctaHref: '/superadmin/dsr' },
+      { key: 'licenses', emoji: '📜', label: 'Licence Registry', description: 'Facility and professional licences with expiry tracking.', ctaLabel: 'Licences', ctaHref: '/superadmin/licenses' },
+    ],
+  },
+
+  dietician_head: {
+    roleKey: 'dietician_head',
+    layer: 6,
+    layerName: 'Facility, Quality & Digital',
+    title: 'Dietician Head Dashboard',
+    subtitle: 'Therapeutic diet program governance, clinical dietitian productivity & meal quality assurance',
+    permissions: ['diet:read', 'diet:write', 'notifications:read'],
+    sidebarSections: ['Dashboard', 'Diet Program', 'Dietitian Productivity', 'Kitchen Quality', 'Clinical Nutrition', 'Reports'],
+    kpis: [
+      { label: 'Active Diet Plans', value: '—', hint: 'Live order activity' },
+      { label: 'Meals Served Today', value: '—', hint: 'Trays delivered today' },
+      { label: 'Pending Dietitian Review', value: '—', hint: 'Orders awaiting dietitian sign-off' },
+      { label: 'Menu Budget Variance', value: '—', hint: 'Pending finance reconciliation' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Review pending dietitian sign-off on new therapeutic orders' },
+      { id: 't2', text: 'Audit one tray for a special diet (renal / diabetic) each ward' },
+      { id: 't3', text: 'Coordinate with kitchen on NPO and fasting patient list' },
+    ],
+    alerts: [
+      { id: 'a1', text: 'Three therapeutic diet orders pending dietitian review over 4 hours', level: 'warn' },
+    ],
+    workQueues: ['Dietitian Review Queue', 'Special Diet Orders', 'Kitchen Coordination', 'Nutrition Escalations'],
+    quickActions: ['Sign Off Diet Order', 'Audit Meal Tray', 'Update Therapeutic Menu', 'Review Nutrition Budget'],
+    domainModules: [
+      { key: 'diet-program', emoji: '🥗', label: 'Diet Program', description: 'Active therapeutic plans, reviews and kitchen coordination.', ctaLabel: 'Diet Program', ctaHref: '/diet' },
+      { key: 'nutrition', emoji: '📋', label: 'Clinical Nutrition', description: 'Assessments and enteral/parenteral nutrition planning.', ctaLabel: 'Nutrition', ctaHref: '/diet' },
+    ],
+  },
+
+  ngo_admin: {
+    roleKey: 'ngo_admin',
+    layer: 6,
+    layerName: 'Facility, Quality & Digital',
+    title: 'NGO / Charitable Society Partner Dashboard',
+    subtitle: 'Camps, donations drives, beneficiary outreach & volunteer coordination',
+    permissions: ['appointments:read', 'patients:write', 'notifications:read'],
+    sidebarSections: ['Dashboard', 'Camps', 'Volunteers', 'Beneficiaries', 'Donations', 'Outreach'],
+    kpis: [
+      { label: 'Upcoming Camps', value: '?', hint: 'Live NGO calendar not wired yet ? wire from camp scheduler' },
+      { label: 'Beneficiaries Served', value: '?', hint: 'No beneficiary counter wired yet' },
+      { label: 'Active Volunteers', value: '?', hint: 'Volunteer roster not wired yet' },
+      { label: 'Donation Receipts Pending', value: '?', hint: 'No donations ledger wired yet' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Schedule next health camp & assign volunteer roles' },
+      { id: 't2', text: 'Reconcile donation receipts against camp logs' },
+      { id: 't3', text: 'Review beneficiary follow-up calls due this week' },
+    ],
+    alerts: [
+      { id: 'a1', text: 'Camp supplies below threshold ? reorder before next camp', level: 'warn' },
+    ],
+    workQueues: ['Camp Schedule & Assignments', 'Beneficiary Follow-ups', 'Donation Reconciliation', 'Volunteer Roster'],
+    quickActions: ['Create Camp', 'Assign Volunteers', 'Record Donation', 'Export Camp Report'],
+    domainModules: [
+      { key: 'camps', emoji: '???', label: 'Camps & Outreach', description: 'Health camps, blood drives and vaccination melas.', ctaLabel: 'Camp Manager', ctaHref: '/community' },
+      { key: 'volunteers', emoji: '??', label: 'Volunteers', description: 'Volunteer roster, shifts and skills mapping.', ctaLabel: 'Volunteers', ctaHref: '/settings' },
+    ],
+  },
 };
 
 /**
@@ -1551,12 +1766,8 @@ export function getHmsDashboardSpec(roleKey: string | undefined): HmsDashboardCo
   if (HMS_ROLE_SPECS[key]) return HMS_ROLE_SPECS[key];
 
   const aliases: Record<string, string> = {
-    cmo: 'medical_superintendent',
-    medical_director: 'hospital_owner',
     ward_nurse: 'nurse',
     clinic_nurse: 'nurse',
-    nursing_supervisor: 'nurse',
-    matron: 'nurse',
     front_desk: 'receptionist',
     clinic_receptionist: 'receptionist',
     insurance_desk: 'tpa_agent',
@@ -1564,12 +1775,16 @@ export function getHmsDashboardSpec(roleKey: string | undefined): HmsDashboardCo
     maintenance: 'facility_manager',
     quality_manager: 'quality_officer',
     infection_control: 'infection_control_nurse',
-    dietician_head: 'dietitian',
     kitchen_staff: 'diet_kitchen_admin',
     auditor_officer: 'auditor',
-    compliance_officer: 'auditor',
     mis_admin: 'mis_reporting',
     casualty: 'emergency',
+    ot_nurse: 'icu_nurse',
+    ot_technician: 'ot_coordinator',
+    ward_boy: 'housekeeping_supervisor',
+    medical_records_officer: 'mis_reporting',
+    pharmacovigilance_officer: 'quality_officer',
+    call_center_agent: 'patient_relations',
   };
 
   const aliasedKey = aliases[key];

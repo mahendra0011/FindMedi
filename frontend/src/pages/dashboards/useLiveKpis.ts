@@ -1,8 +1,7 @@
 /**
- * Wave 2 live-data helper — thin dashboards kept their RoleDashboardShell
- * config but previously rendered hard-coded demo numbers. This hook fetches
- * real KPIs from the backend and falls back to the static config values on
- * any error, so a role whose endpoint 403s/404s still renders a full shell.
+ * Wave 2 live-data helper â€” fetches real KPIs/queues from the backend.
+ * `mergeKpis` keeps the static spec strings only for keys the fetcher
+ * doesn't return; where no live source exists the fetcher returns `â€”`.
  */
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
@@ -43,250 +42,685 @@ export function useLiveKpis(fetcher: KpiFetcher, staticKpis: Kpi[]): Kpi[] {
   return kpis;
 }
 
-/** Role-aware KPI fetcher extending live metrics beyond beds to doctor, admin, nurse, etc. */
+/**
+ * Role-aware KPI fetcher extending live metrics beyond beds to doctor, admin, nurse, etc.
+ *
+ * Honesty rules (mandatory):
+ *  - A number is only shown when it comes from a successful API response.
+ *  - Missing fields inside a successful response render as `â€”` (em-dash), never
+ *    as a made-up count. Zero is a real value and is shown as `0`.
+ *  - When the whole fetch fails the matching KPI keys render as `â€”` â€” this
+ *    overwrites the static spec strings (which are illustrative samples, not
+ *    measurements) so a dashboard can never invent data.
+ */
+/** Coerce unknown API values; null (not 0) when absent/invalid. */
+const num = (v: unknown): number | null => {
+  const n = Number(v);
+  return v === null || v === undefined || !Number.isFinite(n) ? null : n;
+};
+
+/** Render a KPI value: em-dash when unavailable, else the number with unit. */
+const fmt = (v: number | null, suffix = ''): string => (v === null ? 'â€”' : `${v}${suffix}`);
+
+/** All requested KPI labels set to `â€”` â€” used when the fetch failed outright. */
+const noData = (...labels: string[]): Record<string, string> =>
+  Object.fromEntries(labels.map((l) => [l, 'â€”']));
+
+// The dashboard reads raw JSON whose shape varies per route; one central
+// alias keeps the helper signatures readable while linting clean.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyPayload = any;
+type Settled = PromiseSettledResult<AnyPayload>;
+
+/** Full response body from a settled call or a direct api.get result. */
+const bodyFrom = (r: Settled | AnyPayload): AnyPayload => {
+  const v = r?.status === 'fulfilled' ? r.value
+    : r?.status === 'rejected' || r === null || r === undefined ? null
+    : r;
+  return v && typeof v === 'object' ? v : null;
+};
+
+/**
+ * The aggregate "data" payload a route wraps as `{ data, ... }`, or the body
+ * itself when the route returns a flat object. Always prefers a non-array
+ * `data` field â€” list routes keep their arrays reachable on the full body.
+ */
+const objFrom = (r: Settled | AnyPayload): AnyPayload => {
+  const body = bodyFrom(r);
+  if (!body) return null;
+  return body.data && typeof body.data === 'object' && !Array.isArray(body.data) ? body.data : body;
+};
+
+/** List extraction; asList unwraps {data:[..]}, {tokens:[..]} and bare arrays. */
+const listFrom = (r: Settled): AnyPayload[] | null =>
+  r.status === 'fulfilled' ? asList(r.value) : null;
+
+/** Live per-modality counts for the radiology specialists — orders list filtered by modality. */
+async function modalityKpis(modality: string, scheduledLabel: string, completedLabel: string | null) {
+  const res = await api.get(`/radiology/orders?modality=${encodeURIComponent(modality)}`).catch(() => null);
+  const body = (res?.data ?? res ?? {}) as Record<string, unknown> | unknown[];
+  const orders: unknown[] = Array.isArray(body)
+    ? body
+    : (Array.isArray((body as Record<string, unknown>)?.orders) ? (body as { orders: unknown[] }).orders
+      : (Array.isArray(((body as Record<string, unknown>)?.data as Record<string, unknown> | undefined)?.orders) ? ((body as { data?: { orders?: unknown[] } }).data?.orders ?? []) : []));
+  const doneRe = /completed|delivered|reported|finalized|released/i;
+  const pending = orders.filter((o) => !doneRe.test(String((o as Record<string, unknown>)?.status ?? ''))).length;
+  const completed = orders.filter((o) => doneRe.test(String((o as Record<string, unknown>)?.status ?? ''))).length;
+  const out: Partial<Record<string, string>> = { [scheduledLabel]: fmt(pending) };
+  if (completedLabel) out[completedLabel] = fmt(completed);
+  return out;
+}
+
+/** Live per-section (department) counts from /lab/sections — one row per section. */
+const lisSectionKpis = async (sectionName: string, totalLabel: string, pendingLabel: string): Promise<Partial<Record<string, string>>> => {
+  const res = await api.get('/lab/sections').catch(() => null);
+  if (!res) return { [totalLabel]: '—', [pendingLabel]: '—' };
+  const body = (res as unknown as Record<string, unknown>)?.data ?? res;
+  const sections = (Array.isArray(body) ? body
+    : Array.isArray((body as Record<string, unknown> | undefined)?.sections)
+      ? ((body as Record<string, unknown>).sections as unknown[])
+      : []);
+  const row = (sections as Array<Record<string, unknown>>).find((s) => s.section === sectionName);
+  if (!row) return { [totalLabel]: '—', [pendingLabel]: '—' };
+  const total = Number(row.tests) || 0;
+  const pending = Number(row.pending) || 0;
+  return {
+    [totalLabel]: fmt(total),
+    [pendingLabel]: fmt(pending),
+  };
+};
+
 export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record<string, number | string>>> {
   try {
     switch (roleKey) {
       case 'doctor': {
-        const [dashRes, apptRes] = await Promise.allSettled([
+        const [dashR, apptR] = await Promise.allSettled([
           api.get('/doctor/dashboard'),
           api.get('/appointments'),
         ]);
-        const dash = dashRes.status === 'fulfilled' ? dashRes.value?.data || dashRes.value || {} : {};
-        const appts = apptRes.status === 'fulfilled' ? apptRes.value?.data || apptRes.value || [] : [];
-        const apptList = Array.isArray(appts) ? appts : [];
+        const dash = objFrom(dashR);
+        const appts = listFrom(apptR);
+        if (!dash && !appts) {
+          return noData("Today's Appointments", 'Patients Waiting', 'Inpatients (IPD)', 'Pending Rx/Orders');
+        }
         const todayStr = new Date().toDateString();
-        const todayAppts = apptList.filter((a: any) => {
-          const raw = a?.date || a?.scheduledAt;
-          return raw && new Date(raw).toDateString() === todayStr;
-        }).length;
+        const todayAppts = appts === null
+          ? null
+          : appts.filter((a: any) => {
+              const raw = a?.date || a?.scheduledAt;
+              return raw && new Date(raw).toDateString() === todayStr;
+            }).length;
+        const fromAppts = (pred: (a: any) => boolean): number | null =>
+          appts === null ? null : appts.filter(pred).length;
 
-        const waiting = dash.opd?.waiting ?? (apptList.filter((a: any) => a?.status === 'Pending' || a?.status === 'Waiting').length || 5);
-        const seen = dash.opd?.seen ?? (apptList.filter((a: any) => a?.status === 'Completed').length || 12);
-        const totalToday = todayAppts || (waiting + seen) || 28;
-        const ipd = dash.ipd ?? 12;
-        const pendingRx = dash.results?.pending ?? 2;
+        const waiting = num(dash?.opd?.waiting) ?? fromAppts((a: any) => a?.status === 'Pending' || a?.status === 'Waiting');
+        const seen = num(dash?.opd?.seen) ?? fromAppts((a: any) => a?.status === 'Completed');
+        const computedTotal = todayAppts ?? (waiting !== null && seen !== null ? waiting + seen : null);
+        const ipd = num(dash?.ipd);
+        const pendingRx = num(dash?.results?.pending);
 
         return {
-          "Today's Appointments": totalToday,
-          todaysAppointments: totalToday,
-          "Patients Waiting": waiting,
-          patientsWaiting: waiting,
-          "Inpatients (IPD)": ipd,
-          inpatientsIpd: ipd,
-          "Pending Rx/Orders": pendingRx,
-          pendingRxOrders: pendingRx,
+          "Today's Appointments": fmt(computedTotal),
+          todaysAppointments: fmt(computedTotal),
+          "Patients Waiting": fmt(waiting),
+          patientsWaiting: fmt(waiting),
+          "Inpatients (IPD)": fmt(ipd),
+          inpatientsIpd: fmt(ipd),
+          "Pending Rx/Orders": fmt(pendingRx),
+          pendingRxOrders: fmt(pendingRx),
+        };
+      }
+      case 'superadmin': {
+        const [hc, dc, uc] = await Promise.allSettled([
+          api.get('/hospitals?limit=1&status=approved'),
+          api.get('/doctors?includeAll=true&limit=1'),
+          api.get('/users/count'),
+        ]);
+        const hospitals = hc.status === 'fulfilled' && hc.value ? num(objFrom(hc.value)?.total) : null;
+        const doctors = dc.status === 'fulfilled' && dc.value ? num(objFrom(dc.value)?.total) : null;
+        const usersAgg = uc.status === 'fulfilled' && uc.value ? objFrom(uc.value) : null;
+        const totalUsers = usersAgg ? num(usersAgg.total) : null;
+        const todayUsers = usersAgg ? num(usersAgg.todayCount) : null;
+        // Active Subscriptions and System Uptime have no endpoint — keep honest dash.
+        return {
+          'Registered Hospitals': fmt(hospitals),
+          registeredHospitals: fmt(hospitals),
+          'Platform Doctors': fmt(doctors),
+          platformDoctors: fmt(doctors),
+          'Active Subscriptions': '—',
+          activeSubscriptions: '—',
+          'System Uptime': '—',
+          systemUptime: '—',
+          'Total Platform Users': fmt(totalUsers),
+          totalPlatformUsers: fmt(totalUsers),
+          "Today's New Users": fmt(todayUsers),
+          todaysNewUsers: fmt(todayUsers),
         };
       }
       case 'hospital_admin':
       case 'hospital_owner': {
-        const res = await api.get('/dashboard/operations').catch(() => null);
-        const d = res?.data || {};
-        const beds = d.beds || {};
-        const total = beds.total || 0;
-        const occupied = total ? total - (beds.free || 0) : 0;
+        const opsR = await api.get('/dashboard/operations').then(r => r).catch(() => null);
+        const d = opsR ? objFrom(opsR) : null;
+        const rev = d?.money && typeof d.money === 'object' ? d.money : null;
+        if (!d && !rev) {
+          return noData("Today's Patients", 'Active Admissions', 'Discharges Due', 'Staff Present', 'Total Beds', 'Occupied', 'Available', "Today's OPD", 'Current IPD', "Today's Collection");
+        }
+        const opdWaiting = num(d?.opdQueue?.waiting);
+        const activeIpd = num(d?.activeIpd);
+        const erActive = num(d?.erActive);
+        const todayPatients = [opdWaiting, activeIpd, erActive].every((v) => v === null)
+          ? null
+          : (opdWaiting ?? 0) + (activeIpd ?? 0) + (erActive ?? 0);
+        const beds = d?.beds && typeof d.beds === 'object' ? d.beds : {};
+        const bedsTotal = num(beds.total);
+        const bedsFree = num(beds.free);
+        const occupancyPct = num(beds.occupancyPct);
+        const collectedToday = rev ? num(rev.collectedToday) : null;
         return {
-          "Today's Patients": (d.opdQueue?.waiting || 0) + (d.activeIpd || 0) + (d.erActive || 0) || 585,
-          todaysPatients: (d.opdQueue?.waiting || 0) + (d.activeIpd || 0) + (d.erActive || 0) || 585,
-          "Active Admissions": d.activeIpd ?? 142,
-          activeAdmissions: d.activeIpd ?? 142,
-          "Discharges Due": d.dischargesPending ?? 18,
-          dischargesDue: d.dischargesPending ?? 18,
-          "Staff Present": '168/180',
-          staffPresent: '168/180',
-          totalBeds: total,
-          occupied: `${occupied} (${beds.occupancyPct || 0}%)`,
-          available: beds.free,
+          "Today's Patients": fmt(todayPatients),
+          todaysPatients: fmt(todayPatients),
+          "Active Admissions": fmt(activeIpd),
+          activeAdmissions: fmt(activeIpd),
+          "Discharges Due": fmt(d ? num(d.dischargesPending) : null),
+          dischargesDue: fmt(d ? num(d.dischargesPending) : null),
+          // No presence endpoint is wired for this KPI yet — never fabricate.
+          "Staff Present": '—',
+          staffPresent: '—',
+          totalBeds: fmt(bedsTotal),
+          occupied: bedsTotal !== null && bedsFree !== null ? `${bedsTotal - bedsFree} (${occupancyPct ?? 0}%)` : '—',
+          available: fmt(bedsFree),
+          // hospital_owner aliases — same live sources, exact label-slug keys
+          "Today's OPD": fmt(opdWaiting),
+          todaysOPD: fmt(opdWaiting),
+          "Current IPD": fmt(activeIpd),
+          currentIPD: fmt(activeIpd),
+          "Bed Occupancy": occupancyPct === null ? '—' : `${occupancyPct}%`,
+          bedOccupancy: occupancyPct === null ? '—' : `${occupancyPct}%`,
+          "Today's Collection": collectedToday === null ? '—' : `₹${collectedToday.toLocaleString('en-IN')}`,
+          todaysCollection: collectedToday === null ? '—' : `₹${collectedToday.toLocaleString('en-IN')}`,
         };
       }
       case 'bed_manager': {
         const s = await api.get('/beds/stats').catch(() => null);
-        if (!s) return {};
-        const pct = s.total ? `${Math.round((s.occupied / s.total) * 100)}%` : '0%';
+        const bs = s ? objFrom(s) : null;
+        if (!bs) return noData('Total Beds', 'Occupied', 'Available', 'Under Cleaning');
+        const total = num(bs.total);
+        const occupied = num(bs.occupied);
+        const maintenance = num(bs.maintenance);
+        const pct = total ? `${Math.round(((occupied ?? 0) / total) * 100)}%` : '0%';
         return {
-          "Total Beds": s.total ?? 0,
-          totalBeds: s.total ?? 0,
-          "Occupied": `${s.occupied ?? 0} (${pct})`,
-          occupied: `${s.occupied ?? 0} (${pct})`,
-          "Available": s.available ?? 0,
-          available: s.available ?? 0,
-          "Under Cleaning": s.maintenance ?? 0,
-          underCleaning: s.maintenance ?? 0,
+          "Total Beds": fmt(total),
+          totalBeds: fmt(total),
+          "Occupied": occupied === null ? 'â€”' : `${occupied} (${pct})`,
+          occupied: occupied === null ? 'â€”' : `${occupied} (${pct})`,
+          "Available": fmt(num(bs.available)),
+          available: fmt(num(bs.available)),
+          "Under Cleaning": fmt(maintenance),
+          underCleaning: fmt(maintenance),
         };
       }
       case 'nurse': {
-        const [nursingRes, bedsRes] = await Promise.allSettled([
+        const [nursingR, bedsR] = await Promise.allSettled([
           api.get('/nursing/stats'),
           api.get('/beds/stats'),
         ]);
-        const ns = nursingRes.status === 'fulfilled' ? nursingRes.value?.data || nursingRes.value || {} : {};
-        const bs = bedsRes.status === 'fulfilled' ? bedsRes.value?.data || bedsRes.value || {} : {};
-        const assignedBeds = `${bs.occupied ?? 6} Beds`;
-        const vitalsDue = `${ns.vitals ?? 2} Recorded`;
-        const medsDue = `${ns.mar ?? 4} Administered`;
-        const tasksDone = `${(ns.io ?? 8) + (ns.woundDressing ?? 10)} Done`;
+        const ns = objFrom(nursingR);
+        const bs = objFrom(bedsR);
+        if (!ns && !bs) return noData('Assigned Beds', 'Vitals Due', 'Medications Due', 'Completed Care Tasks');
+        const occupied = bs ? num(bs.occupied) : null;
+        const vitals = ns ? num(ns.vitals) : null;
+        const mar = ns ? num(ns.mar) : null;
+        const io = ns ? num(ns.io) : null;
+        const wound = ns ? num(ns.woundDressing) : null;
+        const tasks = ns ? ((io ?? 0) + (wound ?? 0)) : null;
         return {
-          "Assigned Beds": assignedBeds,
-          assignedBeds,
-          "Vitals Due": vitalsDue,
-          vitalsDue,
-          "Medications Due": medsDue,
-          medicationsDue: medsDue,
-          "Completed Care Tasks": tasksDone,
-          completedCareTasks: tasksDone,
+          "Assigned Beds": fmt(occupied, ' Beds'),
+          assignedBeds: fmt(occupied, ' Beds'),
+          "Vitals Due": fmt(vitals, ' Recorded'),
+          vitalsDue: fmt(vitals, ' Recorded'),
+          "Medications Due": fmt(mar, ' Administered'),
+          medicationsDue: fmt(mar, ' Administered'),
+          "Completed Care Tasks": fmt(tasks, ' Done'),
+          completedCareTasks: fmt(tasks, ' Done'),
+        };
+      }
+      case 'nursing_supervisor':
+      case 'matron': {
+        const [bedsR, nursingR] = await Promise.allSettled([
+          api.get('/beds/stats'),
+          api.get('/nursing/stats'),
+        ]);
+        const bs = objFrom(bedsR);
+        const ns = objFrom(nursingR);
+        if (!bs && !ns) {
+          return noData('Patients in Care', 'Bed Occupancy', 'MAR Doses Administered',
+            'Vitals Entries Logged', 'Care Tasks Completed', 'Beds in Turnaround');
+        }
+        const occupied = bs ? num(bs.occupied) : null;
+        const total = bs ? num(bs.total) : null;
+        const occupancyPct = bs && total !== null && total > 0
+          ? `${Math.round((((occupied ?? 0) / total) * 100))}%`
+          : '—';
+        const io = ns ? num(ns.io) : null;
+        const wound = ns ? num(ns.woundDressing) : null;
+        const tasks = ns ? (io ?? 0) + (wound ?? 0) : null;
+        return {
+          'Patients in Care': fmt(occupied),
+          patientsInCare: fmt(occupied),
+          'Bed Occupancy': occupancyPct,
+          bedOccupancy: occupancyPct,
+          'MAR Doses Administered': fmt(ns ? num(ns.mar) : null),
+          marDosesAdministered: fmt(ns ? num(ns.mar) : null),
+          'Vitals Entries Logged': fmt(ns ? num(ns.vitals) : null),
+          vitalsEntriesLogged: fmt(ns ? num(ns.vitals) : null),
+          'Care Tasks Completed': fmt(tasks, ' Done'),
+          careTasksCompleted: fmt(tasks, ' Done'),
+          'Beds in Turnaround': fmt(bs ? num(bs.maintenance) : null),
+          bedsInTurnaround: fmt(bs ? num(bs.maintenance) : null),
+        };
+      }
+      case 'medical_director':
+      case 'medical_superintendent':
+      case 'cmo': {
+        const [opsR, labR] = await Promise.allSettled([
+          api.get('/dashboard/operations'),
+          api.get('/lab/stats'),
+        ]);
+        const d = objFrom(opsR);
+        const ls = objFrom(labR);
+        if (!d && !ls) {
+          return noData('Bed Occupancy', 'OPD Waiting Now', 'IPD Census',
+            'Critical Labs Awaiting Review', 'Critical Alert Count', 'Discharge Summaries Due', 'Average LOS');
+        }
+        const beds = d?.beds && typeof d.beds === 'object' ? d.beds : null;
+        const bedsTotal = beds ? num(beds.total) : null;
+        const bedsFree = beds ? num(beds.free) : null;
+        const occupancyPct = bedsTotal !== null && bedsTotal > 0 && bedsFree !== null
+          ? `${Math.round(((bedsTotal - bedsFree) / bedsTotal) * 100)}%`
+          : '—';
+        return {
+          'Bed Occupancy': occupancyPct,
+          bedOccupancy: occupancyPct,
+          'OPD Waiting Now': fmt(d ? num(d.opdQueue?.waiting) : null),
+          opdWaitingNow: fmt(d ? num(d.opdQueue?.waiting) : null),
+          'IPD Census': fmt(d ? num(d.activeIpd) : null),
+          ipdCensus: fmt(d ? num(d.activeIpd) : null),
+          'Critical Labs Awaiting Review': fmt(ls ? num(ls.critical) : null),
+          criticalLabsAwaitingReview: fmt(ls ? num(ls.critical) : null),
+          // medical_superintendent aliases — same live sources
+          'Critical Alert Count': fmt(ls ? num(ls.critical) : null),
+          criticalAlertCount: fmt(ls ? num(ls.critical) : null),
+          'Discharge Summaries Due': fmt(d ? num(d.dischargesPending) : null),
+          dischargeSummariesDue: fmt(d ? num(d.dischargesPending) : null),
+          // No LOS or ALOS telemetry is wired yet — keep the honest dash.
+          'Average LOS': '—',
+          averageLos: '—',
+        };
+      }
+      case 'compliance_officer': {
+        const [licR, dsrR] = await Promise.allSettled([
+          api.get('/licenses/stats'),
+          api.get('/admin/dsr?overdue=1&limit=1'),
+        ]);
+        const ls = objFrom(licR);
+        const dsr = objFrom(dsrR);
+        if (!ls && !dsr) {
+          return noData('Licenses Expiring Soon', 'Open DSR Requests', 'CAPA Overdue', 'Open Audit Findings');
+        }
+        return {
+          'Licenses Expiring Soon': fmt(ls ? num(ls.expiringSoon) : null),
+          licensesExpiringSoon: fmt(ls ? num(ls.expiringSoon) : null),
+          'Open DSR Requests': fmt(dsr ? num(dsr.total) : null),
+          openDsrRequests: fmt(dsr ? num(dsr.total) : null),
+          // No CAPA/audit-finding endpoints exist yet — never fabricate.
+          'CAPA Overdue': '—',
+          capaOverdue: '—',
+          'Open Audit Findings': '—',
+          openAuditFindings: '—',
+        };
+      }
+      case 'dietician_head': {
+        const res = await api.get('/diet/stats').catch(() => null);
+        const ds = res ? objFrom(res) : null;
+        if (!ds) return noData('Active Diet Plans', 'Meals Served Today', 'Pending Dietitian Review', 'Menu Budget Variance');
+        const active = num(ds.active);
+        const todayMeals = num(ds.todayMeals);
+        const total = num(ds.total);
+        const reviewed = num(ds.reviewed);
+        const pendingReview = total !== null && reviewed !== null ? Math.max(total - reviewed, 0) : null;
+        return {
+          'Active Diet Plans': fmt(active),
+          activeDietPlans: fmt(active),
+          'Meals Served Today': fmt(todayMeals),
+          mealsServedToday: fmt(todayMeals),
+          'Pending Dietitian Review': fmt(pendingReview),
+          pendingDietitianReview: fmt(pendingReview),
+          // Menu budget has no feed yet.
+          'Menu Budget Variance': '—',
+          menuBudgetVariance: '—',
         };
       }
       case 'emergency': {
-        const [erRes, statsRes] = await Promise.allSettled([
+        const [erR, statsR] = await Promise.allSettled([
           api.get('/emergency'),
           api.get('/emergency/stats'),
         ]);
-        const list = erRes.status === 'fulfilled' ? (Array.isArray(erRes.value?.data) ? erRes.value.data : (Array.isArray(erRes.value) ? erRes.value : [])) : [];
-        const stats = statsRes.status === 'fulfilled' ? statsRes.value?.data || statsRes.value || {} : {};
-        const total = list.length || stats.total || 16;
-        const redCount = list.filter((e: any) => e.severity === 'Critical' || e.triage === 'Red').length || 1;
-        const yellowCount = list.filter((e: any) => e.severity === 'Serious' || e.triage === 'Yellow').length || 5;
-        const greenCount = list.filter((e: any) => e.severity === 'Normal' || e.triage === 'Green').length || (total - redCount - yellowCount > 0 ? total - redCount - yellowCount : 10);
+        const list = listFrom(erR);
+        const stats = objFrom(statsR);
+        if (!list && !stats) return noData('Patients in ER', 'Red (Priority 1)', 'Yellow (Priority 2)', 'Green (Priority 3)');
+        const statsTotal = stats ? num(stats.total) : null;
+        const listTotal = list ? list.length : null;
+        const total = statsTotal ?? listTotal;
+        const critical = stats ? num(stats.critical) : null;
+        const filterBy = (re: RegExp): number | null =>
+          list ? list.filter((e: any) => re.test(String(e?.severity ?? e?.triage ?? ''))).length : null;
+        const redCount = filterBy(/critical|red/i) ?? critical;
+        const yellowCount = filterBy(/serious|yellow/i);
+        const greenCount = list
+          ? list.filter((e: any) => /normal|green/i.test(String(e?.severity ?? e?.triage ?? ''))).length
+          : null;
         return {
-          "Patients in ER": total,
-          patientsInEr: total,
-          "Red (Priority 1)": `${redCount} Resus`,
-          redPriority1: `${redCount} Resus`,
-          "Yellow (Priority 2)": `${yellowCount} Urgent`,
-          yellowPriority2: `${yellowCount} Urgent`,
-          "Green (Priority 3)": `${greenCount} Stable`,
-          greenPriority3: `${greenCount} Stable`,
+          "Patients in ER": fmt(total),
+          patientsInEr: fmt(total),
+          "Red (Priority 1)": redCount === null ? 'â€”' : `${redCount} Resus`,
+          redPriority1: redCount === null ? 'â€”' : `${redCount} Resus`,
+          "Yellow (Priority 2)": yellowCount === null ? 'â€”' : `${yellowCount} Urgent`,
+          yellowPriority2: yellowCount === null ? 'â€”' : `${yellowCount} Urgent`,
+          "Green (Priority 3)": greenCount === null ? 'â€”' : `${greenCount} Stable`,
+          greenPriority3: greenCount === null ? 'â€”' : `${greenCount} Stable`,
         };
       }
       case 'cashier':
       case 'billing_executive': {
         const res = await api.get('/billing').catch(() => null);
-        const billData = res?.data || res || {};
-        const bills = Array.isArray(billData.bills) ? billData.bills : (Array.isArray(billData.data) ? billData.data : []);
-        const totalPaid = billData.summary?.paid ?? 184500;
-        const pendingCount = bills.filter((b: any) => b.status === 'Pending' || b.status === 'Unpaid').length || 14;
-        const refundCount = bills.filter((b: any) => b.status === 'Refunded' || b.status === 'Cancelled').length || 2;
-        const cashInHand = Math.round(totalPaid * 0.25);
+        const billData = res ? objFrom(res) : null;
+        if (!billData) return noData("Today's Till Collection", 'Pending Clearances', 'Cash in Hand', 'Refunds Processed');
+        const bills = Array.isArray(billData.bills) ? billData.bills : (Array.isArray(billData.data) ? billData.data : asList(billData));
+        const totalPaid = num(billData.summary?.paid);
+        const pendingCount = bills.filter((b: any) => b.status === 'Pending' || b.status === 'Unpaid').length;
+        const refundCount = bills.filter((b: any) => b.status === 'Refunded' || b.status === 'Cancelled').length;
+        const cashInHand = totalPaid !== null ? Math.round(totalPaid * 0.25) : null;
         return {
-          "Today's Till Collection": `₹${Number(totalPaid).toLocaleString('en-IN')}`,
-          todayTillCollection: `₹${Number(totalPaid).toLocaleString('en-IN')}`,
+          "Today's Till Collection": totalPaid === null ? 'â€”' : `â‚¹${totalPaid.toLocaleString('en-IN')}`,
+          todayTillCollection: totalPaid === null ? 'â€”' : `â‚¹${totalPaid.toLocaleString('en-IN')}`,
           "Pending Clearances": `${pendingCount} Invoices`,
           pendingClearances: `${pendingCount} Invoices`,
-          "Cash in Hand": `₹${Number(cashInHand).toLocaleString('en-IN')}`,
-          cashInHand: `₹${Number(cashInHand).toLocaleString('en-IN')}`,
+          "Cash in Hand": cashInHand === null ? 'â€”' : `â‚¹${cashInHand.toLocaleString('en-IN')}`,
+          cashInHand: cashInHand === null ? 'â€”' : `â‚¹${cashInHand.toLocaleString('en-IN')}`,
           "Refunds Processed": `${refundCount} Approvals`,
           refundsProcessed: `${refundCount} Approvals`,
         };
       }
+      case 'auditor': {
+        const res = await api.get('/audit-logs/stats').catch(() => null);
+        const s = res ? objFrom(res) : null;
+        if (!s) {
+          return noData('Audit Events (24h)', 'Open Audit Findings', 'Clinical Documentation Audits', 'Billing Discrepancies');
+        }
+        return {
+          'Audit Events (24h)': fmt(num(s.last24h)),
+          auditEvents24h: fmt(num(s.last24h)),
+          // No CAPA/findings/billing-audit endpoints exist yet — never fabricate.
+          'Open Audit Findings': '—',
+          openAuditFindings: '—',
+          'Clinical Documentation Audits': '—',
+          clinicalDocumentationAudits: '—',
+          'Billing Discrepancies': '—',
+          billingDiscrepancies: '—',
+        };
+      }
+      case 'quality_officer': {
+        const list = await getList('/safety/incidents');
+        const open = list.filter((i: Record<string, unknown>) => !/closed|resolved|complete/i.test(String(i?.status ?? ''))).length;
+        return {
+          // Backend lister returns matching rows — we can count them honestly.
+          'Open Incident Reports': fmt(open),
+          openIncidentReports: fmt(open),
+          // No CAPA/audit-completion endpoint is wired yet.
+          'CAPA Pending Actions': '—',
+          capaPendingActions: '—',
+          'NABH Quality KPIs Tracked': '—',
+          nabhQualityKpisTracked: '—',
+          'Clinical Audits Completed': '—',
+          clinicalAuditsCompleted: '—',
+        };
+      }
+      case 'mis_reporting': {
+        const res = await api.get('/dashboard/operations').catch(() => null);
+        const d = res ? objFrom(res) : null;
+        if (!d) {
+          return noData('Hospital Census', 'Average Bed Turnover', 'Gross Hospital Revenue', 'Clinical Turnaround Index');
+        }
+        const opdWaiting = num(d.opdQueue?.waiting);
+        const activeIpd = num(d.activeIpd);
+        const census = [opdWaiting, activeIpd].every((v) => v === null)
+          ? null
+          : (opdWaiting ?? 0) + (activeIpd ?? 0);
+        const money = d.money && typeof d.money === 'object' ? d.money : null;
+        return {
+          'Hospital Census': fmt(census),
+          hospitalCensus: fmt(census),
+          // No bed-rotation or TAT endpoint exists yet — never fabricate.
+          'Average Bed Turnover': '—',
+          averageBedTurnover: '—',
+          'Gross Hospital Revenue': money ? fmt(num(money.billed), ' ₹') : '—',
+          grossHospitalRevenue: money ? fmt(num(money.billed), ' ₹') : '—',
+          'Clinical Turnaround Index': '—',
+          clinicalTurnaroundIndex: '—',
+        };
+      }
+      case 'it_admin': {
+        // Platform-wide user counts are superadmin-only; no facility-scoped
+        // IT/directory rollup endpoint exists yet — never fabricate.
+        return noData('Active Users', 'Suspended Accounts', '2FA-Pending Enrollment', 'Infrastructure Alerts');
+      }
       case 'receptionist': {
-        const [tokRes, billRes] = await Promise.allSettled([
+        const [tokR, billR] = await Promise.allSettled([
           api.get('/tokens'),
           api.get('/billing'),
         ]);
-        const tokens = tokRes.status === 'fulfilled' ? (Array.isArray(tokRes.value?.data?.tokens) ? tokRes.value.data.tokens : (Array.isArray(tokRes.value?.data) ? tokRes.value.data : (Array.isArray(tokRes.value?.tokens) ? tokRes.value.tokens : []))) : [];
-        const billData = billRes.status === 'fulfilled' ? billRes.value?.data || billRes.value || {} : {};
-        const totalIssued = tokens.length || 186;
-        const waitingCount = tokens.filter((t: any) => t.status === 'Waiting').length || 28;
-        const newRegCount = tokens.filter((t: any) => t.type === 'Registration' || t.priority === 'Normal').length || 42;
-        const collectionLakhs = ((billData.summary?.paid || 124000) / 100000).toFixed(2);
+        if (tokR.status !== 'fulfilled' && billR.status !== 'fulfilled') {
+          return noData('New Registrations', 'Walk-in Tokens Issued', 'Checked-in Patients', "Today's Counter Collections");
+        }
+        const tokens = listFrom(tokR);
+        const billData = billR.status === 'fulfilled' ? objFrom(billR) : null;
+        const totalIssued = tokens !== null ? tokens.length : null;
+        const waitingCount = tokens === null ? null : tokens.filter((t: any) => t.status === 'Waiting').length;
+        const newRegCount = tokens === null ? null : tokens.filter((t: any) => t.type === 'Registration' || t.priority === 'Normal').length;
+        const paid = billData ? num(billData.summary?.paid) : null;
+        const collectionLakhs = paid !== null ? (paid / 100000).toFixed(2) : null;
         return {
-          "New Registrations": `${newRegCount} UHIDs`,
-          newRegistrations: `${newRegCount} UHIDs`,
-          "Walk-in Tokens Issued": `${totalIssued} Tokens`,
-          walkinTokensIssued: `${totalIssued} Tokens`,
-          "Checked-in Patients": `${waitingCount} Waiting`,
-          checkedinPatients: `${waitingCount} Waiting`,
-          "Today's Counter Collections": `₹${collectionLakhs}L`,
-          todaysCounterCollections: `₹${collectionLakhs}L`,
+          "New Registrations": fmt(newRegCount, ' UHIDs'),
+          newRegistrations: fmt(newRegCount, ' UHIDs'),
+          "Walk-in Tokens Issued": fmt(totalIssued, ' Tokens'),
+          walkinTokensIssued: fmt(totalIssued, ' Tokens'),
+          "Checked-in Patients": fmt(waitingCount, ' Waiting'),
+          checkedinPatients: fmt(waitingCount, ' Waiting'),
+          "Today's Counter Collections": collectionLakhs === null ? 'â€”' : `â‚¹${collectionLakhs}L`,
+          todaysCounterCollections: collectionLakhs === null ? 'â€”' : `â‚¹${collectionLakhs}L`,
         };
       }
       case 'lab_technician':
-      case 'pathologist': {
+      case 'pathologist':
+      case 'lab_manager':
+      case 'lab_admin':
+      case 'lab_supervisor':
+      case 'lab_receiving':
+      case 'lab_quality_mgr':
+      case 'report_coordinator':
+      case 'analyzer_staff': {
         const res = await api.get('/lab/stats').catch(() => null);
-        const ls = res?.data || res || {};
-        const pendingColl = `${ls.awaitingIntake ?? ls.pending ?? 24} Samples`;
-        const inProcessing = `${ls.processing ?? 18} Runs`;
-        const pendingEntry = `${ls.awaitingVerification ?? 12} Tests`;
-        const rejected = `${ls.rejectedToday ?? 2} Samples`;
+        const ls = res ? objFrom(res) : null;
+        if (!ls) {
+          return noData('Samples Pending Collection', 'Samples in Processing', 'Results Pending Entry', 'Rejected / Recollect',
+            'Awaiting Verification', 'Critical Panic Alerts', 'Verified Reports Today');
+        }
+        const intakeN = num(ls.awaitingIntake);
+        const pendingN = num(ls.pending);
+        const processingN = num(ls.processing);
+        const verifyN = num(ls.awaitingVerification);
+        const criticalN = num(ls.critical);
+        const verifiedN = num(ls.verifiedToday);
+        const rejectedN = num(ls.rejectedToday);
+        const collection = intakeN ?? pendingN;
         return {
-          "Samples Pending Collection": pendingColl,
-          samplesPendingCollection: pendingColl,
-          "Samples in Processing": inProcessing,
-          samplesInProcessing: inProcessing,
-          "Results Pending Entry": pendingEntry,
-          resultsPendingEntry: pendingEntry,
-          "Rejected / Recollect": rejected,
-          rejectedRecollect: rejected,
+          "Samples Pending Collection": fmt(collection, ' Samples'),
+          samplesPendingCollection: fmt(collection, ' Samples'),
+          "Samples in Processing": fmt(processingN, ' Runs'),
+          samplesInProcessing: fmt(processingN, ' Runs'),
+          "Results Pending Entry": fmt(verifyN, ' Tests'),
+          resultsPendingEntry: fmt(verifyN, ' Tests'),
+          "Rejected / Recollect": fmt(rejectedN, ' Samples'),
+          rejectedRecollect: fmt(rejectedN, ' Samples'),
+          // HMS pathologist spec labels
+          "Awaiting Verification": fmt(verifyN),
+          awaitingVerification: fmt(verifyN),
+          "Critical Panic Alerts": fmt(criticalN),
+          criticalPanicAlerts: fmt(criticalN),
+          "Verified Reports Today": fmt(verifiedN),
+          verifiedReportsToday: fmt(verifiedN),
+          // LIS spec labels (lab_technician / lab_receiving / lab_supervisor /
+          // lab_admin / lab_manager / pathologist / report_coordinator)
+          "Assigned Worklist Samples": fmt(pendingN),
+          assignedWorklistSamples: fmt(pendingN),
+          "Tests In-Progress": fmt(processingN),
+          testsInProgress: fmt(processingN),
+          "Results Ready for Validation": fmt(verifyN),
+          resultsReadyForValidation: fmt(verifyN),
+          "Abnormal High/Low Flags": fmt(criticalN),
+          abnormalHighLowFlags: fmt(criticalN),
+          "Samples Awaiting Intake": fmt(intakeN),
+          samplesAwaitingIntake: fmt(intakeN),
+          "Samples Rejected": fmt(rejectedN),
+          samplesRejected: fmt(rejectedN),
+          "Processing in Lab": fmt(processingN),
+          processingInLab: fmt(processingN),
+          "Orders Pending Collection": fmt(pendingN),
+          ordersPendingCollection: fmt(pendingN),
+          "Reports Awaiting Sign-off": fmt(verifyN),
+          reportsAwaitingSignoff: fmt(verifyN),
+          "Critical Value Alerts": fmt(criticalN),
+          criticalValueAlerts: fmt(criticalN),
+          "Reports Awaiting Verification": fmt(verifyN),
+          reportsAwaitingVerification: fmt(verifyN),
+          "Critical Values Awaiting Sign": fmt(criticalN),
+          criticalValuesAwaitingSign: fmt(criticalN),
+          "Reports Released Today": fmt(verifiedN),
+          reportsReleasedToday: fmt(verifiedN),
+          "Reports Released by Pathologist": fmt(verifiedN),
+          reportsReleasedByPathologist: fmt(verifiedN),
+          "Active Samples in Sections": fmt(processingN),
+          activeSamplesInSections: fmt(processingN),
         };
       }
+      case 'xray_technician':
+        return modalityKpis('X-Ray', 'X-Ray Studies Scheduled', 'Exposures Completed');
+      case 'ct_technician':
+        return modalityKpis('CT Scan', 'CT Scans Scheduled', null);
+      case 'mri_technician':
+        return modalityKpis('MRI', 'MRI Scans Scheduled', 'Scans Completed');
+      case 'us_technician':
+        return modalityKpis('Ultrasound', 'Ultrasound Appointments', null);
+      case 'mammo_technician':
+        return modalityKpis('Mammography', 'Mammograms Scheduled', null);
       case 'radiology_technician':
-      case 'radiologist': {
+      case 'radiologist':
+      case 'radiology_manager':
+      case 'radiology_admin': {
         const res = await api.get('/radiology/stats').catch(() => null);
-        const rs = res?.data || res || {};
-        const orders = `${rs.total ?? 86} Studies`;
-        const waiting = `${rs.pending ?? 7} Waiting`;
-        const inProgress = `${rs.inProgress ?? 3} Active`;
-        const completed = `${rs.completed ?? 76} Pushed`;
-        const awaitingReport = `${rs.pending ?? 8} Studies`;
-        const reportedToday = `${rs.reported ?? 64} Signed`;
+        const rs = res ? objFrom(res) : null;
+        if (!rs) {
+          return noData('Imaging Orders', 'Patients in Waiting Area', 'Studies In Progress',
+            'Studies Completed', 'Studies Awaiting Report', 'Reports Finalized', 'Critical Findings');
+        }
+        const totalN = num(rs.total);
+        const pendingN = num(rs.pending);
+        const inProgressN = num(rs.inProgress);
+        const completedN = num(rs.completed);
+        const reportedN = num(rs.reported);
+        // Awaiting-report backlog = emitted studies minus signed reports.
+        const awaitingReport = completedN !== null && reportedN !== null ? Math.max(completedN - reportedN, 0) : null;
         return {
-          "Today's Imaging Orders": orders,
-          todayImagingOrders: orders,
-          "Patients in Waiting Area": waiting,
-          patientsInWaitingArea: waiting,
-          "Studies In Progress": inProgress,
-          studiesInProgress: inProgress,
-          "Completed Studies Today": completed,
-          completedStudiesToday: completed,
-          "Studies Awaiting Report": awaitingReport,
-          studiesAwaitingReport: awaitingReport,
-          "Reports Signed Today": reportedToday,
-          reportsSignedToday: reportedToday,
-          "Critical Findings": '2 Panic',
-          criticalFindings: '2 Panic',
+          "Imaging Orders": fmt(totalN, ' Studies'),
+          imagingOrders: fmt(totalN, ' Studies'),
+          "Patients in Waiting Area": fmt(pendingN, ' Waiting'),
+          patientsInWaitingArea: fmt(pendingN, ' Waiting'),
+          "Studies In Progress": fmt(inProgressN, ' Active'),
+          studiesInProgress: fmt(inProgressN, ' Active'),
+          "Studies Completed": fmt(completedN, ' Pushed'),
+          studiesCompleted: fmt(completedN, ' Pushed'),
+          "Studies Awaiting Report": fmt(awaitingReport),
+          studiesAwaitingReport: fmt(awaitingReport),
+          "Reports Finalized": fmt(reportedN),
+          reportsFinalized: fmt(reportedN),
+          // RIS spec labels (radiology_technician / radiologist / radiology_manager)
+          "Scans Completed": fmt(completedN),
+          scansCompleted: fmt(completedN),
+          "Completed Acquisitions": fmt(completedN),
+          completedAcquisitions: fmt(completedN),
+          "Scans In-Progress": fmt(inProgressN),
+          scansInProgress: fmt(inProgressN),
+          "Awaiting Slot Scheduling": fmt(pendingN),
+          awaitingSlotScheduling: fmt(pendingN),
+          "Studies Awaiting Reporting": fmt(awaitingReport),
+          studiesAwaitingReporting: fmt(awaitingReport),
+          "Reports Pending Sign-off": fmt(awaitingReport),
+          reportsPendingSignoff: fmt(awaitingReport),
+          // Assigned-studies / patient volume (RIS radiology_technician & radiology_manager)
+          "Assigned Studies": fmt(totalN),
+          assignedStudies: fmt(totalN),
+          "Imaging Patients": fmt(totalN),
+          imagingPatients: fmt(totalN),
+          // /radiology/stats has no critical-count field yet — never fabricate one.
+          "Critical Findings": fmt(num(rs.critical), ' Panic'),
+          criticalFindings: fmt(num(rs.critical), ' Panic'),
         };
       }
       case 'pharmacist': {
         const res = await api.get('/pharmacy/stats').catch(() => null);
-        const ps = res?.data || res || {};
-        const pending = `${ps.pendingDispense ?? 18} Orders`;
-        const completed = `${(ps.totalPrescriptions ?? 264) - (ps.pendingDispense ?? 18)} Filled`;
-        const nearExpiry = `${ps.expiringSoon ?? 12} Batches`;
-        const lowStock = `${ps.lowStock ?? 8} SKUs`;
+        const ps = res ? objFrom(res) : null;
+        if (!ps) {
+          return noData('Pending Dispensing', 'Completed Dispensing', 'Near-Expiry Items', 'Low Stock Alerts');
+        }
+        const pendingN = num(ps.pendingDispense);
+        const totalRx = num(ps.totalPrescriptions);
+        const completedN = pendingN !== null && totalRx !== null ? Math.max(totalRx - pendingN, 0) : null;
         return {
-          "Pending Dispensing": pending,
-          pendingDispensing: pending,
-          "Completed Dispensing": completed,
-          completedDispensing: completed,
-          "Near-Expiry Items": nearExpiry,
-          nearExpiryItems: nearExpiry,
-          "Low Stock Alerts": lowStock,
-          lowStockAlerts: lowStock,
+          "Pending Dispensing": fmt(pendingN, ' Orders'),
+          pendingDispensing: fmt(pendingN, ' Orders'),
+          "Completed Dispensing": fmt(completedN, ' Filled'),
+          completedDispensing: fmt(completedN, ' Filled'),
+          "Near-Expiry Items": fmt(num(ps.expiringSoon), ' Batches'),
+          nearExpiryItems: fmt(num(ps.expiringSoon), ' Batches'),
+          "Low Stock Alerts": fmt(num(ps.lowStock), ' SKUs'),
+          lowStockAlerts: fmt(num(ps.lowStock), ' SKUs'),
         };
       }
       case 'icu_doctor':
       case 'icu_nurse': {
-        const [bedsRes, nursingRes] = await Promise.allSettled([
+        const [bedsR, nursingR] = await Promise.allSettled([
           api.get('/beds/stats'),
           api.get('/nursing/stats'),
         ]);
-        const bs = bedsRes.status === 'fulfilled' ? bedsRes.value?.data || bedsRes.value || {} : {};
-        const ns = nursingRes.status === 'fulfilled' ? nursingRes.value?.data || nursingRes.value || {} : {};
-        const activeBeds = `${bs.occupied ?? 12}/${bs.total ?? 14}`;
-        const assignedBeds = `${Math.min(bs.occupied ?? 4, 4)} Beds`;
-        const ventilators = `${Math.min(bs.occupied ?? 8, 8)} Active`;
-        const alerts = `${ns.vitals ?? 3} Panic`;
+        const bs = objFrom(bedsR);
+        const ns = objFrom(nursingR);
+        if (!bs && !ns) return noData('Active ICU Beds', 'Assigned ICU Beds', 'Ventilator Patients', 'Critical ABG Alerts', 'High-Alert Meds Due');
+        const occupied = bs ? num(bs.occupied) : null;
+        const total = bs ? num(bs.total) : null;
+        const activeBeds = occupied !== null && total !== null ? `${occupied}/${total}` : fmt(occupied);
+        const vitals = ns ? num(ns.vitals) : null;
+        // No personal-assignment or ventilator telemetry is exposed yet.
         return {
           "Active ICU Beds": activeBeds,
           activeIcuBeds: activeBeds,
-          "Assigned ICU Beds": assignedBeds,
-          assignedIcuBeds: assignedBeds,
-          "Ventilator Patients": ventilators,
-          ventilatorPatients: ventilators,
-          "Critical ABG Alerts": alerts,
-          criticalAbgAlerts: alerts,
-          "High-Alert Meds Due": '3 Infusions',
-          highAlertMedsDue: '3 Infusions',
+          "Assigned ICU Beds": 'â€”',
+          assignedIcuBeds: 'â€”',
+          "Ventilator Patients": 'â€”',
+          ventilatorPatients: 'â€”',
+          "Critical ABG Alerts": fmt(vitals, ' Panic'),
+          criticalAbgAlerts: fmt(vitals, ' Panic'),
+          "High-Alert Meds Due": 'â€”',
+          highAlertMedsDue: 'â€”',
         };
       }
       case 'ot_coordinator':
@@ -294,11 +728,13 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
       case 'anaesthesiologist':
       case 'anaesthetist': {
         const res = await api.get('/ot/stats').catch(() => null);
-        const os = res?.data || res || {};
-        const total = `${os.today ?? os.total ?? 8} Cases`;
-        const scheduled = `${os.scheduled ?? 5} Upcoming`;
-        const inProgress = `${os.inProgress ?? 2} In Theatre`;
-        const completed = `${os.completed ?? 3} Finished`;
+        const os = res ? objFrom(res) : null;
+        if (!os) return noData('Surgeries Scheduled', 'Today Surgeries', 'Cases on Schedule', 'In Theatre', 'PAC Clearances', 'Surgeries Completed Today');
+        const total = fmt(num(os.today) ?? num(os.total), ' Cases');
+        const scheduled = fmt(num(os.scheduled), ' Upcoming');
+        const inProgress = fmt(num(os.inProgress), ' In Theatre');
+        const completed = fmt(num(os.completed), ' Finished');
+        // /ot/stats has no PAC/pre-anaesthesia clearance counter yet.
         return {
           "Surgeries Scheduled": scheduled,
           surgeriesScheduled: scheduled,
@@ -308,167 +744,195 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
           casesOnSchedule: scheduled,
           "In Theatre": inProgress,
           inTheatre: inProgress,
-          "PAC Clearances": '5 Cleared',
-          pacClearances: '5 Cleared',
+          "PAC Clearances": 'â€”',
+          pacClearances: 'â€”',
           "Surgeries Completed Today": completed,
           surgeriesCompletedToday: completed,
         };
       }
       case 'housekeeping_supervisor': {
         const res = await api.get('/beds/stats').catch(() => null);
-        const bs = res?.data || res || {};
-        const cleaning = `${bs.maintenance ?? 5} Beds`;
-        const disinfected = `${(bs.occupied ?? 12) + 24} Rooms`;
+        const bs = res ? objFrom(res) : null;
+        if (!bs) {
+          return noData('Pending Cleaning Requests', 'Rooms Disinfected Today', 'SLA Breaches (>45m)', 'Staff on Duty');
+        }
+        const cleaning = fmt(num(bs.maintenance), ' Beds');
+        // No rooms-disinfected, cleaning-SLA or staffing feed exists â€” never invent.
         return {
           "Pending Cleaning Requests": cleaning,
           pendingCleaningRequests: cleaning,
-          "Rooms Disinfected Today": disinfected,
-          roomsDisinfectedToday: disinfected,
-          "SLA Breaches (>45m)": '0 Breaches',
-          slaBreaches45m: '0 Breaches',
-          "Staff on Duty": '28 Staff',
-          staffOnDuty: '28 Staff',
+          "Rooms Disinfected Today": 'â€”',
+          roomsDisinfectedToday: 'â€”',
+          "SLA Breaches (>45m)": 'â€”',
+          slaBreaches45m: 'â€”',
+          "Staff on Duty": 'â€”',
+          staffOnDuty: 'â€”',
         };
       }
       case 'biomedical_engineer': {
-        return {
-          "Total Medical Equipment": '342 Assets',
-          totalMedicalEquipment: '342 Assets',
-          "Breakdown Tickets": '4 Open',
-          breakdownTickets: '4 Open',
-          "PM Due This Month": '12 Due',
-          pmDueThisMonth: '12 Due',
-          "Uptime Ratio": '99.2%',
-          uptimeRatio: '99.2%',
-        };
+        // No equipment-telemetry endpoint is wired yet â€” all four stay `â€”`.
+        return noData('Total Medical Equipment', 'Breakdown Tickets', 'PM Due This Month', 'Uptime Ratio');
       }
       case 'cssd_technician': {
-        return {
-          "Active Autoclave Cycles": '3 Cycles',
-          activeAutoclaveCycles: '3 Cycles',
-          "Sterile Trays Ready": '75 Sets',
-          sterileTraysReady: '75 Sets',
-          "Unprocessed Racks": '6 Trays',
-          unprocessedRacks: '6 Trays',
-          "Biological Indicator": 'Pass (Neg)',
-          biologicalIndicator: 'Pass (Neg)',
-        };
+        // No autoclave/sterility telemetry endpoint is wired yet â€” all four stay `â€”`.
+        return noData('Active Autoclave Cycles', 'Sterile Trays Ready', 'Unprocessed Racks', 'Biological Indicator');
       }
-      case 'discharge_coordinator': {
-        const res = await api.get('/dashboard/operations').catch(() => null);
-        const d = res?.data || {};
-        const pending = d.dischargesPending ?? 18;
-        return {
-          "Discharge Orders Today": `${pending} Orders`,
-          dischargeOrdersToday: `${pending} Orders`,
-          "Medication Take-Home": `${Math.round(pending * 0.7)} Packed`,
-          medicationTakeHome: `${Math.round(pending * 0.7)} Packed`,
-          "Insurance Settlement": `${Math.round(pending * 0.8)} Approved`,
-          insuranceSettlement: `${Math.round(pending * 0.8)} Approved`,
-          "Beds Ready for Release": `${pending} Beds`,
-          bedsReadyForRelease: `${pending} Beds`,
-        };
-      }
+      case 'discharge_coordinator':
+        // /dashboard/operations is hospital-leadership-only; the discharge desk
+        // KPIs ride the static spec rather than firing a doomed 403.
+        return {};
       case 'clinic_admin': {
-        const [apptsRes, billsRes] = await Promise.allSettled([
+        const [apptsR, billsR] = await Promise.allSettled([
           api.get('/appointments'),
           api.get('/bills'),
         ]);
-        const appts = apptsRes.status === 'fulfilled' ? asList(apptsRes.value) : [];
-        const bills = billsRes.status === 'fulfilled' ? asList(billsRes.value) : [];
-        const waiting = appts.filter((a: any) => a?.status === 'Waiting' || a?.status === 'Pending').length;
-        const completed = appts.filter((a: any) => a?.status === 'Completed').length;
-        const footfall = appts.length || 82;
-        const totalRev = bills.reduce((sum: number, b: any) => sum + (Number(b?.total || b?.amount) || 0), 0) || 98500;
+        if (apptsR.status !== 'fulfilled' && billsR.status !== 'fulfilled') {
+          return noData("Today's Footfall", 'Waiting in Queue', 'Completed OPD', "Today's Revenue");
+        }
+        const appts = listFrom(apptsR);
+        const bills = listFrom(billsR);
+        const waiting = appts === null ? null : appts.filter((a: any) => a?.status === 'Waiting' || a?.status === 'Pending').length;
+        const completed = appts === null ? null : appts.filter((a: any) => a?.status === 'Completed').length;
+        const footfall = appts === null ? null : appts.length;
+        const totalRev = bills === null
+          ? null
+          : bills.reduce((sum: number, b: any) => sum + (Number(b?.total || b?.amount) || 0), 0);
         return {
-          "Today's Footfall": footfall,
-          todaysFootfall: footfall,
-          "Waiting in Queue": waiting || 9,
-          waitingInQueue: waiting || 9,
-          "Completed OPD": completed || 64,
-          completedOpd: completed || 64,
-          "Today's Revenue": `₹${totalRev.toLocaleString('en-IN')}`,
-          todaysRevenue: `₹${totalRev.toLocaleString('en-IN')}`,
+          "Today's Footfall": fmt(footfall),
+          todaysFootfall: fmt(footfall),
+          "Waiting in Queue": fmt(waiting),
+          waitingInQueue: fmt(waiting),
+          "Completed OPD": fmt(completed),
+          completedOpd: fmt(completed),
+          "Today's Revenue": totalRev === null ? 'â€”' : `â‚¹${totalRev.toLocaleString('en-IN')}`,
+          todaysRevenue: totalRev === null ? 'â€”' : `â‚¹${totalRev.toLocaleString('en-IN')}`,
         };
       }
       case 'clinic_doctor': {
-        const [apptsRes] = await Promise.allSettled([api.get('/appointments')]);
-        const appts = apptsRes.status === 'fulfilled' ? asList(apptsRes.value) : [];
-        const waiting = appts.filter((a: any) => !isDoneStatus(str(a, ['status'], ''))).length || 6;
-        const completed = appts.filter((a: any) => isDoneStatus(str(a, ['status'], ''))).length || 18;
+        const [apptsR] = await Promise.allSettled([api.get('/appointments')]);
+        const appts = listFrom(apptsR);
+        if (!appts) return noData('Queue Waiting', 'Consultations Done', 'Prescriptions Issued', 'Diagnostic Orders');
+        const waiting = appts.filter((a: any) => !isDoneStatus(str(a, ['status'], ''))).length;
+        const completed = appts.filter((a: any) => isDoneStatus(str(a, ['status'], ''))).length;
+        const inConsultation = appts.filter((a: any) => /consult|progress|in-consultation/i.test(str(a, ['status'], ''))).length;
         return {
           "Queue Waiting": `${waiting} Patients`,
           queueWaiting: `${waiting} Patients`,
+          "Completed Today": `${completed} Done`,
+          completedToday: `${completed} Done`,
+          "In Consultation": `${inConsultation} In-Room`,
+          inConsultation: `${inConsultation} In-Room`,
           "Consultations Done": `${completed} Done`,
           consultationsDone: `${completed} Done`,
           "Prescriptions Issued": `${completed} e-Rx`,
           prescriptionsIssued: `${completed} e-Rx`,
-          "Diagnostic Orders": '5 Orders',
-          diagnosticOrders: '5 Orders',
+          // No diagnostic-order aggregate is wired for this role yet.
+          "Diagnostic Orders": '—',
+          diagnosticOrders: '—',
         };
       }
       case 'clinic_nurse': {
-        const [apptsRes] = await Promise.allSettled([api.get('/appointments')]);
-        const appts = apptsRes.status === 'fulfilled' ? asList(apptsRes.value) : [];
-        const pending = appts.filter((a: any) => !a?.vitalsRecorded).length || 5;
-        const recorded = appts.filter((a: any) => a?.vitalsRecorded).length || 42;
+        const [apptsR] = await Promise.allSettled([api.get('/appointments')]);
+        const appts = listFrom(apptsR);
+        if (!appts) return noData('Triage Queue', 'Vitals Recorded', 'Clinical Alerts', 'Procedures Done');
+        const pending = appts.filter((a: any) => !a?.vitalsRecorded).length;
+        const recorded = appts.filter((a: any) => a?.vitalsRecorded).length;
         return {
           "Triage Queue": `${pending} Waiting`,
           triageQueue: `${pending} Waiting`,
+          "Vitals Pending": `${pending} Waiting`,
+          vitalsPending: `${pending} Waiting`,
           "Vitals Recorded": `${recorded} Done`,
           vitalsRecorded: `${recorded} Done`,
-          "Clinical Alerts": '2 Alert',
-          clinicalAlerts: '2 Alert',
-          "Procedures Done": '8 Done',
-          proceduresDone: '8 Done',
+          // No clinical-alert or procedure telemetry is exposed yet.
+          "Clinical Alerts": '—',
+          clinicalAlerts: '—',
+          "Procedures Done": '—',
+          proceduresDone: '—',
         };
       }
       case 'clinic_receptionist': {
-        const [apptsRes, tokensRes] = await Promise.allSettled([
+        const [apptsR, tokensR] = await Promise.allSettled([
           api.get('/appointments'),
           api.get('/tokens'),
         ]);
-        const appts = apptsRes.status === 'fulfilled' ? asList(apptsRes.value) : [];
-        const tokens = tokensRes.status === 'fulfilled' ? asList(tokensRes.value) : [];
-        const total = tokens.length || appts.length || 78;
-        const waiting = appts.filter((a: any) => a?.status === 'Waiting').length || 11;
+        if (apptsR.status !== 'fulfilled' && tokensR.status !== 'fulfilled') {
+          return noData('Tokens Dispensed', 'Waiting in Lobby', 'UHID Registered', 'Doctors On-Duty');
+        }
+        const appts = listFrom(apptsR);
+        const tokens = listFrom(tokensR);
+        const tokenN = tokens === null ? null : tokens.length;
+        const apptN = appts === null ? null : appts.length;
+        const total = tokenN ?? apptN;
+        const waiting = appts === null ? null : appts.filter((a: any) => a?.status === 'Waiting').length;
         return {
-          "Tokens Dispensed": `${total} Tokens`,
-          tokensDispensed: `${total} Tokens`,
-          "Waiting in Lobby": `${waiting} Waiting`,
-          waitingInLobby: `${waiting} Waiting`,
-          "UHID Registered": '24 New',
-          uhidRegistered: '24 New',
-          "Doctors On-Duty": '6 / 6 Rooms',
-          doctorsOnDuty: '6 / 6 Rooms',
+          "Tokens Dispensed": fmt(total, ' Tokens'),
+          tokensDispensed: fmt(total, ' Tokens'),
+          "Active Queue Tokens": fmt(total, ' Tokens'),
+          activeQueueTokens: fmt(total, ' Tokens'),
+          "Waiting in Lobby": fmt(waiting, ' Waiting'),
+          waitingInLobby: fmt(waiting, ' Waiting'),
+          // No registration-count or room-roster telemetry is exposed yet.
+          "UHID Registered": '—',
+          uhidRegistered: '—',
+          "Doctors On-Duty": '—',
+          doctorsOnDuty: '—',
         };
       }
       case 'clinic_cashier': {
-        const [billsRes] = await Promise.allSettled([api.get('/bills')]);
-        const bills = billsRes.status === 'fulfilled' ? asList(billsRes.value) : [];
-        const pending = bills.filter((b: any) => !isDoneStatus(str(b, ['status'], ''))).length || 4;
-        const settled = bills.filter((b: any) => isDoneStatus(str(b, ['status'], ''))).length || 58;
+        const [billsR] = await Promise.allSettled([api.get('/bills')]);
+        const bills = listFrom(billsR);
+        if (!bills) return noData('Pending Invoices', 'Bills Settled Today', 'Cash Drawer Total', 'Digital Collections');
+        const pending = bills.filter((b: any) => !isDoneStatus(str(b, ['status'], ''))).length;
+        const settled = bills.filter((b: any) => isDoneStatus(str(b, ['status'], ''))).length;
         return {
           "Pending Invoices": `${pending} Bills`,
           pendingInvoices: `${pending} Bills`,
           "Bills Settled Today": `${settled} Settled`,
           billsSettledToday: `${settled} Settled`,
-          "Cash Drawer Total": '₹28,450',
-          cashDrawerTotal: '₹28,450',
-          "Digital Collections": '₹46,800',
-          digitalCollections: '₹46,800',
+          // No till/digital-split telemetry is exposed yet.
+          "Cash Drawer Total": 'â€”',
+          cashDrawerTotal: 'â€”',
+          "Digital Collections": 'â€”',
+          digitalCollections: 'â€”',
         };
       }
+      case 'biochem_tech':
+        return lisSectionKpis('Biochemistry', 'Biochemistry Samples', 'LFT Panels Pending');
+      case 'hematology_tech':
+        return lisSectionKpis('Hematology', 'CBC Profiles Today', 'Peripheral Smear Reviews');
+      case 'clinical_pathology_tech':
+        return lisSectionKpis('Clinical Pathology', 'Urine Routine & Microscopy', 'Stool Routine & Occult Blood');
+      case 'microbiology_tech':
+        return lisSectionKpis('Microbiology', 'Active Culture Plates', 'Cultures in Incubation');
+      case 'histopathology_tech':
+        return lisSectionKpis('Histopathology', 'Biopsy Specimens Received', 'Grossing Pending');
+      case 'cytology_tech':
+        return lisSectionKpis('Cytology', 'Pap Smears in Staining', 'FNAC Smears Prepared');
+      case 'serology_tech':
+        return lisSectionKpis('Serology', 'ELISA Plates in Incubation', 'Reactive Serology Positives');
+      case 'molecular_tech':
+        return lisSectionKpis('Molecular', 'Nucleic Extractions Ready', 'Thermal Cycler Runs');
       default: {
+        // Only roles that may read the hospital-wide operations snapshot may
+        // probe it; everyone else falls back to the static spec KPIs instead of
+        // firing a doomed 403 on every load.
+        if (!['hospital_admin', 'superadmin', 'medical_director', 'cmo', 'hospital_owner'].includes(roleKey)) return {};
         const res = await api.get('/dashboard/operations').catch(() => null);
-        const d = res?.data || {};
-        const beds = d.beds || {};
+        const d = res ? objFrom(res) : null;
+        if (!d) {
+          return { totalBeds: 'â€”', occupied: 'â€”', available: 'â€”', todayOpd: 'â€”', currentIpd: 'â€”' };
+        }
+        const beds = d.beds && typeof d.beds === 'object' ? d.beds : {};
+        const bedsTotal = num(beds.total);
+        const bedsFree = num(beds.free);
+        const occupancyPct = num(beds.occupancyPct);
         return {
-          totalBeds: beds.total,
-          occupied: beds.total ? `${beds.total - beds.free} (${beds.occupancyPct || 0}%)` : undefined,
-          available: beds.free,
-          todayOpd: d.opdQueue?.waiting,
-          currentIpd: d.activeIpd,
+          totalBeds: fmt(bedsTotal),
+          occupied: bedsTotal !== null && bedsFree !== null ? `${bedsTotal - bedsFree} (${occupancyPct ?? 0}%)` : 'â€”',
+          available: fmt(bedsFree),
+          todayOpd: fmt(num(d.opdQueue?.waiting)),
+          currentIpd: fmt(num(d.activeIpd)),
         };
       }
     }
@@ -477,10 +941,10 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
   }
 }
 
-// ─── Live work queues (Wave 3) ──────────────────────────────────────────────
+// â”€â”€â”€ Live work queues (Wave 3) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // fetchRoleQueues pulls real transactional lists per role and maps them onto
 // the canonical SPEC workQueue names (frontend/src/lib/hmsDashboardSpec.ts).
-// Queues with no live data (empty list, 403/404, network error) are omitted —
+// Queues with no live data (empty list, 403/404, network error) are omitted â€”
 // WorkQueueTable falls back to its curated roster for those, so a failed
 // request never blanks a dashboard.
 
@@ -511,7 +975,7 @@ function asList(payload: any): any[] {
 }
 
 /** First non-empty string among candidate fields. */
-function str(obj: any, keys: string[], fb = '—'): string {
+function str(obj: any, keys: string[], fb = 'â€”'): string {
   for (const k of keys) {
     const v = obj?.[k];
     if (v !== undefined && v !== null && String(v).trim() !== '') return String(v);
@@ -521,7 +985,7 @@ function str(obj: any, keys: string[], fb = '—'): string {
 
 /** Compact relative time for date-ish fields; falls back to the raw value. */
 function ago(iso: any): string {
-  if (!iso) return '—';
+  if (!iso) return 'â€”';
   const t = new Date(iso).getTime();
   if (Number.isNaN(t)) return String(iso);
   const mins = Math.max(0, Math.round((Date.now() - t) / 60000));
@@ -556,7 +1020,7 @@ function mapAppointment(a: any, actionLabel: string, actionRoute: string): LiveQ
   return {
     id: str(a, ['tokenNo', 'token', 'appointmentNo', 'appointmentId', '_id', 'id'], 'TK'),
     name: str(a, ['patientName', 'patient', 'name'], 'Walk-in Patient'),
-    meta: `UHID: ${str(a, ['uhid', 'patientUhid', 'mrn'], '—')} · ${str(a, ['doctorName', 'doctor', 'specialty', 'department'], '')}`,
+    meta: `UHID: ${str(a, ['uhid', 'patientUhid', 'mrn'], 'â€”')} Â· ${str(a, ['doctorName', 'doctor', 'specialty', 'department'], '')}`,
     detail: str(a, ['reason', 'complaint', 'chiefComplaint', 'purpose', 'symptoms'], 'General consultation'),
     timeOrWait: str(a, ['slot', 'time', 'appointmentTime'], ago(a.scheduledAt || a.date || a.createdAt)),
     status,
@@ -571,7 +1035,7 @@ function mapAdmission(a: any, actionLabel: string, actionRoute: string): LiveQue
   return {
     id: str(a, ['admissionNo', 'ipdNo', 'admissionId', '_id', 'id'], 'IPD'),
     name: str(a, ['patientName', 'patient', 'name'], 'Inpatient'),
-    meta: `${str(a, ['ward', 'wardName'], '')} ${str(a, ['bedNo', 'bed', 'bedNumber'], '')} · ${str(a, ['doctorName', 'consultant', 'doctor'], '')}`.trim(),
+    meta: `${str(a, ['ward', 'wardName'], '')} ${str(a, ['bedNo', 'bed', 'bedNumber'], '')} Â· ${str(a, ['doctorName', 'consultant', 'doctor'], '')}`.trim(),
     detail: str(a, ['diagnosis', 'provisionalDiagnosis', 'complaint', 'reason'], 'Under observation'),
     timeOrWait: ago(a.admittedAt || a.admissionDate || a.createdAt),
     status,
@@ -585,8 +1049,8 @@ function mapBed(b: any, actionLabel: string, actionRoute: string): LiveQueueRow 
   const status = str(b, ['status', 'bedStatus'], 'Occupied');
   return {
     id: str(b, ['bedNo', 'bedNumber', 'number', 'label', 'name', '_id', 'id'], 'BED'),
-    name: `${str(b, ['ward', 'wardName', 'unit'], 'Ward')} · ${str(b, ['bedNo', 'bedNumber', 'number', 'label'], '')}`.trim(),
-    meta: `${str(b, ['type', 'category', 'roomType'], '')} · ${str(b, ['patientName', 'occupant', 'patient'], '')}`.trim(),
+    name: `${str(b, ['ward', 'wardName', 'unit'], 'Ward')} Â· ${str(b, ['bedNo', 'bedNumber', 'number', 'label'], '')}`.trim(),
+    meta: `${str(b, ['type', 'category', 'roomType'], '')} Â· ${str(b, ['patientName', 'occupant', 'patient'], '')}`.trim(),
     detail: str(b, ['patientName', 'occupant', 'diagnosis', 'note'], `Bed status: ${status}`),
     timeOrWait: ago(b.updatedAt || b.cleanedAt || b.createdAt),
     status,
@@ -612,7 +1076,7 @@ async function clinicDoctorQueues(): Promise<Record<string, LiveQueueRow[]>> {
   if (recs.length) {
     const labItems = recs.slice(0, 6).map((r) => ({
       id: str(r, ['reportNo', '_id', 'id'], 'REP'),
-      name: `${str(r, ['patientName', 'patient'], 'Patient')} · ${str(r, ['diagnosis', 'testName'], 'Lab Report')}`,
+      name: `${str(r, ['patientName', 'patient'], 'Patient')} Â· ${str(r, ['diagnosis', 'testName'], 'Lab Report')}`,
       meta: `Date: ${str(r, ['date'], 'Today')}`,
       detail: str(r, ['notes', 'prescription'], 'Investigation report awaiting clinical review'),
       timeOrWait: ago(r.createdAt),
@@ -651,7 +1115,7 @@ async function clinicAdminQueues(): Promise<Record<string, LiveQueueRow[]>> {
   if (unpaid.length) {
     out['Pending Bill Settlements'] = unpaid.map((b) => ({
       id: str(b, ['invoiceNo', 'billNo', '_id', 'id'], 'INV'),
-      name: `${str(b, ['patientName', 'patient'], 'Patient')} · ₹${str(b, ['total', 'amount', 'balance'], '0')}`,
+      name: `${str(b, ['patientName', 'patient'], 'Patient')} Â· â‚¹${str(b, ['total', 'amount', 'balance'], '0')}`,
       meta: `Mode: ${str(b, ['paymentMethod', 'mode'], 'Pending')}`,
       detail: str(b, ['notes', 'itemsSummary'], 'Pending payment settlement'),
       timeOrWait: ago(b.createdAt),
@@ -762,7 +1226,7 @@ async function clinicCashierQueues(): Promise<Record<string, LiveQueueRow[]>> {
   if (unpaid.length) {
     out['Unpaid Consultation Invoices'] = unpaid.map((b) => ({
       id: str(b, ['invoiceNo', 'billNo', '_id', 'id'], 'INV'),
-      name: `${str(b, ['patientName', 'patient'], 'Patient')} · ₹${str(b, ['total', 'amount'], '0')}`,
+      name: `${str(b, ['patientName', 'patient'], 'Patient')} Â· â‚¹${str(b, ['total', 'amount'], '0')}`,
       meta: `Doctor: ${str(b, ['doctorName', 'doctor'], 'OPD')}`,
       detail: str(b, ['notes', 'itemsSummary'], 'Pending cashier counter settlement'),
       timeOrWait: ago(b.createdAt),
@@ -776,7 +1240,7 @@ async function clinicCashierQueues(): Promise<Record<string, LiveQueueRow[]>> {
   if (pharmacy.length) {
     out['Pharmacy Dispensing Bills'] = pharmacy.map((b) => ({
       id: str(b, ['billNo', '_id', 'id'], 'RX-BILL'),
-      name: `${str(b, ['patientName', 'patient'], 'Patient')} · ₹${str(b, ['total', 'amount'], '0')}`,
+      name: `${str(b, ['patientName', 'patient'], 'Patient')} Â· â‚¹${str(b, ['total', 'amount'], '0')}`,
       meta: 'Pharmacy Counter',
       detail: 'Medicines dispensed pending billing',
       timeOrWait: ago(b.createdAt),
@@ -790,7 +1254,7 @@ async function clinicCashierQueues(): Promise<Record<string, LiveQueueRow[]>> {
   if (paid.length) {
     out['Collected Receipts Log'] = paid.map((b) => ({
       id: str(b, ['receiptNo', 'invoiceNo', '_id', 'id'], 'RCT'),
-      name: `${str(b, ['patientName', 'patient'], 'Patient')} · ₹${str(b, ['total', 'amount'], '0')}`,
+      name: `${str(b, ['patientName', 'patient'], 'Patient')} Â· â‚¹${str(b, ['total', 'amount'], '0')}`,
       meta: `Mode: ${str(b, ['paymentMethod', 'mode'], 'Cash / UPI')}`,
       detail: 'Settled at counter',
       timeOrWait: ago(b.updatedAt || b.createdAt),
@@ -816,7 +1280,7 @@ async function clinicBranchManagerQueues(): Promise<Record<string, LiveQueueRow[
   if (staff.length) {
     out['Doctor Room Allocations'] = staff.slice(0, 5).map((s) => ({
       id: str(s, ['staffId', '_id', 'id'], 'RM'),
-      name: `Room ${str(s, ['roomNo', 'room'], '101')} · Dr. ${str(s, ['name', 'doctorName'], 'Consultant')}`,
+      name: `Room ${str(s, ['roomNo', 'room'], '101')} Â· Dr. ${str(s, ['name', 'doctorName'], 'Consultant')}`,
       meta: str(s, ['specialty', 'department'], 'General OPD'),
       detail: 'Consulting room occupied & active',
       timeOrWait: 'Active',
@@ -841,13 +1305,13 @@ async function clinicBranchManagerQueues(): Promise<Record<string, LiveQueueRow[
 }
 
 async function clinicLabQueues(): Promise<Record<string, LiveQueueRow[]>> {
-  const reqs = await getList('/clinic/test-requests');
-  const pool = reqs.length ? reqs : await getList('/lab/orders');
+  // /clinic/test-requests has no backend route; the lab worklist lives at /lab/orders.
+  const pool = await getList('/lab/orders');
   if (!pool.length) return {};
   return {
     'Accession & Barcode Queue': pool.map((r) => ({
       id: str(r, ['accessionNo', 'testNo', '_id', 'id'], 'LAB'),
-      name: `${str(r, ['patientName', 'patient'], 'Patient')} · ${str(r, ['testName', 'test'], 'Investigation')}`,
+      name: `${str(r, ['patientName', 'patient'], 'Patient')} Â· ${str(r, ['testName', 'test'], 'Investigation')}`,
       meta: `Ref Doctor: ${str(r, ['doctorName', 'doctor'], '')}`,
       detail: str(r, ['notes', 'clinicalNotes'], 'Sample awaiting accessioning'),
       timeOrWait: ago(r.createdAt),
@@ -858,7 +1322,7 @@ async function clinicLabQueues(): Promise<Record<string, LiveQueueRow[]>> {
     })),
     'Results Entry Worklist': pool.map((r) => ({
       id: str(r, ['accessionNo', '_id', 'id'], 'RES'),
-      name: `${str(r, ['patientName', 'patient'], 'Patient')} · ${str(r, ['testName', 'test'], 'Test')}`,
+      name: `${str(r, ['patientName', 'patient'], 'Patient')} Â· ${str(r, ['testName', 'test'], 'Test')}`,
       meta: 'Hematology / Biochemistry',
       detail: 'Test processed, enter values',
       timeOrWait: ago(r.createdAt),
@@ -1023,7 +1487,7 @@ async function bedQueues(): Promise<Record<string, LiveQueueRow[]>> {
   if (tasks.length) {
     out['Turnaround / Cleaning Queue'] = tasks.map((t) => ({
       id: str(t, ['taskNo', '_id', 'id'], 'CLN'),
-      name: `${str(t, ['ward', 'location'], 'Ward')} · ${str(t, ['bedNo', 'bed', 'room'], 'Bed')}`.trim(),
+      name: `${str(t, ['ward', 'location'], 'Ward')} Â· ${str(t, ['bedNo', 'bed', 'room'], 'Bed')}`.trim(),
       meta: str(t, ['taskType', 'type'], 'Terminal cleaning'),
       detail: str(t, ['detail', 'notes', 'description'], 'Cleaning requested on discharge'),
       timeOrWait: ago(t.createdAt),
@@ -1048,8 +1512,8 @@ async function billingQueues(queueNames: { unpaid: string; discharge?: string; r
     const status = str(b, ['status', 'paymentStatus'], 'Unpaid Invoice');
     return {
       id: str(b, ['billNo', 'invoiceNo', 'receiptNo', '_id', 'id'], 'BIL'),
-      name: `${str(b, ['patientName', 'patient', 'name'], 'Patient')} · ₹${str(b, ['balance', 'due', 'netPayable', 'total', 'amount'], '—')}`,
-      meta: `UHID: ${str(b, ['uhid', 'patientUhid'], '—')}`,
+      name: `${str(b, ['patientName', 'patient', 'name'], 'Patient')} Â· â‚¹${str(b, ['balance', 'due', 'netPayable', 'total', 'amount'], 'â€”')}`,
+      meta: `UHID: ${str(b, ['uhid', 'patientUhid'], 'â€”')}`,
       detail: str(b, ['billType', 'type', 'detail'], 'Awaiting payment clearance'),
       timeOrWait: ago(b.createdAt || b.billDate),
       status,
@@ -1169,9 +1633,9 @@ async function otQueues(queueNames: { board: string; preop?: string; notes?: str
     const status = str(c, ['status', 'caseStatus'], 'Scheduled');
     return {
       id: str(c, ['caseNo', 'surgeryNo', '_id', 'id'], 'OT'),
-      name: `${str(c, ['patientName', 'patient', 'name'], 'Patient')} · ${str(c, ['procedure', 'surgery', 'operation'], 'Procedure')}`,
-      meta: `Surgeon: ${str(c, ['surgeon', 'surgeonName'], '')} · Anaesth: ${str(c, ['anaesthetist', 'anaesthesia'], '')}`,
-      detail: `Theatre ${str(c, ['theatre', 'ot', 'room'], '')} · ${str(c, ['anaesthesiaType', 'anaesthesia'], '')}`,
+      name: `${str(c, ['patientName', 'patient', 'name'], 'Patient')} Â· ${str(c, ['procedure', 'surgery', 'operation'], 'Procedure')}`,
+      meta: `Surgeon: ${str(c, ['surgeon', 'surgeonName'], '')} Â· Anaesth: ${str(c, ['anaesthetist', 'anaesthesia'], '')}`,
+      detail: `Theatre ${str(c, ['theatre', 'ot', 'room'], '')} Â· ${str(c, ['anaesthesiaType', 'anaesthesia'], '')}`,
       timeOrWait: str(c, ['slot', 'scheduledAt'], ago(c.createdAt)),
       status,
       statusColor: colorFor(status),
@@ -1218,7 +1682,7 @@ async function singleListQueue(path: string, queueName: string, map: (x: any) =>
   return { [queueName]: list.map(map) };
 }
 
-/** Role → live work queues. Keys MUST match the role's SPEC workQueues names. */
+/** Role â†’ live work queues. Keys MUST match the role's SPEC workQueues names. */
 export async function fetchRoleQueues(roleKey: string): Promise<Record<string, LiveQueueRow[]>> {
   try {
     const role = String(roleKey || '').toLowerCase();
@@ -1242,9 +1706,9 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
       case 'clinic_inventory_mgr':
         return clinicInventoryQueues();
       case 'clinic_radiology_tech':
-        return singleListQueue('/radiology/studies', 'Modality Study Worklist', (s) => ({
+        return singleListQueue('/radiology/orders', 'Modality Study Worklist', (s) => ({
           id: str(s, ['accessionNo', 'studyNo', '_id', 'id'], 'RAD'),
-          name: `${str(s, ['patientName', 'patient'], 'Patient')} · ${str(s, ['modality', 'studyType'], 'X-Ray')}`,
+          name: `${str(s, ['patientName', 'patient'], 'Patient')} Â· ${str(s, ['modality', 'studyType'], 'X-Ray')}`,
           meta: `Room: ${str(s, ['room', 'location'], 'B-1')}`,
           detail: str(s, ['clinicalHistory', 'reason'], 'Digital radiography scan ordered'),
           timeOrWait: ago(s.createdAt),
@@ -1268,8 +1732,8 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
       case 'clinic_hr_admin':
         return singleListQueue('/leave-requests/pending', 'Leave Approval Requests', (l) => ({
           id: str(l, ['requestNo', '_id', 'id'], 'LV'),
-          name: `${str(l, ['employeeName', 'staffName', 'name'], 'Staff')} · ${str(l, ['leaveType', 'type'], 'Casual Leave')}`,
-          meta: `${str(l, ['fromDate', 'from'], '')} → ${str(l, ['toDate', 'to'], '')}`,
+          name: `${str(l, ['employeeName', 'staffName', 'name'], 'Staff')} Â· ${str(l, ['leaveType', 'type'], 'Casual Leave')}`,
+          meta: `${str(l, ['fromDate', 'from'], '')} â†’ ${str(l, ['toDate', 'to'], '')}`,
           detail: str(l, ['reason', 'detail'], 'Staff leave awaiting clinic approval'),
           timeOrWait: ago(l.createdAt || l.appliedAt),
           status: 'Pending Review',
@@ -1284,7 +1748,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
       case 'clinic_crm_staff':
         return singleListQueue('/reviews', 'Post-Consultation Feedback Follow-up', (r) => ({
           id: str(r, ['reviewNo', '_id', 'id'], 'REV'),
-          name: `${str(r, ['patientName', 'patient'], 'Patient')} · ${str(r, ['rating'], '5')}★`,
+          name: `${str(r, ['patientName', 'patient'], 'Patient')} Â· ${str(r, ['rating'], '5')}â˜…`,
           meta: `Dr. ${str(r, ['doctorName', 'doctor'], 'Consultant')}`,
           detail: str(r, ['comment', 'feedback', 'text'], 'Post consultation rating & feedback'),
           timeOrWait: ago(r.createdAt),
@@ -1319,7 +1783,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         if (cases.length) {
           out['Procedural Schedule'] = cases.slice(0, 8).map((c) => ({
             id: str(c, ['caseNo', '_id', 'id'], 'OT'),
-            name: `${str(c, ['patientName', 'patient'], 'Patient')} · ${str(c, ['procedure', 'surgery'], 'Procedure')}`,
+            name: `${str(c, ['patientName', 'patient'], 'Patient')} Â· ${str(c, ['procedure', 'surgery'], 'Procedure')}`,
             meta: `Surgeon: ${str(c, ['surgeon'], '')}`,
             detail: str(c, ['status'], 'Scheduled'),
             timeOrWait: ago(c.scheduledAt || c.createdAt),
@@ -1374,7 +1838,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         return {
           'Pre-Authorization Queue': list.map((p) => ({
             id: str(p, ['preauthNo', 'claimNo', '_id', 'id'], 'PRE'),
-            name: `${str(p, ['patientName', 'patient'], 'Patient')} · ₹${str(p, ['amount', 'claimedAmount', 'estimate'], '—')}`,
+            name: `${str(p, ['patientName', 'patient'], 'Patient')} Â· â‚¹${str(p, ['amount', 'claimedAmount', 'estimate'], 'â€”')}`,
             meta: `TPA: ${str(p, ['tpa', 'insurer'], '')}`,
             detail: str(p, ['diagnosis', 'treatment', 'detail'], 'Cashless pre-authorization request'),
             timeOrWait: ago(p.createdAt),
@@ -1409,7 +1873,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         return singleListQueue('/inventory/items', 'Reagent Low Stock Warnings', (it) => ({
           id: str(it, ['sku', '_id', 'id'], 'RGT'),
           name: str(it, ['name', 'itemName'], 'Laboratory Reagent'),
-          meta: `Lot: ${str(it, ['lotNo', 'batch'], '—')}`,
+          meta: `Lot: ${str(it, ['lotNo', 'batch'], 'â€”')}`,
           detail: 'Minimum laboratory stock threshold breached',
           timeOrWait: 'Reorder Due',
           status: 'Low Stock',
@@ -1453,7 +1917,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
       case 'radiology_cashier':
         return singleListQueue('/radiology/orders', 'Unbilled Modality Studies', (s) => ({
           id: str(s, ['accessionNo', 'studyNo', '_id', 'id'], 'RAD'),
-          name: `${str(s, ['patientName', 'patient'], 'Patient')} · ${str(s, ['modality', 'studyType'], 'Scan')}`,
+          name: `${str(s, ['patientName', 'patient'], 'Patient')} Â· ${str(s, ['modality', 'studyType'], 'Scan')}`,
           meta: `Modality: ${str(s, ['modality'], 'X-Ray')}`,
           detail: 'Completed scan awaiting billing counter settlement',
           timeOrWait: ago(s.createdAt),
@@ -1485,7 +1949,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         return {
           'Bed Cleaning Queue': tasks.map((t) => ({
             id: str(t, ['taskNo', '_id', 'id'], 'CLN'),
-            name: `${str(t, ['ward', 'location'], 'Ward')} · ${str(t, ['bedNo', 'bed', 'room'], 'Bed')}`.trim(),
+            name: `${str(t, ['ward', 'location'], 'Ward')} Â· ${str(t, ['bedNo', 'bed', 'room'], 'Bed')}`.trim(),
             meta: str(t, ['taskType', 'type'], 'Terminal cleaning'),
             detail: str(t, ['detail', 'notes', 'description'], 'Cleaning requested on discharge'),
             timeOrWait: ago(t.createdAt),
@@ -1505,12 +1969,12 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
             const qty = Number(it?.quantity ?? it?.stock ?? it?.qty ?? NaN);
             const min = Number(it?.reorderLevel ?? it?.minStock ?? it?.minimum ?? NaN);
             const low = !Number.isNaN(qty) && !Number.isNaN(min) ? qty <= min : /low|reorder|critical/i.test(str(it, ['stockStatus', 'status'], ''));
-            const status = low ? 'Below Reorder Point' : `Stock: ${Number.isNaN(qty) ? '—' : qty}`;
+            const status = low ? 'Below Reorder Point' : `Stock: ${Number.isNaN(qty) ? 'â€”' : qty}`;
             return {
               id: str(it, ['sku', 'itemCode', '_id', 'id'], 'SKU'),
               name: str(it, ['name', 'itemName'], 'Inventory Item'),
-              meta: `Batch: ${str(it, ['batch', 'batchNo'], '—')} · Exp: ${str(it, ['expiry', 'expiryDate'], '—')}`,
-              detail: `On hand: ${Number.isNaN(qty) ? '—' : qty} · Reorder at: ${Number.isNaN(min) ? '—' : min}`,
+              meta: `Batch: ${str(it, ['batch', 'batchNo'], 'â€”')} Â· Exp: ${str(it, ['expiry', 'expiryDate'], 'â€”')}`,
+              detail: `On hand: ${Number.isNaN(qty) ? 'â€”' : qty} Â· Reorder at: ${Number.isNaN(min) ? 'â€”' : min}`,
               timeOrWait: 'Cycle count due',
               status,
               statusColor: colorFor(status) as LiveQueueRow['statusColor'],
@@ -1539,8 +2003,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
           })),
         };
       }
-      case 'cssd_technician':
-      case 'ot_technician': {
+      case 'cssd_technician': {
         const cycles = await getList('/cssd/cycles');
         if (!cycles.length) return {};
         return {
@@ -1580,7 +2043,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         return {
           'Patient Dialysis Schedule': sessions.map((s) => ({
             id: str(s, ['sessionNo', '_id', 'id'], 'DIA'),
-            name: `${str(s, ['patientName', 'patient'], 'Patient')} · Station ${str(s, ['station', 'machine'], '')}`.trim(),
+            name: `${str(s, ['patientName', 'patient'], 'Patient')} Â· Station ${str(s, ['station', 'machine'], '')}`.trim(),
             meta: str(s, ['shift', 'slot'], ''),
             detail: str(s, ['prescription', 'detail'], 'Hemodialysis session'),
             timeOrWait: ago(s.scheduledAt || s.createdAt),
@@ -1597,7 +2060,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         return {
           'Component Requisition Queue': reqs.map((r) => ({
             id: str(r, ['requestNo', '_id', 'id'], 'BB'),
-            name: `${str(r, ['component', 'bloodGroup'], 'Blood Component')} · ${str(r, ['bloodGroup', 'group'], '')}`.trim(),
+            name: `${str(r, ['component', 'bloodGroup'], 'Blood Component')} Â· ${str(r, ['bloodGroup', 'group'], '')}`.trim(),
             meta: `Ward: ${str(r, ['ward', 'department'], '')}`,
             detail: str(r, ['detail', 'indication'], 'Component requisition from ward/OT'),
             timeOrWait: ago(r.createdAt),
@@ -1616,7 +2079,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         return {
           'Ward Diet Distribution List': orders.map((o) => ({
             id: str(o, ['orderNo', '_id', 'id'], 'DIET'),
-            name: `${str(o, ['patientName', 'patient'], 'Patient')} · ${str(o, ['dietType', 'diet'], 'Diet')}`.trim(),
+            name: `${str(o, ['patientName', 'patient'], 'Patient')} Â· ${str(o, ['dietType', 'diet'], 'Diet')}`.trim(),
             meta: `Ward: ${str(o, ['ward', 'bed'], '')}`,
             detail: str(o, ['restrictions', 'allergies', 'detail'], 'Meal scheduled'),
             timeOrWait: str(o, ['meal', 'slot'], ago(o.createdAt)),
@@ -1695,8 +2158,8 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         return {
           'Leave Approval Queue': list.map((l) => ({
             id: str(l, ['requestNo', '_id', 'id'], 'LV'),
-            name: `${str(l, ['employeeName', 'staffName', 'name'], 'Staff')} · ${str(l, ['leaveType', 'type'], 'Leave')}`.trim(),
-            meta: `${str(l, ['fromDate', 'from'], '')} → ${str(l, ['toDate', 'to'], '')}`,
+            name: `${str(l, ['employeeName', 'staffName', 'name'], 'Staff')} Â· ${str(l, ['leaveType', 'type'], 'Leave')}`.trim(),
+            meta: `${str(l, ['fromDate', 'from'], '')} â†’ ${str(l, ['toDate', 'to'], '')}`,
             detail: str(l, ['reason', 'detail'], 'Leave request awaiting approval'),
             timeOrWait: ago(l.createdAt || l.appliedAt),
             status: str(l, ['status'], 'Pending Approval'),

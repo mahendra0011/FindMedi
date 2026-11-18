@@ -36,7 +36,7 @@ export default function MultiStoreCheckoutPage() {
 
   const loadStores = async () => {
     try {
-      const res = await api.get('/stores');
+      const res = await api.get('/stores/stores');
       setStores(res.data.stores || res.data || []);
     } catch {
       toast.error('Failed to load stores');

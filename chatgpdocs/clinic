@@ -1,0 +1,3318 @@
+Bilkul. Agar aap **complete Clinic Management System (CMS)** banana chahte ho jisme clinic ke almost har kaam ka software solution ho, to main ise **starting se end tak complete clinic workflow** ke hisaab se structure karunga.
+
+Hospital ke comparison mein clinic mein ICU, OT, blood bank jaise modules generally nahi hote, lekin **OPD, appointment, EMR, prescription, billing, pharmacy, lab, inventory, accounts, staff, CRM, communication, reports aur admin** ko properly cover karna chahiye.
+
+# COMPLETE CLINIC MANAGEMENT SYSTEM
+
+## 1. LOGIN + USER MANAGEMENT
+
+### User Types
+- Super Admin
+- Clinic Admin
+- Doctor
+- Consultant
+- Receptionist
+- Front Desk
+- Nurse
+- Assistant
+- Pharmacist
+- Lab Technician
+- Accountant
+- Cashier
+- Store Manager
+- Staff
+
+### Features
+- User Creation
+- Edit User
+- Delete User
+- Activate / Deactivate
+- Role Management
+- Permission Management
+- Department / Branch Access
+- Screen-wise Permissions
+- View Permission
+- Create Permission
+- Edit Permission
+- Delete Permission
+- Approval Permission
+- Login History
+- Session Management
+- Password Management
+- Forgot Password
+- OTP Login
+- 2FA
+- Device Management
+- Activity Log
+- Audit Trail
+
+---
+
+# 2. CLINIC MASTER SETUP
+
+### Clinic Setup
+- Clinic Name
+- Branch
+- Address
+- Contact
+- Email
+- Website
+- Registration Details
+- Logo
+- Letterhead
+- Working Hours
+- Holidays
+- Timezone
+- Currency
+- Tax Settings
+
+### Location
+- Reception
+- Consultation Room
+- Procedure Room
+- Injection Room
+- Lab
+- Pharmacy
+- Store
+- Cash Counter
+
+### Medical Masters
+- Specialty
+- Doctor
+- Diagnosis
+- Symptoms
+- Procedures
+- Medicines
+- Investigations
+- Lab Tests
+- Vaccines
+- Packages
+
+### Financial Masters
+- Services
+- Service Category
+- Consultation Fees
+- Procedure Fees
+- Medicine Price
+- Lab Price
+- Package Price
+- Discount Rules
+- Tax Rules
+- Payment Methods
+
+---
+
+# 3. PATIENT REGISTRATION
+
+### New Patient
+- Patient Name
+- Date of Birth
+- Age
+- Gender
+- Mobile
+- Alternate Mobile
+- Email
+- Address
+- City
+- State
+- Pincode
+- ID Details
+- Blood Group
+- Occupation
+- Marital Status
+- Emergency Contact
+
+### Features
+- Auto Patient ID / UHID
+- Patient Photo
+- QR Code
+- Barcode
+- Duplicate Patient Detection
+- Existing Patient Search
+- Patient Merge
+- Patient Tags
+- VIP Patient
+- High-Risk Alert
+- Patient Status
+
+---
+
+# 4. PATIENT PROFILE
+
+Ek patient ka complete 360° profile:
+
+- Basic Information
+- Contact Information
+- Family Details
+- Emergency Contact
+- Medical History
+- Surgical History
+- Allergy History
+- Medication History
+- Diagnosis History
+- Visit History
+- Appointment History
+- Prescription History
+- Lab History
+- Procedure History
+- Billing History
+- Payment History
+- Documents
+- Consent
+- Follow-up History
+- Communication History
+- Patient Timeline
+
+---
+
+# 5. FAMILY / DEPENDENT MANAGEMENT
+
+Ek family account ke under:
+
+- Father
+- Mother
+- Husband / Wife
+- Children
+- Other Dependents
+
+Features:
+- Family Group
+- Family ID
+- Individual Patient IDs
+- Relationship
+- Shared Address
+- Family Appointment
+- Family Billing
+- Family History
+- Family Reports
+
+---
+
+# 6. APPOINTMENT MANAGEMENT
+
+### Appointment Types
+- New Consultation
+- Follow-up
+- Online Appointment
+- Walk-in
+- Procedure
+- Diagnostic
+- Vaccination
+- Health Checkup
+- Home Visit
+- Video Consultation
+
+### Features
+- Doctor Calendar
+- Slot Management
+- Slot Duration
+- Multiple Doctors
+- Multiple Branches
+- Recurring Slots
+- Break Time
+- Lunch Break
+- Holiday
+- Doctor Leave
+- Slot Blocking
+- Overbooking
+- Waitlist
+- Reschedule
+- Cancel
+- No Show
+- Appointment Status
+- Appointment History
+
+---
+
+# 7. ONLINE APPOINTMENT
+
+- Website Booking
+- Patient Portal Booking
+- Mobile Booking
+- Booking Link
+- Doctor Selection
+- Branch Selection
+- Date Selection
+- Time Slot
+- Online Payment
+- Appointment Confirmation
+- Cancellation
+- Refund
+- Reminder
+- Auto Notification
+
+---
+
+# 8. WALK-IN MANAGEMENT
+
+- Walk-in Registration
+- Existing Patient Check-in
+- New Patient Check-in
+- Doctor Selection
+- Token Generation
+- Queue Placement
+- Consultation Start
+- Consultation End
+- Billing
+- Prescription
+- Follow-up
+
+---
+
+# 9. TOKEN / QUEUE MANAGEMENT
+
+- Token Generation
+- Doctor-wise Queue
+- Room-wise Queue
+- Branch-wise Queue
+- Priority Token
+- Follow-up Priority
+- Queue Status
+- Waiting Patients
+- Current Patient
+- Next Patient
+- Hold
+- Skip
+- Recall
+- Completed
+- No-show
+- Waiting Time
+- Estimated Waiting Time
+
+### Display
+- TV Display
+- Counter Display
+- Token Screen
+- Voice Announcement
+
+---
+
+# 10. RECEPTION / FRONT DESK
+
+Reception dashboard par:
+
+- Today's Appointments
+- Walk-ins
+- Waiting Patients
+- Checked-in Patients
+- Completed Consultations
+- Pending Payments
+- Follow-ups
+- Doctor Availability
+- Today's Collection
+
+Actions:
+- Register
+- Book
+- Check-in
+- Token
+- Reschedule
+- Cancel
+- Print
+- Collect Payment
+
+---
+
+# 11. OPD / CONSULTATION MANAGEMENT
+
+Ye clinic ka main module hoga.
+
+### Consultation Workflow
+
+**Patient → Check-in → Vitals → Queue → Doctor → Examination → Diagnosis → Investigation → Prescription → Billing → Follow-up**
+
+### Doctor Screen
+- Patient Overview
+- Previous Visits
+- Previous Diagnosis
+- Allergies
+- Current Medicines
+- Chief Complaint
+- History
+- Examination
+- Vitals
+- Diagnosis
+- Clinical Notes
+- Assessment
+- Treatment Plan
+- Investigation
+- Prescription
+- Procedure
+- Referral
+- Follow-up
+
+---
+
+# 12. EMR / EHR
+
+### Clinical Record
+- Chief Complaint
+- Present Illness
+- Past History
+- Family History
+- Personal History
+- Drug History
+- Allergy History
+- Surgical History
+- Examination
+- Vitals
+- Diagnosis
+- Treatment
+- Investigation
+- Procedure
+- Follow-up
+
+### Advanced
+- Patient Timeline
+- Problem List
+- Chronic Conditions
+- Previous Notes
+- Previous Prescriptions
+- Previous Reports
+- Specialty-specific Templates
+- Clinical Templates
+- Custom Fields
+- Version History
+- Digital Signature
+
+---
+
+# 13. VITALS MANAGEMENT
+
+- Blood Pressure
+- Pulse
+- Temperature
+- SpO2
+- Respiratory Rate
+- Weight
+- Height
+- BMI
+- Blood Sugar
+- Pain Score
+
+### Features
+- Manual Entry
+- History
+- Graph
+- Trend
+- Abnormal Value Alert
+
+---
+
+# 14. DIAGNOSIS MANAGEMENT
+
+- Diagnosis Search
+- Diagnosis Code
+- Primary Diagnosis
+- Secondary Diagnosis
+- Provisional Diagnosis
+- Final Diagnosis
+- Diagnosis History
+- Frequently Used Diagnosis
+- Favorite Diagnosis
+- Diagnosis-wise Reports
+
+---
+
+# 15. PRESCRIPTION MANAGEMENT
+
+### Medicine
+- Medicine Name
+- Strength
+- Dose
+- Frequency
+- Route
+- Duration
+- Before Food
+- After Food
+- PRN
+- Quantity
+- Instructions
+
+### Features
+- Favorite Medicines
+- Recent Medicines
+- Refill
+- Repeat Prescription
+- Prescription Templates
+- Drug Allergy Alert
+- Drug Interaction Alert
+- Substitution
+- Digital Signature
+- Prescription Print
+- Prescription PDF
+- e-Prescription
+- WhatsApp Prescription
+
+---
+
+# 16. INVESTIGATION / TEST ORDERING
+
+Doctor can order:
+
+- Lab Test
+- Imaging
+- ECG
+- Other Diagnostics
+
+Features:
+- Order Test
+- Single Test
+- Test Package
+- Priority
+- Sample Type
+- Notes
+- Previous Results
+- Result Comparison
+
+---
+
+# 17. LAB MANAGEMENT
+
+Agar clinic mein in-house lab hai.
+
+### Workflow
+**Test Order → Sample Collection → Barcode → Processing → Result → Verification → Report**
+
+### Features
+- Test Master
+- Sample Type
+- Lab Order
+- Sample Collection
+- Barcode
+- Accession Number
+- Sample Tracking
+- Sample Rejection
+- Recollection
+- Technician Assignment
+- Result Entry
+- Reference Range
+- Critical Value
+- Result Verification
+- Doctor Verification
+- Digital Signature
+- Lab Report
+- PDF
+- Print
+- Patient Portal Report
+
+### Optional Integration
+- Analyzer
+- LIS
+
+---
+
+# 18. RADIOLOGY / DIAGNOSTIC IMAGING
+
+Agar clinic imaging services provide karta hai:
+
+- X-Ray
+- Ultrasound
+- ECG
+- Echo
+- CT
+- MRI
+- Other Imaging
+
+### Features
+- Imaging Order
+- Appointment
+- Technician
+- Reporting
+- Verification
+- Report PDF
+- Report Print
+- Image Attachment
+- Previous Report
+
+### Integration
+- PACS
+- DICOM
+
+---
+
+# 19. PROCEDURE MANAGEMENT
+
+Clinic procedures:
+
+- Dressing
+- Injection
+- Nebulization
+- Minor Surgery
+- Suturing
+- Biopsy
+- Infusion
+- Vaccination
+- Wound Care
+- Other Procedures
+
+### Features
+- Procedure Order
+- Procedure Schedule
+- Room
+- Doctor
+- Assistant
+- Consumables
+- Procedure Notes
+- Consent
+- Start Time
+- End Time
+- Outcome
+- Charges
+- Follow-up
+
+---
+
+# 20. VACCINATION MANAGEMENT
+
+- Vaccine Master
+- Vaccine Schedule
+- Dose Number
+- Due Date
+- Previous Dose
+- Batch Number
+- Expiry
+- Administration
+- Next Due Date
+- Reminder
+- Vaccination Certificate
+- Vaccine Inventory
+
+---
+
+# 21. PHARMACY MANAGEMENT
+
+Agar clinic ke andar pharmacy hai.
+
+### Sales
+- Prescription Processing
+- Medicine Search
+- Dispensing
+- Batch Selection
+- Expiry Check
+- Quantity
+- Discount
+- Billing
+- Returns
+
+### Stock
+- Stock In
+- Stock Out
+- Transfer
+- Return
+- Adjustment
+- Batch
+- Expiry
+- Reorder
+- Low Stock Alert
+- Near Expiry Alert
+- Expired Stock
+
+---
+
+# 22. INVENTORY / STORE MANAGEMENT
+
+Sirf medicines nahi, clinic ki har consumable item:
+
+- Syringe
+- Gloves
+- Cotton
+- Dressing Material
+- Surgical Items
+- Medical Consumables
+- Stationery
+- Cleaning Items
+- Vaccines
+- Equipment
+
+### Features
+- Item Master
+- Category
+- Unit
+- SKU
+- Barcode
+- Batch
+- Expiry
+- Warehouse / Store
+- Bin Location
+- Stock Ledger
+- Stock Issue
+- Stock Return
+- Stock Transfer
+- Physical Stock
+- Stock Adjustment
+- Min Stock
+- Max Stock
+- Reorder Level
+- Wastage
+- Damaged Stock
+
+---
+
+# 23. PURCHASE MANAGEMENT
+
+### Purchase Flow
+
+**Indent → Approval → Vendor → Quotation → Purchase Order → Receive → GRN → Invoice → Payment**
+
+### Features
+- Purchase Request
+- Indent
+- Approval
+- RFQ
+- Vendor Quotation
+- Quotation Comparison
+- Purchase Order
+- Partial Delivery
+- GRN
+- Purchase Invoice
+- Purchase Return
+- Vendor Payment
+
+---
+
+# 24. VENDOR MANAGEMENT
+
+- Vendor Master
+- Vendor Name
+- GST Details
+- PAN
+- Bank Details
+- Address
+- Contact
+- Product Category
+- Payment Terms
+- Credit Terms
+- Purchase History
+- Vendor Outstanding
+- Vendor Ledger
+- Vendor Documents
+
+---
+
+# 25. BILLING MANAGEMENT
+
+### Billing Types
+- Consultation Billing
+- Follow-up Billing
+- Procedure Billing
+- Lab Billing
+- Radiology Billing
+- Pharmacy Billing
+- Vaccination Billing
+- Package Billing
+- Home Visit Billing
+- Telemedicine Billing
+
+### Billing Features
+- Service Charges
+- Doctor Charges
+- Procedure Charges
+- Investigation Charges
+- Medicine Charges
+- Consumable Charges
+- Discount
+- Waiver
+- Coupon
+- Tax
+- Round Off
+- Cancellation
+- Bill Edit
+- Bill Reversal
+- Credit Note
+- Debit Note
+- Invoice
+- Receipt
+
+---
+
+# 26. PAYMENT MANAGEMENT
+
+### Payment Methods
+- Cash
+- Card
+- UPI
+- Net Banking
+- Bank Transfer
+- Cheque
+- Payment Gateway
+
+### Features
+- Full Payment
+- Partial Payment
+- Advance
+- Split Payment
+- Refund
+- Partial Refund
+- Payment Cancellation
+- Payment Reversal
+- Receipt
+- Payment History
+- Payment Reconciliation
+
+---
+
+# 27. PAYMENT GATEWAY
+
+- UPI
+- Cards
+- Net Banking
+- Payment Link
+- QR
+- Online Checkout
+- Auto Payment Status
+- Webhook
+- Success / Failed
+- Refund
+- Partial Refund
+- Settlement
+- Gateway Fee
+- Reconciliation
+
+Architecture aisa rakho ki future mein multiple gateways connect ho saken.
+
+---
+
+# 28. INSURANCE / CORPORATE BILLING
+
+Agar clinic insurance/corporate patients handle karta hai:
+
+- Insurance Company
+- TPA
+- Corporate Client
+- Policy Details
+- Employee / Beneficiary
+- Eligibility
+- Pre-Authorization
+- Estimate
+- Approval
+- Claim
+- Documents
+- Deduction
+- Rejection
+- Settlement
+- Outstanding
+
+---
+
+# 29. PACKAGE MANAGEMENT
+
+Examples:
+
+### Health Checkup Package
+- CBC
+- LFT
+- KFT
+- Lipid
+- Sugar
+- Doctor Consultation
+
+### Features
+- Package Master
+- Included Services
+- Excluded Services
+- Package Price
+- Additional Charges
+- Package Expiry
+- Corporate Package
+- Discounted Package
+
+---
+
+# 30. PRICE / TARIFF MANAGEMENT
+
+Different rates:
+
+- General
+- Corporate
+- Insurance
+- Membership
+- Senior Citizen
+- Special Patient
+- Branch-wise
+- Doctor-wise
+
+Features:
+- Service Rate
+- Doctor Fee
+- Procedure Fee
+- Lab Fee
+- Medicine Price
+- Effective Date
+- Rate Version
+- Historical Rate
+
+---
+
+# 31. MEMBERSHIP MANAGEMENT
+
+Clinic ke recurring patients ke liye:
+
+- Membership Plans
+- Membership Number
+- Start Date
+- End Date
+- Membership Benefits
+- Discount
+- Free Consultations
+- Included Services
+- Renewal
+- Expiry Reminder
+- Membership History
+
+---
+
+# 32. FOLLOW-UP MANAGEMENT
+
+- Follow-up Date
+- Follow-up Type
+- Doctor
+- Reason
+- Reminder
+- Pending Follow-up
+- Completed Follow-up
+- Missed Follow-up
+- Follow-up History
+- Recurring Follow-up
+
+---
+
+# 33. RECALL / PATIENT REMINDER
+
+Useful for:
+
+- Vaccination
+- Dental follow-up
+- Chronic patients
+- Medicine refill
+- Health checkup
+- Annual consultation
+- Procedure follow-up
+
+System automatically reminder bhej sake.
+
+---
+
+# 34. HOME VISIT MANAGEMENT
+
+Agar clinic home services deta hai:
+
+- Home Visit Booking
+- Patient Address
+- Doctor / Nurse Assignment
+- Visit Schedule
+- Travel Charge
+- Consultation
+- Vitals
+- Procedure
+- Prescription
+- Payment
+- Visit Report
+
+---
+
+# 35. TELEMEDICINE
+
+- Video Consultation
+- Audio Consultation
+- Online Appointment
+- Patient Queue
+- Doctor Queue
+- e-Prescription
+- Payment
+- Consultation Notes
+- Document Upload
+- Follow-up
+
+---
+
+# 36. PATIENT PORTAL
+
+Patient login kare aur dekhe:
+
+- Profile
+- Appointments
+- Book Appointment
+- Upcoming Appointment
+- Token
+- Queue Status
+- Prescription
+- Lab Reports
+- Bills
+- Payments
+- Receipts
+- Documents
+- Medical History
+- Follow-up
+- Membership
+- Vaccination
+- Teleconsultation
+- Feedback
+
+---
+
+# 37. DOCTOR PORTAL
+
+Doctor ko:
+
+- Dashboard
+- Today's Appointments
+- Queue
+- Patient List
+- Patient History
+- EMR
+- Vitals
+- Diagnosis
+- Prescription
+- Investigations
+- Reports
+- Procedures
+- Follow-up
+- Certificates
+- Digital Signature
+- Revenue / Settlement
+
+---
+
+# 38. RECEPTION DASHBOARD
+
+- Today's Appointment
+- Walk-in
+- Waiting
+- Checked-in
+- Completed
+- Cancelled
+- No Show
+- Payments Pending
+- Doctor Status
+- Queue
+- Today's Collection
+
+---
+
+# 39. CASHIER MANAGEMENT
+
+- Cash Counter
+- Opening Balance
+- Cash Collection
+- Card Collection
+- UPI Collection
+- Refund
+- Closing Balance
+- Cash Handover
+- Counter Reconciliation
+- Shift-wise Collection
+- Cash Variance
+
+---
+
+# 40. ACCOUNTS / FINANCE
+
+### Accounting
+- Chart of Accounts
+- Journal
+- Ledger
+- Cash Book
+- Bank Book
+- Income
+- Expenses
+- Receivable
+- Payable
+
+### Reports
+- Trial Balance
+- P&L
+- Balance Sheet
+- Cash Flow
+- Expense Report
+- Revenue Report
+- Outstanding
+- Aging
+
+### Tax
+- GST
+- TDS
+- Applicable Taxes
+
+---
+
+# 41. DOCTOR SETTLEMENT
+
+Agar multiple doctors hain:
+
+- Consultation Revenue
+- Procedure Revenue
+- Percentage Share
+- Fixed Share
+- Branch-wise Share
+- Service-wise Share
+- Monthly Settlement
+- Doctor Payable
+- Paid Amount
+- Pending Amount
+- Settlement Statement
+
+---
+
+# 42. STAFF MANAGEMENT
+
+- Staff Master
+- Employee ID
+- Designation
+- Department
+- Joining Date
+- Qualification
+- Experience
+- Documents
+- Salary
+- Status
+- Leave
+- Attendance
+
+---
+
+# 43. ATTENDANCE MANAGEMENT
+
+- Attendance
+- Check-in
+- Check-out
+- Late
+- Early Leave
+- Half Day
+- Leave
+- Holiday
+- Overtime
+- Attendance Correction
+
+### Integration
+- Biometric
+- Face Attendance
+- Device
+
+---
+
+# 44. SHIFT / ROSTER MANAGEMENT
+
+- Shift Master
+- Morning Shift
+- Evening Shift
+- Night Shift
+- Doctor Schedule
+- Staff Schedule
+- Duty Roster
+- Weekly Off
+- Holiday
+- Leave Conflict Alert
+- Staff Availability
+
+---
+
+# 45. PAYROLL
+
+- Salary Structure
+- Basic Salary
+- Allowances
+- Incentives
+- Deductions
+- Overtime
+- PF
+- ESI
+- TDS
+- Professional Tax where applicable
+- Salary Calculation
+- Payroll Approval
+- Payslip
+- Bank Transfer
+- Full & Final Settlement
+
+---
+
+# 46. DOCUMENT MANAGEMENT
+
+Patient documents:
+
+- ID Proof
+- Reports
+- Prescription
+- Consent
+- Referral Letter
+- Medical Certificate
+- Images
+- Scans
+- Insurance Documents
+
+Clinic documents:
+
+- Staff Documents
+- Vendor Documents
+- Certificates
+- Contracts
+- Licenses
+- Registration Documents
+
+Features:
+- Upload
+- Preview
+- Download
+- Print
+- Version
+- Access Control
+- Expiry Reminder
+
+---
+
+# 47. CONSENT MANAGEMENT
+
+- Procedure Consent
+- Treatment Consent
+- Injection Consent
+- Vaccination Consent
+- Minor Procedure Consent
+- Telemedicine Consent
+- Privacy Consent
+- Financial Consent
+
+Features:
+- Template
+- Patient Signature
+- Relative Signature
+- Doctor Signature
+- Witness
+- Date/Time
+- Digital Signature
+- Audit Trail
+
+---
+
+# 48. MEDICAL CERTIFICATE MANAGEMENT
+
+Ready templates:
+
+- Fitness Certificate
+- Medical Certificate
+- Sick Leave Certificate
+- Fit-to-Work
+- Treatment Certificate
+- Referral Letter
+- Prescription Certificate
+- Other Custom Certificates
+
+---
+
+# 49. NOTIFICATION MANAGEMENT
+
+### SMS
+- Appointment Confirmation
+- Appointment Reminder
+- Payment
+- Report Ready
+- Follow-up
+- Vaccination Reminder
+
+### WhatsApp
+- Appointment
+- Prescription
+- Bill
+- Payment Link
+- Report
+- Follow-up
+
+### Email
+- Appointment
+- Reports
+- Bills
+- Documents
+
+### Push
+- Patient
+- Doctor
+- Staff
+
+---
+
+# 50. TEMPLATE MANAGEMENT
+
+Admin khud template manage kar sake:
+
+- Prescription Template
+- Invoice Template
+- Receipt Template
+- Lab Report Template
+- Certificate Template
+- Referral Letter
+- Appointment Message
+- WhatsApp Message
+- SMS
+- Email
+- Letterhead
+
+---
+
+# 51. GLOBAL SEARCH
+
+Ek hi search se:
+
+- Patient Name
+- Patient ID
+- Mobile
+- Appointment No
+- Visit No
+- Bill No
+- Invoice No
+- Payment ID
+- Prescription No
+- Lab No
+- Claim No
+
+search ho.
+
+---
+
+# 52. AUDIT LOG
+
+Important activities:
+
+- Patient Edit
+- Patient Merge
+- Prescription Change
+- Diagnosis Change
+- Bill Change
+- Discount
+- Refund
+- Payment
+- Appointment Change
+- User Change
+- Inventory Adjustment
+- Purchase
+- Stock Transfer
+- Report Edit
+
+Track:
+
+**Who + What + When + Old Value + New Value**
+
+---
+
+# 53. REPORTING / MIS
+
+### Patient Reports
+- New Patients
+- Returning Patients
+- Patient Growth
+- Gender-wise
+- Age-wise
+- Area-wise
+- Source-wise
+
+### Appointment Reports
+- Total Appointments
+- Completed
+- Cancelled
+- No Show
+- Rescheduled
+- Doctor-wise
+
+### Clinical Reports
+- Diagnosis-wise
+- Procedure-wise
+- Prescription-wise
+- Follow-up
+- Vaccination
+
+### Financial Reports
+- Daily Collection
+- Monthly Revenue
+- Doctor Revenue
+- Department Revenue
+- Expense
+- Profitability
+- Outstanding
+- Refund
+- Discount
+
+### Pharmacy
+- Sales
+- Purchase
+- Stock
+- Expiry
+- Consumption
+
+### Lab
+- Test Volume
+- Revenue
+- Pending Tests
+- TAT
+
+---
+
+# 54. CLINIC DASHBOARD
+
+### Today
+
+```text
+Appointments        82
+Walk-ins            17
+Waiting              9
+Completed           64
+Cancelled            5
+No Show              4
+```
+
+### Revenue
+
+```text
+Consultation     ₹42,000
+Procedure        ₹18,500
+Lab              ₹12,700
+Pharmacy         ₹21,300
+Other             ₹4,000
+
+Total            ₹98,500
+```
+
+### Alerts
+
+```text
+5 Follow-ups Due
+3 Low Stock Items
+2 Expiring Medicines
+4 Pending Payments
+6 Patients Waiting
+```
+
+---
+
+# 55. MULTI-DOCTOR MANAGEMENT
+
+- Multiple Doctors
+- Different Specialties
+- Different Fees
+- Different Timings
+- Different Rooms
+- Different Branches
+- Different Revenue Shares
+- Separate Schedules
+- Leave Management
+- Doctor Performance
+
+---
+
+# 56. MULTI-BRANCH MANAGEMENT
+
+Agar future mein chain banana hai:
+
+**Organization → Branch → Doctor → Staff → Patient → Billing**
+
+Features:
+- Branch-wise Patients
+- Branch-wise Doctors
+- Branch-wise Billing
+- Branch-wise Pharmacy
+- Branch-wise Inventory
+- Branch-wise Reports
+- Central Admin
+- Central Patient Record
+- Central Accounting
+- Inter-branch Patient Transfer
+
+---
+
+# 57. CRM / PATIENT RELATIONSHIP MANAGEMENT
+
+Clinic ke liye important:
+
+- Patient Feedback
+- Complaint
+- Query
+- Callback
+- Follow-up Call
+- Missed Appointment Call
+- Patient Satisfaction
+- Referral Source
+- Patient Retention
+- Re-activation
+
+---
+
+# 58. PATIENT FEEDBACK
+
+- Feedback Form
+- Rating
+- Doctor Rating
+- Staff Rating
+- Clinic Rating
+- Waiting Time Feedback
+- Complaint
+- Suggestion
+- Resolution
+- Feedback Reports
+
+---
+
+# 59. REFERRAL MANAGEMENT
+
+- Referring Doctor
+- Referral Source
+- Referral Patient
+- Referral History
+- Source-wise Patients
+- Source-wise Revenue
+- Referral Reports
+
+---
+
+# 60. TASK / WORK MANAGEMENT
+
+Staff ko task assign karo:
+
+- Patient Call
+- Sample Collection
+- Report Upload
+- Medicine Refill
+- Room Preparation
+- Document Verification
+- Payment Follow-up
+- Follow-up Call
+
+Status:
+
+**Pending → Assigned → In Progress → Completed**
+
+---
+
+# 61. APPROVAL SYSTEM
+
+Approval chahiye wale kaam:
+
+- Discount
+- Refund
+- Bill Cancellation
+- Stock Adjustment
+- Purchase
+- Credit Billing
+- Expense
+- Doctor Settlement
+- Salary
+- Patient Record Correction
+
+### Approval
+- Single Level
+- Multi Level
+- Amount Based
+- Role Based
+- Department Based
+- Approval History
+- Rejection Reason
+
+---
+
+# 62. INVENTORY BARCODE / QR
+
+Scanning-based workflow:
+
+**Receive → Stock → Issue → Transfer → Return → Count**
+
+Use for:
+- Medicines
+- Consumables
+- Vaccines
+- Equipment
+- Assets
+
+---
+
+# 63. ASSET MANAGEMENT
+
+Clinic ke assets:
+
+- Computer
+- Printer
+- AC
+- Medical Equipment
+- ECG Machine
+- Ultrasound
+- Furniture
+- Refrigerator
+- Other Equipment
+
+Track:
+- Asset ID
+- Serial Number
+- Purchase
+- Warranty
+- AMC
+- Location
+- Department
+- Allocation
+- Transfer
+- Repair
+- Maintenance
+- Disposal
+
+---
+
+# 64. MAINTENANCE MANAGEMENT
+
+- Maintenance Request
+- Breakdown
+- Technician Assignment
+- Work Order
+- Repair
+- Preventive Maintenance
+- AMC
+- CMC
+- Service History
+- Maintenance Cost
+- Downtime
+
+---
+
+# 65. BACKUP / SECURITY
+
+- Database Backup
+- File Backup
+- Automatic Backup
+- Restore
+- Disaster Recovery
+- Encryption
+- Access Control
+- Session Timeout
+- Password Rules
+- 2FA
+- API Authentication
+- Login Logs
+- Audit Logs
+
+---
+
+# 66. API / INTEGRATION
+
+### Payment
+- Payment Gateway
+- UPI
+- Card
+- Payment Link
+- Refund
+- Webhook
+- Settlement
+
+### Communication
+- SMS
+- WhatsApp
+- Email
+- Push Notifications
+
+### Healthcare
+- LIS
+- PACS
+- DICOM
+- Lab Analyzer
+- Biometric
+- ABDM-related integrations where applicable
+
+### APIs
+- Patient API
+- Appointment API
+- EMR API
+- Billing API
+- Payment API
+- Pharmacy API
+- Lab API
+- Doctor API
+- Notification API
+
+---
+
+# 67. WEBHOOK / AUTOMATION ENGINE
+
+Automatic actions:
+
+- Appointment booked → SMS/WhatsApp
+- Appointment tomorrow → Reminder
+- Payment successful → Receipt
+- Report ready → Notification
+- Follow-up due → Reminder
+- Vaccine due → Reminder
+- Low stock → Alert
+- Expiry coming → Alert
+- Membership expiring → Reminder
+
+---
+
+# 68. PATIENT JOURNEY — COMPLETE START TO END
+
+Aapke system ka main workflow ideally ye hoga:
+
+**Patient Search / New Registration**
+
+↓
+
+**Patient Profile**
+
+↓
+
+**Appointment / Walk-in**
+
+↓
+
+**Check-in**
+
+↓
+
+**Token / Queue**
+
+↓
+
+**Vitals**
+
+↓
+
+**Doctor Consultation**
+
+↓
+
+**EMR**
+
+↓
+
+**Diagnosis**
+
+↓
+
+**Investigation Order**
+
+↓
+
+**Lab / Imaging**
+
+↓
+
+**Result**
+
+↓
+
+**Prescription**
+
+↓
+
+**Procedure**
+
+↓
+
+**Pharmacy**
+
+↓
+
+**Billing**
+
+↓
+
+**Payment**
+
+↓
+
+**Receipt**
+
+↓
+
+**Follow-up**
+
+↓
+
+**Reminder**
+
+↓
+
+**Repeat Visit**
+
+↓
+
+**Complete Medical History**
+
+---
+
+# 69. CLINIC ADMIN DASHBOARD
+
+Admin ko ek jagah se:
+
+- Today's Patients
+- Today's Appointments
+- Waiting Patients
+- Doctors Available
+- Doctor-wise Patient Count
+- Revenue
+- Collection
+- Pending Payments
+- Lab Tests
+- Pharmacy Sales
+- Expenses
+- Outstanding
+- Follow-ups
+- No Shows
+- Stock Alerts
+- Expiry Alerts
+- Staff Attendance
+
+sab dikhna chahiye.
+
+---
+
+# 70. COMPLETE CLINIC SYSTEM KA FINAL STRUCTURE
+
+Main isko final product mein roughly in major modules mein divide karunga:
+
+```text
+1. ADMIN & SETTINGS
+2. USERS & ROLES
+3. CLINIC MASTER
+4. PATIENT REGISTRATION
+5. PATIENT PROFILE
+6. FAMILY MANAGEMENT
+7. APPOINTMENTS
+8. ONLINE BOOKING
+9. WALK-IN
+10. TOKEN & QUEUE
+11. RECEPTION
+12. OPD / CONSULTATION
+13. EMR / EHR
+14. VITALS
+15. DIAGNOSIS
+16. PRESCRIPTION
+17. INVESTIGATIONS
+18. LAB
+19. RADIOLOGY / DIAGNOSTICS
+20. PROCEDURES
+21. VACCINATION
+22. PHARMACY
+23. INVENTORY
+24. PURCHASE
+25. VENDORS
+26. BILLING
+27. PAYMENTS
+28. PAYMENT GATEWAYS
+29. INSURANCE / CORPORATE
+30. PACKAGES
+31. TARIFF
+32. MEMBERSHIP
+33. FOLLOW-UP
+34. RECALL / REMINDERS
+35. HOME VISIT
+36. TELEMEDICINE
+37. PATIENT PORTAL
+38. DOCTOR PORTAL
+39. CASHIER
+40. ACCOUNTS
+41. DOCTOR SETTLEMENT
+42. STAFF MANAGEMENT
+43. ATTENDANCE
+44. SHIFT / ROSTER
+45. PAYROLL
+46. DOCUMENTS
+47. CONSENT
+48. MEDICAL CERTIFICATES
+49. NOTIFICATIONS
+50. TEMPLATES
+51. GLOBAL SEARCH
+52. AUDIT LOG
+53. REPORTS / MIS
+54. DASHBOARD
+55. MULTI-DOCTOR
+56. MULTI-BRANCH
+57. CRM / PATIENT RELATIONS
+58. FEEDBACK / COMPLAINT
+59. REFERRAL
+60. TASK MANAGEMENT
+61. APPROVAL WORKFLOW
+62. BARCODE / QR
+63. ASSET MANAGEMENT
+64. MAINTENANCE
+65. SECURITY / BACKUP
+66. APIs / INTEGRATIONS
+67. WEBHOOK / AUTOMATION
+```
+
+### Is system ka ideal core flow:
+
+**Registration → Appointment → Check-in → Queue → Consultation → EMR → Diagnosis → Investigation → Report → Prescription → Procedure / Pharmacy → Billing → Payment → Receipt → Follow-up → Reminder → Next Visit → Complete Patient History**
+
+Aur sabse important architectural point: **Patient, Visit/Encounter, Appointment, EMR, Prescription, Order, Bill, Payment aur Inventory ko central entities rakho**. Inke around baaki saare modules connect honge. Isse baad mein clinic ko **multi-doctor, multi-branch aur enterprise level** tak le jaana easy rahega.
+
+
+Agar aap **Complete Clinic Management System** bana rahe ho, to sabse important cheez hai ki har role ka dashboard alag ho. Doctor ko clinical information chahiye, receptionist ko appointments aur patients, cashier ko payments, aur admin ko poore clinic ka business overview.
+
+**Ek hi dashboard sabko mat dena.** Har user ko login ke baad uske role ke according dashboard, sections, buttons, reports aur permissions milni chahiye.
+
+Neeche complete role-wise dashboard blueprint hai.
+
+# COMPLETE CLINIC MANAGEMENT SYSTEM — ROLE-WISE DASHBOARDS
+
+## 1. SUPER ADMIN DASHBOARD
+
+**Role:** Software owner ya system-level administrator. Ye role tab rakhein jab aapka software multiple clinics ko serve karta ho.
+
+### A. Overview Cards
+- Total Registered Clinics
+- Active Clinics
+- Inactive Clinics
+- Total Branches
+- Total Users
+- Active Users
+- Total Doctors
+- Total Patients
+- Today's Appointments
+- System Health
+
+### B. Clinic Management
+- All Clinics
+- Add New Clinic
+- Edit Clinic
+- Activate / Deactivate Clinic
+- Subscription Plans
+- Trial Clinics
+- Subscription Expiry
+- Clinic Usage
+- Branch Management
+
+### C. User Management
+- All Users
+- User Registration
+- Roles
+- Permissions
+- Login History
+- Locked Accounts
+
+### D. Subscription & Billing
+- Subscription Plans
+- Monthly Recurring Revenue
+- Paid Subscriptions
+- Pending Payments
+- Failed Payments
+- Renewals
+- Invoices
+- Payment History
+
+### E. System Monitoring
+- API Status
+- Database Status
+- Background Jobs
+- Error Logs
+- Failed Notifications
+- Backup Status
+- Storage Usage
+- System Activity
+
+### F. Quick Actions
+- Add Clinic
+- Create Subscription Plan
+- Add User
+- View System Logs
+- Manage Global Settings
+
+**Important:** SaaS Super Admin ko clinic ke patient records automatically accessible nahi hone chahiye. Patient data access alag permission aur legitimate support workflow ke through control hona chahiye.
+
+---
+
+# 2. CLINIC OWNER / ADMIN DASHBOARD
+
+Ye clinic ka **main management dashboard** hoga.
+
+## A. Overview Cards
+
+Dashboard ke top par:
+
+- Today's Patients
+- New Patients Today
+- Returning Patients
+- Today's Appointments
+- Waiting Patients
+- Completed Consultations
+- Cancelled Appointments
+- No-show Patients
+- Today's Revenue
+- Today's Collection
+- Pending Payments
+- Outstanding Amount
+
+## B. Appointment Overview
+- Today's Appointments
+- Upcoming Appointments
+- Completed Appointments
+- Cancelled Appointments
+- No-show Appointments
+- Doctor-wise Appointments
+- Branch-wise Appointments
+- Next 7 Days Appointments
+
+## C. Doctor Overview
+- Total Doctors
+- Available Doctors
+- Doctors Currently Consulting
+- Doctors on Leave
+- Doctor-wise Patient Count
+- Doctor-wise Revenue
+- Average Consultation Time
+- Doctor Schedule
+
+## D. Patient Overview
+- Total Registered Patients
+- New Patients
+- Returning Patients
+- Active Patients
+- Patient Growth
+- Patient Age Distribution
+- Gender Distribution
+- Patient Acquisition Sources
+
+## E. Revenue & Collection
+- Today's Revenue
+- Monthly Revenue
+- Consultation Revenue
+- Procedure Revenue
+- Lab Revenue
+- Pharmacy Revenue
+- Other Service Revenue
+- Cash Collection
+- UPI Collection
+- Card Collection
+- Online Collection
+- Refunds
+- Discounts
+- Outstanding Payments
+
+## F. Clinic Operations
+- Waiting Queue
+- Pending Consultations
+- Pending Lab Orders
+- Reports Ready
+- Reports Pending
+- Prescriptions Issued
+- Follow-ups Due
+- Home Visits
+- Teleconsultations
+- Low Stock Alerts
+
+## G. Alerts
+- Doctor Absent
+- Appointment Overload
+- Pending Payments
+- Failed Payments
+- Low Stock
+- Near-expiry Medicines
+- Delayed Lab Reports
+- Pending Follow-ups
+- Staff Attendance Issues
+
+## H. Quick Actions
+- Register Patient
+- Book Appointment
+- Create Invoice
+- Record Payment
+- Add Doctor
+- Add Staff
+- View Reports
+- Manage Services
+- Manage Pricing
+- Manage Clinic Settings
+
+---
+
+# 3. BRANCH MANAGER DASHBOARD
+
+Agar clinic ki multiple branches hain, to har branch manager ko apni branch ka dashboard mile.
+
+### A. Branch Overview
+- Today's Patients
+- Appointments
+- Walk-ins
+- Waiting Patients
+- Completed Consultations
+- Branch Revenue
+- Collection
+- Pending Payments
+
+### B. Doctors
+- Available Doctors
+- Doctor Schedule
+- Doctor-wise Patient Count
+- Doctor Leave
+- Room Allocation
+
+### C. Staff
+- Present Staff
+- Absent Staff
+- Late Arrivals
+- Shift Assignments
+- Staff Availability
+
+### D. Branch Operations
+- Queue Status
+- Room Availability
+- Procedure Schedule
+- Lab Status
+- Pharmacy Status
+- Inventory Alerts
+
+### E. Branch Finance
+- Daily Collection
+- Payment Methods
+- Refunds
+- Discounts
+- Outstanding
+- Cashier-wise Collection
+
+### F. Quick Actions
+- Manage Doctor Schedule
+- Assign Staff
+- View Branch Reports
+- Approve Authorized Discounts
+- Review Daily Closing
+
+**Permission:** Branch manager ko doosri branches ki financial ya patient information tabhi dikhni chahiye jab usko explicitly permission di gayi ho.
+
+---
+
+# 4. DOCTOR DASHBOARD
+
+Doctor ka dashboard sabse zyada important hai. Isme clinical workflow fast aur simple hona chahiye.
+
+## A. Overview Cards
+- Today's Appointments
+- Patients Waiting
+- Checked-in Patients
+- In Consultation
+- Completed Consultations
+- Follow-ups Today
+- Pending Notes
+- Pending Prescriptions
+- Pending Test Results
+
+## B. Today's Appointment Schedule
+Table mein:
+
+- Patient Name
+- Patient ID / UHID
+- Appointment Time
+- Appointment Type
+- New / Follow-up
+- Token Number
+- Waiting Time
+- Appointment Status
+- Action
+
+Actions:
+- Open Patient
+- Start Consultation
+- Mark Completed
+- Reschedule, according to permission
+
+## C. Patient Queue
+
+Tabs:
+
+- Waiting
+- In Consultation
+- On Hold
+- Completed
+- No-show
+
+Har patient ke saamne:
+- Patient Name
+- Age / Gender
+- Chief Complaint, if available
+- Last Visit
+- Priority Flag
+- Start Consultation
+
+## D. Patient Clinical Overview
+
+Patient open karne par:
+- Basic Profile
+- Previous Visits
+- Medical History
+- Surgical History
+- Allergies
+- Current Medicines
+- Previous Prescriptions
+- Previous Diagnoses
+- Lab Reports
+- Imaging Reports
+- Vitals History
+- Uploaded Documents
+
+## E. Consultation Workspace
+- Chief Complaint
+- Present Illness
+- Medical History
+- Examination
+- Vitals
+- Diagnosis
+- Clinical Notes
+- Assessment
+- Treatment Plan
+- Follow-up Instructions
+
+## F. Prescription
+- Add Medicine
+- Dose
+- Frequency
+- Duration
+- Route
+- Before / After Food
+- Quantity
+- Instructions
+- Favorite Medicines
+- Prescription Templates
+- Repeat Previous Prescription
+- Drug Allergy Alerts
+- Drug Interaction Alerts
+- Print / PDF
+- Authorized Digital Signature
+
+## G. Investigation Orders
+- Order Lab Test
+- Order Test Package
+- Order Imaging
+- View Previous Results
+- Compare Results
+- Mark Priority
+- Add Clinical Notes
+
+## H. Procedure Management
+- Schedule Procedure
+- Procedure Notes
+- Consent
+- Consumables
+- Procedure Charges
+- Follow-up
+
+## I. Follow-up
+- Set Follow-up Date
+- Follow-up Type
+- Follow-up Instructions
+- Schedule Next Appointment
+- Follow-up History
+
+## J. Clinical Alerts
+- Known Allergies
+- Important Medical History
+- Abnormal Previous Results
+- Pending Test Results
+- Overdue Follow-up
+
+## K. Quick Actions
+- Start Consultation
+- Open Patient Record
+- Add Diagnosis
+- Write Prescription
+- Order Test
+- Schedule Procedure
+- View Reports
+- Complete Encounter
+- Generate Medical Certificate
+
+**Important:** Doctor ka primary dashboard clinical work par focused ho. Revenue aur personal settlement alag section ho sakte hain; patient care screen ko unnecessary financial widgets se overload nahi karna chahiye.
+
+---
+
+# 5. RECEPTIONIST / FRONT DESK DASHBOARD
+
+Receptionist ka goal hai patient ko register karna, appointment manage karna aur queue ko smoothly chalana.
+
+## A. Overview Cards
+- Today's Appointments
+- Walk-in Patients
+- Waiting Patients
+- Checked-in Patients
+- Completed Consultations
+- Cancelled Appointments
+- No-show Patients
+- Registration Pending
+- Payment Pending
+
+## B. Appointment Management
+- Today's Schedule
+- Upcoming Appointments
+- New Booking
+- Follow-up Booking
+- Walk-in Booking
+- Reschedule
+- Cancellation
+- Waitlist
+- Doctor Availability
+
+## C. Patient Registration
+- New Patient
+- Existing Patient Search
+- UHID Search
+- Mobile Search
+- Duplicate Patient Check
+- Edit Contact Information
+- Patient Document Upload
+- Family Member Registration
+
+## D. Check-in & Queue
+- Patient Check-in
+- Token Generation
+- Queue Assignment
+- Doctor Selection
+- Room Assignment
+- Priority Marking, where authorized
+- Queue Status
+- Waiting Time
+
+## E. Patient Communication
+- Appointment Confirmation
+- Reminder
+- Rescheduling Message
+- Cancellation Message
+- Follow-up Reminder
+
+## F. Billing Shortcuts
+- Consultation Fee Collection
+- Print Invoice
+- Print Receipt
+- View Payment Status
+
+Financial permissions ke according receptionist ko refund ya discount approval nahi milna chahiye.
+
+## G. Quick Actions
+- Register Patient
+- Book Appointment
+- Check-in
+- Generate Token
+- Reschedule
+- Cancel Appointment
+- Print OPD Slip
+- Search Patient
+- Collect Authorized Payments
+
+---
+
+# 6. NURSE / MEDICAL ASSISTANT DASHBOARD
+
+Agar clinic mein nurses ya medical assistants hain, to unka dashboard doctor ke dashboard se alag hoga.
+
+## A. Overview Cards
+- Assigned Patients
+- Patients Waiting for Vitals
+- Vitals Completed
+- Procedures Pending
+- Medication Tasks
+- Follow-up Tasks
+- Tasks Completed
+
+## B. Patient Queue
+- Checked-in Patients
+- Vitals Pending
+- Waiting for Doctor
+- Procedure Required
+- Completed
+
+## C. Vitals Management
+- Blood Pressure
+- Pulse
+- Temperature
+- SpO₂
+- Respiratory Rate
+- Weight
+- Height
+- BMI
+- Blood Sugar, if applicable
+- Pain Score
+
+### Features
+- Record Vitals
+- View Previous Vitals
+- Show Trends
+- Flag Abnormal Measurements
+- Save Vitals
+- Notify Doctor
+
+## D. Nursing / Clinical Tasks
+- Patient Preparation
+- Injection
+- Dressing
+- Nebulization
+- Wound Care
+- Procedure Assistance
+- Vaccine Administration, where authorized
+- Intake / Output, where applicable
+
+## E. Procedure Room
+- Today's Procedures
+- Procedure Queue
+- Room Preparation
+- Equipment Checklist
+- Consumables
+- Procedure Status
+
+## F. Quick Actions
+- Open Assigned Patient
+- Record Vitals
+- Add Nursing Notes
+- Complete Task
+- Request Doctor Review
+- Record Procedure Completion
+
+**Access control:** Nurse ko sirf assigned clinical functions aur authorized patient records ka access mile.
+
+---
+
+# 7. LAB TECHNICIAN DASHBOARD
+
+Ye tab relevant hai jab clinic mein in-house pathology lab hai.
+
+## A. Overview Cards
+- New Lab Orders
+- Samples Pending
+- Samples Collected
+- Samples Received
+- Processing
+- Results Pending
+- Results Entered
+- Rejected Samples
+- Urgent Tests
+
+## B. Sample Collection Queue
+- Patient ID
+- Patient Name
+- Test Name
+- Sample Type
+- Barcode
+- Collection Status
+- Collection Time
+- Assigned Collector
+
+## C. Sample Tracking
+Status:
+- Collection Pending
+- Collected
+- Received in Lab
+- Accepted
+- Rejected
+- Recollection Required
+- Processing
+- Result Pending
+- Completed
+
+## D. Lab Workbench
+- Assigned Tests
+- Manual Result Entry
+- Analyzer Result Import
+- Reference Ranges
+- Repeat Test
+- Dilution, when applicable
+- Technical Flags
+- Result Validation
+- Technician Notes
+
+## E. Quality Control
+- QC Status
+- QC Results
+- Calibration Status
+- Instrument Alerts
+- Failed QC
+- Corrective Action
+
+## F. Reporting Queue
+- Results Pending
+- Results Entered
+- Awaiting Authorized Verification
+- Verified Results
+- Critical Results
+- Delayed Results
+
+## G. Quick Actions
+- Scan Barcode
+- Receive Sample
+- Reject Sample
+- Request Recollection
+- Enter Result
+- Import Analyzer Results
+- Forward for Verification
+
+**Important:** Lab technician ke result-entry rights aur pathologist ke final-verification rights alag rakho. Final report approval authorized professional ko hi milna chahiye.
+
+---
+
+# 8. RADIOLOGY / DIAGNOSTIC TECHNICIAN DASHBOARD
+
+Agar clinic mein X-Ray, ultrasound ya doosri imaging services hain.
+
+## A. Overview Cards
+- Today's Imaging Appointments
+- Patients Waiting
+- Scans Pending
+- In Progress
+- Completed Scans
+- Reports Pending
+- Urgent Studies
+- Machine Maintenance Alerts
+
+## B. Imaging Queue
+- Patient Name
+- Study Number
+- Modality
+- Body Part
+- Appointment Time
+- Priority
+- Preparation Status
+- Study Status
+
+## C. Modalities
+- X-Ray
+- CT
+- MRI
+- Ultrasound
+- Doppler
+- Mammography
+- Echo
+- ECG, where applicable
+
+## D. Patient Preparation
+- Patient Identification
+- Relevant History
+- Pregnancy Screening, where applicable
+- Contrast Checklist, where applicable
+- Allergy History
+- Renal Function Check, when clinically indicated
+- MRI Safety Screening, where applicable
+- Consent Status
+
+## E. Study Management
+- Start Study
+- Record Technician
+- Record Completion Time
+- Image Upload / Transfer
+- Link DICOM Study
+- Add Technical Notes
+- Mark Study Complete
+
+## F. Radiology Reporting Queue
+- Imaging Completed
+- Report Pending
+- Draft Report
+- Awaiting Radiologist
+- Final Report
+
+## G. Quick Actions
+- Check-in Patient
+- Start Imaging
+- Complete Study
+- Upload / Transfer Images
+- Forward for Reporting
+- Mark Equipment Issue
+
+**Important:** Technician ka kaam image acquisition aur technical records tak rahe. Diagnostic interpretation aur final radiology report authorized radiologist ki responsibility honi chahiye.
+
+---
+
+# 9. PHARMACIST DASHBOARD
+
+Agar clinic mein in-house pharmacy hai.
+
+## A. Overview Cards
+- Today's Sales
+- Total Prescriptions
+- Pending Dispensing
+- Completed Dispensing
+- Low Stock Items
+- Near-expiry Items
+- Expired Items
+- Pending Returns
+
+## B. Prescription Queue
+- Patient Name
+- Prescription Number
+- Doctor
+- Medicine Count
+- Prescription Date
+- Dispensing Status
+
+## C. Dispensing Workspace
+- View Prescription
+- Check Medicine Availability
+- Select Batch
+- Check Expiry
+- Enter Dispensed Quantity
+- Partial Dispensing
+- Remaining Quantity
+- Medicine Substitution, subject to applicable rules
+- Dispensing Instructions
+
+## D. Inventory Alerts
+- Low Stock
+- Reorder Required
+- Near-expiry
+- Expired
+- Batch Recall
+- Damaged Stock
+
+## E. Pharmacy Sales
+- New Sale
+- Prescription Sale
+- OTC Sale, where permitted
+- Sales Return
+- Refund Request
+- Invoice
+- Receipt
+
+## F. Quick Actions
+- Open Prescription
+- Dispense Medicine
+- Search Stock
+- Create Pharmacy Sale
+- Record Return
+- View Expiry Report
+
+---
+
+# 10. CASHIER DASHBOARD
+
+Cashier ka dashboard billing aur payments par focused hoga.
+
+## A. Overview Cards
+- Today's Collection
+- Cash Collection
+- UPI Collection
+- Card Collection
+- Online Collection
+- Pending Payments
+- Refund Requests
+- Today's Transactions
+
+## B. Billing
+- Pending Invoices
+- Consultation Bills
+- Procedure Bills
+- Lab Bills
+- Pharmacy Bills
+- Package Bills
+- Unpaid Invoices
+
+## C. Payment Collection
+- Select Invoice
+- Collect Payment
+- Full Payment
+- Partial Payment
+- Split Payment
+- Advance Payment
+- Select Payment Method
+- Generate Receipt
+
+## D. Refund Management
+- Refund Requests
+- Approved Refunds
+- Pending Refunds
+- Completed Refunds
+- Refund Status
+
+Refund aur reversal ki final authority separate authorized role ko di ja sakti hai.
+
+## E. Cash Counter
+- Opening Balance
+- Cash Receipts
+- Cash Refunds
+- Closing Balance
+- Cash Handover
+- Counter Reconciliation
+- Payment Variance
+
+## F. Quick Actions
+- Open Invoice
+- Collect Payment
+- Print Receipt
+- Search Transaction
+- Request Refund
+- Close Counter
+
+---
+
+# 11. ACCOUNTANT / FINANCE DASHBOARD
+
+Accountant ka dashboard clinic ke complete financial records par focused hoga.
+
+## A. Overview Cards
+- Today's Revenue
+- Monthly Revenue
+- Total Expenses
+- Net Operating Result
+- Accounts Receivable
+- Accounts Payable
+- Pending Vendor Payments
+- Refunds
+- Outstanding
+
+## B. Revenue Reports
+- Consultation Revenue
+- Procedure Revenue
+- Lab Revenue
+- Pharmacy Revenue
+- Doctor-wise Revenue
+- Branch-wise Revenue
+- Service-wise Revenue
+
+## C. Expenses
+- Daily Expenses
+- Monthly Expenses
+- Expense Categories
+- Vendor Expenses
+- Payroll Expenses
+- Equipment Expenses
+- Expense Approvals
+
+## D. Receivables
+- Patient Outstanding
+- Corporate Outstanding
+- Insurance Outstanding
+- Overdue Invoices
+- Payment Follow-up
+- Aging Report
+
+## E. Payables
+- Vendor Bills
+- Pending Payments
+- Due Payments
+- Payment Schedule
+- Vendor Ledger
+
+## F. Accounting
+- Chart of Accounts
+- Journal Entries
+- Ledger
+- Cash Book
+- Bank Book
+- Bank Reconciliation
+- Applicable GST/TDS Records
+
+## G. Financial Reports
+- Trial Balance
+- Profit & Loss
+- Balance Sheet
+- Cash Flow
+- Income & Expense
+- Outstanding / Aging
+- Collection Summary
+
+## H. Quick Actions
+- Record Expense
+- Record Journal
+- Reconcile Bank
+- View Ledger
+- Review Outstanding
+- Generate Financial Report
+
+---
+
+# 12. STORE / INVENTORY MANAGER DASHBOARD
+
+## A. Overview Cards
+- Total Inventory Items
+- Available Stock
+- Low Stock Items
+- Near-expiry Items
+- Expired Items
+- Pending Indents
+- Pending Stock Issues
+- Stock Value
+
+## B. Inventory
+- Item Master
+- Stock Ledger
+- Batch Tracking
+- Expiry Tracking
+- Warehouse / Store
+- Bin Location
+- Physical Stock
+- Stock Adjustment
+
+## C. Stock Movements
+- Stock In
+- Stock Out
+- Stock Issue
+- Stock Return
+- Inter-store Transfer
+- Damaged Stock
+- Wastage
+
+## D. Reorder Management
+- Reorder Alerts
+- Minimum Stock
+- Maximum Stock
+- Reorder Quantity
+- Pending Purchase Requests
+
+## E. Stock Audits
+- Physical Count
+- System Quantity
+- Counted Quantity
+- Variance
+- Adjustment Request
+- Approval Status
+
+## F. Quick Actions
+- Receive Stock
+- Issue Stock
+- Transfer Stock
+- Record Return
+- Count Inventory
+- Report Damaged Items
+
+---
+
+# 13. PURCHASE OFFICER DASHBOARD
+
+## A. Overview Cards
+- Pending Indents
+- Pending Approvals
+- Open Purchase Orders
+- Expected Deliveries
+- Delayed Deliveries
+- Pending GRNs
+- Pending Vendor Invoices
+
+## B. Purchase Requests
+- New Indents
+- Department-wise Requests
+- Priority Requests
+- Approved Requests
+- Rejected Requests
+
+## C. Vendor & Quotation
+- Vendor Directory
+- RFQs
+- Received Quotations
+- Comparative Statement
+- Negotiated Rates
+
+## D. Purchase Orders
+- Create Purchase Order
+- Approval Status
+- Partial Delivery
+- Full Delivery
+- Delayed Orders
+- Cancelled Orders
+
+## E. Goods Receipt
+- Expected Goods
+- Goods Received
+- GRN Pending
+- Quality Check
+- Damaged / Missing Items
+
+## F. Quick Actions
+- Create Indent
+- Request Quotation
+- Compare Vendors
+- Create Purchase Order
+- Receive Goods
+- Track Delivery
+
+Purchase approval aur vendor payment authority role-based honi chahiye.
+
+---
+
+# 14. HR / STAFF ADMIN DASHBOARD
+
+## A. Overview Cards
+- Total Employees
+- Present Today
+- Absent Today
+- On Leave
+- Late Arrivals
+- Upcoming Joining
+- Contracts / Documents Expiring
+
+## B. Employee Management
+- Employee Directory
+- Add Employee
+- Employee Documents
+- Qualifications
+- Designation
+- Department
+- Joining Date
+- Employment Status
+
+## C. Attendance
+- Today's Attendance
+- Check-in / Check-out
+- Late Arrivals
+- Early Departures
+- Missing Attendance
+- Attendance Corrections
+
+## D. Leave Management
+- Pending Leave Requests
+- Approved Leaves
+- Rejected Requests
+- Leave Balance
+- Holiday Calendar
+
+## E. Roster
+- Doctor Schedule
+- Staff Schedule
+- Shift Assignments
+- Weekly Off
+- Staff Availability
+- Scheduling Conflicts
+
+## F. Payroll
+- Salary Structure
+- Payroll Processing
+- Allowances
+- Deductions
+- Payslips
+- Payroll Approval
+- Full & Final Settlement
+
+Payroll ki confidential information sirf authorized users ko accessible honi chahiye.
+
+---
+
+# 15. HOME COLLECTION STAFF DASHBOARD
+
+Agar clinic home sample collection ya home visits provide karta hai.
+
+## A. Overview Cards
+- Today's Assigned Visits
+- Upcoming Visits
+- Pending Visits
+- Completed Visits
+- Cancelled Visits
+- Samples Collected
+
+## B. Assigned Visits
+- Patient Name
+- Address
+- Contact
+- Time Slot
+- Tests / Service
+- Payment Status
+- Collection Instructions
+
+## C. Visit Management
+- Accept Assignment
+- Start Visit
+- Mark Arrived
+- Verify Patient
+- Collect Sample
+- Scan Barcode
+- Record Collection Time
+- Mark Completed
+- Record Failed Collection
+
+## D. Sample Handover
+- Collected Samples
+- Sample Count
+- Barcode List
+- Handover to Lab
+- Handover Time
+- Receipt Confirmation
+
+## E. Quick Actions
+- View Route
+- Call Patient
+- Update Visit Status
+- Record Sample Collection
+- Submit Sample
+- Report Issue
+
+Patient location aur contact details sirf assigned visits ke liye show honi chahiye.
+
+---
+
+# 16. TELEMEDICINE COORDINATOR DASHBOARD
+
+Agar clinic online consultation offer karta hai.
+
+## A. Overview Cards
+- Today's Video Consultations
+- Upcoming Sessions
+- Waiting Patients
+- Doctors Available
+- Completed Sessions
+- Failed / Cancelled Sessions
+
+## B. Appointment Queue
+- Patient
+- Doctor
+- Time
+- Payment Status
+- Patient Check-in
+- Doctor Availability
+
+## C. Video Consultation
+- Send Meeting Link
+- Verify Payment
+- Patient Check-in
+- Connect Patient
+- Reschedule
+- Cancel
+- Record Technical Issue
+
+## D. Support
+- Failed Video Connection
+- Patient Login Issue
+- Audio / Video Issue
+- Payment Failure
+- Doctor Delay
+
+## E. Quick Actions
+- Start Session
+- Send Link
+- Contact Patient
+- Reschedule
+- Mark Technical Issue
+
+Clinical notes aur prescriptions doctor ke authorized workspace mein hi manage hone chahiye.
+
+---
+
+# 17. CRM / PATIENT RELATIONS DASHBOARD
+
+Agar clinic appointments aur patient retention manage karne ke liye dedicated staff rakhta hai.
+
+## A. Overview Cards
+- Follow-ups Due
+- Missed Appointments
+- Patients to Contact
+- Pending Callbacks
+- Open Complaints
+- Feedback Received
+
+## B. Follow-up Management
+- Follow-up Due Today
+- Overdue Follow-ups
+- Patients Not Returned
+- Vaccination Reminders
+- Chronic Care Reminders
+- Annual Checkup Reminders
+
+## C. Patient Communication
+- Appointment Reminders
+- Follow-up Messages
+- Callback Requests
+- Contact History
+- Communication Preferences
+
+## D. Feedback & Complaints
+- New Feedback
+- Low Ratings
+- Open Complaints
+- Assigned Complaints
+- Resolution Status
+
+## E. Quick Actions
+- Schedule Follow-up
+- Record Call
+- Send Reminder
+- Create Callback
+- Register Complaint
+- Update Resolution
+
+Health-related messages aur patient outreach ke liye consent, privacy aur communication preferences follow karne chahiye.
+
+---
+
+# 18. QUALITY / AUDIT MANAGER DASHBOARD
+
+Ye larger clinics, diagnostic centres ya compliance-focused clinics ke liye useful hai.
+
+## A. Overview Cards
+- Open Incidents
+- Pending Investigations
+- Pending Corrective Actions
+- Audit Findings
+- Overdue Actions
+- Expiring Documents
+
+## B. Incident Management
+- Patient Safety Incidents
+- Medication Errors
+- Near Misses
+- Equipment Incidents
+- Complaint Investigations
+
+## C. Quality Checks
+- Clinical Documentation Audit
+- Prescription Audit
+- Consent Audit
+- Report Correction Review
+- Access Review
+
+## D. Corrective Actions
+- New Action
+- Responsible Person
+- Due Date
+- Progress
+- Evidence
+- Closure Approval
+
+## E. Quick Actions
+- Register Incident
+- Start Audit
+- Assign Action
+- Review Finding
+- Close Corrective Action
+
+---
+
+# 19. PATIENT PORTAL DASHBOARD
+
+Ye internal staff dashboard nahi, patient ke login ke baad dikhne wala dashboard hai.
+
+## A. Overview Cards
+- Upcoming Appointment
+- Previous Visits
+- Pending Payment
+- Latest Report
+- Follow-up Due
+
+## B. Appointment
+- Book Appointment
+- Reschedule
+- Cancel
+- View Doctor
+- Appointment History
+- Queue Status, if available
+
+## C. Health Records
+- Prescriptions
+- Lab Reports
+- Diagnostic Reports
+- Medical Certificates
+- Uploaded Documents
+- Previous Visits
+
+## D. Payments
+- Pending Bills
+- Pay Online
+- Download Invoice
+- Download Receipt
+- Payment History
+
+## E. Follow-up
+- Follow-up Date
+- Book Follow-up
+- Doctor Instructions
+- Appointment Reminder
+
+## F. Family Members
+- Add Dependent
+- Switch Patient Profile
+- Book Family Appointment
+- View Authorized Family Records
+
+Family members ke medical records ko relationship se automatically open nahi karna chahiye; suitable authorization zaroori hai.
+
+---
+
+# 20. CLINIC OWNER KE LIYE SPECIAL ANALYTICS DASHBOARD
+
+Ye normal admin dashboard ka advanced section ho sakta hai.
+
+### Business Performance
+- Daily / Weekly / Monthly Revenue
+- Revenue Growth
+- New Patient Growth
+- Returning Patient Percentage
+- Appointment Conversion
+- No-show Percentage
+
+### Doctor Performance
+- Patient Count
+- Consultation Count
+- Average Consultation Duration
+- Follow-up Rate
+- Doctor-wise Revenue
+
+### Appointment Performance
+- Peak Hours
+- Busy Days
+- Cancellation Rate
+- Waiting Time
+- Unfilled Slots
+
+### Financial Performance
+- Revenue by Service
+- Collection by Payment Method
+- Outstanding
+- Refunds
+- Discounts
+- Expenses
+- Operating Profitability
+
+### Operational Performance
+- Patient Waiting Time
+- Consultation Completion Time
+- Pending Lab Orders
+- Report Turnaround Time
+- Pharmacy Stock-outs
+- Missed Follow-ups
+
+---
+
+# 21. HAR DASHBOARD KA COMMON LAYOUT
+
+Sabhi dashboards ka basic layout consistent rakho, taaki users ko software samajhne mein aasani ho.
+
+### Top Header
+- Clinic Logo
+- Branch Selector, if permitted
+- Global Search
+- Notifications
+- User Profile
+- Help / Support
+- Logout
+
+### Left Sidebar
+- Role-specific menus
+- Expand / Collapse
+- Favorites
+- Recent Pages
+
+### Main Dashboard
+- KPI Cards
+- Tables
+- Calendar
+- Charts
+- Pending Tasks
+- Alerts
+- Quick Actions
+
+### Global Search
+Authorized records mein search:
+- Patient Name
+- Patient ID
+- Mobile
+- Appointment Number
+- Prescription Number
+- Invoice Number
+- Report Number
+
+### Notifications
+- Appointment Reminder
+- Pending Task
+- Payment Status
+- Report Status
+- Stock Alert
+- Approval Request
+
+---
+
+# 22. ROLE-WISE SIDEBAR MENU
+
+Ye ek practical starting structure hai.
+
+| Role | Main Sidebar Sections |
+|---|---|
+| Super Admin | Dashboard, Clinics, Subscriptions, Users, System Health, Logs, Global Settings |
+| Clinic Owner / Admin | Dashboard, Patients, Appointments, Doctors, Staff, Services, Billing, Reports, Settings |
+| Branch Manager | Dashboard, Appointments, Patients, Doctors, Staff, Operations, Billing Summary, Reports |
+| Doctor | Dashboard, My Queue, Appointments, Patients, Consultation, Prescriptions, Investigations, Reports, Follow-ups |
+| Receptionist | Dashboard, Patients, Appointments, Check-in, Queue, Billing, Payments, Communication |
+| Nurse / Assistant | Dashboard, Assigned Patients, Vitals, Tasks, Procedures, Nursing Notes |
+| Lab Technician | Dashboard, Lab Orders, Samples, Workbench, QC, Results, Equipment |
+| Radiology Technician | Dashboard, Imaging Queue, Studies, Patient Preparation, Equipment, Handover |
+| Pharmacist | Dashboard, Prescriptions, Dispensing, Sales, Returns, Inventory, Expiry |
+| Cashier | Dashboard, Invoices, Payments, Receipts, Refund Requests, Cash Closing |
+| Accountant | Dashboard, Accounts, Expenses, Receivables, Payables, Reconciliation, Financial Reports |
+| Inventory Manager | Dashboard, Items, Stock, Transfers, Indents, Expiry, Stock Reports |
+| Purchase Officer | Dashboard, Indents, Vendors, Quotations, Purchase Orders, GRN |
+| HR / Staff Admin | Dashboard, Employees, Attendance, Leaves, Roster, Payroll |
+| Home Collection Staff | Dashboard, Assigned Visits, Collection, Samples, Handover |
+| CRM Staff | Dashboard, Follow-ups, Calls, Reminders, Feedback, Complaints |
+| Quality Manager | Dashboard, Incidents, Audits, Corrective Actions, Quality Reports |
+| Patient | Dashboard, Appointments, Health Records, Reports, Bills, Payments, Family |
+
+---
+
+# 23. DASHBOARD PERMISSIONS — SABSE IMPORTANT
+
+Role ke naam se hi access decide mat karo. **Role + individual permissions + branch scope** ke basis par access control rakho.
+
+Example:
+
+| Action | Doctor | Receptionist | Cashier | Admin |
+|---|---|---|---|---|
+| Patient Registration | View / permitted edit | Create / Edit | Limited view | Full authorized access |
+| Clinical Notes | Create / Edit own permitted records | No | No | As authorized |
+| Prescription | Create / Sign as authorized | No | No | As authorized |
+| Appointment | View / Manage own schedule | Create / Manage | View as needed | Manage |
+| Payment Collection | View if permitted | Limited collection | Collect | View / Manage |
+| Refund Approval | No by default | No by default | Request / process approved refund | According to authority |
+| User Management | No | No | No | Authorized admin |
+| Financial Reports | Own permitted information | Limited | Collection reports | Authorized full access |
+| Audit Logs | Limited, if needed | No | Limited | Authorized access |
+
+Aap permissions ko aur detail mein divide kar sakte ho:
+
+- View
+- Create
+- Edit
+- Delete
+- Approve
+- Print
+- Export
+- Sign
+- Refund
+- Reverse
+- Assign
+- Branch Access
+
+Clinical aur financial records mein sensitive actions ke liye audit trail hona chahiye.
+
+---
+
+# 24. MERI RECOMMENDATION: DASHBOARD BANANE KA BEST TARIKA
+
+Har role ke liye alag software mat banao. Ek hi application rakho, lekin login user ke role aur permissions ke basis par dashboard render karo.
+
+Example:
+
+```text
+LOGIN
+  |
+  v
+IDENTIFY USER
+  |
+  v
+LOAD ROLES + PERMISSIONS + BRANCH SCOPE
+  |
+  v
+OPEN ROLE-BASED DASHBOARD
+  |
+  +---- Clinic Admin Dashboard
+  |
+  +---- Doctor Dashboard
+  |
+  +---- Reception Dashboard
+  |
+  +---- Nurse Dashboard
+  |
+  +---- Lab Dashboard
+  |
+  +---- Pharmacy Dashboard
+  |
+  +---- Cashier Dashboard
+  |
+  +---- Accountant Dashboard
+  |
+  +---- Inventory Dashboard
+  |
+  +---- HR Dashboard
+  |
+  +---- Patient Portal
+```
+
+### Har dashboard mein 4 fixed parts rakho
+
+**1. Overview:** User ko uske kaam se related important numbers dikhayein.
+
+**2. Work Queue:** Abhi kaunse patients, appointments, prescriptions, payments ya tasks pending hain.
+
+**3. Quick Actions:** User apna common kaam minimum clicks mein kar sake.
+
+**4. Alerts:** Sirf relevant aur actionable notifications dikhayein.
+
+**Final suggestion:** Ek standard clinic ke liye sabse pehle **Clinic Admin, Doctor, Receptionist, Nurse/Assistant aur Cashier** dashboards banao. Agar clinic mein in-house lab, pharmacy ya home collection hai, to unke dashboards add karo. Accountant, inventory, HR, CRM aur quality dashboards ko un services aur clinic ke size ke according enable karo. Isse software comprehensive rahega, lekin dashboard unnecessary features se overloaded nahi hoga.

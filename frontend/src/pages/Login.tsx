@@ -52,7 +52,7 @@ interface RoleItem {
 
 interface DemoAccountItem {
   key: string;
-  category: 'core' | 'counsellor' | 'psychiatrist' | 'assistant' | 'lawyer' | 'rider';
+  category: 'core' | 'hospital' | 'lab' | 'clinic' | 'vertical' | 'platform' | 'others';
   name: string;
   label: string;
   desc: string;
@@ -166,60 +166,151 @@ const demoAccounts: DemoAccountItem[] = [
   { key: 'child_dev_admin', category: 'core', name: 'Child Development Admin', label: 'Child Development', desc: 'Therapy & IEP tracking', icon: Users, color: 'text-rose-600', bg: 'bg-rose-500/10', email: 'child.dev.admin@findmedi.com', pass: 'password' },
   { key: 'specialty_centre_admin', category: 'core', name: 'Specialty Centre Admin', label: 'Specialty Centre', desc: 'Daycare & consultants', icon: Stethoscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'specialty.centre.admin@findmedi.com', pass: 'password' },
   // File 07 §3.1-§3.24 provider-vertical dashboards — one seeded account per owner role
-  { key: 'optician', category: 'core', name: 'Optical Demo Store', label: 'Optical Shop', desc: 'Eyewear & job cards', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'optician@findmedi.com', pass: 'password' },
-  { key: 'dietitian', category: 'core', name: 'Dr. Nisha Dietitian', label: 'Dietitian', desc: 'Meal plans & follow-ups', icon: Salad, color: 'text-lime-700', bg: 'bg-lime-500/10', email: 'dietitian@findmedi.com', pass: 'password' },
-  { key: 'physiotherapist', category: 'core', name: 'Dr. Arjun Physio', label: 'Physiotherapy', desc: 'Rehab & home visits', icon: HeartPulse, color: 'text-pink-600', bg: 'bg-pink-500/10', email: 'physio@findmedi.com', pass: 'password' },
-  { key: 'home_nursing_admin', category: 'core', name: 'Home Nursing Demo Agency', label: 'Home Nursing', desc: 'Agency & visit schedule', icon: Stethoscope, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'home.nursing@findmedi.com', pass: 'password' },
-  { key: 'phlebotomist', category: 'core', name: 'Ravi Phlebotomist', label: 'Phlebotomist', desc: 'Home collections & cold chain', icon: FlaskConical, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'phlebotomist@findmedi.com', pass: 'password' },
-  { key: 'yoga_instructor', category: 'core', name: 'Yoga Guru Meera', label: 'Yoga', desc: 'Studio classes & camps', icon: Heart, color: 'text-rose-600', bg: 'bg-rose-500/10', email: 'yoga@findmedi.com', pass: 'password' },
-  { key: 'gym_owner', category: 'core', name: 'FitLife Gym', label: 'Gym', desc: 'Memberships & plans', icon: Building2, color: 'text-slate-600', bg: 'bg-slate-500/10', email: 'gym@findmedi.com', pass: 'password' },
-  { key: 'wellness_admin', category: 'core', name: 'Serene Wellness Spa', label: 'Wellness', desc: 'Therapies & packages', icon: Heart, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'wellness@findmedi.com', pass: 'password' },
-  { key: 'equipment_vendor', category: 'core', name: 'MedEquip Rentals', label: 'Equipment', desc: 'Rentals, sale & CPAP', icon: Truck, color: 'text-blue-600', bg: 'bg-blue-500/10', email: 'equipment@findmedi.com', pass: 'password' },
-  { key: 'product_vendor', category: 'core', name: 'HealthKart Demo', label: 'Product Vendor', desc: 'Supplements & essentials', icon: Pill, color: 'text-amber-600', bg: 'bg-amber-500/10', email: 'product.vendor@findmedi.com', pass: 'password' },
-  { key: 'event_organizer', category: 'core', name: 'Health Camps Org', label: 'Event Organizer', desc: 'Camps & NGO programs', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'events@findmedi.com', pass: 'password' },
-  { key: 'group_host', category: 'core', name: 'Support Circle Host', label: 'Group Host', desc: 'Support groups & meetups', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'group.host@findmedi.com', pass: 'password' },
-  { key: 'trainer_org', category: 'core', name: 'CPR Training Org', label: 'Training Org', desc: 'CPR & first aid', icon: Users, color: 'text-red-600', bg: 'bg-red-500/10', email: 'trainer.org@findmedi.com', pass: 'password' },
-  { key: 'blood_bank_admin', category: 'core', name: 'Red Cross Blood Bank', label: 'Blood Bank', desc: 'Donations & inventory', icon: HeartPulse, color: 'text-red-600', bg: 'bg-red-500/10', email: 'bloodbank@findmedi.com', pass: 'password' },
-  { key: 'dialysis_admin', category: 'core', name: 'Kidney Care Dialysis', label: 'Dialysis', desc: 'Sessions & water quality', icon: Microscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'dialysis@findmedi.com', pass: 'password' },
-  { key: 'fertility_admin', category: 'core', name: 'Hope IVF Centre', label: 'Fertility', desc: 'IVF & maternity', icon: Heart, color: 'text-pink-600', bg: 'bg-pink-500/10', email: 'fertility@findmedi.com', pass: 'password' },
-  { key: 'rehab_admin', category: 'core', name: 'New Leaf Rehab', label: 'Rehab', desc: 'De-addiction & rehab', icon: Shield, color: 'text-amber-700', bg: 'bg-amber-500/10', email: 'rehab@findmedi.com', pass: 'password' },
-  { key: 'govt_facility_staff', category: 'core', name: 'PHC Staff Demo', label: 'Govt Facility', desc: 'Government health centre', icon: Building2, color: 'text-emerald-700', bg: 'bg-emerald-500/10', email: 'govt@findmedi.com', pass: 'password' },
-  { key: 'tpa_agent', category: 'core', name: 'Star Health TPA Desk', label: 'TPA Desk', desc: 'Cashless & pre-auth', icon: Receipt, color: 'text-yellow-600', bg: 'bg-yellow-500/10', email: 'tpa@findmedi.com', pass: 'password' },
-
-  // Counsellors (MindSupport - Therapists & Psychologists, NO "Dr." prefix)
-  { key: 'counsellor', category: 'counsellor', name: 'Aisha Mehra', label: 'Aisha Mehra', desc: 'Anxiety & Stress (PhD)', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'aisha.mehra@mindsupport.seed', pass: 'password' },
-  { key: 'counsellor', category: 'counsellor', name: 'Neha Iyer', label: 'Neha Iyer', desc: 'Depression & Mood (M.Phil)', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'neha.iyer@mindsupport.seed', pass: 'password' },
-  { key: 'counsellor', category: 'counsellor', name: 'Priya Nair', label: 'Priya Nair', desc: 'Trauma & PTSD (PsyD)', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'priya.nair@mindsupport.seed', pass: 'password' },
-  { key: 'counsellor', category: 'counsellor', name: 'Rahul Verma', label: 'Rahul Verma', desc: 'Career & Confidence', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'rahul.verma@mindsupport.seed', pass: 'password' },
-  { key: 'counsellor', category: 'counsellor', name: 'Ananya Verma', label: 'Ananya Verma', desc: 'Stress & Student Burnout', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'counsellor@findmedi.com', pass: 'password' },
-
-  // Psychiatrists (Medical Doctors MBBS, MD Psychiatry — Diagnosis & Medication)
-  { key: 'psychiatrist', category: 'psychiatrist', name: 'Dr. Rohan Deshmukh', label: 'Dr. Rohan Deshmukh', desc: 'Depression & Meds (MD)', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'psychiatrist@findmedi.com', pass: 'password' },
-  { key: 'psychiatrist', category: 'psychiatrist', name: 'Dr. Ananya Sharma', label: 'Dr. Ananya Sharma', desc: 'Bipolar & Psychotherapy', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'psychiatrist2@findmedi.com', pass: 'password' },
-  { key: 'psychiatrist', category: 'psychiatrist', name: 'Dr. Vikram Rao', label: 'Dr. Vikram Rao', desc: 'Adult ADHD & Panic', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'psychiatrist3@findmedi.com', pass: 'password' },
-  { key: 'psychiatrist', category: 'psychiatrist', name: 'Dr. Kavya Menon', label: 'Dr. Kavya Menon', desc: 'Sleep & De-addiction', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'psychiatrist4@findmedi.com', pass: 'password' },
-  { key: 'psychiatrist', category: 'psychiatrist', name: 'Dr. Aditya Patel', label: 'Dr. Aditya Patel', desc: 'Child & Adolescent', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'psychiatrist5@findmedi.com', pass: 'password' },
-
-  // Hospital Assistants (Patient Care & Hospital Attendants)
-  { key: 'assistant', category: 'assistant', name: 'Sunita Sharma', label: 'Sunita Sharma', desc: 'Patient Care & Wheelchair', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'assistant@findmedi.com', pass: 'password' },
-  { key: 'assistant', category: 'assistant', name: 'Manoj Chouhan', label: 'Manoj Chouhan', desc: 'ICU Step-Down & Elderly', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'assistant2@findmedi.com', pass: 'password' },
-  { key: 'assistant', category: 'assistant', name: 'Pooja Tiwari', label: 'Pooja Tiwari', desc: 'Billing & Cashless TPA', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'assistant3@findmedi.com', pass: 'password' },
-  { key: 'assistant', category: 'assistant', name: 'Neha Kulkarni', label: 'Neha Kulkarni', desc: 'Overnight Hospital Stay', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'assistant4@findmedi.com', pass: 'password' },
-  { key: 'assistant', category: 'assistant', name: 'Rajesh Yadav', label: 'Rajesh Yadav', desc: 'Post-Surgery Mobility', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'assistant5@findmedi.com', pass: 'password' },
-
-  // Medico-Legal Lawyers
-  { key: 'lawyer', category: 'lawyer', name: 'Adv. Rajesh Verma', label: 'Adv. Rajesh Verma', desc: 'Medical Negligence & MLC', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'lawyer@findmedi.com', pass: 'password' },
-  { key: 'lawyer', category: 'lawyer', name: 'Adv. Priya Malhotra', label: 'Adv. Priya Malhotra', desc: 'Insurance Dispute Claim', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'priya.malhotra@findmedi.com', pass: 'password' },
-  { key: 'lawyer', category: 'lawyer', name: 'Adv. Rohan Deshmukh', label: 'Adv. Rohan Deshmukh', desc: 'Accident MLC Documentation', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'rohan.deshmukh@findmedi.com', pass: 'password' },
-  { key: 'lawyer', category: 'lawyer', name: 'Adv. Ananya Roy', label: 'Adv. Ananya Roy', desc: 'Family & Patient Rights', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'ananya.roy@findmedi.com', pass: 'password' },
-  { key: 'lawyer', category: 'lawyer', name: 'Adv. Vikramaditya Rao', label: 'Adv. Vikramaditya', desc: 'Hospital Arbitration', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'lawyer5@findmedi.com', pass: 'password' },
-
-  // Emergency & Hospital Riders
-  { key: 'rider', category: 'rider', name: 'Vikram Singh', label: 'Vikram Singh', desc: 'Bike Rider (Jabalpur)', icon: Car, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'rider@findmedi.com', pass: 'password' },
-  { key: 'rider', category: 'rider', name: 'Amit Patel', label: 'Amit Patel', desc: 'Auto Rickshaw (City)', icon: Car, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'rider2@findmedi.com', pass: 'password' },
-  { key: 'rider', category: 'rider', name: 'Ravi Kumar', label: 'Ravi Kumar', desc: 'Car / Ertiga 6-Seater', icon: Car, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'rider3@findmedi.com', pass: 'password' },
-  { key: 'rider', category: 'rider', name: 'Sanjay Verma', label: 'Sanjay Verma', desc: 'Ambulance Force Traveller', icon: Ambulance, color: 'text-red-600', bg: 'bg-red-500/10', email: 'rider4@findmedi.com', pass: 'password' },
-  { key: 'rider', category: 'rider', name: 'Deepak Sharma', label: 'Deepak Sharma', desc: 'Swift Car (Highway)', icon: Car, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'rider5@findmedi.com', pass: 'password' },
+  { key: 'optician', category: 'vertical', name: 'Optical Demo Store', label: 'Optical Shop', desc: 'Eyewear & job cards', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'optician@findmedi.com', pass: 'password' },
+  { key: 'dietitian', category: 'vertical', name: 'Dr. Nisha Dietitian', label: 'Dietitian', desc: 'Meal plans & follow-ups', icon: Salad, color: 'text-lime-700', bg: 'bg-lime-500/10', email: 'dietitian@findmedi.com', pass: 'password' },
+  { key: 'physiotherapist', category: 'vertical', name: 'Dr. Arjun Physio', label: 'Physiotherapy', desc: 'Rehab & home visits', icon: HeartPulse, color: 'text-pink-600', bg: 'bg-pink-500/10', email: 'physio@findmedi.com', pass: 'password' },
+  { key: 'home_nursing_admin', category: 'vertical', name: 'Home Nursing Demo Agency', label: 'Home Nursing', desc: 'Agency & visit schedule', icon: Stethoscope, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'home.nursing@findmedi.com', pass: 'password' },
+  { key: 'phlebotomist', category: 'vertical', name: 'Ravi Phlebotomist', label: 'Phlebotomist', desc: 'Home collections & cold chain', icon: FlaskConical, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'phlebotomist@findmedi.com', pass: 'password' },
+  { key: 'yoga_instructor', category: 'vertical', name: 'Yoga Guru Meera', label: 'Yoga', desc: 'Studio classes & camps', icon: Heart, color: 'text-rose-600', bg: 'bg-rose-500/10', email: 'yoga@findmedi.com', pass: 'password' },
+  { key: 'gym_owner', category: 'vertical', name: 'FitLife Gym', label: 'Gym', desc: 'Memberships & plans', icon: Building2, color: 'text-slate-600', bg: 'bg-slate-500/10', email: 'gym@findmedi.com', pass: 'password' },
+  { key: 'wellness_admin', category: 'vertical', name: 'Serene Wellness Spa', label: 'Wellness', desc: 'Therapies & packages', icon: Heart, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'wellness@findmedi.com', pass: 'password' },
+  { key: 'equipment_vendor', category: 'vertical', name: 'MedEquip Rentals', label: 'Equipment', desc: 'Rentals, sale & CPAP', icon: Truck, color: 'text-blue-600', bg: 'bg-blue-500/10', email: 'equipment@findmedi.com', pass: 'password' },
+  { key: 'product_vendor', category: 'vertical', name: 'HealthKart Demo', label: 'Product Vendor', desc: 'Supplements & essentials', icon: Pill, color: 'text-amber-600', bg: 'bg-amber-500/10', email: 'product.vendor@findmedi.com', pass: 'password' },
+  { key: 'event_organizer', category: 'vertical', name: 'Health Camps Org', label: 'Event Organizer', desc: 'Camps & NGO programs', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'events@findmedi.com', pass: 'password' },
+  { key: 'group_host', category: 'vertical', name: 'Support Circle Host', label: 'Group Host', desc: 'Support groups & meetups', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'group.host@findmedi.com', pass: 'password' },
+  { key: 'trainer_org', category: 'vertical', name: 'CPR Training Org', label: 'Training Org', desc: 'CPR & first aid', icon: Users, color: 'text-red-600', bg: 'bg-red-500/10', email: 'trainer.org@findmedi.com', pass: 'password' },
+  { key: 'blood_bank_admin', category: 'vertical', name: 'Red Cross Blood Bank', label: 'Blood Bank', desc: 'Donations & inventory', icon: HeartPulse, color: 'text-red-600', bg: 'bg-red-500/10', email: 'bloodbank@findmedi.com', pass: 'password' },
+  { key: 'dialysis_admin', category: 'vertical', name: 'Kidney Care Dialysis', label: 'Dialysis', desc: 'Sessions & water quality', icon: Microscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'dialysis@findmedi.com', pass: 'password' },
+  { key: 'fertility_admin', category: 'vertical', name: 'Hope IVF Centre', label: 'Fertility', desc: 'IVF & maternity', icon: Heart, color: 'text-pink-600', bg: 'bg-pink-500/10', email: 'fertility@findmedi.com', pass: 'password' },
+  { key: 'rehab_admin', category: 'vertical', name: 'New Leaf Rehab', label: 'Rehab', desc: 'De-addiction & rehab', icon: Shield, color: 'text-amber-700', bg: 'bg-amber-500/10', email: 'rehab@findmedi.com', pass: 'password' },
+  { key: 'govt_facility_staff', category: 'vertical', name: 'PHC Staff Demo', label: 'Govt Facility', desc: 'Government health centre', icon: Building2, color: 'text-emerald-700', bg: 'bg-emerald-500/10', email: 'govt@findmedi.com', pass: 'password' },
+  { key: 'tpa_agent', category: 'vertical', name: 'Star Health TPA Desk', label: 'TPA Desk', desc: 'Cashless & pre-auth', icon: Receipt, color: 'text-yellow-600', bg: 'bg-yellow-500/10', email: 'tpa@findmedi.com', pass: 'password' },
+  // Hospital (HMS) staff — universal console + dedicated HMS routes
+  { key: 'front_desk', category: 'hospital', name: 'Front Desk Demo', label: 'Front Desk', desc: 'OPD registration & tokens', icon: Headset, color: 'text-orange-600', bg: 'bg-orange-500/10', email: 'front.desk@findmedi.com', pass: 'password' },
+  { key: 'cashier', category: 'hospital', name: 'Cashier Demo', label: 'Cashier', desc: 'Counter billing & tills', icon: Receipt, color: 'text-yellow-600', bg: 'bg-yellow-500/10', email: 'cashier@findmedi.com', pass: 'password' },
+  { key: 'insurance_desk', category: 'hospital', name: 'Insurance Desk Demo', label: 'Insurance Desk', desc: 'Cashless & pre-auth', icon: Shield, color: 'text-blue-600', bg: 'bg-blue-500/10', email: 'insurance.desk@findmedi.com', pass: 'password' },
+  { key: 'medical_director', category: 'hospital', name: 'Medical Director Demo', label: 'Medical Director', desc: 'Hospital leadership', icon: Stethoscope, color: 'text-primary', bg: 'bg-primary/10', email: 'medical.director@findmedi.com', pass: 'password' },
+  { key: 'cmo', category: 'hospital', name: 'CMO Demo', label: 'CMO', desc: 'Clinical governance', icon: Stethoscope, color: 'text-primary', bg: 'bg-primary/10', email: 'cmo@findmedi.com', pass: 'password' },
+  { key: 'nursing_supervisor', category: 'hospital', name: 'Nursing Supervisor Demo', label: 'Nursing Supervisor', desc: 'Ward & shift oversight', icon: HeartPulse, color: 'text-pink-600', bg: 'bg-pink-500/10', email: 'nursing.supervisor@findmedi.com', pass: 'password' },
+  { key: 'matron', category: 'hospital', name: 'Matron Demo', label: 'Matron', desc: 'Nursing administration', icon: HeartPulse, color: 'text-pink-600', bg: 'bg-pink-500/10', email: 'matron@findmedi.com', pass: 'password' },
+  { key: 'ward_nurse', category: 'hospital', name: 'Ward Nurse Demo', label: 'Ward Nurse', desc: 'Bedside care & MAR', icon: HeartPulse, color: 'text-pink-600', bg: 'bg-pink-500/10', email: 'ward.nurse@findmedi.com', pass: 'password' },
+  { key: 'icu_nurse', category: 'hospital', name: 'ICU Nurse Demo', label: 'ICU Nurse', desc: 'Critical care nursing', icon: HeartPulse, color: 'text-pink-600', bg: 'bg-pink-500/10', email: 'icu.nurse@findmedi.com', pass: 'password' },
+  { key: 'ot_nurse', category: 'hospital', name: 'OT Nurse Demo', label: 'OT Nurse', desc: 'Theatres & scrub nursing', icon: HeartPulse, color: 'text-pink-600', bg: 'bg-pink-500/10', email: 'ot.nurse@findmedi.com', pass: 'password' },
+  { key: 'infection_control_nurse', category: 'hospital', name: 'Infection Control Nurse Demo', label: 'Infection Control', desc: 'Surveillance & audits', icon: HeartPulse, color: 'text-pink-600', bg: 'bg-pink-500/10', email: 'infection.control.nurse@findmedi.com', pass: 'password' },
+  { key: 'surgeon', category: 'hospital', name: 'Surgeon Demo', label: 'Surgeon', desc: 'OT cases & lists', icon: Stethoscope, color: 'text-info', bg: 'bg-info/10', email: 'surgeon@findmedi.com', pass: 'password' },
+  { key: 'anaesthetist', category: 'hospital', name: 'Anaesthetist Demo', label: 'Anaesthetist', desc: 'Anaesthesia & PAC', icon: Stethoscope, color: 'text-info', bg: 'bg-info/10', email: 'anaesthetist@findmedi.com', pass: 'password' },
+  { key: 'ot_technician', category: 'hospital', name: 'OT Technician Demo', label: 'OT Technician', desc: 'Theatres & equipment', icon: Shield, color: 'text-slate-600', bg: 'bg-slate-500/10', email: 'ot.technician@findmedi.com', pass: 'password' },
+  { key: 'cssd_technician', category: 'hospital', name: 'CSSD Technician Demo', label: 'CSSD Technician', desc: 'Sterilisation & packs', icon: Shield, color: 'text-slate-600', bg: 'bg-slate-500/10', email: 'cssd.technician@findmedi.com', pass: 'password' },
+  { key: 'store_keeper', category: 'hospital', name: 'Store Keeper Demo', label: 'Store Keeper', desc: 'Stores & inventory', icon: Truck, color: 'text-blue-600', bg: 'bg-blue-500/10', email: 'store.keeper@findmedi.com', pass: 'password' },
+  { key: 'purchase_officer', category: 'hospital', name: 'Purchase Officer Demo', label: 'Purchase Officer', desc: 'Procurement & POs', icon: Truck, color: 'text-blue-600', bg: 'bg-blue-500/10', email: 'purchase.officer@findmedi.com', pass: 'password' },
+  { key: 'hr_manager', category: 'hospital', name: 'HR Manager Demo', label: 'HR Manager', desc: 'Staff & rosters', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'hr.manager@findmedi.com', pass: 'password' },
+  { key: 'biomedical_engineer', category: 'hospital', name: 'Biomedical Engineer Demo', label: 'Biomedical Engineer', desc: 'Equipment & AMC', icon: Microscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'biomedical.engineer@findmedi.com', pass: 'password' },
+  { key: 'maintenance', category: 'hospital', name: 'Maintenance Demo', label: 'Maintenance', desc: 'Facilities & repairs', icon: Shield, color: 'text-amber-700', bg: 'bg-amber-500/10', email: 'maintenance@findmedi.com', pass: 'password' },
+  { key: 'housekeeping_supervisor', category: 'hospital', name: 'Housekeeping Supervisor Demo', label: 'Housekeeping', desc: 'Cleaning & sanitation', icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'housekeeping.supervisor@findmedi.com', pass: 'password' },
+  { key: 'ward_boy', category: 'hospital', name: 'Ward Boy Demo', label: 'Ward Boy', desc: 'Porter & ward support', icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'ward.boy@findmedi.com', pass: 'password' },
+  { key: 'dietician_head', category: 'hospital', name: 'Dietician Head Demo', label: 'Dietician Head', desc: 'Therapeutic nutrition', icon: Salad, color: 'text-lime-700', bg: 'bg-lime-500/10', email: 'dietician.head@findmedi.com', pass: 'password' },
+  { key: 'kitchen_staff', category: 'hospital', name: 'Kitchen Staff Demo', label: 'Kitchen Staff', desc: 'Therapeutic meals', icon: Salad, color: 'text-lime-700', bg: 'bg-lime-500/10', email: 'kitchen.staff@findmedi.com', pass: 'password' },
+  { key: 'mortuary_attendant', category: 'hospital', name: 'Mortuary Attendant Demo', label: 'Mortuary', desc: 'Death registration', icon: Shield, color: 'text-red-600', bg: 'bg-red-500/10', email: 'mortuary.attendant@findmedi.com', pass: 'password' },
+  { key: 'medical_records_officer', category: 'hospital', name: 'Medical Records Demo', label: 'Medical Records', desc: 'MRD & MIS reporting', icon: Scale, color: 'text-slate-600', bg: 'bg-slate-500/10', email: 'medical.records.officer@findmedi.com', pass: 'password' },
+  { key: 'quality_officer', category: 'hospital', name: 'Quality Officer Demo', label: 'Quality Officer', desc: 'Quality & safety', icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'quality.officer@findmedi.com', pass: 'password' },
+  { key: 'pharmacovigilance_officer', category: 'hospital', name: 'Pharmacovigilance Demo', label: 'Pharmacovigilance', desc: 'ADR & drug safety', icon: Pill, color: 'text-amber-600', bg: 'bg-amber-500/10', email: 'pharmacovigilance.officer@findmedi.com', pass: 'password' },
+  { key: 'call_center_agent', category: 'hospital', name: 'Call Center Demo', label: 'Call Center', desc: 'Appointments & support', icon: Headset, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'call.center.agent@findmedi.com', pass: 'password' },
+  { key: 'hospital_owner', category: 'hospital', name: 'Hospital Owner Demo', label: 'Hospital Owner', desc: 'Facility owner view', icon: Building2, color: 'text-primary', bg: 'bg-primary/10', email: 'hospital.owner@findmedi.com', pass: 'password' },
+  { key: 'medical_superintendent', category: 'hospital', name: 'Medical Superintendent Demo', label: 'Medical Superintendent', desc: 'Hospital operations', icon: Stethoscope, color: 'text-primary', bg: 'bg-primary/10', email: 'medical.superintendent@findmedi.com', pass: 'password' },
+  { key: 'hod', category: 'hospital', name: 'HOD Demo', label: 'HOD', desc: 'Department head console', icon: Stethoscope, color: 'text-primary', bg: 'bg-primary/10', email: 'hod@findmedi.com', pass: 'password' },
+  { key: 'resident_doctor', category: 'hospital', name: 'Resident Doctor Demo', label: 'Resident Doctor', desc: 'Duty doctor console', icon: Stethoscope, color: 'text-info', bg: 'bg-info/10', email: 'resident.doctor@findmedi.com', pass: 'password' },
+  { key: 'emergency', category: 'hospital', name: 'Emergency Demo', label: 'Emergency', desc: 'Casualty & triage', icon: Stethoscope, color: 'text-red-600', bg: 'bg-red-500/10', email: 'emergency@findmedi.com', pass: 'password' },
+  { key: 'icu_doctor', category: 'hospital', name: 'ICU Doctor Demo', label: 'ICU Doctor', desc: 'Intensivist console', icon: Stethoscope, color: 'text-info', bg: 'bg-info/10', email: 'icu.doctor@findmedi.com', pass: 'password' },
+  { key: 'ot_coordinator', category: 'hospital', name: 'OT Coordinator Demo', label: 'OT Coordinator', desc: 'Theatre scheduling', icon: Shield, color: 'text-slate-600', bg: 'bg-slate-500/10', email: 'ot.coordinator@findmedi.com', pass: 'password' },
+  { key: 'opd_coordinator', category: 'hospital', name: 'OPD Coordinator Demo', label: 'OPD Coordinator', desc: 'OPD tokens & queue', icon: Headset, color: 'text-orange-600', bg: 'bg-orange-500/10', email: 'opd.coordinator@findmedi.com', pass: 'password' },
+  { key: 'admission_coordinator', category: 'hospital', name: 'Admission Coordinator Demo', label: 'Admissions', desc: 'Admission & TPA flow', icon: Headset, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'admission.coordinator@findmedi.com', pass: 'password' },
+  { key: 'bed_manager', category: 'hospital', name: 'Bed Manager Demo', label: 'Bed Manager', desc: 'Bed board & allocation', icon: Building2, color: 'text-slate-600', bg: 'bg-slate-500/10', email: 'bed.manager@findmedi.com', pass: 'password' },
+  { key: 'facility_manager', category: 'hospital', name: 'Facility Manager Demo', label: 'Facility Manager', desc: 'Facilities & helpdesk', icon: Building2, color: 'text-slate-600', bg: 'bg-slate-500/10', email: 'facility.manager@findmedi.com', pass: 'password' },
+  { key: 'discharge_coordinator', category: 'hospital', name: 'Discharge Coordinator Demo', label: 'Discharge Desk', desc: 'Discharge clearance', icon: Receipt, color: 'text-yellow-600', bg: 'bg-yellow-500/10', email: 'discharge.coordinator@findmedi.com', pass: 'password' },
+  { key: 'mis_reporting', category: 'hospital', name: 'MIS Reporting Demo', label: 'MIS Reporting', desc: 'Management information', icon: Scale, color: 'text-slate-600', bg: 'bg-slate-500/10', email: 'mis.reporting@findmedi.com', pass: 'password' },
+  { key: 'doctor_portal', category: 'hospital', name: 'Doctor Portal Demo', label: 'Doctor Portal', desc: 'Doctor remote portal', icon: Stethoscope, color: 'text-info', bg: 'bg-info/10', email: 'doctor.portal@findmedi.com', pass: 'password' },
+  { key: 'patient_relations', category: 'hospital', name: 'Patient Relations Demo', label: 'Patient Relations', desc: 'Feedback & escalation', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'patient.relations@findmedi.com', pass: 'password' },
+  { key: 'it_admin', category: 'hospital', name: 'IT Admin Demo', label: 'IT Admin', desc: 'Systems & integrations', icon: Shield, color: 'text-slate-600', bg: 'bg-slate-500/10', email: 'it.admin@findmedi.com', pass: 'password' },
+  { key: 'pharmacist', category: 'hospital', name: 'Pharmacist Demo', label: 'Pharmacist', desc: 'Dispensing counter', icon: Pill, color: 'text-amber-600', bg: 'bg-amber-500/10', email: 'pharmacist@findmedi.com', pass: 'password' },
+  { key: 'accountant', category: 'hospital', name: 'Accountant Demo', label: 'Accountant', desc: 'Accounts & billing', icon: Receipt, color: 'text-yellow-600', bg: 'bg-yellow-500/10', email: 'accountant@findmedi.com', pass: 'password' },
+  { key: 'security', category: 'hospital', name: 'Security Demo', label: 'Security', desc: 'Gate passes & incidents', icon: Shield, color: 'text-slate-600', bg: 'bg-slate-500/10', email: 'security@findmedi.com', pass: 'password' },
+  // Lab (LIS) + Radiology (RIS) staff
+  { key: 'lab_receptionist', category: 'lab', name: 'Lab Receptionist Demo', label: 'Lab Reception', desc: 'Samples & registration', icon: Microscope, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'lab.receptionist@findmedi.com', pass: 'password' },
+  { key: 'lab_technician', category: 'lab', name: 'Lab Technician Demo', label: 'Lab Technician', desc: 'Bench & results entry', icon: Microscope, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'lab.technician@findmedi.com', pass: 'password' },
+  { key: 'lab_supervisor', category: 'lab', name: 'Lab Supervisor Demo', label: 'Lab Supervisor', desc: 'QC & sign-off', icon: Microscope, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'lab.supervisor@findmedi.com', pass: 'password' },
+  { key: 'lab_receiving', category: 'lab', name: 'Lab Receiving Demo', label: 'Lab Receiving', desc: 'Accession & barcode', icon: Microscope, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'lab.receiving@findmedi.com', pass: 'password' },
+  { key: 'biochem_tech', category: 'lab', name: 'Biochem Tech Demo', label: 'Biochemistry', desc: 'Biochemistry bench', icon: Microscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'biochem.tech@findmedi.com', pass: 'password' },
+  { key: 'hematology_tech', category: 'lab', name: 'Hematology Tech Demo', label: 'Hematology', desc: 'Hematology bench', icon: Microscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'hematology.tech@findmedi.com', pass: 'password' },
+  { key: 'clinical_pathology_tech', category: 'lab', name: 'Clinical Pathology Tech Demo', label: 'Clinical Path', desc: 'Clinical pathology', icon: Microscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'clinical.pathology.tech@findmedi.com', pass: 'password' },
+  { key: 'microbiology_tech', category: 'lab', name: 'Microbiology Tech Demo', label: 'Microbiology', desc: 'Microbiology bench', icon: Microscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'microbiology.tech@findmedi.com', pass: 'password' },
+  { key: 'histopathology_tech', category: 'lab', name: 'Histopath Tech Demo', label: 'Histopathology', desc: 'Biopsy & sections', icon: Microscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'histopathology.tech@findmedi.com', pass: 'password' },
+  { key: 'cytology_tech', category: 'lab', name: 'Cytology Tech Demo', label: 'Cytology', desc: 'Cytology smears', icon: Microscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'cytology.tech@findmedi.com', pass: 'password' },
+  { key: 'serology_tech', category: 'lab', name: 'Serology Tech Demo', label: 'Serology', desc: 'Serology & immunology', icon: Microscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'serology.tech@findmedi.com', pass: 'password' },
+  { key: 'molecular_tech', category: 'lab', name: 'Molecular Tech Demo', label: 'Molecular', desc: 'Molecular diagnostics', icon: Microscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'molecular.tech@findmedi.com', pass: 'password' },
+  { key: 'report_coordinator', category: 'lab', name: 'Report Coordinator Demo', label: 'Report Coordinator', desc: 'Reports dispatch', icon: Microscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'report.coordinator@findmedi.com', pass: 'password' },
+  { key: 'home_collection_staff', category: 'lab', name: 'Home Collection Demo', label: 'Home Collection', desc: 'Field sample collection', icon: Truck, color: 'text-blue-600', bg: 'bg-blue-500/10', email: 'home.collection.staff@findmedi.com', pass: 'password' },
+  { key: 'lab_admin', category: 'lab', name: 'Lab Admin Demo', label: 'Lab Admin', desc: 'Lab administration', icon: Microscope, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'lab.admin@findmedi.com', pass: 'password' },
+  { key: 'lab_manager', category: 'lab', name: 'Lab Manager Demo', label: 'Lab Manager', desc: 'Lab operations', icon: Microscope, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'lab.manager@findmedi.com', pass: 'password' },
+  { key: 'lab_quality_mgr', category: 'lab', name: 'Lab QC Manager Demo', label: 'Lab QC Manager', desc: 'NABL & quality', icon: Microscope, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'lab.quality.mgr@findmedi.com', pass: 'password' },
+  { key: 'analyzer_staff', category: 'lab', name: 'Analyzer Staff Demo', label: 'Analyzer Staff', desc: 'Machine operation', icon: Microscope, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'analyzer.staff@findmedi.com', pass: 'password' },
+  { key: 'lab_inventory_mgr', category: 'lab', name: 'Lab Inventory Mgr Demo', label: 'Lab Inventory', desc: 'Reagents & stock', icon: Microscope, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'lab.inventory.mgr@findmedi.com', pass: 'password' },
+  { key: 'radiology_manager', category: 'lab', name: 'Radiology Manager Demo', label: 'Radiology Manager', desc: 'Imaging administration', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'radiology.manager@findmedi.com', pass: 'password' },
+  { key: 'radiology_scheduler', category: 'lab', name: 'Radiology Scheduler Demo', label: 'Radiology Scheduler', desc: 'Appointments & slots', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'radiology.scheduler@findmedi.com', pass: 'password' },
+  { key: 'radiology_prep_staff', category: 'lab', name: 'Radiology Prep Demo', label: 'Radiology Prep', desc: 'Preparation & safety', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'radiology.prep.staff@findmedi.com', pass: 'password' },
+  { key: 'mri_technician', category: 'lab', name: 'MRI Technician Demo', label: 'MRI Tech', desc: 'MRI console', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'mri.technician@findmedi.com', pass: 'password' },
+  { key: 'xray_technician', category: 'lab', name: 'X-Ray Technician Demo', label: 'X-Ray Tech', desc: 'X-Ray console', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'xray.technician@findmedi.com', pass: 'password' },
+  { key: 'ct_technician', category: 'lab', name: 'CT Technician Demo', label: 'CT Tech', desc: 'CT console', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'ct.technician@findmedi.com', pass: 'password' },
+  { key: 'us_technician', category: 'lab', name: 'Ultrasound Tech Demo', label: 'Sonography Tech', desc: 'USG & Doppler', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'us.technician@findmedi.com', pass: 'password' },
+  { key: 'mammo_technician', category: 'lab', name: 'Mammo Tech Demo', label: 'Mammo Tech', desc: 'Mammography console', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'mammo.technician@findmedi.com', pass: 'password' },
+  { key: 'reporting_assistant', category: 'lab', name: 'Reporting Assistant Demo', label: 'Reporting Assistant', desc: 'Reports & transcription', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'reporting.assistant@findmedi.com', pass: 'password' },
+  { key: 'pacs_admin', category: 'lab', name: 'PACS Admin Demo', label: 'PACS Admin', desc: 'PACS & DICOM', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'pacs.admin@findmedi.com', pass: 'password' },
+  { key: 'radiology_admin', category: 'lab', name: 'Radiology Admin Demo', label: 'Radiology Admin', desc: 'Admin console', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'radiology.admin@findmedi.com', pass: 'password' },
+  { key: 'radiology_receptionist', category: 'lab', name: 'Radiology Receptionist Demo', label: 'Radiology Reception', desc: 'Front desk', icon: Headset, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'radiology.receptionist@findmedi.com', pass: 'password' },
+  { key: 'radiology_billing_executive', category: 'lab', name: 'Radiology Billing Demo', label: 'Radiology Billing', desc: 'Imaging billing', icon: Receipt, color: 'text-yellow-600', bg: 'bg-yellow-500/10', email: 'radiology.billing.executive@findmedi.com', pass: 'password' },
+  { key: 'equipment_manager', category: 'lab', name: 'Equipment Manager Demo', label: 'Equipment Manager', desc: 'Imaging equipment', icon: Microscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'equipment.manager@findmedi.com', pass: 'password' },
+  { key: 'radiology_technician', category: 'lab', name: 'Radiology Technician Demo', label: 'Radiology Tech', desc: 'Radiographer bench', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'radiology.technician@findmedi.com', pass: 'password' },
+  // Clinic (CMS) staff
+  { key: 'clinic_receptionist', category: 'clinic', name: 'Clinic Receptionist Demo', label: 'Clinic Reception', desc: 'Registration & queue', icon: Headset, color: 'text-orange-600', bg: 'bg-orange-500/10', email: 'clinic.receptionist@findmedi.com', pass: 'password' },
+  { key: 'clinic_nurse', category: 'clinic', name: 'Clinic Nurse Demo', label: 'Clinic Nurse', desc: 'Triage & vitals', icon: HeartPulse, color: 'text-pink-600', bg: 'bg-pink-500/10', email: 'clinic.nurse@findmedi.com', pass: 'password' },
+  { key: 'clinic_accountant', category: 'clinic', name: 'Clinic Accountant Demo', label: 'Clinic Accountant', desc: 'Clinic accounts', icon: Receipt, color: 'text-yellow-600', bg: 'bg-yellow-500/10', email: 'clinic.accountant@findmedi.com', pass: 'password' },
+  { key: 'clinic_pharmacist', category: 'clinic', name: 'Clinic Pharmacist Demo', label: 'Clinic Pharmacist', desc: 'Dispensing & stock', icon: Pill, color: 'text-amber-600', bg: 'bg-amber-500/10', email: 'clinic.pharmacist@findmedi.com', pass: 'password' },
+  { key: 'clinic_cashier', category: 'clinic', name: 'Clinic Cashier Demo', label: 'Clinic Cashier', desc: 'Cashier desk', icon: Receipt, color: 'text-yellow-600', bg: 'bg-yellow-500/10', email: 'clinic.cashier@findmedi.com', pass: 'password' },
+  { key: 'clinic_branch_manager', category: 'clinic', name: 'Clinic Branch Manager Demo', label: 'Branch Manager', desc: 'Multi-branch ops', icon: Building2, color: 'text-emerald-700', bg: 'bg-emerald-500/10', email: 'clinic.branch.manager@findmedi.com', pass: 'password' },
+  { key: 'clinic_telemed_coordinator', category: 'clinic', name: 'Telemed Coordinator Demo', label: 'Telemed Coordinator', desc: 'Video consult queue', icon: Heart, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'clinic.telemed.coordinator@findmedi.com', pass: 'password' },
+  { key: 'clinic_lab_tech', category: 'clinic', name: 'Clinic Lab Tech Demo', label: 'Clinic Lab Tech', desc: 'Clinic pathology', icon: Microscope, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'clinic.lab.tech@findmedi.com', pass: 'password' },
+  { key: 'clinic_radiology_tech', category: 'clinic', name: 'Clinic Radiology Tech Demo', label: 'Clinic Radiology', desc: 'Clinic imaging', icon: ScanLine, color: 'text-sky-600', bg: 'bg-sky-500/10', email: 'clinic.radiology.tech@findmedi.com', pass: 'password' },
+  { key: 'clinic_inventory_mgr', category: 'clinic', name: 'Clinic Inventory Mgr Demo', label: 'Clinic Inventory', desc: 'Stock & reorder', icon: Truck, color: 'text-blue-600', bg: 'bg-blue-500/10', email: 'clinic.inventory.mgr@findmedi.com', pass: 'password' },
+  { key: 'clinic_purchase_officer', category: 'clinic', name: 'Clinic Purchase Demo', label: 'Clinic Purchase', desc: 'Vendor orders & POs', icon: Truck, color: 'text-blue-600', bg: 'bg-blue-500/10', email: 'clinic.purchase.officer@findmedi.com', pass: 'password' },
+  { key: 'clinic_hr_admin', category: 'clinic', name: 'Clinic HR Demo', label: 'Clinic HR', desc: 'Staff & rosters', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'clinic.hr.admin@findmedi.com', pass: 'password' },
+  { key: 'clinic_home_collection', category: 'clinic', name: 'Clinic Home Collection Demo', label: 'Clinic Home Collection', desc: 'Field collection', icon: Truck, color: 'text-blue-600', bg: 'bg-blue-500/10', email: 'clinic.home.collection@findmedi.com', pass: 'password' },
+  { key: 'clinic_telemed_coord', category: 'clinic', name: 'Telemed Coord Demo', label: 'Telemed Coord', desc: 'Telemedicine ops', icon: Heart, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'clinic.telemed.coord@findmedi.com', pass: 'password' },
+  { key: 'clinic_crm_staff', category: 'clinic', name: 'Clinic CRM Demo', label: 'Clinic CRM', desc: 'CRM & follow-ups', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'clinic.crm.staff@findmedi.com', pass: 'password' },
+  { key: 'clinic_quality_mgr', category: 'clinic', name: 'Clinic Quality Demo', label: 'Clinic Quality', desc: 'Quality & audits', icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'clinic.quality.mgr@findmedi.com', pass: 'password' },
+  { key: 'clinic_patient_portal', category: 'clinic', name: 'Clinic Portal Demo', label: 'Clinic Patient Portal', desc: 'Patient self-service', icon: UserRound, color: 'text-success', bg: 'bg-success/10', email: 'clinic.patient.portal@findmedi.com', pass: 'password' },
+  { key: 'clinic_owner_analytics', category: 'clinic', name: 'Clinic Owner Analytics Demo', label: 'Clinic Analytics', desc: 'Executive analytics', icon: Building2, color: 'text-emerald-700', bg: 'bg-emerald-500/10', email: 'clinic.owner.analytics@findmedi.com', pass: 'password' },
+  // Platform / ops consoles — 2FA-mandatory, demo password is followed by an authenticator code
+  { key: 'content_editor', category: 'platform', name: 'Content Editor Demo', label: 'Content Editor', desc: '2FA · Health content CMS', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'content.editor@findmedi.com', pass: 'password' },
+  { key: 'medical_reviewer', category: 'platform', name: 'Medical Reviewer Demo', label: 'Medical Reviewer', desc: '2FA · Medical review', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'medical.reviewer@findmedi.com', pass: 'password' },
+  { key: 'moderator', category: 'platform', name: 'Moderator Demo', label: 'Moderator', desc: '2FA · Moderation queues', icon: Shield, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'moderator@findmedi.com', pass: 'password' },
+  { key: 'support_agent', category: 'platform', name: 'Support Agent Demo', label: 'Support Agent', desc: '2FA · Support inbox', icon: Headset, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'support.agent@findmedi.com', pass: 'password' },
+  { key: 'finance_admin', category: 'platform', name: 'Finance Admin Demo', label: 'Finance Admin', desc: '2FA · Payouts & commission', icon: Receipt, color: 'text-yellow-600', bg: 'bg-yellow-500/10', email: 'finance@findmedi.com', pass: 'password' },
+  { key: 'kyc_reviewer', category: 'platform', name: 'KYC Reviewer Demo', label: 'KYC Reviewer', desc: '2FA · Provider KYC', icon: Shield, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'kyc@findmedi.com', pass: 'password' },
+  { key: 'compliance_officer', category: 'platform', name: 'Compliance Officer Demo', label: 'Compliance Officer', desc: '2FA · Audit & licenses', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'compliance@findmedi.com', pass: 'password' },
+  { key: 'platform_admin', category: 'platform', name: 'Platform Admin Demo', label: 'Platform Admin', desc: '2FA · Platform operations', icon: Shield, color: 'text-purple-600', bg: 'bg-purple-500/10', email: 'platform.admin@findmedi.com', pass: 'password' },
+  { key: 'support_l1', category: 'platform', name: 'Support L1 Demo', label: 'Support L1', desc: '2FA · First-line support', icon: Headset, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'support.l1@findmedi.com', pass: 'password' },
+  { key: 'support_l2', category: 'platform', name: 'Support L2 Demo', label: 'Support L2', desc: '2FA · Escalations & disputes', icon: Headset, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'support.l2@findmedi.com', pass: 'password' },
+  { key: 'dpo', category: 'platform', name: 'DPO Demo', label: 'DPO', desc: '2FA · Privacy & DSRs', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'dpo@findmedi.com', pass: 'password' },
+  { key: 'security_admin', category: 'platform', name: 'Security Admin Demo', label: 'Security Admin', desc: '2FA · Security & access', icon: Shield, color: 'text-purple-600', bg: 'bg-purple-500/10', email: 'security.admin@findmedi.com', pass: 'password' },
+  { key: 'clinical_safety', category: 'platform', name: 'Clinical Safety Demo', label: 'Clinical Safety', desc: '2FA · Incidents & crises', icon: HeartPulse, color: 'text-pink-600', bg: 'bg-pink-500/10', email: 'clinical.safety@findmedi.com', pass: 'password' },
+  { key: 'analyst', category: 'platform', name: 'Analyst Demo', label: 'Analyst', desc: '2FA · Analytics & CRM', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'analyst@findmedi.com', pass: 'password' },
+  { key: 'auditor', category: 'platform', name: 'Auditor Demo', label: 'Auditor', desc: '2FA · Audit trail', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'auditor@findmedi.com', pass: 'password' },
+  { key: 'catalog_manager', category: 'platform', name: 'Catalog Manager Demo', label: 'Catalog Manager', desc: '2FA · Categories & types', icon: Building2, color: 'text-slate-600', bg: 'bg-slate-500/10', email: 'catalog.manager@findmedi.com', pass: 'password' },
+  { key: 'city_manager', category: 'platform', name: 'City Manager Demo', label: 'City Manager', desc: '2FA · Launch cities', icon: Building2, color: 'text-slate-600', bg: 'bg-slate-500/10', email: 'city.manager@findmedi.com', pass: 'password' },
+  { key: 'super_admin', category: 'platform', name: 'Super Admin Demo', label: 'Super Admin', desc: '2FA · CMS super admin', icon: Shield, color: 'text-purple-600', bg: 'bg-purple-500/10', email: 'super.admin@findmedi.com', pass: 'password' },
+  // Others
+  { key: 'ngo_admin', category: 'others', name: 'NGO Admin Demo', label: 'NGO Admin', desc: 'Community & camps', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'ngo.admin@findmedi.com', pass: 'password' },
+  { key: 'technician', category: 'others', name: 'Technician Demo', label: 'Technician', desc: 'Biomedical technician', icon: Microscope, color: 'text-violet-600', bg: 'bg-violet-500/10', email: 'technician@findmedi.com', pass: 'password' },
+  { key: 'helper', category: 'others', name: 'Helper Demo', label: 'Helper', desc: 'General ward support', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'helper@findmedi.com', pass: 'password' },
 ];
 
 const isDemoEmail = (emailStr?: string) => {
@@ -246,7 +337,7 @@ export default function Login() {
   const [role, setRole] = useState('');
   // Live list from GET /auth/login-roles; falls back to the bundled metadata.
   const [roleKeys, setRoleKeys] = useState<string[] | null>(null);
-  const [demoCategory, setDemoCategory] = useState<'all' | 'counsellor' | 'psychiatrist' | 'assistant' | 'lawyer' | 'rider'>('all');
+  const [demoCategory, setDemoCategory] = useState<'all' | 'hospital' | 'lab' | 'clinic' | 'vertical' | 'platform' | 'others'>('all');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -288,10 +379,6 @@ export default function Login() {
     setEmail('');
     setPassword('');
     setError('');
-    // Auto sync demo category if matches
-    if (['counsellor', 'psychiatrist', 'assistant', 'lawyer', 'rider'].includes(r)) {
-      setDemoCategory(r as any);
-    }
   };
 
   const handleGoogleCredential = async (idToken: any, accessToken: any = null) => {
@@ -676,18 +763,19 @@ export default function Login() {
               <div className="mt-4 p-3 bg-muted/50 rounded-xl border border-border/50">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold text-foreground">⚡ Quick Demo Login:</p>
-              <span className="text-[10px] text-muted-foreground font-mono">Password: password</span>
+              <span className="text-[10px] text-muted-foreground font-mono">superadmin: admin@123 · 2FA roles: authenticator code</span>
             </div>
 
             {/* Category Pills */}
             <div className="flex gap-1 overflow-x-auto pb-1 mb-2.5 scrollbar-none">
               {[
                 { id: 'all', label: 'All' },
-                { id: 'counsellor', label: '🧠 Counsellors (5)' },
-                { id: 'psychiatrist', label: '🩺 Psychiatrists (5)' },
-                { id: 'assistant', label: '🧑‍⚕️ Assistants (5)' },
-                { id: 'lawyer', label: '⚖️ Lawyers (5)' },
-                { id: 'rider', label: '🚗 Riders (5)' },
+                { id: 'hospital', label: '🏥 Hospital (48)' },
+                { id: 'lab', label: '🔬 Lab & Radiology (34)' },
+                { id: 'clinic', label: '🏥 Clinic CMS (18)' },
+                { id: 'vertical', label: '💼 Verticals (19)' },
+                { id: 'platform', label: '🔐 Platform 2FA (18)' },
+                { id: 'others', label: '🤝 Others (3)' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -707,10 +795,10 @@ export default function Login() {
             {/* Grid of Accounts */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-72 overflow-y-auto pr-1">
               {demoAccounts
-                .filter((acc) => demoCategory === 'all' ? acc.category === 'core' : acc.category === demoCategory)
-                .map(({ key, label, desc, icon: Icon, color, bg, email: demoEmail, pass }) => (
+                .filter((acc) => demoCategory === 'all' ? true : acc.category === demoCategory)
+                .map(({ key, label, desc, icon: Icon, color, bg, email: demoEmail, pass }, index) => (
                   <button
-                    key={`${key}-${demoEmail}`}
+                    key={`${key}-${demoEmail}-${index}`}
                     type="button"
                     onClick={() => {
                       setRole(key);
@@ -738,7 +826,7 @@ export default function Login() {
             </div>
             {demoCategory === 'all' && (
               <p className="text-xs text-center text-foreground font-medium mt-2 border-t border-border/40 pt-1.5">
-                Tip: Click <b>🧠 Counsellors</b>, <b>🩺 Psychiatrists</b>, <b>🧑‍⚕️ Assistants</b>, <b>⚖️ Lawyers</b> or <b>🚗 Riders</b> tabs above to see all 5 test accounts each.
+                Tip: Tabs se role-families filter karein (🏥 Hospital · 🔬 Lab & Radiology · 🏙 Clinic · 💼 Verticals · 🔐 Platform). 2FA accounts ka password password hai, uske baad authenticator code maanga jata hai.
               </p>
             )}
           </div>

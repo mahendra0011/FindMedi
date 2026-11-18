@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import {
   Users, Clock, UserPlus, Search, Ticket, CalendarDays, CheckCircle2,
   AlertCircle, Phone, Stethoscope, ChevronRight, RotateCcw, Printer,
@@ -11,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 
@@ -32,13 +30,9 @@ interface ReceptionToken {
 }
 
 export default function ClinicReceptionDashboard() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'waiting' | 'in_consultation' | 'completed'>('all');
-  const [search, setSearch] = useState('');
-  const [tokenCounter, setTokenCounter] = useState(18);
+  const [tokenCounter, setTokenCounter] = useState(0);
   const [showSlipModal, setShowSlipModal] = useState<ReceptionToken | null>(null);
   const [showTvDisplay, setShowTvDisplay] = useState(false);
 
@@ -49,50 +43,45 @@ export default function ClinicReceptionDashboard() {
     age: '',
     gender: 'Male',
     bloodGroup: 'B+',
-    doctor: 'Dr. Ramesh Sharma',
-    department: 'General Medicine',
+    doctorId: '',
+    department: '',
     priority: 'Normal' as 'Normal' | 'Senior Citizen' | 'Emergency / Priority',
-    fee: '500'
   });
 
-  // Interactive Live Reception Queue
-  const [tokens, setTokens] = useState<ReceptionToken[]>([
-    { token: '01', patient: 'Vikram Singh', phone: '9876541201', uhid: 'UH-2026-1011', age: '45', gender: 'Male', doctor: 'Dr. Ramesh Sharma', department: 'General Medicine', room: 'Room 1', status: 'In Consultation', priority: 'Normal', time: '10:05 AM', fee: '500' },
-    { token: '02', patient: 'Meena Gupta', phone: '9876541202', uhid: 'UH-2026-1012', age: '32', gender: 'Female', doctor: 'Dr. Priya Patel', department: 'Pediatrics', room: 'Room 2', status: 'In Consultation', priority: 'Normal', time: '10:10 AM', fee: '600' },
-    { token: '03', patient: 'Karan Mehra', phone: '9876541203', uhid: 'UH-2026-1013', age: '71', gender: 'Male', doctor: 'Dr. Ramesh Sharma', department: 'General Medicine', room: 'Room 1', status: 'Waiting', priority: 'Senior Citizen', time: '10:15 AM', fee: '500' },
-    { token: '04', patient: 'Sunita Rao', phone: '9876541204', uhid: 'UH-2026-1014', age: '28', gender: 'Female', doctor: 'Dr. Priya Patel', department: 'Pediatrics', room: 'Room 2', status: 'Vitals Pending', priority: 'Normal', time: '10:20 AM', fee: '600' },
-    { token: '05', patient: 'Amitav Ghosh', phone: '9876541205', uhid: 'UH-2026-1015', age: '54', gender: 'Male', doctor: 'Dr. Vivek Verma', department: 'Orthopedics', room: 'Room 3', status: 'Waiting', priority: 'Normal', time: '10:25 AM', fee: '700' },
-    { token: '06', patient: 'Rajiv Chawla', phone: '9876541206', uhid: 'UH-2026-1016', age: '38', gender: 'Male', doctor: 'Dr. Vivek Verma', department: 'Orthopedics', room: 'Room 3', status: 'Waiting', priority: 'Emergency / Priority', time: '10:30 AM', fee: '700' },
-  ]);
+  const [tokens, setTokens] = useState<ReceptionToken[]>([]);
+
+  const [roster, setRoster] = useState<any[]>([]);
 
   const loadData = async () => {
-    setLoading(true);
     try {
-      const res: any = await api.getAppointments({ date: getISTDateString() }).catch(() => null);
-      const list = Array.isArray(res) ? res : res?.data || [];
-      if (list.length > 0) {
-        // Merge real appointments if available
-        const mapped: ReceptionToken[] = list.slice(0, 10).map((apt: any, idx: number) => ({
-          token: String(idx + 1).padStart(2, '0'),
-          patient: apt.patient || 'Patient',
-          phone: apt.phone || '9876543210',
-          uhid: apt.uhid || `UH-2026-${1000 + idx}`,
-          age: apt.age || '35',
-          gender: apt.gender || 'Male',
-          doctor: apt.doctor || 'Dr. Ramesh Sharma',
-          department: apt.department || 'General Medicine',
-          room: `Room ${((idx % 3) + 1)}`,
-          status: apt.status === 'Completed' ? 'Completed' : apt.status === 'In Consultation' ? 'In Consultation' : 'Waiting',
-          priority: 'Normal',
-          time: apt.time || '10:00 AM',
-          fee: '500'
-        }));
-        setTokens(prev => [...prev.slice(0, 2), ...mapped]);
+      const [res, ro] = await Promise.all([
+        api.getAppointments({ date: getISTDateString() }).catch(() => null),
+        (api as any).getClinicRosterToday?.().catch(() => null),
+      ]);
+      if (ro?.roster) {
+        setRoster(ro.roster);
+        setQuickReg((q) => q.doctorId ? q : { ...q, doctorId: ro.roster[0]?._id ?? '', department: ro.roster[0]?.specialization ?? '' });
       }
+      const list = Array.isArray(res) ? res : res?.data || [];
+      const mapped: ReceptionToken[] = list.map((apt: any, idx: number) => ({
+        token: String(apt.tokenNumber ?? idx + 1).padStart(2, '0'),
+        patient: apt.patientName || apt.patient || 'Patient',
+        phone: apt.phone || '—',
+        uhid: apt.uhid || '—',
+        age: apt.age ? String(apt.age) : '—',
+        gender: apt.gender || '—',
+        doctor: apt.doctorName || apt.doctor || '—',
+        department: apt.department || apt.specialization || '—',
+        room: apt.room ? String(apt.room) : '—',
+        status: apt.status === 'Completed' ? 'Completed' : apt.status === 'In Consultation' ? 'In Consultation' : 'Waiting',
+        priority: 'Normal',
+        time: apt.time || '—',
+        fee: '—',
+      }));
+      setTokens(mapped);
     } catch {
       // Keep state
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -106,54 +95,73 @@ export default function ClinicReceptionDashboard() {
       return;
     }
 
-    const nextNum = tokenCounter + 1;
-    setTokenCounter(nextNum);
-    const tokenStr = String(nextNum).padStart(2, '0');
-    const uhidStr = `UH-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-    const assignedRoom = quickReg.doctor.includes('Priya') ? 'Room 2' : quickReg.doctor.includes('Verma') ? 'Room 3' : 'Room 1';
+    const now = new Date();
+    const chosen = roster.find((d: any) => String(d._id) === quickReg.doctorId);
+    const department = chosen?.specialization || 'General Medicine';
+    const todayStr = getISTDateString();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-    const newToken: ReceptionToken = {
-      token: tokenStr,
-      patient: quickReg.name.trim(),
-      phone: quickReg.phone.trim(),
-      uhid: uhidStr,
-      age: quickReg.age || '30',
-      gender: quickReg.gender,
-      doctor: quickReg.doctor,
-      department: quickReg.department,
-      room: assignedRoom,
-      status: 'Waiting',
-      priority: quickReg.priority,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      fee: quickReg.fee
-    };
+    if (!quickReg.doctorId) {
+      toast.error('Select the consulting doctor from the roster');
+      return;
+    }
 
-    // Attempt real backend call in background
-    api.post('/tokens/generate', {
-      patientName: newToken.patient,
-      patientId: '507f1f77bcf86cd799439011',
-      uhid: newToken.uhid,
-      doctorName: newToken.doctor,
-      department: newToken.department,
-      priority: newToken.priority,
-    }).catch(() => null);
+    try {
+      const res: any = await api.post('/appointments/walk-in', {
+        patient: {
+          name: quickReg.name.trim(),
+          age: quickReg.age ? Number(quickReg.age) : undefined,
+          gender: quickReg.gender,
+          phone: quickReg.phone.trim(),
+          bloodGroup: quickReg.bloodGroup,
+        },
+        doctorId: quickReg.doctorId,
+        department,
+        date: todayStr,
+        time: timeStr,
+        type: 'Consultation',
+        priority: quickReg.priority,
+      });
+      const appt = res?.appointment;
+      if (!appt) {
+        toast.error(res?.message || 'Walk-in registration failed');
+        return;
+      }
+      const tokenStr = String(appt.tokenNumber ?? tokenCounter + 1).padStart(2, '0');
+      setTokenCounter((n) => n + 1);
+      const newToken: ReceptionToken = {
+        token: tokenStr,
+        patient: appt.patientName || appt.patient || quickReg.name.trim(),
+        phone: quickReg.phone.trim(),
+        uhid: appt.uhid || '—',
+        age: quickReg.age || '—',
+        gender: quickReg.gender,
+        doctor: chosen?.name || '—',
+        department,
+        room: '—',
+        status: 'Waiting',
+        priority: quickReg.priority,
+        time: appt.time || timeStr,
+        fee: '—',
+      };
+      setTokens((prev) => [newToken, ...prev]);
+      setShowSlipModal(newToken);
+      toast.success(`Token #${tokenStr} issued for ${newToken.patient}`);
 
-    setTokens(prev => [newToken, ...prev]);
-    setShowSlipModal(newToken);
-    toast.success(`🎟️ Token #${tokenStr} issued for ${newToken.patient}! UHID: ${newToken.uhid}`);
-
-    // Reset Form
-    setQuickReg({
-      name: '',
-      phone: '',
-      age: '',
-      gender: 'Male',
-      bloodGroup: 'B+',
-      doctor: 'Dr. Ramesh Sharma',
-      department: 'General Medicine',
-      priority: 'Normal',
-      fee: '500'
-    });
+      // Reset Form
+      setQuickReg({
+        name: '',
+        phone: '',
+        age: '',
+        gender: 'Male',
+        bloodGroup: 'B+',
+        doctorId: roster[0]?._id ?? '',
+        department: roster[0]?.specialization ?? '',
+        priority: 'Normal',
+      });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Walk-in registration failed');
+    }
   };
 
   const handleSendToVitals = (tok: ReceptionToken) => {
@@ -172,8 +180,6 @@ export default function ClinicReceptionDashboard() {
   };
 
   const filteredTokens = tokens.filter(t => {
-    const matchSearch = !search || t.patient.toLowerCase().includes(search.toLowerCase()) || t.uhid.toLowerCase().includes(search.toLowerCase()) || t.phone.includes(search);
-    if (!matchSearch) return false;
     if (activeTab === 'waiting') return t.status === 'Waiting' || t.status === 'Vitals Pending';
     if (activeTab === 'in_consultation') return t.status === 'In Consultation' || t.status === 'Called';
     if (activeTab === 'completed') return t.status === 'Completed';
@@ -216,7 +222,7 @@ export default function ClinicReceptionDashboard() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium">Walk-ins Handled</p>
-              <p className="text-2xl font-bold text-teal-700">{tokens.length + 12}</p>
+              <p className="text-2xl font-bold text-teal-700">{tokens.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -252,7 +258,7 @@ export default function ClinicReceptionDashboard() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium">Completed Today</p>
-              <p className="text-2xl font-bold text-emerald-700">{completedCount + 22}</p>
+              <p className="text-2xl font-bold text-emerald-700">{completedCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -334,18 +340,18 @@ export default function ClinicReceptionDashboard() {
                   <div>
                     <label className="text-muted-foreground font-medium block mb-1">Consulting Doctor</label>
                     <select
-                      value={quickReg.doctor}
+                      value={quickReg.doctorId}
                       onChange={e => {
-                        const doc = e.target.value;
-                        const dept = doc.includes('Priya') ? 'Pediatrics' : doc.includes('Verma') ? 'Orthopedics' : 'General Medicine';
-                        const fee = doc.includes('Verma') ? '700' : doc.includes('Priya') ? '600' : '500';
-                        setQuickReg({ ...quickReg, doctor: doc, department: dept, fee });
+                        const doc = roster.find((d: any) => String(d._id) === e.target.value);
+                        setQuickReg({ ...quickReg, doctorId: e.target.value, department: doc?.specialization || '' });
                       }}
                       className="w-full h-9 rounded-xl border bg-background px-3 text-xs font-semibold"
                     >
-                      <option value="Dr. Ramesh Sharma">Dr. Ramesh Sharma (Gen Med)</option>
-                      <option value="Dr. Priya Patel">Dr. Priya Patel (Pediatrics)</option>
-                      <option value="Dr. Vivek Verma">Dr. Vivek Verma (Ortho)</option>
+                      {roster.length === 0 ? (
+                        <option value="">No doctors on roster</option>
+                      ) : roster.map((d: any) => (
+                        <option key={d._id} value={d._id}>{d.name} ({d.specialization})</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -361,9 +367,9 @@ export default function ClinicReceptionDashboard() {
                 <div className="p-3 bg-muted/20 rounded-2xl flex items-center justify-between border">
                   <div>
                     <span className="font-semibold text-foreground text-xs block">Consultation Fee</span>
-                    <span className="text-[10px] text-muted-foreground">Auto-billed at reception desk</span>
+                    <span className="text-[10px] text-muted-foreground">Pricing is resolved server-side at the counter</span>
                   </div>
-                  <span className="font-black text-lg text-emerald-600">₹{quickReg.fee}</span>
+                  <span className="font-bold text-xs text-foreground">As per doctor's tariff</span>
                 </div>
 
                 <Button type="submit" className="w-full rounded-2xl h-10 font-bold bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-sm">
@@ -541,8 +547,8 @@ export default function ClinicReceptionDashboard() {
               {/* Printable Thermal Receipt Style Card */}
               <div className="p-4 bg-muted/20 border-2 border-dashed rounded-2xl space-y-3 font-mono text-xs">
                 <div className="text-center pb-2 border-b">
-                  <h4 className="font-bold text-sm tracking-wide">CENTRAL CLINIC & HEALTHCARE</h4>
-                  <p className="text-[10px] text-muted-foreground">Plot 12, Healthcare Hub · Reg: CLN-2026-904</p>
+                  <h4 className="font-bold text-sm tracking-wide">CLINIC OPD REGISTRATION SLIP</h4>
+                  <p className="text-[10px] text-muted-foreground">Retain this slip · show at consultation</p>
                 </div>
 
                 <div className="flex items-center justify-between text-base font-black py-1 bg-teal-500/10 px-3 rounded-xl text-teal-700">
@@ -572,8 +578,8 @@ export default function ClinicReceptionDashboard() {
                     <b className="text-foreground">{showSlipModal.doctor} ({showSlipModal.room})</b>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block">Fee Paid:</span>
-                    <b className="text-emerald-600 font-bold">₹{showSlipModal.fee}</b>
+                    <span className="text-muted-foreground block">Fee:</span>
+                    <b className="text-foreground font-bold">As per tariff</b>
                   </div>
                 </div>
 
@@ -626,7 +632,7 @@ export default function ClinicReceptionDashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 flex-1">
-              {['Room 1 (Dr. Ramesh Sharma)', 'Room 2 (Dr. Priya Patel)', 'Room 3 (Dr. Vivek Verma)'].map((roomName, rIdx) => {
+              {(roster.length ? roster.map((d: any) => `Room ${roster.indexOf(d) + 1} (${d.name})`) : ['Room 1']).map((roomName: string, rIdx: number) => {
                 const roomKey = `Room ${rIdx + 1}`;
                 const inRoom = tokens.find(t => t.room === roomKey && (t.status === 'In Consultation' || t.status === 'Called'));
                 const waitingInRoom = tokens.filter(t => t.room === roomKey && (t.status === 'Waiting' || t.status === 'Vitals Pending'));

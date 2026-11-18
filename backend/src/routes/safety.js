@@ -104,23 +104,25 @@ const remover = (Model, audit) => async (req, res) => {
 };
 
 // ─── Visitor passes ─────────────────────────────────────────────────────────
-router.get('/visitor-passes', protect, authorize('staff:view'), lister(VisitorPass, 'visitorpasses'));
+router.get('/visitor-passes', protect, authorize('staff:view', 'security:read'), lister(VisitorPass, 'visitorpasses'));
 router.post('/visitor-passes', protect, authorize('staff:manage'), creator(VisitorPass, ['patientId', 'admissionId', 'visitorName', 'phone', 'idType', 'photoUrl', 'relation', 'validFrom', 'validTill'], 'visitor_pass', { validTill: 'validTo' }));
-router.get('/visitor-passes/:id', protect, authorize('staff:view'), finder(VisitorPass));
+router.get('/visitor-passes/:id', protect, authorize('staff:view', 'security:read'), finder(VisitorPass));
 router.patch('/visitor-passes/:id', protect, authorize('staff:manage'), patcher(VisitorPass, ['validTill', 'status'], 'visitor_pass', { validTill: 'validTo' }));
 router.delete('/visitor-passes/:id', protect, authorize('staff:manage'), remover(VisitorPass, 'visitor_pass_deleted'));
 
 // ─── MLC cases ──────────────────────────────────────────────────────────────
-router.get('/mlc', protect, authorize('staff:view'), lister(MlcCase, 'mlccases', 'status'));
+// MLC READ is an operational clinical need for ER/trauma staff (MLC register
+// is written by them); decide/write stays staff:manage.
+router.get('/mlc', protect, authorize('staff:view', 'emergency:manage', 'icu:manage'), lister(MlcCase, 'mlccases', 'status'));
 router.post('/mlc', protect, authorize('staff:manage'), creator(MlcCase, ['encounterId', 'patientId', 'mlcNo', 'policeStation', 'injuryType', 'history', 'opinion'], 'mlc_case'));
 router.get('/mlc/:id', protect, authorize('staff:view'), finder(MlcCase));
 router.patch('/mlc/:id', protect, authorize('staff:manage'), patcher(MlcCase, ['policeStation', 'intimationAt', 'injuryType', 'history', 'opinion', 'status'], 'mlc_case'));
 router.delete('/mlc/:id', protect, authorize('staff:manage'), voider(MlcCase, () => ({ status: 'Closed' }), 'mlc_case_voided'));
 
 // ─── Incidents (+RCA) ───────────────────────────────────────────────────────
-router.get('/incidents', protect, authorize('staff:view'), lister(Incident, 'incidents', 'status'));
+router.get('/incidents', protect, authorize('staff:view', 'security:read', 'audit:read'), lister(Incident, 'incidents', 'status'));
 router.post('/incidents', protect, authorize('staff:manage'), creator(Incident, ['type', 'severity', 'location', 'involvedPatientId', 'description', 'immediateAction'], 'incident'));
-router.get('/incidents/:id', protect, authorize('staff:view'), finder(Incident));
+router.get('/incidents/:id', protect, authorize('staff:view', 'security:read', 'audit:read'), finder(Incident));
 router.patch('/incidents/:id', protect, authorize('staff:manage'), patcher(Incident, ['severity', 'immediateAction', 'rca', 'correctiveAction', 'status', 'closedAt'], 'incident'));
 router.delete('/incidents/:id', protect, authorize('staff:manage'), voider(Incident, () => ({ status: 'Closed', closedAt: new Date() }), 'incident_closed'));
 

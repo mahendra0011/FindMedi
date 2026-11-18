@@ -50,10 +50,17 @@ router.get('/', protect, adminDirectoryAccess, async (req, res) => {
     const { page, limit } = req.query;
     const filter = {};
     if (req.user.role === 'superadmin') {
-      if (!PLATFORM_ADMIN_TEAM_ROLES.has(String(req.query.role || ''))) {
-        return res.status(400).json({ message: 'A platform admin role filter is required' });
+      const wanted = String(req.query.role || '');
+      // File 23 god-mode split: 'All' means the platform-team union ONLY —
+      // never patients, doctors or other tenants' staff.
+      if (wanted && wanted !== 'All') {
+        if (!PLATFORM_ADMIN_TEAM_ROLES.has(wanted)) {
+          return res.status(400).json({ message: 'A platform admin role filter is required' });
+        }
+        filter.role = wanted;
+      } else {
+        filter.role = { $in: [...PLATFORM_ADMIN_TEAM_ROLES] };
       }
-      filter.role = req.query.role;
     } else if (req.query.role && req.query.role !== 'All') filter.role = req.query.role;
     if (req.query.flagged === 'true') filter.flagged = true;
     if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }

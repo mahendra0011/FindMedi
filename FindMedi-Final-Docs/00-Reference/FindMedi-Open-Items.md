@@ -1,6 +1,6 @@
 # FindMedi - Open Items and TODO Tracker
 
-> Source: read-only audit of `FindMedi-Final-Docs/` (34 files, 289 checklist items). Current state (re-audited 2026-11-17): 253 checked, 36 unchecked. The short work plan below groups the main remaining tasks; the exhaustive live inventory at the end contains every unchecked checklist entry. Some items mix code with external verification (for example, native Play Integrity requires device testing). Close an item only when its completion criteria and evidence are satisfied.
+> Source: read-only audit of `FindMedi-Final-Docs/` (34 files, 289 checklist items). Current state (re-audited 2026-11-19): 253 checked, 36 unchecked. The short work plan below groups the main remaining tasks; the exhaustive live inventory at the end contains every unchecked checklist entry. Some items mix code with external verification (for example, native Play Integrity requires device testing). Close an item only when its completion criteria and evidence are satisfied.
 >
 > Classification: **Code** (repo-implementable) / **Run and verify** (code exists, execution evidence needed) / **Human or external** (requires a qualified person, real-world input, or external service).
 

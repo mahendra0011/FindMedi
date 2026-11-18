@@ -1,0 +1,4440 @@
+# COMPLETE PATHOLOGY / LABORATORY MANAGEMENT SYSTEM
+
+## 1. PATHOLOGY ADMIN / LAB MANAGER DASHBOARD
+
+Ye poori pathology laboratory ka main management dashboard hoga.
+
+### A. Overview Cards
+- Today's Patients
+- New Patient Registrations
+- Returning Patients
+- Total Lab Orders
+- New Orders
+- Samples Pending Collection
+- Samples Collected
+- Samples Received
+- Samples Processing
+- Results Pending
+- Reports Awaiting Verification
+- Reports Finalized
+- Urgent Tests
+- Rejected Samples
+- Recollection Required
+- Delayed Reports
+- TAT Breaches
+
+### B. Financial Overview
+- Today's Revenue
+- Monthly Revenue
+- Total Collection
+- Cash Collection
+- UPI Collection
+- Card Collection
+- Online Collection
+- Pending Payments
+- Outstanding Amount
+- Refunds
+- Discounts
+- Corporate Billing
+- Insurance Billing
+- Average Revenue per Patient
+
+### C. Laboratory Operations
+- Department-wise Test Volume
+- Pending Samples
+- Pending Results
+- Pending Verification
+- Critical Results
+- Sample Rejection Rate
+- Recollection Rate
+- Average Turnaround Time
+- Technician Workload
+- Pathologist Workload
+- Outsourced Tests
+- Tests Completed Today
+
+### D. Inventory Alerts
+- Low Reagent Stock
+- Near-expiry Reagents
+- Expired Reagents
+- Low Test Kits
+- Low Collection Supplies
+- Pending Purchase Requests
+- Stock Adjustment Requests
+
+### E. Quality & Equipment
+- Internal QC Status
+- External Quality Assessment Status
+- Calibration Due
+- Equipment Maintenance Due
+- Analyzer Downtime
+- Open Quality Incidents
+- Corrective Actions Pending
+- Expiring Equipment Service Contracts
+
+### F. Quick Actions
+- Register Patient
+- Create Lab Order
+- Book Test
+- Collect Sample
+- View Pending Results
+- Review Reports
+- Manage Test Prices
+- Manage Lab Staff
+- Manage Inventory
+- Create Purchase Request
+- View Daily Collection
+- Generate Reports
+
+---
+
+## 2. LABORATORY ADMINISTRATOR DASHBOARD
+
+Hospital ke pathology department ki daily administration ke liye.
+
+### A. Overview
+- Total Laboratory Staff
+- Staff Present
+- Staff Absent
+- Tests Pending
+- Samples Pending
+- Reports Pending
+- Equipment Issues
+- Pending Approvals
+- Daily Collection
+
+### B. Laboratory Setup
+- Laboratory Departments
+- Collection Counters
+- Sample Receiving Counters
+- Processing Sections
+- Reporting Sections
+- Sample Storage Locations
+- Equipment Locations
+- Staff Assignments
+- Working Hours
+- Holidays
+- Emergency Testing Schedule
+
+### C. Administration
+- Staff Management
+- Department Management
+- Test Configuration
+- Test Pricing
+- Report Templates
+- Collection Rules
+- Laboratory Workflows
+- Quality Procedures
+- Access Permissions
+
+### D. Approvals
+- Test Cancellation
+- Refund Requests
+- Discount Requests
+- Stock Adjustments
+- Purchase Requests
+- Report Correction Requests
+- User Access Requests
+
+### E. Quick Actions
+- Assign Staff
+- Update Schedule
+- Review Pending Approvals
+- Manage Laboratory Settings
+- View Operational Reports
+
+---
+
+## 3. PATHOLOGY RECEPTIONIST DASHBOARD
+
+Receptionist patient registration, test booking aur collection coordination manage karega.
+
+### A. Overview Cards
+- Today's Patients
+- New Registrations
+- Existing Patients
+- Tests Booked
+- Patients Waiting for Collection
+- Home Collection Bookings
+- Reports Ready
+- Payments Pending
+- Cancelled Orders
+
+### B. Patient Registration
+- New Patient
+- Existing Patient Search
+- Patient ID / UHID
+- Patient Name
+- Date of Birth
+- Age
+- Gender
+- Mobile
+- Alternate Mobile
+- Email
+- Address
+- City
+- State
+- Pincode
+- Referring Doctor
+- Hospital Department
+- Patient Type
+- Insurance / Corporate Details
+- Patient Documents
+
+### C. Test Booking
+- Single Test
+- Multiple Tests
+- Test Packages
+- CBC
+- LFT
+- KFT
+- Lipid Profile
+- HbA1c
+- Thyroid Profile
+- Blood Sugar
+- Urine Test
+- Stool Test
+- Hormone Tests
+- Vitamin Tests
+- Serology
+- Microbiology
+- Histopathology
+- Cytology
+- Molecular Tests
+- Other Configured Tests
+
+### D. Booking Features
+- Walk-in Booking
+- Appointment Booking
+- Home Collection Booking
+- Urgent Test Booking
+- Test Package Selection
+- Referring Doctor Selection
+- Patient Preparation Instructions
+- Fasting Instructions, where applicable
+- Collection Slot
+- Booking Confirmation
+- Add Additional Test
+- Cancel Test Request
+- Print Test Order
+
+### E. Quick Actions
+- Register Patient
+- Book Lab Test
+- Search Patient
+- View Patient History
+- Print Lab Order
+- Generate Invoice
+- Collect Authorized Payment
+- Print Receipt
+- Check Report Status
+
+---
+
+## 4. PATIENT REGISTRATION & PROFILE
+
+Pathology laboratory mein patient ka central record hona chahiye.
+
+### A. Patient Profile
+- Patient ID / UHID
+- Patient Name
+- Date of Birth
+- Age
+- Gender
+- Mobile
+- Email
+- Address
+- Emergency Contact
+- Referring Doctor
+- Hospital / Clinic
+- Patient Category
+- Insurance / Corporate Details
+- Registration Date
+
+### B. Medical Information
+- Relevant Medical History
+- Current Medicines, where provided
+- Known Allergies, where relevant
+- Fasting Status
+- Relevant Clinical Notes
+- Previous Laboratory Results
+- Previous Abnormal Results
+- Previous Test History
+
+### C. Features
+- Duplicate Patient Detection
+- Patient Search
+- Patient Record Merge
+- Patient ID Generation
+- QR / Barcode
+- Patient Documents
+- Previous Orders
+- Previous Results
+- Billing History
+- Communication History
+- Patient Timeline
+
+### D. Patient Timeline
+Ek jagah par:
+- Patient Registration
+- Test Bookings
+- Sample Collections
+- Sample Rejections
+- Recollection Requests
+- Result Entry
+- Result Verification
+- Report Release
+- Payments
+- Refunds
+- Report Corrections
+
+---
+
+## 5. LAB ORDER MANAGEMENT DASHBOARD
+
+Patient ke liye requested tests ka complete lifecycle yahan manage hoga.
+
+### A. Overview Cards
+- New Orders
+- Orders Pending Collection
+- Samples Awaiting Receipt
+- Processing Orders
+- Results Pending
+- Verification Pending
+- Finalized Orders
+- Cancelled Orders
+
+### B. Order Details
+- Order Number
+- Patient ID
+- Patient Name
+- Ordering Doctor
+- Referring Organization
+- Test Name
+- Test Code
+- Sample Type
+- Priority
+- Order Date / Time
+- Collection Instructions
+- Expected Completion Time
+- Billing Status
+- Payment Status
+- Order Status
+
+### C. Features
+- Create Order
+- Add Multiple Tests
+- Add Test Package
+- Add Test to Existing Order
+- Assign Priority
+- Assign Collection Slot
+- Assign Department
+- Assign Laboratory Section
+- Assign Technician
+- Cancel Order, subject to permissions
+- Request Recollection
+- Repeat Test
+- Track Order
+- View Previous Result
+
+### D. Order Status
+- Draft
+- Ordered
+- Payment Pending
+- Collection Pending
+- Collected
+- Received
+- Processing
+- Result Pending
+- Verification Pending
+- Finalized
+- Report Delivered
+- Cancelled
+
+---
+
+## 6. TEST MASTER MANAGEMENT
+
+Ye pathology system ka sabse important master-data module hai.
+
+### A. Test Information
+- Test Name
+- Short Name
+- Test Code
+- Department
+- Category
+- Test Description
+- Specimen Type
+- Container Type
+- Sample Requirements
+- Test Method
+- Processing Requirements
+- Turnaround Time
+- Test Price
+- Corporate Price
+- Insurance Rate
+- Package Price
+- Outsourcing Cost
+- Report Template
+
+### B. Test Types
+- Blood Tests
+- Urine Tests
+- Stool Tests
+- Sputum Tests
+- Swab Tests
+- Body Fluid Tests
+- Semen Tests
+- Tissue Specimens
+- Biopsy Specimens
+- Other Supported Specimens
+
+### C. Test Configuration
+- Sample Type
+- Sample Volume, where applicable
+- Collection Container
+- Transport Conditions
+- Storage Conditions
+- Fasting Requirements
+- Patient Preparation
+- Reporting Parameters
+- Units
+- Reference Ranges
+- Critical Limits, where clinically established
+- Result Format
+- Authorized Verification Role
+- Expected TAT
+
+### D. Test Controls
+- Active / Inactive
+- Effective Date
+- Price History
+- Method History
+- Reference Range Version
+- Test Change Audit
+
+---
+
+## 7. TEST PACKAGE MANAGEMENT
+
+### Example Packages
+- Basic Health Checkup
+- Complete Health Checkup
+- Diabetes Profile
+- Thyroid Profile
+- Liver Profile
+- Kidney Profile
+- Lipid Profile
+- Fever Profile
+- Antenatal Profile
+- Other Configured Packages
+
+### Features
+- Package Name
+- Package Code
+- Included Tests
+- Package Price
+- Individual Test Prices
+- Discount
+- Corporate Rate
+- Validity
+- Age / Gender Applicability, where relevant
+- Package Preparation Instructions
+- Package Report Grouping
+- Package Usage Report
+
+Package ke andar individual test components ke status ko separately track karna zaroori hai.
+
+---
+
+## 8. PHLEBOTOMIST / SAMPLE COLLECTION DASHBOARD
+
+Blood aur doosre specimens collect karne wale staff ke liye.
+
+### A. Overview Cards
+- Samples Pending Collection
+- Patients Waiting
+- Samples Collected
+- Samples Submitted
+- Urgent Collections
+- Home Collections Assigned
+- Recollection Requests
+- Collection Issues
+
+### B. Collection Queue
+- Patient Name
+- Patient ID
+- Order Number
+- Test Name
+- Sample Type
+- Barcode
+- Collection Instructions
+- Fasting Status, where applicable
+- Collection Location
+- Appointment Time
+- Collection Status
+
+### C. Sample Collection
+- Verify Patient Identity
+- Verify Test Order
+- Confirm Specimen Type
+- Confirm Collection Container
+- Record Collection Time
+- Record Collector
+- Generate Sample Barcode
+- Print Sample Label
+- Record Collection Location
+- Record Relevant Collection Notes
+- Confirm Sample Collected
+
+### D. Collection Issues
+- Patient Not Available
+- Collection Not Possible
+- Insufficient Sample
+- Incorrect Container
+- Label Issue
+- Other Configured Issues
+
+### E. Quick Actions
+- Open Collection Queue
+- Scan Barcode
+- Collect Sample
+- Print Label
+- Submit Sample
+- Record Collection Issue
+- Request Recollection
+
+---
+
+## 9. SAMPLE RECEIVING DASHBOARD
+
+Laboratory mein sample physically receive aur verify karne ke liye.
+
+### A. Overview Cards
+- Incoming Samples
+- Samples Awaiting Receipt
+- Samples Accepted
+- Samples Rejected
+- Recollection Required
+- Urgent Samples
+- Unmatched Samples
+
+### B. Sample Receiving
+- Scan Barcode
+- Verify Patient
+- Verify Order Number
+- Verify Test
+- Verify Specimen Type
+- Verify Label
+- Record Received Date / Time
+- Record Receiving Staff
+- Record Sample Condition
+- Record Storage / Routing Location
+
+### C. Sample Acceptance
+- Accept Sample
+- Reject Sample
+- Add Reason
+- Record Notes
+- Notify Collection Staff
+- Create Recollection Request
+- Assign Laboratory Section
+
+### D. Sample Rejection Reasons
+- Hemolyzed
+- Insufficient Quantity
+- Wrong Container
+- Wrong Sample
+- Clotted Sample
+- Leaking Container
+- Label Mismatch
+- Contamination
+- Improper Transport
+- Incorrect Storage
+- Other Configured Reasons
+
+### E. Quick Actions
+- Receive Sample
+- Scan Barcode
+- Accept Sample
+- Reject Sample
+- Request Recollection
+- Assign Processing Section
+- View Sample History
+
+---
+
+## 10. SAMPLE TRACKING DASHBOARD
+
+Har sample ki current location aur status track karne ke liye.
+
+### A. Sample Status
+- Ordered
+- Collection Pending
+- Collected
+- In Transit
+- Received
+- Accepted
+- Rejected
+- Recollection Required
+- Processing
+- Processing Completed
+- Result Pending
+- Verified
+- Finalized
+
+### B. Tracking Information
+- Sample Barcode
+- Patient ID
+- Order Number
+- Specimen Type
+- Collection Location
+- Receiving Location
+- Collection Time
+- Received Time
+- Processing Section
+- Current Status
+- Assigned Staff
+- Last Updated
+
+### C. Features
+- Barcode Scan
+- Sample Movement History
+- Location Tracking
+- Department Transfer
+- Sample Acceptance
+- Rejection Record
+- Recollection Record
+- Processing History
+- Delay Alerts
+- Audit Trail
+
+---
+
+## 11. LAB TECHNICIAN DASHBOARD
+
+Ye laboratory ke main processing aur result-entry workbench ka dashboard hoga.
+
+### A. Overview Cards
+- Assigned Samples
+- Pending Tests
+- Tests In Progress
+- Results Pending
+- Results Entered
+- Repeat Tests
+- Urgent Tests
+- QC Alerts
+
+### B. Laboratory Work Queue
+- Patient Name
+- Patient ID
+- Order Number
+- Sample Barcode
+- Test Name
+- Laboratory Section
+- Priority
+- Received Time
+- Processing Status
+- Expected Completion Time
+
+### C. Test Processing
+- Open Test
+- Verify Sample
+- Confirm Test Parameters
+- Assign Equipment, where applicable
+- Start Processing
+- Record Processing Time
+- Record Method
+- Enter Technical Notes
+- Mark Processing Completed
+
+### D. Result Entry
+- Manual Result Entry
+- Analyzer Result Import
+- Test Parameters
+- Numeric Results
+- Qualitative Results
+- Units
+- Reference Ranges
+- Abnormal Flags
+- Technical Comments
+- Repeat Test
+- Dilution, where applicable
+- Save Draft
+- Submit for Verification
+
+### E. Result Controls
+- Draft Result
+- Pending Validation
+- Validation Failed
+- Submitted for Verification
+- Returned for Correction
+- Verified Result
+
+### F. Quick Actions
+- Open Worklist
+- Scan Sample
+- Enter Results
+- Import Analyzer Results
+- Repeat Test
+- Add Technical Comment
+- Submit Results
+- View QC Status
+
+**Permission:** Technician result enter kar sakta hai, lekin final report verify ya release karne ka access appropriate authorization ke according hona chahiye.
+
+---
+
+## 12. BIOCHEMISTRY DASHBOARD
+
+### A. Overview
+- Biochemistry Samples
+- Tests Pending
+- Results Pending
+- Analyzer Status
+- QC Status
+- Critical Results
+- Repeat Tests
+
+### B. Supported Test Categories
+- Liver Function Tests
+- Kidney Function Tests
+- Lipid Profile
+- Blood Glucose
+- HbA1c
+- Electrolytes
+- Enzymes
+- Proteins
+- Other Configured Biochemistry Tests
+
+### C. Features
+- Test-wise Worklist
+- Analyzer Mapping
+- Automatic Result Import
+- Manual Result Entry
+- Reference Ranges
+- Abnormal Flags
+- Repeat Test
+- Dilution, where applicable
+- QC Validation
+- Result Submission
+
+---
+
+## 13. HEMATOLOGY DASHBOARD
+
+### A. Overview
+- CBC Orders
+- Hematology Samples
+- Results Pending
+- Analyzer Flags
+- Smear Review Pending
+- Critical Results
+
+### B. Test Categories
+- Complete Blood Count
+- ESR
+- Peripheral Smear
+- Coagulation Tests
+- Other Configured Hematology Tests
+
+### C. Features
+- Sample Tracking
+- Analyzer Results
+- Parameter-wise Result
+- Abnormal Flags
+- Manual Review
+- Repeat Test
+- Result Validation
+- Submit for Verification
+- Reporting History
+
+---
+
+## 14. CLINICAL PATHOLOGY DASHBOARD
+
+### Test Categories
+- Urine Routine
+- Urine Microscopy
+- Stool Examination
+- Body Fluid Analysis
+- Semen Analysis
+- Other Configured Clinical Pathology Tests
+
+### Features
+- Sample Receiving
+- Processing Worklist
+- Manual Result Entry
+- Microscopy Findings
+- Numeric / Qualitative Results
+- Reference Values, where applicable
+- Technical Comments
+- Result Verification
+- Final Report
+
+---
+
+## 15. MICROBIOLOGY DASHBOARD
+
+### A. Overview
+- Samples Received
+- Culture Orders
+- Cultures in Progress
+- Preliminary Results Pending
+- Organism Identification Pending
+- Susceptibility Testing Pending
+- Final Reports Pending
+
+### B. Features
+- Specimen Registration
+- Culture Orders
+- Gram Stain
+- Culture Processing
+- Organism Identification
+- Antibiotic Susceptibility
+- Preliminary Report
+- Final Report
+- Result Verification
+- Microbiology History
+
+### C. Workflow
+**Sample → Processing → Culture → Identification → Susceptibility Testing → Verification → Final Report**
+
+---
+
+## 16. HISTOPATHOLOGY / BIOPSY DASHBOARD
+
+### A. Overview
+- New Specimens
+- Specimens Awaiting Grossing
+- Blocks Pending
+- Slides Pending
+- Microscopy Pending
+- Reports Pending
+
+### B. Features
+- Biopsy Registration
+- Specimen Identification
+- Collection Details
+- Specimen Acceptance
+- Grossing
+- Block Creation
+- Slide Tracking
+- Staining
+- Microscopy
+- Pathologist Notes
+- Diagnosis
+- Final Report
+
+### C. Specimen Tracking
+- Received
+- Accepted
+- Grossing Pending
+- Grossing Completed
+- Block Prepared
+- Slide Prepared
+- Microscopy Pending
+- Reporting Pending
+- Finalized
+
+---
+
+## 17. CYTOLOGY DASHBOARD
+
+### Test Categories
+- Pap Smear
+- Fine Needle Aspiration Cytology
+- Fluid Cytology
+- Other Configured Cytology Tests
+
+### Features
+- Specimen Registration
+- Slide Preparation
+- Slide Tracking
+- Microscopy
+- Findings
+- Diagnosis
+- Report Draft
+- Pathologist Review
+- Final Report
+
+---
+
+## 18. SEROLOGY / IMMUNOLOGY DASHBOARD
+
+### Features
+- Test Orders
+- Sample Tracking
+- Test Processing
+- Analyzer Integration
+- Manual Result Entry
+- Qualitative Results
+- Quantitative Results
+- Reference Values, where applicable
+- Repeat Testing
+- QC Status
+- Result Verification
+- Final Reports
+
+Test catalogue mein laboratory ke actual services ke according test groups configure hone chahiye.
+
+---
+
+## 19. MOLECULAR / PCR DASHBOARD
+
+### Features
+- Molecular Test Orders
+- Sample Verification
+- Batch / Run Management
+- Sample Preparation
+- Run Assignment
+- Result Entry
+- Analyzer Result Import, where supported
+- QC Status
+- Validation
+- Report Verification
+- Run History
+
+---
+
+## 20. PATHOLOGIST DASHBOARD
+
+Pathologist ka dashboard laboratory results ki professional review aur final reporting par focused hoga.
+
+### A. Overview Cards
+- Results Awaiting Verification
+- Critical Results
+- Urgent Reports
+- Reports Pending
+- Corrected Reports Awaiting Review
+- Delayed Reports
+- QC Alerts
+
+### B. Verification Queue
+- Patient Name
+- Patient ID
+- Order Number
+- Test Name
+- Result Status
+- Abnormal Flags
+- Technician
+- Verification Due Time
+
+### C. Result Review
+- Review Test Results
+- Review Reference Ranges
+- Review Abnormal Flags
+- Review Previous Results
+- Compare Results
+- Add Professional Interpretation
+- Return for Correction
+- Approve Report
+- Finalize Report
+
+### D. Critical Results
+- Critical Result Queue
+- Critical Value
+- Responsible Doctor
+- Notification Status
+- Acknowledgement
+- Escalation
+- Communication Notes
+- Audit Trail
+
+### E. Quick Actions
+- Open Pending Result
+- Review Result
+- Add Interpretation
+- Return for Correction
+- Verify Report
+- Finalize Report
+- Review Corrected Report
+
+---
+
+## 21. LAB SUPERVISOR DASHBOARD
+
+Technicians aur day-to-day processing operations ko supervise karne ke liye.
+
+### Overview
+- Samples Pending
+- Tests Assigned
+- Tests In Progress
+- Tests Delayed
+- Workload by Section
+- Staff Availability
+- QC Alerts
+- Equipment Issues
+
+### Features
+- Assign Work
+- Reassign Test
+- Monitor Progress
+- Review Pending Work
+- Monitor TAT
+- Handle Processing Delays
+- Escalate Equipment Issues
+- Review Sample Rejections
+- Approve Permitted Operational Actions
+
+### Quick Actions
+- Assign Sample
+- Reassign Work
+- Review Delays
+- Open Section Workload
+- Escalate QC Issue
+
+---
+
+## 22. QUALITY MANAGER DASHBOARD
+
+### A. Overview
+- QC Status
+- QC Failures
+- Calibration Due
+- External Quality Assessment Due
+- Open Quality Incidents
+- Non-conformances
+- Corrective Actions Pending
+
+### B. Quality Control
+- Internal QC
+- External Quality Assessment
+- Control Material
+- QC Result Entry
+- QC Charts
+- Out-of-Range Alerts
+- QC Lock Rules
+- Corrective Action Records
+
+### C. Compliance
+- SOP Management
+- Equipment Records
+- Training Records
+- Audit Findings
+- Corrective / Preventive Actions
+- Document Expiry
+- Quality Incidents
+
+### D. Quick Actions
+- Record QC
+- Review QC Failure
+- Register Incident
+- Assign Corrective Action
+- Review Audit
+- Generate Quality Report
+
+---
+
+## 23. ANALYZER / LAB MACHINE DASHBOARD
+
+### Features
+- Analyzer List
+- Analyzer Status
+- Connected / Disconnected
+- Current Workload
+- Result Import Status
+- Error Logs
+- Calibration Status
+- QC Status
+- Reagent Status
+- Maintenance Due
+- Service History
+- Downtime
+
+### Integration
+- HL7 / ASTM, where supported
+- Device Interface
+- Test Mapping
+- Parameter Mapping
+- Analyzer Result Import
+- Error Handling
+- Interface Logs
+
+---
+
+## 24. LAB INVENTORY / STORE DASHBOARD
+
+### A. Inventory Categories
+- Reagents
+- Test Kits
+- Collection Tubes
+- Specimen Containers
+- Slides
+- Stains
+- Needles
+- Syringes
+- Gloves
+- Other Laboratory Consumables
+
+### B. Overview Cards
+- Total Items
+- Available Stock
+- Low Stock Items
+- Near-expiry Items
+- Expired Items
+- Pending Indents
+- Pending Stock Issues
+- Stock Value
+
+### C. Features
+- Item Master
+- Batch / Lot Number
+- Manufacturer
+- Expiry Date
+- Storage Requirements
+- Stock In
+- Stock Out
+- Department Issue
+- Stock Return
+- Stock Transfer
+- Stock Adjustment
+- Physical Stock Count
+- Stock Ledger
+- Minimum Stock
+- Maximum Stock
+- Reorder Level
+- Wastage
+- Damaged Stock
+- Reagent Consumption
+
+---
+
+## 25. PURCHASE OFFICER DASHBOARD
+
+### Overview Cards
+- Pending Purchase Requests
+- Pending Indents
+- Pending Approvals
+- Open Purchase Orders
+- Expected Deliveries
+- Delayed Deliveries
+- Goods Receipt Pending
+- Vendor Invoices Pending
+
+### Features
+- Purchase Requisition
+- Indent Review
+- Vendor Management
+- Request for Quotation
+- Quotations
+- Comparative Statement
+- Purchase Order
+- Partial Delivery
+- Goods Received Note
+- Quality Check
+- Purchase Invoice
+- Purchase Return
+- Vendor Payment Coordination
+
+### Quick Actions
+- Create Purchase Request
+- Request Quotation
+- Compare Vendors
+- Create Purchase Order
+- Track Delivery
+- Receive Goods
+
+---
+
+## 26. VENDOR MANAGEMENT DASHBOARD
+
+### Features
+- Vendor Master
+- Vendor Name
+- Contact Details
+- Address
+- GST / PAN Details, where applicable
+- Bank Details
+- Vendor Documents
+- Product Category
+- Reagent Rates
+- Payment Terms
+- Credit Terms
+- Purchase History
+- Vendor Outstanding
+- Vendor Ledger
+- Contract / Rate Expiry
+
+---
+
+## 27. PATHOLOGY BILLING / CASHIER DASHBOARD
+
+### A. Overview
+- Today's Lab Orders
+- Invoices Generated
+- Payments Received
+- Pending Payments
+- Package Sales
+- Refund Requests
+- Corporate / Insurance Bills
+- Outstanding Amount
+
+### B. Billing
+- Test-wise Billing
+- Multiple Test Billing
+- Package Billing
+- Home Collection Charges
+- Collection Charges, where applicable
+- Outsourced Test Billing
+- Corporate Billing
+- Insurance Billing
+- Discounts
+- Estimates
+- Invoices
+- Receipts
+
+### C. Payments
+- Cash
+- UPI
+- Card
+- Net Banking
+- Payment Gateway
+- Advance
+- Partial Payment
+- Refund
+- Payment Reconciliation
+
+### D. Quick Actions
+- Create Invoice
+- Collect Payment
+- Print Receipt
+- View Payment Status
+- Request Refund
+- Check Outstanding
+
+---
+
+## 28. ACCOUNTS / FINANCE DASHBOARD
+
+### A. Overview Cards
+- Today's Revenue
+- Monthly Revenue
+- Total Expenses
+- Accounts Receivable
+- Accounts Payable
+- Vendor Payments Pending
+- Corporate Outstanding
+- Insurance Outstanding
+
+### B. Accounting
+- Chart of Accounts
+- Journal Entries
+- Ledger
+- Cash Book
+- Bank Book
+- Income
+- Expenses
+- Fixed Assets
+- Depreciation
+
+### C. Receivables
+- Patient Outstanding
+- Corporate Outstanding
+- Insurance Outstanding
+- Overdue Invoices
+- Aging Report
+- Collections
+- Adjustments
+
+### D. Payables
+- Vendor Bills
+- Pending Payments
+- Due Payments
+- Vendor Ledger
+- Payment Approval Status
+
+### E. Financial Reports
+- Trial Balance
+- Profit & Loss
+- Balance Sheet
+- Cash Flow
+- Revenue Report
+- Expense Report
+- Receivables
+- Payables
+- Applicable Tax Records
+
+---
+
+## 29. HOME SAMPLE COLLECTION DASHBOARD
+
+### A. Overview Cards
+- Today's Bookings
+- Assigned Collectors
+- Upcoming Visits
+- Patients Waiting
+- Collections Completed
+- Samples Submitted
+- Failed Collections
+- Recollection Requests
+
+### B. Booking Details
+- Patient
+- Address
+- Contact
+- Time Slot
+- Tests Ordered
+- Preparation Instructions
+- Collection Fee
+- Payment Status
+- Assigned Collector
+
+### C. Collection Management
+- Assign Collector
+- Start Visit
+- Verify Patient
+- Collect Sample
+- Print / Scan Barcode
+- Record Collection Time
+- Record Collection Status
+- Submit Sample to Laboratory
+- Handover Confirmation
+- Record Failed Collection
+
+### D. Workflow
+**Assigned → On Route → Patient Verified → Sample Collected → Submitted to Lab → Received**
+
+---
+
+## 30. OUTSOURCED TEST MANAGEMENT DASHBOARD
+
+Kuch tests external reference laboratory ko bhejne pad sakte hain.
+
+### Features
+- Outsourced Test Orders
+- Reference Laboratory
+- Test Mapping
+- Sample Dispatch
+- Dispatch Date / Time
+- Courier Tracking
+- Sample Receipt Confirmation
+- External Result Upload
+- External Report
+- Authorized Review
+- Patient Report Delivery
+- Outsourcing Cost
+- Vendor Invoice
+- TAT Monitoring
+
+### Status
+- Dispatch Pending
+- Dispatched
+- Received by Reference Lab
+- Processing
+- Result Received
+- Review Pending
+- Finalized
+
+---
+
+## 31. REPORT CENTER DASHBOARD
+
+### A. Report Categories
+- All Pathology Reports
+- Draft Reports
+- Results Awaiting Verification
+- Final Reports
+- Critical Reports
+- Corrected Reports
+- Outsourced Reports
+
+### B. Report Details
+- Patient Name
+- Patient ID
+- Order Number
+- Test Name
+- Department
+- Ordering Doctor
+- Technician
+- Verifying Professional
+- Report Number
+- Report Date
+- Status
+- Version Number
+
+### C. Report Features
+- Report Templates
+- Test Parameters
+- Reference Ranges
+- Units
+- Interpretation
+- Authorized Signatory
+- PDF Generation
+- Printing
+- QR Verification
+- Patient Portal Delivery
+- Report History
+- Previous Versions
+
+### D. Report Correction
+- Correction Request
+- Reason
+- Authorized Review
+- Revised Report
+- Previous Version
+- Date / Time
+- Responsible User
+- Audit Trail
+
+Purani finalized report ko silently overwrite nahi karna chahiye. Correction aur version history properly maintain honi chahiye.
+
+---
+
+## 32. PATIENT REPORT PORTAL
+
+Patient apne authorized reports online access kar sake.
+
+### Features
+- Secure Login
+- OTP Verification
+- Patient ID Verification
+- Report List
+- Test Details
+- Report Status
+- PDF Download
+- Print Report
+- Previous Reports
+- Report Sharing
+- QR Verification
+- Report Delivery History
+
+### Notifications
+- Report Ready
+- Report Delayed
+- Recollection Required
+- Payment Pending
+- Appointment Reminder
+
+Sensitive reports ke access aur sharing ko hospital ki authorization policies ke mutabik control karna chahiye.
+
+---
+
+## 33. REFERRING DOCTOR DASHBOARD
+
+Agar referring doctors ko portal dena hai.
+
+### Features
+- Referring Doctor Profile
+- Patient Orders
+- Order History
+- Patient Reports, when authorized
+- Report Download
+- Previous Test Results
+- Report Status
+- Referring Doctor Notifications
+- Authorized Patient Search
+
+### Reports
+- Test Orders by Referring Doctor
+- Patient Volume
+- Pending Reports
+- Completed Reports
+
+---
+
+## 34. LAB STAFF / ATTENDANCE DASHBOARD
+
+### Features
+- Employee Profile
+- Department
+- Designation
+- Qualification
+- Professional Registration, where applicable
+- Shift
+- Attendance
+- Check-in / Check-out
+- Leave
+- Roster
+- Overtime
+- Training Records
+- Competency Records
+- Document Expiry
+
+### Quick Actions
+- Mark Attendance
+- View Assigned Shift
+- Request Leave
+- View Training
+- Update Authorized Employee Details
+
+---
+
+## 35. LAB EQUIPMENT / MAINTENANCE DASHBOARD
+
+### Equipment
+- Equipment Master
+- Equipment Code
+- Manufacturer
+- Model
+- Serial Number
+- Installation Date
+- Location
+- Department
+- Warranty
+- AMC / CMC
+- Maintenance Schedule
+
+### Features
+- Preventive Maintenance
+- Breakdown Ticket
+- Service Request
+- Work Order
+- Calibration Record
+- Calibration Due
+- Service History
+- Downtime
+- Equipment Status
+- Spare Parts
+
+---
+
+## 36. LAB NOTIFICATION DASHBOARD
+
+### Internal Notifications
+- New Order
+- Sample Received
+- Sample Rejected
+- Recollection Requested
+- Test Delayed
+- Result Pending
+- Result Verification Required
+- Critical Result
+- QC Failure
+- Equipment Issue
+- Low Stock
+- Purchase Approval
+
+### Patient Notifications
+- Booking Confirmation
+- Preparation Instructions
+- Sample Collection Confirmation
+- Recollection Request
+- Report Ready
+- Payment Receipt
+
+### Channels
+- In-app Notifications
+- SMS
+- WhatsApp, where integrated
+- Email
+
+---
+
+## 37. PATHOLOGY GLOBAL SEARCH
+
+Authorized records mein ek search se:
+
+- Patient Name
+- Patient ID / UHID
+- Mobile
+- Order Number
+- Sample Number
+- Barcode
+- Accession Number
+- Test Name
+- Report Number
+- Invoice Number
+- Payment ID
+- Referring Doctor
+
+### Quick Actions
+- Open Patient
+- Open Order
+- Track Sample
+- Open Result
+- View Report
+- View Invoice
+
+---
+
+## 38. PATHOLOGY AUDIT LOG
+
+Har critical action ka record:
+
+- Patient Record Changes
+- Test Order Changes
+- Sample Status Changes
+- Sample Rejection
+- Recollection
+- Result Entry
+- Result Correction
+- Result Verification
+- Report Finalization
+- Report Amendment
+- Billing Changes
+- Refunds
+- Discounts
+- Inventory Adjustments
+- Purchase Transactions
+- Permission Changes
+
+### Audit Details
+- User
+- Action
+- Date / Time
+- Record Reference
+- Old Value
+- New Value
+- Reason, where required
+- Approval Reference
+
+---
+
+## 39. PATHOLOGY REPORTS / MIS DASHBOARD
+
+### A. Patient Reports
+- New Patients
+- Returning Patients
+- Daily Patient Count
+- Patient-wise Test History
+
+### B. Laboratory Reports
+- Test-wise Volume
+- Department-wise Volume
+- Samples Pending
+- Samples Rejected
+- Recollection Rate
+- Results Pending
+- Critical Values
+- TAT
+- Outsourced Tests
+
+### C. Staff Reports
+- Technician Workload
+- Pathologist Workload
+- Pending Verification
+- Work Completion
+- Shift-wise Performance
+
+### D. Equipment Reports
+- Analyzer Utilization
+- Equipment Downtime
+- Calibration Due
+- Maintenance History
+- Machine Error Logs
+
+### E. Financial Reports
+- Daily Collection
+- Monthly Revenue
+- Test-wise Revenue
+- Package Revenue
+- Refunds
+- Discounts
+- Outstanding
+- Corporate Billing
+
+### F. Inventory Reports
+- Stock Levels
+- Reagent Consumption
+- Near-expiry Items
+- Expired Stock
+- Stock Movement
+- Purchase History
+- Stock Valuation
+
+---
+
+## 40. PATHOLOGY DASHBOARD — COMMON LAYOUT
+
+### Top Header
+- Laboratory Logo
+- Branch Selector, if authorized
+- Global Search
+- Notifications
+- User Profile
+- Help
+- Logout
+
+### Left Sidebar
+- Role-specific Menus
+- Expand / Collapse
+- Favorites
+- Recent Pages
+- Pending Tasks
+
+### Main Content
+- Overview Cards
+- Work Queues
+- Data Tables
+- Charts
+- Alerts
+- Quick Actions
+
+### Common Features
+- Search
+- Filters
+- Sorting
+- Pagination
+- Saved Filters
+- Export, where authorized
+- Print
+- Responsive Layout
+
+---
+
+## 41. PATHOLOGY ROLE-WISE SIDEBAR
+
+| Role | Main Sections |
+|---|---|
+| Lab Manager | Dashboard, Orders, Samples, Reports, Billing, Inventory, Equipment, Quality, Staff, MIS |
+| Lab Administrator | Dashboard, Staff, Test Setup, Workflows, Approvals, Settings, Reports |
+| Receptionist | Dashboard, Patients, Registration, Test Booking, Appointments, Billing, Receipts |
+| Phlebotomist | Dashboard, Collection Queue, Sample Collection, Barcode, Sample Handover |
+| Sample Receiving Staff | Dashboard, Incoming Samples, Acceptance, Rejection, Recollection, Tracking |
+| Lab Technician | Dashboard, Worklist, Sample Processing, Result Entry, Analyzer Results, QC |
+| Biochemistry Technician | Dashboard, Biochemistry Worklist, Results, Analyzer, QC |
+| Hematology Technician | Dashboard, Hematology Worklist, CBC, Smear Review, Results |
+| Microbiology Technician | Dashboard, Culture, Specimens, Organisms, Susceptibility, Results |
+| Histopathology Staff | Dashboard, Specimens, Grossing, Blocks, Slides, Staining, Reporting Queue |
+| Cytology Staff | Dashboard, Specimens, Slides, Microscopy, Results |
+| Pathologist | Dashboard, Verification, Critical Results, Interpretation, Reports, Amendments |
+| Lab Supervisor | Dashboard, Workload, Assignments, TAT, Pending Work, Equipment Issues |
+| Quality Manager | Dashboard, QC, Calibration, Audits, Incidents, Corrective Actions |
+| Analyzer / Instrument Staff | Dashboard, Machines, Connectivity, Result Import, Errors, Maintenance |
+| Inventory Manager | Dashboard, Items, Reagents, Stock, Batches, Expiry, Indents |
+| Purchase Officer | Dashboard, Indents, Vendors, Quotations, Purchase Orders, GRN |
+| Cashier | Dashboard, Invoices, Payments, Receipts, Refund Requests, Closing |
+| Accountant | Dashboard, Accounts, Expenses, Receivables, Payables, Reconciliation |
+| Home Collection Staff | Dashboard, Assigned Visits, Collection, Barcode, Handover |
+| Report Coordinator | Dashboard, Report Status, Pending Delivery, Corrections, Delivery History |
+| IT Administrator | Dashboard, Users, Devices, Integrations, Logs, Backup |
+| Referring Doctor | Dashboard, Patient Orders, Authorized Reports, History |
+| Patient | Dashboard, Test Bookings, Reports, Payments, Receipts, History |
+
+---
+
+## 42. ROLE-BASED PERMISSIONS
+
+Har role ko wahi access mile jo uske kaam ke liye required hai.
+
+### Permission Types
+- View
+- Create
+- Edit
+- Delete
+- Assign
+- Verify
+- Finalize
+- Print
+- Export
+- Approve
+- Cancel
+- Refund
+- Manage Inventory
+- Manage Equipment
+- Manage Users
+
+### Example
+- Receptionist: Patient registration aur test booking.
+- Phlebotomist: Assigned sample collection.
+- Sample receiving staff: Sample receipt aur rejection.
+- Lab technician: Assigned test processing aur result entry.
+- Pathologist: Authorized professional result verification.
+- Cashier: Payment collection aur authorized transactions.
+- Inventory manager: Reagent stock aur stock movements.
+- Lab manager: Authorized operational monitoring and approvals.
+- Patient: Apne authorized reports aur records.
+- Referring doctor: Sirf authorized patient orders aur reports.
+
+**Clinical result verification, financial approval aur laboratory operations ko separate permissions mein divide karna chahiye.**
+
+---
+
+## 43. COMPLETE PATHOLOGY WORKFLOW
+
+### Standard Laboratory Workflow
+
+Patient Registration  
+↓  
+Test Order Creation  
+↓  
+Test Selection  
+↓  
+Billing / Authorization  
+↓  
+Sample Collection  
+↓  
+Barcode Generation  
+↓  
+Sample Handover  
+↓  
+Sample Receiving  
+↓  
+Sample Acceptance / Rejection  
+↓  
+Department Assignment  
+↓  
+Sample Processing  
+↓  
+Analyzer / Manual Result Entry  
+↓  
+Technician Validation  
+↓  
+Authorized Professional Verification  
+↓  
+Final Report  
+↓  
+Report Release  
+↓  
+Patient / Authorized Doctor Access  
+↓  
+Report Delivery Notification  
+↓  
+Audit & Record Retention
+
+### Recollection Workflow
+
+Sample Rejected  
+↓  
+Rejection Reason Recorded  
+↓  
+Recollection Request Created  
+↓  
+Collection Staff Notified  
+↓  
+New Sample Collected  
+↓  
+New Barcode / Sample Record  
+↓  
+Laboratory Processing  
+↓  
+Result Verification  
+↓  
+Final Report
+
+### Corrected Report Workflow
+
+Finalized Report  
+↓  
+Correction Request  
+↓  
+Reason Recorded  
+↓  
+Authorized Review  
+↓  
+Revised Report  
+↓  
+Previous Version Preserved  
+↓  
+Authorized Delivery  
+↓  
+Audit Trail
+
+---
+
+## 44. PATHOLOGY DATABASE — MAIN MODULES
+
+### Common Entities
+- Patient
+- PatientVisit
+- Doctor
+- ReferringDoctor
+- User
+- Role
+- Permission
+- Department
+- Appointment
+- DiagnosticOrder
+- DiagnosticOrderItem
+- Invoice
+- Payment
+- Document
+- Notification
+- AuditLog
+
+### Laboratory Entities
+- LabTest
+- LabTestCategory
+- LabTestParameter
+- SampleType
+- SampleContainer
+- Specimen
+- SpecimenCollection
+- SampleBarcode
+- SampleReceipt
+- SampleRejection
+- RecollectionRequest
+- LabWorkItem
+- LabResult
+- ReferenceRange
+- CriticalValueRule
+- ResultVerification
+- LabReport
+- ReportVersion
+
+### Equipment & Quality
+- Analyzer
+- AnalyzerInterface
+- AnalyzerResult
+- TestMapping
+- ParameterMapping
+- QualityControl
+- QualityControlResult
+- CalibrationRecord
+- MaintenanceRecord
+- QualityIncident
+- CorrectiveAction
+
+### Inventory & Finance
+- InventoryItem
+- ReagentBatch
+- StockMovement
+- PurchaseRequisition
+- Vendor
+- PurchaseOrder
+- GoodsReceipt
+- VendorInvoice
+- Expense
+- LedgerEntry
+- Refund
+- Settlement
+
+---
+
+## 45. FINAL PATHOLOGY SIDEBAR STRUCTURE
+
+```text
+PATHOLOGY / LABORATORY
+│
+├── Dashboard
+│
+├── Patient Management
+│   ├── Patient Registration
+│   ├── Patient Search
+│   ├── Patient Profile
+│   └── Patient History
+│
+├── Test Orders
+│   ├── All Orders
+│   ├── New Order
+│   ├── Pending Orders
+│   ├── Urgent Orders
+│   └── Completed Orders
+│
+├── Test Management
+│   ├── Test Master
+│   ├── Test Categories
+│   ├── Test Parameters
+│   ├── Reference Ranges
+│   └── Test Packages
+│
+├── Sample Management
+│   ├── Collection Queue
+│   ├── Sample Collection
+│   ├── Sample Receiving
+│   ├── Barcode / Labels
+│   ├── Sample Tracking
+│   ├── Sample Rejection
+│   └── Recollection
+│
+├── Laboratory Workbench
+│   ├── Biochemistry
+│   ├── Hematology
+│   ├── Clinical Pathology
+│   ├── Microbiology
+│   ├── Histopathology
+│   ├── Cytology
+│   ├── Serology / Immunology
+│   └── Molecular / PCR
+│
+├── Analyzer / Machine Management
+├── Analyzer Results
+├── Result Entry
+├── Result Verification
+├── Critical Results
+├── Report Center
+├── Report Correction
+│
+├── Home Sample Collection
+├── Outsourced Tests
+├── Referring Doctors
+│
+├── Billing / Payments
+├── Accounts
+│
+├── Inventory / Reagents
+├── Purchase Management
+├── Vendors
+│
+├── Quality Control
+├── Calibration
+├── Equipment Maintenance
+├── Staff / Attendance
+│
+├── Patient Report Portal
+├── Notifications
+├── Reports / MIS
+├── Global Search
+├── Audit Logs
+├── User / Role Management
+└── Settings / Integrations
+```
+
+---
+
+## 46. DEVELOPMENT PRIORITY
+
+Complete architecture define karke implementation phases mein karna practical hoga.
+
+### Phase 1 — Core Laboratory
+- Patient Registration
+- Test Master
+- Test Orders
+- Billing / Payments
+- Sample Collection
+- Barcode
+- Sample Receiving
+- Sample Tracking
+- Result Entry
+- Verification
+- Report Generation
+
+### Phase 2 — Laboratory Departments
+- Biochemistry
+- Hematology
+- Clinical Pathology
+- Microbiology
+- Histopathology
+- Cytology
+- Serology / Immunology
+- Molecular / PCR
+
+### Phase 3 — Laboratory Operations
+- Analyzer Integration
+- Reagent Inventory
+- Purchase
+- Vendor Management
+- Quality Control
+- Calibration
+- Equipment Maintenance
+
+### Phase 4 — Advanced Features
+- Home Sample Collection
+- Outsourced Tests
+- Patient Report Portal
+- Referring Doctor Portal
+- Notifications
+- Advanced Reporting
+- Multi-branch Support
+- API Integrations
+
+### Phase 5 — Enterprise Controls
+- Advanced Permissions
+- Audit
+- Report Versioning
+- TAT Analytics
+- Quality Management
+- Advanced Financial Reports
+- Workflow Automation
+
+---
+
+## FINAL DESIGN RULE
+
+Pathology Management System ka central workflow hoga:
+
+**Patient → Test Order → Sample Collection → Sample Tracking → Processing → Result Entry → Professional Verification → Final Report → Delivery → Billing / Accounting Records**
+
+Patient, test order, specimen, result, report, invoice aur payment ko properly linked entities rakho. Har sample aur har test ki traceability honi chahiye.
+
+Is tarah aapka Pathology / Laboratory Management System ek standalone diagnostic laboratory se lekar hospital ke large central laboratory tak scale kar sakta hai.
+
+Ab samajh gaya bhai. Tumhe Radiology wale document jaisa hi **complete, detailed, role-wise Pathology / Laboratory Management System** chahiye.
+
+Ismein sirf Pathology hogi: Blood Test, Urine Test, CBC, LFT, KFT, Thyroid, Hormones, Microbiology, Biopsy, Histopathology, Cytology, PCR etc.
+
+# **COMPLETE PATHOLOGY / LABORATORY MANAGEMENT SYSTEM**
+
+## **Role-Wise Dashboards, Sections & Features**
+
+
+
+Pathology Only
+
+No Radiology Modules
+
+
+
+## **1. PATHOLOGY ADMIN / LAB MANAGER DASHBOARD**
+
+Ye poori pathology laboratory ka main management dashboard hoga.
+
+### **A. Overview Cards**
+
+**Patient & Test Statistics**
+
+- Today's Patients
+- New Patient Registrations
+- Returning Patients
+- Total Lab Orders
+- New Orders
+- Appointments Today
+- Patients Waiting
+- Samples Pending Collection
+- Samples Collected
+- Samples Received
+- Samples Processing
+- Results Pending
+- Reports Awaiting Verification
+- Reports Finalized
+- Urgent Tests
+- Cancelled Orders
+- Rejected Samples
+- Recollection Required
+- Delayed Reports
+- TAT Breaches
+
+**Department-wise Statistics**
+
+- Biochemistry Tests
+- Hematology Tests
+- Clinical Pathology Tests
+- Microbiology Tests
+- Histopathology Tests
+- Cytology Tests
+- Serology Tests
+- Immunology Tests
+- Molecular / PCR Tests
+
+### **B. Financial Overview**
+
+- Today's Revenue
+- Monthly Revenue
+- Test-wise Revenue
+- Package Revenue
+- Total Collection
+- Cash Collection
+- UPI Collection
+- Card Collection
+- Online Collection
+- Insurance / Corporate Collection
+- Pending Payments
+- Refunds
+- Discounts
+- Outstanding Amount
+
+### **C. Laboratory Operations**
+
+- Department-wise Workload
+- Sample Collection Status
+- Sample Rejection Rate
+- Recollection Rate
+- Technician Workload
+- Pathologist Workload
+- Pending Result Verification
+- Average Turnaround Time
+- Analyzer Utilization
+- Delayed Reports
+- Outsourced Tests
+
+### **D. Important Alerts**
+
+- Critical Lab Results
+- Urgent Tests Pending
+- Samples Awaiting Collection
+- Rejected Samples
+- Recollection Requests
+- Reports Pending Beyond TAT
+- Low Reagent Stock
+- Expiring Reagents
+- Analyzer Down
+- Calibration Due
+- QC Failed
+- Pending Purchase Requests
+
+### **E. Quick Actions**
+
+- Register Patient
+- Create Lab Order
+- Book Test
+- Collect Sample
+- Add Test Package
+- View Pending Results
+- Review Reports
+- Add Technician
+- Add Pathologist
+- Manage Laboratory
+- Manage Test Prices
+- Manage Inventory
+- Generate Reports
+
+## **2. LABORATORY ADMINISTRATOR DASHBOARD**
+
+Hospital ke pathology department ki daily administration ke liye.
+
+### **A. Overview**
+
+- Total Laboratory Staff
+- Staff Present
+- Staff Absent
+- Patients Waiting
+- Tests Pending
+- Samples Pending
+- Reports Pending
+- Equipment Issues
+- Pending Approvals
+- Today's Collection
+
+### **B. Laboratory Setup**
+
+- Laboratory Departments
+- Collection Counters
+- Sample Collection Areas
+- Sample Receiving Counters
+- Processing Sections
+- Reporting Sections
+- Sample Storage Locations
+- Equipment Locations
+- Staff Assignments
+- Working Hours
+- Holidays
+- Emergency Testing Availability
+
+### **C. Administration**
+
+- Department Management
+- Test Configuration
+- Test Pricing
+- Report Templates
+- Patient Preparation Templates
+- Sample Collection Rules
+- Laboratory Workflows
+- Staff Management
+- Role & Permission Management
+- Branch Management
+
+### **D. Approvals**
+
+- Test Cancellation
+- Refund Requests
+- Discount Requests
+- Stock Adjustment
+- Purchase Requests
+- Report Correction Requests
+- User Access Requests
+
+### **E. Quick Actions**
+
+- Add Staff
+- Assign Staff
+- Update Schedule
+- Manage Tests
+- Manage Pricing
+- Review Approvals
+- View Department Reports
+- Manage Laboratory Settings
+
+## **3. PATHOLOGY RECEPTIONIST DASHBOARD**
+
+Patient registration, test booking aur billing coordination.
+
+### **A. Overview Cards**
+
+- Today's Patients
+- New Registrations
+- Existing Patients
+- Tests Booked
+- Patients Waiting
+- Collection Pending
+- Home Collection Bookings
+- Reports Ready
+- Payments Pending
+- Cancelled Orders
+
+### **B. Patient Registration**
+
+- New Patient
+- Existing Patient Search
+- Patient ID / UHID
+- Patient Name
+- Date of Birth
+- Age
+- Gender
+- Mobile
+- Alternate Mobile
+- Email
+- Address
+- Referring Doctor
+- Hospital Department
+- Patient Type
+- Insurance / Corporate Details
+- Patient Documents
+
+### **C. Test Booking**
+
+- Single Test
+- Multiple Tests
+- Test Packages
+- CBC
+- LFT
+- KFT
+- Lipid Profile
+- HbA1c
+- Thyroid Profile
+- Blood Sugar
+- Urine Test
+- Stool Test
+- Hormone Tests
+- Vitamin Tests
+- Serology
+- Microbiology
+- Histopathology
+- Cytology
+- Molecular / PCR
+- Other Configured Tests
+
+### **D. Booking Features**
+
+- Walk-in Booking
+- Appointment Booking
+- Home Collection Booking
+- Urgent Test Booking
+- Test Package Selection
+- Referring Doctor Selection
+- Fasting Instructions
+- Patient Preparation Instructions
+- Collection Slot
+- Booking Confirmation
+- Add Additional Test
+- Cancel Test Request
+- Print Test Order
+
+### **E. Quick Actions**
+
+- Register Patient
+- Book Lab Test
+- Search Patient
+- View Patient History
+- Print Lab Order
+- Generate Invoice
+- Collect Authorized Payment
+- Print Receipt
+- Check Report Status
+
+## **4. PATIENT REGISTRATION & PROFILE**
+
+Pathology ke liye patient ka complete record.
+
+### **A. Patient Profile**
+
+- Patient ID / UHID
+- Patient Name
+- Date of Birth
+- Age
+- Gender
+- Mobile
+- Alternate Mobile
+- Email
+- Address
+- Emergency Contact
+- Referring Doctor
+- Hospital / Clinic
+- Patient Category
+- Insurance / Corporate Details
+- Registration Date
+
+### **B. Medical Information**
+
+- Relevant Medical History
+- Current Medicines
+- Known Allergies
+- Fasting Status
+- Clinical Notes
+- Previous Laboratory Results
+- Previous Abnormal Results
+- Previous Test History
+
+### **C. Features**
+
+- Duplicate Patient Detection
+- Patient Search
+- Patient Merge
+- Patient ID Generation
+- QR / Barcode
+- Patient Documents
+- Previous Orders
+- Previous Results
+- Billing History
+- Communication History
+- Patient Timeline
+
+### **D. Patient Timeline**
+
+- Registration
+- Test Booking
+- Sample Collection
+- Sample Rejection
+- Recollection
+- Result Entry
+- Result Verification
+- Report Release
+- Report Correction
+- Payments
+- Refunds
+- Report Delivery
+
+## **5. LAB ORDER MANAGEMENT DASHBOARD**
+
+### **A. Overview Cards**
+
+- New Orders
+- Orders Pending Collection
+- Samples Awaiting Receipt
+- Processing Orders
+- Results Pending
+- Verification Pending
+- Finalized Orders
+- Cancelled Orders
+- Urgent Orders
+
+### **B. Order Details**
+
+- Order Number
+- Patient ID
+- Patient Name
+- Ordering Doctor
+- Referring Organization
+- Test Name
+- Test Code
+- Sample Type
+- Priority
+- Order Date / Time
+- Collection Instructions
+- Expected Completion Time
+- Billing Status
+- Payment Status
+- Order Status
+
+### **C. Features**
+
+- Create Order
+- Add Multiple Tests
+- Add Test Package
+- Add Test to Existing Order
+- Assign Priority
+- Assign Collection Slot
+- Assign Department
+- Assign Laboratory Section
+- Assign Technician
+- Cancel Order
+- Request Recollection
+- Repeat Test
+- Track Order
+- View Previous Results
+
+### **D. Order Status**
+
+- Draft
+- Ordered
+- Payment Pending
+- Collection Pending
+- Collected
+- Received
+- Processing
+- Result Pending
+- Verification Pending
+- Finalized
+- Report Delivered
+- Cancelled
+
+## **6. TEST MASTER MANAGEMENT**
+
+Pathology laboratory ka sabse important master-data module.
+
+### **A. Test Information**
+
+- Test Name
+- Short Name
+- Test Code
+- Department
+- Test Category
+- Test Description
+- Specimen Type
+- Container Type
+- Test Method
+- Test Requirements
+- Turnaround Time
+- Test Price
+- Corporate Price
+- Insurance Rate
+- Package Price
+- Outsourcing Cost
+- Reporting Template
+
+### **B. Test Categories**
+
+- Blood Tests
+- Urine Tests
+- Stool Tests
+- Sputum Tests
+- Swab Tests
+- Body Fluid Tests
+- Semen Tests
+- Tissue Specimens
+- Biopsy Specimens
+- Other Specimens
+
+### **C. Test Configuration**
+
+- Sample Type
+- Sample Volume
+- Collection Container
+- Transport Conditions
+- Storage Conditions
+- Fasting Requirements
+- Patient Preparation
+- Reporting Parameters
+- Units
+- Reference Ranges
+- Critical Limits
+- Result Format
+- Authorized Verification Role
+- Expected TAT
+
+### **D. Test Controls**
+
+- Active / Inactive
+- Effective Date
+- Price History
+- Method History
+- Reference Range Version
+- Test Change Audit
+
+## **7. TEST PACKAGE MANAGEMENT**
+
+### **Example Packages**
+
+- Basic Health Checkup
+- Complete Health Checkup
+- Diabetes Profile
+- Thyroid Profile
+- Liver Profile
+- Kidney Profile
+- Lipid Profile
+- Fever Profile
+- Antenatal Profile
+- Other Custom Packages
+
+### **Features**
+
+- Package Name
+- Package Code
+- Included Tests
+- Package Price
+- Individual Test Prices
+- Discount
+- Corporate Rate
+- Validity
+- Age / Gender Applicability, where relevant
+- Preparation Instructions
+- Package Report Grouping
+- Package Usage Report
+
+## **8. PHLEBOTOMIST / SAMPLE COLLECTOR DASHBOARD**
+
+Blood aur doosre specimens collect karne wale staff ke liye.
+
+### **A. Overview Cards**
+
+- Samples Pending Collection
+- Patients Waiting
+- Samples Collected
+- Samples Submitted
+- Urgent Collections
+- Home Collections Assigned
+- Recollection Requests
+- Collection Issues
+
+### **B. Collection Queue**
+
+- Patient Name
+- Patient ID
+- Order Number
+- Test Name
+- Sample Type
+- Barcode
+- Collection Instructions
+- Fasting Status
+- Collection Location
+- Appointment Time
+- Collection Status
+
+### **C. Sample Collection**
+
+- Verify Patient Identity
+- Verify Test Order
+- Confirm Specimen Type
+- Confirm Collection Container
+- Record Collection Time
+- Record Collector
+- Generate Sample Barcode
+- Print Sample Label
+- Record Collection Location
+- Collection Notes
+- Confirm Sample Collected
+
+### **D. Collection Issues**
+
+- Patient Not Available
+- Collection Not Possible
+- Insufficient Sample
+- Incorrect Container
+- Label Issue
+- Other Issues
+
+### **E. Quick Actions**
+
+- Open Collection Queue
+- Scan Barcode
+- Collect Sample
+- Print Label
+- Submit Sample
+- Record Collection Issue
+- Request Recollection
+
+## **9. SAMPLE RECEIVING / ACCESSIONING DASHBOARD**
+
+Laboratory mein physically samples receive aur verify karne ke liye.
+
+### **A. Overview Cards**
+
+- Incoming Samples
+- Samples Awaiting Receipt
+- Samples Accepted
+- Samples Rejected
+- Recollection Required
+- Urgent Samples
+- Unmatched Samples
+
+### **B. Sample Receiving**
+
+- Scan Barcode
+- Verify Patient
+- Verify Order Number
+- Verify Test
+- Verify Specimen Type
+- Verify Label
+- Record Received Date / Time
+- Record Receiving Staff
+- Record Sample Condition
+- Record Storage / Routing Location
+
+### **C. Sample Acceptance**
+
+- Accept Sample
+- Reject Sample
+- Add Rejection Reason
+- Record Notes
+- Notify Collection Staff
+- Create Recollection Request
+- Assign Laboratory Section
+
+### **D. Sample Rejection Reasons**
+
+- Hemolyzed
+- Insufficient Quantity
+- Wrong Container
+- Wrong Sample
+- Clotted Sample
+- Leaking Container
+- Label Mismatch
+- Contamination
+- Improper Transport
+- Incorrect Storage
+- Other Reasons
+
+### **E. Quick Actions**
+
+- Receive Sample
+- Scan Barcode
+- Accept Sample
+- Reject Sample
+- Request Recollection
+- Assign Processing Section
+- View Sample History
+
+## **10. SAMPLE TRACKING DASHBOARD**
+
+Har sample ki current location aur status track karne ke liye.
+
+### **A. Sample Status**
+
+- Ordered
+- Collection Pending
+- Collected
+- In Transit
+- Received
+- Accepted
+- Rejected
+- Recollection Required
+- Processing
+- Processing Completed
+- Result Pending
+- Verified
+- Finalized
+
+### **B. Tracking Information**
+
+- Sample Barcode
+- Patient ID
+- Order Number
+- Specimen Type
+- Collection Location
+- Receiving Location
+- Collection Time
+- Received Time
+- Processing Section
+- Current Status
+- Assigned Staff
+- Last Updated
+
+### **C. Features**
+
+- Barcode Scan
+- Sample Movement History
+- Location Tracking
+- Department Transfer
+- Sample Acceptance
+- Rejection Record
+- Recollection Record
+- Processing History
+- Delay Alerts
+- Audit Trail
+
+## **11. LAB TECHNICIAN DASHBOARD**
+
+Laboratory ke main processing aur result-entry workbench ka dashboard.
+
+### **A. Overview Cards**
+
+- Assigned Samples
+- Pending Tests
+- Tests In Progress
+- Results Pending
+- Results Entered
+- Repeat Tests
+- Urgent Tests
+- QC Alerts
+
+### **B. Laboratory Work Queue**
+
+- Patient Name
+- Patient ID
+- Order Number
+- Sample Barcode
+- Test Name
+- Laboratory Section
+- Priority
+- Received Time
+- Processing Status
+- Expected Completion Time
+
+### **C. Test Processing**
+
+- Open Test
+- Verify Sample
+- Confirm Test Parameters
+- Assign Equipment
+- Start Processing
+- Record Processing Time
+- Record Method
+- Enter Technical Notes
+- Mark Processing Completed
+
+### **D. Result Entry**
+
+- Manual Result Entry
+- Analyzer Result Import
+- Test Parameters
+- Numeric Results
+- Qualitative Results
+- Units
+- Reference Ranges
+- Abnormal Flags
+- Technical Comments
+- Repeat Test
+- Dilution
+- Save Draft
+- Submit for Verification
+
+### **E. Result Controls**
+
+- Draft Result
+- Pending Validation
+- Validation Failed
+- Submitted for Verification
+- Returned for Correction
+- Verified Result
+
+### **F. Quick Actions**
+
+- Open Worklist
+- Scan Sample
+- Enter Results
+- Import Analyzer Results
+- Repeat Test
+- Add Technical Comment
+- Submit Results
+- View QC Status
+
+## **12. BIOCHEMISTRY TECHNICIAN DASHBOARD**
+
+### **A. Overview**
+
+- Biochemistry Samples
+- Tests Pending
+- Results Pending
+- Analyzer Status
+- QC Status
+- Critical Results
+- Repeat Tests
+
+### **B. Supported Test Categories**
+
+- Liver Function Tests
+- Kidney Function Tests
+- Lipid Profile
+- Blood Glucose
+- HbA1c
+- Electrolytes
+- Enzymes
+- Proteins
+- Other Biochemistry Tests
+
+### **C. Features**
+
+- Test-wise Worklist
+- Analyzer Mapping
+- Automatic Result Import
+- Manual Result Entry
+- Reference Ranges
+- Abnormal Flags
+- Repeat Test
+- Dilution, where applicable
+- QC Validation
+- Result Submission
+
+## **13. HEMATOLOGY TECHNICIAN DASHBOARD**
+
+### **A. Overview**
+
+- CBC Orders
+- Hematology Samples
+- Results Pending
+- Analyzer Flags
+- Smear Review Pending
+- Critical Results
+
+### **B. Test Categories**
+
+- Complete Blood Count
+- ESR
+- Peripheral Smear
+- Coagulation Tests
+- Other Hematology Tests
+
+### **C. Features**
+
+- Sample Tracking
+- Analyzer Results
+- Parameter-wise Results
+- Abnormal Flags
+- Manual Review
+- Repeat Test
+- Result Validation
+- Submit for Verification
+- Reporting History
+
+## **14. CLINICAL PATHOLOGY TECHNICIAN DASHBOARD**
+
+### **Test Categories**
+
+- Urine Routine
+- Urine Microscopy
+- Stool Examination
+- Body Fluid Analysis
+- Semen Analysis
+- Other Clinical Pathology Tests
+
+### **Features**
+
+- Sample Receiving
+- Processing Worklist
+- Manual Result Entry
+- Microscopy Findings
+- Numeric / Qualitative Results
+- Reference Values
+- Technical Comments
+- Result Verification Queue
+- Final Report
+
+## **15. MICROBIOLOGY TECHNICIAN DASHBOARD**
+
+### **A. Overview**
+
+- Samples Received
+- Culture Orders
+- Cultures In Progress
+- Preliminary Results Pending
+- Organism Identification Pending
+- Susceptibility Testing Pending
+- Final Reports Pending
+
+### **B. Features**
+
+- Specimen Registration
+- Culture Orders
+- Gram Stain
+- Culture Processing
+- Organism Identification
+- Antibiotic Susceptibility
+- Preliminary Report
+- Final Report
+- Result Verification
+- Microbiology History
+
+### **C. Workflow**
+
+**Sample → Processing → Culture → Identification → Susceptibility Testing → Verification → Final Report**
+
+## **16. HISTOPATHOLOGY / BIOPSY STAFF DASHBOARD**
+
+### **A. Overview**
+
+- New Specimens
+- Specimens Awaiting Grossing
+- Blocks Pending
+- Slides Pending
+- Microscopy Pending
+- Reports Pending
+
+### **B. Features**
+
+- Biopsy Registration
+- Specimen Identification
+- Collection Details
+- Specimen Acceptance
+- Grossing
+- Block Creation
+- Slide Tracking
+- Staining
+- Microscopy
+- Pathologist Notes
+- Diagnosis
+- Final Report
+
+### **C. Specimen Tracking**
+
+- Received
+- Accepted
+- Grossing Pending
+- Grossing Completed
+- Block Prepared
+- Slide Prepared
+- Microscopy Pending
+- Reporting Pending
+- Finalized
+
+## **17. CYTOLOGY STAFF DASHBOARD**
+
+### **Test Categories**
+
+- Pap Smear
+- Fine Needle Aspiration Cytology
+- Fluid Cytology
+- Other Cytology Tests
+
+### **Features**
+
+- Specimen Registration
+- Slide Preparation
+- Slide Tracking
+- Microscopy
+- Findings
+- Diagnosis
+- Report Draft
+- Pathologist Review
+- Final Report
+
+## **18. SEROLOGY / IMMUNOLOGY TECHNICIAN DASHBOARD**
+
+### **Features**
+
+- Test Orders
+- Sample Tracking
+- Test Processing
+- Analyzer Integration
+- Manual Result Entry
+- Qualitative Results
+- Quantitative Results
+- Reference Values
+- Repeat Testing
+- QC Status
+- Result Verification
+- Final Reports
+
+## **19. MOLECULAR / PCR TECHNICIAN DASHBOARD**
+
+### **Features**
+
+- Molecular Test Orders
+- Sample Verification
+- Batch / Run Management
+- Sample Preparation
+- Run Assignment
+- Result Entry
+- Analyzer Result Import
+- QC Status
+- Validation
+- Report Verification
+- Run History
+
+## **20. PATHOLOGIST DASHBOARD**
+
+Pathologist ka dashboard laboratory results ki professional review aur final reporting par focused hoga.
+
+### **A. Overview Cards**
+
+- Results Awaiting Verification
+- Critical Results
+- Urgent Reports
+- Reports Pending
+- Corrected Reports Awaiting Review
+- Delayed Reports
+- QC Alerts
+
+### **B. Verification Queue**
+
+- Patient Name
+- Patient ID
+- Order Number
+- Test Name
+- Result Status
+- Abnormal Flags
+- Technician
+- Verification Due Time
+
+### **C. Result Review**
+
+- Review Test Results
+- Review Reference Ranges
+- Review Abnormal Flags
+- Review Previous Results
+- Compare Results
+- Add Professional Interpretation
+- Return for Correction
+- Approve Report
+- Finalize Report
+
+### **D. Critical Results**
+
+- Critical Result Queue
+- Critical Value
+- Responsible Doctor
+- Notification Status
+- Acknowledgement
+- Escalation
+- Communication Notes
+- Audit Trail
+
+### **E. Quick Actions**
+
+- Open Pending Result
+- Review Result
+- Add Interpretation
+- Return for Correction
+- Verify Report
+- Finalize Report
+- Review Corrected Report
+
+## **21. LAB SUPERVISOR DASHBOARD**
+
+Technicians aur daily processing operations ko supervise karne ke liye.
+
+### **A. Overview Cards**
+
+- Samples Pending
+- Tests Assigned
+- Tests In Progress
+- Tests Delayed
+- Workload by Section
+- Staff Availability
+- QC Alerts
+- Equipment Issues
+
+### **B. Features**
+
+- Assign Work
+- Reassign Test
+- Monitor Progress
+- Review Pending Work
+- Monitor TAT
+- Handle Processing Delays
+- Escalate Equipment Issues
+- Review Sample Rejections
+- Review Recollection
+- Operational Approvals
+
+### **C. Quick Actions**
+
+- Assign Sample
+- Reassign Work
+- Review Delays
+- Open Section Workload
+- Escalate QC Issue
+- Generate Workload Report
+
+## **22. LAB QUALITY MANAGER DASHBOARD**
+
+### **A. Overview**
+
+- QC Status
+- QC Failures
+- Calibration Due
+- External Quality Assessment Due
+- Open Quality Incidents
+- Non-conformances
+- Corrective Actions Pending
+- Overdue Actions
+
+### **B. Quality Control**
+
+- Internal QC
+- External Quality Assessment
+- Control Material
+- QC Result Entry
+- QC Charts
+- Out-of-Range Alerts
+- QC Lock Rules
+- Corrective Action Records
+
+### **C. Compliance**
+
+- SOP Management
+- Equipment Records
+- Training Records
+- Audit Findings
+- Corrective / Preventive Actions
+- Document Expiry
+- Quality Incidents
+
+### **D. Quick Actions**
+
+- Record QC
+- Review QC Failure
+- Register Incident
+- Assign Corrective Action
+- Review Audit
+- Generate Quality Report
+
+## **23. ANALYZER / LAB INSTRUMENT ADMINISTRATOR DASHBOARD**
+
+### **A. Equipment Overview**
+
+- Total Analyzers
+- Active Analyzers
+- Connected Analyzers
+- Disconnected Analyzers
+- Machines In Use
+- Machines Under Maintenance
+- Analyzer Errors
+- Calibration Due
+
+### **B. Features**
+
+- Analyzer List
+- Analyzer Status
+- Current Workload
+- Result Import Status
+- Error Logs
+- Calibration Status
+- QC Status
+- Reagent Status
+- Maintenance Due
+- Service History
+- Downtime
+
+### **C. Integration**
+
+- HL7 / ASTM, where supported
+- Device Interface
+- Test Mapping
+- Parameter Mapping
+- Analyzer Result Import
+- Error Handling
+- Interface Logs
+
+### **D. Quick Actions**
+
+- Add Analyzer
+- Configure Interface
+- Check Connection
+- Review Failed Import
+- View Machine Logs
+- Register Maintenance Issue
+
+## **24. PATHOLOGY REPORT COORDINATOR DASHBOARD**
+
+Final reports ki delivery aur status tracking manage karne ke liye.
+
+### **A. Overview Cards**
+
+- Reports Pending
+- Draft Reports
+- Reports Awaiting Verification
+- Reports Finalized
+- Reports Ready for Delivery
+- Delivery Failed
+- Corrected Reports
+- Reports Delivered
+
+### **B. Features**
+
+- Report Status Tracking
+- Patient-wise Report Search
+- Order-wise Report Search
+- Report Delivery
+- PDF Generation
+- Print
+- QR Verification
+- Patient Notification
+- Doctor Notification
+- Delivery History
+- Delivery Failure Tracking
+
+### **C. Quick Actions**
+
+- Search Report
+- Check Report Status
+- Send Report
+- Print Report
+- Resend Report
+- View Delivery History
+
+**Note:** Report coordinator clinical content independently change ya finalize nahi karega.
+
+## **25. LAB INVENTORY / REAGENT MANAGER DASHBOARD**
+
+### **A. Inventory Categories**
+
+- Reagents
+- Test Kits
+- Collection Tubes
+- Specimen Containers
+- Slides
+- Stains
+- Needles
+- Syringes
+- Gloves
+- Other Laboratory Consumables
+
+### **B. Overview Cards**
+
+- Total Items
+- Available Stock
+- Low Stock Items
+- Near-expiry Items
+- Expired Items
+- Pending Indents
+- Pending Stock Issues
+- Stock Value
+
+### **C. Features**
+
+- Item Master
+- Batch / Lot Number
+- Manufacturer
+- Expiry Date
+- Storage Requirements
+- Stock In
+- Stock Out
+- Department Issue
+- Stock Return
+- Stock Transfer
+- Stock Adjustment
+- Physical Stock Count
+- Stock Ledger
+- Minimum Stock
+- Maximum Stock
+- Reorder Level
+- Wastage
+- Damaged Stock
+- Reagent Consumption
+
+### **D. Quick Actions**
+
+- Receive Stock
+- Issue Stock
+- Transfer Stock
+- Record Return
+- Check Expiry
+- Create Indent
+- Conduct Stock Count
+- View Stock Report
+
+## **26. PURCHASE OFFICER DASHBOARD**
+
+### **A. Overview Cards**
+
+- Pending Purchase Requests
+- Pending Indents
+- Pending Approvals
+- Open Purchase Orders
+- Expected Deliveries
+- Delayed Deliveries
+- Goods Receipt Pending
+- Vendor Invoices Pending
+
+### **B. Features**
+
+- Purchase Requisition
+- Indent Review
+- Vendor Management
+- Request for Quotation
+- Quotations
+- Comparative Statement
+- Purchase Order
+- Partial Delivery
+- Goods Received Note
+- Quality Check
+- Purchase Invoice
+- Purchase Return
+- Vendor Payment Coordination
+
+### **C. Quick Actions**
+
+- Create Purchase Request
+- Request Quotation
+- Compare Vendors
+- Create Purchase Order
+- Track Delivery
+- Receive Goods
+
+## **27. VENDOR MANAGEMENT DASHBOARD**
+
+### **Features**
+
+- Vendor Master
+- Vendor Name
+- Contact Details
+- Address
+- GST / PAN Details, where applicable
+- Bank Details
+- Vendor Documents
+- Product Category
+- Reagent Rates
+- Payment Terms
+- Credit Terms
+- Purchase History
+- Vendor Outstanding
+- Vendor Ledger
+- Contract / Rate Expiry
+
+## **28. PATHOLOGY BILLING EXECUTIVE DASHBOARD**
+
+### **A. Overview Cards**
+
+- Today's Lab Orders
+- Invoices Generated
+- Payments Received
+- Pending Payments
+- Package Sales
+- Refund Requests
+- Corporate / Insurance Bills
+- Outstanding Amount
+
+### **B. Billing Features**
+
+- Test-wise Billing
+- Multiple Test Billing
+- Package Billing
+- Home Collection Charges
+- Collection Charges
+- Outsourced Test Billing
+- Corporate Billing
+- Insurance Billing
+- Discounts
+- Estimates
+- Invoices
+- Receipts
+- Cancellation
+- Credit Note, where applicable
+
+### **C. Quick Actions**
+
+- Create Invoice
+- Generate Estimate
+- Add Authorized Charges
+- Collect Payment
+- Print Invoice
+- Print Receipt
+- Request Refund
+- View Outstanding
+
+## **29. CASHIER DASHBOARD**
+
+### **A. Overview Cards**
+
+- Today's Collection
+- Cash Collection
+- UPI Collection
+- Card Collection
+- Online Collection
+- Pending Payments
+- Refund Requests
+- Today's Transactions
+
+### **B. Features**
+
+- Full Payment
+- Partial Payment
+- Split Payment
+- Advance Payment
+- Cash
+- UPI
+- Card
+- Net Banking
+- Payment Gateway
+- Receipt Generation
+- Refund Processing, where authorized
+- Cash Opening
+- Cash Closing
+- Cash Handover
+- Counter Reconciliation
+- Shift-wise Collection
+- Variance Report
+
+### **C. Quick Actions**
+
+- Search Invoice
+- Collect Payment
+- Print Receipt
+- Check Payment Status
+- Request Refund
+- Close Counter
+
+## **30. INSURANCE / CORPORATE EXECUTIVE DASHBOARD**
+
+Agar laboratory insurance aur corporate patients handle karti hai.
+
+### **A. Overview**
+
+- Corporate Patients
+- Insurance Patients
+- Pending Authorizations
+- Pending Claims
+- Rejected Claims
+- Outstanding Amount
+- Settlements Pending
+
+### **B. Features**
+
+- Insurance Company
+- TPA
+- Corporate Client
+- Patient Eligibility
+- Test Authorization
+- Corporate Rate
+- Estimate
+- Required Documents
+- Invoice
+- Claim Submission
+- Query Response
+- Deduction Tracking
+- Rejection Tracking
+- Settlement
+- Outstanding
+
+### **C. Quick Actions**
+
+- Verify Eligibility
+- Create Estimate
+- Upload Documents
+- Submit Claim
+- Respond to Query
+- Track Settlement
+
+## **31. ACCOUNTANT / FINANCE DASHBOARD**
+
+### **A. Overview Cards**
+
+- Today's Revenue
+- Monthly Revenue
+- Total Expenses
+- Accounts Receivable
+- Accounts Payable
+- Vendor Payments Pending
+- Corporate Outstanding
+- Insurance Outstanding
+
+### **B. Accounting**
+
+- Chart of Accounts
+- Journal Entries
+- Ledger
+- Cash Book
+- Bank Book
+- Income
+- Expenses
+- Fixed Assets
+- Depreciation
+
+### **C. Receivables**
+
+- Patient Outstanding
+- Corporate Outstanding
+- Insurance Outstanding
+- Overdue Invoices
+- Aging Report
+- Collections
+- Adjustments
+
+### **D. Payables**
+
+- Vendor Bills
+- Pending Payments
+- Due Payments
+- Vendor Ledger
+- Payment Approval Status
+
+### **E. Banking**
+
+- Bank Reconciliation
+- Payment Gateway Settlement
+- UTR Matching
+- Unmatched Payments
+- Refund Reconciliation
+
+### **F. Financial Reports**
+
+- Trial Balance
+- Profit & Loss
+- Balance Sheet
+- Cash Flow
+- Revenue Report
+- Expense Report
+- Receivables
+- Payables
+- Applicable Tax Records
+
+## **32. HOME SAMPLE COLLECTION STAFF DASHBOARD**
+
+### **A. Overview Cards**
+
+- Today's Bookings
+- Assigned Collectors
+- Upcoming Visits
+- Patients Waiting
+- Collections Completed
+- Samples Submitted
+- Failed Collections
+- Recollection Requests
+
+### **B. Booking Details**
+
+- Patient Name
+- Address
+- Contact
+- Time Slot
+- Tests Ordered
+- Preparation Instructions
+- Collection Fee
+- Payment Status
+- Assigned Collector
+
+### **C. Collection Management**
+
+- Accept Assignment
+- Start Visit
+- Verify Patient
+- Collect Sample
+- Scan Barcode
+- Record Collection Time
+- Record Collection Status
+- Submit Sample to Laboratory
+- Handover Confirmation
+- Record Failed Collection
+
+### **D. Workflow**
+
+**Assigned → On Route → Patient Verified → Sample Collected → Submitted to Lab → Received**
+
+## **33. OUTSOURCED TEST COORDINATOR DASHBOARD**
+
+Kuch tests external reference laboratories ko bhejne ke liye.
+
+### **A. Overview**
+
+- Outsourced Orders
+- Dispatch Pending
+- Samples Dispatched
+- Samples Received by External Lab
+- Results Pending
+- Results Received
+- Reports Pending
+- Delayed Outsourced Tests
+
+### **B. Features**
+
+- External Laboratory Master
+- Outsourced Test Orders
+- Test Mapping
+- Sample Dispatch
+- Dispatch Date / Time
+- Courier Tracking
+- External Lab Reference Number
+- Sample Receipt Confirmation
+- External Result Upload
+- Report Verification
+- Patient Report Delivery
+- Outsourcing Cost
+- Vendor Invoice
+- TAT Monitoring
+
+### **C. Quick Actions**
+
+- Create Outsourced Order
+- Assign External Lab
+- Dispatch Sample
+- Track Courier
+- Upload External Result
+- Forward for Verification
+- View Outstanding Orders
+
+## **34. LAB STAFF / ATTENDANCE MANAGER DASHBOARD**
+
+### **A. Overview Cards**
+
+- Total Employees
+- Staff Present
+- Staff Absent
+- Staff on Leave
+- Late Arrivals
+- Shifts Today
+- Pending Leave Requests
+- Expiring Documents
+
+### **B. Features**
+
+- Employee Profile
+- Qualification
+- Department
+- Designation
+- Professional Registration, where applicable
+- Joining Date
+- Shift
+- Attendance
+- Check-in / Check-out
+- Leave
+- Duty Roster
+- Overtime
+- Training Records
+- Competency Records
+- Document Expiry
+
+### **C. Scheduling**
+
+- Technician Schedule
+- Pathologist Schedule
+- Department Assignment
+- Shift Assignment
+- Leave Management
+- Replacement Staff
+- Emergency Coverage
+
+## **35. LAB EQUIPMENT / MAINTENANCE MANAGER DASHBOARD**
+
+### **A. Equipment Overview**
+
+- Total Equipment
+- Active Equipment
+- Equipment Under Maintenance
+- Equipment Out of Service
+- Calibration Due
+- Preventive Maintenance Due
+- Open Breakdown Tickets
+
+### **B. Features**
+
+- Equipment Master
+- Equipment Code
+- Manufacturer
+- Model
+- Serial Number
+- Installation Date
+- Location
+- Department
+- Warranty
+- AMC / CMC
+- Calibration Records
+- Preventive Maintenance
+- Breakdown Ticket
+- Service Request
+- Work Order
+- Service History
+- Downtime
+- Spare Parts
+- Equipment Status
+
+### **C. Quick Actions**
+
+- Register Equipment
+- Create Maintenance Request
+- Schedule Calibration
+- Assign Technician
+- Record Service
+- Update Equipment Status
+
+## **36. IT ADMINISTRATOR / LIS INTEGRATION DASHBOARD**
+
+### **A. Overview**
+
+- Active Users
+- Failed Logins
+- Analyzer Connectivity
+- LIS Interface Status
+- Integration Errors
+- Failed Result Imports
+- Backup Status
+- Open IT Tickets
+
+### **B. Features**
+
+- User Account Support
+- Device Configuration
+- Analyzer Integration
+- HL7 / ASTM Interface Monitoring
+- Result Import Monitoring
+- Test Mapping
+- Parameter Mapping
+- Printer Configuration
+- Barcode Printer Status
+- API Integration
+- Error Logs
+- Backup Monitoring
+- Data Restore
+- Integration Troubleshooting
+
+IT staff ko patient clinical data ka unrestricted access automatically nahi dena chahiye.
+
+## **37. REFERRING DOCTOR DASHBOARD**
+
+Agar referring doctors ko portal provide karna hai.
+
+### **A. Dashboard Overview**
+
+- Total Orders
+- Today's Orders
+- Pending Results
+- Completed Reports
+- Recent Reports
+
+### **B. Features**
+
+- Referring Doctor Profile
+- Authorized Patient Search
+- Patient Test Orders
+- Order Status
+- Previous Results
+- Final Reports
+- PDF Download
+- Report Delivery History
+- Notifications
+
+### **C. Reports**
+
+- Test-wise Orders
+- Patient-wise History
+- Pending Reports
+- Completed Reports
+- Referral Activity
+
+Sirf authorized patient orders aur records accessible hone chahiye.
+
+## **38. PATIENT REPORT PORTAL DASHBOARD**
+
+Patient apne authorized laboratory reports access kar sake.
+
+### **A. Overview Cards**
+
+- Total Tests
+- Pending Tests
+- Reports Ready
+- Latest Report
+- Upcoming Collection
+- Pending Payment
+
+### **B. Features**
+
+- Secure Login
+- OTP Verification
+- Patient ID Verification
+- Test Booking
+- Test History
+- Sample Status
+- Report Status
+- Report List
+- PDF Download
+- Print Report
+- Previous Reports
+- Share Report
+- QR Verification
+- Payment History
+- Receipts
+- Family Members, with proper authorization
+
+### **C. Notifications**
+
+- Booking Confirmation
+- Fasting Instructions
+- Collection Reminder
+- Sample Collected
+- Recollection Required
+- Report Ready
+- Payment Receipt
+
+## **39. PATHOLOGY NOTIFICATION MANAGEMENT DASHBOARD**
+
+### **A. Internal Notifications**
+
+- New Test Order
+- Appointment Booked
+- Patient Arrived
+- Sample Collection Pending
+- Sample Received
+- Sample Rejected
+- Recollection Requested
+- Processing Completed
+- Result Verification Required
+- Critical Result
+- Report Finalized
+- QC Failure
+- Analyzer Issue
+- Low Stock
+- Purchase Approval
+
+### **B. Patient Notifications**
+
+- Booking Confirmation
+- Preparation Instructions
+- Collection Confirmation
+- Recollection Request
+- Report Ready
+- Payment Receipt
+- Appointment Reminder
+
+### **C. Channels**
+
+- In-app Notification
+- SMS
+- WhatsApp, where integrated
+- Email
+
+## **40. PATHOLOGY GLOBAL SEARCH**
+
+Ek search se authorized records search ho sakein:
+
+- Patient Name
+- Patient ID / UHID
+- Mobile
+- Order Number
+- Sample Number
+- Barcode
+- Accession Number
+- Test Name
+- Report Number
+- Invoice Number
+- Payment ID
+- Referring Doctor
+
+### **Quick Actions**
+
+- Open Patient
+- Open Order
+- Track Sample
+- Open Result
+- View Report
+- View Invoice
+- View Payment Status
+
+## **41. PATHOLOGY AUDIT LOG**
+
+Har important action ka audit trail maintain hona chahiye.
+
+### **Activities**
+
+- Patient Record Changes
+- Test Order Changes
+- Sample Status Changes
+- Sample Rejection
+- Recollection
+- Result Entry
+- Result Correction
+- Result Verification
+- Report Finalization
+- Report Amendment
+- Billing Changes
+- Refunds
+- Discounts
+- Inventory Adjustments
+- Purchase Transactions
+- Permission Changes
+- Record Access
+
+### **Audit Details**
+
+- User
+- Action
+- Date / Time
+- Record Reference
+- Old Value
+- New Value
+- Reason, where required
+- Approval Reference
+
+## **42. PATHOLOGY REPORTS / MIS DASHBOARD**
+
+### **A. Patient Reports**
+
+- New Patients
+- Returning Patients
+- Daily Patient Count
+- Patient-wise Test History
+
+### **B. Laboratory Reports**
+
+- Test-wise Volume
+- Department-wise Volume
+- Samples Pending
+- Samples Rejected
+- Recollection Rate
+- Results Pending
+- Critical Values
+- Turnaround Time
+- Outsourced Tests
+
+### **C. Staff Reports**
+
+- Technician Workload
+- Pathologist Workload
+- Pending Verification
+- Work Completion
+- Shift-wise Performance
+
+### **D. Equipment Reports**
+
+- Analyzer Utilization
+- Equipment Downtime
+- Calibration Due
+- Maintenance History
+- Machine Error Logs
+
+### **E. Financial Reports**
+
+- Daily Collection
+- Monthly Revenue
+- Test-wise Revenue
+- Package Revenue
+- Refunds
+- Discounts
+- Outstanding
+- Corporate Billing
+
+### **F. Inventory Reports**
+
+- Stock Levels
+- Reagent Consumption
+- Near-expiry Items
+- Expired Stock
+- Stock Movement
+- Purchase History
+- Stock Valuation
+
+## **43. PATHOLOGY COMMON DASHBOARD LAYOUT**
+
+### **A. Top Header**
+
+- Laboratory Logo
+- Department Name
+- Branch Selector, where authorized
+- Global Search
+- Notifications
+- User Profile
+- Help
+- Logout
+
+### **B. Left Sidebar**
+
+- Role-specific Menus
+- Expand / Collapse
+- Favorites
+- Recent Pages
+- Pending Tasks
+
+### **C. Main Dashboard**
+
+- Overview Cards
+- Work Queues
+- Data Tables
+- Charts
+- Alerts
+- Quick Actions
+
+### **D. Common Table Features**
+
+- Search
+- Filters
+- Sorting
+- Pagination
+- Saved Filters
+- Export, where authorized
+- Print
+- Responsive Layout
+
+## **44. PATHOLOGY ROLE-WISE SIDEBAR**
+
+| Role                             | Main Sidebar Sections                                                                   |
+| -------------------------------- | --------------------------------------------------------------------------------------- |
+| Pathology Admin / Lab Manager    | Dashboard, Orders, Samples, Reports, Billing, Inventory, Equipment, Quality, Staff, MIS |
+| Laboratory Administrator         | Dashboard, Staff, Test Setup, Workflows, Approvals, Settings, Reports                   |
+| Pathology Receptionist           | Dashboard, Patients, Registration, Test Booking, Appointments, Billing, Receipts        |
+| Phlebotomist                     | Dashboard, Collection Queue, Sample Collection, Barcode, Sample Handover                |
+| Sample Receiving Staff           | Dashboard, Incoming Samples, Acceptance, Rejection, Recollection, Tracking              |
+| Lab Technician                   | Dashboard, Worklist, Sample Processing, Result Entry, Analyzer Results, QC              |
+| Biochemistry Technician          | Dashboard, Biochemistry Worklist, Results, Analyzer, QC                                 |
+| Hematology Technician            | Dashboard, Hematology Worklist, CBC, Smear Review, Results                              |
+| Clinical Pathology Technician    | Dashboard, Urine, Stool, Body Fluids, Microscopy, Results                               |
+| Microbiology Technician          | Dashboard, Culture, Specimens, Organisms, Susceptibility, Results                       |
+| Histopathology Staff             | Dashboard, Specimens, Grossing, Blocks, Slides, Staining, Reporting Queue               |
+| Cytology Staff                   | Dashboard, Specimens, Slides, Microscopy, Results                                       |
+| Serology / Immunology Technician | Dashboard, Test Worklist, Processing, Results, QC                                       |
+| Molecular / PCR Technician       | Dashboard, Specimens, PCR Runs, Processing, Results, QC                                 |
+| Pathologist                      | Dashboard, Verification, Critical Results, Interpretation, Reports, Amendments          |
+| Lab Supervisor                   | Dashboard, Workload, Assignments, TAT, Pending Work, Equipment Issues                   |
+| Quality Manager                  | Dashboard, QC, Calibration, Audits, Incidents, Corrective Actions                       |
+| Analyzer Administrator           | Dashboard, Machines, Connectivity, Result Import, Errors, Maintenance                   |
+| Report Coordinator               | Dashboard, Report Status, Pending Delivery, Corrections, Delivery History               |
+| Home Collection Staff            | Dashboard, Assigned Visits, Collection, Barcode, Handover                               |
+| Outsourced Test Coordinator      | Dashboard, External Labs, Dispatch, Tracking, Results, Pending Orders                   |
+| Inventory Manager                | Dashboard, Items, Reagents, Stock, Batches, Expiry, Indents                             |
+| Purchase Officer                 | Dashboard, Indents, Vendors, Quotations, Purchase Orders, GRN                           |
+| Vendor Manager                   | Dashboard, Vendors, Products, Rates, Contracts, Purchase History                        |
+| Cashier                          | Dashboard, Invoices, Payments, Receipts, Refund Requests, Closing                       |
+| Billing Executive                | Dashboard, Billing, Estimates, Test Charges, Packages, Outstanding                      |
+| Insurance / Corporate Staff      | Dashboard, Eligibility, Authorization, Claims, Documents, Settlements                   |
+| Accountant                       | Dashboard, Accounts, Expenses, Receivables, Payables, Reconciliation                    |
+| Staff / Attendance Manager       | Dashboard, Employees, Attendance, Shifts, Leaves, Roster                                |
+| Equipment / Maintenance Staff    | Dashboard, Equipment, Maintenance, Calibration, Work Orders                             |
+| IT Administrator                 | Dashboard, Users, Devices, LIS Integration, Logs, Backup                                |
+| Referring Doctor                 | Dashboard, Patient Orders, Authorized Reports, History                                  |
+| Patient                          | Dashboard, Test Bookings, Reports, Payments, Receipts, History                          |
+
+## **45. ROLE-BASED PERMISSIONS**
+
+Har role ko uske kaam ke according permissions milni chahiye.
+
+### **Permission Types**
+
+- View
+- Create
+- Edit
+- Delete
+- Assign
+- Verify
+- Finalize
+- Sign
+- Print
+- Export
+- Approve
+- Cancel
+- Refund
+- Manage Inventory
+- Manage Equipment
+- Manage Users
+
+### **Example**
+
+| Action               | Receptionist | Phlebotomist           | Lab Technician                   | Pathologist        | Cashier       |
+| -------------------- | ------------ | ---------------------- | -------------------------------- | ------------------ | ------------- |
+| Patient Registration | Yes          | No / limited           | No                               | View               | Limited       |
+| Test Booking         | Yes          | View assigned          | View assigned                    | View               | View          |
+| Sample Collection    | No           | Yes                    | Assigned, if permitted           | No                 | No            |
+| Sample Receiving     | No           | Assigned, if permitted | Yes                              | View               | No            |
+| Result Entry         | No           | No                     | Yes                              | Authorized review  | No            |
+| Result Verification  | No           | No                     | No, unless separately authorized | Yes                | No            |
+| Final Report         | View status  | No                     | No                               | Authorized release | No            |
+| Payment Collection   | Limited      | No                     | No                               | No                 | Yes           |
+| Refund Approval      | Request      | No                     | No                               | No                 | As authorized |
+
+Permissions ke saath branch access, department access, assigned-patient access aur sensitive records ka access bhi separately control karna hoga.
+
+## **46. COMPLETE PATHOLOGY WORKFLOW**
+
+### **A. Standard Laboratory Workflow**
+
+Patient Registration
+
+↓
+
+Test Order Creation
+
+↓
+
+Test Selection
+
+↓
+
+Billing / Authorization
+
+↓
+
+Sample Collection
+
+↓
+
+Barcode Generation
+
+↓
+
+Sample Handover
+
+↓
+
+Sample Receiving
+
+↓
+
+Sample Acceptance / Rejection
+
+↓
+
+Department Assignment
+
+↓
+
+Sample Processing
+
+↓
+
+Analyzer / Manual Result Entry
+
+↓
+
+Technician Validation
+
+↓
+
+Authorized Professional Verification
+
+↓
+
+Final Report
+
+↓
+
+Report Release
+
+↓
+
+Patient / Authorized Doctor Access
+
+↓
+
+Report Delivery Notification
+
+↓
+
+Accounting & Audit
+
+### **B. Recollection Workflow**
+
+Sample Rejected
+
+↓
+
+Rejection Reason Recorded
+
+↓
+
+Recollection Request Created
+
+↓
+
+Collection Staff Notified
+
+↓
+
+New Sample Collected
+
+↓
+
+New Barcode / Sample Record
+
+↓
+
+Laboratory Processing
+
+↓
+
+Result Verification
+
+↓
+
+Final Report
+
+### **C. Corrected Report Workflow**
+
+Finalized Report
+
+↓
+
+Correction Request
+
+↓
+
+Reason Recorded
+
+↓
+
+Authorized Review
+
+↓
+
+Revised Report
+
+↓
+
+Previous Version Preserved
+
+↓
+
+Authorized Delivery
+
+↓
+
+Audit Trail
+
+## **47. DATABASE — MAIN PATHOLOGY ENTITIES**
+
+### **A. Common Entities**
+
+- Patient
+- PatientVisit
+- Doctor
+- ReferringDoctor
+- User
+- Role
+- Permission
+- Department
+- Appointment
+- DiagnosticOrder
+- DiagnosticOrderItem
+- Invoice
+- Payment
+- Document
+- Notification
+- AuditLog
+
+### **B. Laboratory Entities**
+
+- LabTest
+- LabTestCategory
+- LabTestParameter
+- SampleType
+- SampleContainer
+- Specimen
+- SpecimenCollection
+- SampleBarcode
+- SampleReceipt
+- SampleRejection
+- RecollectionRequest
+- LabWorkItem
+- LabResult
+- ReferenceRange
+- CriticalValueRule
+- ResultVerification
+- LabReport
+- ReportVersion
+
+### **C. Equipment & Quality**
+
+- Analyzer
+- AnalyzerInterface
+- AnalyzerResult
+- TestMapping
+- ParameterMapping
+- QualityControl
+- QualityControlResult
+- CalibrationRecord
+- MaintenanceRecord
+- QualityIncident
+- CorrectiveAction
+
+### **D. Inventory & Finance**
+
+- InventoryItem
+- ReagentBatch
+- StockMovement
+- PurchaseRequisition
+- Vendor
+- PurchaseOrder
+- GoodsReceipt
+- VendorInvoice
+- Expense
+- LedgerEntry
+- Refund
+- Settlement
+
+## **48. FINAL PATHOLOGY SIDEBAR STRUCTURE**
+
+```
+PATHOLOGY / LABORATORY
+│
+├── Dashboard
+│
+├── Patient Management
+│   ├── Patient Registration
+│   ├── Patient Search
+│   ├── Patient Profile
+│   └── Patient History
+│
+├── Test Orders
+│   ├── All Orders
+│   ├── New Order
+│   ├── Pending Orders
+│   ├── Urgent Orders
+│   └── Completed Orders
+│
+├── Test Management
+│   ├── Test Master
+│   ├── Test Categories
+│   ├── Test Parameters
+│   ├── Reference Ranges
+│   └── Test Packages
+│
+├── Sample Management
+│   ├── Collection Queue
+│   ├── Sample Collection
+│   ├── Sample Receiving
+│   ├── Barcode / Labels
+│   ├── Sample Tracking
+│   ├── Sample Rejection
+│   └── Recollection
+│
+├── Laboratory Workbench
+│   ├── Biochemistry
+│   ├── Hematology
+│   ├── Clinical Pathology
+│   ├── Microbiology
+│   ├── Histopathology
+│   ├── Cytology
+│   ├── Serology / Immunology
+│   └── Molecular / PCR
+│
+├── Analyzer / Machine Management
+├── Analyzer Results
+├── Result Entry
+├── Result Verification
+├── Critical Results
+├── Report Center
+├── Report Correction
+│
+├── Home Sample Collection
+├── Outsourced Tests
+├── Referring Doctors
+│
+├── Billing / Payments
+├── Insurance / Corporate
+├── Accounts
+│
+├── Inventory / Reagents
+├── Purchase Management
+├── Vendors
+│
+├── Quality Control
+├── Calibration
+├── Equipment Maintenance
+├── Staff / Attendance
+│
+├── Patient Report Portal
+├── Notifications
+├── Reports / MIS
+├── Global Search
+├── Audit Logs
+├── User / Role Management
+└── Settings / Integrations
+```
+
+## **49. DEVELOPMENT PRIORITY**
+
+### **Phase 1 — Core Laboratory**
+
+- Patient Registration
+- Test Master
+- Test Orders
+- Billing / Payments
+- Sample Collection
+- Barcode
+- Sample Receiving
+- Sample Tracking
+- Result Entry
+- Verification
+- Report Generation
+
+### **Phase 2 — Laboratory Departments**
+
+- Biochemistry
+- Hematology
+- Clinical Pathology
+- Microbiology
+- Histopathology
+- Cytology
+- Serology / Immunology
+- Molecular / PCR
+
+### **Phase 3 — Laboratory Operations**
+
+- Analyzer Integration
+- Reagent Inventory
+- Purchase
+- Vendor Management
+- Quality Control
+- Calibration
+- Equipment Maintenance
+- Staff Scheduling
+
+### **Phase 4 — Advanced Features**
+
+- Home Sample Collection
+- Outsourced Tests
+- Patient Report Portal
+- Referring Doctor Portal
+- Notifications
+- Advanced Reporting
+- Multi-branch Support
+- API Integrations
+
+### **Phase 5 — Enterprise Features**
+
+- Advanced Permissions
+- Audit
+- Report Versioning
+- TAT Analytics
+- Quality Management
+- Advanced Financial Reports
+- Workflow Automation
+- Access Monitoring
+
+# **FINAL DESIGN RULE**
+
+Pathology / Laboratory Management System ka central workflow hoga:
+
+**Patient → Test Order → Sample Collection → Sample Tracking → Processing → Result Entry → Professional Verification → Final Report → Delivery → Billing / Accounting Records**
+
+Patient, test order, specimen, result, report, invoice aur payment ko properly linked entities rakho.
+
+Har sample ki traceability, har result ki verification history aur har finalized report ki version history maintain honi chahiye.
+
+**Ye complete Pathology / Laboratory role-wise blueprint hai. Ismein Radiology ke MRI, X-Ray, CT Scan, Ultrasound, Doppler ya PACS ke roles aur workflows include nahi hain.**\
+:::

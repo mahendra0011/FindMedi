@@ -1,6 +1,7 @@
 /** Wave 2 — FacilityManagerDashboard: live helpdesk SLA + license/AMC expiries. */
 import RoleDashboardShell, { type RoleDashboardConfig } from './RoleDashboardShell';
 import { useLiveKpis, api } from './useLiveKpis';
+import { useAuth } from '@/context/AuthContext';
 
 const config: RoleDashboardConfig = {
   roleKey: 'facility_manager',
@@ -29,10 +30,12 @@ const config: RoleDashboardConfig = {
   ],
 };
 
-async function fetchLive() {
+// Helpdesk queue metrics are support_l2-only and the licence-expiry feed is
+// superadmin/compliance_officer/dpo — the facility console never calls them.
+async function fetchLive(canReadStats: boolean, canReadLicenses: boolean) {
   const [stats, expiring] = await Promise.all([
-    api.get('/support-tickets/stats').catch(() => null),
-    api.get('/licenses/expiring').catch(() => null),
+    canReadStats ? api.get('/support-tickets/stats').catch(() => null) : Promise.resolve(null),
+    canReadLicenses ? api.get('/licenses/expiring').catch(() => null) : Promise.resolve(null),
   ]);
   const expCount = Array.isArray(expiring?.licenses) ? expiring.licenses.length : 0;
   return {
@@ -44,6 +47,10 @@ async function fetchLive() {
 }
 
 export default function FacilityManagerDashboard() {
-  const kpis = useLiveKpis(fetchLive, config.kpis);
+  const { user } = useAuth();
+  const role = user?.role ?? '';
+  const canReadStats = role === 'support_l2';
+  const canReadLicenses = ['superadmin', 'compliance_officer', 'dpo'].includes(role);
+  const kpis = useLiveKpis(() => fetchLive(canReadStats, canReadLicenses), config.kpis);
   return <RoleDashboardShell config={{ ...config, kpis }} />;
 }

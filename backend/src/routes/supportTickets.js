@@ -104,7 +104,9 @@ router.get('/', protect, authorize('support:read', 'support:read:own'), async (r
     if (req.user.role === 'patient' && (priority || category || search)) return res.status(400).json({ message: 'Use your own tickets view' });
     if (!PLATFORM_SUPPORT_ROLES.has(req.user.role) && req.user.role !== 'patient') return res.status(403).json({ message: 'Patient ticket list only' });
     const filter = req.user.role === 'patient' ? { raisedBy: req.user._id } : {};
-    if (PLATFORM_SUPPORT_ROLES.has(req.user.role) && !['support_l1', 'support_l2'].includes(req.user.role)) return res.status(403).json({ message: 'Support operator inbox only' });
+    // Platform superadmins see the same masked queue (PHI stays scrubbed in the
+    // DTO); the live inbox is L1/L2 territory. support_agent keeps the old gate.
+    if (PLATFORM_SUPPORT_ROLES.has(req.user.role) && !['support_l1', 'support_l2', 'superadmin', 'super_admin'].includes(req.user.role)) return res.status(403).json({ message: 'Support operator inbox only' });
     if (status) {
       if (!VALID_STATUSES.includes(status)) {
         return res.status(400).json({ message: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` });

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Building2, Users, IndianRupee, CalendarDays, TrendingUp, AlertTriangle,
@@ -12,41 +11,33 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { getISTDateString } from '@/lib/dateUtils';
 
 export default function ClinicAdminDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const [overview, setOverview] = useState<any>(null);
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [staff, setStaff] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
+  const [roster, setRoster] = useState<any[]>([]);
+  const [lowStock, setLowStock] = useState<any[]>([]);
   const loadData = async () => {
-    setLoading(true);
     try {
-      const [ov, apts, st] = await Promise.all([
+      const [ov, ro, inv] = await Promise.all([
         (api as any).getClinicOverview({}).catch(() => null),
-        api.getAppointments({ date: getISTDateString() }).catch(() => null),
-        api.getClinicStaff().catch(() => null)
+        (api as any).getClinicRosterToday().catch(() => null),
+        api.get('/inventory/items').catch(() => null),
       ]);
-      setOverview(ov || {
-        visits: 42,
-        completed: 28,
-        billed: 38500,
-        collected: 32000,
-        outstanding: 6500,
-        noShow: 3,
-        noShowPct: 7,
-        repeatPct: 35
+      setOverview(ov || null);
+      setRoster(Array.isArray(ro?.roster) ? ro.roster : []);
+      const invList: any[] = Array.isArray(inv) ? inv : inv?.data || inv?.items || [];
+      const lows = invList.filter((it) => {
+        const qty = Number(it?.currentStock ?? it?.quantity ?? it?.stock ?? NaN);
+        const min = Number(it?.reorderLevel ?? it?.minStock ?? NaN);
+        return Number.isFinite(qty) && Number.isFinite(min) ? qty <= min : /low|reorder/i.test(String(it?.status ?? ''));
       });
-      setAppointments(Array.isArray(apts) ? apts : apts?.data || []);
-      setStaff(Array.isArray(st) ? st : st?.staff || []);
+      setLowStock(lows.slice(0, 5));
     } catch {
       toast.error('Failed to load clinic analytics');
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -59,8 +50,8 @@ export default function ClinicAdminDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white p-6 rounded-3xl shadow-lg border border-slate-700/50">
         <div>
           <span className="text-xs uppercase tracking-wider font-semibold text-indigo-400">Clinic Operations & Enterprise Administration</span>
-          <h1 className="text-2xl sm:text-3xl font-heading font-black mt-1">{user?.facilityName || 'Central Care Polyclinic'}</h1>
-          <p className="text-sm text-slate-300 mt-0.5">Admin: {user?.name} · Multi-Specialty Operations & Revenue Hub</p>
+          <h1 className="text-2xl sm:text-3xl font-heading font-black mt-1">{user?.facilityName || 'Clinic Operations Hub'}</h1>
+          <p className="text-sm text-slate-300 mt-0.5">Admin: {user?.name} · Live clinic performance console</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="secondary" size="sm" onClick={loadData} className="gap-1.5 rounded-xl text-xs font-semibold">
@@ -79,7 +70,7 @@ export default function ClinicAdminDashboard() {
             <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center mb-2">
               <Users className="w-4.5 h-4.5" />
             </div>
-            <p className="text-xl font-black text-foreground">{overview?.visits || 42}</p>
+            <p className="text-xl font-black text-foreground">{overview == null ? '�' : overview.visits ?? 0}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Today's Footfall</p>
           </CardContent>
         </Card>
@@ -89,7 +80,7 @@ export default function ClinicAdminDashboard() {
             <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-2">
               <CheckCircle2 className="w-4.5 h-4.5" />
             </div>
-            <p className="text-xl font-black text-emerald-600">{overview?.completed || 28}</p>
+            <p className="text-xl font-black text-emerald-600">{overview == null ? '�' : overview.completed ?? 0}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Consultations Done</p>
           </CardContent>
         </Card>
@@ -99,7 +90,7 @@ export default function ClinicAdminDashboard() {
             <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center mb-2">
               <IndianRupee className="w-4.5 h-4.5" />
             </div>
-            <p className="text-xl font-black text-foreground">₹{(overview?.collected || 32000).toLocaleString('en-IN')}</p>
+            <p className="text-xl font-black text-foreground">₹{overview == null ? '�' : Number(overview.collected ?? 0).toLocaleString('en-IN')}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Today's Collection</p>
           </CardContent>
         </Card>
@@ -109,7 +100,7 @@ export default function ClinicAdminDashboard() {
             <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-2">
               <CreditCard className="w-4.5 h-4.5" />
             </div>
-            <p className="text-xl font-black text-amber-600">₹{(overview?.outstanding || 6500).toLocaleString('en-IN')}</p>
+            <p className="text-xl font-black text-amber-600">₹{overview == null ? '�' : Number(overview.outstanding ?? 0).toLocaleString('en-IN')}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Outstanding Dues</p>
           </CardContent>
         </Card>
@@ -119,7 +110,7 @@ export default function ClinicAdminDashboard() {
             <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center mb-2">
               <Stethoscope className="w-4.5 h-4.5" />
             </div>
-            <p className="text-xl font-black text-purple-600">6</p>
+            <p className="text-xl font-black text-purple-600">{roster.length}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Doctors on Duty</p>
           </CardContent>
         </Card>
@@ -129,7 +120,7 @@ export default function ClinicAdminDashboard() {
             <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center mb-2">
               <AlertTriangle className="w-4.5 h-4.5" />
             </div>
-            <p className="text-xl font-black text-rose-600">2</p>
+            <p className="text-xl font-black text-rose-600">{lowStock.length}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Low Stock Drugs</p>
           </CardContent>
         </Card>
@@ -148,22 +139,19 @@ export default function ClinicAdminDashboard() {
             </Button>
           </CardHeader>
           <CardContent className="p-4 space-y-3">
-            {[
-              { name: 'Dr. Ramesh Sharma', spec: 'General Medicine', room: 'Room 1', waiting: 4, status: 'Consulting' },
-              { name: 'Dr. Priya Patel', spec: 'Paediatrics', room: 'Room 2', waiting: 2, status: 'Consulting' },
-              { name: 'Dr. Vivek Verma', spec: 'Orthopaedics', room: 'Room 3', waiting: 0, status: 'Available' },
-              { name: 'Dr. Ananya Roy', spec: 'Dermatology', room: 'Room 4', waiting: 3, status: 'Consulting' },
-            ].map((doc, idx) => (
-              <div key={idx} className="p-3 rounded-2xl bg-muted/20 border flex items-center justify-between text-xs">
+            {roster.length === 0 ? (
+              <p className="text-xs text-muted-foreground p-3">No doctors on roster for this facility yet.</p>
+            ) : roster.map((doc: any, idx: number) => (
+              <div key={doc._id ?? idx} className="p-3 rounded-2xl bg-muted/20 border flex items-center justify-between text-xs">
                 <div>
                   <p className="font-bold text-foreground text-sm">{doc.name}</p>
-                  <p className="text-muted-foreground">{doc.spec} · {doc.room}</p>
+                  <p className="text-muted-foreground">{doc.specialization}</p>
                 </div>
                 <div className="text-right">
-                  <Badge variant="outline" className={doc.status === 'Consulting' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' : 'bg-blue-500/10 text-blue-600'}>
-                    {doc.status}
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                    On duty
                   </Badge>
-                  <p className="text-[11px] text-muted-foreground mt-1">Waiting: <b>{doc.waiting}</b></p>
+                  <p className="text-[11px] text-muted-foreground mt-1">Waiting: <b>{doc.waiting ?? 0}</b></p>
                 </div>
               </div>
             ))}
@@ -181,28 +169,28 @@ export default function ClinicAdminDashboard() {
             </Button>
           </CardHeader>
           <CardContent className="p-4 space-y-3 text-xs">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center p-2.5 rounded-xl bg-muted/20">
-                <span className="text-muted-foreground font-medium">OPD Doctor Consultations</span>
-                <span className="font-bold text-foreground">₹21,500</span>
+            {overview == null ? (
+              <p className="text-xs text-muted-foreground p-3">Billing ledger unavailable — figures will appear once the billing API responds.</p>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center p-2.5 rounded-xl bg-muted/20">
+                  <span className="text-muted-foreground font-medium">Billed</span>
+                  <span className="font-bold text-foreground">₹{Number(overview.billed ?? 0).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between items-center p-2.5 rounded-xl bg-muted/20">
+                  <span className="text-muted-foreground font-medium">Collected</span>
+                  <span className="font-bold text-foreground">₹{Number(overview.collected ?? 0).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between items-center p-2.5 rounded-xl bg-muted/20">
+                  <span className="text-muted-foreground font-medium">Outstanding</span>
+                  <span className="font-bold text-foreground">₹{Number(overview.outstanding ?? 0).toLocaleString('en-IN')}</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center p-2.5 rounded-xl bg-muted/20">
-                <span className="text-muted-foreground font-medium">In-house Pharmacy Dispensing</span>
-                <span className="font-bold text-foreground">₹9,800</span>
-              </div>
-              <div className="flex justify-between items-center p-2.5 rounded-xl bg-muted/20">
-                <span className="text-muted-foreground font-medium">Pathology & ECG Diagnostic Tests</span>
-                <span className="font-bold text-foreground">₹5,200</span>
-              </div>
-              <div className="flex justify-between items-center p-2.5 rounded-xl bg-muted/20">
-                <span className="text-muted-foreground font-medium">Minor Procedures (Dressing/Neb)</span>
-                <span className="font-bold text-foreground">₹2,000</span>
-              </div>
-            </div>
+            )}
 
             <div className="pt-3 border-t flex justify-between items-center text-sm">
               <span className="font-bold text-foreground">Total Day Turnover:</span>
-              <span className="font-black text-emerald-600 text-base">₹38,500</span>
+              <span className="font-black text-emerald-600 text-base">₹{overview == null ? '—' : Number(overview.billed ?? 0).toLocaleString('en-IN')}</span>
             </div>
           </CardContent>
         </Card>
@@ -215,18 +203,19 @@ export default function ClinicAdminDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 space-y-2.5 text-xs">
-            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200">
-              <p className="font-bold">⚠️ Pharmacy Stock Reorder Alert</p>
-              <p className="text-[11px] mt-0.5 opacity-90">Amoxicillin 500mg (Batch B42) has 8 units left below reorder level (15).</p>
-            </div>
-            <div className="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-900 dark:text-blue-200">
-              <p className="font-bold">🧪 5 Lab Reports Awaiting Approval</p>
-              <p className="text-[11px] mt-0.5 opacity-90">CBC and Lipid profile results ready for doctor signoff.</p>
-            </div>
-            <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-900 dark:text-purple-200">
-              <p className="font-bold">📅 Staff Shift Changeover</p>
-              <p className="text-[11px] mt-0.5 opacity-90">Evening OPD front desk staff starts at 04:30 PM.</p>
-            </div>
+            {lowStock.length === 0 ? (
+              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-900 dark:text-emerald-200">
+                <p className="font-bold">Stock levels OK</p>
+                <p className="text-[11px] mt-0.5 opacity-90">No items below reorder level — inventory feed healthy.</p>
+              </div>
+            ) : lowStock.slice(0, 3).map((it: any, idx: number) => (
+              <div key={it._id ?? it.sku ?? idx} className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200">
+                <p className="font-bold">Stock reorder — {it.name ?? it.itemName ?? 'Item'}</p>
+                <p className="text-[11px] mt-0.5 opacity-90">
+                  {Number(it.currentStock ?? it.quantity ?? it.stock ?? 0)} units left (reorder at {Number(it.reorderLevel ?? it.minStock ?? 0)}).
+                </p>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>

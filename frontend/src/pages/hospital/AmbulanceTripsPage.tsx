@@ -93,7 +93,7 @@ export default function AmbulanceTripsPage() {
 
   const loadFleet = async () => {
     try {
-      const res: any = await api.get('/ambulances');
+      const res: any = await api.get('/hospitals/ambulances');
       const list = res.data?.ambulances || res.data || [];
       setAmbulances(list);
       if (list.length > 0 && !selectedAmbulanceId) {

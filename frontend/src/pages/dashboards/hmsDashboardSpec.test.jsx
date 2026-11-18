@@ -99,7 +99,12 @@ describe('HMS Dashboard Blueprint Specification (Frontend Catalog)', () => {
 
   it('resolves aliases and layer groups correctly', () => {
     expect(getHmsDashboardSpec('doctor')?.title).toContain('Doctor Consultation');
-    expect(getHmsDashboardSpec('cmo')?.title).toContain('Medical Superintendent');
+    expect(getHmsDashboardSpec('cmo')?.title).toContain('Chief Medical Officer');
+    expect(getHmsDashboardSpec('nursing_supervisor')?.title).toContain('Nursing Supervisor');
+    expect(getHmsDashboardSpec('matron')?.title).toContain('Matron');
+    expect(getHmsDashboardSpec('medical_director')?.title).toContain('Medical Director');
+    expect(getHmsDashboardSpec('compliance_officer')?.title).toContain('Compliance Officer');
+    expect(getHmsDashboardSpec('dietician_head')?.title).toContain('Dietician Head');
     expect(getHmsDashboardSpec('front_desk')?.title).toContain('Reception');
     expect(getHmsDashboardSpec('casualty')?.title).toContain('Emergency');
     expect(getHmsDashboardSpec('unknown_role')).toBeUndefined();

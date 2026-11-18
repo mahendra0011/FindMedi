@@ -9,12 +9,20 @@ import { getISTDateString } from '../utils/dateUtils.js';
 
 const router = express.Router();
 
+// Hospital-leadership read access: /dashboard/v2 is mounted for
+// hospital_admin, superadmin, medical_director and cmo, and its tiles call
+// these read-only, tenant-scoped aggregate endpoints — they must answer for
+// every role allowed to open the console, or the page renders 403s.
+// medical_superintendent merged console shares the medical_director tiles; MIS
+// reads aggregate facility-wide KPIs only (no patient-level PHI).
+const HOSPITAL_LEADERSHIP = ['hospital_admin', 'superadmin', 'medical_director', 'medical_superintendent', 'cmo', 'hospital_owner', 'mis_reporting'];
+
 // File 09 §02 §10: single round-trip operations strip. Every tile resolves
 // independently — one failure surfaces as { tileKey: message } while the rest
 // still render (partial-failure flags, never a blank page).
 router.get('/operations', protect, async (req, res) => {
   try {
-    if (!['hospital_admin', 'superadmin'].includes(req.user.role)) {
+    if (!HOSPITAL_LEADERSHIP.includes(req.user.role)) {
       return res.status(403).json({ message: 'Forbidden' });
     }
     const hf = req.user.hospitalId && req.user.role !== 'superadmin' ? { hospitalId: req.user.hospitalId } : {};
@@ -80,7 +88,7 @@ router.get('/operations', protect, async (req, res) => {
 // File 09 §02 §6: revenue split by source / payment mode + A/R ageing.
 router.get('/revenue', protect, async (req, res) => {
   try {
-    if (!['hospital_admin', 'superadmin'].includes(req.user.role)) {
+    if (!HOSPITAL_LEADERSHIP.includes(req.user.role)) {
       return res.status(403).json({ message: 'Forbidden' });
     }
     const hf = req.user.hospitalId && req.user.role !== 'superadmin' ? { hospitalId: req.user.hospitalId } : {};
@@ -111,7 +119,7 @@ router.get('/revenue', protect, async (req, res) => {
 // File 09 §02: alert center list + ack/snooze (audit-logged).
 router.get('/alerts', protect, async (req, res) => {
   try {
-    if (!['hospital_admin', 'superadmin'].includes(req.user.role)) {
+    if (!HOSPITAL_LEADERSHIP.includes(req.user.role)) {
       return res.status(403).json({ message: 'Forbidden' });
     }
     const { default: DashboardAlert } = await import('../models/DashboardAlert.js');
@@ -128,7 +136,7 @@ router.get('/alerts', protect, async (req, res) => {
 
 router.put('/alerts/:id/ack', protect, async (req, res) => {
   try {
-    if (!['hospital_admin', 'superadmin'].includes(req.user.role)) {
+    if (!HOSPITAL_LEADERSHIP.includes(req.user.role)) {
       return res.status(403).json({ message: 'Forbidden' });
     }
     const { default: DashboardAlert } = await import('../models/DashboardAlert.js');
@@ -156,7 +164,7 @@ router.put('/alerts/:id/ack', protect, async (req, res) => {
 // File 09 §02 §7: bed heatmap by ward + ALOS.
 router.get('/beds/heatmap', protect, async (req, res) => {
   try {
-    if (!['hospital_admin', 'superadmin'].includes(req.user.role)) {
+    if (!HOSPITAL_LEADERSHIP.includes(req.user.role)) {
       return res.status(403).json({ message: 'Forbidden' });
     }
     const { default: Bed } = await import('../models/Bed.js');
@@ -179,7 +187,7 @@ router.get('/beds/heatmap', protect, async (req, res) => {
 // File 09 §02 §9: staff on-duty snapshot.
 router.get('/staff/on-duty', protect, async (req, res) => {
   try {
-    if (!['hospital_admin', 'superadmin'].includes(req.user.role)) {
+    if (!HOSPITAL_LEADERSHIP.includes(req.user.role)) {
       return res.status(403).json({ message: 'Forbidden' });
     }
     const { default: Staff } = await import('../models/Staff.js');
@@ -196,7 +204,7 @@ router.get('/staff/on-duty', protect, async (req, res) => {
 
 router.get('/stats', protect, async (req, res) => {
   try {
-    if (!['hospital_admin', 'superadmin'].includes(req.user.role)) {
+    if (!HOSPITAL_LEADERSHIP.includes(req.user.role)) {
       return res.status(403).json({ message: 'Forbidden' });
     }
     if (req.user.role !== 'superadmin' && !req.user.hospitalId) {
@@ -275,7 +283,7 @@ router.get('/stats', protect, async (req, res) => {
 // authz: role (hospital_admin/superadmin, same as /operations).
 router.get('/overview', protect, async (req, res) => {
   try {
-    if (!['hospital_admin', 'superadmin'].includes(req.user.role)) {
+    if (!HOSPITAL_LEADERSHIP.includes(req.user.role)) {
       return res.status(403).json({ message: 'Forbidden' });
     }
     const hf = req.user.hospitalId && req.user.role !== 'superadmin' ? { hospitalId: req.user.hospitalId } : {};
@@ -345,7 +353,7 @@ router.get('/overview', protect, async (req, res) => {
 // department + longest waiter). authz: role (queue-reading staff).
 router.get('/queue', protect, async (req, res) => {
   try {
-    if (!['hospital_admin', 'superadmin', 'doctor', 'nurse', 'receptionist'].includes(req.user.role)) {
+    if (![...HOSPITAL_LEADERSHIP, 'doctor', 'nurse', 'receptionist'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Forbidden' });
     }
     const hf = req.user.hospitalId && req.user.role !== 'superadmin' ? { hospitalId: req.user.hospitalId } : {};

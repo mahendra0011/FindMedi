@@ -32,7 +32,8 @@
     "retention:gaps": "node scripts/check-retention-gaps.mjs",
     "migrate:category-taxonomy": "node scripts/migrate-category-taxonomy.mjs",
     "seed:categories": "node scripts/seed/seed-category-tree.mjs --apply",
-    "test:realdb": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit --runInBand test/integration"
+    "test:realdb": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit --runInBand test/integration",
+    "seed:platform-content": "node scripts/seed/seed-platform-content.mjs"
   },
   "dependencies": {
     "@bull-board/api": "^6.11.0",

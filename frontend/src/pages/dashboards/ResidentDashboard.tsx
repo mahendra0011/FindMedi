@@ -1,6 +1,7 @@
 /** Wave 2 — ResidentDashboard: live duty rota + pending clinical tasks. */
 import RoleDashboardShell, { type RoleDashboardConfig } from './RoleDashboardShell';
 import { useLiveKpis, api } from './useLiveKpis';
+import { useAuth } from '@/context/AuthContext';
 
 const config: RoleDashboardConfig = {
   roleKey: 'resident_doctor',
@@ -29,10 +30,12 @@ const config: RoleDashboardConfig = {
   ],
 };
 
-async function fetchLive() {
+// Org-wide roster and the staff workflow inbox are staff:manage-only surfaces;
+// residents still see OPD slots, and roster KPIs fall back to the static spec.
+async function fetchLive(canReadRoster: boolean) {
   const [shifts, tasks, appts] = await Promise.all([
-    api.get('/staff/shifts').catch(() => null),
-    api.get('/workflows/inbox').catch(() => null),
+    canReadRoster ? api.get('/staff/shifts').catch(() => null) : Promise.resolve(null),
+    canReadRoster ? api.get('/workflows/inbox').catch(() => null) : Promise.resolve(null),
     api.get('/appointments').catch(() => null),
   ]);
   const shiftList = Array.isArray(shifts) ? shifts : (shifts?.data ?? shifts?.shifts ?? []);
@@ -63,6 +66,8 @@ async function fetchLive() {
 }
 
 export default function ResidentDashboard() {
-  const kpis = useLiveKpis(fetchLive, config.kpis);
+  const { user } = useAuth();
+  const canReadRoster = ['superadmin', 'hospital_admin'].includes(user?.role ?? '');
+  const kpis = useLiveKpis(() => fetchLive(canReadRoster), config.kpis);
   return <RoleDashboardShell config={{ ...config, kpis }} />;
 }

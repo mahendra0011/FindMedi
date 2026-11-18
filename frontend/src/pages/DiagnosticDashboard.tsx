@@ -50,7 +50,7 @@ export default function DiagnosticDashboard() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState<Unmodelled>(null);
   const [toast, setToast] = useState<Unmodelled>(null);
-  const [dispatchForm, setDispatchForm] = useState({ dropAddress: '', deliveryFee: '40', deliveryPartnerId: '', notes: '' });
+  const [dispatchForm, _setDispatchForm] = useState({ dropAddress: '', deliveryFee: '40', deliveryPartnerId: '', notes: '' });
 
   // Tests
   const [testForm, setTestForm] = useState({ name: '', category: 'Blood Test', department: 'Pathology', price: '', mrp: '', reportTime: '24 hrs', prescriptionReq: false, homeCollection: false, homeCollectionFee: '50', popular: false, nablAccredited: false, description: '', preparation: '' });

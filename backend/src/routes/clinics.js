@@ -10,6 +10,33 @@ import { protect, adminOnly, authorize } from '../middleware/auth.js';
 import { validate, updateClinicProfileSchema, createClinicStaffSchema, updateClinicStaffSchema, CLINIC_STAFF_ROLES } from '../utils/validate.js';
 import { randomPassword } from '../utils/secureRandom.js';
 
+// Clinic staff list = union of the two role vocabularies used across the
+// console (generic staff CRUD roles from validate.js + clinic-org invite roles).
+// Invited clinic_receptionist/nurse/… accounts belong in the same roster as
+// generic nurse/technician rows; showing only one vocabulary hid staff from
+// the admin.
+const CLINIC_STAFF_LIST_ROLES = [
+  ...CLINIC_STAFF_ROLES,
+  'clinic_cashier', 'clinic_branch_manager', 'clinic_telemed_coordinator',
+  'clinic_receptionist', 'clinic_nurse', 'clinic_accountant', 'clinic_pharmacist',
+];
+
+// Tenant scope must fail CLOSED: a clinic console account with no
+// facility/hospital link must never see platform-wide counts. The old
+// `: {}` fall-through made every list/aggregate query unscoped for
+// tenant-less accounts — a cross-tenant leak of visits, money and staff.
+const tenantHf = (req) => {
+  const scope = req.user.facilityId || req.user.hospitalId;
+  return scope ? { hospitalId: scope } : null;
+};
+
+// Doctor docs are linked one of two ways: hospital doctors carry
+// `hospitalId`, clinic-directory doctors carry `facilityId`. Scope either.
+const doctorScope = (req) => {
+  const scope = req.user.facilityId || req.user.hospitalId;
+  return scope ? { $or: [{ facilityId: scope }, { hospitalId: scope }] } : null;
+};
+
 const router = express.Router();
 
 router.get('/profile', protect, async (req, res) => {
@@ -27,8 +54,8 @@ router.get('/profile', protect, async (req, res) => {
 router.get('/overview', protect, authorize('billing:read'), async (req, res) => {
   try {
     const { from, to } = req.query;
-    const hf = req.user.facilityId || req.user.hospitalId
-      ? { hospitalId: req.user.facilityId || req.user.hospitalId } : {};
+    const hf = tenantHf(req);
+    if (!hf) return res.status(403).json({ message: 'No clinic linked to this account' });
     const range = {};
     if (from || to) {
       range.createdAt = {};
@@ -63,12 +90,14 @@ router.get('/overview', protect, authorize('billing:read'), async (req, res) => 
 
 // Doc 12 §7: server-side clinic dashboard aggregate (fixes C2 client
 // truncation). One call: KPIs + queue + roster + recalls + money.
-router.get('/dashboard', async (req, res) => {
+// authz: object
+router.get('/dashboard', protect, async (req, res) => {
   try {
     const allowed = ['clinic_admin', 'clinic_doctor', 'clinic_receptionist', 'clinic_accountant', 'clinic_cashier', 'clinic_branch_manager', 'clinic_telemed_coordinator', 'hospital_admin', 'superadmin'];
     if (!allowed.includes(req.user?.role)) return res.status(403).json({ message: 'Clinic access required' });
     const { from, to } = req.query;
-    const hf = req.user.facilityId || req.user.hospitalId ? { hospitalId: req.user.facilityId || req.user.hospitalId } : {};
+    const hf = tenantHf(req);
+    if (!hf) return res.status(403).json({ message: 'No clinic linked to this account' });
     const range = {};
     if (from || to) {
       range.createdAt = {};
@@ -101,10 +130,11 @@ router.get('/dashboard', async (req, res) => {
       ]);
       return { billed: r[0]?.billed || 0, collected: r[0]?.collected || 0, outstanding: r[0]?.outstanding || 0 };
     });
-    await tile('doctors', () => Doctor.find({ ...hf }).select('name specialization').lean());
+    const ds = doctorScope(req);
+    await tile('doctors', () => (ds ? Doctor.find(ds) : Doctor.find({ _id: null })).select('name specialization').lean());
     await tile('queue', async () => {
       // Shared reception, per-doctor queues: tokens of this clinic's doctors.
-      const docs = await Doctor.find({ ...hf }).select('_id').lean();
+      const docs = ds ? await Doctor.find(ds).select('_id').lean() : [];
       const ids = docs.map((d) => d._id);
       if (!ids.length) return [];
       return Token.find({ status: 'Waiting', doctorId: { $in: ids }, createdAt: { $gte: today } })
@@ -116,19 +146,28 @@ router.get('/dashboard', async (req, res) => {
 });
 
 // Doc 12 §5: multi-doctor support — doctors of this clinic (shared reception).
-router.get('/doctors', async (req, res) => {
+// authz: object
+router.get('/doctors', protect, async (req, res) => {
   try {
     const allowed = ['clinic_admin', 'clinic_doctor', 'clinic_receptionist', 'clinic_branch_manager', 'clinic_telemed_coordinator', 'hospital_admin', 'superadmin'];
     if (!allowed.includes(req.user?.role)) return res.status(403).json({ message: 'Clinic access required' });
-    const hf = req.user.facilityId || req.user.hospitalId ? { hospitalId: req.user.facilityId || req.user.hospitalId } : {};
-    const doctors = await Doctor.find({ ...hf }).select('name specialization experience rating available').lean();
+    const ds = doctorScope(req);
+    if (!ds) return res.status(403).json({ message: 'No clinic linked to this account' });
+    const doctors = await Doctor.find(ds).select('name specialization experience rating available').lean();
     return res.json({ doctors });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 // Doc 12 §3: module toggles (dental/eye/ayush/physio) gating detail sections.
+// Restricted to clinic-owning roles — before this guard, any authenticated
+// account (e.g. a patient) with no ClinicProfile could upsert one by POSTing
+// module booleans, creating an orphan ClinicProfile row tied to their user id.
+const MODULE_TOGGLE_ROLES = ['clinic_admin', 'clinic_doctor', 'hospital_admin', 'superadmin'];
 router.put('/modules', protect, async (req, res) => {
   try {
+    if (!MODULE_TOGGLE_ROLES.includes(req.user?.role)) {
+      return res.status(403).json({ message: 'Clinic owner access required' });
+    }
     const { default: ClinicProfile } = await import('../models/ClinicProfile.js');
     const allowed = ['dental', 'eye', 'ayush', 'physio'];
     const modules = {};
@@ -150,7 +189,8 @@ router.get('/camps', protect, authorize('billing:read'), async (req, res) => {
   try {
     const { default: Campaign } = await import('../models/Campaign.js');
     const facilityId = req.user.facilityId || req.user.hospitalId;
-    const filter = facilityId ? { facilityId } : {};
+    if (!facilityId) return res.status(403).json({ message: 'No clinic linked to this account' });
+    const filter = { facilityId };
     const rows = await Campaign.find(filter).sort({ date: -1 }).limit(100).lean();
     return res.json({ camps: rows });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -164,7 +204,7 @@ const CLINIC_STAFF_INVITE_ROLES = [
 
   'clinic_receptionist', 'clinic_nurse', 'clinic_accountant', 'clinic_pharmacist',
 ];
-router.post('/staff/invite', async (req, res) => {
+router.post('/staff/invite', protect, async (req, res) => {
   try {
     if (!['clinic_admin', 'hospital_admin', 'superadmin'].includes(req.user?.role)) {
       return res.status(403).json({ message: 'Clinic admin access required' });
@@ -198,8 +238,8 @@ router.post('/staff/invite', async (req, res) => {
 // Doc 12 §3: today's roster — doctors with slots + tokens waiting.
 router.get('/roster/today', protect, authorize('appointments:read'), async (req, res) => {
   try {
-    const hf = req.user.facilityId || req.user.hospitalId
-      ? { hospitalId: req.user.facilityId || req.user.hospitalId } : {};
+    const hf = tenantHf(req);
+    if (!hf) return res.status(403).json({ message: 'No clinic linked to this account' });
     const { default: Token } = await import('../models/Token.js');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -207,7 +247,9 @@ router.get('/roster/today', protect, authorize('appointments:read'), async (req,
       { $match: { status: 'Waiting', createdAt: { $gte: today }, ...hf } },
       { $group: { _id: '$doctorId', waiting: { $sum: 1 }, next: { $min: '$queuePosition' } } },
     ]);
-    const doctors = await Doctor.find({ ...hf }).select('name specialization').lean();
+    const ds = doctorScope(req);
+    if (!ds) return res.status(403).json({ message: 'No clinic linked to this account' });
+    const doctors = await Doctor.find(ds).select('name specialization').lean();
     return res.json({
       roster: doctors.map((d) => ({
         ...d,
@@ -230,19 +272,24 @@ router.put('/profile', protect, validate(updateClinicProfileSchema), async (req,
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-// AUTHZ gap (was UNCLASSIFIED, and it FAILED OPEN): with neither facilityId nor
-// hospitalId on the account, `User.find({ facilityId: undefined, role: {...} })`
-// does not match nothing — it matches every staff account on the platform that
-// has no facility attached, handing their names, emails and phone numbers to any
-// logged-in patient. The sibling POST /staff below already guards this exact
-// case with a 403; the GET never did. `.select('-password')` does not help: the
-// leak is identity, not the hash.
-// authz: object
-router.get('/staff', protect, async (req, res) => {
-  try {
-    const facilityId = req.user.facilityId || req.user.hospitalId;
-    if (!facilityId) return res.status(403).json({ message: 'No facility linked to this account' });
-    const staff = await User.find({ facilityId, role: { $in: ['nurse', 'technician', 'helper', 'accountant'] } }).select('-password').sort({ createdAt: -1 });
+    // AUTHZ gap (was UNCLASSIFIED, and it FAILED OPEN): with neither facilityId nor
+    // hospitalId on the account, `User.find({ facilityId: undefined, role: {...} })`
+    // does not match nothing — it matches every staff account on the platform that
+    // has no facility attached, handing their names, emails and phone numbers to any
+    // logged-in patient. The sibling POST /staff below already guards this exact
+    // case with a 403; the GET never did. `.select('-password')` does not help: the
+    // leak is identity, not the hash.
+    // authz: object
+    router.get('/staff', protect, async (req, res) => {
+      try {
+        const facilityId = req.user.facilityId || req.user.hospitalId;
+        if (!facilityId) return res.status(403).json({ message: 'No facility linked to this account' });
+        // Minimum disclosure — the console roster page only renders
+        // name/email/phone/role/status. The full User document (wallet, bank,
+        // health-card, token internals) must never reach the browser.
+        const staff = await User.find({ facilityId, role: { $in: CLINIC_STAFF_LIST_ROLES } })
+          .select('name email phone role status isVerified approvalStatus createdAt')
+          .sort({ createdAt: -1 });
     res.json({ staff });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

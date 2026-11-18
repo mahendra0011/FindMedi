@@ -38,7 +38,7 @@ vi.mock('@/lib/api', () => ({
       monthlyTrend: [{ month: 'Jan', earnings: 75000 }],
     }),
     getHospitals: vi.fn().mockResolvedValue({ total: 12 }),
-    getUsers: vi.fn().mockResolvedValue({ total: 1200 }),
+    getPlatformUserCount: vi.fn().mockResolvedValue({ total: 1200, todayCount: 5 }),
     getPendingHospitals: vi.fn().mockResolvedValue([]),
     getFacilities: vi.fn().mockResolvedValue({ total: 45 }),
     getTicketStats: vi.fn().mockResolvedValue({ open: 2, total: 20 }),
@@ -49,6 +49,12 @@ vi.mock('@/lib/api', () => ({
   apiClient: {
     get: vi.fn().mockResolvedValue({ data: {} }),
   },
+}));
+
+// The console reads the session role to decide whether the L2-only support
+// stats may even be requested.
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({ user: { role: 'superadmin', name: 'Test Admin' } }),
 }));
 
 describe('Document 16 — Business Model & Unit Economics Spec', () => {

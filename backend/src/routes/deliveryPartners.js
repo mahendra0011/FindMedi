@@ -44,6 +44,29 @@ router.post('/register', protect, async (req, res) => {
   }
 });
 
+// KYC queue (pending/approved/all lists feed the Pending Approvals console and
+// the superadmin facilities page). Hospital admins see their own partners;
+// platform roles see everyone. Bank details are always scrubbed.
+const dpListRoles = ['hospital_admin', 'superadmin', 'pharmacy_owner', 'kyc_reviewer', 'compliance_officer'];
+const dpList = async (req, res, filter) => {
+  try {
+    const hospitalScoped = req.user.role === 'hospital_admin' && req.user.hospitalId;
+    const q = hospitalScoped ? { ...filter, hospitalId: req.user.hospitalId } : filter;
+    const partners = await DeliveryPartner.find(q).sort({ createdAt: -1 }).limit(500).select('-bankDetails');
+    // Bare array — the admin consoles consume it directly (see lib/api.js
+    // normalizePaginated, which passes non-{data:[]} payloads through untouched).
+    return res.json(partners.map(scrubDpBank));
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+router.get('/pending', protect, roleOnly(dpListRoles), (req, res) =>
+  dpList(req, res, { status: 'pending' }));
+
+router.get('/all', protect, roleOnly(dpListRoles), (req, res) =>
+  dpList(req, res, {}));
+
 // KYC queue (8.md 2): verifying a delivery partner is onboarding verification,
 // so the kyc_reviewer joins the platform roles that may do it.
 router.put('/:id/verify', protect, roleOnly(['hospital_admin', 'superadmin', 'pharmacy_owner', 'kyc_reviewer']), async (req, res) => {

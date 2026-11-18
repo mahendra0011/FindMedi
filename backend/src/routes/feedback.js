@@ -142,7 +142,8 @@ router.get('/', protect, authorize('staff:manage'), async (req, res) => {
 });
 
 // Aggregate summary endpoint for UI metrics (Section C1 requirement)
-router.get('/summary', protect, authorize('staff:manage'), async (req, res) => {
+// NPS/CSAT rollups are exactly what patient-relations/support desks work from.
+router.get('/summary', protect, authorize('staff:manage', 'support:manage'), async (req, res) => {
   try {
     const filter = {};
     if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); filter.hospitalId = req.user.hospitalId; }

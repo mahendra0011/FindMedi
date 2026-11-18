@@ -297,13 +297,14 @@ export const ROLE_PERMISSIONS = {
   doctor: [
     'records:read', 'records:write', 'appointments:read', 'appointments:write',
     'prescriptions:write', 'patients:read', 'lab:order', 'lab:read',
-    'radiology:read', 'radiology:order', 'chat:read', 'chat:write', 'profile:read', 'profile:write',
+    'radiology:read', 'radiology:order', 'chat:read', 'chat:read:own', 'chat:write', 'chat:write:own', 'profile:read', 'profile:write',
     'notifications:read', 'upload:write', 'drive:write',
   ],
   clinic_doctor: [
     'records:read', 'records:write', 'appointments:read', 'appointments:write',
-    'prescriptions:write', 'patients:read', 'chat:read', 'chat:write',
+    'prescriptions:write', 'patients:read', 'chat:read', 'chat:read:own', 'chat:write', 'chat:write:own',
     'profile:read', 'profile:write', 'notifications:read', 'upload:write',
+    'reports:read', 'lab:order', 'radiology:order', 'billing:read',
   ],
   counsellor: ['records:read', 'appointments:read', 'patients:read', 'chat:read', 'chat:write', 'notifications:read'],
   psychiatrist: ['records:read', 'records:write', 'appointments:read', 'patients:read', 'chat:read', 'chat:write', 'notifications:read'],
@@ -626,7 +627,7 @@ export const ROLE_PERMISSIONS = {
   // Analyst: aggregated product metrics only (k-anonymous dashboards).
   analyst: ['reports:read', 'notifications:read', 'crm:read'],
   // Auditor: read-only audit + configs.
-  auditor: ['audit:read'],
+  auditor: ['audit:read', 'notifications:read'],
   // ── File 09 §8.2 front-desk ──────────────────────────────────────────
   // Registration + tokens + OPD counter billing. Demographics read (search)
   // scoped by tenant handlers; clinical modules stay unreachable.
@@ -640,7 +641,7 @@ export const ROLE_PERMISSIONS = {
     'appointments:read', 'appointments:write', 'patients:read',
     'records:read', 'billing:read', 'billing:write', 'staff:manage', 'staff:view',
     'inventory:manage', 'chat:read', 'chat:write', 'notifications:read',
-    'profile:read:own', 'profile:write:own',
+    'profile:read:own', 'profile:write:own', 'reports:read',
   ],
   clinic_receptionist: [
     'appointments:read', 'appointments:write', 'patients:read',

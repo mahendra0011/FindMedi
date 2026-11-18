@@ -99,7 +99,6 @@ const [refunds, setRefunds] = useState<ApiRow[]>([]);
   const [apptTab, setApptTab] = useState('pending');
   const [tipIndex, setTipIndex] = useState(0);
   const [greeting, setGreeting] = useState('');
-  const [scheduleData, setScheduleData] = useState<Unmodelled>(null);
   const [isEmergencyDuty, setIsEmergencyDuty] = useState(false);
   const [emergencyRadius, setEmergencyRadius] = useState(10);
   const [gpsStatusText, setGpsStatusText] = useState('Standby');
@@ -236,7 +235,7 @@ const [refunds, setRefunds] = useState<ApiRow[]>([]);
   };
 
   useEffect(() => {
-    api.get('/doctors/schedule').then((d) => { if (mounted.current) setScheduleData(d); }).catch(() => {});
+    return () => { mounted.current = false; };
   }, []);
 
   const handleAcceptAppt = async (id: Unmodelled) => {
@@ -1025,20 +1024,7 @@ const [refunds, setRefunds] = useState<ApiRow[]>([]);
             </Button>
           </div>
           <div className="space-y-3">
-            {scheduleData?.shifts?.length > 0 ? (
-              scheduleData.shifts.map((s: Unmodelled, idx: Unmodelled) => (
-                <div key={idx} className="p-3.5 bg-muted/20 rounded-2xl border border-border/30">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-semibold text-foreground">{s.name || `Shift ${idx + 1}`}</span>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">Active</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                    <Clock className="w-3.5 h-3.5 text-cyan-500" /> {s.startTime} – {s.endTime}
-                  </p>
-                </div>
-              ))
-            ) : (
-            (() => {
+            {(() => {
               const currentHour = new Date().getHours();
               const isMorningActive = currentHour >= 9 && currentHour < 13;
               const isMorningPast = currentHour >= 13;
@@ -1084,8 +1070,7 @@ const [refunds, setRefunds] = useState<ApiRow[]>([]);
                   </div>
                 </>
               );
-            })()
-            )}
+            })()}
           </div>
         </div>
 

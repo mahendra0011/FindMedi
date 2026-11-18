@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { verifyAccessToken, signToken as signJwt } from '../utils/jwtKeys.js';
 import Hospital from '../models/Hospital.js';
 import User from '../models/User.js';
@@ -99,7 +100,10 @@ router.get('/pending', protect, requireRole(['superadmin', 'kyc_reviewer']), asy
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req, res, next) => {
+  // Non-ObjectId segments (e.g. 'ambulances') must fall through to the
+  // dedicated routes registered below this one.
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) return next();
   try {
     let hospital;
     try {

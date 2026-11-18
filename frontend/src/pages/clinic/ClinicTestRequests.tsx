@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
+import { formatDisplayDate } from '@/lib/dateUtils';
 import type { ApiRow, Unmodelled } from '@/lib/apiTypes';
 
 const STATUS_CONFIG: Unmodelled = {
@@ -221,7 +221,6 @@ export default function ClinicTestRequests() {
             const VisitIcon = VISIT_ICONS[booking.visitType] || User;
             const StatusIcon = statusCfg.icon;
             const isUpdating = updating === booking._id;
-            const testList = booking.tests?.join(', ') || 'Test';
             const amount = booking.discountedAmount || booking.totalAmount || 0;
 
             return (

@@ -16,6 +16,7 @@ const countOf = (res: Unmodelled, keys: Unmodelled = []) => {
 };
 
 // Per-role widget wiring — every call exists in lib/api.js and fails soft.
+const humaniseRole = (r: string) => r.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 const ROLE_CONFIG: Unmodelled = {
   nurse: {
     title: 'Nursing Console',
@@ -107,13 +108,6 @@ const ROLE_CONFIG: Unmodelled = {
       { key: 'inventory', label: 'Inventory Alerts', link: '/inventory', run: () => api.getInventoryStats().catch(() => null) },
     ],
   },
-  helper: {
-    title: 'Helper Console',
-    calls: [
-      { key: 'appointments', label: "Today's Appointments", link: '/appointments', run: () => api.getAppointments({ limit: 200 }).catch(() => null) },
-      { key: 'beds', label: 'Ward Beds', link: '/admin/beds', run: () => api.getBedStats().catch(() => null) },
-    ],
-  },
   // File 22 P0-8: nursing family consoles (same ward surface, own titles).
   ward_nurse: {
     title: 'Ward Nursing Console',
@@ -166,7 +160,7 @@ const ROLE_CONFIG: Unmodelled = {
 export default function StaffDashboard() {
   const { user } = useAuth();
   const role = user?.role || 'staff';
-  const conf = ROLE_CONFIG[role] || ROLE_CONFIG.helper;
+  const conf = ROLE_CONFIG[role] || { title: `${humaniseRole(role)} Console`, calls: [] };
   const [stats, setStats] = useState<ApiRow>({});
   const [loading, setLoading] = useState(true);
 
@@ -212,6 +206,12 @@ export default function StaffDashboard() {
         <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
       ) : (
         <>
+          {conf.calls.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-border/70 p-8 text-center">
+              <p className="text-2xl font-bold text-foreground">{conf.title}</p>
+              <p className="text-sm text-muted-foreground mt-1">No live widgets are wired for this role yet — the operations hub below is shared.</p>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {conf.calls.map((c: Unmodelled) => (
               <Link key={c.key} to={c.link} className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">

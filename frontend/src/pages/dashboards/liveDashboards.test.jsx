@@ -10,6 +10,12 @@ vi.mock('@/lib/api', () => ({
   },
 }));
 
+// Gated dashboards read the session to decide which endpoints to fire;
+// superadmin is the broadest read tier.
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({ user: { role: 'superadmin', name: 'Test Admin' } }),
+}));
+
 import AdmissionCoordinatorDashboard from './AdmissionCoordinatorDashboard';
 import AuditorDashboard from './AuditorDashboard';
 import BedManagerDashboard from './BedManagerDashboard';

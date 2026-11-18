@@ -18,6 +18,15 @@ const actorId = (req) => req.user._id ?? req.user.id;
 const tenantFilter = (req) => (req.user.role === 'superadmin' && !req.user.hospitalId
   ? {} : { hospitalId: req.user.hospitalId });
 const TPA_ROLES = ['tpa_agent', 'hospital_admin', 'superadmin', 'accountant', 'receptionist', 'insurance_desk'];
+// Read-only TPA exposure for admission coordinators: they follow up on the
+// same pre-auth queue their desk owns, and need the GET list — initiating or
+// resubmitting stays the TPA desk's job.
+const TPA_READ_ROLES = [...TPA_ROLES, 'admission_coordinator'];
+// Named with the `Only` marker so the authz coverage classifier sees the
+// guard on the route definition line (AUTHZ_MARKERS substring rule).
+const tpaReadOnly = (req, res, next) => (
+  TPA_READ_ROLES.includes(req.user?.role) ? next() : res.status(403).json({ message: 'TPA desk access required' })
+);
 const tpaOnly = (req, res, next) => (
   TPA_ROLES.includes(req.user?.role) ? next() : res.status(403).json({ message: 'TPA desk access required' })
 );
@@ -60,7 +69,7 @@ router.post('/insurers', tpaOnly, async (req, res) => {
 });
 
 // ─── Pre-auth ───────────────────────────────────────────────────────────────
-router.get('/preauth', tpaOnly, async (req, res) => {
+router.get('/preauth', tpaReadOnly, async (req, res) => {
   try {
     const { status, admissionId } = req.query;
     const filter = { ...tenantFilter(req) };

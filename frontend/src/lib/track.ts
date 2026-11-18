@@ -8,8 +8,7 @@
 // Pipeline: allowlist schema (zod, unknown props stripped) → PII detector
 // (phone/email/Aadhaar/PAN/Card patterns rejected) → consent gate (localStorage)
 // → posthog with pseudonymous distinct_id (hashed, no raw PII).
-/* eslint-disable no-restricted-syntax -- this module is the single sanctioned
-   posthog.capture/identify call-site; ban direct SDK use everywhere else. */
+ 
 import posthog from 'posthog-js';
 import { z } from 'zod';
 

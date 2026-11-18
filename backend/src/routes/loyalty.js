@@ -1,6 +1,6 @@
 import express from 'express';
 import { z } from 'zod';
-import { protect, authorize, adminOnly } from '../middleware/auth.js';
+import { protect, authorize } from '../middleware/auth.js';
 // LOYAL-B-01: points are money — every mutation is replay-guarded and audited.
 import { idempotencyGuard } from '../middleware/idempotency.js';
 import { auditLog } from '../middleware/audit.js';
@@ -15,6 +15,16 @@ import User from '../models/User.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
+
+// Platform loyalty config is a superadmin concern; earn-rules read is shared
+// with tenant admins. Every handler still re-checks its own role, this is just
+// the outer gate — previously `adminOnly` (hospital_admin-only) which silently
+// locked the superadmin Loyalty & SOS console out of its own settings page.
+const loyaltyAdminAccess = (req, res, next) => (
+  ['superadmin', 'hospital_admin'].includes(req.user?.role ?? '')
+    ? next()
+    : res.status(403).json({ message: 'Access denied' })
+);
 
 // LAW-004: zod schema for loyalty adjustment — non-zero, bounded, reason required
 const adjustSchema = z.object({
@@ -103,7 +113,7 @@ router.get('/my-redemptions', protect, authorize('loyalty:read:own'), async (req
 });
 
 // ─── Admin: Initialize earn rules ───
-router.post('/admin/init-rules', protect, adminOnly, async (req, res) => {
+router.post('/admin/init-rules', protect, loyaltyAdminAccess, async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Access denied' });
@@ -117,7 +127,7 @@ router.post('/admin/init-rules', protect, adminOnly, async (req, res) => {
 });
 
 // ─── Admin: Get all earn rules ───
-router.get('/admin/earn-rules', protect, adminOnly, async (req, res) => {
+router.get('/admin/earn-rules', protect, loyaltyAdminAccess, async (req, res) => {
   try {
     if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Access denied' });
@@ -131,7 +141,7 @@ router.get('/admin/earn-rules', protect, adminOnly, async (req, res) => {
 });
 
 // ─── Admin: Create/Update earn rule ───
-router.post('/admin/earn-rule', protect, adminOnly, async (req, res) => {
+router.post('/admin/earn-rule', protect, loyaltyAdminAccess, async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Access denied' });
@@ -150,7 +160,7 @@ router.post('/admin/earn-rule', protect, adminOnly, async (req, res) => {
 });
 
 // ─── Admin: Get all redemptions ───
-router.get('/admin/redemptions', protect, adminOnly, async (req, res) => {
+router.get('/admin/redemptions', protect, loyaltyAdminAccess, async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Access denied' });
@@ -177,7 +187,7 @@ router.get('/admin/redemptions', protect, adminOnly, async (req, res) => {
 // read-modify-write), it cannot drive a balance negative, it is idempotent under
 // retry, and the audit row records before/after so an unexplained change is
 // traceable.
-router.post('/admin/adjust/:userId', protect, adminOnly, idempotencyGuard({ prefix: 'loyalty-adjust', failClosed: true }), validate(adjustSchema), async (req, res) => {
+router.post('/admin/adjust/:userId', protect, loyaltyAdminAccess, idempotencyGuard({ prefix: 'loyalty-adjust', failClosed: true }), validate(adjustSchema), async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Access denied' });
@@ -229,7 +239,7 @@ router.post('/admin/adjust/:userId', protect, adminOnly, idempotencyGuard({ pref
 });
 
 // ─── Admin: Get all reward catalog items (active + inactive) ───
-router.get('/admin/reward-catalog', protect, adminOnly, async (req, res) => {
+router.get('/admin/reward-catalog', protect, loyaltyAdminAccess, async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Access denied' });
@@ -243,7 +253,7 @@ router.get('/admin/reward-catalog', protect, adminOnly, async (req, res) => {
 });
 
 // ─── Admin: Create a new reward catalog item ───
-router.post('/admin/reward-catalog', protect, adminOnly, async (req, res) => {
+router.post('/admin/reward-catalog', protect, loyaltyAdminAccess, async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Access denied' });
@@ -272,7 +282,7 @@ router.post('/admin/reward-catalog', protect, adminOnly, async (req, res) => {
 });
 
 // ─── Admin: Update a reward catalog item ───
-router.put('/admin/reward-catalog/:id', protect, adminOnly, async (req, res) => {
+router.put('/admin/reward-catalog/:id', protect, loyaltyAdminAccess, async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Access denied' });
@@ -297,7 +307,7 @@ router.put('/admin/reward-catalog/:id', protect, adminOnly, async (req, res) => 
 });
 
 // ─── Admin: Delete (soft — deactivate) a reward catalog item ───
-router.delete('/admin/reward-catalog/:id', protect, adminOnly, async (req, res) => {
+router.delete('/admin/reward-catalog/:id', protect, loyaltyAdminAccess, async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Access denied' });

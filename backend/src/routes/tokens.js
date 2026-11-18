@@ -149,6 +149,23 @@ router.get('/current/:department?', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+router.get('/stats', protect, async (req, res) => {
+  try {
+    const today = new Date().setHours(0, 0, 0, 0);
+    const hFilter = {};
+    if (req.user.role !== 'superadmin') {
+      if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' });
+      hFilter.hospitalId = req.user.hospitalId;
+    }
+    const waiting = await Token.countDocuments({ status: 'Waiting', createdAt: { $gte: today }, ...hFilter });
+    const inConsultation = await Token.countDocuments({ status: 'In Consultation', createdAt: { $gte: today }, ...hFilter });
+    const completed = await Token.countDocuments({ status: 'Completed', createdAt: { $gte: today }, ...hFilter });
+    const skipped = await Token.countDocuments({ status: 'Skipped', createdAt: { $gte: today }, ...hFilter });
+    const total = await Token.countDocuments({ createdAt: { $gte: today }, ...hFilter });
+    res.json({ waiting, inConsultation, completed, skipped, total });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.get('/:id', protect, async (req, res) => {
   try {
     const token = await Token.findById(req.params.id)
@@ -330,21 +347,6 @@ router.put('/:id/recall', protect, tokenDeskOnly, async (req, res) => {
     void emitQueueUpdate(token);
     res.json(token);
   } catch (err) { res.status(400).json({ message: err.message }); }
-});
-
-router.get('/stats', protect, async (req, res) => {
-  try {
-    const today = new Date().setHours(0,0,0,0);
-    const hFilter = {};
-    if (req.user.role !== 'superadmin') { if (!req.user.hospitalId) return res.status(403).json({ message: 'Hospital scope required' }); hFilter.hospitalId = req.user.hospitalId; }
-    const waiting = await Token.countDocuments({ status: 'Waiting', createdAt: { $gte: today }, ...hFilter });
-    const inConsultation = await Token.countDocuments({ status: 'In Consultation', createdAt: { $gte: today }, ...hFilter });
-    const completed = await Token.countDocuments({ status: 'Completed', createdAt: { $gte: today }, ...hFilter });
-    const skipped = await Token.countDocuments({ status: 'Skipped', createdAt: { $gte: today }, ...hFilter });
-    const total = await Token.countDocuments({ createdAt: { $gte: today }, ...hFilter });
-
-    res.json({ waiting, inConsultation, completed, skipped, total });
-  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 export default router;

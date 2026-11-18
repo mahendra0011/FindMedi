@@ -1,14 +1,92 @@
 import express from 'express';
 import { protect, requireRole } from '../middleware/auth.js';
+import BiometricDevice from '../models/BiometricDevice.js';
+import BiometricLog from '../models/BiometricLog.js';
+import Staff from '../models/Staff.js';
 import User from '../models/User.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
 
+const tenantScope = (req) => {
+  // Superadmin without an assigned hospital reads the platform default tenant;
+  // everyone else is pinned to their own hospital.
+  return req.user.hospitalId || req.user.facilityId || null;
+};
+
 /**
  * Biometric Attendance Machine (e.g. ZKTeco, Mantra MFS100, Morpho, or eSSL)
  * & WebAuthn / FIDO2 Browser Passkey Gateway
  */
+
+// ─── Hardware device registry (hospital-scoped) ─────────────────────────────
+
+// List biometric terminals registered to the caller's hospital.
+// authz: role
+router.get('/devices', protect, requireRole(['hospital_admin', 'clinic_admin', 'superadmin', 'hr']), async (req, res) => {
+  try {
+    const scope = tenantScope(req);
+    const filter = { active: true };
+    if (scope) filter.hospitalId = scope; else if (req.user.role !== 'superadmin') return res.json({ devices: [] });
+    const devices = await BiometricDevice.find(filter).sort({ createdAt: -1 }).lean();
+    return res.json({ devices });
+  } catch (err) {
+    logger.error('Biometric device list failed', { error: err.message });
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Register a terminal against the caller's hospital.
+// authz: role
+router.post('/devices', protect, requireRole(['hospital_admin', 'clinic_admin', 'superadmin']), async (req, res) => {
+  try {
+    const scope = tenantScope(req);
+    if (!scope) return res.status(400).json({ success: false, message: 'Hospital scope required to register a device' });
+    const { deviceName, deviceType = 'ZKTeco', ipAddress, location, department, serialNumber } = req.body;
+    if (!deviceName) return res.status(400).json({ success: false, message: 'deviceName is required' });
+    const device = await BiometricDevice.create({
+      hospitalId: scope,
+      deviceName,
+      deviceType,
+      ipAddress: ipAddress || undefined,
+      location: location || undefined,
+      department: department || undefined,
+      serialNumber: serialNumber || undefined,
+      status: 'Offline',
+    });
+    return res.status(201).json({ device });
+  } catch (err) {
+    logger.error('Biometric device registration failed', { error: err.message });
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Today's punch summary for the caller's hospital (present/absent/totalStaff/onlineDevices).
+// authz: role
+router.get('/today', protect, requireRole(['hospital_admin', 'clinic_admin', 'superadmin', 'hr']), async (req, res) => {
+  try {
+    const scope = tenantScope(req);
+    if (!scope) return res.json({ present: 0, absent: 0, totalStaff: 0, onlineDevices: 0 });
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const [totalStaff, onlineDevices, punched] = await Promise.all([
+      Staff.countDocuments({ hospitalId: scope, status: 'Active' }),
+      BiometricDevice.countDocuments({ hospitalId: scope, status: 'Online' }),
+      BiometricLog.distinct('staffId', { hospitalId: scope, punchTime: { $gte: startOfDay }, punchResult: 'Success', staffId: { $exists: true, $ne: null } }),
+    ]);
+    const present = punched.length;
+    return res.json({
+      present,
+      absent: Math.max(0, totalStaff - present),
+      totalStaff,
+      onlineDevices,
+    });
+  } catch (err) {
+    logger.error('Biometric today stats failed', { error: err.message });
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 // Simulated internal attendance record log memory cache / sync store
 const attendanceLogs = [];

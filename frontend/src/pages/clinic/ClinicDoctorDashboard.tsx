@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
+import { getISTDateString } from '@/lib/dateUtils';
 import DdiCheckBanner from '@/components/clinical/DdiCheckBanner';
 
 const QUICK_DIAGNOSES = [
@@ -31,16 +31,9 @@ export default function ClinicDoctorDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [appointments, setAppointments] = useState<any[]>([
-    { _id: 'apt-1', token: '01', patient: 'Vikram Singh', uhid: 'UH-2026-1011', age: 45, gender: 'Male', bloodGroup: 'O+', phone: '+91 9876541201', time: '10:05 AM', type: 'General Consultation', status: 'In Consultation', allergies: 'None known' },
-    { _id: 'apt-2', token: '02', patient: 'Meena Gupta', uhid: 'UH-2026-1012', age: 32, gender: 'Female', bloodGroup: 'B+', phone: '+91 9876541202', time: '10:10 AM', type: 'Pediatric / General', status: 'Pending', allergies: 'Penicillin (Severe rash)' },
-    { _id: 'apt-3', token: '03', patient: 'Karan Mehra', uhid: 'UH-2026-1013', age: 71, gender: 'Male', bloodGroup: 'A+', phone: '+91 9876541203', time: '10:15 AM', type: 'Senior Citizen Review', status: 'Pending', allergies: 'Sulfa drugs' },
-    { _id: 'apt-4', token: '04', patient: 'Sunita Rao', uhid: 'UH-2026-1014', age: 28, gender: 'Female', bloodGroup: 'AB+', phone: '+91 9876541204', time: '10:20 AM', type: 'Follow-up Visit', status: 'Pending', allergies: 'None known' },
-  ]);
+  const [appointments, setAppointments] = useState<any[]>([]);
 
-  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'waiting' | 'in_consultation' | 'completed'>('waiting');
-  const [search, setSearch] = useState('');
   const [showRxModal, setShowRxModal] = useState<any | null>(null);
 
   // Selected Patient for Active Consultation Workspace
@@ -48,34 +41,28 @@ export default function ClinicDoctorDashboard() {
   const [ddiBlocked, setDdiBlocked] = useState(false);
 
   const [clinicalForm, setClinicalForm] = useState({
-    chiefComplaint: 'Fever (101°F) with dry cough and sore throat since 3 days',
-    bp: '128/82',
-    pulse: '78',
-    temp: '99.4',
-    spo2: '98',
-    diagnosis: 'Acute Viral Upper Respiratory Tract Infection (J06.9)',
+    chiefComplaint: '',
+    bp: '',
+    pulse: '',
+    temp: '',
+    spo2: '',
+    diagnosis: '',
     medicines: [
-      { name: 'Paracetamol 650mg', dosage: '1 tab', frequency: 'TDS (3 times daily)', duration: '5 days', instructions: 'After food' },
-      { name: 'Cetirizine 10mg', dosage: '1 tab', frequency: 'HS (Bedtime)', duration: '5 days', instructions: 'After dinner' },
-      { name: 'Azithromycin 500mg', dosage: '1 tab', frequency: 'OD (Once daily)', duration: '3 days', instructions: 'After lunch' }
+      { name: '', dosage: '1 tab', frequency: 'TDS (3 times daily)', duration: '5 days', instructions: 'After food' },
     ],
-    investigations: 'Complete Blood Count (CBC) with ESR',
-    advice: 'Steam inhalation twice daily. Warm saline gargles. Adequate hydration (3L fluids/day).',
-    followUpDate: '2026-10-19'
+    investigations: '',
+    advice: '',
+    followUpDate: '',
   });
 
   const loadData = async () => {
-    setLoading(true);
     try {
       const res: any = await api.getAppointments({ date: getISTDateString() }).catch(() => null);
       const list = Array.isArray(res) ? res : res?.data || res?.appointments || [];
-      if (list.length > 0) {
-        setAppointments(prev => [...list, ...prev.slice(0, 2)]);
-      }
+      setAppointments(list);
     } catch {
       // Keep defaults
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -85,6 +72,9 @@ export default function ClinicDoctorDashboard() {
   const waitingList = appointments.filter(a => a.status === 'Pending' || a.status === 'Confirmed' || a.status === 'Waiting');
   const inConsultationList = appointments.filter(a => a.status === 'In Consultation' || a.status === 'Active');
   const completedList = appointments.filter(a => a.status === 'Completed');
+  const followUpsDue = appointments.filter((a) =>
+    /follow|review|recall/i.test(String(a?.type ?? ''))
+    && !/completed|cancel|no.?show|discharg/i.test(String(a?.status ?? '')));
 
   const addMedicineRow = () => {
     setClinicalForm(prev => ({
@@ -125,7 +115,7 @@ export default function ClinicDoctorDashboard() {
       await api.createRecord({
         patient: selectedPatient.patient,
         patientId: selectedPatient.patientId || selectedPatient._id,
-        doctor: user?.name || 'Dr. Ramesh Sharma',
+        doctor: user?.name || '�',
         date: getISTDateString(),
         diagnosis: clinicalForm.diagnosis || 'General OPD Consultation',
         type: 'Prescription',
@@ -142,7 +132,7 @@ export default function ClinicDoctorDashboard() {
       // 2. Auto-dispatch Invoice to Billing / Cashier station
       api.post('/billing', {
         patient: selectedPatient.patient,
-        doctor: user?.name || 'Dr. Ramesh Sharma',
+        doctor: user?.name || '�',
         service: 'Consultation & Prescription',
         amount: 500,
         paid: 0,
@@ -159,7 +149,7 @@ export default function ClinicDoctorDashboard() {
         uhid: selectedPatient.uhid,
         age: selectedPatient.age,
         gender: selectedPatient.gender,
-        doctor: user?.name || 'Dr. Ramesh Sharma',
+        doctor: user?.name || '�',
         date: getISTDateString(),
         clinicalForm: { ...clinicalForm }
       });
@@ -176,7 +166,7 @@ export default function ClinicDoctorDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 text-white p-6 rounded-3xl shadow-md">
         <div>
           <span className="text-xs uppercase tracking-wider font-semibold text-blue-200">Clinical Consultation Workstation</span>
-          <h1 className="text-2xl sm:text-3xl font-heading font-black mt-1">Dr. {user?.name || 'Ramesh Sharma'}</h1>
+          <h1 className="text-2xl sm:text-3xl font-heading font-black mt-1">Dr. {user?.name || '�'}</h1>
           <p className="text-sm text-blue-100/90 mt-0.5">OPD Room #1 · Live Patient Queue, EMR, e-Prescriptions & Investigation Orders</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -185,7 +175,7 @@ export default function ClinicDoctorDashboard() {
           </Button>
           <div className="bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-2xl text-center">
             <p className="text-[10px] text-blue-200 font-medium">TODAY'S PATIENTS</p>
-            <p className="text-xl font-bold">{appointments.length + 18}</p>
+            <p className="text-xl font-bold">{appointments.length}</p>
           </div>
         </div>
       </div>
@@ -211,7 +201,7 @@ export default function ClinicDoctorDashboard() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium">In Consultation</p>
-              <p className="text-2xl font-bold text-blue-600">{inConsultationList.length || (selectedPatient ? 1 : 0)}</p>
+              <p className="text-2xl font-bold text-blue-600">{inConsultationList.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -223,7 +213,7 @@ export default function ClinicDoctorDashboard() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium">Completed Today</p>
-              <p className="text-2xl font-bold text-emerald-600">{completedList.length + 22}</p>
+              <p className="text-2xl font-bold text-emerald-600">{completedList.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -235,7 +225,7 @@ export default function ClinicDoctorDashboard() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium">Follow-ups Due</p>
-              <p className="text-2xl font-bold text-purple-600">6</p>
+              <p className="text-2xl font-bold text-purple-600">{followUpsDue.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -342,11 +332,11 @@ export default function ClinicDoctorDashboard() {
                     <div className="flex items-center gap-2">
                       <h2 className="text-lg font-bold text-foreground">{selectedPatient.patient}</h2>
                       <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-semibold">
-                        In Room #1
+                        In Consultation
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Age: {selectedPatient.age || '34'}y | Gender: {selectedPatient.gender || 'Male'} | Blood: {selectedPatient.bloodGroup || 'B+'} | UHID: <span className="font-mono font-bold text-foreground">{selectedPatient.uhid || 'UH-2026-1011'}</span>
+                      Age: {selectedPatient.age ?? '—'}y | Gender: {selectedPatient.gender || '—'} | Blood: {selectedPatient.bloodGroup || '—'} | UHID: <span className="font-mono font-bold text-foreground">{selectedPatient.uhid || '—'}</span>
                     </p>
                   </div>
                 </div>
@@ -532,7 +522,7 @@ export default function ClinicDoctorDashboard() {
                 <div className="pt-4 border-t flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    <span>NMC Registered Medical Practitioner: Dr. {user?.name || 'Ramesh Sharma'} · Reg #74892</span>
+                    <span>Registered Medical Practitioner: Dr. {user?.name || '—'}</span>
                   </div>
                   <Button className="rounded-xl bg-primary text-primary-foreground text-xs h-9 gap-1.5 font-bold shadow-xs" onClick={handleCompleteConsultation}>
                     <Save className="w-3.5 h-3.5" /> Save Encounter, Sign & Bill
@@ -575,8 +565,7 @@ export default function ClinicDoctorDashboard() {
                 <div className="flex items-center justify-between border-b pb-2.5">
                   <div>
                     <h4 className="font-black text-sm text-foreground">DR. {showRxModal.doctor.toUpperCase()}</h4>
-                    <p className="text-[10px] text-muted-foreground">MBBS, MD (Medicine) · NMC Reg #74892</p>
-                    <p className="text-[10px] text-muted-foreground">Central Care Polyclinic · Room #1</p>
+                    <p className="text-[10px] text-muted-foreground">{user?.qualification || '—'}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-muted-foreground font-mono">Date: {showRxModal.date}</p>

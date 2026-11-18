@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+
 import {
   IndianRupee, CreditCard, Receipt, Clock, CheckCircle2, AlertCircle,
   RotateCcw, Download, Printer, Search, Plus, Wallet, Smartphone, Landmark,
@@ -30,43 +30,39 @@ interface InvoiceItem {
 
 export default function ClinicCashierDashboard() {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
-  const [openingBalance, setOpeningBalance] = useState('2000');
+
+  const [openingBalance] = useState('0');
   const [showShiftClose, setShowShiftClose] = useState(false);
   const [selectedBill, setSelectedBill] = useState<InvoiceItem | null>(null);
   const [paymentMode, setPaymentMode] = useState<'upi' | 'cash' | 'card'>('upi');
-  const [cashTendered, setCashTendered] = useState('1000');
+  const [cashTendered, setCashTendered] = useState('0');
   const [discountVal, setDiscountVal] = useState('0');
   const [showReceiptModal, setShowReceiptModal] = useState<any | null>(null);
 
-  // Live Invoices List
-  const [bills, setBills] = useState<InvoiceItem[]>([
-    { id: 'INV-2026-101', patient: 'Rahul Sharma', uhid: 'UH-2026-1011', doctor: 'Dr. Ramesh Sharma', items: 'OPD Consult + Paracetamol 650mg + Cetirizine', subtotal: 650, discount: 0, total: 650, status: 'Pending', time: '10:12 AM' },
-    { id: 'INV-2026-102', patient: 'Meena Gupta', uhid: 'UH-2026-1012', doctor: 'Dr. Priya Patel', items: 'Pediatric Consult + Nebulization + Amox-Clav', subtotal: 850, discount: 50, total: 800, status: 'Pending', time: '10:20 AM' },
-    { id: 'INV-2026-103', patient: 'Karan Mehra', uhid: 'UH-2026-1013', doctor: 'Dr. Vivek Verma', items: 'Ortho Visit + X-Ray Knee PA View', subtotal: 1200, discount: 100, total: 1100, status: 'Pending', time: '10:30 AM' },
-    { id: 'INV-2026-104', patient: 'Sunita Rao', uhid: 'UH-2026-1014', doctor: 'Dr. Priya Patel', items: 'Follow-up Consultation Fee', subtotal: 400, discount: 0, total: 400, status: 'Pending', time: '10:35 AM' },
-  ]);
+  // Live Invoices List (no seed invoices — only what the billing API returns)
+  const [bills, setBills] = useState<InvoiceItem[]>([]);
+  const [rawBills, setRawBills] = useState<any[]>([]);
 
   const loadData = async () => {
     try {
       const res: any = await api.get('/billing').catch(() => null);
       const arr = res?.data || res?.bills || res || [];
-      if (Array.isArray(arr) && arr.length > 0) {
-        const mapped: InvoiceItem[] = arr.slice(0, 5).map((b: any, i: number) => ({
-          id: b.invoiceId || `INV-2026-${200 + i}`,
-          patient: b.patient || 'Patient',
-          uhid: b.uhid || `UH-2026-${1050 + i}`,
-          doctor: b.doctor || 'Dr. Ramesh Sharma',
-          items: b.service || 'Doctor Consultation',
-          subtotal: Number(b.amount) || 500,
-          discount: 0,
-          total: Number(b.amount) || 500,
-          status: b.status === 'Paid' ? 'Paid' : 'Pending',
-          time: '10:40 AM'
-        }));
-        setBills(prev => [...mapped, ...prev]);
-      }
+      if (!Array.isArray(arr)) return;
+      setRawBills(arr);
+      const mapped: InvoiceItem[] = arr.map((b: any) => ({
+        id: b.invoiceId || b.invoiceNo || String(b._id ?? ''),
+        patient: b.patient || b.patientName || 'Patient',
+        uhid: b.uhid || '—',
+        doctor: b.doctorName || b.doctor || '—',
+        items: b.service || b.description || 'Consultation',
+        subtotal: Number(b.amount) || 0,
+        discount: 0,
+        total: Number(b.balance ?? b.amount) || 0,
+        status: b.status === 'Paid' ? 'Paid' : 'Pending',
+        time: b.createdAt ? new Date(b.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—',
+      }));
+      setBills(mapped);
     } catch {
       // Keep state
     }
@@ -78,18 +74,28 @@ export default function ClinicCashierDashboard() {
 
   const pendingBills = bills.filter(b => b.status === 'Pending');
   const paidBills = bills.filter(b => b.status === 'Paid');
+  const sumMode = (modeRe: RegExp) =>
+    rawBills.reduce((acc, b) => acc + (Array.isArray(b?.payments)
+      ? b.payments.filter((p: any) => modeRe.test(String(p?.mode ?? ''))).reduce((a: number, p: any) => a + (Number(p.amount) || 0), 0)
+      : 0), 0);
 
-  const shiftTotalCollection = 24850 + paidBills.reduce((acc, b) => acc + b.total, 0);
-  const upiTotal = 16400;
-  const cashInDrawer = Number(openingBalance) + 6250;
-  const cardTotal = 2200;
+  const shiftTotalCollection = paidBills.reduce((acc, b) => acc + b.total, 0);
+  const upiTotal = sumMode(/upi/i);
+  const cashTotal = sumMode(/cash/i);
+  const cardTotal = sumMode(/card/i);
+  const cashInDrawer = Number(openingBalance || 0) + cashTotal;
 
   const currentBillTotal = selectedBill ? Math.max(0, selectedBill.subtotal - Number(discountVal || 0)) : 0;
   const changeToReturn = paymentMode === 'cash' ? Math.max(0, Number(cashTendered || 0) - currentBillTotal) : 0;
 
-  const handleCollectPayment = () => {
+  const handleCollectPayment = async () => {
     if (!selectedBill) return;
-
+    const amount = currentBillTotal;
+    if (amount <= 0) {
+      toast.error('Amount must be greater than zero');
+      return;
+    }
+    const mode = paymentMode === 'upi' ? 'UPI' : paymentMode === 'cash' ? 'Cash' : 'Card';
     const receiptData = {
       receiptNo: `REC-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       invoiceId: selectedBill.id,
@@ -99,17 +105,26 @@ export default function ClinicCashierDashboard() {
       items: selectedBill.items,
       subtotal: selectedBill.subtotal,
       discount: Number(discountVal),
-      total: currentBillTotal,
-      mode: paymentMode.toUpperCase(),
+      total: amount,
+      mode: mode.toUpperCase(),
       date: getISTDateString(),
-      cashier: user?.name || 'Cashier Desk #1'
+      cashier: user?.name || 'Cashier',
     };
 
-    setBills(prev => prev.map(b => b.id === selectedBill.id ? { ...b, status: 'Paid', total: currentBillTotal } : b));
-    setShowReceiptModal(receiptData);
-    setSelectedBill(null);
-    setDiscountVal('0');
-    toast.success(`₹${currentBillTotal} collected via ${paymentMode.toUpperCase()} for ${receiptData.patient}!`);
+    try {
+      const res: any = await (api as any).collectBill?.(selectedBill.id, [{ mode, amount }]);
+      // The backend derives paid/balance/status; reflect that rather than invent it.
+      setBills(prev => prev.map(b => b.id === selectedBill.id ? { ...b, status: res?.balance <= 0.009 ? 'Paid' : 'Pending', total: res?.balance ?? b.total } : b));
+      setRawBills(prev => prev.map(b => String(b.invoiceId || b.invoiceNo || b._id) === selectedBill.id
+        ? { ...b, paid: (Number(b.paid) || 0) + amount, balance: res?.balance ?? Math.max(0, (Number(b.balance ?? b.amount) || 0) - amount), payments: [...(b.payments ?? []), { mode, amount, at: new Date().toISOString() }] }
+        : b));
+      setShowReceiptModal(receiptData);
+      setSelectedBill(null);
+      setDiscountVal('0');
+      toast.success(`₹${amount} collected via ${mode.toUpperCase()} for ${receiptData.patient}`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Collection failed');
+    }
   };
 
   return (
@@ -490,15 +505,15 @@ export default function ClinicCashierDashboard() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Shift Physical Cash Receipts:</span>
-                  <b>₹6,250</b>
+                  <b>₹{cashTotal.toLocaleString('en-IN')}</b>
                 </div>
-                <div className="flex justify-between">
+              <div className="flex justify-between">
                   <span className="text-muted-foreground">UPI Settlements:</span>
-                  <b>₹{upiTotal}</b>
+                  <b>₹{upiTotal.toLocaleString('en-IN')}</b>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Card POS Swipes:</span>
-                  <b>₹{cardTotal}</b>
+                  <b>₹{cardTotal.toLocaleString('en-IN')}</b>
                 </div>
                 <div className="pt-2 border-t flex justify-between font-bold text-sm">
                   <span>Total Physical Cash in Drawer:</span>
@@ -506,9 +521,9 @@ export default function ClinicCashierDashboard() {
                 </div>
               </div>
 
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-700 flex items-center gap-2">
+              <div className="p-3 bg-slate-500/10 border border-slate-500/30 rounded-2xl text-slate-700 dark:text-slate-300 flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-                <span>Zero Cash Discrepancy! Shift drawer reconciles 100% with transaction vouchers.</span>
+                <span>Review the figures above against the physical drawer count before handing the shift over.</span>
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t">
@@ -517,10 +532,10 @@ export default function ClinicCashierDashboard() {
                 </Button>
                 <Button
                   size="sm"
-                  onClick={() => {
-                    setShowShiftClose(false);
-                    toast.success('Shift closing handover statement generated & dispatched to accounts!');
-                  }}
+                    onClick={() => {
+                      setShowShiftClose(false);
+                      toast.success('Shift handover acknowledged — figures above reflect the till count.');
+                    }}
                   className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
                 >
                   Confirm Shift Handover

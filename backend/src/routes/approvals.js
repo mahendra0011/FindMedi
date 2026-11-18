@@ -80,7 +80,10 @@ router.post('/requests', authorize('staff:manage'), async (req, res) => {
   }
 });
 
-router.get('/requests', authorize('staff:manage'), async (req, res) => {
+// Pending-request READ is staff-operational headcount, not decide rights:
+// visibility for staff:read/staff:view roles (e.g. HODs) just like /staff/stats.
+// decide/delegations stay staff:manage.
+router.get('/requests', authorize('staff:manage', 'staff:read', 'staff:view'), async (req, res) => {
   try {
     const { status, mine } = req.query;
     const filter = { ...tenantFilter(req) };

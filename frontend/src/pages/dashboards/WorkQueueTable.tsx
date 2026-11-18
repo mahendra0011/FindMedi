@@ -1036,6 +1036,78 @@ export const ROLE_QUEUE_DATA: Record<string, Record<string, WorkQueueItem[]>> = 
       { id: 'BME-RAD-3', name: 'Fluoroscopy C-Arm Dose Area Product (DAP) Meter', meta: 'Annual QA Physicist Calibration Certification', detail: 'BARC licensed medical physicist calibration scheduled for Saturday', timeOrWait: 'Due in 4 Days', status: 'Inspection Due', statusColor: 'warn', primaryActionLabel: 'Schedule Physicist', primaryActionRoute: '/radiology/modalities' },
     ],
   },
+
+  nursing_supervisor: {
+    'Staffing & Shift Coverage': [
+      { id: 'STF-01', name: 'Night Shift Gap: ICU (1 RN short)', meta: 'Roster: 14 of 15 planned nurses present', detail: 'Agency float requested for 00:00-08:00 slot · May need internal redeployment from IPD', timeOrWait: 'Unresolved', status: 'Coverage Gap', statusColor: 'urgent', primaryActionLabel: 'Assign Float', primaryActionRoute: '/hospital/staff' },
+      { id: 'STF-02', name: 'Ward-3 Evening Shift: 1 Staff Nurse On Leave', meta: 'Approved leave 18 Nov · Replacement unassigned', detail: 'Day ward duty roster reassigned pending supervisor confirmation', timeOrWait: 'Pending Approval', status: 'Replacement Needed', statusColor: 'warn', primaryActionLabel: 'Confirm Assignment', primaryActionRoute: '/hospital/staff' },
+    ],
+    'Medication Error Reviews': [
+      { id: 'MED-07', name: 'LASA Incident: Heparin vs Hyoscine (Ward 2)', meta: 'Reported by Staff Nurse · Shift B', detail: 'Double-check skipped before IV preparation · No patient harm · Checklist reminder issued', timeOrWait: 'Open', status: 'Review Scheduled', statusColor: 'warn', primaryActionLabel: 'Open Error Review', primaryActionRoute: '/hospital/nursing' },
+    ],
+  },
+
+  matron: {
+    'Patient Safety Escalations': [
+      { id: 'PSE-03', name: 'Patient Fall: Bed 214 (At Risk — Post-Stroke)', meta: 'Reported 09:40 · Attending notified · Family informed', detail: 'Fall-risk band applied, neuro checks q2h, incident form signed by floor nurse', timeOrWait: 'Under Review', status: 'Safety Review', statusColor: 'urgent', primaryActionLabel: 'Sign Safety Review', primaryActionRoute: '/hospital/quality' },
+    ],
+    'Roster & Leave Approvals': [
+      { id: 'RSL-11', name: 'Leave Request: Priya Nair (Staff Nurse) — 3 days', meta: 'Casual leave · Ward 2 · 21-23 Nov', detail: 'Adequate cover arranged on shift · Approve to confirm roster', timeOrWait: 'Awaiting Approval', status: 'Pending Approval', statusColor: 'warn', primaryActionLabel: 'Approve Leave', primaryActionRoute: '/hospital/staff' },
+      { id: 'RSL-12', name: 'Annual Appraisal: 4 Grade-II Nurses Due', meta: 'Performance cycle Q3', detail: 'KPI pack prepared — attendance 96%, MAR compliance 98%, audit participation complete', timeOrWait: 'Q3 Cycle', status: 'Appraisal Ready', statusColor: 'info', primaryActionLabel: 'Sign Appraisals', primaryActionRoute: '/hospital/staff' },
+    ],
+  },
+
+  medical_director: {
+    'Critical Labs Triage': [
+      { id: 'CRL-01', name: 'Troponin I: 1.8 ng/mL (Critical) — Bed 302', meta: 'Ref: Dr. Mehta · Cardiology', detail: 'Serial troponin ordered 2h ago · Second value pending — ACS pathway activated', timeOrWait: '28 min ago', status: 'Awaiting Review', statusColor: 'urgent', primaryActionLabel: 'Review Result', primaryActionRoute: '/lab' },
+      { id: 'CRL-02', name: 'Potassium 6.2 mEq/L — Bed 117', meta: 'Ref: Dr. Rao · Medicine', detail: 'Telemetry applied · Repeat sample sent · ECG ordered', timeOrWait: '15 min ago', status: 'Under Management', statusColor: 'urgent', primaryActionLabel: 'Review Management', primaryActionRoute: '/lab' },
+    ],
+    'Discharge Summary Backlog': [
+      { id: 'DSC-04', name: '3 Summaries Pending > 24h', meta: 'Ward-2 · Cardiology & Medicine', detail: 'Patients cleared, summaries drafted, awaiting final doctor countersignature', timeOrWait: '> 24h Overdue', status: 'Awaiting Signature', statusColor: 'warn', primaryActionLabel: 'Sign Summaries', primaryActionRoute: '/ipd' },
+    ],
+  },
+
+  cmo: {
+    'MDT Case Reviews': [
+      { id: 'MDT-02', name: 'Complex Case: Suspected Lung Ca, MDT Board', meta: 'Dr. Verma (Oncology) · Dr. Iyer (Radiology) · Pathology', detail: 'Stage III NSCLC — PET-CT done · Consensus on concurrent chemoradiotherapy', timeOrWait: 'This Week', status: 'Board Scheduled', statusColor: 'warn', primaryActionLabel: 'Review Case', primaryActionRoute: '/hospital/quality' },
+    ],
+    'Pathway Compliance Audits': [
+      { id: 'PATH-05', name: 'Sepsis Bundle Compliance: 82% (Target 95%)', meta: '72h Review · Jan-Mar Cohort', detail: 'Antibiotic within 1h: 91% · Lactate <2h: 74% · Fluids: 88% · Improvement plan drafted', timeOrWait: 'Quarterly', status: 'Below Target', statusColor: 'warn', primaryActionLabel: 'Open Action Plan', primaryActionRoute: '/hospital/quality' },
+    ],
+  },
+
+  compliance_officer: {
+    'CAPA Action Item Tracker': [
+      { id: 'CAPA-33', name: 'DSR Response SLA: 72h Response Clock Breach', meta: 'Flagged by DPO · Request #1032', detail: 'Acknowledgement sent at hour 68 · Root cause: weekend desk staffing gap · Escalation to 4-eyes approval', timeOrWait: 'Action Active', status: 'In Progress', statusColor: 'urgent', primaryActionLabel: 'Close Action', primaryActionRoute: '/superadmin/legal' },
+      { id: 'CAPA-21', name: 'OT Consent Form Versioning: CP-11 Mismatch', meta: 'Registry audit · Template CP-10 in use', detail: 'All 14 OT consent forms re-printed to CP-11 · Old stock sealed and logged', timeOrWait: '90% Complete', status: 'Verification Pending', statusColor: 'warn', primaryActionLabel: 'Verify Closure', primaryActionRoute: '/superadmin/compliance' },
+    ],
+    'DPDP Data-Subject Requests': [
+      { id: 'DSR-017', name: 'Erasure Request: Patient UHID 88123 (Approved)', meta: 'Received 12 Nov · Type: Erasure', detail: 'Privacy queue fulfilled · Firebase-like audit trail written · Deletion certificate generated', timeOrWait: 'Fulfilled', status: 'Completed', statusColor: 'success', primaryActionLabel: 'Export Certificate', primaryActionRoute: '/superadmin/legal' },
+      { id: 'DSR-021', name: 'Access Request: Patient UHID 77415 (Pending)', meta: 'Received 17 Nov · Type: Access', detail: 'Fulfillment packet staged — appointment, billing, lab reports · Awaiting 4-eyes approval', timeOrWait: '48h Remaining', status: 'Awaiting Approval', statusColor: 'warn', primaryActionLabel: 'Approve Packet', primaryActionRoute: '/superadmin/legal' },
+    ],
+    'Licence Renewal Register': [
+      { id: 'LIC-09', name: 'NABL Lab Accreditation: Renewal Filed', meta: 'Expires 31 Dec 2026', detail: 'Documents uploaded · Assessment visit scheduled for December · Renewal fee paid', timeOrWait: 'Filed', status: 'In Review', statusColor: 'info', primaryActionLabel: 'Track Status', primaryActionRoute: '/superadmin/compliance' },
+    ],
+    'Accreditation Gaps': [
+      { id: 'ACR-07', name: 'NABH Entry-Level: 6 Objective Elements Pending', meta: 'Chapters COP & IPC', detail: 'Hand hygiene audit, BLS training records, consent versioning — evidence pending upload', timeOrWait: '2 Weeks Left', status: 'Below Threshold', statusColor: 'warn', primaryActionLabel: 'Upload Evidence', primaryActionRoute: '/superadmin/compliance' },
+    ],
+  },
+
+  dietician_head: {
+    'Dietitian Review Queue': [
+      { id: 'DTR-01', name: 'Renal Diet Order: Bed 118 — CKD Stage 4', meta: 'Ref: Dr. Iyer · Nephrology', detail: 'Protein 0.8g/kg · Na 2g · K 2g · Fluid 1.5L · Requires renal dietician sign-off today', timeOrWait: 'Awaiting Review', status: 'Pending Sign-off', statusColor: 'warn', primaryActionLabel: 'Review Order', primaryActionRoute: '/hospital/diet-kitchen' },
+      { id: 'DTR-02', name: 'Enteral Feed Plan: Bed 205 — Post-TBI', meta: 'Ref: Dr. Menon · Critical Care', detail: 'Polymeric feed 1.2 kcal/ml · 40ml/h · Gastric residual q6h · Glycemic target 140-180', timeOrWait: 'Awaiting Review', status: 'Pending Sign-off', statusColor: 'warn', primaryActionLabel: 'Review Order', primaryActionRoute: '/hospital/diet-kitchen' },
+    ],
+    'Special Diet Orders': [
+      { id: 'SDO-01', name: 'Diabetic Diet: 14 Trays (Ward 2 & 3)', meta: 'Calorie 1800 kcal · Carbs 220g · Morning 06:00', detail: 'Consistency check passed · Tray cards printed · Nadra kitchen dispatched', timeOrWait: 'In Progress', status: 'Being Prepared', statusColor: 'info', primaryActionLabel: 'Track Dispatch', primaryActionRoute: '/hospital/diet-kitchen' },
+    ],
+    'Kitchen Coordination': [
+      { id: 'KIT-05', name: 'NPO List: 3 Patients (Beds 112, 209, 301)', meta: 'Fasting for procedures today', detail: 'Morning trays held · Kitchen notified · Resume-feed orders for 14:00', timeOrWait: 'Today', status: 'Kitchen Notified', statusColor: 'warn', primaryActionLabel: 'Confirm NPO', primaryActionRoute: '/hospital/diet-kitchen' },
+    ],
+    'Nutrition Escalations': [
+      { id: 'NUT-01', name: 'Weight Loss > 5% in 2 Weeks: Bed 141', meta: 'PGY patient · Unintended loss flagged', detail: 'Dietitian re-assessment scheduled · Calorie intake reviewing · Oncoteam notified', timeOrWait: 'Scheduled', status: 'In Assessment', statusColor: 'urgent', primaryActionLabel: 'Re-Assess Patient', primaryActionRoute: '/hospital/diet-kitchen' },
+    ],
+  },
 };
 
 export default function WorkQueueTable({ roleKey, workQueues }: WorkQueueTableProps) {
@@ -1065,7 +1137,7 @@ export default function WorkQueueTable({ roleKey, workQueues }: WorkQueueTablePr
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [effectiveRole]);
 
   // Fuzzy key match so near-identical queue names still hit curated data

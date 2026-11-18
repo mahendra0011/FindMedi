@@ -76,8 +76,8 @@ export default function HospitalDoctors() {
       setLoading(true);
       try {
         const [hosp, docs] = await Promise.all([
-          api.getHospital(hospitalId),
-          api.getDoctors({ hospitalId }),
+          hospitalId ? api.getHospital(hospitalId) : Promise.resolve(null),
+          api.getDoctors(hospitalId ? { hospitalId } : {}),
         ]);
         setHospital(hosp);
         const docList = Array.isArray(docs) ? docs : (docs?.doctors || docs?.data || []);

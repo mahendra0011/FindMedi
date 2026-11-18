@@ -109,7 +109,7 @@ router.get('/', protect, authorize('staff:manage'), async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/stats', protect, authorize('staff:manage'), async (req, res) => {
+router.get('/stats', protect, authorize('staff:manage', 'staff:read', 'staff:view'), async (req, res) => {
   // ADM-B-02: headcount per department is tenant data.
   if (denyIfTenantless(req, res)) return;
   const filter = { status: 'Active', ...staffScopeFilter(req) };

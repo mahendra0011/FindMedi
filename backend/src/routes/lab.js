@@ -161,7 +161,7 @@ const labPackageSchema = z.object({
 const router = express.Router();
 
 // ─── Doctor: Create Lab Order ──────────────────────────────────────────────
-router.post('/orders', protect, denyPlatformClinicalAccess, authorize('lab:book', 'lab:book:own'), validate(createLabOrderSchema), async (req, res) => {
+router.post('/orders', protect, denyPlatformClinicalAccess, authorize('lab:book', 'lab:book:own', 'lab:order'), validate(createLabOrderSchema), async (req, res) => {
   try {
     const { patientId: bodyPatientId, patientName, tests, clinicalNotes, priority, encounterId } = req.body;
     if (!tests?.length) {

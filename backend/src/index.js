@@ -949,7 +949,10 @@ app.use('/api/provider/dental', dentalRoutes);
 // 7.md:3.2 eye exams, optical job cards, surgery pipeline — same guards.
 app.use('/api/provider/eye', eyeRoutes);
 // 7.md:3.16 dialysis sessions + water-quality logs — same guards.
+// Also mounted at /api/dialysis because the hospital dialysis operations page
+// (/hospital/dialysis) calls those paths directly.
 app.use('/api/provider/dialysis', dialysisRoutes);
+app.use('/api/dialysis', dialysisRoutes);
 // 7.md:3.17 fertility cycles + audited outcome reporting — same guards.
 app.use('/api/provider/fertility', fertilityRoutes);
 // 7.md:39 doctor CME tracker — scoped to the caller's own Doctor profiles.

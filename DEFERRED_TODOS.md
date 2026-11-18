@@ -102,3 +102,9 @@ Code base se audit md files hatane ke baad yehi ek source of truth hai.
 - **Status (2026-11-15):** DONE code-side. One joint change landed in mindsupport: session notes (MindAppointment.notes), journal entries (MindJournal title+content) and prescriptions (MindPrescription diagnosis/notes/medicines[].notes) now encrypt on write via Mongoose save hooks and decrypt on every read path (dual-read; legacy AES-256-CBC rows still decrypt). New writes are AES-256-GCM v2 (integrity-protected) via `mindsupport/src/fieldCrypto.js`. Verified end-to-end against in-memory Mongo (encrypt->store->read->decrypt roundtrip for all four fields + legacy CBC compatibility + re-save idempotency). Journal viewer fixed to decrypt (normalizeJournal), including the counsellor excerpt path.
 - **Baki (human):** clinician sign-off on the read paths (decrypt -> render is loss-free) before flipping any flag; provision `NOTES_ENCRYPTION_KEY` in production (currently falls back to JWT_SECRET with a warning); extend same encryption pass to intake forms + consent forms + assessments (plaintext T1 today) with the same dual-read pattern.
 - **Blocked on:** clinical advisor/clinician sign-off; production key provisioning (Ops).
+
+## 15. Release gate mapping (docs/qa-release.md)
+- Ye file ke items ship karne se pehle QA & Release Process ke gates se guzarte hain.
+- See docs/qa-release.md � test plan, traceability (finding -> evidence), release
+  checklist, versioning/changelog policy, and the migration & breaking-change
+  policy. This file is the deferred-work ledger; that file is the process.

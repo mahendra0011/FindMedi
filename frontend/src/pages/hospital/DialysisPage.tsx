@@ -97,9 +97,15 @@ export default function DialysisPage() {
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      // Fetch recent sessions or water quality logs
-      const res: any = await api.get('/dialysis/sessions?limit=50').catch(() => ({ data: { sessions: [] } }));
-      setSessions(res.data?.sessions || []);
+      // Fetch recent sessions owned by this dialysis-centre (facility worklist).
+      // The old call hit the patient-scoped /sessions endpoint which requires a
+      // patientId — it always 400ed for the unit-wide list.
+      const res: any = await api.get('/dialysis/worklist?limit=50').catch(() => ({ data: { sessions: [] } }));
+      const list = Array.isArray(res?.data?.sessions) ? res.data.sessions
+        : Array.isArray(res?.sessions) ? res.sessions
+        : Array.isArray(res) ? res
+        : [];
+      setSessions(list);
     } catch {
       // Graceful fallback
     } finally {

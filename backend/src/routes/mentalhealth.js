@@ -203,6 +203,43 @@ router.post('/referrals', protect, validate(createMentalHealthReferralSchema), v
   } catch (err) { sendServerError(res, err, 'Could not create the referral'); }
 });
 
+// Root case list for the hospital mental-health console. Same tenancy and
+// clinical-role rules as /referrals — platform roles (incl. superadmin) pass
+// only with a break-glass grant on the record-level reads, never here.
+router.get('/', protect, async (req, res) => {
+  try {
+    if (!MENTAL_HEALTH_CLINICAL_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Mental-health referral access required' });
+    }
+    const tenantId = req.user.hospitalId || req.user.facilityId;
+    if (!tenantId) return res.status(403).json({ message: 'Facility scope required' });
+    const filter = { hospitalId: tenantId };
+    const { status, search } = req.query;
+    if (status && status !== 'All') filter.status = status;
+    if (search) {
+      filter.$or = [
+        { referralId: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { patientName: new RegExp(escapeRegex(capSearch(search)), 'i') },
+      ];
+    }
+    const docs = await MentalHealth.find(filter)
+      .select('referralId patientId patientName referralSource status assessment treatmentType sessions createdAt hospitalId')
+      .sort({ createdAt: -1 }).limit(200).lean();
+    const cases = docs.map((d) => ({
+      _id: d._id,
+      patientName: d.patientName,
+      diagnosis: d.assessment?.diagnosis,
+      riskLevel: d.assessment?.riskAssessment || 'Low',
+      source: d.referralSource,
+      status: d.status,
+      sessions: (d.sessions || []).length,
+      confidentiality: { consentGiven: true },
+      createdAt: d.createdAt,
+    }));
+    return res.json({ cases, total: cases.length });
+  } catch (err) { sendServerError(res, err, 'Could not load mental-health cases'); }
+});
+
 // File 23 §3.3: referral LISTS carry patient identity — platform roles
 // (incl. superadmin) pass only with an approved break-glass grant.
 // Aggregates live on GET /referrals/stats (no identities, k-anonymous).

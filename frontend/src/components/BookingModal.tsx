@@ -36,7 +36,7 @@ export default function BookingModal({
   const [repeatFreq, setRepeatFreq] = useState<'none' | 'weekly' | 'biweekly' | 'monthly'>('none');
   const [repeatCount, setRepeatCount] = useState(4);
   const [bookingLoading, setBookingLoading] = useState(false);
-  const [bookedSlots, setBookedSlots] = useState<ApiRow[]>([]);
+  const [_bookedSlots, setBookedSlots] = useState<ApiRow[]>([]);
   const [lockedSlots, setLockedSlots] = useState<ApiRow[]>([]);
   const [lockingSlot, setLockingSlot] = useState(false);
   const [slotCounts, setSlotCounts] = useState<ApiRow>({});
@@ -268,7 +268,7 @@ export default function BookingModal({
     return { ...p, displayPrice: adj, perSessionDisplay: p.sessions > 0 ? Math.round(adj / p.sessions) : adj, originalPrice: p.price };
   }), [providerPlans, modeFeeRatio]);
   const hasPackages = providerPlans.length > 0;
-  const selectedPackageBase = selectedPackageId === 'single' ? null : (providerPlans.find(p => p.id === selectedPackageId) || null);
+  const _selectedPackageBase = selectedPackageId === 'single' ? null : (providerPlans.find(p => p.id === selectedPackageId) || null);
   const selectedPackage = selectedPackageId === 'single' ? null : (adjustedProviderPlans.find(p => p.id === selectedPackageId) || null);
   // Single session fee bhi mode-aware (counsellor ke liye bhi video < chat < audio alag)
   const singleFee = currentFee || Number(currentDoc?.consultation_fees || currentDoc?.fees || 0);
@@ -940,7 +940,7 @@ export default function BookingModal({
                   <option value="">Choose hour</option>
                   {hourGroups.map(([hourLabel, hourSlots]) => {
                     const allUnavailable = hourSlots.every(s => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s));
-                    const avail = hourSlots.filter(s => !isSlotFull(s) && !isSlotDisabled(s) && !isSlotPendingUpdate(s)).length;
+                    const _avail = hourSlots.filter(s => !isSlotFull(s) && !isSlotDisabled(s) && !isSlotPendingUpdate(s)).length;
                     return (
                       <option key={hourLabel} value={hourLabel} disabled={allUnavailable}>
                         {hourLabel}{allUnavailable ? ' (Full)' : ''}

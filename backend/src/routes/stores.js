@@ -48,6 +48,18 @@ router.post('/stores', authorize('inventory:manage'), async (req, res) => {
   }
 });
 
+// List indents for the caller's hospital (Purchase Center worklist).
+// authz: role
+router.get('/indents', authorize('inventory:manage'), async (req, res) => {
+  try {
+    const rows = await Indent.find(tenantFilter(req)).sort({ createdAt: -1 }).limit(200).lean();
+    return res.json({ indents: rows, total: rows.length });
+  } catch (err) {
+    logger.error(`Indent list error: ${err.message}`);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 router.post('/indents', authorize('inventory:manage'), async (req, res) => {
   try {
     const { fromStoreId, toStoreId, items } = req.body || {};

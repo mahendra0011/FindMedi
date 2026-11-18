@@ -14,7 +14,7 @@
 ## Summary
 
 - **351 models** across 343 files (0 skipped)
-- **7816 schema fields**, of which **813 classified as PII** in **249 collections**
+- **7822 schema fields**, of which **813 classified as PII** in **249 collections**
 - **10 collections** carry a TTL index
 - **129 collections** hold PII but map to no retention class in RETENTION.md (gaps below)
 
@@ -336,7 +336,7 @@
 | `schedulechangerequests` | ScheduleChangeRequest | 35 | 2 | 1 | — | **UNMAPPED — see gaps** |
 | `secondopinionrequests` | SecondOpinionRequest | 14 | 3 | 6 | — | **UNMAPPED — see gaps** |
 | `securityrounds` | SecurityRound | 16 | 1 | 5 | — | **UNMAPPED — see gaps** |
-| `servicecities` | ServiceCity | 8 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
+| `servicecities` | ServiceCity | 14 | 0 | 2 | — | Operational config (organization/catalog record — not personal data) |
 | `serviceprices` | ServicePrice | 18 | 0 | 4 | — | Operational config (organization/catalog record — not personal data) |
 | `services` | Service | 34 | 0 | 7 | — | No PII fields detected |
 | `shifthandovers` | ShiftHandover | 16 | 1 | 3 | — | Clinical records |
@@ -12048,6 +12048,12 @@ source `ServiceCity.js` · timestamps: yes · virtuals: 0 · retention: n/a — 
 | `isActive` | Boolean |  |  | true |  |  |  |
 | `centerLat` | Number |  |  | 23.1815 |  |  |  |
 | `centerLng` | Number |  |  | 79.9864 |  |  |  |
+| `launchGate.minProviders` | Number |  |  | 15 |  |  |  |
+| `launchGate.minFillRatePct` | Number |  |  | 60 |  |  |  |
+| `launchGate.minRepeatPct` | Number |  |  | 20 |  |  |  |
+| `launchGate.maxOpenTickets` | Number |  |  | 10 |  |  |  |
+| `launchGate.maxPayoutFailPct` | Number |  |  | 1 |  |  |  |
+| `launchGate.lastGateReview` | Date |  |  | null |  |  |  |
 | `createdAt` | Date |  |  |  |  |  |  |
 | `updatedAt` | Date |  |  |  |  |  |  |
 | `__v` | Number |  |  |  |  |  |  |

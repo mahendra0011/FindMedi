@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+
+
 import {
   Heart, Activity, CheckCircle2, AlertTriangle, Users, Clock,
   Plus, Save, RotateCcw, Syringe, Scissors, Pill, AlertCircle,
@@ -32,7 +32,7 @@ interface VitalsPatient {
     sugarRbs: string;
     heightCm: string;
     weightKg: string;
-    bmi: number;
+    bmi: number | null;
     painScore: number;
     abnormalNotes: string;
   };
@@ -40,39 +40,62 @@ interface VitalsPatient {
 
 export default function ClinicNurseDashboard() {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
-  const [queue, setQueue] = useState<VitalsPatient[]>([
-    { id: '1', token: '04', patient: 'Sunita Rao', uhid: 'UH-2026-1014', age: 28, gender: 'Female', doctor: 'Dr. Priya Patel', status: 'Vitals Pending' },
-    { id: '2', token: '07', patient: 'Karan Mehra', uhid: 'UH-2026-1013', age: 71, gender: 'Male', doctor: 'Dr. Ramesh Sharma', status: 'Vitals Pending' },
-    { id: '3', token: '08', patient: 'Vikram Joshi', uhid: 'UH-2026-1018', age: 49, gender: 'Male', doctor: 'Dr. Vivek Verma', status: 'Vitals Pending' },
-  ]);
+  const [queue, setQueue] = useState<VitalsPatient[]>([]);
 
-  const [selectedPatient, setSelectedPatient] = useState<VitalsPatient>(queue[0]);
+  const [selectedPatient, setSelectedPatient] = useState<VitalsPatient | null>(null);
 
-  const [procedures, setProcedures] = useState([
-    { id: 'p1', patient: 'Karan Mehra', procedure: 'Tetanus Toxoid (TT) 0.5ml IM', room: 'Injection Room', status: 'Pending', nurse: user?.name || 'Staff Nurse' },
-    { id: 'p2', patient: 'Anil Kumar', procedure: 'Nebulization (Duolin + Budecort)', room: 'Procedure Room #1', status: 'In Progress', nurse: user?.name || 'Staff Nurse' },
-    { id: 'p3', patient: 'Sunita Devi', procedure: 'Sterile Wound Dressing & Antiseptic', room: 'Minor OT Room', status: 'Ready', nurse: user?.name || 'Staff Nurse' },
-  ]);
+  const [procedures, setProcedures] = useState<{ id: string; patient: string; procedure: string; room: string; status: string; nurse: string }[]>([]);
+
+  const loadQueue = async () => {
+    try {
+      const getIST = () => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      };
+      const res: any = await api.getAppointments({ date: getIST() }).catch(() => null);
+      const list = Array.isArray(res) ? res : res?.data || res?.appointments || [];
+      const mapped: VitalsPatient[] = list
+        .filter((a: any) => !/completed|cancel|no.?show|discharg/i.test(String(a?.status ?? '')))
+        .map((a: any) => ({
+          id: String(a?._id ?? a?.tokenNumber ?? ''),
+          token: String(a?.tokenNumber ?? ''),
+          patient: a?.patient || a?.patientName || 'Patient',
+          uhid: a?.uhid || '—',
+          age: Number(a?.age) || 0,
+          gender: a?.gender || '—',
+          doctor: a?.doctorName || a?.doctor || '—',
+          status: 'Vitals Pending' as const,
+        }));
+      setQueue(mapped);
+      if (mapped.length > 0 && !selectedPatient) setSelectedPatient(mapped[0]);
+    } catch {
+      // Keep state
+    }
+  };
+
+  useEffect(() => {
+    loadQueue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [vitalsForm, setVitalsForm] = useState({
-    bpSys: '120',
-    bpDia: '80',
-    pulse: '76',
-    temp: '98.6',
-    spo2: '99',
-    heightCm: '170',
-    weightKg: '68',
-    sugarRbs: '110',
-    painScore: '2',
+    bpSys: '',
+    bpDia: '',
+    pulse: '',
+    temp: '',
+    spo2: '',
+    heightCm: '',
+    weightKg: '',
+    sugarRbs: '',
+    painScore: '',
     notes: ''
   });
 
-  // Calculate live BMI
+  // Calculate live BMI (blank until measured)
   const heightM = Number(vitalsForm.heightCm) / 100;
   const weightKg = Number(vitalsForm.weightKg);
-  const bmi = heightM > 0 && weightKg > 0 ? Math.round((weightKg / (heightM * heightM)) * 10) / 10 : 23.5;
+  const bmi = heightM > 0 && weightKg > 0 ? Math.round((weightKg / (heightM * heightM)) * 10) / 10 : null;
 
   const getBmiCategory = (val: number) => {
     if (val < 18.5) return { label: 'Underweight', color: 'text-amber-600' };
@@ -145,23 +168,13 @@ export default function ClinicNurseDashboard() {
     setQueue(prev => prev.map(p => p.id === selectedPatient.id ? updatedPatient : p));
     setSelectedPatient(updatedPatient);
 
-    // Background push to API
-    api.post('/vitals', {
-      patientId: selectedPatient.id,
-      patientName: selectedPatient.patient,
-      bp: `${vitalsForm.bpSys}/${vitalsForm.bpDia}`,
-      pulse: vitalsForm.pulse,
-      temp: vitalsForm.temp,
-      spo2: vitalsForm.spo2,
-      bmi,
-      bloodSugar: vitalsForm.sugarRbs,
-      isAbnormal: hasAbnormalAlert,
-    }).catch(() => null);
-
+    // Note: there is no outpatient vitals-persistence endpoint yet — the IPD
+    // nursing charting routes apply to admitted patients only, and /api/vitals
+    // expects a different contract. Recorded here for the current desk session.
     if (hasAbnormalAlert) {
-      toast.warning(`⚠️ Abnormal vitals recorded for ${selectedPatient.patient}: ${abnormalNotes}. Flagged on doctor workstation!`);
+      toast.warning(`Abnormal vitals for ${selectedPatient.patient}: ${abnormalNotes}`);
     } else {
-      toast.success(`✅ Vitals recorded for ${selectedPatient.patient}! Transmitted to ${selectedPatient.doctor}'s EMR screen.`);
+      toast.success(`Vitals recorded for ${selectedPatient.patient}`);
     }
   };
 
@@ -224,7 +237,7 @@ export default function ClinicNurseDashboard() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium">Abnormal Flags</p>
-              <p className="text-2xl font-bold text-amber-700">{queue.filter(q => q.status === 'Alert Flagged').length + (hasAbnormalAlert ? 1 : 0)}</p>
+              <p className="text-2xl font-bold text-amber-700">{queue.filter(q => q.status === 'Alert Flagged').length}</p>
             </div>
           </CardContent>
         </Card>
@@ -236,7 +249,7 @@ export default function ClinicNurseDashboard() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium">Vitals Recorded Today</p>
-              <p className="text-2xl font-bold text-emerald-700">34</p>
+              <p className="text-2xl font-bold text-emerald-700">{queue.filter(q => q.status === 'Recorded').length}</p>
             </div>
           </CardContent>
         </Card>
@@ -253,6 +266,11 @@ export default function ClinicNurseDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-3 space-y-2 max-h-[580px] overflow-y-auto">
+              {queue.length === 0 && (
+                <div className="p-4 rounded-2xl border border-dashed border-border/70 text-center text-xs text-muted-foreground">
+                  No patients awaiting vitals — today's appointment list is empty.
+                </div>
+              )}
               {queue.map(p => {
                 const isSelected = selectedPatient?.id === p.id;
                 return (
@@ -302,6 +320,9 @@ export default function ClinicNurseDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-3 space-y-2.5">
+              {procedures.length === 0 && (
+                <p className="text-xs text-muted-foreground p-3">No procedures queued for this shift.</p>
+              )}
               {procedures.map(proc => (
                 <div key={proc.id} className="p-3 rounded-2xl border bg-muted/15 text-xs space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -476,10 +497,10 @@ export default function ClinicNurseDashboard() {
                   <div>
                     <span className="text-xs text-muted-foreground font-medium block">Body Mass Index (BMI):</span>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <b className="text-foreground font-black text-lg">{bmi} kg/m²</b>
-                      <Badge variant="outline" className={`text-xs ${getBmiCategory(bmi).color}`}>
-                        {getBmiCategory(bmi).label}
-                      </Badge>
+                      <b className="text-foreground font-black text-lg">{bmi == null ? '— kg/m²' : `${bmi} kg/m²`}</b>
+                      {bmi == null
+                        ? <Badge variant="outline" className="text-xs">Enter height & weight</Badge>
+                        : <Badge variant="outline" className={`text-xs ${getBmiCategory(bmi).color}`}>{getBmiCategory(bmi).label}</Badge>}
                     </div>
                   </div>
                   <Gauge className="w-8 h-8 text-muted-foreground/30" />
