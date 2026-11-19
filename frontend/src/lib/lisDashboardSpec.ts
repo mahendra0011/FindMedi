@@ -585,6 +585,7 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
     ],
     alerts: [
       { level: 'info', message: 'FNAC clinic outpatient scheduled at 11:00 AM (Thyroid nodule)' },
+      { level: 'info', message: 'Live alert feed not connected yet — verify critical values in the work queue.' },
     ],
     domainModules: [
       { id: 'LIS-17', name: 'Cytology Workbench', route: '/lab/worklist/Cytology' },
@@ -619,6 +620,7 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
     ],
     alerts: [
       { level: 'danger', message: 'HBsAg Reactive (COI 48.2) on Specimen #SER-9941 — Repeat in duplicate and flag for verification' },
+      { level: 'info', message: 'Live alert feed not connected yet — verify critical values in the work queue.' },
     ],
     domainModules: [
       { id: 'LIS-18', name: 'Serology & Immunoassay Workbench', route: '/lab/worklist/Serology' },
@@ -654,6 +656,7 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
     ],
     alerts: [
       { level: 'warning', message: 'Thermal Cycler 2 run completing in 18 minutes — Prepare Ct value review' },
+      { level: 'info', message: 'Live alert feed not connected yet — verify critical values in the work queue.' },
     ],
     domainModules: [
       { id: 'LIS-19', name: 'Molecular Diagnostics & RT-PCR', route: '/lab/worklist/Molecular' },
@@ -813,6 +816,7 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
     ],
     alerts: [
       { level: 'info', message: 'Automated wash cycle completed on Hematology Sysmex Cell Counter' },
+      { level: 'info', message: 'Live alert feed not connected yet — verify critical values in the work queue.' },
     ],
     domainModules: [
       { id: 'LIS-23', name: 'Analyzer Interfacing & ASTM/HL7', route: '/hospital/analyzer-emulator' },
@@ -886,6 +890,7 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
     ],
     alerts: [
       { level: 'info', message: 'Upcoming visit in 20 min: Rajesh Patel (Fasting Blood Sugar + Lipid Profile)' },
+      { level: 'info', message: 'Live alert feed not connected yet — verify critical values in the work queue.' },
     ],
     domainModules: [
       { id: 'LIS-29', name: 'Home Sample Collection Logistics', route: '/lab/home-collection' },
@@ -921,6 +926,7 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
     ],
     alerts: [
       { level: 'warning', message: 'Report delivery failed for 1 queued SMS (gateway bounced) — verify contact number' },
+      { level: 'info', message: 'Live alert feed not connected yet — verify critical values in the work queue.' },
     ],
     domainModules: [
       { id: 'LIS-31', name: 'Report Center & Versioned Delivery', route: '/lab/reports' },

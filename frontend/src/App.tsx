@@ -967,7 +967,7 @@ function RoleDashboard() {
   if (CLINIC_OPS_ROLES.includes(user?.role ?? '')) return <Navigate to="/clinic/admin" replace />;
   const specialtyPath = SPECIALTY_DASHBOARD_PATHS[user?.role ?? ''];
   if (specialtyPath) return <Navigate to={specialtyPath} replace />;
-  if (['nursing_supervisor', 'matron', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse'].includes(user?.role ?? '')) return <StaffDashboard />;
+  if (['nursing_supervisor', 'matron', 'ward_nurse', 'icu_nurse', 'ot_nurse', 'infection_control_nurse'].includes(user?.role ?? '')) return <Navigate to={`/dashboards/${user?.role}`} replace />;
   if (['surgeon', 'anaesthetist'].includes(user?.role ?? '')) return <DoctorDashboard />;
   if (user?.role === 'ot_technician') return <Navigate to="/ot/board" replace />;
   if (user?.role === 'cssd_technician') return <Navigate to="/cssd" replace />;
@@ -987,14 +987,14 @@ function RoleDashboard() {
   if (user?.role === 'lawyer') return <Navigate to="/lawyer/dashboard" replace />;
   if (user?.role === 'lab_owner') return <Navigate to="/lab-business/dashboard" replace />;
   if (user?.role === 'pharmacy_owner') return <Navigate to="/pharmacy-business/dashboard" replace />;
-  if (['nurse','pharmacist','lab_receptionist','lab_technician','pathologist','radiologist','dietitian','physiotherapist','counselor','accountant','security','technician','helper'].includes(user?.role ?? '')) return <StaffDashboard />;
+  if (['nurse','pharmacist','lab_receptionist','lab_technician','pathologist','radiologist','dietitian','physiotherapist','counselor','accountant','security','technician','helper'].includes(user?.role ?? '')) return <Navigate to={`/dashboards/${user?.role}`} replace />;
   // File 22 P0-8: operations roles without a dedicated console fall back to
   // the generic staff console (fail-soft widgets) instead of PatientDashboard.
-  if (['ward_boy','housekeeping_supervisor','mortuary_attendant','dietician_head','kitchen_staff','biomedical_engineer','maintenance','store_keeper','purchase_officer','ot_technician','cssd_technician'].includes(user?.role ?? '')) return <StaffDashboard />;
+  if (['ward_boy','housekeeping_supervisor','mortuary_attendant','dietician_head','kitchen_staff','biomedical_engineer','maintenance','store_keeper','purchase_officer','ot_technician','cssd_technician'].includes(user?.role ?? '')) return <Navigate to={`/dashboards/${user?.role}`} replace />;
   // File 22 P0-8: every remaining canonical role is staff — only the patient
   // role (or an unidentified session) gets the patient dashboard.
   if (!user?.role || user.role === 'patient') return <PatientDashboard />;
-  return <StaffDashboard />;
+  return <Navigate to={`/dashboards/${user.role}`} replace />;
 }
 
 function MindDashboardShell() {

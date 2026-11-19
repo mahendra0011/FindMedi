@@ -274,6 +274,7 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
     ],
     alerts: [
       { level: 'info', message: 'MRI 1.5T calendar booked to 95% capacity for today — emergency buffer remaining' },
+      { level: 'info', message: 'Live alert feed not connected yet — verify critical values in the work queue.' },
     ],
     domainModules: [
       { id: 'RIS-07', name: 'Appointment Scheduling', route: '/radiology/scheduling' },
@@ -429,6 +430,7 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
     ],
     alerts: [
       { level: 'info', message: 'Portable X-ray requested for ICU Bed 201 (Post-Op Day 1)' },
+      { level: 'info', message: 'Live alert feed not connected yet — verify critical values in the work queue.' },
     ],
     domainModules: [
       { id: 'RIS-09', name: 'X-Ray Unit Management', route: '/radiology/xray' },
@@ -504,6 +506,7 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
     ],
     alerts: [
       { level: 'info', message: 'Patient Pooja Nair full bladder confirmed — ready in Ultrasound Room 2' },
+      { level: 'info', message: 'Live alert feed not connected yet — verify critical values in the work queue.' },
     ],
     domainModules: [
       { id: 'RIS-11', name: 'Ultrasound Examination Unit', route: '/radiology/ultrasound' },
@@ -538,6 +541,7 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
     ],
     alerts: [
       { level: 'info', message: 'Patient Sunita Devi 2024 prior mammogram linked for radiologist comparison' },
+      { level: 'info', message: 'Live alert feed not connected yet — verify critical values in the work queue.' },
     ],
     domainModules: [
       { id: 'RIS-13', name: 'Mammography Unit', route: '/radiology/mammography' },
@@ -614,6 +618,7 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
     ],
     alerts: [
       { level: 'info', message: '4 Voice dictations uploaded by Dr. Sen for CT Abdomen series' },
+      { level: 'info', message: 'Live alert feed not connected yet — verify critical values in the work queue.' },
     ],
     domainModules: [
       { id: 'RIS-18', name: 'Transcription & Draft Desk', route: '/radiology/reports' },
@@ -688,6 +693,7 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
     ],
     alerts: [
       { level: 'info', message: 'Pre-auth cashless clearance received for TPA Claim #TPA-9912 (MRI Knee)' },
+      { level: 'info', message: 'Live alert feed not connected yet — verify critical values in the work queue.' },
     ],
     domainModules: [
       { id: 'RIS-22', name: 'Radiology Invoicing & Cashier', route: '/billing' },

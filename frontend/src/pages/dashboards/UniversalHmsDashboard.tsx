@@ -11,7 +11,32 @@ import { getHmsDashboardSpec } from '@/lib/hmsDashboardSpec';
 import { getCmsDashboardSpec } from '@/lib/cmsDashboardSpec';
 import { getLisDashboardSpec } from '@/lib/lisDashboardSpec';
 import { getRisDashboardSpec } from '@/lib/risDashboardSpec';
+import { getPlatformDashboardSpec } from '@/lib/platformTrustDashboardSpec';
+import { getMarketplaceDashboardSpec } from '@/lib/marketplaceDashboardSpec';
 import { useLiveKpis, fetchRoleLiveKpis } from './useLiveKpis';
+import type { RoleDashboardConfig } from './RoleDashboardShell';
+
+function buildUnconfiguredSpec(roleKey: string): RoleDashboardConfig {
+  return {
+    roleKey,
+    title: 'Dashboard not configured yet',
+    subtitle: `No dashboard layout is configured for "${roleKey}". Ask an administrator to assign a valid role.`,
+    permissions: [],
+    kpis: [
+      { label: 'Assigned Role', value: roleKey, hint: 'Role key received from your account' },
+      { label: 'Open Tasks', value: '—', hint: 'No task source linked' },
+      { label: 'Alerts', value: '—', hint: 'No alert source linked' },
+      { label: 'Pending Items', value: '—', hint: 'No queue source linked' },
+    ],
+    tasks: [],
+    alerts: [
+      { id: 'unconfigured-role', text: 'This role has no dashboard layout yet.', level: 'warn' },
+    ],
+    workQueues: [],
+    quickActions: [],
+    domainModules: [],
+  };
+}
 
 export interface UniversalHmsDashboardProps {
   roleKey?: string;
@@ -42,15 +67,18 @@ export default function UniversalHmsDashboard({ roleKey: propRoleKey }: Universa
   } else if (isRisRole) {
     spec = getRisDashboardSpec(activeRole);
   } else {
-    spec = getHmsDashboardSpec(activeRole);
+    spec =
+      getHmsDashboardSpec(activeRole)
+      || getPlatformDashboardSpec(activeRole)
+      || getMarketplaceDashboardSpec(activeRole);
   }
 
   if (!spec) {
-    spec = (getLisDashboardSpec(activeRole) as any)
-      || (getRisDashboardSpec(activeRole) as any)
-      || (getCmsDashboardSpec(activeRole) as any)
+    spec = (getCmsDashboardSpec(activeRole) as any)
+      || getPlatformDashboardSpec(activeRole)
+      || getMarketplaceDashboardSpec(activeRole)
       || getHmsDashboardSpec(activeRole)
-      || getHmsDashboardSpec('hospital_admin')!;
+      || buildUnconfiguredSpec(activeRole);
   }
 
   // Role-aware live KPI hook: dynamically fetches metrics for doctor, admin, nurse, etc.

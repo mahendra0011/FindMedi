@@ -176,6 +176,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: '1 resident doctor absent on duty roster without replacement', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Specialty Patient Queue', 'Resident Duty Handover', 'Procedural Schedule', 'Cross-Consults'],
     quickActions: ['Review Department Queue', 'Manage Call Roster', 'Review Protocol Compliance', 'Sign Reports'],
@@ -236,6 +237,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Bed 204 systolic blood pressure dropped below 90 mmHg', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Ward Inpatient List', 'Urgent Reviews Due', 'Pending Investigations', 'Shift Handover Notes'],
     quickActions: ['Record Ward Progress Note', 'Add Clinical Order', 'Escalate to Consultant', 'Submit Handover'],
@@ -360,6 +362,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Bed 3 MAP below 65 mmHg — notify intensivist immediately', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Hourly Monitoring Log', 'Continuous Infusions Tracker', 'Line / Tube Site Care', 'Shift Handover'],
     quickActions: ['Log Hourly ICU Vitals', 'Document Infusion Rate Change', 'Record Endotracheal Care', 'Acknowledge Monitor Alarm'],
@@ -419,6 +422,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Informed surgical consent missing for patient UHID 10842', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['My Surgery Schedule', 'Pre-Operative Assessment Queue', 'Operative Notes Pending', 'Post-Op Rounds'],
     quickActions: ['Start Operative Note', 'Verify Pre-Op Consent', 'Enter Post-Op Orders', 'Check PAC Clearance'],
@@ -448,6 +452,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Pre-op NPO status confirmation pending for Case 3', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Pre-Anaesthesia Checkup Queue', 'Intra-Op Monitoring Log', 'PACU Recovery List'],
     quickActions: ['Complete Pre-Anaesthesia PAC', 'Start Intra-Op Log', 'Discharge from PACU', 'Flag Difficult Airway'],
@@ -477,6 +482,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Vascular access bruit absent in pre-dialysis check on Station 2', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Station Live Board', 'Patient Dialysis Schedule', 'Machine Maintenance Log'],
     quickActions: ['Start Dialysis Session', 'Log Intra-Dialytic Vitals', 'Complete Session & Billing', 'Report Machine Fault'],
@@ -539,6 +545,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Unacknowledged critical panic value: Potassium 2.4 mmol/L for Bed 201', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Pending Verification Queue', 'Critical Panic Queue', 'Histopathology Bench', 'Amended Reports Log'],
     quickActions: ['Verify & Sign Selected Reports', 'Log Panic Value Intimation', 'Request Specimen Recollection', 'Review Levey-Jennings QC'],
@@ -568,6 +575,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Emergency trauma polytrauma CT ordered from casualty', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Modality Worklist Queue', 'Contrast Safety Checklists', 'PACS Push Status Log'],
     quickActions: ['Start Imaging Study', 'Complete DICOM Transfer', 'Log Contrast Administration', 'Report Tube Fault'],
@@ -597,6 +605,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Emergency chest X-ray demonstrates tension pneumothorax — alert ER', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['PACS Unread Queue', 'Stat / Urgent Studies', 'Voice Dictation Queue', 'Finalized Reports'],
     quickActions: ['Launch Web PACS Viewer', 'Dictate Radiology Report', 'Sign & Release Diagnostic Report', 'Flag Urgent Finding'],
@@ -656,6 +665,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'O-negative emergency blood supply critically low (2 units remaining)', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Donor Screening Queue', 'Component Requisition Queue', 'Cross-Match Workbench', 'Transfusion Logs'],
     quickActions: ['Register Voluntary Donor', 'Issue Cross-Matched Unit', 'Log Component Separation', 'Record Transfusion Reaction'],
@@ -688,6 +698,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Dr. Sharma Cardiology clinic running 30 minutes behind schedule', level: 'info' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Front Desk Check-in Queue', 'New Patient Registrations', 'Doctor Availability Board', 'Fee Receipts'],
     quickActions: ['Register New Patient (UHID)', 'Book OPD Appointment', 'Issue Queue Token', 'Print OPD Slip / Barcode'],
@@ -717,6 +728,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Orthopedics queue waiting time exceeded 45 minutes', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Clinic Floor Queue Status', 'Doctor Schedule Calendar', 'Rescheduled Appointments', 'No-Show Follow-up'],
     quickActions: ['Reassign Patient to Alternate Doctor', 'Block Doctor Slot for Emergency', 'Send SMS Queue Update', 'Display Public Token TV'],
@@ -746,6 +758,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: '3 patients waiting for bed allocation > 30 minutes in ER', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Pending Admission Requests', 'Bed Allocation Queue', 'Advance Deposit Receipts', 'Ward Transfers'],
     quickActions: ['Create IPD Admission', 'Allocate Bed & Room', 'Record Admission Deposit', 'Print Inpatient Wristband'],
@@ -805,6 +818,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Unbilled OT consumable charges found for discharged patient', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Pending Discharge Bills', 'Provisional Estimates', 'Unbilled Charges', 'Refund / Credit Note Requests'],
     quickActions: ['Generate Final IPD Bill', 'Create Treatment Estimate', 'Add Clinical Service Charge', 'Print Tax Invoice'],
@@ -834,6 +848,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Cash balance in till exceeded ₹50,000 threshold — request vault transfer', level: 'info' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Unpaid Invoices Queue', 'Today Collected Receipts', 'Authorized Refund Vouchers', 'Shift Closing Ledger'],
     quickActions: ['Collect Payment', 'Print Official Receipt', 'Initiate Shift Cash Closing', 'Scan UPI Dynamic QR'],
@@ -893,6 +908,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Corporate client XYZ Corp exceeded approved credit limit threshold', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Corporate Beneficiary Admissions', 'Credit Invoices Awaiting Dispatch', 'Overdue Corporate A/R Ledger'],
     quickActions: ['Verify Corporate Eligibility', 'Generate Corporate Monthly Invoice', 'Record Corporate Remittance', 'Update Rate Contract'],
@@ -922,6 +938,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Unreconciled payment gateway settlement batch detected', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Bank Reconciliation Queue', 'Pending Vendor Payments', 'Doctor Revenue Share Settlements', 'Tax Ledger'],
     quickActions: ['Record Journal Voucher', 'Run Bank Reconciliation', 'Approve Vendor Payment', 'Export Trial Balance'],
@@ -981,6 +998,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Purchase Order #849 delivery delayed by 3 days by supplier', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Purchase Requisitions Queue', 'Vendor Quotations to Compare', 'Pending Purchase Orders', 'GRN Inward Inspection'],
     quickActions: ['Create Purchase Order', 'Request Quotation (RFQ)', 'Verify Goods Receipt Note (GRN)', 'Add Approved Vendor'],
@@ -1010,6 +1028,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: '2 staff clinical licenses expire within 15 days', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Leave Approval Queue', 'Staff Credentialing Verification', 'Attendance Exception Log', 'Monthly Payroll Batch'],
     quickActions: ['Onboard New Staff Member', 'Approve Leave Request', 'Publish Shift Duty Roster', 'Generate Monthly Payslips'],
@@ -1042,6 +1061,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Bed 108 cleaning overdue (>45 min) — bed manager waiting', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Bed Cleaning Queue', 'Routine Ward Cleaning Tasks', 'Terminal Infection Disinfection Log', 'Staff Deployment Board'],
     quickActions: ['Assign Cleaning Task', 'Verify & Release Clean Bed', 'Log Biohazard Disinfection', 'Report Plumbing/AC Fault'],
@@ -1071,6 +1091,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Biological indicator test reading required for Autoclave 2', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Soiled Receiving Queue', 'Active Autoclave Cycles', 'Sterile Storage Inventory', 'OT Dispatch Log'],
     quickActions: ['Log Autoclave Cycle Start', 'Record Chemical Indicator Result', 'Issue Sterile Tray to OT', 'Receive Soiled Instrument Set'],
@@ -1100,6 +1121,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Patient on Bed 112 changed to NPO 10 minutes ago — hold tray', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Ward Diet Distribution List', 'Therapeutic Diet Modifications', 'NPO Surgical Hold Queue'],
     quickActions: ['Confirm Meal Tray Delivery', 'Update Patient Diet Prescription', 'Record Kitchen Food Hygiene Audit', 'Print Ward Diet Slips'],
@@ -1129,6 +1151,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Patient allergy documented: Gluten / Peanut allergy for Bed 210', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Nutritional Screening Queue', 'Enteral / Parenteral Feed Plans', 'Dietary Consultations'],
     quickActions: ['Create Nutrition Assessment', 'Prescribe Therapeutic Diet', 'Log Enteral Feed Plan', 'Print Diet Chart'],
@@ -1158,6 +1181,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Emergency breakdown ticket logged for OT-2 Anesthesia Workstation', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Active Breakdown Work Orders', 'Calibration Schedule Calendar', 'AMC/CMC Warranty Tracking'],
     quickActions: ['Log Breakdown Work Order', 'Record Equipment Calibration', 'Release Equipment to Clinical Service', 'Schedule Preventive Service'],
@@ -1187,6 +1211,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Secondary oxygen manifold pressure dropped 5% below standard', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Facility Work Orders', 'Medical Gas System Logs', 'Power & Generator Readiness Log', 'Preventive Maintenance'],
     quickActions: ['Create Maintenance Work Order', 'Log Medical Gas Reading', 'Record Generator Test Run', 'Close Maintenance Ticket'],
@@ -1216,6 +1241,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Emergency SOS pickup request received for patient in acute respiratory distress', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Active Dispatches', 'Pending Pickup Requests', 'Vehicle Maintenance & Fuel Log', 'Completed Trip Logs'],
     quickActions: ['Dispatch Emergency Ambulance', 'Log Vehicle Inspection Checklist', 'Complete Trip & Generate Bill', 'Mark Vehicle Available'],
@@ -1245,6 +1271,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Sentinel event logged: Unplanned return to OT within 24 hours', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Patient Safety Incident Reports', 'Root Cause Analyses (RCA)', 'CAPA Action Item Tracker', 'Accreditation Evidence Files'],
     quickActions: ['Log Patient Safety Incident', 'Initiate Root Cause Analysis', 'Assign Corrective Action (CAPA)', 'Export NABH Quality Report'],
@@ -1274,6 +1301,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Multidrug-resistant organism (MDRO) culture flagged by microbiology lab', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['HAI Surveillance Registry', 'Isolation Room Active Cohort', 'Hand Hygiene Observation Log', 'Biomedical Waste Manifests'],
     quickActions: ['Place Patient on Isolation Protocol', 'Record Hand Hygiene Audit', 'Log HAI Infection Event', 'Generate BMW Waste Manifest'],
@@ -1303,6 +1331,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Unresolved patient complaint escalated: Ward-3 nursing response delay', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Grievance Escalation Queue', 'Digital Feedback Submissions', 'Post-Discharge Courtesy Call List'],
     quickActions: ['Log Patient Grievance', 'Record Follow-up Call Note', 'Close Complaint with Resolution', 'Generate NPS Report'],
@@ -1332,6 +1361,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Unauthorized badge attempt logged at Pharmacy Narcotics Store door', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Visitor Check-In / Out Log', 'Active Attendant Passes', 'Security Incident Reports', 'Parking Slot Status'],
     quickActions: ['Issue Visitor Pass', 'Scan Visitor Exit', 'Log Security Incident', 'Revoke Access Badge'],
@@ -1361,6 +1391,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Discharge delayed by > 3 hours awaiting TPA final claim approval', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Multi-Stage Discharge Clearance Board', 'Pending Pharmacy Returns', 'Awaiting TPA Final Approval', 'Ready for Exit'],
     quickActions: ['Check Clearance Status', 'Notify Pharmacy / Billing', 'Print Discharge Folder', 'Mark Discharge Completed'],
@@ -1390,6 +1421,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Mortuary chamber storage duration exceeded 72 hours without claimant', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Mortuary Chamber Status Board', 'Deceased Intake Log', 'Pending Body Release Handover', 'MLC Police Clearances'],
     quickActions: ['Log Deceased Intake', 'Allocate Storage Cabinet', 'Verify Release Documentation', 'Complete Handover'],
@@ -1419,6 +1451,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Lab analyzer HL7 bi-directional bridge connection disconnected', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Internal IT Helpdesk Tickets', 'HL7 / LIS Integration Bridges', 'Active Device Connections', 'System Audit Trail'],
     quickActions: ['Unlock Staff User Account', 'Restart HL7 Gateway Bridge', 'Run On-Demand DB Snapshot', 'Test Network Printer'],
@@ -1448,6 +1481,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Significant billing discrepancy noted on Surgery Implant Bill #3094', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Scheduled Audit Engagements', 'Audit Non-Conformance Findings', 'System Access Audit Trail'],
     quickActions: ['Open New Audit Finding', 'Export Comprehensive Audit Log', 'Sample IPD Patient Records', 'Submit Audit Summary'],
@@ -1477,6 +1511,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Laboratory turnaround time (TAT) degraded by 12% over last 7 days', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Scheduled MIS Reports', 'Doctor Productivity Analytics', 'Department Financial Comparison', 'Accreditation Metrics'],
     quickActions: ['Export Daily Operations Summary', 'Generate Monthly Financial P&L', 'Analyze Bed Occupancy Trends', 'Schedule Automated Report'],
@@ -1506,6 +1541,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Appointment reminder: Dr. Sharma at 10:30 AM tomorrow', level: 'info' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['My Upcoming Appointments', 'Diagnostic Reports Archive', 'Past Hospital Visits', 'Family Member Records'],
     quickActions: ['Book Doctor Consultation', 'Download Lab Report PDF', 'Pay Outstanding Bill', 'Request Teleconsultation'],
@@ -1535,6 +1571,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Teleconsult patient joined video room: Rahul Verma', level: 'info' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Telemedicine Video Room', 'Inpatient Quick Rounds', 'Critical Results Awaiting Review', 'Signoff Queue'],
     quickActions: ['Launch Video Consultation', 'Write e-Prescription', 'Approve Test Result', 'Sign Discharge Summary'],
@@ -1595,6 +1632,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'SSI rate above threshold in the gynaecology ward', level: 'urgent' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Ward Inpatient List', 'Urgent Reviews Due', 'Patient Safety Escalations', 'Roster & Leave Approvals'],
     quickActions: ['Review Nursing KPIs', 'Approve Staff Leave', 'Open Patient Safety File', 'Sign Governance Minutes'],
@@ -1656,6 +1694,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Two consultants above safe on-call duty frequency this month', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['MDT Case Reviews', 'Critical Labs Triage', 'Pathway Compliance Audits', 'Consultant Appraisal Cycle'],
     quickActions: ['Review Consultant Roster', 'Open Clinical Effectiveness', 'Approve CME Schedule', 'Escalate Clinical Safety Concern'],
@@ -1717,6 +1756,7 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     ],
     alerts: [
       { id: 'a1', text: 'Three therapeutic diet orders pending dietitian review over 4 hours', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Dietitian Review Queue', 'Special Diet Orders', 'Kitchen Coordination', 'Nutrition Escalations'],
     quickActions: ['Sign Off Diet Order', 'Audit Meal Tray', 'Update Therapeutic Menu', 'Review Nutrition Budget'],
@@ -1735,10 +1775,10 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
     permissions: ['appointments:read', 'patients:write', 'notifications:read'],
     sidebarSections: ['Dashboard', 'Camps', 'Volunteers', 'Beneficiaries', 'Donations', 'Outreach'],
     kpis: [
-      { label: 'Upcoming Camps', value: '?', hint: 'Live NGO calendar not wired yet ? wire from camp scheduler' },
-      { label: 'Beneficiaries Served', value: '?', hint: 'No beneficiary counter wired yet' },
-      { label: 'Active Volunteers', value: '?', hint: 'Volunteer roster not wired yet' },
-      { label: 'Donation Receipts Pending', value: '?', hint: 'No donations ledger wired yet' },
+      { label: 'Upcoming Camps', value: '—', hint: 'From the camp scheduler' },
+      { label: 'Beneficiaries Served', value: '—', hint: 'Beneficiary counter' },
+      { label: 'Active Volunteers', value: '—', hint: 'Volunteer roster' },
+      { label: 'Donation Receipts Pending', value: '—', hint: 'Donations ledger' },
     ],
     tasks: [
       { id: 't1', text: 'Schedule next health camp & assign volunteer roles' },
@@ -1746,13 +1786,203 @@ export const HMS_ROLE_SPECS: Record<string, HmsDashboardConfig> = {
       { id: 't3', text: 'Review beneficiary follow-up calls due this week' },
     ],
     alerts: [
-      { id: 'a1', text: 'Camp supplies below threshold ? reorder before next camp', level: 'warn' },
+      { id: 'a1', text: 'Camp supplies below threshold — reorder before next camp', level: 'warn' },
+      { id: 'a2', text: 'Live alert feed not connected yet — verify critical values in the work queue.', level: 'info' },
     ],
     workQueues: ['Camp Schedule & Assignments', 'Beneficiary Follow-ups', 'Donation Reconciliation', 'Volunteer Roster'],
     quickActions: ['Create Camp', 'Assign Volunteers', 'Record Donation', 'Export Camp Report'],
     domainModules: [
-      { key: 'camps', emoji: '???', label: 'Camps & Outreach', description: 'Health camps, blood drives and vaccination melas.', ctaLabel: 'Camp Manager', ctaHref: '/community' },
-      { key: 'volunteers', emoji: '??', label: 'Volunteers', description: 'Volunteer roster, shifts and skills mapping.', ctaLabel: 'Volunteers', ctaHref: '/settings' },
+      { key: 'camps', emoji: '🏕️', label: 'Camps & Outreach', description: 'Health camps, blood drives and vaccination melas.', ctaLabel: 'Camp Manager', ctaHref: '/community' },
+      { key: 'volunteers', emoji: '🤝', label: 'Volunteers', description: 'Volunteer roster, shifts and skills mapping.', ctaLabel: 'Volunteers', ctaHref: '/settings' },
+    ],
+  },
+
+  medical_records_officer: {
+    roleKey: 'medical_records_officer',
+    layer: 5,
+    layerName: 'Business & Operations',
+    title: 'Medical Records Officer Dashboard',
+    subtitle: 'Record integrity, ICD coding, certificates and governed releases',
+    permissions: ['records:read', 'records:release', 'certificates:issue'],
+    sidebarSections: ['Dashboard', 'Coding', 'Deficiencies', 'Certificates', 'Releases'],
+    kpis: [
+      { label: 'Charts Pending Coding', value: '—', hint: 'Discharges awaiting ICD-10 coding' },
+      { label: 'Incomplete Summaries', value: '—', hint: 'Discharge summaries missing fields' },
+      { label: 'Certificate Requests', value: '—', hint: 'Birth/death/medical certificate requests open' },
+      { label: 'DSR Requests', value: '—', hint: 'Record access requests in the release queue' },
+      { label: 'Retrieval TAT', value: '—', hint: 'Average record retrieval turnaround' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Code pending discharge charts with ICD-10 assist' },
+      { id: 't2', text: 'Flag documentation deficiencies to treating doctors' },
+      { id: 't3', text: 'Verify consent before releasing a record copy' },
+    ],
+    alerts: [
+      { id: 'a1', text: 'Documentation deficiency open beyond 48 hours', level: 'warn' },
+      { id: 'a2', text: 'Legal hold request requires immediate action', level: 'urgent' },
+    ],
+    workQueues: ['Coding Queue', 'Deficiency List', 'Certificate Requests', 'Record Release Requests'],
+    quickActions: ['Code Chart', 'Issue Certificate', 'Release Record', 'Flag Deficiency'],
+    domainModules: [
+      { key: 'coding', emoji: '🗂️', label: 'Coding Workspace', description: 'ICD-10 coding assist and chart deficiency list.', ctaLabel: 'Open Coding', ctaHref: '/hospital/reports' },
+      { key: 'releases', emoji: '📜', label: 'Record Releases', description: 'Consent-verified release trail with audit log.', ctaLabel: 'Open Releases', ctaHref: '/hospital/reports?tab=releases' },
+    ],
+  },
+
+  call_center_agent: {
+    roleKey: 'call_center_agent',
+    layer: 5,
+    layerName: 'Business & Operations',
+    title: 'Call Centre Agent Dashboard',
+    subtitle: 'Inbound/outbound contact centre: bookings, enquiries and complaints',
+    permissions: ['contact_center:agent', 'appointments:write', 'support:tickets'],
+    sidebarSections: ['Dashboard', 'Console', 'Callbacks', 'Campaigns', 'Tickets'],
+    kpis: [
+      { label: 'Calls Handled', value: '—', hint: 'Calls handled this shift' },
+      { label: 'Average Handle Time', value: '—', hint: 'AHT for handled calls' },
+      { label: 'Abandon %', value: '—', hint: 'Calls abandoned before answer' },
+      { label: 'Callbacks Due', value: '—', hint: 'Callbacks within SLA' },
+      { label: 'Appointments Booked', value: '—', hint: 'Bookings created from calls' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Clear the callback queue before end of shift' },
+      { id: 't2', text: 'Log disposition codes for every completed call' },
+      { id: 't3', text: 'Scrub outbound lists against DND and calling hours' },
+    ],
+    alerts: [
+      { id: 'a1', text: 'Callback overdue against SLA', level: 'urgent' },
+      { id: 'a2', text: 'Outbound number is DND-listed or high-risk', level: 'warn' },
+    ],
+    workQueues: ['Live Call Console', 'Callback Queue', 'Outbound Campaigns', 'Complaint Tickets'],
+    quickActions: ['Click-To-Call', 'Book Appointment', 'Send Pay Link', 'Create Ticket'],
+    domainModules: [
+      { key: 'console', emoji: '☎️', label: 'Call Console', description: 'Screen-pop patient 360 with script panel and dispositions.', ctaLabel: 'Open Console', ctaHref: '/hospital/calls' },
+      { key: 'campaigns', emoji: '📣', label: 'Campaigns', description: 'Missed appointments, post-discharge and recall lists.', ctaLabel: 'Open Campaigns', ctaHref: '/hospital/calls?tab=campaigns' },
+    ],
+  },
+
+  pharmacovigilance_officer: {
+    roleKey: 'pharmacovigilance_officer',
+    layer: 4,
+    layerName: 'Diagnostic & Treatment Support',
+    title: 'Pharmacovigilance Officer Dashboard',
+    subtitle: 'ADR reporting, causality assessment and PvPI submissions',
+    permissions: ['adr:manage', 'drug_safety:review'],
+    sidebarSections: ['Dashboard', 'ADR', 'Causality', 'Submissions', 'Alerts'],
+    kpis: [
+      { label: 'Open ADRs', value: '—', hint: 'ADR reports in assessment' },
+      { label: 'Serious ADRs', value: '—', hint: 'Serious reports this period' },
+      { label: 'PvPI Submissions', value: '—', hint: 'Submissions filed to PvPI' },
+      { label: 'Causality Assessed %', value: '—', hint: 'Share with Naranjo assessment complete' },
+      { label: 'Drug Alerts', value: '—', hint: 'Active recall and safety alerts' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Assess open ADRs with the Naranjo scale' },
+      { id: 't2', text: 'File serious ADRs to PvPI within the reporting clock' },
+      { id: 't3', text: 'Link ADR reports to dispense and DDI override records' },
+    ],
+    alerts: [
+      { id: 'a1', text: 'Serious ADR unreported beyond seven days', level: 'urgent' },
+      { id: 'a2', text: 'Drug recall notice requires prescriber broadcast', level: 'urgent' },
+    ],
+    workQueues: ['ADR Queue', 'Causality Assessment', 'PvPI Submission', 'Recall & Alert Notices'],
+    quickActions: ['Log ADR', 'Assess Causality', 'Submit To PvPI', 'Broadcast Drug Alert'],
+    domainModules: [
+      { key: 'adr', emoji: '💊', label: 'ADR Register', description: 'Reports linked to dispense history and DDI overrides.', ctaLabel: 'Open ADRs', ctaHref: '/hospital/safety?tab=adr' },
+      { key: 'pvpi', emoji: '📤', label: 'PvPI Submissions', description: 'Form export and submission receipt trail.', ctaLabel: 'Open Submissions', ctaHref: '/hospital/safety?tab=pvpi' },
+    ],
+  },
+
+  maintenance: {
+    roleKey: 'maintenance',
+    layer: 6,
+    layerName: 'Facility, Quality & Digital',
+    title: 'Maintenance Technician Dashboard',
+    subtitle: 'Repair tickets, PM tasks, meters and utility readings',
+    permissions: ['maintenance:execute', 'assets:read'],
+    sidebarSections: ['Dashboard', 'Tickets', 'PM Tasks', 'Meters'],
+    kpis: [
+      { label: 'Open Tickets', value: '—', hint: 'Assigned maintenance tickets' },
+      { label: 'SLA Breaches', value: '—', hint: 'Tickets past their SLA' },
+      { label: 'PM Tasks Due', value: '—', hint: 'Preventive maintenance due today' },
+      { label: 'Meter Readings Pending', value: '—', hint: 'Utility readings not yet logged' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Accept and triage assigned repair tickets' },
+      { id: 't2', text: 'Complete PM checklist and log readings' },
+      { id: 't3', text: 'Escalate critical utility faults to the facility manager' },
+    ],
+    alerts: [
+      { id: 'a1', text: 'Critical utility fault raised on the shift', level: 'urgent' },
+      { id: 'a2', text: 'Preventive maintenance overdue', level: 'warn' },
+    ],
+    workQueues: ['Maintenance Tickets', 'PM Schedule', 'Utility Meters', 'Escalations'],
+    quickActions: ['Accept Ticket', 'Log Meter Reading', 'Complete PM', 'Report Spare Needed'],
+    domainModules: [
+      { key: 'tickets', emoji: '🔧', label: 'Ticket Board', description: 'Repair queue with SLA timers and escalation.', ctaLabel: 'Open Tickets', ctaHref: '/maintenance' },
+      { key: 'pm', emoji: '📅', label: 'PM Calendar', description: 'Preventive maintenance schedule and proof.', ctaLabel: 'Open PM', ctaHref: '/maintenance?tab=pm' },
+    ],
+  },
+
+  ot_technician: {
+    roleKey: 'ot_technician',
+    layer: 3,
+    layerName: 'Critical Care & Procedure',
+    title: 'OT Technician Dashboard',
+    subtitle: 'Room setup, instrument sets, equipment readiness and turnover',
+    permissions: ['ot:rooms', 'cssd:sets', 'equipment:check'],
+    sidebarSections: ['Dashboard', 'Task Cards', 'Sets', 'Equipment'],
+    kpis: [
+      { label: 'Rooms Ready', value: '—', hint: 'OT rooms marked ready' },
+      { label: 'Turnaround Time', value: '—', hint: 'Average room turnaround' },
+      { label: 'Equipment Faults', value: '—', hint: 'Open equipment faults' },
+      { label: 'Counts Verified', value: '—', hint: 'Instrument counts verified today' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Complete room setup checklist before first case' },
+      { id: 't2', text: 'Verify instrument set availability against the OT list' },
+      { id: 't3', text: 'Log equipment pre-use checks and faults' },
+    ],
+    alerts: [
+      { id: 'a1', text: 'Instrument count mismatch — stop and recount', level: 'urgent' },
+      { id: 'a2', text: 'Equipment fault blocks the next case', level: 'urgent' },
+    ],
+    workQueues: ['Room Setup Tasks', 'Instrument Set Requests', 'Equipment Checklist', 'Turnover Queue'],
+    quickActions: ['Mark Room Ready', 'Issue Set', 'Log Fault', 'Start Turnover'],
+    domainModules: [
+      { key: 'rooms', emoji: '🔪', label: 'OT Rooms', description: 'Room readiness and turnover tasks with scan proof.', ctaLabel: 'Open Rooms', ctaHref: '/ot/board' },
+      { key: 'sets', emoji: '🧰', label: 'Instrument Sets', description: 'Set issue/return tracking to CSSD.', ctaLabel: 'Open Sets', ctaHref: '/ot/board?tab=sets' },
+    ],
+  },
+
+  ward_boy: {
+    roleKey: 'ward_boy',
+    layer: 6,
+    layerName: 'Facility, Quality & Digital',
+    title: 'Ward Helper Dashboard',
+    subtitle: 'Patient transport, sample runs and support task cards',
+    permissions: ['tasks:execute', 'movements:execute'],
+    sidebarSections: ['Dashboard', 'Tasks', 'Transport'],
+    kpis: [
+      { label: 'Tasks Assigned', value: '—', hint: 'Open support tasks' },
+      { label: 'Tasks Completed', value: '—', hint: 'Tasks completed today' },
+      { label: 'Avg Response', value: '—', hint: 'Average task acceptance time' },
+      { label: 'Transports Pending', value: '—', hint: 'Pending patient/sample transports' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Accept assigned ward tasks and transport requests' },
+      { id: 't2', text: 'Confirm pick-up and drop-off with scan proof' },
+      { id: 't3', text: 'Escalate blocked tasks to the ward in-charge' },
+    ],
+    alerts: [
+      { id: 'a1', text: 'STAT task not accepted within SLA', level: 'urgent' },
+      { id: 'a2', text: 'Transport waiting beyond target time', level: 'warn' },
+    ],
+    workQueues: ['My Task Cards', 'Transport Requests', 'STAT Tasks', 'Completed Today'],
+    quickActions: ['Accept Task', 'Mark Picked Up', 'Mark Delivered', 'Report Issue'],
+    domainModules: [
+      { key: 'tasks', emoji: '🧹', label: 'Task Cards', description: 'Ward helper tasks with scan proof.', ctaLabel: 'Open Tasks', ctaHref: '/dashboard' },
+      { key: 'transport', emoji: '🛏️', label: 'Transport Board', description: 'Patient and sample movement requests.', ctaLabel: 'Open Transport', ctaHref: '/dashboard?tab=transport' },
     ],
   },
 };

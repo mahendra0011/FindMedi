@@ -1,7 +1,7 @@
 /**
- * Wave 2 live-data helper â€” fetches real KPIs/queues from the backend.
+ * Wave 2 live-data helper — fetches real KPIs/queues from the backend.
  * `mergeKpis` keeps the static spec strings only for keys the fetcher
- * doesn't return; where no live source exists the fetcher returns `â€”`.
+ * doesn't return; where no live source exists the fetcher returns `—`.
  */
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
@@ -47,9 +47,9 @@ export function useLiveKpis(fetcher: KpiFetcher, staticKpis: Kpi[]): Kpi[] {
  *
  * Honesty rules (mandatory):
  *  - A number is only shown when it comes from a successful API response.
- *  - Missing fields inside a successful response render as `â€”` (em-dash), never
+ *  - Missing fields inside a successful response render as `—` (em-dash), never
  *    as a made-up count. Zero is a real value and is shown as `0`.
- *  - When the whole fetch fails the matching KPI keys render as `â€”` â€” this
+ *  - When the whole fetch fails the matching KPI keys render as `—` — this
  *    overwrites the static spec strings (which are illustrative samples, not
  *    measurements) so a dashboard can never invent data.
  */
@@ -60,11 +60,11 @@ const num = (v: unknown): number | null => {
 };
 
 /** Render a KPI value: em-dash when unavailable, else the number with unit. */
-const fmt = (v: number | null, suffix = ''): string => (v === null ? 'â€”' : `${v}${suffix}`);
+const fmt = (v: number | null, suffix = ''): string => (v === null ? '—' : `${v}${suffix}`);
 
-/** All requested KPI labels set to `â€”` â€” used when the fetch failed outright. */
+/** All requested KPI labels set to `—` — used when the fetch failed outright. */
 const noData = (...labels: string[]): Record<string, string> =>
-  Object.fromEntries(labels.map((l) => [l, 'â€”']));
+  Object.fromEntries(labels.map((l) => [l, '—']));
 
 // The dashboard reads raw JSON whose shape varies per route; one central
 // alias keeps the helper signatures readable while linting clean.
@@ -83,7 +83,7 @@ const bodyFrom = (r: Settled | AnyPayload): AnyPayload => {
 /**
  * The aggregate "data" payload a route wraps as `{ data, ... }`, or the body
  * itself when the route returns a flat object. Always prefers a non-array
- * `data` field â€” list routes keep their arrays reachable on the full body.
+ * `data` field — list routes keep their arrays reachable on the full body.
  */
 const objFrom = (r: Settled | AnyPayload): AnyPayload => {
   const body = bodyFrom(r);
@@ -122,8 +122,8 @@ const lisSectionKpis = async (sectionName: string, totalLabel: string, pendingLa
       : []);
   const row = (sections as Array<Record<string, unknown>>).find((s) => s.section === sectionName);
   if (!row) return { [totalLabel]: '—', [pendingLabel]: '—' };
-  const total = Number(row.tests) || 0;
-  const pending = Number(row.pending) || 0;
+  const total = num(row.tests);
+  const pending = num(row.pending);
   return {
     [totalLabel]: fmt(total),
     [pendingLabel]: fmt(pending),
@@ -208,9 +208,9 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
         const opdWaiting = num(d?.opdQueue?.waiting);
         const activeIpd = num(d?.activeIpd);
         const erActive = num(d?.erActive);
-        const todayPatients = [opdWaiting, activeIpd, erActive].every((v) => v === null)
-          ? null
-          : (opdWaiting ?? 0) + (activeIpd ?? 0) + (erActive ?? 0);
+        const todayPatients = [opdWaiting, activeIpd, erActive].every((v) => v !== null)
+          ? (opdWaiting as number) + (activeIpd as number) + (erActive as number)
+          : null;
         const beds = d?.beds && typeof d.beds === 'object' ? d.beds : {};
         const bedsTotal = num(beds.total);
         const bedsFree = num(beds.free);
@@ -227,7 +227,9 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
           "Staff Present": '—',
           staffPresent: '—',
           totalBeds: fmt(bedsTotal),
-          occupied: bedsTotal !== null && bedsFree !== null ? `${bedsTotal - bedsFree} (${occupancyPct ?? 0}%)` : '—',
+          occupied: bedsTotal !== null && bedsFree !== null
+            ? `${bedsTotal - bedsFree}${occupancyPct === null ? '' : ` (${occupancyPct}%)`}`
+            : '—',
           available: fmt(bedsFree),
           // hospital_owner aliases — same live sources, exact label-slug keys
           "Today's OPD": fmt(opdWaiting),
@@ -247,18 +249,21 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
         const total = num(bs.total);
         const occupied = num(bs.occupied);
         const maintenance = num(bs.maintenance);
-        const pct = total ? `${Math.round(((occupied ?? 0) / total) * 100)}%` : '0%';
+        const occupancy = occupied === null || total === null || total <= 0
+          ? null
+          : `${occupied} (${Math.round((occupied / total) * 100)}%)`;
         return {
           "Total Beds": fmt(total),
           totalBeds: fmt(total),
-          "Occupied": occupied === null ? 'â€”' : `${occupied} (${pct})`,
-          occupied: occupied === null ? 'â€”' : `${occupied} (${pct})`,
+          "Occupied": occupancy === null ? '—' : occupancy,
+          occupied: occupancy === null ? '—' : occupancy,
           "Available": fmt(num(bs.available)),
           available: fmt(num(bs.available)),
           "Under Cleaning": fmt(maintenance),
           underCleaning: fmt(maintenance),
         };
       }
+      case 'ward_nurse':
       case 'nurse': {
         const [nursingR, bedsR] = await Promise.allSettled([
           api.get('/nursing/stats'),
@@ -272,7 +277,7 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
         const mar = ns ? num(ns.mar) : null;
         const io = ns ? num(ns.io) : null;
         const wound = ns ? num(ns.woundDressing) : null;
-        const tasks = ns ? ((io ?? 0) + (wound ?? 0)) : null;
+        const tasks = io === null && wound === null ? null : (io ?? 0) + (wound ?? 0);
         return {
           "Assigned Beds": fmt(occupied, ' Beds'),
           assignedBeds: fmt(occupied, ' Beds'),
@@ -298,12 +303,12 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
         }
         const occupied = bs ? num(bs.occupied) : null;
         const total = bs ? num(bs.total) : null;
-        const occupancyPct = bs && total !== null && total > 0
-          ? `${Math.round((((occupied ?? 0) / total) * 100))}%`
+        const occupancyPct = occupied !== null && total !== null && total > 0
+          ? `${Math.round((occupied / total) * 100)}%`
           : '—';
         const io = ns ? num(ns.io) : null;
         const wound = ns ? num(ns.woundDressing) : null;
-        const tasks = ns ? (io ?? 0) + (wound ?? 0) : null;
+        const tasks = io === null && wound === null ? null : (io ?? 0) + (wound ?? 0);
         return {
           'Patients in Care': fmt(occupied),
           patientsInCare: fmt(occupied),
@@ -422,12 +427,12 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
         return {
           "Patients in ER": fmt(total),
           patientsInEr: fmt(total),
-          "Red (Priority 1)": redCount === null ? 'â€”' : `${redCount} Resus`,
-          redPriority1: redCount === null ? 'â€”' : `${redCount} Resus`,
-          "Yellow (Priority 2)": yellowCount === null ? 'â€”' : `${yellowCount} Urgent`,
-          yellowPriority2: yellowCount === null ? 'â€”' : `${yellowCount} Urgent`,
-          "Green (Priority 3)": greenCount === null ? 'â€”' : `${greenCount} Stable`,
-          greenPriority3: greenCount === null ? 'â€”' : `${greenCount} Stable`,
+          "Red (Priority 1)": redCount === null ? '—' : `${redCount} Resus`,
+          redPriority1: redCount === null ? '—' : `${redCount} Resus`,
+          "Yellow (Priority 2)": yellowCount === null ? '—' : `${yellowCount} Urgent`,
+          yellowPriority2: yellowCount === null ? '—' : `${yellowCount} Urgent`,
+          "Green (Priority 3)": greenCount === null ? '—' : `${greenCount} Stable`,
+          greenPriority3: greenCount === null ? '—' : `${greenCount} Stable`,
         };
       }
       case 'cashier':
@@ -441,12 +446,12 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
         const refundCount = bills.filter((b: any) => b.status === 'Refunded' || b.status === 'Cancelled').length;
         const cashInHand = totalPaid !== null ? Math.round(totalPaid * 0.25) : null;
         return {
-          "Today's Till Collection": totalPaid === null ? 'â€”' : `â‚¹${totalPaid.toLocaleString('en-IN')}`,
-          todayTillCollection: totalPaid === null ? 'â€”' : `â‚¹${totalPaid.toLocaleString('en-IN')}`,
+          "Today's Till Collection": totalPaid === null ? '—' : `₹${totalPaid.toLocaleString('en-IN')}`,
+          todayTillCollection: totalPaid === null ? '—' : `₹${totalPaid.toLocaleString('en-IN')}`,
           "Pending Clearances": `${pendingCount} Invoices`,
           pendingClearances: `${pendingCount} Invoices`,
-          "Cash in Hand": cashInHand === null ? 'â€”' : `â‚¹${cashInHand.toLocaleString('en-IN')}`,
-          cashInHand: cashInHand === null ? 'â€”' : `â‚¹${cashInHand.toLocaleString('en-IN')}`,
+          "Cash in Hand": cashInHand === null ? '—' : `₹${cashInHand.toLocaleString('en-IN')}`,
+          cashInHand: cashInHand === null ? '—' : `₹${cashInHand.toLocaleString('en-IN')}`,
           "Refunds Processed": `${refundCount} Approvals`,
           refundsProcessed: `${refundCount} Approvals`,
         };
@@ -493,9 +498,9 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
         }
         const opdWaiting = num(d.opdQueue?.waiting);
         const activeIpd = num(d.activeIpd);
-        const census = [opdWaiting, activeIpd].every((v) => v === null)
-          ? null
-          : (opdWaiting ?? 0) + (activeIpd ?? 0);
+        const census = [opdWaiting, activeIpd].every((v) => v !== null)
+          ? (opdWaiting as number) + (activeIpd as number)
+          : null;
         const money = d.money && typeof d.money === 'object' ? d.money : null;
         return {
           'Hospital Census': fmt(census),
@@ -514,6 +519,7 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
         // IT/directory rollup endpoint exists yet — never fabricate.
         return noData('Active Users', 'Suspended Accounts', '2FA-Pending Enrollment', 'Infrastructure Alerts');
       }
+      case 'front_desk':
       case 'receptionist': {
         const [tokR, billR] = await Promise.allSettled([
           api.get('/tokens'),
@@ -536,8 +542,8 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
           walkinTokensIssued: fmt(totalIssued, ' Tokens'),
           "Checked-in Patients": fmt(waitingCount, ' Waiting'),
           checkedinPatients: fmt(waitingCount, ' Waiting'),
-          "Today's Counter Collections": collectionLakhs === null ? 'â€”' : `â‚¹${collectionLakhs}L`,
-          todaysCounterCollections: collectionLakhs === null ? 'â€”' : `â‚¹${collectionLakhs}L`,
+          "Today's Counter Collections": collectionLakhs === null ? '—' : `₹${collectionLakhs}L`,
+          todaysCounterCollections: collectionLakhs === null ? '—' : `₹${collectionLakhs}L`,
         };
       }
       case 'lab_technician':
@@ -713,14 +719,14 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
         return {
           "Active ICU Beds": activeBeds,
           activeIcuBeds: activeBeds,
-          "Assigned ICU Beds": 'â€”',
-          assignedIcuBeds: 'â€”',
-          "Ventilator Patients": 'â€”',
-          ventilatorPatients: 'â€”',
+          "Assigned ICU Beds": '—',
+          assignedIcuBeds: '—',
+          "Ventilator Patients": '—',
+          ventilatorPatients: '—',
           "Critical ABG Alerts": fmt(vitals, ' Panic'),
           criticalAbgAlerts: fmt(vitals, ' Panic'),
-          "High-Alert Meds Due": 'â€”',
-          highAlertMedsDue: 'â€”',
+          "High-Alert Meds Due": '—',
+          highAlertMedsDue: '—',
         };
       }
       case 'ot_coordinator':
@@ -744,8 +750,8 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
           casesOnSchedule: scheduled,
           "In Theatre": inProgress,
           inTheatre: inProgress,
-          "PAC Clearances": 'â€”',
-          pacClearances: 'â€”',
+          "PAC Clearances": '—',
+          pacClearances: '—',
           "Surgeries Completed Today": completed,
           surgeriesCompletedToday: completed,
         };
@@ -757,24 +763,24 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
           return noData('Pending Cleaning Requests', 'Rooms Disinfected Today', 'SLA Breaches (>45m)', 'Staff on Duty');
         }
         const cleaning = fmt(num(bs.maintenance), ' Beds');
-        // No rooms-disinfected, cleaning-SLA or staffing feed exists â€” never invent.
+        // No rooms-disinfected, cleaning-SLA or staffing feed exists — never invent.
         return {
           "Pending Cleaning Requests": cleaning,
           pendingCleaningRequests: cleaning,
-          "Rooms Disinfected Today": 'â€”',
-          roomsDisinfectedToday: 'â€”',
-          "SLA Breaches (>45m)": 'â€”',
-          slaBreaches45m: 'â€”',
-          "Staff on Duty": 'â€”',
-          staffOnDuty: 'â€”',
+          "Rooms Disinfected Today": '—',
+          roomsDisinfectedToday: '—',
+          "SLA Breaches (>45m)": '—',
+          slaBreaches45m: '—',
+          "Staff on Duty": '—',
+          staffOnDuty: '—',
         };
       }
       case 'biomedical_engineer': {
-        // No equipment-telemetry endpoint is wired yet â€” all four stay `â€”`.
+        // No equipment-telemetry endpoint is wired yet — all four stay `—`.
         return noData('Total Medical Equipment', 'Breakdown Tickets', 'PM Due This Month', 'Uptime Ratio');
       }
       case 'cssd_technician': {
-        // No autoclave/sterility telemetry endpoint is wired yet â€” all four stay `â€”`.
+        // No autoclave/sterility telemetry endpoint is wired yet — all four stay `—`.
         return noData('Active Autoclave Cycles', 'Sterile Trays Ready', 'Unprocessed Racks', 'Biological Indicator');
       }
       case 'discharge_coordinator':
@@ -794,9 +800,14 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
         const waiting = appts === null ? null : appts.filter((a: any) => a?.status === 'Waiting' || a?.status === 'Pending').length;
         const completed = appts === null ? null : appts.filter((a: any) => a?.status === 'Completed').length;
         const footfall = appts === null ? null : appts.length;
-        const totalRev = bills === null
+        const amounts = bills === null
           ? null
-          : bills.reduce((sum: number, b: any) => sum + (Number(b?.total || b?.amount) || 0), 0);
+          : bills
+              .map((b: any) => num(b?.total ?? b?.amount))
+              .filter((v: number | null): v is number => v !== null);
+        const totalRev = amounts === null || amounts.length === 0
+          ? null
+          : amounts.reduce((sum: number, v: number) => sum + v, 0);
         return {
           "Today's Footfall": fmt(footfall),
           todaysFootfall: fmt(footfall),
@@ -804,8 +815,8 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
           waitingInQueue: fmt(waiting),
           "Completed OPD": fmt(completed),
           completedOpd: fmt(completed),
-          "Today's Revenue": totalRev === null ? 'â€”' : `â‚¹${totalRev.toLocaleString('en-IN')}`,
-          todaysRevenue: totalRev === null ? 'â€”' : `â‚¹${totalRev.toLocaleString('en-IN')}`,
+          "Today's Revenue": totalRev === null ? '—' : `₹${totalRev.toLocaleString('en-IN')}`,
+          todaysRevenue: totalRev === null ? '—' : `₹${totalRev.toLocaleString('en-IN')}`,
         };
       }
       case 'clinic_doctor': {
@@ -891,12 +902,190 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
           "Bills Settled Today": `${settled} Settled`,
           billsSettledToday: `${settled} Settled`,
           // No till/digital-split telemetry is exposed yet.
-          "Cash Drawer Total": 'â€”',
-          cashDrawerTotal: 'â€”',
-          "Digital Collections": 'â€”',
-          digitalCollections: 'â€”',
+          "Cash Drawer Total": '—',
+          cashDrawerTotal: '—',
+          "Digital Collections": '—',
+          digitalCollections: '—',
         };
       }
+      case 'clinic_pharmacist': {
+        const res = await api.get('/pharmacy/stats').catch(() => null);
+        const ps = res ? objFrom(res) : null;
+        if (!ps) return noData('Pending Dispensing', 'Dispensed Today', 'Pharmacy Sales', 'Near Expiry (30d)');
+        const totalRx = num(ps.totalPrescriptions);
+        const pendingDisp = num(ps.pendingDispense);
+        const dispensed = totalRx !== null && pendingDisp !== null ? totalRx - pendingDisp : null;
+        const revenue = num(ps.revenue);
+        return {
+          'Pending Dispensing': fmt(pendingDisp),
+          pendingDispensing: fmt(pendingDisp),
+          'Dispensed Today': fmt(dispensed),
+          dispensedToday: fmt(dispensed),
+          'Pharmacy Sales': revenue === null ? '—' : `₹${revenue.toLocaleString('en-IN')}`,
+          pharmacySales: revenue === null ? '—' : `₹${revenue.toLocaleString('en-IN')}`,
+          'Near Expiry (30d)': fmt(num(ps.expiringSoon)),
+          nearExpiry30d: fmt(num(ps.expiringSoon)),
+        };
+      }
+      case 'clinic_accountant': {
+        const res = await api.get('/billing').catch(() => null);
+        const bd = res ? objFrom(res) : null;
+        const summary = bd && typeof bd.summary === 'object' ? bd.summary : bd;
+        const paid = summary ? num(summary.paid) : null;
+        const balance = summary ? num(summary.balance) : null;
+        return {
+          "Today's Clinic Revenue": paid === null ? '—' : `₹${paid.toLocaleString('en-IN')}`,
+          todaysClinicRevenue: paid === null ? '—' : `₹${paid.toLocaleString('en-IN')}`,
+          'Operating Expenses': '—',
+          operatingExpenses: '—',
+          'Doctor Payable': '—',
+          doctorPayable: '—',
+          'Outstanding Balance': balance === null ? '—' : `₹${balance.toLocaleString('en-IN')}`,
+          outstandingBalance: balance === null ? '—' : `₹${balance.toLocaleString('en-IN')}`,
+        };
+      }
+      case 'tpa_agent':
+      case 'insurance_desk': {
+        const res = await api.get('/insurance/stats/main').catch(() => null);
+        const is = res ? objFrom(res) : null;
+        if (!is) return noData('Pending Pre-Auth Requests', 'Approved Cashless Cases', 'Queries Requiring Response', 'Pending Final Claim Settlement');
+        return {
+          'Pending Pre-Auth Requests': fmt(num(is.pending)),
+          pendingPreAuthRequests: fmt(num(is.pending)),
+          'Approved Cashless Cases': fmt(num(is.cashless)),
+          approvedCashlessCases: fmt(num(is.cashless)),
+          'Queries Requiring Response': '—',
+          queriesRequiringResponse: '—',
+          'Pending Final Claim Settlement': fmt(num(is.filed)),
+          pendingFinalClaimSettlement: fmt(num(is.filed)),
+        };
+      }
+      case 'blood_bank_admin': {
+        const res = await api.get('/bloodbank/stats').catch(() => null);
+        const bs = res ? objFrom(res) : null;
+        if (!bs) return noData('Total Units in Stock', 'PRBC Units Available', 'Platelet Concentrates', 'Pending Cross-Matches');
+        return {
+          'Total Units in Stock': fmt(num(bs.total)),
+          totalUnitsInStock: fmt(num(bs.total)),
+          'PRBC Units Available': '—',
+          prbcUnitsAvailable: '—',
+          'Platelet Concentrates': '—',
+          plateletConcentrates: '—',
+          'Pending Cross-Matches': fmt(num(bs.crossMatching)),
+          pendingCrossMatches: fmt(num(bs.crossMatching)),
+        };
+      }
+      case 'store_keeper':
+      case 'clinic_inventory_mgr':
+      case 'lab_inventory_mgr': {
+        const res = await api.get('/inventory/stats').catch(() => null);
+        const iv = res ? objFrom(res) : null;
+        if (!iv) return noData('Total Catalog SKUs', 'Low Stock Alerts', 'Pending Dept Indents', 'Total Stock Valuation');
+        const total = num(iv.total);
+        const low = num(iv.lowStock);
+        const val = num(iv.inventoryValue);
+        const valuationStr = val === null ? '—' : `₹${val.toLocaleString('en-IN')}`;
+        return {
+          'Total Catalog SKUs': fmt(total),
+          totalCatalogSkus: fmt(total),
+          'Total Lab Inventory Items': fmt(total),
+          totalLabInventoryItems: fmt(total),
+          'Low Stock Alerts': fmt(low),
+          lowStockAlerts: fmt(low),
+          'Items Below Reorder Level': fmt(low),
+          itemsBelowReorderLevel: fmt(low),
+          'Stock Valuation': valuationStr,
+          stockValuation: valuationStr,
+          'Total Stock Valuation': valuationStr,
+          totalStockValuation: valuationStr,
+          'Total Store Valuation': valuationStr,
+          totalStoreValuation: valuationStr,
+        };
+      }
+      case 'diet_kitchen_admin':
+      case 'kitchen_staff': {
+        const res = await api.get('/diet/stats').catch(() => null);
+        const ds = res ? objFrom(res) : null;
+        if (!ds) return noData('Active Meal Plans', 'Special / Diabetic Diets', 'NPO (Nil By Mouth) Patients', 'Trays Dispatched');
+        return {
+          'Active Meal Plans': fmt(num(ds.active)),
+          activeMealPlans: fmt(num(ds.active)),
+          'Special / Diabetic Diets': '—',
+          specialDiabeticDiets: '—',
+          'NPO (Nil By Mouth) Patients': '—',
+          npoNilByMouthPatients: '—',
+          'Trays Dispatched': fmt(num(ds.todayMeals)),
+          traysDispatched: fmt(num(ds.todayMeals)),
+        };
+      }
+
+      case 'opd_coordinator': {
+        const [tokR, apptR] = await Promise.allSettled([
+          api.get('/tokens/stats'),
+          api.get('/appointments'),
+        ]);
+        const ts = tokR.status === 'fulfilled' ? objFrom(tokR.value) : null;
+        const appts = listFrom(apptR);
+        const todayStr = new Date().toDateString();
+        const booked = appts === null
+          ? null
+          : appts.filter((a: any) => {
+              const raw = a?.date || a?.scheduledAt;
+              return raw && new Date(raw).toDateString() === todayStr;
+            }).length;
+        const waiting = ts ? num(ts.waiting) : null;
+        return {
+          'In Queue Now': fmt(waiting),
+          inQueueNow: fmt(waiting),
+          'Doctors Available': '—',
+          doctorsAvailable: '—',
+          'Average Waiting Time': '—',
+          averageWaitingTime: '—',
+          'Appointments Booked': fmt(booked),
+          appointmentsBooked: fmt(booked),
+        };
+      }
+      case 'clinic_branch_manager': {
+        const res = await api.get('/billing').catch(() => null);
+        const bd = res ? objFrom(res) : null;
+        const summary = bd && typeof bd.summary === 'object' ? bd.summary : null;
+        const paid = summary ? num(summary.paid) : null;
+        const collection = paid === null ? '—' : `₹${paid.toLocaleString('en-IN')}`;
+        return {
+          'Branch Footfall': '—',
+          branchFootfall: '—',
+          'Doctors On-Duty': '—',
+          doctorsOnDuty: '—',
+          'Avg Waiting Time': '—',
+          avgWaitingTime: '—',
+          'Branch Collection': collection,
+          branchCollection: collection,
+        };
+      }
+      case 'clinic_hr_admin':
+      case 'hr_manager': {
+        const res = await api.get('/staff/stats').catch(() => null);
+        const ss = res ? objFrom(res) : null;
+        const total = ss ? num(ss.total) : null;
+        const onLeave = ss ? num(ss.onLeave) : null;
+        return {
+          'Total Employees': fmt(total),
+          totalEmployees: fmt(total),
+          'Total Hospital Staff': fmt(total),
+          totalHospitalStaff: fmt(total),
+          'Present Today': '—',
+          presentToday: '—',
+          'On Approved Leave': fmt(onLeave),
+          onApprovedLeave: fmt(onLeave),
+          'Pending Leave Req': '—',
+          pendingLeaveReq: '—',
+          'Pending Leave Requests': '—',
+          pendingLeaveRequests: '—',
+          'Expiring Registrations': '—',
+          expiringRegistrations: '—',
+        };
+      }
+
       case 'biochem_tech':
         return lisSectionKpis('Biochemistry', 'Biochemistry Samples', 'LFT Panels Pending');
       case 'hematology_tech':
@@ -921,7 +1110,7 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
         const res = await api.get('/dashboard/operations').catch(() => null);
         const d = res ? objFrom(res) : null;
         if (!d) {
-          return { totalBeds: 'â€”', occupied: 'â€”', available: 'â€”', todayOpd: 'â€”', currentIpd: 'â€”' };
+          return { totalBeds: '—', occupied: '—', available: '—', todayOpd: '—', currentIpd: '—' };
         }
         const beds = d.beds && typeof d.beds === 'object' ? d.beds : {};
         const bedsTotal = num(beds.total);
@@ -929,7 +1118,9 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
         const occupancyPct = num(beds.occupancyPct);
         return {
           totalBeds: fmt(bedsTotal),
-          occupied: bedsTotal !== null && bedsFree !== null ? `${bedsTotal - bedsFree} (${occupancyPct ?? 0}%)` : 'â€”',
+          occupied: bedsTotal !== null && bedsFree !== null
+            ? `${bedsTotal - bedsFree}${occupancyPct === null ? '' : ` (${occupancyPct}%)`}`
+            : '—',
           available: fmt(bedsFree),
           todayOpd: fmt(num(d.opdQueue?.waiting)),
           currentIpd: fmt(num(d.activeIpd)),
@@ -941,10 +1132,10 @@ export async function fetchRoleLiveKpis(roleKey: string): Promise<Partial<Record
   }
 }
 
-// â”€â”€â”€ Live work queues (Wave 3) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Live work queues (Wave 3) ──────────────────────────────────────────────
 // fetchRoleQueues pulls real transactional lists per role and maps them onto
 // the canonical SPEC workQueue names (frontend/src/lib/hmsDashboardSpec.ts).
-// Queues with no live data (empty list, 403/404, network error) are omitted â€”
+// Queues with no live data (empty list, 403/404, network error) are omitted —
 // WorkQueueTable falls back to its curated roster for those, so a failed
 // request never blanks a dashboard.
 
@@ -975,7 +1166,7 @@ function asList(payload: any): any[] {
 }
 
 /** First non-empty string among candidate fields. */
-function str(obj: any, keys: string[], fb = 'â€”'): string {
+function str(obj: any, keys: string[], fb = '—'): string {
   for (const k of keys) {
     const v = obj?.[k];
     if (v !== undefined && v !== null && String(v).trim() !== '') return String(v);
@@ -985,7 +1176,7 @@ function str(obj: any, keys: string[], fb = 'â€”'): string {
 
 /** Compact relative time for date-ish fields; falls back to the raw value. */
 function ago(iso: any): string {
-  if (!iso) return 'â€”';
+  if (!iso) return '—';
   const t = new Date(iso).getTime();
   if (Number.isNaN(t)) return String(iso);
   const mins = Math.max(0, Math.round((Date.now() - t) / 60000));
@@ -1020,7 +1211,7 @@ function mapAppointment(a: any, actionLabel: string, actionRoute: string): LiveQ
   return {
     id: str(a, ['tokenNo', 'token', 'appointmentNo', 'appointmentId', '_id', 'id'], 'TK'),
     name: str(a, ['patientName', 'patient', 'name'], 'Walk-in Patient'),
-    meta: `UHID: ${str(a, ['uhid', 'patientUhid', 'mrn'], 'â€”')} Â· ${str(a, ['doctorName', 'doctor', 'specialty', 'department'], '')}`,
+    meta: `UHID: ${str(a, ['uhid', 'patientUhid', 'mrn'], '—')} · ${str(a, ['doctorName', 'doctor', 'specialty', 'department'], '')}`,
     detail: str(a, ['reason', 'complaint', 'chiefComplaint', 'purpose', 'symptoms'], 'General consultation'),
     timeOrWait: str(a, ['slot', 'time', 'appointmentTime'], ago(a.scheduledAt || a.date || a.createdAt)),
     status,
@@ -1035,7 +1226,7 @@ function mapAdmission(a: any, actionLabel: string, actionRoute: string): LiveQue
   return {
     id: str(a, ['admissionNo', 'ipdNo', 'admissionId', '_id', 'id'], 'IPD'),
     name: str(a, ['patientName', 'patient', 'name'], 'Inpatient'),
-    meta: `${str(a, ['ward', 'wardName'], '')} ${str(a, ['bedNo', 'bed', 'bedNumber'], '')} Â· ${str(a, ['doctorName', 'consultant', 'doctor'], '')}`.trim(),
+    meta: `${str(a, ['ward', 'wardName'], '')} ${str(a, ['bedNo', 'bed', 'bedNumber'], '')} · ${str(a, ['doctorName', 'consultant', 'doctor'], '')}`.trim(),
     detail: str(a, ['diagnosis', 'provisionalDiagnosis', 'complaint', 'reason'], 'Under observation'),
     timeOrWait: ago(a.admittedAt || a.admissionDate || a.createdAt),
     status,
@@ -1049,8 +1240,8 @@ function mapBed(b: any, actionLabel: string, actionRoute: string): LiveQueueRow 
   const status = str(b, ['status', 'bedStatus'], 'Occupied');
   return {
     id: str(b, ['bedNo', 'bedNumber', 'number', 'label', 'name', '_id', 'id'], 'BED'),
-    name: `${str(b, ['ward', 'wardName', 'unit'], 'Ward')} Â· ${str(b, ['bedNo', 'bedNumber', 'number', 'label'], '')}`.trim(),
-    meta: `${str(b, ['type', 'category', 'roomType'], '')} Â· ${str(b, ['patientName', 'occupant', 'patient'], '')}`.trim(),
+    name: `${str(b, ['ward', 'wardName', 'unit'], 'Ward')} · ${str(b, ['bedNo', 'bedNumber', 'number', 'label'], '')}`.trim(),
+    meta: `${str(b, ['type', 'category', 'roomType'], '')} · ${str(b, ['patientName', 'occupant', 'patient'], '')}`.trim(),
     detail: str(b, ['patientName', 'occupant', 'diagnosis', 'note'], `Bed status: ${status}`),
     timeOrWait: ago(b.updatedAt || b.cleanedAt || b.createdAt),
     status,
@@ -1076,7 +1267,7 @@ async function clinicDoctorQueues(): Promise<Record<string, LiveQueueRow[]>> {
   if (recs.length) {
     const labItems = recs.slice(0, 6).map((r) => ({
       id: str(r, ['reportNo', '_id', 'id'], 'REP'),
-      name: `${str(r, ['patientName', 'patient'], 'Patient')} Â· ${str(r, ['diagnosis', 'testName'], 'Lab Report')}`,
+      name: `${str(r, ['patientName', 'patient'], 'Patient')} · ${str(r, ['diagnosis', 'testName'], 'Lab Report')}`,
       meta: `Date: ${str(r, ['date'], 'Today')}`,
       detail: str(r, ['notes', 'prescription'], 'Investigation report awaiting clinical review'),
       timeOrWait: ago(r.createdAt),
@@ -1115,7 +1306,7 @@ async function clinicAdminQueues(): Promise<Record<string, LiveQueueRow[]>> {
   if (unpaid.length) {
     out['Pending Bill Settlements'] = unpaid.map((b) => ({
       id: str(b, ['invoiceNo', 'billNo', '_id', 'id'], 'INV'),
-      name: `${str(b, ['patientName', 'patient'], 'Patient')} Â· â‚¹${str(b, ['total', 'amount', 'balance'], '0')}`,
+      name: `${str(b, ['patientName', 'patient'], 'Patient')} · ₹${str(b, ['total', 'amount', 'balance'], '0')}`,
       meta: `Mode: ${str(b, ['paymentMethod', 'mode'], 'Pending')}`,
       detail: str(b, ['notes', 'itemsSummary'], 'Pending payment settlement'),
       timeOrWait: ago(b.createdAt),
@@ -1226,7 +1417,7 @@ async function clinicCashierQueues(): Promise<Record<string, LiveQueueRow[]>> {
   if (unpaid.length) {
     out['Unpaid Consultation Invoices'] = unpaid.map((b) => ({
       id: str(b, ['invoiceNo', 'billNo', '_id', 'id'], 'INV'),
-      name: `${str(b, ['patientName', 'patient'], 'Patient')} Â· â‚¹${str(b, ['total', 'amount'], '0')}`,
+      name: `${str(b, ['patientName', 'patient'], 'Patient')} · ₹${str(b, ['total', 'amount'], '0')}`,
       meta: `Doctor: ${str(b, ['doctorName', 'doctor'], 'OPD')}`,
       detail: str(b, ['notes', 'itemsSummary'], 'Pending cashier counter settlement'),
       timeOrWait: ago(b.createdAt),
@@ -1240,7 +1431,7 @@ async function clinicCashierQueues(): Promise<Record<string, LiveQueueRow[]>> {
   if (pharmacy.length) {
     out['Pharmacy Dispensing Bills'] = pharmacy.map((b) => ({
       id: str(b, ['billNo', '_id', 'id'], 'RX-BILL'),
-      name: `${str(b, ['patientName', 'patient'], 'Patient')} Â· â‚¹${str(b, ['total', 'amount'], '0')}`,
+      name: `${str(b, ['patientName', 'patient'], 'Patient')} · ₹${str(b, ['total', 'amount'], '0')}`,
       meta: 'Pharmacy Counter',
       detail: 'Medicines dispensed pending billing',
       timeOrWait: ago(b.createdAt),
@@ -1254,7 +1445,7 @@ async function clinicCashierQueues(): Promise<Record<string, LiveQueueRow[]>> {
   if (paid.length) {
     out['Collected Receipts Log'] = paid.map((b) => ({
       id: str(b, ['receiptNo', 'invoiceNo', '_id', 'id'], 'RCT'),
-      name: `${str(b, ['patientName', 'patient'], 'Patient')} Â· â‚¹${str(b, ['total', 'amount'], '0')}`,
+      name: `${str(b, ['patientName', 'patient'], 'Patient')} · ₹${str(b, ['total', 'amount'], '0')}`,
       meta: `Mode: ${str(b, ['paymentMethod', 'mode'], 'Cash / UPI')}`,
       detail: 'Settled at counter',
       timeOrWait: ago(b.updatedAt || b.createdAt),
@@ -1280,7 +1471,7 @@ async function clinicBranchManagerQueues(): Promise<Record<string, LiveQueueRow[
   if (staff.length) {
     out['Doctor Room Allocations'] = staff.slice(0, 5).map((s) => ({
       id: str(s, ['staffId', '_id', 'id'], 'RM'),
-      name: `Room ${str(s, ['roomNo', 'room'], '101')} Â· Dr. ${str(s, ['name', 'doctorName'], 'Consultant')}`,
+      name: `Room ${str(s, ['roomNo', 'room'], '101')} · Dr. ${str(s, ['name', 'doctorName'], 'Consultant')}`,
       meta: str(s, ['specialty', 'department'], 'General OPD'),
       detail: 'Consulting room occupied & active',
       timeOrWait: 'Active',
@@ -1311,7 +1502,7 @@ async function clinicLabQueues(): Promise<Record<string, LiveQueueRow[]>> {
   return {
     'Accession & Barcode Queue': pool.map((r) => ({
       id: str(r, ['accessionNo', 'testNo', '_id', 'id'], 'LAB'),
-      name: `${str(r, ['patientName', 'patient'], 'Patient')} Â· ${str(r, ['testName', 'test'], 'Investigation')}`,
+      name: `${str(r, ['patientName', 'patient'], 'Patient')} · ${str(r, ['testName', 'test'], 'Investigation')}`,
       meta: `Ref Doctor: ${str(r, ['doctorName', 'doctor'], '')}`,
       detail: str(r, ['notes', 'clinicalNotes'], 'Sample awaiting accessioning'),
       timeOrWait: ago(r.createdAt),
@@ -1322,7 +1513,7 @@ async function clinicLabQueues(): Promise<Record<string, LiveQueueRow[]>> {
     })),
     'Results Entry Worklist': pool.map((r) => ({
       id: str(r, ['accessionNo', '_id', 'id'], 'RES'),
-      name: `${str(r, ['patientName', 'patient'], 'Patient')} Â· ${str(r, ['testName', 'test'], 'Test')}`,
+      name: `${str(r, ['patientName', 'patient'], 'Patient')} · ${str(r, ['testName', 'test'], 'Test')}`,
       meta: 'Hematology / Biochemistry',
       detail: 'Test processed, enter values',
       timeOrWait: ago(r.createdAt),
@@ -1487,7 +1678,7 @@ async function bedQueues(): Promise<Record<string, LiveQueueRow[]>> {
   if (tasks.length) {
     out['Turnaround / Cleaning Queue'] = tasks.map((t) => ({
       id: str(t, ['taskNo', '_id', 'id'], 'CLN'),
-      name: `${str(t, ['ward', 'location'], 'Ward')} Â· ${str(t, ['bedNo', 'bed', 'room'], 'Bed')}`.trim(),
+      name: `${str(t, ['ward', 'location'], 'Ward')} · ${str(t, ['bedNo', 'bed', 'room'], 'Bed')}`.trim(),
       meta: str(t, ['taskType', 'type'], 'Terminal cleaning'),
       detail: str(t, ['detail', 'notes', 'description'], 'Cleaning requested on discharge'),
       timeOrWait: ago(t.createdAt),
@@ -1512,8 +1703,8 @@ async function billingQueues(queueNames: { unpaid: string; discharge?: string; r
     const status = str(b, ['status', 'paymentStatus'], 'Unpaid Invoice');
     return {
       id: str(b, ['billNo', 'invoiceNo', 'receiptNo', '_id', 'id'], 'BIL'),
-      name: `${str(b, ['patientName', 'patient', 'name'], 'Patient')} Â· â‚¹${str(b, ['balance', 'due', 'netPayable', 'total', 'amount'], 'â€”')}`,
-      meta: `UHID: ${str(b, ['uhid', 'patientUhid'], 'â€”')}`,
+      name: `${str(b, ['patientName', 'patient', 'name'], 'Patient')} · ₹${str(b, ['balance', 'due', 'netPayable', 'total', 'amount'], '—')}`,
+      meta: `UHID: ${str(b, ['uhid', 'patientUhid'], '—')}`,
       detail: str(b, ['billType', 'type', 'detail'], 'Awaiting payment clearance'),
       timeOrWait: ago(b.createdAt || b.billDate),
       status,
@@ -1633,9 +1824,9 @@ async function otQueues(queueNames: { board: string; preop?: string; notes?: str
     const status = str(c, ['status', 'caseStatus'], 'Scheduled');
     return {
       id: str(c, ['caseNo', 'surgeryNo', '_id', 'id'], 'OT'),
-      name: `${str(c, ['patientName', 'patient', 'name'], 'Patient')} Â· ${str(c, ['procedure', 'surgery', 'operation'], 'Procedure')}`,
-      meta: `Surgeon: ${str(c, ['surgeon', 'surgeonName'], '')} Â· Anaesth: ${str(c, ['anaesthetist', 'anaesthesia'], '')}`,
-      detail: `Theatre ${str(c, ['theatre', 'ot', 'room'], '')} Â· ${str(c, ['anaesthesiaType', 'anaesthesia'], '')}`,
+      name: `${str(c, ['patientName', 'patient', 'name'], 'Patient')} · ${str(c, ['procedure', 'surgery', 'operation'], 'Procedure')}`,
+      meta: `Surgeon: ${str(c, ['surgeon', 'surgeonName'], '')} · Anaesth: ${str(c, ['anaesthetist', 'anaesthesia'], '')}`,
+      detail: `Theatre ${str(c, ['theatre', 'ot', 'room'], '')} · ${str(c, ['anaesthesiaType', 'anaesthesia'], '')}`,
       timeOrWait: str(c, ['slot', 'scheduledAt'], ago(c.createdAt)),
       status,
       statusColor: colorFor(status),
@@ -1682,7 +1873,7 @@ async function singleListQueue(path: string, queueName: string, map: (x: any) =>
   return { [queueName]: list.map(map) };
 }
 
-/** Role â†’ live work queues. Keys MUST match the role's SPEC workQueues names. */
+/** Role → live work queues. Keys MUST match the role's SPEC workQueues names. */
 export async function fetchRoleQueues(roleKey: string): Promise<Record<string, LiveQueueRow[]>> {
   try {
     const role = String(roleKey || '').toLowerCase();
@@ -1708,7 +1899,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
       case 'clinic_radiology_tech':
         return singleListQueue('/radiology/orders', 'Modality Study Worklist', (s) => ({
           id: str(s, ['accessionNo', 'studyNo', '_id', 'id'], 'RAD'),
-          name: `${str(s, ['patientName', 'patient'], 'Patient')} Â· ${str(s, ['modality', 'studyType'], 'X-Ray')}`,
+          name: `${str(s, ['patientName', 'patient'], 'Patient')} · ${str(s, ['modality', 'studyType'], 'X-Ray')}`,
           meta: `Room: ${str(s, ['room', 'location'], 'B-1')}`,
           detail: str(s, ['clinicalHistory', 'reason'], 'Digital radiography scan ordered'),
           timeOrWait: ago(s.createdAt),
@@ -1732,8 +1923,8 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
       case 'clinic_hr_admin':
         return singleListQueue('/leave-requests/pending', 'Leave Approval Requests', (l) => ({
           id: str(l, ['requestNo', '_id', 'id'], 'LV'),
-          name: `${str(l, ['employeeName', 'staffName', 'name'], 'Staff')} Â· ${str(l, ['leaveType', 'type'], 'Casual Leave')}`,
-          meta: `${str(l, ['fromDate', 'from'], '')} â†’ ${str(l, ['toDate', 'to'], '')}`,
+          name: `${str(l, ['employeeName', 'staffName', 'name'], 'Staff')} · ${str(l, ['leaveType', 'type'], 'Casual Leave')}`,
+          meta: `${str(l, ['fromDate', 'from'], '')} → ${str(l, ['toDate', 'to'], '')}`,
           detail: str(l, ['reason', 'detail'], 'Staff leave awaiting clinic approval'),
           timeOrWait: ago(l.createdAt || l.appliedAt),
           status: 'Pending Review',
@@ -1748,7 +1939,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
       case 'clinic_crm_staff':
         return singleListQueue('/reviews', 'Post-Consultation Feedback Follow-up', (r) => ({
           id: str(r, ['reviewNo', '_id', 'id'], 'REV'),
-          name: `${str(r, ['patientName', 'patient'], 'Patient')} Â· ${str(r, ['rating'], '5')}â˜…`,
+          name: `${str(r, ['patientName', 'patient'], 'Patient')} · ${str(r, ['rating'], '5')}★`,
           meta: `Dr. ${str(r, ['doctorName', 'doctor'], 'Consultant')}`,
           detail: str(r, ['comment', 'feedback', 'text'], 'Post consultation rating & feedback'),
           timeOrWait: ago(r.createdAt),
@@ -1783,7 +1974,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         if (cases.length) {
           out['Procedural Schedule'] = cases.slice(0, 8).map((c) => ({
             id: str(c, ['caseNo', '_id', 'id'], 'OT'),
-            name: `${str(c, ['patientName', 'patient'], 'Patient')} Â· ${str(c, ['procedure', 'surgery'], 'Procedure')}`,
+            name: `${str(c, ['patientName', 'patient'], 'Patient')} · ${str(c, ['procedure', 'surgery'], 'Procedure')}`,
             meta: `Surgeon: ${str(c, ['surgeon'], '')}`,
             detail: str(c, ['status'], 'Scheduled'),
             timeOrWait: ago(c.scheduledAt || c.createdAt),
@@ -1838,7 +2029,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         return {
           'Pre-Authorization Queue': list.map((p) => ({
             id: str(p, ['preauthNo', 'claimNo', '_id', 'id'], 'PRE'),
-            name: `${str(p, ['patientName', 'patient'], 'Patient')} Â· â‚¹${str(p, ['amount', 'claimedAmount', 'estimate'], 'â€”')}`,
+            name: `${str(p, ['patientName', 'patient'], 'Patient')} · ₹${str(p, ['amount', 'claimedAmount', 'estimate'], '—')}`,
             meta: `TPA: ${str(p, ['tpa', 'insurer'], '')}`,
             detail: str(p, ['diagnosis', 'treatment', 'detail'], 'Cashless pre-authorization request'),
             timeOrWait: ago(p.createdAt),
@@ -1873,7 +2064,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         return singleListQueue('/inventory/items', 'Reagent Low Stock Warnings', (it) => ({
           id: str(it, ['sku', '_id', 'id'], 'RGT'),
           name: str(it, ['name', 'itemName'], 'Laboratory Reagent'),
-          meta: `Lot: ${str(it, ['lotNo', 'batch'], 'â€”')}`,
+          meta: `Lot: ${str(it, ['lotNo', 'batch'], '—')}`,
           detail: 'Minimum laboratory stock threshold breached',
           timeOrWait: 'Reorder Due',
           status: 'Low Stock',
@@ -1917,7 +2108,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
       case 'radiology_cashier':
         return singleListQueue('/radiology/orders', 'Unbilled Modality Studies', (s) => ({
           id: str(s, ['accessionNo', 'studyNo', '_id', 'id'], 'RAD'),
-          name: `${str(s, ['patientName', 'patient'], 'Patient')} Â· ${str(s, ['modality', 'studyType'], 'Scan')}`,
+          name: `${str(s, ['patientName', 'patient'], 'Patient')} · ${str(s, ['modality', 'studyType'], 'Scan')}`,
           meta: `Modality: ${str(s, ['modality'], 'X-Ray')}`,
           detail: 'Completed scan awaiting billing counter settlement',
           timeOrWait: ago(s.createdAt),
@@ -1949,7 +2140,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         return {
           'Bed Cleaning Queue': tasks.map((t) => ({
             id: str(t, ['taskNo', '_id', 'id'], 'CLN'),
-            name: `${str(t, ['ward', 'location'], 'Ward')} Â· ${str(t, ['bedNo', 'bed', 'room'], 'Bed')}`.trim(),
+            name: `${str(t, ['ward', 'location'], 'Ward')} · ${str(t, ['bedNo', 'bed', 'room'], 'Bed')}`.trim(),
             meta: str(t, ['taskType', 'type'], 'Terminal cleaning'),
             detail: str(t, ['detail', 'notes', 'description'], 'Cleaning requested on discharge'),
             timeOrWait: ago(t.createdAt),
@@ -1969,12 +2160,12 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
             const qty = Number(it?.quantity ?? it?.stock ?? it?.qty ?? NaN);
             const min = Number(it?.reorderLevel ?? it?.minStock ?? it?.minimum ?? NaN);
             const low = !Number.isNaN(qty) && !Number.isNaN(min) ? qty <= min : /low|reorder|critical/i.test(str(it, ['stockStatus', 'status'], ''));
-            const status = low ? 'Below Reorder Point' : `Stock: ${Number.isNaN(qty) ? 'â€”' : qty}`;
+            const status = low ? 'Below Reorder Point' : `Stock: ${Number.isNaN(qty) ? '—' : qty}`;
             return {
               id: str(it, ['sku', 'itemCode', '_id', 'id'], 'SKU'),
               name: str(it, ['name', 'itemName'], 'Inventory Item'),
-              meta: `Batch: ${str(it, ['batch', 'batchNo'], 'â€”')} Â· Exp: ${str(it, ['expiry', 'expiryDate'], 'â€”')}`,
-              detail: `On hand: ${Number.isNaN(qty) ? 'â€”' : qty} Â· Reorder at: ${Number.isNaN(min) ? 'â€”' : min}`,
+              meta: `Batch: ${str(it, ['batch', 'batchNo'], '—')} · Exp: ${str(it, ['expiry', 'expiryDate'], '—')}`,
+              detail: `On hand: ${Number.isNaN(qty) ? '—' : qty} · Reorder at: ${Number.isNaN(min) ? '—' : min}`,
               timeOrWait: 'Cycle count due',
               status,
               statusColor: colorFor(status) as LiveQueueRow['statusColor'],
@@ -2043,7 +2234,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         return {
           'Patient Dialysis Schedule': sessions.map((s) => ({
             id: str(s, ['sessionNo', '_id', 'id'], 'DIA'),
-            name: `${str(s, ['patientName', 'patient'], 'Patient')} Â· Station ${str(s, ['station', 'machine'], '')}`.trim(),
+            name: `${str(s, ['patientName', 'patient'], 'Patient')} · Station ${str(s, ['station', 'machine'], '')}`.trim(),
             meta: str(s, ['shift', 'slot'], ''),
             detail: str(s, ['prescription', 'detail'], 'Hemodialysis session'),
             timeOrWait: ago(s.scheduledAt || s.createdAt),
@@ -2060,7 +2251,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         return {
           'Component Requisition Queue': reqs.map((r) => ({
             id: str(r, ['requestNo', '_id', 'id'], 'BB'),
-            name: `${str(r, ['component', 'bloodGroup'], 'Blood Component')} Â· ${str(r, ['bloodGroup', 'group'], '')}`.trim(),
+            name: `${str(r, ['component', 'bloodGroup'], 'Blood Component')} · ${str(r, ['bloodGroup', 'group'], '')}`.trim(),
             meta: `Ward: ${str(r, ['ward', 'department'], '')}`,
             detail: str(r, ['detail', 'indication'], 'Component requisition from ward/OT'),
             timeOrWait: ago(r.createdAt),
@@ -2079,7 +2270,7 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         return {
           'Ward Diet Distribution List': orders.map((o) => ({
             id: str(o, ['orderNo', '_id', 'id'], 'DIET'),
-            name: `${str(o, ['patientName', 'patient'], 'Patient')} Â· ${str(o, ['dietType', 'diet'], 'Diet')}`.trim(),
+            name: `${str(o, ['patientName', 'patient'], 'Patient')} · ${str(o, ['dietType', 'diet'], 'Diet')}`.trim(),
             meta: `Ward: ${str(o, ['ward', 'bed'], '')}`,
             detail: str(o, ['restrictions', 'allergies', 'detail'], 'Meal scheduled'),
             timeOrWait: str(o, ['meal', 'slot'], ago(o.createdAt)),
@@ -2158,8 +2349,8 @@ export async function fetchRoleQueues(roleKey: string): Promise<Record<string, L
         return {
           'Leave Approval Queue': list.map((l) => ({
             id: str(l, ['requestNo', '_id', 'id'], 'LV'),
-            name: `${str(l, ['employeeName', 'staffName', 'name'], 'Staff')} Â· ${str(l, ['leaveType', 'type'], 'Leave')}`.trim(),
-            meta: `${str(l, ['fromDate', 'from'], '')} â†’ ${str(l, ['toDate', 'to'], '')}`,
+            name: `${str(l, ['employeeName', 'staffName', 'name'], 'Staff')} · ${str(l, ['leaveType', 'type'], 'Leave')}`.trim(),
+            meta: `${str(l, ['fromDate', 'from'], '')} → ${str(l, ['toDate', 'to'], '')}`,
             detail: str(l, ['reason', 'detail'], 'Leave request awaiting approval'),
             timeOrWait: ago(l.createdAt || l.appliedAt),
             status: str(l, ['status'], 'Pending Approval'),
