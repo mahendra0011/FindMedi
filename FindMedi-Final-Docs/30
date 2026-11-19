@@ -1,0 +1,137 @@
+# 38. Role Dashboards: Executive & Governance
+
+Roles: `superadmin`, `hospital_owner`, `hospital_admin`, `medical_superintendent` (+ `cmo`, `medical_director`), `hod`, `quality_officer`, `auditor`, `mis_reporting`, `it_admin`, `compliance_officer`, `dpo`.
+Common standards: file 37. **Executive rule:** sirf aggregates; PHI masked; har number drill-down aur reconcile-able; no fake fallback values.
+
+### Super Admin (platform owner) (`superadmin`)
+- **Purpose:** Multi-tenant platform health, hospitals/clinics onboarding, revenue, compliance, incidents.
+- **Current status:** spec `hmsDashboardSpec` · route `/superadmin/overview` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 2 modules
+- **KPI cards (target):** Active tenants (hospitals/clinics/labs) + new this month; GMV / platform revenue / take-rate (MTD vs prev); Bookings today + success %; Open critical alerts / SLA breaches; Pending KYC / approvals count; System health (API p95, error %, queue lag, DLQ size)
+- **Worklists / queues:** Pending onboarding & KYC (tenant, type, age, reviewer); Disputes & refunds escalations; Support tickets L2/L3 breaching SLA; Failed payments / webhook failures; Security events (break-glass, failed logins spike)
+- **Alerts:** Payment gateway down / webhook backlog; Tenant data-export / deletion request overdue (DPDP clock); Rule-engine critical alert unacked; Backup/restore drill overdue
+- **Quick actions:** Approve tenant, Impersonate (audited), Open feature flags, Broadcast announcement, Open audit log
+- **Sections / tabs:** Overview · Tenants · Revenue · Trust & Safety · Compliance · Platform health · Costs · Settings
+- **Features:** Tenant 360 (plan, usage, health, billing); Feature flags & rollout rings per tenant; Global announcements + maintenance windows; Cost & usage (SMS/WhatsApp/AI/storage); Fraud & abuse signals; Compliance register (licences, NABH, DPDP) with due dates
+- **Data / APIs:** `/superadmin/*`, `/dashboard/overview`, `/rcm/*`, `/hub/*`, `/iam/*`, `/audit`, `/rules/alerts`; New: `/platform/health`, `/platform/tenants/:id/360`
+- **Permissions & privacy:** Impersonation needs reason + step-up + audit; PHI hidden by default (break-glass to view); every action logged.
+- **Mobile:** Read-only summary + critical alerts on mobile.
+
+### Hospital Owner / Promoter (`hospital_owner`)
+- **Purpose:** Business performance and strategic KPIs across branches; no clinical PHI.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/hospital_owner` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 2 modules
+- **KPI cards (target):** Revenue billed vs collected (MTD, YTD, vs budget); EBITDA proxy / ARPOB; Occupancy % & ALOS; OPD visits & growth; Doctor/department contribution; Receivables ageing (insurance/TPA/corporate); NPS / complaint trend; Cash position
+- **Worklists / queues:** Top 10 receivable accounts; Dept P&L ranking; Budget variance by cost centre
+- **Alerts:** Collections below target (rule); Occupancy < threshold 3 days; Claim rejection rate spike; NABH/licence expiry < 60d
+- **Quick actions:** Download MIS pack, Approve capex (>limit), View branch comparison
+- **Sections / tabs:** Executive summary · Revenue & cost · Operations · Quality & patient experience · Compliance · Approvals
+- **Features:** Branch comparison, multi-hospital roll-up; Budget vs actual with drill-down; Doctor productivity & revenue share view; Scheduled MIS email (weekly) via Report Studio; Board pack export (PDF)
+- **Data / APIs:** `/dashboard/overview`, `/rcm/pipeline`, `/finance/pnl`, `/reports/*`, KPI catalogue
+- **Permissions & privacy:** Aggregates only; patient identifiers masked; export audit.
+
+### Hospital Administrator (`hospital_admin`)
+- **Purpose:** Daily 360° operations: beds, OPD/IPD/ER flow, revenue, staff, alerts, approvals.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboard/v2` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 2 modules
+- **KPI cards (target):** OPD visits (period, compare); IPD census + Bed occupancy %; Billed / Collected / Outstanding; ER active + door-to-doctor avg; Discharges pending + before-noon %; Staff on duty / absent; Critical lab unacked; Insurance claims pending / rejected
+- **Worklists / queues:** Live OPD queue (doctor-wise wait); Pending approvals (discount, refund, PO, leave); Bed board heatmap by ward; OT schedule today; Discharge-ready patients with blockers; Low stock/expiry
+- **Alerts:** Critical lab >15 min unacked; Bed cleaning >30 min; Pending discharge >4h; Bill overdue >30d; Equipment/licence due; Complaint SLA breach
+- **Quick actions:** Approve discount/refund, Open bed board, Assign staff shift, Broadcast notice, Raise task
+- **Sections / tabs:** Overview · Operations · Revenue · People · Quality · Approvals · Reports
+- **Features:** Hospital Dashboard V2 widgets (ops strip, alerts center, revenue split, staff on duty, insurance pipeline); Date range + compare toggle; widget layout save/hide; Approvals inbox with escalation levels; Drill-down from every KPI; Daily MIS email; Day-end closing checklist
+- **Data / APIs:** `/dashboard/{overview,operations,revenue,alerts,beds/heatmap,staff/on-duty,queue}`, `/approvals/*`, `/tpa/pipeline`, `/rules/alerts`
+- **Permissions & privacy:** Clinical notes read-only + audited; no PHI export without reason.
+
+### Medical Superintendent / CMO / Medical Director (`medical_superintendent`)
+- **Purpose:** Clinical governance: mortality, infection, safety events, protocol compliance, doctor credentialing.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/medical_superintendent` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Mortality rate (crude/ICU/surgical); 30-day readmission %; HAI rate (CAUTI/CLABSI/SSI); Sentinel/near-miss events open; Critical-result ack within SLA %; Doctor credential expiries; Antibiotic stewardship compliance; Clinical audit scores
+- **Worklists / queues:** M&M cases pending review; Incident reports (severity, RCA due); Death reviews due; Restricted antibiotic approvals; Doctor privileging requests; Consent/documentation deficiency
+- **Alerts:** Sentinel event raised; HAI cluster (≥2 same ward 7d); Credential/registration expiry <30d; Medication error trend
+- **Quick actions:** Open M&M board, Approve privileges, Review incident, Sign protocol
+- **Sections / tabs:** Clinical quality · Safety events · Infection control · Credentialing · Mortality & morbidity · Protocols
+- **Features:** M&M/Case-presentation board; NABH indicators auto-KPIs; Protocol & order-set approvals; Peer-review & audit scheduler; Clinical heat-map by dept
+- **Data / APIs:** `/case-presentations`, `/infection-control/*`, `/safety/incidents`, `/quality/*`, `/credentials`, KPI catalogue
+- **Permissions & privacy:** Can view identified clinical records only via care-relationship/break-glass; reason logged.
+
+### Head of Department (`hod`)
+- **Purpose:** Department performance, staffing, quality and teaching for one specialty.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/hod` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Department OPD/IPD volume; Avg consult time & wait; Dept revenue & doctor share; Procedure/OT utilisation; Dept readmission & complication %; Patient satisfaction (dept NPS); Duty roster fill %; Pending documentation
+- **Worklists / queues:** Cases requiring HOD sign-off; Roster swap/leave requests; Consult/referral backlog; Unsigned discharge summaries (dept); Teaching/CME schedule
+- **Alerts:** Roster gap in next 72h; Pending sign-offs >24h; Dept NPS drop; Critical case in ward
+- **Quick actions:** Approve leave/swap, Assign consult, Sign summary, Open roster, Schedule M&M
+- **Sections / tabs:** Overview · Doctors · Roster · Quality · Teaching
+- **Features:** Doctor-wise productivity table; Roster planner (gaps heat-map); Protocol compliance board; Dept case presentation; Resident evaluation
+- **Data / APIs:** `/roster/*`, `/doctor/*`, `/orders/*`, `/discharge/*`, `/insights/*`
+- **Permissions & privacy:** Dept-scoped PHI only.
+
+### Quality & Accreditation Officer (NABH) (`quality_officer`)
+- **Purpose:** Audit, incidents, CAPA, indicators, document control.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/quality_officer` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** NABH checklist completion % per chapter; Incidents open/closed, avg closure days; CAPA overdue; Hand-hygiene compliance %; Patient fall rate; Medication error rate; Internal audits due; Document reviews due
+- **Worklists / queues:** Incident register (severity, RCA owner, due); CAPA tracker; Audit schedule & findings; SOP/policy versions awaiting ack; Indicator out-of-range list
+- **Alerts:** Sentinel event within 24h; CAPA overdue; Audit overdue; Indicator breach
+- **Quick actions:** Log incident, Start audit, Assign CAPA, Publish SOP
+- **Sections / tabs:** Indicators · Incidents · CAPA · Audits · Documents · Accreditation
+- **Features:** NABH chapter-wise evidence upload; Quality indicators auto-computed (KPI catalogue); Document control with read-and-acknowledge; Mock-assessment mode; Trend charts & control charts
+- **Data / APIs:** `/quality/*` (NabhChapter, NabhAssessment, Capa), `/safety/incidents`, `/infection-control`
+- **Permissions & privacy:** Incident narratives restricted; patient IDs masked unless needed.
+
+### Internal / External Auditor (read-only) (`auditor`)
+- **Purpose:** Independent verification of financial & clinical controls.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/auditor` · current depth: 4 KPIs / 3 tasks / 1 alerts / 3 queues / 4 actions / 1 modules
+- **KPI cards (target):** Exceptions found (period); Discounts/refunds above policy; Break-glass accesses; Bill edits/cancellations; Stock adjustments; Failed 4-eyes approvals
+- **Worklists / queues:** Audit log search (who/what/when/where/before/after); Sampling worklist; Segregation-of-duties violations; Control test results
+- **Alerts:** Control failure; Unreviewed break-glass >24h
+- **Quick actions:** Run sample, Export evidence pack, Flag finding
+- **Sections / tabs:** Audit trail · Controls · Financial exceptions · Access reviews · Evidence
+- **Features:** Immutable audit trail viewer (hash-chain verified); Sampling & evidence pack export; SoD matrix checks; Tamper check (hash-chain) button
+- **Data / APIs:** `/audit`, `/iam/access-log`, `/approvals/*`, `/finance/*` (read)
+- **Permissions & privacy:** **Read-only**, no write routes, PHI masked unless audit-scope grant; every view logged.
+
+### MIS / Reporting Analyst (`mis_reporting`)
+- **Purpose:** Build/schedule reports and KPIs for management.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/mis_reporting` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Reports run/scheduled; Failed scheduled runs; KPI freshness; Data-quality exceptions
+- **Worklists / queues:** Saved views; Scheduled reports (cron, recipients); Report requests backlog
+- **Alerts:** Scheduled run failed; KPI stale >24h
+- **Quick actions:** New report, Schedule, Export
+- **Sections / tabs:** Reports · KPIs · Schedules · Data quality
+- **Features:** Report Studio (catalogue, saved views, schedule, async export); KPI definition catalogue + lineage; Data-quality checks; De-identified dataset export (k-anonymity)
+- **Data / APIs:** `/report-studio/*`, `/insights/kpis`, `DailyMetric`
+- **Permissions & privacy:** PHI columns masked by default; export audit + reason for large exports.
+
+### IT Administrator (`it_admin`)
+- **Purpose:** Platform uptime, integrations, users/access, backups.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/it_admin` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Uptime / error rate / p95; Queue lag & DLQ size; Integration device status (online/degraded); Backup last success / RPO; Failed logins & locked users; Pending access requests
+- **Worklists / queues:** Integration messages quarantined; Access requests/reviews; Job failures; Certificate/secret expiry
+- **Alerts:** Backup failed; Device offline >5 min; DLQ growing; Certificate expiry <14d
+- **Quick actions:** Reprocess message, Reset user, Run backup check, Open runbook
+- **Sections / tabs:** Health · Integrations · Access · Jobs & queues · Backups · Settings
+- **Features:** Integration hub board (HL7/ASTM/MQTT); User & role admin (IAM), access reviews; Backup/restore drill tracker; Webhook subscriptions & API keys; Feature flags per hospital
+- **Data / APIs:** `/hub/*`, `/iam/*`, `/api-keys`, `/webhooks`, health endpoints, bull-board
+- **Permissions & privacy:** Admin-hostname + IP allowlist, step-up auth; no PHI access.
+
+### Compliance / Regulatory Officer (`compliance_officer`)
+- **Purpose:** Regulatory registers, licences, DPDP, statutory returns.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Licences expiring ≤60d; Open DSR requests (SLA); Breach register open; Statutory filings due (BMW, PCPNDT, MTP); Consent coverage %; Policy acknowledgements pending
+- **Worklists / queues:** Licence tracker; DSR queue (access/erasure); Breach incidents with 72h clock; Statutory registers (MLC, PCPNDT Form F, MTP); Audit findings
+- **Alerts:** Licence expiry; DSR due <3d; Breach clock running; Statutory return overdue
+- **Quick actions:** Add licence, Open DSR, Log breach, Generate return
+- **Sections / tabs:** Registers · Licences · DPDP · Breaches · Statutory returns
+- **Features:** Compliance register (regulation → owner → evidence → review date); DSR workflow; Breach register with 72h countdown; Retention policy status; Consent matrix
+- **Data / APIs:** `/compliance/*`, `/dsr/*`, `/breach`, `/licenses`, retention scripts
+- **Permissions & privacy:** Dedicated role (**currently aliased to `auditor`**: give own spec).
+
+### Data Protection Officer (`dpo`)
+- **Purpose:** Privacy governance and data-subject rights.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Open DSRs by type + SLA; Breaches (open/closed); Consent withdrawals; Cross-border/processor register changes; Retention exceptions
+- **Worklists / queues:** DSR queue; Breach list; Access reviews; Third-party DPAs
+- **Alerts:** DSR SLA <3d; Breach clock
+- **Quick actions:** Open DSR, Notify breach, Approve retention exception
+- **Sections / tabs:** DSR · Breaches · Consents · DPIA · Processors
+- **Features:** DSR automation (export/delete), legal hold; DPIA tracker; Processor register; Privacy centre analytics
+- **Data / APIs:** `/dsr/*`, `/privacy/*`, `/consents/*`
+- **Permissions & privacy:** Can see data-protection metadata only; erasure needs 4-eyes.

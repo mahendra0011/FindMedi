@@ -1,0 +1,90 @@
+# 41. Role Dashboards: Nursing
+
+Roles: `nurse`, `ward_nurse`, `icu_nurse`, `ot_nurse`, `nursing_supervisor` (`matron`), `infection_control_nurse`, `home_nursing_admin`.
+**Family rule:** task-first, scan-to-verify (wristband + drug), offline-first, shift-bound access, large touch targets, no decorative motion. Note: `nursing_supervisor`, `matron`, `ward_nurse` abhi `nurse` spec par alias hain: alag spec chahiye; `ot_nurse` ka koi spec nahi.
+
+### Nurse (ward / general) (`nurse`)
+- **Purpose:** Bedside task-first view: due meds, vitals, orders, handover, alerts.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/nurse` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 2 modules
+- **KPI cards (target):** Patients assigned; Meds due now (next 2h) / overdue; Vitals due / overdue; Orders to acknowledge; NEWS2 ≥5 patients; Handover items
+- **Worklists / queues:** "Due now" list grouped by time (MAR); Vitals due; Orders to ack; Assigned patients with flags (fall/pressure/isolation/allergy); Intake-output balance; Pending admissions/discharges
+- **Alerts:** Missed dose; NEWS2 high; Critical result; Fall-risk bed alarm; Restraint review due
+- **Quick actions:** Record vitals, Give med (scan), Nursing note, Request doctor review, SBAR handover
+- **Sections / tabs:** My patients · MAR · Vitals · Orders · Handover · Care plans
+- **Features:** Barcode wristband + drug scan (5 rights) with hard-stop on mismatch; MAR with missed-dose alerts; Fall (Morse)/pressure (Braden)/pain scores; I/O auto balance, wound care, lines & catheters (days in situ); Offline-first PWA with encrypted store + sync bar; Shift handover (SBAR); Care plan
+- **Data / APIs:** `/nursing/*`, `/ipd/{vitals,mar,io,nursing-notes,wound-care}`, `/scan/verify`, `/forms/*`
+- **Permissions & privacy:** Assigned patients; shift-bound login; PHI watermark on screen.
+- **Mobile:** Primary device: phone/tablet; swipe-to-give-med with confirm; haptics for critical.
+
+### Ward Nurse (in-charge of ward) (`ward_nurse`)
+- **Purpose:** Ward-level view (currently aliased to `nurse`).
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Ward occupancy; Staff on shift vs required; Pending admissions/discharges; Incidents today; Bed cleaning pending
+- **Worklists / queues:** Ward bed board; Task allocation per nurse; Isolation list; Supplies low (ward store)
+- **Alerts:** Understaffed shift; Isolation breach; Indent pending
+- **Quick actions:** Allocate nurse, Request supplies, Raise incident
+- **Sections / tabs:** Ward board · Assignments · Indents · Incidents
+- **Features:** Nurse–patient assignment board; Ward indent to store; Infection precautions list
+- **Data / APIs:** `/nursing/*`, `/stores/indents`, `/work-tasks`
+- **Permissions & privacy:** Ward scope.
+
+### ICU Nurse (`icu_nurse`)
+- **Purpose:** Hourly flowsheet, ventilator care, infusion & alarms.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/icu_nurse` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** ICU patients assigned; Hourly obs due; Infusions running (rate checks); Ventilator bundles done; Alarms active
+- **Worklists / queues:** Hourly flowsheet queue; Infusion/pump checks; Line/catheter care; Turning schedule (pressure care)
+- **Alerts:** Obs overdue; Infusion nearing end; Alarm unacked
+- **Quick actions:** Chart hourly obs, Check infusion, Log turning
+- **Sections / tabs:** Flowsheet · Devices · Bundles · I/O
+- **Features:** Device-integration vitals feed (HL7/MQTT); Bundle checklists (VAP/CLABSI); GCS/sedation scores; I/O hourly
+- **Data / APIs:** `/icu/*`, `/hub/*`
+- **Permissions & privacy:** ICU scope.
+- **Mobile:** Bedside tablet.
+
+### OT Nurse (scrub/circulating) (`ot_nurse`)
+- **Purpose:** Counts, WHO checklist, implants, specimen.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Cases today; Counts verified; Checklist completion; Specimens sent
+- **Worklists / queues:** Case worklist; Count sheet; Implant log; Specimen labels
+- **Alerts:** Count mismatch; Checklist incomplete
+- **Quick actions:** Start count, Log implant, Print label
+- **Sections / tabs:** Cases · Counts · Implants · Specimens
+- **Features:** Swab/instrument counts with 2-person sign; Implant register (batch/serial → patient); Specimen barcode labels; PACU handover
+- **Data / APIs:** `/ot/*`, `/print/labels`
+- **Permissions & privacy:** Case scope.
+
+### Nursing Supervisor / Matron (`nursing_supervisor`)
+- **Purpose:** Staffing, ratios, quality, incident review (currently aliased to `nurse`: needs own spec).
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Nurse:patient ratio by ward; Staff on duty vs roster; Overtime hours; Incidents (falls, med errors); Documentation compliance %; Leave requests
+- **Worklists / queues:** Roster with gaps; Swap/leave approvals; Incident review queue; Audit checklists (hand hygiene); Training/credential due
+- **Alerts:** Ratio breach; Roster gap next shift; Credential expiry; Falls trend
+- **Quick actions:** Approve swap, Reassign nurse, Start audit, Open roster
+- **Sections / tabs:** Staffing · Roster · Incidents · Audits · Competency
+- **Features:** Acuity-based staffing suggestions; Shift handover quality audit; Ward-wise KPI board; Competency tracker
+- **Data / APIs:** `/roster/*`, `/safety/incidents`, `/credentials`
+- **Permissions & privacy:** Nursing scope; PHI minimal.
+
+### Infection Control Nurse (`infection_control_nurse`)
+- **Purpose:** HAI surveillance, isolation, hand hygiene, stewardship.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/infection_control_nurse` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** HAI rates (CAUTI/CLABSI/VAP/SSI); Isolation patients; Hand-hygiene compliance; Needle-stick injuries; Antibiotic restricted approvals
+- **Worklists / queues:** Surveillance worklist (device days, cultures); Isolation bed list; Outbreak watch; PEP follow-ups; Audit checklists
+- **Alerts:** Cluster ≥2 same ward/7d; MDR organism; Needle-stick without PEP
+- **Quick actions:** Open surveillance case, Flag isolation, Start hygiene audit, Approve antibiotic
+- **Sections / tabs:** Surveillance · Isolation · Hygiene · Stewardship · Needle-stick
+- **Features:** HAI case definitions & rates; Isolation sync with bed board; Antibiogram from microbiology; Stewardship approvals; Needle-stick + PEP tracker
+- **Data / APIs:** `/infection-control/*`, lab micro results, bed board
+- **Permissions & privacy:** Case-level identifiable data with purpose log.
+
+### Home Nursing Admin (`home_nursing_admin`)
+- **Purpose:** Home-visit scheduling, nurse routing, kit inventory, billing.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Visits today/completed; On-time %; Nurses available; Visit revenue; Complaints
+- **Worklists / queues:** Visit schedule; Unassigned requests; Kit stock; Reports pending
+- **Alerts:** Visit late; Kit low
+- **Quick actions:** Assign nurse, Reschedule, Bill visit
+- **Sections / tabs:** Schedule · Nurses · Kits · Billing
+- **Features:** Route optimisation + live map; Visit checklist & e-consent; Kit inventory; Per-visit billing
+- **Data / APIs:** `/home-nursing/*`
+- **Permissions & privacy:** Visit scope.

@@ -1,0 +1,208 @@
+# 43. Role Dashboards: Radiology (RIS), Blood Bank & Dialysis
+
+Roles: `radiology_manager`, `radiology_admin`, `radiology_receptionist`, `radiology_scheduler`, `radiology_prep_staff`, `radiology_technician`, `xray_technician`, `ct_technician`, `mri_technician`, `us_technician`, `mammo_technician`, `radiologist`, `reporting_assistant`, `pacs_admin`, `radiology_billing_executive`, `equipment_manager`, + `blood_bank_admin`, `dialysis_admin`.
+**Family rule (RIS):** DICOM worklist-first, dose logging, critical-finding closure, PACS viewer sessions audited. Current RIS specs: **0 tasks** per role: add task lists. `radiology_admin` = manager view.
+
+### Radiology Manager / Admin (`radiology_manager`)
+- **Purpose:** Department throughput, TAT, utilisation, dose, revenue.
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/radiology_manager` · current depth: 8 KPIs / 0 tasks / 3 alerts / 6 queues / 7 actions / 5 modules
+- **KPI cards (target):** Studies today by modality; Report TAT (median/90th pct); Scanner utilisation %; Critical findings unacked; Repeat/reject %; Revenue per modality; Pending reports backlog; Equipment uptime
+- **Worklists / queues:** Modality worklists; Report backlog by radiologist; Critical findings log; Preparation queue; Equipment downtime
+- **Alerts:** Critical finding unacked; TAT breach; Scanner down; Dose outlier
+- **Quick actions:** Reassign reports, Open PACS, Schedule slot, Log downtime
+- **Sections / tabs:** Overview · Modalities · TAT · Dose · Equipment · Revenue
+- **Features:** Modality dashboard (CT/MRI/XR/US/Mammo); Radiation dose log & outlier alert; Structured-report templates; Report-centre MIS; PACS/DICOM health
+- **Data / APIs:** `/radiology/*`, `/radiology/dicom/*`, RIS spec modules
+- **Permissions & privacy:** Studies with patient IDs; clinical role.
+
+### Radiology Receptionist (`radiology_receptionist`)
+- **Purpose:** Order intake, scheduling, billing, report hand-over.
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/radiology_receptionist` · current depth: 6 KPIs / 0 tasks / 2 alerts / 5 queues / 6 actions / 4 modules
+- **KPI cards (target):** Orders today; Scheduled / walk-in; Slots free; Bills collected; Reports ready
+- **Worklists / queues:** New orders (OPD/IPD/ER); Today schedule; Prep instructions sent?; Report counter
+- **Alerts:** No-show; Prep not done
+- **Quick actions:** Register, Book slot, Send prep SMS, Hand over report
+- **Sections / tabs:** Orders · Schedule · Billing · Reports
+- **Features:** Modality slot booking with prep rules (fasting/contrast/creatinine); Consent/contrast-allergy checklist capture; Report hand-over (OTP)
+- **Data / APIs:** `/radiology/orders`, scheduling, billing
+- **Permissions & privacy:** Registration only.
+
+### Radiology Scheduler (`radiology_scheduler`)
+- **Purpose:** Slot optimisation across scanners.
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/radiology_scheduler` · current depth: 5 KPIs / 0 tasks / 1 alerts / 5 queues / 4 actions / 3 modules
+- **KPI cards (target):** Slot utilisation %; No-show %; Waiting list size; Emergency add-ons
+- **Worklists / queues:** Scanner timetable; Waitlist; Emergency inserts
+- **Alerts:** Overrun; Idle gap >30 min
+- **Quick actions:** Reschedule, Insert emergency, Notify patient
+- **Sections / tabs:** Timetable · Waitlist · Rules
+- **Features:** Drag-drop timetable (resource × time); Auto-fill from waitlist; Prep gating
+- **Data / APIs:** `/radiology/schedule`
+- **Permissions & privacy:** Scheduling metadata.
+
+### Radiology Prep Staff (`radiology_prep_staff`)
+- **Purpose:** Patient preparation (contrast, sedation, IV).
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/radiology_prep_staff` · current depth: 5 KPIs / 0 tasks / 2 alerts / 5 queues / 5 actions / 3 modules
+- **KPI cards (target):** Patients prepped; Prep delays; Contrast allergies flagged; Creatinine pending
+- **Worklists / queues:** Preparation queue; Contrast checklist; Sedation list
+- **Alerts:** Allergy flag; Creatinine missing
+- **Quick actions:** Mark prepped, Flag issue
+- **Sections / tabs:** Queue · Checklist
+- **Features:** Pre-scan checklist (consent, allergy, eGFR); Implant/pregnancy screen; Hand-off to technician
+- **Data / APIs:** `/radiology/prep`
+- **Permissions & privacy:** Case scope.
+
+### Radiology Technician (general) (`radiology_technician`)
+- **Purpose:** Scan execution at modality work-station.
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/radiology_technician` · current depth: 6 KPIs / 0 tasks / 2 alerts / 5 queues / 6 actions / 3 modules
+- **KPI cards (target):** Studies done today; Avg scan time; Repeat rate %; Dose (DLP/DAP) outliers; Pending worklist
+- **Worklists / queues:** Modality worklist (MWL); Prep-ready patients; Images pending push to PACS
+- **Alerts:** Dose outlier; Image upload failed; Safety flag (MRI implants/pregnancy)
+- **Quick actions:** Start study, Send to PACS, Mark repeat (reason)
+- **Sections / tabs:** Worklist · Scanning · PACS push · Dose
+- **Features:** DICOM worklist + C-STORE status; Dose log per study; Safety checklist; Repeat/reject reasons
+- **Data / APIs:** `/radiology/dicom/worklist`, `/radiology/dose`
+- **Permissions & privacy:** Study scope; minimal PHI.
+
+### X-Ray Technician (`xray_technician`)
+- **Purpose:** Scan execution at DR/CR, repeat tracking.
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/xray_technician` · current depth: 5 KPIs / 0 tasks / 1 alerts / 4 queues / 4 actions / 2 modules
+- **KPI cards (target):** Studies done today; Avg scan time; Repeat rate %; Dose (DLP/DAP) outliers; Pending worklist
+- **Worklists / queues:** Modality worklist (MWL); Prep-ready patients; Images pending push to PACS
+- **Alerts:** Dose outlier; Image upload failed; Safety flag (MRI implants/pregnancy)
+- **Quick actions:** Start study, Send to PACS, Mark repeat (reason)
+- **Sections / tabs:** Worklist · Scanning · PACS push · Dose
+- **Features:** DICOM worklist + C-STORE status; Dose log per study; Safety checklist; Repeat/reject reasons
+- **Data / APIs:** `/radiology/dicom/worklist`, `/radiology/dose`
+- **Permissions & privacy:** Study scope; minimal PHI.
+
+### CT Technician (`ct_technician`)
+- **Purpose:** Scan execution at protocol selection, contrast, dose.
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/ct_technician` · current depth: 5 KPIs / 0 tasks / 2 alerts / 5 queues / 5 actions / 3 modules
+- **KPI cards (target):** Studies done today; Avg scan time; Repeat rate %; Dose (DLP/DAP) outliers; Pending worklist
+- **Worklists / queues:** Modality worklist (MWL); Prep-ready patients; Images pending push to PACS
+- **Alerts:** Dose outlier; Image upload failed; Safety flag (MRI implants/pregnancy)
+- **Quick actions:** Start study, Send to PACS, Mark repeat (reason)
+- **Sections / tabs:** Worklist · Scanning · PACS push · Dose
+- **Features:** DICOM worklist + C-STORE status; Dose log per study; Safety checklist; Repeat/reject reasons
+- **Data / APIs:** `/radiology/dicom/worklist`, `/radiology/dose`
+- **Permissions & privacy:** Study scope; minimal PHI.
+
+### MRI Technician (`mri_technician`)
+- **Purpose:** Scan execution at sequences, safety screening, scan time.
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/mri_technician` · current depth: 5 KPIs / 0 tasks / 2 alerts / 5 queues / 5 actions / 3 modules
+- **KPI cards (target):** Studies done today; Avg scan time; Repeat rate %; Dose (DLP/DAP) outliers; Pending worklist
+- **Worklists / queues:** Modality worklist (MWL); Prep-ready patients; Images pending push to PACS
+- **Alerts:** Dose outlier; Image upload failed; Safety flag (MRI implants/pregnancy)
+- **Quick actions:** Start study, Send to PACS, Mark repeat (reason)
+- **Sections / tabs:** Worklist · Scanning · PACS push · Dose
+- **Features:** DICOM worklist + C-STORE status; Dose log per study; Safety checklist; Repeat/reject reasons
+- **Data / APIs:** `/radiology/dicom/worklist`, `/radiology/dose`
+- **Permissions & privacy:** Study scope; minimal PHI.
+
+### Ultrasound Technician (`us_technician`)
+- **Purpose:** Scan execution at USG worklist, PCPNDT Form F for obstetric scans.
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/us_technician` · current depth: 5 KPIs / 0 tasks / 1 alerts / 4 queues / 5 actions / 2 modules
+- **KPI cards (target):** Studies done today; Avg scan time; Repeat rate %; Dose (DLP/DAP) outliers; Pending worklist
+- **Worklists / queues:** Modality worklist (MWL); Prep-ready patients; Images pending push to PACS
+- **Alerts:** Dose outlier; Image upload failed; Safety flag (MRI implants/pregnancy)
+- **Quick actions:** Start study, Send to PACS, Mark repeat (reason)
+- **Sections / tabs:** Worklist · Scanning · PACS push · Dose
+- **Features:** DICOM worklist + C-STORE status; Dose log per study; Safety checklist; Repeat/reject reasons; PCPNDT Form F mandatory + sex-determination prohibition banner
+- **Data / APIs:** `/radiology/dicom/worklist`, `/radiology/dose`
+- **Permissions & privacy:** Study scope; minimal PHI.
+
+### Mammography Technician (`mammo_technician`)
+- **Purpose:** Scan execution at screening workflow, BI-RADS handoff.
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/mammo_technician` · current depth: 4 KPIs / 0 tasks / 1 alerts / 4 queues / 4 actions / 2 modules
+- **KPI cards (target):** Studies done today; Avg scan time; Repeat rate %; Dose (DLP/DAP) outliers; Pending worklist
+- **Worklists / queues:** Modality worklist (MWL); Prep-ready patients; Images pending push to PACS
+- **Alerts:** Dose outlier; Image upload failed; Safety flag (MRI implants/pregnancy)
+- **Quick actions:** Start study, Send to PACS, Mark repeat (reason)
+- **Sections / tabs:** Worklist · Scanning · PACS push · Dose
+- **Features:** DICOM worklist + C-STORE status; Dose log per study; Safety checklist; Repeat/reject reasons
+- **Data / APIs:** `/radiology/dicom/worklist`, `/radiology/dose`
+- **Permissions & privacy:** Study scope; minimal PHI.
+
+### Radiologist (`radiologist`)
+- **Purpose:** Reporting worklist, critical findings, peer review.
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/radiologist` · current depth: 6 KPIs / 0 tasks / 2 alerts / 6 queues / 6 actions / 4 modules
+- **KPI cards (target):** Reports pending (by priority); Reported today; Critical findings communicated; TAT; Discrepancy rate
+- **Worklists / queues:** Reporting worklist (STAT first) with prior-study compare; Critical findings to call; Addendum requests; Peer-review sample
+- **Alerts:** Critical not communicated; STAT >30 min; Prior studies missing
+- **Quick actions:** Open study in viewer, Dictate report, Sign, Call clinician
+- **Sections / tabs:** Worklist · Viewer · Reports · Critical · Peer review
+- **Features:** PACS viewer launch (OHIF/Orthanc `viewer-url`) + in-app canvas viewer (window/level/zoom); Structured report templates + voice dictation; Prior-study comparison; Critical-finding log; Digital signature + QR
+- **Data / APIs:** `/radiology/*`, `/radiology/dicom/viewer-url`, `/signatures`
+- **Permissions & privacy:** Clinical role; viewer sessions audited.
+
+### Reporting Assistant / Transcriptionist (`reporting_assistant`)
+- **Purpose:** Draft reports from dictation for radiologist review.
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/reporting_assistant` · current depth: 4 KPIs / 0 tasks / 1 alerts / 4 queues / 3 actions / 2 modules
+- **KPI cards (target):** Drafts pending; Turnaround; Corrections returned
+- **Worklists / queues:** Dictation queue; Draft review returns
+- **Alerts:** Draft >TAT
+- **Quick actions:** Open dictation, Submit draft
+- **Sections / tabs:** Dictations · Drafts
+- **Features:** Speech-to-text with medical vocab; Template fill; Radiologist return notes
+- **Data / APIs:** `/radiology/reports`
+- **Permissions & privacy:** Drafts only; no sign-off rights.
+
+### PACS Administrator (`pacs_admin`)
+- **Purpose:** DICOM archive health, routing, storage, access.
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/pacs_admin` · current depth: 6 KPIs / 0 tasks / 2 alerts / 5 queues / 5 actions / 2 modules
+- **KPI cards (target):** Studies stored today; Storage used %; Failed C-STORE / retries; Modalities connected; Viewer sessions
+- **Worklists / queues:** Failed transfers; Modality AE status; Storage retention jobs
+- **Alerts:** Archive >85%; Modality offline; Retry backlog
+- **Quick actions:** Retry transfer, Add AE title, Purge per policy
+- **Sections / tabs:** Archive · Modalities · Routing · Storage · Access
+- **Features:** Orthanc/DICOM node status; AE registry & TLS; Retention/purge policy; Access logs of viewer
+- **Data / APIs:** `/radiology/dicom/{ping,studies,link,retry}`, hub
+- **Permissions & privacy:** No clinical report editing; PHI in DICOM tags access-controlled.
+
+### Radiology Equipment Manager (`equipment_manager`)
+- **Purpose:** Scanner PM/QA, downtime, calibration, AERB licence.
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/equipment_manager` · current depth: 6 KPIs / 0 tasks / 2 alerts / 5 queues / 4 actions / 2 modules
+- **KPI cards (target):** Uptime %; PM/QA due; Open faults; Calibration expiry; AERB licence validity
+- **Worklists / queues:** Fault tickets; PM schedule; QA tests; Vendor visits
+- **Alerts:** PM overdue; Licence <60d; Downtime >4h
+- **Quick actions:** Log fault, Schedule PM, Record QA
+- **Sections / tabs:** Assets · PM/QA · Faults · Licences
+- **Features:** Asset record with AMC/warranty/next-PM/calibration; Downtime & SLA tracking; AERB/TLD dose-badge records
+- **Data / APIs:** `/biomedical/*`, `/contracts`, Equipment model
+- **Permissions & privacy:** Asset data.
+
+### Radiology Billing Executive (`radiology_billing_executive`)
+- **Purpose:** Modality-wise billing, packages, insurance.
+- **Current status:** spec `risDashboardSpec` · route `/radiology/dashboard/radiology_billing_executive` · current depth: 5 KPIs / 0 tasks / 1 alerts / 4 queues / 4 actions / 2 modules
+- **KPI cards (target):** Bills today; Outstanding; Pending insurance; Package usage
+- **Worklists / queues:** Unbilled studies; Credit bills; TPA claims (radiology)
+- **Alerts:** Study done not billed
+- **Quick actions:** Create bill, Apply package, Send to TPA
+- **Sections / tabs:** Billing · Packages · Insurance
+- **Features:** Auto-charge on study complete (ChargeItem); Package/modality price list
+- **Data / APIs:** `/billing`, `/charges`
+- **Permissions & privacy:** Billing scope.
+
+### Blood Bank Administrator (`blood_bank_admin`)
+- **Purpose:** Inventory, donors, cross-match, transfusion safety.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/blood_bank_admin` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Units by group/component (available/reserved/expiring); Expiring ≤3d; Requests pending; Issued today; Reaction reports; Discard rate
+- **Worklists / queues:** Blood requests (urgent first); Cross-match queue; Donor screening/deferral; Expiry list; Transfusion monitoring
+- **Alerts:** Group stock < threshold; Unit expiring ≤3d; Transfusion reaction; Cold-chain excursion
+- **Quick actions:** Issue unit, Cross-match, Register donor, Record reaction, Discard unit
+- **Sections / tabs:** Inventory · Requests · Donors · Cross-match · Transfusions · Reports
+- **Features:** Unit-wise inventory (component separation: PRBC/FFP/Platelet/Cryo); Donor screening questionnaire + TTI tests; Two-person bedside check, transfusion vitals (pre/15min/post); Reaction reporting + haemovigilance; Cold-chain temp log
+- **Data / APIs:** `/blood-bank/*`, `DonorScreening`
+- **Permissions & privacy:** Donor & recipient data sensitive; audit.
+
+### Dialysis Unit Admin (`dialysis_admin`)
+- **Purpose:** Session scheduling, machine allocation, serology segregation, consumables.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/dialysis_admin` · current depth: 4 KPIs / 3 tasks / 1 alerts / 3 queues / 4 actions / 1 modules
+- **KPI cards (target):** Sessions today / completed; Machines in use / free; No-show %; Reuse count of dialysers; HBV/HCV segregation compliance; Water-quality tests due
+- **Worklists / queues:** Session board by machine/shift; Patients due; Consumables low; Complications log
+- **Alerts:** Dialyser reuse limit; Water quality failed; Serology-positive on wrong machine
+- **Quick actions:** Schedule session, Allocate machine, Log complication
+- **Sections / tabs:** Board · Patients · Machines · Consumables · Billing
+- **Features:** Machine allocation with serology segregation; Dialyser reuse counter; Session monitoring (vitals, UF); Billing per session & packages
+- **Data / APIs:** `/dialysis/*`, `DialysisSession`
+- **Permissions & privacy:** Treatment data; sensitive serology.

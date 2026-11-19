@@ -1,0 +1,40 @@
+# 46. Role Dashboards: HR, Finance & Admin
+
+Roles: `hr_manager`, `accountant`, `finance_admin`.
+**Family rule:** maker-checker, period lock, audit on every export; salary/financial data hidden from non-finance roles. **Payroll compliance:** statutory values FY-versioned aur CA-approved (file 31 T4).
+
+### HR Manager (`hr_manager`)
+- **Purpose:** Workforce, attendance, roster, payroll, credentials, recruitment.
+- **Current status:** spec `hmsDashboardSpec` · route `/hr/roster` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Headcount by dept / vacancies; Attendance today (present/absent/late); Leave requests pending; Overtime hours; Payroll run status; Credentials expiring ≤60d; Open positions / candidates; Attrition %
+- **Worklists / queues:** Roster gaps (72h); Leave/swap approvals; Payroll exceptions; Document verification queue; Onboarding tasks; Exit interviews
+- **Alerts:** Roster gap; Licence/registration expiry; Payroll variance; Biometric device offline
+- **Quick actions:** Approve leave, Run payroll, Publish roster, Verify document, Post job
+- **Sections / tabs:** Workforce · Attendance · Roster · Leave · Payroll · Credentials · Recruitment
+- **Features:** Duty roster with rules (max nights, rest hours, skill mix) + swap + on-call; Biometric attendance → late/OT calc; Statutory payroll engine (PF/ESI/PT/TDS/gratuity; **FY versioned**, CA-signed) + payslip PDF + loans/advances; Credential & privilege tracker (NMC/council/BLS/ACLS); Recruitment pipeline + onboarding checklist; Exit/F&F
+- **Data / APIs:** `/hr/*`, `/roster/*`, `/staff/payroll`, `/biometric/*`, `/recruitment/*`, `/credentials`
+- **Permissions & privacy:** Salary & personal data: HR/finance only; masked elsewhere; every export audited.
+
+### Accountant (`accountant`)
+- **Purpose:** Ledgers, payables/receivables, reconciliations, GST/TDS.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/accountant` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Cash/bank balance; Receivables ageing; Payables due this week; Unreconciled bank txns; GST/TDS liability; Expenses MTD vs budget
+- **Worklists / queues:** Vendor bills (3-way match); Bank reconciliation workbench; Expense approvals; Journal entries; Doctor payout statements
+- **Alerts:** Unmatched settlements >3d; GST filing due; Vendor bill dispute
+- **Quick actions:** Post journal, Match bank txn, Approve expense, Generate GSTR
+- **Sections / tabs:** Overview · AP · AR · Bank recon · Tax · Reports
+- **Features:** Chart of accounts, day-book, trial balance, P&L, balance sheet; Bank reconciliation (UTR match, many-to-one, rules); AP 3-way match, payment run; AR ageing & reminders, write-off approval; GSTR exports, TDS (194J) & payout statements
+- **Data / APIs:** `/finance/*`, `/recon/*`, `/rcm/*`
+- **Permissions & privacy:** Financial data; maker-checker on journals above limit.
+
+### Finance Admin / CFO view (`finance_admin`)
+- **Purpose:** Approvals, treasury, budgets, payouts, risk.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Collections vs target; Net collection % / days-in-AR; Claim rejection %; Discount leakage %; Refund %; Budget variance; Payouts due (doctors/vendors); Revenue leakage ₹ (RCM gaps)
+- **Worklists / queues:** Approvals (refund, write-off, PO, payout); RCM gaps by ₹ at risk; Payout batches; Gateway reconciliation exceptions
+- **Alerts:** Leakage spike; Payout batch awaiting; Gateway settlement mismatch
+- **Quick actions:** Approve payout batch, Open RCM gaps, Lock period
+- **Sections / tabs:** Overview · RCM · Approvals · Payouts · Close
+- **Features:** RCM funnel & gap recovery; Discount/refund authority analytics; Payout & commission engine (TDS); Period close & lock
+- **Data / APIs:** `/rcm/*`, `/finance/*`, `/approvals/*`, `/payments/*`
+- **Permissions & privacy:** Financial; approvals need step-up.

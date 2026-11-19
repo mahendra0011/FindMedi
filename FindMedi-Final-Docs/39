@@ -1,0 +1,124 @@
+# 37. Role Dashboards: Master Index, Architecture & Standards
+
+Ye file role-wise dashboard specs (files 38-48) ka **index + common standards** hai. Har role ke liye alag file/section me bataya gaya hai ki dashboard me **kya-kya sections, KPIs, worklists, alerts, actions aur features hone chahiye**, repo ke current status ke saath.
+
+> Repo facts (latest HEAD `1e4c2f3`, code se verified): `User.role` enum me **176 roles** hain. Dashboard **spec-driven** hain: `UniversalHmsDashboard` (`/dashboards/:roleKey`) + `RoleDashboardShell` roles ko 4 spec files se render karta hai: `hmsDashboardSpec.ts` (**51 roles**), `cmsDashboardSpec.ts` (**20 clinic roles**), `lisDashboardSpec.ts` (**21 lab roles**), `risDashboardSpec.ts` (**16 radiology roles**) = **104 role specs**. Alag `pages/dashboards/*Dashboard.tsx` files legacy/individual components hain.
+
+## ⚠️ Erratum (file 36 ka N1 galat/adhoora tha)
+File 36 me maine likha tha "23 role dashboards orphan (routed nahi)". **Adhoora**: un roles ke dashboards `UniversalHmsDashboard` + spec se **already serve hote hain** (`/dashboards/:roleKey`). Orphan sirf individual `*Dashboard.tsx` **component files** hain (dead code, ya to delete karo ya universal spec me merge). Role access toot-ta nahi.
+
+## Current state ka honest summary
+| Finding | Data |
+|---|---|
+| Roles with a dashboard spec | **104 of 176** enum roles |
+| Enum roles **without own spec** | **72**: 44 ke paas custom page/component hai (e.g. lawyer, rider, dentist, optician, yoga/gym/wellness, vendors, moderator, kyc...). **19 roles ka koi dashboard hi nahi**: `counselor`, `mid_level_counselor`, `senior_counselor`, `technician`, `helper`, `ngo_admin`, `support_agent`, `support_l1`, `support_l2`, `catalog_manager`, `city_manager`, `platform_admin`, `dpo`, `security_admin`, `clinical_safety`, `analyst`, `ot_nurse`, `ward_boy`, `pharmacovigilance_officer` |
+| **Aliased to a generic dashboard (galat fit)** | `getHmsDashboardSpec` aliases: `nursing_supervisor`/`matron`/`ward_nurse` → **`nurse`**; `medical_director` → `hospital_owner`; `cmo` → `medical_superintendent`; `compliance_officer` → **`auditor`**; `dietician_head` → `dietitian`; `kitchen_staff` → `diet_kitchen_admin`; `maintenance` → `facility_manager`; `front_desk` → `receptionist` (ok). Supervisor/compliance/head roles ko **apne alag views** chahiye |
+| **Thin specs** (≤4 KPIs aur ≤1 domain module) | **61** of 104 roles |
+| Average spec depth | HMS 4.0 KPIs / 3.0 tasks / 1.3 alerts / 3.8 queues / 4.0 actions; CMS 4.0/3.0/2.0/4.0/4.2; LIS 5.5 KPIs, 0 tasks; RIS 5.4 KPIs, 0 tasks |
+| KPI values | Spec me **static sample strings** (e.g. cashier `"₹3.42L"`, `"₹48,500"`). Live data sirf `useLiveKpis.fetchRoleLiveKpis` se, kuch roles ke liye |
+| **Fake fallbacks** | `useLiveKpis.ts` me **76 lines** me `|| 5`, `?? 12`, `|| 28` jaise **hardcoded default numbers**: API khali/fail ho to dashboard **jhootha number dikhata hai** (clinical/finance me khatarnak) |
+| Sidebar menu missing | ~60 enum roles ke liye `AppSidebar` me menu defined nahi (e.g. `hod`, `medical_superintendent`, `bed_manager`, `opd_coordinator`, `facility_manager`, `clinic_*` kai) |
+
+## Role families → files
+| File | Family | Roles (count) |
+|---|---|---|
+| 38 | Executive & governance | superadmin, hospital_owner, hospital_admin, medical_superintendent/cmo/medical_director, hod, quality_officer, auditor, mis_reporting, it_admin, compliance_officer, dpo (12) |
+| 39 | Front office, patient flow & revenue desk | receptionist/front_desk, opd_coordinator, admission_coordinator, bed_manager, discharge_coordinator, call_center_agent, patient_relations, medical_records_officer, billing_executive, cashier, insurance_desk/tpa_agent, corporate_admin (13) |
+| 40 | Doctors, surgeons & critical care | doctor, resident_doctor, surgeon, anaesthetist, icu_doctor, emergency, ot_coordinator, ot_technician, psychiatrist, doctor_portal (10) |
+| 41 | Nursing | nurse, ward_nurse, icu_nurse, ot_nurse, nursing_supervisor/matron, infection_control_nurse, home_nursing_admin (7) |
+| 42 | Laboratory (LIS) | 21 lab roles + lab_owner |
+| 43 | Radiology (RIS), blood bank, dialysis | 16 radiology roles + blood_bank_admin, dialysis_admin |
+| 44 | Pharmacy, stores & sterile supply | pharmacist, pharmacy_owner, store_keeper, purchase_officer, pharmacovigilance_officer, cssd_technician (6) |
+| 45 | Facility & support operations | housekeeping_supervisor, facility_manager, security, ambulance, biomedical_engineer, maintenance, mortuary_attendant, dietician_head/kitchen_staff/diet_kitchen_admin, ward_boy (10) |
+| 46 | HR, finance & admin | hr_manager, accountant, finance_admin (3) |
+| 47 | Clinic suite (CMS) | 20 clinic roles |
+| 48 | Platform & marketplace | platform/trust roles + provider/marketplace roles + patient (35+) |
+
+## Standard dashboard anatomy (har role par lagu)
+```
+[Top bar]   Facility/branch switcher · global search (⌘K) · date range · notifications bell · role badge · shift/duty status
+[Row 1]     KPI cards (4-8)  : value + delta vs yesterday/last week + sparkline + threshold colour + click → drill-down page
+[Row 2]     Alerts & action center (severity, age, ack/snooze) | Today's tasks / SLA timers
+[Row 3]     Primary worklists (tables with row actions, filters, saved views, bulk actions)
+[Row 4]     Role-specific domain modules (cards / boards / maps / charts)
+[Row 5]     Analytics (trends, compare, export) · Documents/SOP links · Help & support
+[Footer]    last refreshed time · data freshness badge · "report an issue"
+```
+### Global elements (har dashboard)
+1. **Header context:** facility switcher, shift, on-duty toggle (clinical roles), language (en/hi), theme.
+2. **Realtime:** socket rooms `user:{id}`, `role:{key}`, `facility:{id}`; badge counts; "new item" toast; fallback polling 30-60s.
+3. **Command palette (⌘K):** patient/UHID/bill/lab no. search (`/search/all`) + role actions.
+4. **Alert Center:** severity (info/warn/critical), ack/snooze/escalate; critical = persistent banner (no auto-dismiss).
+5. **Role-based widgets only:** sidebar/permissions se (`permissions[]` in spec) filtered, **T3 PHI shielding** (mask phone/ID for non-clinical roles).
+6. **Empty / error / offline states** har widget ke (per-widget retry, never blank page).
+7. **Export & print:** CSV/PDF with audit log.
+8. **Audit:** sensitive actions (refund, discount, discharge, override) → `AuditLog` + approval engine.
+
+### KPI rules (must)
+- Har KPI: `key`, `label`, `source` (endpoint), `formula`, `unit`, `format`, `thresholds` (warn/crit), `drilldownHref`, `refreshSec`, `owner`.
+- **Kabhi fake default nahi:** API khali ho to `—` + "no data" badge, **`|| 5`/`?? 12` jaise fallbacks hatao** (76 lines in `useLiveKpis.ts`). Loading = skeleton; error = retry chip.
+- Time-scope explicit (aaj/7d/30d), timezone IST, business-day cutover midnight IST.
+- Comparison: vs previous period (▲▼ %).
+- Tenant/facility scoped; KPI numbers drill-down list se reconcile hone chahiye (test).
+
+### Spec schema v2 (proposal: `HmsDashboardConfig` extend)
+```ts
+interface DashboardSpecV2 {
+  roleKey: string; layer: 1|2|3|4|5|6; title: string; subtitle: string;
+  permissions: string[];
+  header: { facilitySwitcher: boolean; shiftToggle?: boolean; dateRange?: boolean };
+  kpis: Array<{ key: string; label: string; endpoint: string; path: string; format: 'int'|'currency'|'pct'|'duration';
+               warnAt?: number; critAt?: number; compare?: 'prevDay'|'prevWeek'; drilldown: string; refreshSec?: number }>;
+  worklists: Array<{ key: string; title: string; endpoint: string; columns: string[]; rowActions: string[]; filters: string[]; bulk?: string[] }>;
+  alerts: Array<{ ruleKey: string; severity: 'info'|'warning'|'critical'; ackRequired?: boolean }>;
+  quickActions: Array<{ label: string; href: string; permission?: string; hotkey?: string }>;
+  sections: Array<{ key: string; label: string; widgets: string[] }>;   // tabs
+  domainModules: Array<{ key: string; label: string; href: string }>;
+  mobile?: { priority: string[]; offline?: boolean };
+}
+```
+Isse static `value: "₹3.42L"` hat ke endpoint-driven KPIs aayenge; `RoleDashboardShell` generic renderer use karega (naye role = sirf spec file).
+
+### Role entry format (files 38-48 me)
+Purpose · Current status (spec/route/depth) · KPI cards · Worklists · Alerts · Quick actions · Sections/tabs · Features · Data/APIs · Permissions & privacy · Mobile.
+
+## Test & acceptance (har role dashboard)
+- [ ] Spec ka har KPI endpoint live aur formula test se verified; no fake fallback (unit test: empty API → `—`).
+- [ ] Permission matrix test: role ko sirf apne widgets/data (tenant + department scope).
+- [ ] Each worklist row action RBAC + audit tested.
+- [ ] `menuRouteParity`: sidebar entry ↔ route ↔ role-guard.
+- [ ] Playwright smoke + axe (serious/critical = 0) per role family.
+- [ ] Load: dashboard first data < 2s (cached aggregate endpoint), no N+1.
+
+## Pehle kya karo (sab roles ke liye)
+1. `useLiveKpis.ts` ke **76 fake defaults hatao**.
+2. **19 dashboard-less roles** ke liye spec banao (ya enum se hatao agar use nahi), aur **aliased roles** (`nursing_supervisor`, `matron`, `compliance_officer`, `medical_director`, `dietician_head`) ko apna spec do.
+3. 61 thin specs ko target depth tak badhao (files 38-48 ke targets follow karo).
+4. Orphan `*Dashboard.tsx` components: universal spec me merge ya delete + guard test.
+5. Sidebar menus missing roles ke liye add.
+
+## Coverage: 154 role entries (files 38-48) vs 176 enum roles
+Har enum role ya to **apni entry** me hai, ya neeche diye alias/variant ke through. (Entry count: 38=11, 39=12, 40=10, 41=7, 42=18, 43=17, 44=6, 45=8, 46=3, 47=20, 48=42.)
+
+| Enum role | Covered by (entry) | Note |
+|---|---|---|
+| `front_desk` | `receptionist` (39) | same spec alias |
+| `cmo`, `medical_director` | `medical_superintendent` (38) | alias; `medical_director` abhi `hospital_owner` par alias (galat fit) |
+| `matron`, `ward_nurse` (alt. supervisor) | `nursing_supervisor` / `nurse` (41) | `nursing_supervisor`/`matron` ko apna spec chahiye |
+| `maintenance` | `facility_manager` (45) | alias |
+| `dietician_head`, `kitchen_staff` | `diet_kitchen_admin` (45) | alias |
+| `lab_admin` | `lab_manager` (42) | manager view |
+| `lab_receiving` | `lab_receptionist` (42) | same flow |
+| `home_collection_staff` | `phlebotomist` (42) | home-visit variant |
+| `lab_technician` | section tech entries (42) | generic = nearest section |
+| `radiology_admin` | `radiology_manager` (43) | manager view |
+| `support_agent` | `support_l2` (48) | same tier |
+| `counselor`, `mid_level_counselor`, `senior_counselor` | `counsellor` (48) | 3 seniority levels (supervision queue) |
+| `dental_clinic_admin` | `dentist` (48) | same dashboard |
+| `optical_shop_owner` | `optician` (48) | same |
+| `yoga_instructor` | `yoga_studio_admin` (48) | instructor sub-view |
+| `trainer` | `gym_owner` (48) | trainer sub-view |
+| `therapist` | `wellness_admin` (48) | therapist sub-view |
+| `clinic_telemed_coordinator` | `clinic_telemed_coord` (47) | spelling variant: enum/spec key ek karo |
+
+> Spelling duplicates (`counselor`/`counsellor`, `clinic_telemed_coordinator`/`clinic_telemed_coord`, `super_admin`/`superadmin`) enum me clean karo: ek canonical naam rakho.

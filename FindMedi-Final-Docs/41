@@ -1,0 +1,518 @@
+# 48. Role Dashboards: Platform, Trust & Marketplace
+
+**Part A: Platform & trust roles** (`platform_admin`, `support_l1`, `support_l2`/`support_agent`, `moderator`, `kyc_reviewer`, `content_editor`, `catalog_manager`, `city_manager`, `clinical_safety`, `security_admin`, `analyst`, `medical_reviewer`, `tpa_agent`).
+**Part B: Marketplace/provider roles & patient** (`patient`, `lawyer`, `assistant`, `rider`, `delivery_boy`, `counsellor` family, `dietitian`, `physiotherapist`, `yoga_studio_admin`, `gym_owner`, `wellness_admin`, `dentist`, `optician`, vendors, `event_organizer`, `ngo_admin`, `group_host`, `trainer_org`, `govt_facility_staff`, `elder_care_admin`, `vaccination_admin`, `child_dev_admin`, `specialty_centre_admin`, `fertility_admin`, `maternity_admin`, `rehab_admin`, `technician`, `helper`).
+**Note:** "(no dashboard today)" = repo me us role ka koi dashboard/spec nahi (file 37). Marketplace roles ke paas aksar alag `*Dashboard.tsx` pages hain par standard KPI/worklist/alert spec nahi: yahan target diya hai.
+**Family rule:** provider dashboards simple + mobile-first; payouts/earnings with TDS statement; sensitive categories (mental health, fertility, maternity, child) me extra consent + restricted access; trust roles ke liye SLA timers + audit.
+
+## Part A: Platform & trust
+
+### Platform Admin (`platform_admin`)
+- **Purpose:** Day-to-day platform ops below superadmin (no dashboard today).
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Tenants health; Open escalations; Feature-flag rollouts; Incidents
+- **Worklists / queues:** Escalations; Rollouts; Tenant changes
+- **Alerts:** Incident; Rollout error
+- **Quick actions:** Toggle flag, Open tenant
+- **Sections / tabs:** Tenants · Flags · Incidents
+- **Features:** Tenant 360; Flag rings (canary→all); Announcements
+- **Data / APIs:** `/platform/*`
+- **Permissions & privacy:** No PHI by default; changes audited.
+
+### Support Agent L1 (`support_l1`)
+- **Purpose:** First-line tickets (no dashboard today).
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Tickets open; First response time; Resolved today; CSAT
+- **Worklists / queues:** My queue; Unassigned; Macros
+- **Alerts:** SLA breach in 15 min
+- **Quick actions:** Reply, Escalate, Merge
+- **Sections / tabs:** Inbox · SLA · Knowledge base
+- **Features:** Ticket inbox with SLA timers; Canned replies (hi/en); Patient lookup (masked)
+- **Data / APIs:** `/support/tickets`
+- **Permissions & privacy:** Contact masked; PHI via approved view only.
+
+### Support Specialist L2 / support_agent (`support_l2`)
+- **Purpose:** Escalated tickets, refunds, disputes (no dashboard today).
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Escalations open; Refunds pending; Dispute age; Resolution time
+- **Worklists / queues:** Escalated queue; Refund approvals; Dispute cases
+- **Alerts:** SLA breach; High-value refund
+- **Quick actions:** Approve refund (limit), Escalate to L3
+- **Sections / tabs:** Escalations · Refunds · Disputes
+- **Features:** Refund within limit, else approval engine; Dispute timeline; Provider contact tools
+- **Data / APIs:** `/support/*`, `/approvals`, `/payments/refunds`
+- **Permissions & privacy:** Limited PHI with reason.
+
+### Content / Review Moderator (`moderator`)
+- **Purpose:** Reviews, listings, reported content.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Queue size; Avg review time; Approve/reject ratio; Reports abuse
+- **Worklists / queues:** Review moderation; Reported listings; Provider media
+- **Alerts:** Abuse spike
+- **Quick actions:** Approve, Reject (reason), Ban
+- **Sections / tabs:** Queue · Reports · Appeals
+- **Features:** Policy cheat-sheet; Bulk actions; Appeal handling
+- **Data / APIs:** `/moderation/*`
+- **Permissions & privacy:** Public content only.
+
+### KYC / Onboarding Reviewer (`kyc_reviewer`)
+- **Purpose:** Provider verification (licences, IDs).
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Pending KYC; Avg TAT; Approve %; Expiring docs
+- **Worklists / queues:** KYC queue (by provider type); Resubmissions; Expiry watch
+- **Alerts:** TAT breach; Doc expiry <30d
+- **Quick actions:** Approve, Request docs, Reject
+- **Sections / tabs:** Queue · Re-KYC · Registry checks
+- **Features:** Doc viewer + registry cross-check (NMC/council); Checklist per provider type (103 types); Expiry re-KYC
+- **Data / APIs:** `/kyc/*`, `/onboarding/*`
+- **Permissions & privacy:** IDs masked; Aadhaar never stored in full.
+
+### Content Editor (`content_editor`)
+- **Purpose:** Articles, health tips, specialty content, SEO pages.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Drafts; Published; Pending medical review; Organic traffic
+- **Worklists / queues:** Draft queue; Review queue; Translations
+- **Alerts:** Review overdue
+- **Quick actions:** New article, Submit for review, Publish
+- **Sections / tabs:** Drafts · Review · Published · SEO
+- **Features:** Medical-review workflow; hi/en versions; SEO fields & schema; Specialty article feed seeding
+- **Data / APIs:** `/content/*`, specialty seed
+- **Permissions & privacy:** Public content.
+
+### Catalogue Manager (`catalog_manager`)
+- **Purpose:** Categories, specialties, test/package catalogue.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Categories/specialties; Items pending approval; Duplicates found; Price changes pending
+- **Worklists / queues:** Approval queue; Duplicates; Price change requests
+- **Alerts:** Duplicate cluster
+- **Quick actions:** Add/merge, Approve price
+- **Sections / tabs:** Taxonomy · Items · Imports
+- **Features:** Taxonomy tree editor (specialties/groups); Bulk import with dry-run; Version history
+- **Data / APIs:** `/catalog/*`, `categoryTree`
+- **Permissions & privacy:** Catalogue only.
+
+### City Manager (`city_manager`)
+- **Purpose:** Local supply/demand, provider onboarding, ops in a city (no dashboard today).
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Providers live; Bookings/ratings by city; Supply gaps (specialty); Complaints
+- **Worklists / queues:** Onboarding pipeline; Supply-gap list
+- **Alerts:** Supply gap in specialty
+- **Quick actions:** Invite provider, Run campaign
+- **Sections / tabs:** Map · Supply · Onboarding
+- **Features:** City heat-map (demand vs supply); Provider onboarding funnel; Local campaign tracker
+- **Data / APIs:** `/city/*`, analytics
+- **Permissions & privacy:** Aggregates.
+
+### Clinical Safety Officer (`clinical_safety`)
+- **Purpose:** Approve clinical rules/alerts, DDI data, order sets (no dashboard today).
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Rules awaiting approval; Alert override rate; DDI overrides review; Incidents linked to rules
+- **Worklists / queues:** Rule approvals; Override reviews; DDI data changes
+- **Alerts:** Rule firing storm; High override rate
+- **Quick actions:** Approve rule, Reject, Review override
+- **Sections / tabs:** Rules · DDI · Overrides
+- **Features:** Rule version approval with backtest; DDI dataset review sign-off (`reviewedBy/At`); Alert fatigue analytics
+- **Data / APIs:** `/rules/*`, `/ddi/*`
+- **Permissions & privacy:** Clinical role.
+
+### Security Admin (`security_admin`)
+- **Purpose:** Access control, threats, audits (no dashboard today).
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Failed logins; Break-glass events; Access reviews due; Open vulns
+- **Worklists / queues:** Break-glass review; Access reviews; Vulnerability list
+- **Alerts:** Break-glass unreviewed 24h; Brute-force
+- **Quick actions:** Revoke access, Start review
+- **Sections / tabs:** Access · Break-glass · Vulns · Audit
+- **Features:** IAM policies, SoD, sensitivity labels; Break-glass dashboard; Audit hash-chain verify
+- **Data / APIs:** `/iam/*`, `/audit`
+- **Permissions & privacy:** Admin hostname + step-up.
+
+### Data Analyst (read-only) (`analyst`)
+- **Purpose:** Analytics on de-identified data (no dashboard today).
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Datasets; Queries run; Exports
+- **Worklists / queues:** Saved analyses
+- **Alerts:** Re-identification risk
+- **Quick actions:** New query, Export
+- **Sections / tabs:** Datasets · Reports
+- **Features:** De-identified datasets (k-anonymity, date shift); Report Studio access; Query audit
+- **Data / APIs:** `/report-studio`, data-platform
+- **Permissions & privacy:** De-identified only.
+
+### Medical Reviewer (TPA/claims & content) (`medical_reviewer`)
+- **Purpose:** Clinical review of claims and medical content.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Claims to review; TAT; Approve/deny ratio
+- **Worklists / queues:** Review queue
+- **Alerts:** TAT breach
+- **Quick actions:** Approve, Query, Deny (reason)
+- **Sections / tabs:** Queue · Decisions
+- **Features:** Clinical rules view with chart summary; Query templates
+- **Data / APIs:** `/tpa/review`
+- **Permissions & privacy:** Case-level PHI with purpose log.
+
+### TPA Agent (insurer side) (`tpa_agent`)
+- **Purpose:** Insurer-side view of pre-auth/claims (alias of insurance desk).
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/tpa_agent` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Pre-auth received; TAT; Approved %
+- **Worklists / queues:** Incoming pre-auth; Queries
+- **Alerts:** SLA breach
+- **Quick actions:** Approve, Query
+- **Sections / tabs:** Pre-auth · Claims
+- **Features:** Insurer portal subset; Document checklist
+- **Data / APIs:** `/tpa/*`
+- **Permissions & privacy:** Insurer-scoped.
+
+## Part B: Marketplace / provider roles & patient
+
+### Patient / Customer (`patient`)
+- **Purpose:** Single place for care journey: bookings, records, bills, reminders, family.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/patient` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Next appointment; Pending reports; Unpaid bills; Active medicine reminders; Rewards
+- **Worklists / queues:** Appointments; Prescriptions (QR verify); Lab/radiology reports; Orders (pharmacy/lab); Family members
+- **Alerts:** Report ready; Appointment tomorrow; Refill due; Bill due
+- **Quick actions:** Book, Pay, Download report, Add family, SOS, Give feedback
+- **Sections / tabs:** Home · Appointments · Records · Bills · Family · Privacy
+- **Features:** Health timeline; Medicine reminders & refill; Vitals tracking, care plans; Health ID/QR, emergency card, SOS; Feedback prompt after visit/discharge/pharmacy/lab; Privacy centre (consents, DSR); Second opinion; Hindi/English
+- **Data / APIs:** `/patients/me/*`, `/feedback`, `/healthid`, `/sos`
+- **Permissions & privacy:** Own data; guardian access for minors.
+- **Mobile:** Mobile-first (Capacitor).
+
+### Lawyer / Legal Advisor (`lawyer`)
+- **Purpose:** Consultations, cases, confidentiality, earnings.
+- **Current status:** custom page `/lawyer/dashboard` (spec-driven shell me nahi)
+- **KPI cards (target):** Consults today; Cases open; Earnings; Rating
+- **Worklists / queues:** Bookings; Case files
+- **Alerts:** Conflict-of-interest flag
+- **Quick actions:** Join consult, Upload doc
+- **Sections / tabs:** Today · Cases · Earnings
+- **Features:** Client confidentiality (no admin read); Secure doc vault; Payout
+- **Data / APIs:** `/lawyer/*`
+- **Permissions & privacy:** Strict confidentiality.
+
+### Care Assistant / Attendant (`assistant`)
+- **Purpose:** Home/hospital attendant bookings.
+- **Current status:** custom page `/assistant/dashboard` (spec-driven shell me nahi)
+- **KPI cards (target):** Jobs today; Earnings; Rating; Availability
+- **Worklists / queues:** Job requests; Active job
+- **Alerts:** Late for job
+- **Quick actions:** Accept, Check-in/out
+- **Sections / tabs:** Jobs · Earnings
+- **Features:** Live job tracker; Checklist per job; Payout
+- **Data / APIs:** `/assistant/*`
+- **Permissions & privacy:** Job scope.
+- **Mobile:** Mobile.
+
+### Rider / Ride Partner (`rider`)
+- **Purpose:** Rides (patient transport), fares, earnings.
+- **Current status:** custom page `/rider/dashboard` (spec-driven shell me nahi)
+- **KPI cards (target):** Rides today; Earnings; Acceptance %; Rating
+- **Worklists / queues:** Ride requests; Active ride
+- **Alerts:** Safety SOS
+- **Quick actions:** Go online, Accept, SOS
+- **Sections / tabs:** Online · Rides · Earnings
+- **Features:** Fare estimate card; Live GPS; Earnings; Background-location bridge (**native gap**)
+- **Data / APIs:** `/rider/*`, rides
+- **Permissions & privacy:** Ride data only.
+- **Mobile:** Native mobile.
+
+### Delivery Partner (`delivery_boy`)
+- **Purpose:** Medicine/lab-sample deliveries.
+- **Current status:** custom page `DeliveryDashboard` (spec-driven shell me nahi)
+- **KPI cards (target):** Deliveries today; On-time %; Earnings
+- **Worklists / queues:** Assigned deliveries
+- **Alerts:** Delivery late; Cold-chain item
+- **Quick actions:** Accept, Picked, Delivered (OTP)
+- **Sections / tabs:** Deliveries · Earnings
+- **Features:** OTP handover; Route map; COD reconcile; Cold-chain flag
+- **Data / APIs:** `/delivery/*`
+- **Permissions & privacy:** Order metadata.
+- **Mobile:** Mobile.
+
+### Counsellor (+ counselor, mid_level_counselor, senior_counselor) (`counsellor`)
+- **Purpose:** Sessions, risk flags, notes (3 seniority levels have no dashboard).
+- **Current status:** custom page `DoctorDashboard` (spec-driven shell me nahi)
+- **KPI cards (target):** Sessions today; Follow-ups; High-risk flags; Earnings
+- **Worklists / queues:** Sessions; Risk flags
+- **Alerts:** Risk flag; No-show high-risk
+- **Quick actions:** Start session, Escalate
+- **Sections / tabs:** Sessions · Risk · Supervision
+- **Features:** Session notes locked; Outcome scales PHQ-9/GAD-7; Supervision queue (senior reviews mid-level); Crisis protocol
+- **Data / APIs:** `/mental-health/*`
+- **Permissions & privacy:** **Sensitive class**, extra consent.
+
+### Dietitian (`dietitian`)
+- **Purpose:** Diet plans, clients, follow-ups.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/dietitian` · current depth: 4 KPIs / 3 tasks / 1 alerts / 3 queues / 4 actions / 1 modules
+- **KPI cards (target):** Clients active; Plans due; Follow-ups; Adherence %
+- **Worklists / queues:** Client list; Plan reviews
+- **Alerts:** Missed follow-up
+- **Quick actions:** Create plan, Message client
+- **Sections / tabs:** Clients · Plans · Earnings
+- **Features:** Plan builder, food diary; Link to IPD diet orders; Earnings
+- **Data / APIs:** `/diet/*`
+- **Permissions & privacy:** Client scope.
+
+### Physiotherapist (`physiotherapist`)
+- **Purpose:** Sessions, plans, outcome scales.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Sessions today; Plans active; Outcomes (Barthel/FIM); Packages left
+- **Worklists / queues:** Session list; Home-exercise plans
+- **Alerts:** Missed session
+- **Quick actions:** Start session, Update plan
+- **Sections / tabs:** Sessions · Plans · Outcomes
+- **Features:** Session packages; Outcome scales; Exercise videos
+- **Data / APIs:** `/physio/*`
+- **Permissions & privacy:** Client scope.
+
+### Yoga Studio Admin / Instructor (`yoga_studio_admin`)
+- **Purpose:** Classes, members, revenue.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Classes today; Members; Revenue; Retention
+- **Worklists / queues:** Class schedule; Memberships expiring
+- **Alerts:** Class under-booked
+- **Quick actions:** Add class, Sell membership
+- **Sections / tabs:** Schedule · Members · Revenue
+- **Features:** Schedule + capacity; Membership lifecycle (freeze/renew); Instructor payouts
+- **Data / APIs:** `/yoga/*`
+- **Permissions & privacy:** Member scope.
+
+### Gym Owner / Trainer (`gym_owner`)
+- **Purpose:** Memberships, check-ins, trainers.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Active members; Check-ins today; Revenue; Churn
+- **Worklists / queues:** Expiring memberships; Trainer schedule
+- **Alerts:** Churn risk
+- **Quick actions:** Add member, Check-in
+- **Sections / tabs:** Members · Check-ins · Revenue
+- **Features:** Membership plans, QR check-in; Trainer commissions; Retention campaigns
+- **Data / APIs:** `/gym/*`
+- **Permissions & privacy:** Member scope.
+
+### Wellness Centre Admin / Therapist (`wellness_admin`)
+- **Purpose:** Services, bookings, packages.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Bookings; Utilisation; Revenue; Rating
+- **Worklists / queues:** Bookings; Therapist schedule
+- **Alerts:** Therapist absent
+- **Quick actions:** Add service, Block slot
+- **Sections / tabs:** Bookings · Catalogue · Staff
+- **Features:** Service/package catalogue; Therapist rota; Reviews
+- **Data / APIs:** `/wellness/*`
+- **Permissions & privacy:** Client scope.
+
+### Dentist / Dental Clinic Admin (`dentist`)
+- **Purpose:** Chair schedule, dental chart, treatment plans.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Appointments; Chair utilisation; Treatment plans open; Revenue
+- **Worklists / queues:** Chair schedule; Recalls
+- **Alerts:** Missed recall
+- **Quick actions:** Open chart, Plan treatment
+- **Sections / tabs:** Schedule · Charts · Plans · Revenue
+- **Features:** Dental chart (tooth-wise); Treatment plans + staged billing; Sterilisation log; Recall engine
+- **Data / APIs:** `/dental/*`
+- **Permissions & privacy:** Patient scope.
+
+### Optician / Optical Shop Owner (`optician`)
+- **Purpose:** Eye exams, frames/lenses orders.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Exams today; Orders open; Revenue; Ready for pickup
+- **Worklists / queues:** Exam queue; Lab orders
+- **Alerts:** Order delayed
+- **Quick actions:** New exam, Place lens order
+- **Sections / tabs:** Exams · Orders · Inventory
+- **Features:** Eye exam records (Rx); Frame/lens inventory; Order tracking
+- **Data / APIs:** `/optical/*`
+- **Permissions & privacy:** Patient scope.
+
+### Equipment / Product Vendor (`equipment_vendor`)
+- **Purpose:** Catalogue, orders, shipments.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Orders; Revenue; Return %; Rating
+- **Worklists / queues:** New orders; Shipments; Returns
+- **Alerts:** Stock-out
+- **Quick actions:** Add product, Ship
+- **Sections / tabs:** Orders · Catalogue · Payouts
+- **Features:** Catalogue & stock; Shipment tracking; Payouts & settlement
+- **Data / APIs:** `/vendor/*`
+- **Permissions & privacy:** Order data.
+
+### Product Vendor (marketplace) (`product_vendor`)
+- **Purpose:** Same as equipment vendor for wellness/health products.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Orders; Revenue; Rating
+- **Worklists / queues:** Orders; Returns
+- **Alerts:** Stock-out
+- **Quick actions:** Add product
+- **Sections / tabs:** Orders · Catalogue
+- **Features:** Catalogue; Shipping; Payout
+- **Data / APIs:** `/vendor/*`
+- **Permissions & privacy:** Order data.
+
+### Event Organizer (`event_organizer`)
+- **Purpose:** Health camps/workshops: registrations, check-in.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Events upcoming; Registrations; Attendance %; Revenue
+- **Worklists / queues:** Registrations; Check-in list
+- **Alerts:** Event capacity reached
+- **Quick actions:** Create event, Scan check-in
+- **Sections / tabs:** Events · Registrations · Reports
+- **Features:** Camp creation, screening forms (Form Builder); Lead conversion to appointments; Camp report
+- **Data / APIs:** `/events/*`
+- **Permissions & privacy:** Attendee data.
+
+### NGO Admin (`ngo_admin`)
+- **Purpose:** Donation drives, beneficiaries, programmes (no dashboard today).
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Programs active; Beneficiaries; Funds raised; Events
+- **Worklists / queues:** Beneficiary list; Donations
+- **Alerts:** Fund shortfall
+- **Quick actions:** Add programme, Record donation
+- **Sections / tabs:** Programs · Beneficiaries · Funds
+- **Features:** Programme tracking; Donation receipts (80G if applicable); Impact reports
+- **Data / APIs:** `/ngo/*`
+- **Permissions & privacy:** Beneficiary data sensitive.
+
+### Support Group Host (`group_host`)
+- **Purpose:** Group sessions, members, moderation.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Sessions; Members; Attendance; Reports flagged
+- **Worklists / queues:** Upcoming sessions; Flagged posts
+- **Alerts:** Abuse report
+- **Quick actions:** Create session, Moderate
+- **Sections / tabs:** Sessions · Members · Moderation
+- **Features:** Group chat/video (LiveKit); Safety moderation; Attendance
+- **Data / APIs:** `/support-groups/*`
+- **Permissions & privacy:** Anonymity-preserving.
+
+### Training Organisation (`trainer_org`)
+- **Purpose:** Courses, trainers, enrolments.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Courses; Enrolments; Revenue
+- **Worklists / queues:** Enrolments; Batches
+- **Alerts:** Batch under-filled
+- **Quick actions:** Add course
+- **Sections / tabs:** Courses · Enrolments
+- **Features:** Course catalogue, certificates
+- **Data / APIs:** `/training/*`
+- **Permissions & privacy:** Learner data.
+
+### Govt Facility Staff (`govt_facility_staff`)
+- **Purpose:** Public-health facility listing & schemes.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Services listed; Scheme enquiries; Footfall
+- **Worklists / queues:** Enquiries
+- **Alerts:** Info outdated
+- **Quick actions:** Update info
+- **Sections / tabs:** Profile · Schemes
+- **Features:** Scheme eligibility info; Timings/holidays
+- **Data / APIs:** `/govt/*`
+- **Permissions & privacy:** Public info.
+
+### Elder Care Admin (`elder_care_admin`)
+- **Purpose:** Residents, MAR, care plans, family updates.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Residents; MAR compliance %; Incidents; Family updates sent
+- **Worklists / queues:** Medication rounds (elder MAR); Care plans
+- **Alerts:** Missed dose; Fall
+- **Quick actions:** Record MAR, Update family
+- **Sections / tabs:** Residents · MAR · Care plans · Family
+- **Features:** Elder MAR (`elderresidents`) + retention class (health data); Care plans; Family portal
+- **Data / APIs:** `/elder-care/*`
+- **Permissions & privacy:** Health data; retention class needed.
+
+### Vaccination Centre Admin (`vaccination_admin`)
+- **Purpose:** Due lists, batches, cold-chain, certificates.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Doses today; Due/overdue; Wastage; Cold-chain status
+- **Worklists / queues:** Due list; Batch/expiry
+- **Alerts:** Cold-chain excursion; Batch expiring
+- **Quick actions:** Give dose, Print certificate
+- **Sections / tabs:** Due · Stock · Certificates
+- **Features:** Schedule per age, batch/expiry, certificate (ABDM push); Cold-chain log
+- **Data / APIs:** `/vaccination/*`
+- **Permissions & privacy:** Patient + batch.
+
+### Child Development Centre Admin (`child_dev_admin`)
+- **Purpose:** Assessments, therapy plans, milestones.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Children active; Sessions; Assessments due
+- **Worklists / queues:** Assessments; Therapy sessions
+- **Alerts:** Missed session
+- **Quick actions:** Add assessment
+- **Sections / tabs:** Children · Sessions · Milestones
+- **Features:** Milestone tracking, growth charts (WHO); Parent portal
+- **Data / APIs:** `/child-dev/*`
+- **Permissions & privacy:** Minor data: guardian consent.
+
+### Specialty Centre Admin (`specialty_centre_admin`)
+- **Purpose:** Specialty centre (cardiac, neuro, ortho...) ops.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Procedures; Utilisation; Revenue
+- **Worklists / queues:** Schedule; Packages
+- **Alerts:** Equipment due
+- **Quick actions:** Add package
+- **Sections / tabs:** Schedule · Packages · Revenue
+- **Features:** Specialty taxonomy tie-in; Packages & pricing
+- **Data / APIs:** `/specialty/*`
+- **Permissions & privacy:** Centre scope.
+
+### Fertility / IVF Clinic Admin (`fertility_admin`)
+- **Purpose:** Cycles, protocols, lab, consent.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Cycles active; Success metrics; Lab schedule
+- **Worklists / queues:** Cycle board; Consents
+- **Alerts:** Consent missing
+- **Quick actions:** Start cycle
+- **Sections / tabs:** Cycles · Lab · Consents
+- **Features:** `FertilityCycle` tracking; Embryology log; Sensitive consent
+- **Data / APIs:** `/fertility/*`
+- **Permissions & privacy:** **Sensitive class**.
+
+### Maternity Admin (`maternity_admin`)
+- **Purpose:** ANC, labour, deliveries, newborn.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** ANC visits; Deliveries; Newborn screens; Birth certs issued
+- **Worklists / queues:** ANC list; Labour board
+- **Alerts:** Overdue ANC; Newborn screen pending
+- **Quick actions:** Open labour record, Issue birth certificate
+- **Sections / tabs:** ANC · Labour · Newborn
+- **Features:** Antenatal card, partogram, birth certificate PDF (QR); Newborn screening, vaccination
+- **Data / APIs:** `/maternity/*`
+- **Permissions & privacy:** Sensitive.
+
+### Rehab Centre Admin (`rehab_admin`)
+- **Purpose:** Programmes, sessions, outcomes.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Patients; Sessions; Outcome improvement
+- **Worklists / queues:** Programmes; Sessions
+- **Alerts:** Missed session
+- **Quick actions:** Plan session
+- **Sections / tabs:** Programmes · Sessions · Outcomes
+- **Features:** Outcome scales (Barthel/FIM); Therapist scheduling
+- **Data / APIs:** `/rehab/*`
+- **Permissions & privacy:** Patient scope.
+
+### Technician (generic) (`technician`)
+- **Purpose:** Generic field tech (no dashboard today): clarify scope or retire role.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Tasks
+- **Worklists / queues:** Task list
+- **Alerts:** Overdue
+- **Quick actions:** Accept task
+- **Sections / tabs:** Tasks
+- **Features:** WorkTask view
+- **Data / APIs:** `/work-tasks`
+- **Permissions & privacy:** Task metadata.
+
+### Helper (generic) (`helper`)
+- **Purpose:** Generic helper (no dashboard today): map to ward_boy/assistant or retire.
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Tasks
+- **Worklists / queues:** Task list
+- **Alerts:** Overdue
+- **Quick actions:** Accept task
+- **Sections / tabs:** Tasks
+- **Features:** WorkTask view
+- **Data / APIs:** `/work-tasks`
+- **Permissions & privacy:** Task metadata.

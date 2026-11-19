@@ -1,0 +1,125 @@
+# 40. Role Dashboards: Doctors, Surgeons & Critical Care
+
+Roles: `doctor`, `resident_doctor`, `surgeon`, `anaesthetist`, `icu_doctor`, `emergency`, `ot_coordinator`, `ot_technician`, `psychiatrist`, `doctor_portal`.
+**Family rule:** My-day cockpit, results must-ack, DDI/allergy safety at prescribing, e-sign + QR verify, never show fabricated counts; treating-patient scope + break-glass.
+
+### Doctor (Consultant, hospital) (`doctor`)
+- **Purpose:** My-day cockpit: OPD queue, ward rounds, results inbox, orders, discharges, OT, earnings.
+- **Current status:** spec `hmsDashboardSpec` · route `DoctorDashboard` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 2 modules
+- **KPI cards (target):** OPD waiting + seen today; IPD patients (mine) + NEWS2 high-risk count; Unreviewed results (critical first); Pending orders/consults; Discharges awaiting my approval; OT cases today; Unsigned notes/Rx; Earnings MTD
+- **Worklists / queues:** Live OPD queue with Call-next + next-patient card (allergies, last visit, vitals, dues); Ward round list (bed, day-of-stay, NEWS2, due meds/results); Results inbox (critical pinned, must-ack); Consult/referral requests; Tasks & unsigned documents; Appointments hub (OPD/tele/home)
+- **Alerts:** Critical lab/result unacked; NEWS2 ≥ 7 patient; Drug interaction override pending review; Discharge summary overdue; Emergency dispatch (30s accept window)
+- **Quick actions:** Call next, Start consult (EMR workspace), Write Rx, Order set, Start round, Sign discharge, Dictate note
+- **Sections / tabs:** My day · OPD · Ward rounds · Results · Orders & Rx · Tele/Home · OT · Earnings · CME
+- **Features:** EMR workspace: patient banner (allergies red), timeline, problem list, orders/Rx tabs, ICD-10 search, e-sign + QR; DDI/allergy/dose check (`DdiCheckBanner`) with override reason; Rx templates + favourites, generic substitution control (`noSubstitution`); Auto follow-up booking, care plans; Voice dictation + AI scribe draft (review-then-sign); Teleconsult/home-visit tabs with compliance (RMP no., consent); Earnings & payout statement (TDS); On-call roster, CME tracker
+- **Data / APIs:** `/doctor/{dashboard,queue,rounds,tasks,oncall,workspace}`, `/orders/*`, `/ddi/check`, `/clinical/cds/check`, `/search/icd`, `/recall/book`, `/doctor/earnings`
+- **Permissions & privacy:** Treating-patient scope; break-glass for others; every PHI view logged.
+- **Mobile:** Rounds-first mobile layout, swipe between patients, offline cache.
+
+### Resident / Junior Doctor (`resident_doctor`)
+- **Purpose:** Ward tasks, orders to carry out, night duty handover, learning.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/resident_doctor` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Patients assigned; Pending orders to execute; Abnormal vitals/NEWS2 flags; Handover items; Procedures logged (logbook)
+- **Worklists / queues:** Task list per patient; Admission workups pending; Results to review; Consult requests; Night-duty handover (SBAR)
+- **Alerts:** Escalation required (NEWS2); Order awaiting co-sign; Unsigned notes
+- **Quick actions:** Add progress note, Request senior review, Order labs, Handover
+- **Sections / tabs:** My patients · Tasks · Handover · Logbook
+- **Features:** Co-sign workflow with consultant; Logbook & case presentations; Duty roster + swap; Protocol quick-cards
+- **Data / APIs:** `/orders`, `/rounds`, `/handovers`, `/case-presentations`
+- **Permissions & privacy:** Assigned patients only.
+
+### Surgeon (`surgeon`)
+- **Purpose:** OT list, PAC status, consents, post-op watch, procedure notes.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/surgeon` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Cases today / week; PAC pending; Consents pending; Post-op patients (24-72h); Complication flags; Surgeon fee pending
+- **Worklists / queues:** OT schedule with room/team/duration; Pre-op checklist per case; Op-note templates pending; Implant/consumable log; Post-op rounds
+- **Alerts:** PAC not done <24h; Consent missing; Blood requisition pending; Delay in previous case
+- **Quick actions:** Open OT board, Sign WHO checklist, Write op-note, Request ICU bed
+- **Sections / tabs:** OT list · Pre-op · Intra-op · Post-op · Fees
+- **Features:** WHO surgical safety checklist (sign-in/time-out/sign-out); Swab/instrument count; Team fee split (surgeon/anaesthetist/OT); Case cancellation reasons
+- **Data / APIs:** `/ot/*`, `/orders/my-ot`, `/ipd`
+- **Permissions & privacy:** Case patients only.
+
+### Anaesthesiologist (`anaesthetist`)
+- **Purpose:** PAC, anaesthesia records, recovery, pain service.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/anaesthetist` · current depth: 4 KPIs / 3 tasks / 1 alerts / 3 queues / 4 actions / 1 modules
+- **KPI cards (target):** Cases today; PAC done %; ASA distribution; Recovery (PACU) occupancy; Difficult-airway flags; Pain consults
+- **Worklists / queues:** PAC queue; Anaesthesia record drafts; PACU patients; Pain round list
+- **Alerts:** High-risk ASA ≥4; Airway alert; PACU stay > protocol
+- **Quick actions:** Do PAC, Open anaesthesia record, Discharge from PACU
+- **Sections / tabs:** PAC · Intra-op · PACU · Pain
+- **Features:** PAC form with fitness & NPO check; Anaesthesia record (drugs, vitals trend); Aldrete scoring; Blood requisition
+- **Data / APIs:** `/ot/pac`, `/ot/anaesthesia`
+- **Permissions & privacy:** Case-scoped.
+
+### ICU Intensivist (`icu_doctor`)
+- **Purpose:** Critical-care rounds, scores, ventilator/weaning, family communication.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/icu_doctor` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** ICU census & occupancy; Ventilated patients (vent days); SOFA/APACHE II per patient & trend; Line/catheter days; New admissions/transfers; Mortality (ICU)
+- **Worklists / queues:** ICU flowsheet board per bed; Orders pending; Weaning candidates; Culture results; Family meeting log
+- **Alerts:** SOFA rise ≥2 in 24h; Line-day threshold; Sepsis bundle breach; Alarm unacked
+- **Quick actions:** Open flowsheet, Update ventilator plan, Order sepsis set, Record family update
+- **Sections / tabs:** Board · Flowsheet · Scores · Devices · Family
+- **Features:** SOFA/APACHE II engine with trends; Central-line bundle checklist & HAI tracking; Ventilator/infusion charts; NEWS2 early-warning; Daily goals checklist
+- **Data / APIs:** `/icu/*` (IcuFlowsheet, IcuScore), `/clinical/scores`
+- **Permissions & privacy:** ICU patients only.
+
+### Emergency / Casualty Doctor (`emergency`)
+- **Purpose:** Triage-driven ER flow, resuscitation, MLC, disposition.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/emergency` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 2 modules
+- **KPI cards (target):** ER active patients by ESI level; Door-to-doctor avg; LWBS %; Code Blue/trauma/stroke/STEMI active; Admit/discharge/referral today; Ambulance inbound
+- **Worklists / queues:** Live ER board (ESI colour, bay, wait); Inbound ambulance ETAs; Orders pending (stat labs/imaging); MLC cases; Boarded patients waiting for bed
+- **Alerts:** ESI-1 arrival; Door-to-doctor > target; Critical lab; Bed request unfulfilled >2h
+- **Quick actions:** Rapid triage, Code Blue, Register MLC, Request ICU bed, Disposition
+- **Sections / tabs:** ER board · Triage · Resus · MLC · Disposition
+- **Features:** Unknown patient quick-register (temp UHID) + merge later; MLC workflow (police intimation, injury certificate); ER → IPD one-click admission; Golden-hour timeline (door-to-ECG/needle); ER billing after stabilisation
+- **Data / APIs:** `/emergency/*`, `/triage`, `/safety/mlc`, `/clinical-alerts/*`, `/ipd/admissions`
+- **Permissions & privacy:** Break-glass default allowed for ER with reason + auto-review.
+
+### OT Coordinator (`ot_coordinator`)
+- **Purpose:** OT scheduling, utilisation, turnover, instrument readiness.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/ot_coordinator` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** OT utilisation %; First-case on-time %; Turnover time; Cancellations (reason); Emergency add-ons
+- **Worklists / queues:** OT calendar with drag-reschedule; Pre-op readiness (PAC/consent/blood/sets); CSSD set availability; Consumables/implants issue
+- **Alerts:** Case missing PAC/consent; Set not sterile; Overrun risk
+- **Quick actions:** Schedule case, Reassign room, Book CSSD set, Cancel with reason
+- **Sections / tabs:** Calendar · Readiness · Utilisation · Cancellations
+- **Features:** Room × time board; Readiness checklist gating; Utilisation analytics; Team roster
+- **Data / APIs:** `/ot/*`, `/cssd/*`
+- **Permissions & privacy:** Case metadata only.
+
+### OT Technician (`ot_technician`)
+- **Purpose:** Room setup, equipment readiness, counts, turnover.
+- **Current status:** custom page `/ot/board` (spec-driven shell me nahi)
+- **KPI cards (target):** Rooms ready; Turnaround avg; Equipment faults; Counts verified
+- **Worklists / queues:** Room setup tasks; Instrument set issue/return; Equipment checklist
+- **Alerts:** Equipment fault; Count mismatch
+- **Quick actions:** Mark room ready, Log fault, Issue set
+- **Sections / tabs:** Tasks · Sets · Equipment
+- **Features:** Task cards (WorkTask) with scan proof; Set tracking to CSSD; Equipment pre-use checklist
+- **Data / APIs:** `/ot/board`, `/work-tasks`, `/cssd`
+- **Permissions & privacy:** No patient clinicals.
+
+### Psychiatrist / Mental-health clinician (`psychiatrist`)
+- **Purpose:** Sessions, risk assessment, outcome scales, restricted records.
+- **Current status:** custom page `DoctorDashboard` (spec-driven shell me nahi)
+- **KPI cards (target):** Sessions today; PHQ-9/GAD-7 trends; High-risk patients flagged; No-shows; Follow-ups due
+- **Worklists / queues:** Session list; Risk-flag review; Care plans; Medication reviews
+- **Alerts:** Suicide-risk flag; Missed high-risk follow-up
+- **Quick actions:** Start session, Record scale, Update plan
+- **Sections / tabs:** Sessions · Risk · Care plans · Scales
+- **Features:** Outcome scales with trends; Restricted-sensitivity records (extra consent); Session notes locked (psychotherapy notes); Crisis protocol card
+- **Data / APIs:** `/mental-health/*`, `/consents`
+- **Permissions & privacy:** **Sensitive class**: extra consent, break-glass audit, no admin read.
+
+### Doctor Portal (marketplace/online) (`doctor_portal`)
+- **Purpose:** Online practice: slots, tele-consults, earnings, reviews.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/doctor_portal` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Appointments today (online/in-person); Tele-consult minutes; Earnings & payouts; Rating & reviews; Profile completeness
+- **Worklists / queues:** Upcoming bookings; Pending requests; Reviews to reply; Payout statements
+- **Alerts:** Slot conflict; Consent missing for tele; Licence expiry
+- **Quick actions:** Open consult room, Edit slots, Withdraw earnings
+- **Sections / tabs:** Today · Slots · Consults · Earnings · Reviews
+- **Features:** Slot templates & leave; Tele-consult compliance (RMP, prohibited drugs); Payout statement with TDS; Profile/verification status
+- **Data / APIs:** `/doctor/*`, `/telemedicine/*`, `/payouts`
+- **Permissions & privacy:** Own patients only.

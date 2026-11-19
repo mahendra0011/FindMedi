@@ -1,0 +1,246 @@
+# 47. Role Dashboards: Clinic Suite (CMS, 20 roles)
+
+Roles: `clinic_admin`, `clinic_branch_manager`, `clinic_doctor`, `clinic_receptionist`, `clinic_nurse`, `clinic_lab_tech`, `clinic_radiology_tech`, `clinic_pharmacist`, `clinic_cashier`, `clinic_accountant`, `clinic_inventory_mgr`, `clinic_purchase_officer`, `clinic_hr_admin`, `clinic_home_collection`, `clinic_telemed_coord`, `clinic_crm_staff`, `clinic_quality_mgr`, `clinic_patient_portal`, `clinic_owner_analytics`, `super_admin`.
+**Finding:** `cmsDashboardSpec` me **saare 20 roles ka depth identical** hai (4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions, **0 domain modules**): generic template. Neeche har role ke liye specific target hai.
+**Family rule:** clinic = chhota setup: kam widgets, bade buttons, front-desk-first; single login me doctor+owner mix ko alag roles (`clinic_admin` vs `clinic_doctor`) me todo (file 12).
+
+### Clinic Admin / Owner (single clinic) (`clinic_admin`)
+- **Purpose:** Run the clinic: patients, queue, billing, staff, inventory, compliance.
+- **Current status:** spec `cmsDashboardSpec` · route `ClinicAdminDashboard` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 5 actions / 0 modules
+- **KPI cards (target):** Patients today (new/repeat); Waiting now + avg wait; Revenue today/MTD; Collected vs dues; No-show %; Slot utilisation %; NPS; Staff on duty
+- **Worklists / queues:** Live OPD board per doctor; Pending bills/dues; Recalls & follow-ups due; Inventory alerts (low/expiry); Staff tasks
+- **Alerts:** Licence/council reg expiry; Stock-out; Dues > 30d; Complaint
+- **Quick actions:** Register patient, New bill, Open schedule, Approve discount
+- **Sections / tabs:** Overview · Patients · Billing · Inventory · Staff · Compliance · Marketing
+- **Features:** KPI cards driven by `/clinic/dashboard` (server-side); Doctor-wise performance & service-wise revenue; Price list/packages/memberships; Recall engine (WhatsApp/SMS); Compliance pack (BMW log, rate list, registration display); Staff as real users with RBAC (invite)
+- **Data / APIs:** `/clinic/*` (dashboard, analytics, queue, price-list, packages, recalls, inventory, staff/invite)
+- **Permissions & privacy:** Clinic-scoped; PHI via care roles only.
+
+### Branch Manager (multi-branch clinics) (`clinic_branch_manager`)
+- **Purpose:** Branch roll-up, staffing, targets.
+- **Current status:** spec `cmsDashboardSpec` · route `ClinicBranchManagerDashboard` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Branch revenue vs target; Footfall; Utilisation; NPS by branch; Stock-outs; Staff attendance
+- **Worklists / queues:** Branch comparison; Transfers between branches; Approvals (discount/PO)
+- **Alerts:** Branch below target 3d; Doctor absent
+- **Quick actions:** Switch branch, Approve, Transfer stock
+- **Sections / tabs:** Branches · Targets · Approvals
+- **Features:** Branch switcher, consolidated vs per-branch views; Central patient record across branches; Inter-branch stock transfer
+- **Data / APIs:** `/clinic/branches/*`, `ClinicBranch`
+- **Permissions & privacy:** Own branch(es).
+
+### Clinic Doctor (`clinic_doctor`)
+- **Purpose:** Practitioner view: queue, consult workspace, Rx, follow-ups, earnings.
+- **Current status:** spec `cmsDashboardSpec` · route `ClinicDoctorDashboard` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 5 actions / 0 modules
+- **KPI cards (target):** Waiting + seen; Next patient; Follow-ups due; Results inbox; Earnings (own share); Prescriptions to sign
+- **Worklists / queues:** OPD queue (Call next); Today appointments (clinic/video/home); Results inbox; Recalls
+- **Alerts:** Critical result; DDI major on Rx; Tele consent missing
+- **Quick actions:** Call next, Start consult, Write Rx, Order test
+- **Sections / tabs:** My day · Consult · Results · Follow-ups · Earnings
+- **Features:** Light EMR (GP/Derm/Paeds/Ortho/Gyne/ENT templates) with allergy banner + DDI check; Auto follow-up booking; Tele-consult compliance (RMP, consent, prohibited drugs); Emergency "flying squad" duty = **opt-in** card; Payout statement
+- **Data / APIs:** `/doctor/*`, `/clinic/*`, `/ddi/check`, `/telemedicine`
+- **Permissions & privacy:** Treating-patient scope.
+
+### Clinic Receptionist (`clinic_receptionist`)
+- **Purpose:** Registration, token, appointments, fee collection.
+- **Current status:** spec `cmsDashboardSpec` · route `ClinicReceptionDashboard` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 5 actions / 0 modules
+- **KPI cards (target):** Registered today; Waiting; No-shows; Fees collected; Callbacks
+- **Worklists / queues:** Token queue; Appointments; Enquiries; Dues to collect
+- **Alerts:** Duplicate patient; Patient flagged
+- **Quick actions:** Register, Token, Check-in, Collect fee, Print receipt
+- **Sections / tabs:** Register · Queue · Appointments · Fees
+- **Features:** Duplicate detection/merge; ABHA link; Queue display control; Walk-in priority
+- **Data / APIs:** `/frontoffice/*`, `/queues/*`
+- **Permissions & privacy:** Demographics only.
+
+### Clinic Nurse / Assistant (`clinic_nurse`)
+- **Purpose:** Vitals station, injections/dressing, vaccination.
+- **Current status:** spec `cmsDashboardSpec` · route `ClinicNurseDashboard` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Vitals recorded; Procedures due; Vaccines due today; Samples collected
+- **Worklists / queues:** Vitals station queue; Procedure list; Vaccination list
+- **Alerts:** Abnormal vitals; Vaccine stock low
+- **Quick actions:** Record vitals, Log procedure, Give vaccine
+- **Sections / tabs:** Vitals · Procedures · Vaccines
+- **Features:** OPD vitals station (BP/SpO2/BMI/pain); Vaccination schedule + batch/expiry + certificate; Sample collection with labels
+- **Data / APIs:** `/vitals/station`, `/vaccination/*`
+- **Permissions & privacy:** Assigned patients.
+
+### Clinic Lab Technician (`clinic_lab_tech`)
+- **Purpose:** In-house/partner lab bench.
+- **Current status:** spec `cmsDashboardSpec` · route `/dashboards/clinic_lab_tech` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Samples pending; Reports released; TAT; QC status
+- **Worklists / queues:** Worklist; Partner-lab dispatch; Reports to attach to chart
+- **Alerts:** QC fail; TAT breach
+- **Quick actions:** Enter results, Dispatch, Release
+- **Sections / tabs:** Worklist · Dispatch · Reports
+- **Features:** Barcode labels; Reference ranges & flags; Partner-lab integration (results auto-attach)
+- **Data / APIs:** `/lab/*`
+- **Permissions & privacy:** Lab scope.
+
+### Clinic Radiology Tech (`clinic_radiology_tech`)
+- **Purpose:** X-ray/USG at clinic.
+- **Current status:** spec `cmsDashboardSpec` · route `/dashboards/clinic_radiology_tech` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Studies today; Repeat %; Dose log
+- **Worklists / queues:** Worklist; Images to attach
+- **Alerts:** Dose outlier
+- **Quick actions:** Start study, Attach images
+- **Sections / tabs:** Worklist · Dose
+- **Features:** PCPNDT Form F for USG; Dose log; Report hand-off
+- **Data / APIs:** `/radiology/*`
+- **Permissions & privacy:** Study scope.
+
+### Clinic Pharmacist (in-house pharmacy) (`clinic_pharmacist`)
+- **Purpose:** Dispense against Rx, stock, H1 register.
+- **Current status:** spec `cmsDashboardSpec` · route `/dashboards/clinic_pharmacist` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Rx to dispense; Dispensed today; Near-expiry; H1 entries
+- **Worklists / queues:** Rx queue; Low stock; Returns
+- **Alerts:** DDI major; Expired batch
+- **Quick actions:** Dispense, Substitute, Record return
+- **Sections / tabs:** Dispense · Stock · Registers
+- **Features:** FEFO dispensing & auto bill; Generic substitution rules; H1/narcotic register
+- **Data / APIs:** `/pharmacy/*`, `/clinic/dispense`
+- **Permissions & privacy:** Rx data.
+
+### Clinic Cashier (`clinic_cashier`)
+- **Purpose:** Counter collections and daily cash close.
+- **Current status:** spec `cmsDashboardSpec` · route `/dashboards/clinic_cashier` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Collected (cash/UPI/card); Cash vs expected; Refunds
+- **Worklists / queues:** Unpaid bills; Receipts; Refund vouchers
+- **Alerts:** Variance at close
+- **Quick actions:** Collect, Print, Close day
+- **Sections / tabs:** Collect · Receipts · Close
+- **Features:** Split payments; UPI QR; Daily cash close
+- **Data / APIs:** `/clinic/cash-close`, `/payments`
+- **Permissions & privacy:** Own counter.
+
+### Clinic Accountant (`clinic_accountant`)
+- **Purpose:** Books, GST, payouts, vendor payments.
+- **Current status:** spec `cmsDashboardSpec` · route `ClinicCashierDashboard` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Revenue/expense MTD; Receivables; Payables; GST due
+- **Worklists / queues:** Vendor bills; Doctor payouts; Expenses
+- **Alerts:** GST due <5d
+- **Quick actions:** Post expense, Pay vendor, Generate GSTR
+- **Sections / tabs:** Books · Payouts · Tax
+- **Features:** Day-book, P&L; Doctor payout + TDS; GSTR exports
+- **Data / APIs:** `/finance/*`
+- **Permissions & privacy:** Financial.
+
+### Clinic Inventory Manager (`clinic_inventory_mgr`)
+- **Purpose:** Consumables, vaccines, drugs stock.
+- **Current status:** spec `cmsDashboardSpec` · route `/dashboards/clinic_inventory_mgr` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Items below reorder; Expiring; Stock value
+- **Worklists / queues:** Low stock; Expiry list; GRN
+- **Alerts:** Stock-out critical
+- **Quick actions:** Create indent, Receive GRN, Count stock
+- **Sections / tabs:** Stock · Expiry · GRN
+- **Features:** ClinicInventory with batch/expiry; Auto-reorder; Cold-chain log (vaccines)
+- **Data / APIs:** `/clinic/inventory`
+- **Permissions & privacy:** Inventory.
+
+### Clinic Purchase Officer (`clinic_purchase_officer`)
+- **Purpose:** Vendors, POs, price checks.
+- **Current status:** spec `cmsDashboardSpec` · route `/dashboards/clinic_purchase_officer` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Open POs; Late deliveries; Savings
+- **Worklists / queues:** Indents; POs; Vendor KYC expiring
+- **Alerts:** PO to unverified vendor
+- **Quick actions:** Raise PO, Chase vendor
+- **Sections / tabs:** Indents · POs · Vendors
+- **Features:** Vendor KYC gate; Rate-contract check; PO approval tiers
+- **Data / APIs:** `/inventory/po`, `/vendors`
+- **Permissions & privacy:** Purchasing.
+
+### Clinic HR Admin (`clinic_hr_admin`)
+- **Purpose:** Staff roster, attendance, payroll.
+- **Current status:** spec `cmsDashboardSpec` · route `/dashboards/clinic_hr_admin` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Staff present; Leaves pending; Payroll status; Credentials expiring
+- **Worklists / queues:** Roster; Leave approvals; Payslips
+- **Alerts:** Credential expiry
+- **Quick actions:** Approve leave, Run payroll, Publish roster
+- **Sections / tabs:** Roster · Leave · Payroll
+- **Features:** Roster + swap; Biometric attendance; Statutory payroll (versioned) + payslip PDF
+- **Data / APIs:** `/hr/*`, `/roster`, `/staff/payroll`
+- **Permissions & privacy:** HR data.
+
+### Clinic Home-Collection Staff (`clinic_home_collection`)
+- **Purpose:** Home sample/visit rounds.
+- **Current status:** spec `cmsDashboardSpec` · route `/dashboards/clinic_home_collection` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Visits today; Done; Km
+- **Worklists / queues:** Route list; Tubes to label
+- **Alerts:** Patient not home
+- **Quick actions:** Start route, Scan & collect
+- **Sections / tabs:** Route · Labels
+- **Features:** Route map, offline cache, positive ID scan
+- **Data / APIs:** `/lab/collection`
+- **Permissions & privacy:** Visit scope.
+- **Mobile:** Mobile-first.
+
+### Clinic Telemedicine Coordinator (`clinic_telemed_coord`)
+- **Purpose:** Tele-consult scheduling & compliance.
+- **Current status:** spec `cmsDashboardSpec` · route `/dashboards/clinic_telemed_coord` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Tele-consults today; No-show %; Consent/ID verified %; Tech failures
+- **Worklists / queues:** Upcoming tele-consults; Consent missing; Failed calls
+- **Alerts:** Consent missing; Doctor not joined
+- **Quick actions:** Reschedule, Send join link, Verify ID
+- **Sections / tabs:** Schedule · Compliance · Tech
+- **Features:** Tele-consent log, RMP number on Rx, prohibited-drug guard; Video-room health (LiveKit); Follow-up booking
+- **Data / APIs:** `/telemedicine/*`, `/doctor/tele-consent`
+- **Permissions & privacy:** Consult metadata.
+
+### Clinic CRM / Patient Engagement (`clinic_crm_staff`)
+- **Purpose:** Recalls, campaigns, feedback.
+- **Current status:** spec `cmsDashboardSpec` · route `/dashboards/clinic_crm_staff` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Recalls sent / booked; Campaign conversion; NPS; Reactivated patients
+- **Worklists / queues:** Recall worklist; Campaigns; Detractors
+- **Alerts:** Detractor unattended
+- **Quick actions:** Send recall, Launch campaign
+- **Sections / tabs:** Recalls · Campaigns · Feedback
+- **Features:** Recall rules (diabetic/vaccine due); WhatsApp/SMS templates (DLT); NPS prompts + detractor tasks
+- **Data / APIs:** `/recall/*`, `/crm/*`, `/feedback`
+- **Permissions & privacy:** Consent/DND respected.
+
+### Clinic Quality Manager (`clinic_quality_mgr`)
+- **Purpose:** Incidents, checklists, BMW, audits.
+- **Current status:** spec `cmsDashboardSpec` · route `/dashboards/clinic_quality_mgr` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Incidents open; BMW log completeness; Audit scores; Equipment calibration due
+- **Worklists / queues:** Incident register; Checklists; BMW logs
+- **Alerts:** BMW log missing
+- **Quick actions:** Log incident, Run checklist
+- **Sections / tabs:** Incidents · Checklists · BMW
+- **Features:** Incident+CAPA; BMW colour-bag log; Calibration tracker
+- **Data / APIs:** `/safety/*`, `/bmw`
+- **Permissions & privacy:** Case-level restricted.
+
+### Clinic Patient Portal (patient view of a clinic) (`clinic_patient_portal`)
+- **Purpose:** Patient-facing: appointments, Rx, reports, bills.
+- **Current status:** spec `cmsDashboardSpec` · route `/dashboards/clinic_patient_portal` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Next appointment; Pending reports; Unpaid bills; Medicine reminders
+- **Worklists / queues:** Appointments; Prescriptions; Reports; Bills
+- **Alerts:** Report ready; Appointment tomorrow
+- **Quick actions:** Book, Pay bill, Download report, Give feedback
+- **Sections / tabs:** Home · Appointments · Records · Bills
+- **Features:** Family members; Rx QR verify; Feedback prompt after visit; Consent/privacy centre
+- **Data / APIs:** `/patients/me/*`, `/feedback`
+- **Permissions & privacy:** Own data only.
+
+### Clinic Owner Analytics (read-only) (`clinic_owner_analytics`)
+- **Purpose:** Owner view: trends & comparisons.
+- **Current status:** spec `cmsDashboardSpec` · route `/dashboards/clinic_owner_analytics` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Revenue trend; Doctor performance; Retention/recall yield; Service mix
+- **Worklists / queues:** Top services; Doctor ranking
+- **Alerts:** Revenue dip
+- **Quick actions:** Export, Compare period
+- **Sections / tabs:** Trends · Doctors · Services
+- **Features:** Read-only analytics with compare; Scheduled owner email
+- **Data / APIs:** `/clinic/analytics/*`, report-studio
+- **Permissions & privacy:** Aggregates only.
+
+### Clinic-Platform Super Admin (CMS tenant owner) (`super_admin`)
+- **Purpose:** Multi-clinic tenant admin (distinct from platform `superadmin`).
+- **Current status:** spec `cmsDashboardSpec` · route `/dashboards/super_admin` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 0 modules
+- **KPI cards (target):** Clinics active; Revenue across clinics; Tickets open; Onboarding pending
+- **Worklists / queues:** Clinic onboarding; Billing/plan; Support
+- **Alerts:** Clinic offline; Plan expiry
+- **Quick actions:** Add clinic, Change plan
+- **Sections / tabs:** Clinics · Plans · Support
+- **Features:** Tenant 360 for clinics; Feature flags per clinic; Usage & billing
+- **Data / APIs:** `/superadmin/*`
+- **Permissions & privacy:** Tenant-level; impersonation audited.

@@ -1,0 +1,222 @@
+# 42. Role Dashboards: Laboratory (LIS)
+
+Roles (21 + owner): `lab_manager`, `lab_admin`, `lab_receptionist`, `lab_receiving`, `phlebotomist`, `home_collection_staff`, `biochem_tech`, `hematology_tech`, `clinical_pathology_tech`, `microbiology_tech`, `histopathology_tech`, `cytology_tech`, `serology_tech`, `molecular_tech`, `lab_technician`, `pathologist`, `lab_supervisor`, `lab_quality_mgr`, `analyzer_staff`, `lab_inventory_mgr`, `report_coordinator`, `lab_owner`.
+**Family rule (LIS):** accession-first (barcode scan), QC gates release, critical never auto-released, TAT tracked per step. Current LIS specs have **0 tasks** per role: add task lists. Common features for every lab role: accession/barcode sample tracking, reference ranges by age/sex + auto H/L flags, critical call-back log, delta check, sample reject/recollect, TAT tracking, QC (Levey-Jennings/Westgard).
+`lab_admin`, `lab_receiving`, `home_collection_staff`, `lab_technician` follow the nearest entries below (manager / receptionist / phlebotomist / section tech).
+
+### Lab Manager / Lab Admin (`lab_manager`)
+- **Purpose:** Whole-lab throughput, TAT, QC, cost, staffing.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/lab_manager` · current depth: 8 KPIs / 0 tasks / 3 alerts / 6 queues / 8 actions / 4 modules
+- **KPI cards (target):** Samples received/processed today; TAT by priority (STAT <60 min %); Pending/backlog by section; QC failures open; Critical results unacked; Revenue & cost per test; Outsourced pending; Analyzer uptime
+- **Worklists / queues:** Section workload board; TAT breach list; QC failures needing action; Outsource tracker; Staff roster vs workload
+- **Alerts:** STAT TAT breach; QC Westgard violation; Critical unacked; Reagent low/expiry; Analyzer down
+- **Quick actions:** Reassign workload, Review QC, Approve outsource, Order reagents
+- **Sections / tabs:** Overview · Sections · TAT · QC · Outsource · Cost · Staff
+- **Features:** TAT dashboard (median/90th pct by test/section); QC overview across analyzers; Cost-per-test & reagent consumption; Sample rejection analytics; NABL document control
+- **Data / APIs:** `/lab/{tat,qc,outsource}`, LIS spec modules, `/stores`
+- **Permissions & privacy:** Lab-wide results, patient IDs visible (clinical role).
+
+### Lab Receptionist / Sample Receiving (`lab_receptionist`)
+- **Purpose:** Registration, order intake, sample receipt, report counter.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/lab_receptionist` · current depth: 6 KPIs / 0 tasks / 2 alerts / 5 queues / 6 actions / 4 modules
+- **KPI cards (target):** Orders registered today; Samples received / pending collection; Walk-in vs home collection; Reports ready for pickup; Bills collected
+- **Worklists / queues:** New orders queue (OPD/IPD/referral); Sample collection pending; Rejected samples (recollect); Report counter (OTP/signature hand-over)
+- **Alerts:** Sample rejected; Order without payment; Report pickup > 7 days
+- **Quick actions:** Register order, Print barcode label, Receive sample, Hand over report
+- **Sections / tabs:** Orders · Collection · Receiving · Reports
+- **Features:** Barcode label print + accession; Test catalogue with price/packages; Report hand-over with OTP; Outstation/outsourced test registration
+- **Data / APIs:** `/lab/orders`, `/print/labels`, `/billing`
+- **Permissions & privacy:** Registration + results delivery only.
+
+### Phlebotomist / Home-Collection Staff (`phlebotomist`)
+- **Purpose:** Collection rounds (ward + home), tube labelling.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/phlebotomist` · current depth: 6 KPIs / 0 tasks / 2 alerts / 5 queues / 5 actions / 3 modules
+- **KPI cards (target):** Collections today / done; Avg collection time; Rejections caused; Home visits left; Route km
+- **Worklists / queues:** Ward collection list (priority); Home collection route with map; Tubes to label; Recollect list
+- **Alerts:** STAT collection pending; Patient not available
+- **Quick actions:** Start round, Scan patient+tube, Mark collected, Report issue
+- **Sections / tabs:** Rounds · Home visits · Labels
+- **Features:** Positive patient ID scan (wristband + tube); Offline route/ticket cache; Collection checklist (fasting, tube type); Live location share
+- **Data / APIs:** `/lab/collection`, `/scan/verify`, home-collection routes
+- **Permissions & privacy:** Patient demographics + test list only.
+- **Mobile:** Mobile-first, offline.
+
+### Biochemistry Technician (`biochem_tech`)
+- **Purpose:** Section work-station: analyzer queue (clinical chemistry), calibrations, reagent lots.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/biochem_tech` · current depth: 6 KPIs / 0 tasks / 2 alerts / 5 queues / 5 actions / 3 modules
+- **KPI cards (target):** Pending samples in section; Processed today; Section TAT; QC status (pass/fail) for today; Repeat/re-run %; Critical flagged
+- **Worklists / queues:** Section worklist (priority, aging); Analyzer result validation queue; Re-run/dilution list; Reagent lot & expiry list
+- **Alerts:** QC failure blocks release; Critical value → call-back required; Reagent/calibration expired
+- **Quick actions:** Accept batch, Enter/verify results, Run QC, Flag repeat
+- **Sections / tabs:** Worklist · Validation · QC · Reagents
+- **Features:** Auto-verification rules (within range + delta OK; critical never auto-released); Analyzer interface (ASTM/HL7) + code mapping quarantine; Reference ranges by age/sex; Result audit trail
+- **Data / APIs:** `/lab/*`, `/hub/*` (analyzer messages), `lisAnalyzerDriver`
+- **Permissions & privacy:** Section samples; patient ID masked on bench view where possible (accession-first).
+
+### Hematology Technician (`hematology_tech`)
+- **Purpose:** Section work-station: CBC/coag analyzers, smear review, delta flags.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/hematology_tech` · current depth: 6 KPIs / 0 tasks / 2 alerts / 5 queues / 5 actions / 3 modules
+- **KPI cards (target):** Pending samples in section; Processed today; Section TAT; QC status (pass/fail) for today; Repeat/re-run %; Critical flagged
+- **Worklists / queues:** Section worklist (priority, aging); Analyzer result validation queue; Re-run/dilution list; Reagent lot & expiry list
+- **Alerts:** QC failure blocks release; Critical value → call-back required; Reagent/calibration expired
+- **Quick actions:** Accept batch, Enter/verify results, Run QC, Flag repeat
+- **Sections / tabs:** Worklist · Validation · QC · Reagents
+- **Features:** Auto-verification rules (within range + delta OK; critical never auto-released); Analyzer interface (ASTM/HL7) + code mapping quarantine; Reference ranges by age/sex; Result audit trail
+- **Data / APIs:** `/lab/*`, `/hub/*` (analyzer messages), `lisAnalyzerDriver`
+- **Permissions & privacy:** Section samples; patient ID masked on bench view where possible (accession-first).
+
+### Clinical Pathology Technician (`clinical_pathology_tech`)
+- **Purpose:** Section work-station: urine/stool/body fluid, manual microscopy results.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/clinical_pathology_tech` · current depth: 5 KPIs / 0 tasks / 2 alerts / 5 queues / 4 actions / 2 modules
+- **KPI cards (target):** Pending samples in section; Processed today; Section TAT; QC status (pass/fail) for today; Repeat/re-run %; Critical flagged
+- **Worklists / queues:** Section worklist (priority, aging); Analyzer result validation queue; Re-run/dilution list; Reagent lot & expiry list
+- **Alerts:** QC failure blocks release; Critical value → call-back required; Reagent/calibration expired
+- **Quick actions:** Accept batch, Enter/verify results, Run QC, Flag repeat
+- **Sections / tabs:** Worklist · Validation · QC · Reagents
+- **Features:** Auto-verification rules (within range + delta OK; critical never auto-released); Analyzer interface (ASTM/HL7) + code mapping quarantine; Reference ranges by age/sex; Result audit trail
+- **Data / APIs:** `/lab/*`, `/hub/*` (analyzer messages), `lisAnalyzerDriver`
+- **Permissions & privacy:** Section samples; patient ID masked on bench view where possible (accession-first).
+
+### Microbiology Technician (`microbiology_tech`)
+- **Purpose:** Section work-station: cultures, incubation timers, ID & sensitivity (AST) matrix, antibiogram feed.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/microbiology_tech` · current depth: 6 KPIs / 0 tasks / 2 alerts / 5 queues / 5 actions / 3 modules
+- **KPI cards (target):** Pending samples in section; Processed today; Section TAT; QC status (pass/fail) for today; Repeat/re-run %; Critical flagged
+- **Worklists / queues:** Section worklist (priority, aging); Analyzer result validation queue; Re-run/dilution list; Reagent lot & expiry list
+- **Alerts:** QC failure blocks release; Critical value → call-back required; Reagent/calibration expired
+- **Quick actions:** Accept batch, Enter/verify results, Run QC, Flag repeat
+- **Sections / tabs:** Worklist · Validation · QC · Reagents
+- **Features:** Auto-verification rules (within range + delta OK; critical never auto-released); Analyzer interface (ASTM/HL7) + code mapping quarantine; Reference ranges by age/sex; Result audit trail; Culture timers & antibiotic sensitivity grid
+- **Data / APIs:** `/lab/*`, `/hub/*` (analyzer messages), `lisAnalyzerDriver`
+- **Permissions & privacy:** Section samples; patient ID masked on bench view where possible (accession-first).
+
+### Histopathology Technician (`histopathology_tech`)
+- **Purpose:** Section work-station: grossing, processing, blocks/slides tracking, special stains.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/histopathology_tech` · current depth: 6 KPIs / 0 tasks / 2 alerts / 5 queues / 5 actions / 2 modules
+- **KPI cards (target):** Pending samples in section; Processed today; Section TAT; QC status (pass/fail) for today; Repeat/re-run %; Critical flagged
+- **Worklists / queues:** Section worklist (priority, aging); Analyzer result validation queue; Re-run/dilution list; Reagent lot & expiry list
+- **Alerts:** QC failure blocks release; Critical value → call-back required; Reagent/calibration expired
+- **Quick actions:** Accept batch, Enter/verify results, Run QC, Flag repeat
+- **Sections / tabs:** Worklist · Validation · QC · Reagents
+- **Features:** Auto-verification rules (within range + delta OK; critical never auto-released); Analyzer interface (ASTM/HL7) + code mapping quarantine; Reference ranges by age/sex; Result audit trail
+- **Data / APIs:** `/lab/*`, `/hub/*` (analyzer messages), `lisAnalyzerDriver`
+- **Permissions & privacy:** Section samples; patient ID masked on bench view where possible (accession-first).
+
+### Cytology Technician (`cytology_tech`)
+- **Purpose:** Section work-station: smears, FNAC, Pap screening queue, slide archive.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/cytology_tech` · current depth: 4 KPIs / 0 tasks / 1 alerts / 4 queues / 3 actions / 2 modules
+- **KPI cards (target):** Pending samples in section; Processed today; Section TAT; QC status (pass/fail) for today; Repeat/re-run %; Critical flagged
+- **Worklists / queues:** Section worklist (priority, aging); Analyzer result validation queue; Re-run/dilution list; Reagent lot & expiry list
+- **Alerts:** QC failure blocks release; Critical value → call-back required; Reagent/calibration expired
+- **Quick actions:** Accept batch, Enter/verify results, Run QC, Flag repeat
+- **Sections / tabs:** Worklist · Validation · QC · Reagents
+- **Features:** Auto-verification rules (within range + delta OK; critical never auto-released); Analyzer interface (ASTM/HL7) + code mapping quarantine; Reference ranges by age/sex; Result audit trail
+- **Data / APIs:** `/lab/*`, `/hub/*` (analyzer messages), `lisAnalyzerDriver`
+- **Permissions & privacy:** Section samples; patient ID masked on bench view where possible (accession-first).
+
+### Serology / Immunoassay Technician (`serology_tech`)
+- **Purpose:** Section work-station: ELISA/CLIA runs, kit lots, plate maps, infectious-disease confidentiality.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/serology_tech` · current depth: 4 KPIs / 0 tasks / 1 alerts / 4 queues / 4 actions / 3 modules
+- **KPI cards (target):** Pending samples in section; Processed today; Section TAT; QC status (pass/fail) for today; Repeat/re-run %; Critical flagged
+- **Worklists / queues:** Section worklist (priority, aging); Analyzer result validation queue; Re-run/dilution list; Reagent lot & expiry list
+- **Alerts:** QC failure blocks release; Critical value → call-back required; Reagent/calibration expired
+- **Quick actions:** Accept batch, Enter/verify results, Run QC, Flag repeat
+- **Sections / tabs:** Worklist · Validation · QC · Reagents
+- **Features:** Auto-verification rules (within range + delta OK; critical never auto-released); Analyzer interface (ASTM/HL7) + code mapping quarantine; Reference ranges by age/sex; Result audit trail
+- **Data / APIs:** `/lab/*`, `/hub/*` (analyzer messages), `lisAnalyzerDriver`
+- **Permissions & privacy:** Section samples; patient ID masked on bench view where possible (accession-first).
+
+### Molecular / PCR Technician (`molecular_tech`)
+- **Purpose:** Section work-station: extraction → amplification → result, contamination controls, run QC.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/molecular_tech` · current depth: 4 KPIs / 0 tasks / 1 alerts / 4 queues / 4 actions / 3 modules
+- **KPI cards (target):** Pending samples in section; Processed today; Section TAT; QC status (pass/fail) for today; Repeat/re-run %; Critical flagged
+- **Worklists / queues:** Section worklist (priority, aging); Analyzer result validation queue; Re-run/dilution list; Reagent lot & expiry list
+- **Alerts:** QC failure blocks release; Critical value → call-back required; Reagent/calibration expired
+- **Quick actions:** Accept batch, Enter/verify results, Run QC, Flag repeat
+- **Sections / tabs:** Worklist · Validation · QC · Reagents
+- **Features:** Auto-verification rules (within range + delta OK; critical never auto-released); Analyzer interface (ASTM/HL7) + code mapping quarantine; Reference ranges by age/sex; Result audit trail
+- **Data / APIs:** `/lab/*`, `/hub/*` (analyzer messages), `lisAnalyzerDriver`
+- **Permissions & privacy:** Section samples; patient ID masked on bench view where possible (accession-first).
+
+### Pathologist (`pathologist`)
+- **Purpose:** Verification, interpretation, sign-off, critical communication.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/pathologist` · current depth: 6 KPIs / 0 tasks / 2 alerts / 6 queues / 6 actions / 4 modules
+- **KPI cards (target):** Reports pending verification; Verified today; Critical results communicated; TAT (verify); Histo/cytology backlog
+- **Worklists / queues:** Verification queue (priority/critical first); Histopath/cytology slides to report; Amend requests; Consult/second-opinion
+- **Alerts:** Critical unacked 15 min; STAT pending >30 min; Amendment requested
+- **Quick actions:** Verify & sign, Add comment, Call clinician, Amend report
+- **Sections / tabs:** Verify · Histopath · Cytology · Critical · Amendments
+- **Features:** Digital signature + report PDF template (NABL format); Prior-result trend/cumulative view; Critical call-back log; Voice dictation for histopath; Peer review sampling
+- **Data / APIs:** `/lab/verify`, `/signatures`, `/print`, `/doctor-notes`
+- **Permissions & privacy:** Full lab results; audit on amendments.
+
+### Lab Supervisor / Section In-charge (`lab_supervisor`)
+- **Purpose:** Shift floor control, QC review, rerun approvals.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/lab_supervisor` · current depth: 5 KPIs / 0 tasks / 2 alerts / 5 queues / 5 actions / 3 modules
+- **KPI cards (target):** Section backlog; QC reviewed; Rerun approvals; Rejects; Staff on shift
+- **Worklists / queues:** QC review queue; Rerun/override approvals; Delta-check flags; Handover notes
+- **Alerts:** Unreviewed QC >1h; Override pending
+- **Quick actions:** Approve rerun, Review QC, Reassign samples
+- **Sections / tabs:** Floor · QC · Approvals · Handover
+- **Features:** Shift handover log; Override with reason (audit); Sample reassignment
+- **Data / APIs:** `/lab/*`
+- **Permissions & privacy:** Section scope.
+
+### Lab Quality Manager (NABL) (`lab_quality_mgr`)
+- **Purpose:** QC trends, EQAS/PT, CAPA, audits, document control.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/lab_quality_mgr` · current depth: 6 KPIs / 0 tasks / 2 alerts / 5 queues / 5 actions / 3 modules
+- **KPI cards (target):** QC rules violated (30d); EQAS/PT results z-score; CAPA open; Sample rejection %; Equipment calibrations due; Documents due
+- **Worklists / queues:** Westgard violation log; CAPA tracker; Calibration schedule; Non-conformity register
+- **Alerts:** Calibration overdue; EQAS failure; Rejection > target
+- **Quick actions:** Open CAPA, Schedule calibration, Review SOP
+- **Sections / tabs:** QC · EQAS/PT · CAPA · Audits · Documents
+- **Features:** Levey-Jennings charts per analyte/level; EQAS/PT tracking; NABL checklist & audit scheduler; Document control with acknowledgement
+- **Data / APIs:** `/lab/qc`, `/quality/capa`, `/assets`
+- **Permissions & privacy:** Aggregate + case-level.
+
+### Analyzer / Instrument Staff (`analyzer_staff`)
+- **Purpose:** Analyzer connectivity, maintenance, reagent loading.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/analyzer_staff` · current depth: 5 KPIs / 0 tasks / 1 alerts / 5 queues / 4 actions / 2 modules
+- **KPI cards (target):** Analyzers online; Result flags unmapped; Messages quarantined; Reagent on-board days left; Maintenance due
+- **Worklists / queues:** Quarantined messages; Mapping requests; Maintenance tasks; Reagent loading list
+- **Alerts:** Analyzer offline; Unknown code; Reagent out
+- **Quick actions:** Map code, Reprocess message, Log maintenance
+- **Sections / tabs:** Devices · Messages · Mapping · Maintenance
+- **Features:** Integration board per analyzer (heartbeat, queue depth); Code-mapping editor (device→LIS code, units); Maintenance logs
+- **Data / APIs:** `/hub/*`, `/lab/analyzers`
+- **Permissions & privacy:** Device data; patient ID masked.
+
+### Lab Inventory Manager (`lab_inventory_mgr`)
+- **Purpose:** Reagents, consumables, lot/expiry, indents.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/lab_inventory_mgr` · current depth: 5 KPIs / 0 tasks / 2 alerts / 5 queues / 5 actions / 2 modules
+- **KPI cards (target):** Items below reorder; Expiring ≤60d; Stock value; Consumption vs tests; Pending indents/POs
+- **Worklists / queues:** Low stock; Near-expiry; Indents; GRN pending
+- **Alerts:** Stock-out risk; Lot expired in use
+- **Quick actions:** Create indent, Receive GRN, Transfer stock
+- **Sections / tabs:** Stock · Expiry · Indents · GRN
+- **Features:** Lot-wise stock with FEFO; Reagent consumption per analyzer/test; Auto-reorder suggestions; Cold-chain log
+- **Data / APIs:** `/stores/*`, `/inventory`
+- **Permissions & privacy:** Inventory only.
+
+### Report Coordinator (`report_coordinator`)
+- **Purpose:** Report release, delivery, corrections.
+- **Current status:** spec `lisDashboardSpec` · route `/lab/dashboard/report_coordinator` · current depth: 5 KPIs / 0 tasks / 1 alerts / 4 queues / 4 actions / 2 modules
+- **KPI cards (target):** Reports ready/released; Pending sign-off; Delivery failures; Corrections requested
+- **Worklists / queues:** Release queue; Delivery (WhatsApp/email/portal) status; Correction requests
+- **Alerts:** Report stuck >TAT; Delivery failed
+- **Quick actions:** Release, Resend, Create correction
+- **Sections / tabs:** Release · Delivery · Corrections
+- **Features:** Multi-channel delivery with receipts; Amend/addendum chain; Home-collection report dispatch
+- **Data / APIs:** `/lab/reports`, notifications
+- **Permissions & privacy:** Final reports only.
+
+### Lab Owner (business) (`lab_owner`)
+- **Purpose:** Diagnostic-centre business view (marketplace lab).
+- **Current status:** custom page `/lab-business/dashboard` (spec-driven shell me nahi)
+- **KPI cards (target):** Revenue (test/home/B2B); Orders today & conversion; Top tests; Home-collection performance; Ratings
+- **Worklists / queues:** Pending approvals; Orders by status; Payouts
+- **Alerts:** Low rating; Licence expiry
+- **Quick actions:** Edit test prices, Add package, View payout
+- **Sections / tabs:** Overview · Orders · Catalogue · Payouts · Reviews
+- **Features:** Catalogue & price management; Packages/offers; B2B/corporate tie-ups; Payout statements
+- **Data / APIs:** `/lab-business/*`, `/lab/*`
+- **Permissions & privacy:** Business data; patient detail limited.

@@ -1,0 +1,103 @@
+# 45. Role Dashboards: Facility & Support Operations
+
+Roles: `housekeeping_supervisor`, `facility_manager` (`maintenance`), `biomedical_engineer`, `security`, `ambulance`, `mortuary_attendant`, `diet_kitchen_admin` (`dietician_head`, `kitchen_staff`), `ward_boy`.
+**Family rule:** task cards with scan proof (WorkTask), SLA timers, mobile-first/offline, no patient clinical data; `ward_boy`/`maintenance` ke liye spec abhi nahi/aliased.
+
+### Housekeeping Supervisor (`housekeeping_supervisor`)
+- **Purpose:** Room/bed cleaning turnaround, terminal cleaning, laundry.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/housekeeping_supervisor` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Beds awaiting cleaning + avg turnaround; Tasks completed vs SLA; Terminal cleans (OT/isolation); Audit scores; Staff on shift
+- **Worklists / queues:** Cleaning queue (priority by bed demand); Isolation/terminal cleans; Complaints
+- **Alerts:** Cleaning >30 min; Missed checklist; Isolation clean pending
+- **Quick actions:** Assign staff, Mark ready, Start audit
+- **Sections / tabs:** Queue · Isolation · Audits · Linen
+- **Features:** Auto task from discharge (bed → Cleaning); Checklist with photo/scan proof; Linen issue/return count; SLA timers
+- **Data / APIs:** `/housekeeping/*`, `/work-tasks`, bed board, `/linen`
+- **Permissions & privacy:** No patient info.
+
+### Facility / Engineering Manager (+ maintenance) (`facility_manager`)
+- **Purpose:** Utilities, equipment tickets, NOC/licences.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/facility_manager` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Open tickets & SLA breach; Uptime (DG/UPS/HVAC/lifts/oxygen plant); PM compliance %; Energy use; Licences/NOC expiring
+- **Worklists / queues:** Maintenance tickets; PM calendar; Vendor AMC visits; Medical-gas log
+- **Alerts:** Oxygen/medical gas low; DG fuel low; NOC <60d; Ticket SLA breach
+- **Quick actions:** Create ticket, Assign engineer, Log meter, Open AMC
+- **Sections / tabs:** Tickets · Assets · Utilities · Licences · Vendors
+- **Features:** Asset register with AMC/warranty/PM; Utility meters & logs; Fire/lift/pollution/AERB NOC tracker (`License`); Ticket SLA & escalation
+- **Data / APIs:** `/biomedical/*`, `/contracts`, `/licenses`, `/work-tasks`
+- **Permissions & privacy:** Asset data only.
+
+### Biomedical Engineer (`biomedical_engineer`)
+- **Purpose:** Medical-equipment PM, calibration, breakdown work-orders.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/biomedical_engineer` · current depth: 4 KPIs / 3 tasks / 1 alerts / 3 queues / 4 actions / 1 modules
+- **KPI cards (target):** Equipment uptime %; PM/calibration due; Open work-orders; MTTR; Spare parts low
+- **Worklists / queues:** Work-orders; PM schedule; Calibration due; Warranty/AMC expiring
+- **Alerts:** Critical equipment down (ventilator, defib); Calibration overdue
+- **Quick actions:** Open work-order, Log calibration, Request spare
+- **Sections / tabs:** Work-orders · PM · Calibration · Spares
+- **Features:** BiomedicalAsset + WorkOrder lifecycle (open→assigned→in-progress→closed); Criticality class A/B/C; Downtime tracking & utilisation; Condemn/disposal
+- **Data / APIs:** `/biomedical/*`
+- **Permissions & privacy:** Asset data.
+
+### Security Supervisor / Guard (`security`)
+- **Purpose:** Gate passes, visitor control, rounds, incidents.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/security` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Visitors inside; Gate passes open/used; Rounds completed %; Incidents today; Missed checkpoints
+- **Worklists / queues:** Gate pass approvals; Visitor log; Round checklist; Incidents
+- **Alerts:** Missed checkpoint; Restricted-area breach; Blacklisted visitor
+- **Quick actions:** Approve/mark used, Start round, Log incident, Issue visitor pass
+- **Sections / tabs:** Gate · Visitors · Rounds · Incidents
+- **Features:** Gate pass lifecycle (requested→approved→used); Round with QR checkpoints + offline sync; Visitor limits/blacklist; Parking & vehicle log
+- **Data / APIs:** `/security/*`, `/safety/visitor-passes`
+- **Permissions & privacy:** Visitor data minimal.
+- **Mobile:** Mobile-first, offline.
+
+### Ambulance / EMT Crew (`ambulance`)
+- **Purpose:** Dispatch, trip sheet, equipment checks, response time.
+- **Current status:** spec `hmsDashboardSpec` · route `/ambulance/dashboard` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Trips today; Avg response time; Km/fuel efficiency; Vehicle availability; Checklists done
+- **Worklists / queues:** Dispatch requests; Active trip; Maintenance due
+- **Alerts:** Request unassigned >2 min; Checklist missed; Fuel anomaly
+- **Quick actions:** Accept trip, Start/End trip, Log fuel, Handover note
+- **Sections / tabs:** Dispatch · Trips · Vehicle · Logs
+- **Features:** Live GPS + route; Trip sheet with odometer; Equipment checklist per shift; Handover to ER
+- **Data / APIs:** `/ambulance-trips/*`, `/ambulance/*`, emergency dispatch
+- **Permissions & privacy:** Patient pickup details only.
+- **Mobile:** Driver app, offline queue.
+
+### Mortuary Attendant (`mortuary_attendant`)
+- **Purpose:** Body receipt, storage, ID verification, release.
+- **Current status:** spec `hmsDashboardSpec` · route `/mortuary` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Bodies in custody; Cold-chamber occupancy; Releases today; Pending certificates; MLC/police holds
+- **Worklists / queues:** Receipt queue; Release requests (ID verified); Unclaimed list
+- **Alerts:** Chamber temp excursion; Unclaimed >72h; MLC hold
+- **Quick actions:** Receive body, Allocate chamber, Release (ID+authorised person)
+- **Sections / tabs:** Custody · Release · Certificates · MLC
+- **Features:** Tagging & chamber allocation; Death certificate PDF (QR seal); Police/MLC handover record; Charges
+- **Data / APIs:** `/mortuary/*`, `DeathRecord`, `MlcCase`
+- **Permissions & privacy:** Sensitive; strict audit.
+
+### Diet & Kitchen Manager (+ dietician head, kitchen staff) (`diet_kitchen_admin`)
+- **Purpose:** Therapeutic diet production from live census.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/diet_kitchen_admin` · current depth: 4 KPIs / 3 tasks / 1 alerts / 3 queues / 4 actions / 1 modules
+- **KPI cards (target):** Meals planned today; Diet orders pending; NPO/allergy flags; Wastage %; Delivery on-time
+- **Worklists / queues:** Production sheet by meal time; New/changed diet orders; Delivery checklist (bed)
+- **Alerts:** Allergy conflict; Diet order missed; Temp log breach
+- **Quick actions:** Print production sheet, Confirm delivery, Log temp
+- **Sections / tabs:** Orders · Production · Delivery · Logs
+- **Features:** Census-driven production sheet; Therapeutic diets (diabetic/renal/cardiac/liquid); Attendant meals billing; FSSAI temperature logs
+- **Data / APIs:** `/diet/*`, `DietKitchenSheet`
+- **Permissions & privacy:** Diet + allergy only.
+
+### Ward Boy / Helper (transport & tasks) (`ward_boy`)
+- **Purpose:** Patient transport, sample/blood runs (no dashboard today).
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** Tasks assigned/done; Avg response; Transports pending
+- **Worklists / queues:** My task cards; Transport requests (from→to)
+- **Alerts:** STAT task unaccepted
+- **Quick actions:** Accept, Picked up, Delivered
+- **Sections / tabs:** Tasks · Transport
+- **Features:** WorkTask with scan proof; Transport handover checklist; Vibrate/push for urgent
+- **Data / APIs:** `/work-tasks`, `/movements`
+- **Permissions & privacy:** Task metadata only.
+- **Mobile:** Mobile only.

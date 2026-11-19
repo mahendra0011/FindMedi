@@ -1,0 +1,76 @@
+# 44. Role Dashboards: Pharmacy, Stores & Sterile Supply
+
+Roles: `pharmacist`, `pharmacy_owner`, `store_keeper` (`store_manager`), `purchase_officer`, `pharmacovigilance_officer`, `cssd_technician`.
+**Family rule:** FEFO, expiry guard, DDI at dispense, schedule-drug registers immutable (corrections as addendum), 4-eyes on adjustments; `pharmacovigilance_officer` ka abhi koi dashboard nahi.
+
+### Pharmacist (hospital/retail) (`pharmacist`)
+- **Purpose:** Prescription verification, dispensing, schedule-drug registers, stock.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/pharmacist` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Rx pending verification; Dispensed today (OPD/IPD/ER); Substitutions made; H1/narcotic entries & gaps; Near-expiry (≤60d) + expired stock; Stock-outs; Returns; Sales/margin
+- **Worklists / queues:** Rx verification queue (DDI/allergy banner); IPD indents to issue; Delivery orders; H1/NDPS register gaps; Low stock
+- **Alerts:** Major DDI on Rx; Schedule-X/narcotic Rx without compliance; Expired batch selected; Narcotic variance
+- **Quick actions:** Verify Rx, Dispense (FEFO batch), Substitute generic, Issue indent, Record return
+- **Sections / tabs:** Verify · Dispense · Indents · Registers · Stock · Returns
+- **Features:** DDI/allergy check at dispense with override audit; Generic substitution (same composition/strength/form, respects `noSubstitution`, blocks Schedule X/narcotic); H1/NDPS register auto-entry + reconciliation (opening+purchase−dispensed−adjustments vs physical); FEFO batch dispensing, GST/MRP; Delivery tracking, refill reminders; Pharmacovigilance ADR report
+- **Data / APIs:** `/pharmacy/*` (orders, substitutes, h1-register, narcotic-register/reconcile), `/ddi/check`, `/stores`
+- **Permissions & privacy:** Patient + Rx data; narcotic adjustments need witness.
+
+### Pharmacy Owner (`pharmacy_owner`)
+- **Purpose:** Business view: sales, margin, expiry loss, vendors, staff.
+- **Current status:** custom page `/pharmacy-business/dashboard` (spec-driven shell me nahi)
+- **KPI cards (target):** Sales & margin (MTD); Expiry loss %; Stock value & turnover; Top movers / dead stock; Vendor payables; Online orders
+- **Worklists / queues:** Reorder suggestions; Near-expiry; Vendor invoices; Refund requests
+- **Alerts:** Dead stock >90d; Licence expiry; Margin dip
+- **Quick actions:** Create PO, Approve return, View licence
+- **Sections / tabs:** Overview · Sales · Stock · Vendors · Compliance
+- **Features:** ABC-VED analysis; Vendor scorecard & KYC status; Drug-licence tracker; Purchase approvals
+- **Data / APIs:** `/pharmacy-business/*`, `/stores`, `/vendors/*`
+- **Permissions & privacy:** Business data; Rx detail restricted.
+
+### Store Keeper / Store Manager (`store_keeper`)
+- **Purpose:** Central & sub-store stock, indents, GRN, audits.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/store_keeper` · current depth: 4 KPIs / 3 tasks / 2 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Items below reorder; Expiring ≤60d; Indents pending; GRN pending; Stock value; Variance (physical vs system)
+- **Worklists / queues:** Indent queue (ward/OT/lab); Pending GRN vs PO; Transfers between stores; Stock-audit tasks
+- **Alerts:** Stock-out critical item; Lot expired; Variance > tolerance
+- **Quick actions:** Issue indent, Receive GRN, Transfer, Start stock count
+- **Sections / tabs:** Indents · GRN · Stock · Transfers · Audit
+- **Features:** Multi-store hierarchy (central → sub-stores); GRN 3-way match (PO/GRN/invoice); Stock audit & ABC-VED; Rate-contract price check; Barcode/QR scan
+- **Data / APIs:** `/stores/*`, `/inventory`, `GRN`, `StockLedger`
+- **Permissions & privacy:** Inventory scope.
+
+### Purchase Officer (`purchase_officer`)
+- **Purpose:** Indent → RFQ → PO → GRN → payment.
+- **Current status:** spec `hmsDashboardSpec` · route `/dashboards/purchase_officer` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Open indents; POs pending approval; Delivery on-time %; Savings vs last price; Vendor KYC expiring
+- **Worklists / queues:** Indents to convert; RFQ comparison; PO approvals (tiered); Late deliveries
+- **Alerts:** PO to unverified vendor; Rate > contract; Delivery late
+- **Quick actions:** Create RFQ, Raise PO, Chase vendor
+- **Sections / tabs:** Indents · RFQ · POs · Vendors
+- **Features:** RFQ quotation comparison; Approval tiers + SoD (creator ≠ approver); Vendor KYC gate (Rejected/Expired block); Vendor scorecard (on-time, quality, price)
+- **Data / APIs:** `/inventory/po`, `/vendors/*`, `/approvals`
+- **Permissions & privacy:** Purchasing data.
+
+### Pharmacovigilance Officer (`pharmacovigilance_officer`)
+- **Purpose:** ADR reporting & monitoring (no dashboard exists today).
+- **Current status:** **koi dedicated dashboard spec nahi** (shell/spec banana hoga)
+- **KPI cards (target):** ADRs reported/open; Serious ADRs; PvPI submissions; Causality assessed %; Drug alerts
+- **Worklists / queues:** ADR queue; Causality assessment; PvPI submission; Recall/alert notices
+- **Alerts:** Serious ADR unreported >7d; Drug recall
+- **Quick actions:** Log ADR, Assess causality, Submit to PvPI
+- **Sections / tabs:** ADR · Causality · Submissions · Alerts
+- **Features:** Naranjo causality scale; PvPI form export; Link to dispense records & DDI overrides; Drug-safety alerts to prescribers
+- **Data / APIs:** `/safety/adr` (`AdrReport`)
+- **Permissions & privacy:** Patient-identifiable ADR data restricted.
+
+### CSSD Technician (`cssd_technician`)
+- **Purpose:** Sterile supply cycle and traceability.
+- **Current status:** spec `hmsDashboardSpec` · route `/cssd` · current depth: 4 KPIs / 3 tasks / 1 alerts / 4 queues / 4 actions / 1 modules
+- **KPI cards (target):** Sets processed today; Cycles passed/failed (BI/CI); Sets in circulation; Overdue returns; Sterile-pack expiry
+- **Worklists / queues:** Dirty receive; Wash/pack queue; Sterilisation loads; Issue to OT/wards
+- **Alerts:** BI fail → recall load; Pack expiring; Set missing
+- **Quick actions:** Receive set, Start cycle, Record BI/CI, Issue set
+- **Sections / tabs:** Receive · Pack · Sterilise · Issue · Recall
+- **Features:** Instrument-set master with counts; Load/cycle logging (method, parameters, indicators); Patient-wise traceability + recall by load; Autoclave maintenance
+- **Data / APIs:** `/cssd/*`, `SterilisationCycle`, `InstrumentSet`
+- **Permissions & privacy:** No patient clinicals (case reference only).
