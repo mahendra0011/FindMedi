@@ -105,8 +105,6 @@ const ALLOWED_ALIASES = new Set([
   'clinic_telemed_coordinator',
   'front_desk',
   'insurance_desk',
-  'ward_nurse',
-  'ot_nurse',
   'kitchen_staff',
 ]);
 
@@ -188,6 +186,63 @@ describe('Role dashboard coverage (all User.role enum values)', () => {
     const block = sideSrc.slice(start, end);
     const keys = new Set([...block.matchAll(/^\s{2}([a-z0-9_]+):/gm)].map((m) => m[1]));
     expect(roles.filter((role) => !keys.has(role))).toEqual([]);
+  });
+
+  it('menuRouteParity: every sidebar entry that matches a RoleRoute route admits the role', () => {
+    const appSrc = readFileSync(resolvePath(process.cwd(), 'src/App.tsx'), 'utf8');
+    const sideSrc = readFileSync(resolvePath(process.cwd(), 'src/components/AppSidebar.tsx'), 'utf8');
+
+    const constants = {};
+    for (const m of appSrc.matchAll(/const ([A-Z_]+) = \[([^\]]*)\];/g)) {
+      constants[m[1]] = [...m[2].matchAll(/'([a-z0-9_]+)'/g)].map((x) => x[1]);
+    }
+
+    const routeMap = new Map();
+    for (const line of appSrc.split('\n')) {
+      const m = line.match(/<Route path="(\/[^"]+)" element=\{<RoleRoute allowedRoles=\{(\[[^\]]*\]|[A-Z_]+)\}/);
+      if (!m) continue;
+      const allowed = m[2].startsWith('[')
+        ? [...m[2].matchAll(/'([a-z0-9_]+)'/g)].map((x) => x[1])
+        : constants[m[2]] || [];
+      const list = routeMap.get(m[1]) || [];
+      for (const r of allowed) if (!list.includes(r)) list.push(r);
+      routeMap.set(m[1], list);
+    }
+
+    const matchRoute = (path) => {
+      const segs = path.split('/').filter(Boolean);
+      let best = null;
+      let bestScore = -1;
+      for (const [rp, roles] of routeMap) {
+        if (rp.includes('*')) continue;
+        const rsegs = rp.split('/').filter(Boolean);
+        if (rsegs.length !== segs.length) continue;
+        let ok = true;
+        let score = 0;
+        for (let i = 0; i < rsegs.length; i++) {
+          if (rsegs[i].startsWith(':') || rsegs[i].includes('?')) continue;
+          if (rsegs[i] !== segs[i]) { ok = false; break; }
+          score += 1;
+        }
+        if (ok && score > bestScore) { best = roles; bestScore = score; }
+      }
+      return best;
+    };
+
+    const start = sideSrc.indexOf('const navConfig = {');
+    const end = sideSrc.indexOf('\n};', start);
+    const body = sideSrc.slice(start, end);
+    const violations = [];
+    let role = null;
+    for (const line of body.split('\n')) {
+      const key = line.match(/^ {2}([a-z0-9_]+): /);
+      if (key) role = key[1];
+      const item = line.match(/\{ icon: .*?\bpath: '([^']+)'.*\}/);
+      if (!item || !role) continue;
+      const match = matchRoute(item[1].split('?')[0]);
+      if (match && !match.includes(role)) violations.push(`${role} -> ${item[1]}`);
+    }
+    expect(violations).toEqual([]);
   });
 
   it('has no orphan dashboard components outside the router', () => {

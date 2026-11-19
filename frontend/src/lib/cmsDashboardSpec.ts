@@ -24,7 +24,7 @@ export interface CMSRoleSpec {
   subtitle: string;
   permissions: string[];
   sidebarSections: string[];
-  kpis: Array<{ label: string; value: string; hint: string }>;
+  kpis: Array<{ label: string; value: string; hint?: string }>;
   tasks: Array<{ id: string; text: string }>;
   alerts: Array<{ id: string; text: string; level: 'info' | 'warning' | 'critical' }>;
   workQueues: string[];
@@ -128,10 +128,10 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['platform:manage', 'clinics:manage', 'subscriptions:manage', 'users:manage', 'audit:read'],
     sidebarSections: ['Dashboard', 'Clinics', 'Subscriptions', 'Users', 'System Health', 'Logs', 'Global Settings'],
     kpis: [
-      { label: 'Registered Clinics', value: '—', hint: 'Active SaaS tenants' },
-      { label: 'Platform Doctors', value: '—', hint: 'Licensed practitioners' },
-      { label: 'MRR Subscriptions', value: '—', hint: 'Monthly recurring revenue' },
-      { label: 'System Health', value: '—', hint: 'API & cluster uptime' },
+      { label: 'Clinics active', value: '-', hint: '' },
+      { label: 'Revenue across clinics', value: '-', hint: '' },
+      { label: 'Tickets open', value: '-', hint: '' },
+      { label: 'Onboarding pending', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'sa-1', text: 'Approve new clinic onboarding verification for Apollo Polyclinic' },
@@ -154,10 +154,14 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['clinic:manage', 'billing:manage', 'staff:manage', 'reports:read', 'settings:manage'],
     sidebarSections: ['Dashboard', 'Patients', 'Appointments', 'Doctors', 'Staff', 'Services', 'Billing', 'Reports', 'Settings'],
     kpis: [
-      { label: "Today's Footfall", value: '—', hint: '65 appointments + 17 walk-ins' },
-      { label: 'Waiting in Queue', value: '—', hint: 'Across all consulting rooms' },
-      { label: 'Completed OPD', value: '—', hint: 'Consultations finished' },
-      { label: "Today's Revenue", value: '—', hint: 'Consult + Lab + Rx + Proc' },
+      { label: 'Patients today (new/repeat)', value: '-', hint: '' },
+      { label: 'Waiting now + avg wait', value: '-', hint: '' },
+      { label: 'Revenue today/MTD', value: '-', hint: '' },
+      { label: 'Collected vs dues', value: '-', hint: '' },
+      { label: 'No-show %', value: '-', hint: '' },
+      { label: 'Slot utilisation %', value: '-', hint: '' },
+      { label: 'NPS', value: '-', hint: '' },
+      { label: 'Staff on duty', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'ca-1', text: 'Review daily revenue collection breakdown vs cashier drawer' },
@@ -180,10 +184,12 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['branch:manage', 'staff:manage', 'billing:read', 'queue:manage'],
     sidebarSections: ['Dashboard', 'Appointments', 'Patients', 'Doctors', 'Staff', 'Operations', 'Billing Summary', 'Reports'],
     kpis: [
-      { label: 'Branch Footfall', value: '—', hint: 'South City Branch' },
-      { label: 'Doctors On-Duty', value: '—', hint: 'Consulting rooms 1-4 active' },
-      { label: 'Avg Waiting Time', value: '—', hint: 'Below 20m SLA target' },
-      { label: 'Branch Collection', value: '—', hint: 'Cash + UPI + Card' },
+      { label: 'Branch revenue vs target', value: '-', hint: '' },
+      { label: 'Footfall', value: '-', hint: '' },
+      { label: 'Utilisation', value: '-', hint: '' },
+      { label: 'NPS by branch', value: '-', hint: '' },
+      { label: 'Stock-outs', value: '-', hint: '' },
+      { label: 'Staff attendance', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'bm-1', text: 'Inspect consulting room #3 sanitization & equipment readiness' },
@@ -206,10 +212,12 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['consultation:write', 'records:write', 'prescriptions:write', 'lab:order'],
     sidebarSections: ['Dashboard', 'My Queue', 'Appointments', 'Patients', 'Consultation', 'Prescriptions', 'Investigations', 'Reports', 'Follow-ups'],
     kpis: [
-      { label: 'Queue Waiting', value: '—', hint: 'Next: Token #18 (Rahul Sharma)' },
-      { label: 'In Consultation', value: '—', hint: 'Token #17 in progress' },
-      { label: 'Completed Today', value: '—', hint: 'Signed e-prescriptions' },
-      { label: 'Follow-ups Due', value: '—', hint: 'Review visits scheduled' },
+      { label: 'Waiting + seen', value: '-', hint: '' },
+      { label: 'Next patient', value: '-', hint: '' },
+      { label: 'Follow-ups due', value: '-', hint: '' },
+      { label: 'Results inbox', value: '-', hint: '' },
+      { label: 'Earnings (own share)', value: '-', hint: '' },
+      { label: 'Prescriptions to sign', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'dr-1', text: 'Start consultation for Token #18 — Acute Bronchitis follow-up' },
@@ -232,10 +240,11 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['patients:write', 'appointments:write', 'tokens:manage', 'billing:collect'],
     sidebarSections: ['Dashboard', 'Patients', 'Appointments', 'Check-in', 'Queue', 'Billing', 'Payments', 'Communication'],
     kpis: [
-      { label: "Today's Registrations", value: '—', hint: 'New UHIDs generated' },
-      { label: 'Walk-ins Handled', value: '—', hint: 'Direct desk check-ins' },
-      { label: 'Active Queue Tokens', value: '—', hint: 'Waiting in reception area' },
-      { label: 'Consult Fee Collected', value: '—', hint: 'Registration desk counter' },
+      { label: 'Registered today', value: '-', hint: '' },
+      { label: 'Waiting', value: '-', hint: '' },
+      { label: 'No-shows', value: '-', hint: '' },
+      { label: 'Fees collected', value: '-', hint: '' },
+      { label: 'Callbacks', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'rec-1', text: 'Register walk-in patient Sunil Rao and issue Token #22' },
@@ -258,10 +267,10 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['vitals:write', 'nursing:write', 'procedures:write'],
     sidebarSections: ['Dashboard', 'Assigned Patients', 'Vitals', 'Tasks', 'Procedures', 'Nursing Notes'],
     kpis: [
-      { label: 'Vitals Pending', value: '—', hint: 'Patients checked-in awaiting triage' },
-      { label: 'Vitals Recorded', value: '—', hint: 'BP, Pulse, Temp, SpO2 & BMI' },
-      { label: 'Procedures Done', value: '—', hint: 'Injections, dressings, neb' },
-      { label: 'Abnormal Vitals', value: '—', hint: 'Flagged with clinical alert' },
+      { label: 'Vitals recorded', value: '-', hint: '' },
+      { label: 'Procedures due', value: '-', hint: '' },
+      { label: 'Vaccines due today', value: '-', hint: '' },
+      { label: 'Samples collected', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'nr-1', text: 'Record pre-consultation vitals for Token #20 (Suresh Kumar)' },
@@ -284,10 +293,10 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['lab:write', 'lab:read', 'samples:manage'],
     sidebarSections: ['Dashboard', 'Lab Orders', 'Samples', 'Workbench', 'QC', 'Results', 'Equipment'],
     kpis: [
-      { label: 'Samples Pending', value: '—', hint: 'Awaiting blood/urine collection' },
-      { label: 'In Processing', value: '—', hint: 'On hematology/biochemistry bench' },
-      { label: 'Results Entered', value: '—', hint: 'Ready for doctor signoff' },
-      { label: 'Panic / Critical Values', value: '—', hint: 'Serum Potassium 6.2 mmol/L' },
+      { label: 'Samples pending', value: '-', hint: '' },
+      { label: 'Reports released', value: '-', hint: '' },
+      { label: 'TAT', value: '-', hint: '' },
+      { label: 'QC status', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'lab-1', text: 'Draw EDTA blood sample for Token #12 (CBC + HbA1c)' },
@@ -336,10 +345,10 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['pharmacy:write', 'pharmacy:read', 'inventory:manage'],
     sidebarSections: ['Dashboard', 'Prescriptions', 'Dispensing', 'Sales', 'Returns', 'Inventory', 'Expiry'],
     kpis: [
-      { label: 'Pending Dispensing', value: '—', hint: 'Digital e-Rx received from doctors' },
-      { label: 'Dispensed Today', value: '—', hint: 'Prescriptions fulfilled' },
-      { label: 'Pharmacy Sales', value: '—', hint: 'Rx + OTC medicine counter' },
-      { label: 'Near Expiry (30d)', value: '—', hint: 'Batches flagged for return' },
+      { label: 'Rx to dispense', value: '-', hint: '' },
+      { label: 'Dispensed today', value: '-', hint: '' },
+      { label: 'Near-expiry', value: '-', hint: '' },
+      { label: 'H1 entries', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'ph-1', text: 'Fulfill digital e-Rx for Token #14 (Amoxicillin-Clav 625mg + Montelukast)' },
@@ -388,10 +397,10 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['finance:manage', 'billing:read', 'reports:finance'],
     sidebarSections: ['Dashboard', 'Accounts', 'Expenses', 'Receivables', 'Payables', 'Reconciliation', 'Financial Reports'],
     kpis: [
-      { label: "Today's Clinic Revenue", value: '—', hint: 'Total gross income' },
-      { label: 'Operating Expenses', value: '—', hint: 'Daily utilities & supplies' },
-      { label: 'Doctor Payable', value: '—', hint: 'Consultation fee share' },
-      { label: 'Outstanding Balance', value: '—', hint: 'Corporate / TPA claims' },
+      { label: 'Revenue/expense MTD', value: '-', hint: '' },
+      { label: 'Receivables', value: '-', hint: '' },
+      { label: 'Payables', value: '-', hint: '' },
+      { label: 'GST due', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'acc-1', text: 'Reconcile UPI settlement payouts from Razorpay/PayU with bank book' },
@@ -466,10 +475,10 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['hr:manage', 'staff:manage', 'attendance:manage'],
     sidebarSections: ['Dashboard', 'Employees', 'Attendance', 'Leaves', 'Roster', 'Payroll'],
     kpis: [
-      { label: 'Total Employees', value: '—', hint: 'Doctors, nurses, admin, tech' },
-      { label: 'Present Today', value: '—', hint: 'Biometric verified' },
-      { label: 'On Approved Leave', value: '—', hint: 'Planned leave' },
-      { label: 'Pending Leave Req', value: '—', hint: 'Awaiting manager signoff' },
+      { label: 'Staff present', value: '-', hint: '' },
+      { label: 'Leaves pending', value: '-', hint: '' },
+      { label: 'Payroll status', value: '-', hint: '' },
+      { label: 'Credentials expiring', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'hr-1', text: 'Review biometrics attendance log for 2 late check-ins' },
@@ -518,10 +527,10 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['telemed:manage', 'appointments:manage'],
     sidebarSections: ['Dashboard', 'Video Sessions', 'Queue', 'Doctors', 'Tech Support', 'Follow-ups'],
     kpis: [
-      { label: 'Video Consults Today', value: '—', hint: 'Scheduled tele-sessions' },
-      { label: 'Active Tele-Session', value: '—', hint: 'Dr. Priya Patel consulting' },
-      { label: 'Completed Consults', value: '—', hint: 'e-Prescriptions sent' },
-      { label: 'Video Call Quality', value: '—', hint: 'HD WebRTC connections' },
+      { label: 'Tele-consults today', value: '-', hint: '' },
+      { label: 'No-show %', value: '-', hint: '' },
+      { label: 'Consent/ID verified %', value: '-', hint: '' },
+      { label: 'Tech failures', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'tc-1', text: 'Send secure WebRTC video room link via SMS/WhatsApp to patient Rajiv' },
@@ -544,10 +553,10 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['crm:manage', 'feedback:manage', 'recall:manage'],
     sidebarSections: ['Dashboard', 'Follow-ups', 'Calls', 'Reminders', 'Feedback', 'Complaints'],
     kpis: [
-      { label: 'Follow-ups Due Today', value: '—', hint: 'Post-consult review calls' },
-      { label: 'Recall Reminders Sent', value: '—', hint: 'Vaccine, Dental, Refill' },
-      { label: 'Patient NPS Score', value: '—', hint: 'Based on 140 ratings' },
-      { label: 'Open Complaints', value: '—', hint: 'Under investigation' },
+      { label: 'Recalls sent / booked', value: '-', hint: '' },
+      { label: 'Campaign conversion', value: '-', hint: '' },
+      { label: 'NPS', value: '-', hint: '' },
+      { label: 'Reactivated patients', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'crm-1', text: 'Call 5 diabetic patients due for quarterly HbA1c review' },
@@ -570,10 +579,10 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['quality:manage', 'audit:read', 'compliance:manage'],
     sidebarSections: ['Dashboard', 'Incidents', 'Audits', 'Corrective Actions', 'Quality Reports'],
     kpis: [
-      { label: 'Clinical Audit Score', value: '—', hint: 'NABH polyclinic standards' },
-      { label: 'Prescription Audited', value: '—', hint: 'Zero adverse drug interactions' },
-      { label: 'Open Incidents', value: '—', hint: 'No active clinical hazards' },
-      { label: 'SOP Compliance', value: '—', hint: 'Hand hygiene & waste disposal' },
+      { label: 'Incidents open', value: '-', hint: '' },
+      { label: 'BMW log completeness', value: '-', hint: '' },
+      { label: 'Audit scores', value: '-', hint: '' },
+      { label: 'Equipment calibration due', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'qm-1', text: 'Audit 20 random doctor consultation notes for complete chief complaints' },
@@ -596,10 +605,10 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['patient:portal'],
     sidebarSections: ['Dashboard', 'Appointments', 'Health Records', 'Reports', 'Bills', 'Payments', 'Family'],
     kpis: [
-      { label: 'Upcoming Visit', value: '—', hint: 'Dr. Ramesh Sharma' },
-      { label: 'Latest e-Prescription', value: '—', hint: 'Signed by Dr. Sharma' },
-      { label: 'Lab Reports Ready', value: '—', hint: 'CBC, Lipid, Thyroid' },
-      { label: 'Pending Payment', value: '—', hint: 'All bills settled' },
+      { label: 'Next appointment', value: '-', hint: '' },
+      { label: 'Pending reports', value: '-', hint: '' },
+      { label: 'Unpaid bills', value: '-', hint: '' },
+      { label: 'Medicine reminders', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'pt-1', text: 'Confirm appointment for tomorrow at 10:30 AM' },
@@ -622,10 +631,10 @@ export const CMS_ROLE_SPECS: Record<string, CMSRoleSpec> = {
     permissions: ['analytics:read', 'finance:read', 'operations:read'],
     sidebarSections: ['Dashboard', 'Executive Summary', 'Revenue Analytics', 'Doctor Productivity', 'Patient Census', 'Profitability'],
     kpis: [
-      { label: 'Monthly Revenue', value: '—', hint: '+18% growth vs last month' },
-      { label: 'New Patient Ratio', value: '—', hint: 'Healthy acquisition funnel' },
-      { label: 'Doctor Utilization', value: '—', hint: 'OPD slot booking efficiency' },
-      { label: 'Net Profit Margin', value: '—', hint: 'After doctor shares & overheads' },
+      { label: 'Revenue trend', value: '-', hint: '' },
+      { label: 'Doctor performance', value: '-', hint: '' },
+      { label: 'Retention/recall yield', value: '-', hint: '' },
+      { label: 'Service mix', value: '-', hint: '' },
     ],
     tasks: [
       { id: 'an-1', text: 'Analyze peak OPD footfall hours (10 AM - 1 PM & 5 PM - 8 PM)' },

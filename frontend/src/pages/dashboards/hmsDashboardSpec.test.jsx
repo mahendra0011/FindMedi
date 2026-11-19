@@ -126,8 +126,8 @@ describe('UniversalHmsDashboard Component Rendering', () => {
 
     expect(screen.getByTestId('universal-hms-dashboard')).toBeInTheDocument();
     expect(screen.getByText('Emergency / Casualty Dashboard')).toBeInTheDocument();
-    expect(screen.getAllByTestId('role-kpi')).toHaveLength(4);
-    expect(screen.getByText('Patients in ER')).toBeInTheDocument();
+    expect(screen.getAllByTestId('role-kpi')).toHaveLength(6);
+    expect(screen.getByText('ER active patients by ESI level')).toBeInTheDocument();
     expect(screen.getByText('Tasks')).toBeInTheDocument();
     expect(screen.getByText('Alerts')).toBeInTheDocument();
   });
@@ -143,7 +143,7 @@ describe('UniversalHmsDashboard Component Rendering', () => {
     await act(async () => {});
 
     expect(screen.getByText('ICU Intensivist Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Active ICU Beds')).toBeInTheDocument();
+    expect(screen.getByText('ICU census & occupancy')).toBeInTheDocument();
   });
 
   it('renders Doctor Consultation Dashboard with live work queue table and quick actions', async () => {
@@ -157,10 +157,9 @@ describe('UniversalHmsDashboard Component Rendering', () => {
     await act(async () => {});
 
     expect(screen.getByText('Doctor Consultation Dashboard')).toBeInTheDocument();
-    expect(screen.getByText("Today's Appointments")).toBeInTheDocument();
-    expect(screen.getByText('Patients Waiting')).toBeInTheDocument();
-    expect(screen.getByText('Inpatients (IPD)')).toBeInTheDocument();
-    expect(screen.getByText('Pending Rx/Orders')).toBeInTheDocument();
+    expect(screen.getByText('OPD waiting + seen today')).toBeInTheDocument();
+    expect(screen.getByText('Unreviewed results (critical first)')).toBeInTheDocument();
+    expect(screen.getByText('Pending orders/consults')).toBeInTheDocument();
 
     // Work Queue Table
     expect(screen.getByTestId('role-work-queue-table')).toBeInTheDocument();

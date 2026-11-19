@@ -132,6 +132,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: "Today's Imaging Revenue", value: '—', hint: 'MRI, CT & Ultrasound' },
       { label: 'Repeat Study Rate', value: '—', hint: 'Well within AERB standards' },
     ],
+    tasks: [
+      { id: 't1', text: 'Review TAT and reassign bench workload to hold the STAT SLA' },
+      { id: 't2', text: 'Approve out-of-control QC rejections before releasing batches' },
+      { id: 't3', text: 'Run weekly cost-per-test variance review with the department' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
+    ],
     workQueues: [
       'Critical Findings Immediate Communication',
       'Reporting TAT SLA Breach Queue',
@@ -178,6 +184,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'Contrast Stock Alerts', value: '—', hint: 'Isovue 370 buffer low' },
       { label: 'Daily Collection', value: '—', hint: 'Counter receipts' },
     ],
+    tasks: [
+      { id: 't1', text: 'Review TAT and reassign bench workload to hold the STAT SLA' },
+      { id: 't2', text: 'Approve out-of-control QC rejections before releasing batches' },
+      { id: 't3', text: 'Run weekly cost-per-test variance review with the department' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
+    ],
     workQueues: [
       'Pending Study Scheduling Requests',
       'Order Cancellation & Refund Approvals',
@@ -217,6 +229,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'Reports Ready for Handover', value: '—', hint: 'Printed / Counter pickup' },
       { label: 'Pending Billing Collections', value: '—', hint: 'Counter dues' },
       { label: 'Avg Check-In Time', value: '—', hint: 'Target: < 3.0 min' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Register incoming orders and print barcode labels' },
+      { id: 't2', text: 'Receive samples on the rack, log condition, reject mismatches' },
+      { id: 't3', text: 'Hand over verified reports against patient OTP' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
     ],
     workQueues: [
       'Front Desk Check-in Queue',
@@ -259,6 +277,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'Rescheduled Requests', value: '—', hint: 'Patient initiated' },
       { label: 'Scanner Slot Utilization', value: '—', hint: 'Optimal throughput' },
     ],
+    tasks: [
+      { id: 't1', text: 'Fill cancellation gaps from the waitlist' },
+      { id: 't2', text: 'Confirm prep rules (fasting, creatinine) before contrast studies' },
+      { id: 't3', text: 'Flag over-running slots to the department manager' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
+    ],
     workQueues: [
       'Pending Appointment Confirmation Queue',
       'Emergency / STAT Add-on Slot Requests',
@@ -296,6 +320,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'CT Contrast Consents Verified', value: '—', hint: 'Creatinine checked' },
       { label: 'Patients Held (Safety Alert)', value: '—', hint: 'Retained metal foreign body' },
       { label: 'Cleared & Ready for Table', value: '—', hint: 'Notified to technician' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Verify contrast consent, allergy history and IV access' },
+      { id: 't2', text: 'Flag contraindications (creatinine, pregnancy, implants)' },
+      { id: 't3', text: 'Hand off prepped patient with completed checklist' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
     ],
     workQueues: [
       'Patient Preparation Intake Queue',
@@ -337,6 +367,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'Repeat Exposures', value: '—', hint: 'Zero motion artifact today' },
       { label: 'Avg Acquisition Duration', value: '—', hint: 'Within standard protocol' },
     ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
+    ],
     workQueues: [
       'Active Modality Worklist (MWL)',
       'Patients Ready in Gantry Antechamber',
@@ -377,6 +413,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'Average Scan Duration', value: '—', hint: 'Multi-parametric protocol' },
       { label: 'Cryogen Helium Pressure', value: '—', hint: 'Zero boil-off variance' },
     ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
+    ],
     workQueues: [
       'MRI Modality Worklist (MWL)',
       'Safety Cleared Patients Ready for Gantry',
@@ -416,6 +458,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'Exposures Completed', value: '—', hint: 'Transferred to PACS' },
       { label: 'Repeat Exposure Count', value: '—', hint: 'Zero retakes today' },
     ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
+    ],
     workQueues: [
       'General OPD X-Ray Worklist',
       'Stat Emergency Trauma X-Ray Queue',
@@ -451,6 +499,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'Non-Contrast Scans Finished', value: '—', hint: 'NCCT Head / KUB' },
       { label: 'Trauma Whole-Body Scans', value: '—', hint: 'Emergency polytrauma' },
       { label: 'Power Injector Status', value: '—', hint: 'Dual-head MEDRAD calibrated' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
     ],
     workQueues: [
       'CT Scanner Acquisition Worklist',
@@ -491,6 +545,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'Examinations Completed', value: '—', hint: 'Images saved in archive' },
       { label: 'Transducer Probes Active', value: '—', hint: 'Curvilinear, Linear, TVS' },
     ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
+    ],
     workQueues: [
       'Ultrasound Patient Examination Queue',
       'Color Doppler Flow Study Worklist',
@@ -526,6 +586,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'Prior Scans Retrieved', value: '—', hint: 'For comparison' },
       { label: 'Tomosynthesis 3D Runs', value: '—', hint: 'High-density tissue' },
       { label: 'Completed Studies in PACS', value: '—', hint: 'CC and MLO views' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
     ],
     workQueues: [
       'Mammography Patient Appointment Queue',
@@ -563,6 +629,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'Reports Finalized', value: '—', hint: 'Signed — all-time count' },
       { label: 'Report Amendments Requested', value: '—', hint: 'Addendum needed' },
       { label: 'Avg Reading Turnaround', value: '—', hint: 'Well within SLA' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Report STAT studies first, then routine worklist' },
+      { id: 't2', text: 'Call for critical findings and log the communication' },
+      { id: 't3', text: 'Review addendum requests with prior study attached' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
     ],
     workQueues: [
       'STAT Emergency & Critical Reporting Queue',
@@ -605,6 +677,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'Drafts Awaiting Radiologist Signature', value: '—', hint: 'Ready for final sign' },
       { label: 'Missing Clinical Info Flags', value: '—', hint: 'Indication needed' },
     ],
+    tasks: [
+      { id: 't1', text: 'Transcribe dictations into structured templates' },
+      { id: 't2', text: 'Flag incomplete dictations for radiologist review' },
+      { id: 't3', text: 'Track and resolve returned corrections' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
+    ],
     workQueues: [
       'Voice Dictation Audio Transcription Queue',
       'Draft Radiology Report Formatting Worklist',
@@ -640,6 +718,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'Unlinked / Orphan Studies', value: '—', hint: 'Manual accession match' },
       { label: 'PACS Node Ping Latency', value: '—', hint: 'Local GigE LAN' },
       { label: 'Offsite Cloud Backup Sync', value: '—', hint: 'Last snapshot 15m ago' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Check modality worklist connectivity and AE titles' },
+      { id: 't2', text: 'Reprocess failed C-STORE transfers' },
+      { id: 't3', text: 'Audit storage usage and schedule purge per policy' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
     ],
     workQueues: [
       'Failed DICOM Transfer Retry Queue',
@@ -679,6 +763,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'TPA Pre-Authorizations Cleared', value: '—', hint: 'Cashless scans' },
       { label: 'Refund Requests Pending', value: '—', hint: 'Approved by admin' },
     ],
+    tasks: [
+      { id: 't1', text: 'Audit bills against orders before patient discharge' },
+      { id: 't2', text: 'Chase insurance claims unpaid at 7 days' },
+      { id: 't3', text: 'Flag studies completed without billing for recovery' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
+    ],
     workQueues: [
       'Unbilled Imaging Orders Queue',
       'TPA Pre-Authorization Document Verification',
@@ -715,6 +805,12 @@ export const RIS_ROLE_SPECS: Record<string, RisRoleSpec> = {
       { label: 'Open Breakdown Tickets', value: '—', hint: 'Zero critical downtime' },
       { label: 'AERB Radiation QA Status', value: '—', hint: 'All lead aprons checked' },
       { label: 'AMCs Expiring in 60 Days', value: '—', hint: 'Vendor renewal active' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Complete daily QA checklist with calibration record' },
+      { id: 't2', text: 'Track AERB licence and TLD dose badge expiry' },
+      { id: 't3', text: 'Log faults and confirm vendor closure' },
+      { id: 't4', text: 'Escalate emergency studies to the duty radiologist' },
     ],
     workQueues: [
       'Preventive Maintenance Work Orders',

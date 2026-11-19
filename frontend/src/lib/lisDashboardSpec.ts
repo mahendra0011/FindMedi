@@ -127,6 +127,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: "Today's Revenue", value: '—', hint: 'Cash, UPI & Corporate' },
       { label: 'Sample Rejection Rate', value: '—', hint: 'Well below 2.0% SLA' },
     ],
+    tasks: [
+      { id: 't1', text: 'Review TAT and reassign bench workload to hold the STAT SLA' },
+      { id: 't2', text: 'Approve out-of-control QC rejections before releasing batches' },
+      { id: 't3', text: 'Run weekly cost-per-test variance review with the department' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
+    ],
     workQueues: [
       'Critical Values Escalation',
       'TAT SLA Breach Queue',
@@ -173,6 +179,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Pending Discount Approvals', value: '—', hint: 'Awaiting administrative sign' },
       { label: 'Active Reagent Indents', value: '—', hint: 'Sent to purchase officer' },
     ],
+    tasks: [
+      { id: 't1', text: 'Review TAT and reassign bench workload to hold the STAT SLA' },
+      { id: 't2', text: 'Approve out-of-control QC rejections before releasing batches' },
+      { id: 't3', text: 'Run weekly cost-per-test variance review with the department' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
+    ],
     workQueues: [
       'Pending Administrative Approvals',
       'Test Cancellation Requests',
@@ -213,6 +225,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Reports Ready for Pickup', value: '—', hint: 'Printed / Counter ready' },
       { label: 'Pending Billing Balances', value: '—', hint: 'Counter collections due' },
       { label: 'Avg Registration Time', value: '—', hint: 'SLA target: < 3 min' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Register incoming orders and print barcode labels' },
+      { id: 't2', text: 'Receive samples on the rack, log condition, reject mismatches' },
+      { id: 't3', text: 'Hand over verified reports against patient OTP' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
     ],
     workQueues: [
       'Front Desk Patient Queue',
@@ -256,6 +274,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Recollection Requests', value: '—', hint: 'Clotted sample flagged' },
       { label: 'Collection Handover Due', value: '—', hint: 'Ready for accession desk' },
     ],
+    tasks: [
+      { id: 't1', text: 'Complete ward and home collection rounds per schedule' },
+      { id: 't2', text: 'Positive-ID scan on patient and tube before collection' },
+      { id: 't3', text: 'Label and dispatch tubes to the lab within 30 minutes' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
+    ],
     workQueues: [
       'Phlebotomy Patient Waiting Queue',
       'STAT Emergency Collection Queue',
@@ -296,6 +320,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'STAT Urgent Samples', value: '—', hint: 'Immediate section delivery' },
       { label: 'Accession Accuracy', value: '—', hint: 'Zero barcode mismatches' },
     ],
+    tasks: [
+      { id: 't1', text: 'Register incoming orders and print barcode labels' },
+      { id: 't2', text: 'Receive samples on the rack, log condition, reject mismatches' },
+      { id: 't3', text: 'Hand over verified reports against patient OTP' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
+    ],
     workQueues: [
       'Incoming Specimen Accession Queue',
       'Rejected Sample & Recollection Dispatch',
@@ -335,6 +365,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Abnormal High/Low Flags', value: '—', hint: 'Require technical re-check' },
       { label: 'Repeat Tests Triggered', value: '—', hint: 'Auto-dilution / rerun' },
       { label: 'Daily QC Runs Passed', value: '—', hint: 'All channels in range' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
     ],
     workQueues: [
       'Active Laboratory Processing Worklist',
@@ -378,6 +414,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Chemistry Analyzers Active', value: '—', hint: 'Fully operational' },
       { label: 'Reagent Pack Integrity', value: '—', hint: 'All channels above 15%' },
     ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
+    ],
     workQueues: [
       'Biochemistry Batch Analysis Queue',
       'Critical Electrolyte & Glucose Alerts',
@@ -418,6 +460,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Hematology Analyzer Status', value: '—', hint: 'Cell Counter Sysmex XN' },
       { label: 'Smear Staining Quality', value: '—', hint: 'Leishman / Giemsa checked' },
     ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
+    ],
     workQueues: [
       'CBC Automated Analyzer Worklist',
       'Manual Peripheral Smear Review Queue',
@@ -457,6 +505,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Semen Analysis Appointments', value: '—', hint: 'WHO 6th edition guidelines' },
       { label: 'Microscopic Casts Detected', value: '—', hint: 'Granular/RBC casts flagged' },
     ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
+    ],
     workQueues: [
       'Urine Chemistry & Sediment Worklist',
       'Body Fluid Cytochemistry Worklist',
@@ -494,6 +548,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'AST Sensitivity Testing', value: '—', hint: 'Antibiograms in setup' },
       { label: 'Positive Blood Cultures', value: '—', hint: 'Flagged by BacT/ALERT' },
       { label: 'Preliminary Reports Issued', value: '—', hint: 'Gram stain released' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
     ],
     workQueues: [
       'Day-1 / Day-2 Culture Plate Reading List',
@@ -535,6 +595,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Microscopy Reporting Due', value: '—', hint: 'Mounted slides with pathologist' },
       { label: 'Avg Biopsy TAT', value: '—', hint: 'Target: < 72 hrs' },
     ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
+    ],
     workQueues: [
       'Surgical Specimen Grossing Worklist',
       'Tissue Processing & Embedding Blocks',
@@ -572,6 +638,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Body Fluid Cell Blocks', value: '—', hint: 'Peritoneal / Pleural effusions' },
       { label: 'Adequacy Verified', value: '—', hint: 'Zero inadequate aspirates' },
     ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
+    ],
     workQueues: [
       'Pap Smear Screening Worklist',
       'FNAC Smear Fixation & Staining Queue',
@@ -605,6 +677,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Chemiluminescence Runs', value: '—', hint: 'CLIA thyroid & fertility' },
       { label: 'Reactive Serology Positives', value: '—', hint: 'Confirmation titration due' },
       { label: 'Calibrator Validation', value: '—', hint: 'Cut-off index (COI) valid' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
     ],
     workQueues: [
       'Serology & Immunoassay Worklist',
@@ -641,6 +719,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Thermal Cycler Runs', value: '—', hint: '96-well fast optical plates' },
       { label: 'High Viral Loads Flagged', value: '—', hint: 'HCV / HBV / HIV-1 RNA' },
       { label: 'Negative Template Control', value: '—', hint: 'No amplification baseline' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Scan and log each sample on receipt by accession number' },
+      { id: 't2', text: 'Run today\'s QC checks before releasing patient results' },
+      { id: 't3', text: 'Flag critical values for immediate call-back per SOP' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
     ],
     workQueues: [
       'RT-PCR Extraction & Amplification Queue',
@@ -679,6 +763,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Amended Reports Requested', value: '—', hint: 'Addendum needed' },
       { label: 'Reports Released Today', value: '—', hint: 'Signed with digital stamp' },
       { label: 'Verification SLA Compliance', value: '—', hint: 'Within 45 min target' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Verify and sign off the pending verification queue (stat first)' },
+      { id: 't2', text: 'Call clinicians for critical results and log the call-backs' },
+      { id: 't3', text: 'Review amend requests against prior report versions' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
     ],
     workQueues: [
       'Critical Values Immediate Verification Queue',
@@ -722,6 +812,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Daily QC Out-of-Control', value: '—', hint: 'All channels compliant' },
       { label: 'Sample Recollection Rate', value: '—', hint: 'Well within quality target' },
     ],
+    tasks: [
+      { id: 't1', text: 'Review overnight QC before shift results release' },
+      { id: 't2', text: 'Approve reruns only with a documented reason' },
+      { id: 't3', text: 'Reassign pending samples across benches at shift end' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
+    ],
     workQueues: [
       'TAT Escalation & Delayed Processing Queue',
       'QC Out-of-Range Violation Alerts',
@@ -762,6 +858,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Open Quality Incidents', value: '—', hint: 'Pre-analytical hemolyzed sample' },
       { label: 'NABL SOP Revisions Due', value: '—', hint: 'Document control review' },
     ],
+    tasks: [
+      { id: 't1', text: 'Review EQAS/PT z-scores and log non-conformities' },
+      { id: 't2', text: 'Open and track CAPAs with owner and due date' },
+      { id: 't3', text: 'Audit document-control acknowledgements weekly' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
+    ],
     workQueues: [
       'Levey-Jennings QC Deviation Queue',
       'Corrective & Preventive Action (CAPA) Log',
@@ -801,6 +903,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Reagent Onboard Level', value: '—', hint: 'Average 68% volume' },
       { label: 'Daily Preventive Rinse', value: '—', hint: 'Logged at 07:30 AM' },
     ],
+    tasks: [
+      { id: 't1', text: 'Map new analyzer codes and quarantine unknowns' },
+      { id: 't2', text: 'Check analyzer heartbeat and clear integration queue' },
+      { id: 't3', text: 'Log maintenance and reagent lot consumption' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
+    ],
     workQueues: [
       'Analyzer Interface Connectivity Status',
       'Unmatched Result Query Staging',
@@ -837,6 +945,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Batches Expiring in 30 Days', value: '—', hint: 'Quarantine or priority use' },
       { label: 'Pending Store Indents', value: '—', hint: 'From testing sections' },
       { label: 'Total Store Valuation', value: '—', hint: 'Onboard + cold-room stock' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Raise reorder indents for items below reorder level' },
+      { id: 't2', text: 'Receive GRNs against approved POs with quantity check' },
+      { id: 't3', text: 'FEFO-rotate near-expiry lots to the front of stock' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
     ],
     workQueues: [
       'Reagents Below Minimum Buffer Stock',
@@ -876,6 +990,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Cash / UPI Collected', value: '—', hint: 'Doorstep billing' },
       { label: 'Cold-Chain Box Temp', value: '—', hint: 'Target: 2 - 8 °C compliant' },
     ],
+    tasks: [
+      { id: 't1', text: 'Complete ward and home collection rounds per schedule' },
+      { id: 't2', text: 'Positive-ID scan on patient and tube before collection' },
+      { id: 't3', text: 'Label and dispatch tubes to the lab within 30 minutes' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
+    ],
     workQueues: [
       'Home Visit Appointment Route Queue',
       'Specimens in Cold-Chain Coolbox',
@@ -911,6 +1031,12 @@ export const LIS_ROLE_SPECS: Record<string, LisRoleSpec> = {
       { label: 'Printed for Counter Pickup', value: '—', hint: 'Waiting at reception' },
       { label: 'Delivery Failures', value: '—', hint: 'Invalid mobile number' },
       { label: 'Amended Reports Logged', value: '—', hint: 'Version 2 released' },
+    ],
+    tasks: [
+      { id: 't1', text: 'Release verified reports and confirm multi-channel receipts' },
+      { id: 't2', text: 'Process corrections with prior report attached' },
+      { id: 't3', text: 'Chase reports pending sign-off beyond TAT threshold' },
+      { id: 't4', text: 'Escalate STAT orders to the duty pathologist immediately' },
     ],
     workQueues: [
       'Counter Physical Print Queue',
