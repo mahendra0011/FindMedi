@@ -1111,7 +1111,7 @@ const App = () => (
                   <Route path="/doctor-setup" element={<DoctorSetup />} />
                   <Route path="/ambulance-setup" element={<AmbulanceSetup />} />
                   <Route path="/provider-staff-setup" element={<ProviderStaffSetup />} />
-                  <Route path="/search" element={<PublicLayout><SearchPage /></PublicLayout>} />
+                  <Route path="/search" element={<SearchPage />} />
 <Route path="/healthcare" element={<PublicLayout><HealthcarePage /></PublicLayout>} />
  <Route path="/hospitals" element={<PublicLayout><HospitalDirectory /></PublicLayout>} />
                       {/* Browse-by-specialties (spec B-1.4): 13-group tile browser + drill-down */}

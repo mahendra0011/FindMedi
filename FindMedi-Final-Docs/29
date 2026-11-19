@@ -144,3 +144,19 @@ Repo state after the 2026-11-19 pass (HEAD bc985097 + this session's changes):
 - Clinical safety sign-off, and any NMC-rule-engine enforcement beyond the telemedicine consent gate remains legally gated (file 27 S1).
 
 **Still open (human/external/Android):** everything in FindMedi-Final-Docs/26, 27, 28 and the human items in  0-Reference/FindMedi-Open-Items.md (staging UAT, pentest, legal review, store submissions, device verification of FLAG_SECURE/SMS Retriever, usability study).
+
+## Addendum (2026-11-19, later) — Chrome end-to-end + 3 real defects fixed
+
+Environment: local MongoDB (seeded: demo hospital, category tree, 103 provider types, demo provider listing, DOC-role users, specialty articles) + local backend (:5002) + a dedicated Vite instance (:5174, proxy -> :5002). User-owned servers (5173/5001) were not touched.
+
+**Chrome verification (Playwright, screenshots + console/page errors logged):**
+- Public: home, search (live 'Demo General Hospital' card, 4.6 stars), /browse-specialties grid, SPEC.CARDIO detail (8 sub-specialties, Articles tab, seeded medically-reviewed article served by /api/platform-content), join-platform (103 types, 8 groups), facility detail by slug + id, hospital profile, ALL legal pages (/terms, /privacy, /refund-policy, /disclaimer, /community-guidelines, /patient-rights, /grievance, /cookies, /telemedicine-consent, /provider-agreement), /contact, manifest.webmanifest (200 + manifest+json), patient login -> patient dashboard.
+- Dashboards (fresh run after the 3 fixes): 12 roles render (ward_nurse, ot_nurse, pharmacist, clinic_cashier, hod, lawyer, physiotherapist, radiology_technician, hospital_owner, hospital-profile, plus prior set).
+- SEO title: /contact and /facility/:id carry per-page document.title; other routes keep the static title in dev (prerendered heads are a build-time artifact - unchanged behaviour).
+
+**Defects found + fixed this pass:**
+1. Facility detail page FABRICATED a listing ('Apollo City Hospital & Trauma Centre', rating 4.8, 142 reviews, fake prices, verified badge) whenever the requested listing was missing - the 'Apollo City' page was hardcoded in generateFacilityDto(). Exhibited at /facility/<any-missing-id>. FIXED: missing listing -> honest 'Listing not found' page with Search/Home actions; generateFacilityDto deleted; page typecheck + tests pass; search/facility now show only the seeded demo listing.
+2. /search rendered its own PublicNavbar+PublicFooter INSIDE PublicLayout -> double header. FIXED: route renders <SearchPage /> without the extra layout.
+3. maplibre-gl worker failed to load ('Worker failed to load. Check that the worker URL is correct.') on hospital profile/maps. FIXED: worker URL pinned via vite ?url import + maplibregl.setWorkerUrl() in components/ui/map.tsx.
+
+**Honest KPI values remain '-' where the endpoint cannot supply them** (docs 03/07 requirement retained).

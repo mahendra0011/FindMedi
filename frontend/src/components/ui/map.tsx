@@ -10,9 +10,12 @@ import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Feature, LineString } from 'geojson';
 import * as maplibregl from 'maplibre-gl';
+import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { Compass, LocateFixed, Maximize2, Minimize2, Minus, Plus } from 'lucide-react';
 import type { MarkerSmoother } from '../../utils/markerInterpolation';
 import { cn } from '@/lib/utils';
+
+maplibregl.setWorkerUrl(mapWorkerUrl);
 
 const MapContext = React.createContext<MapContextValue | null>(null);
 
